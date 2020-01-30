@@ -1,6 +1,9 @@
 from django.core.exceptions import ImproperlyConfigured
 from ledger.settings_base import *
+import os
 
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+os.environ.setdefault("BASE_DIR", BASE_DIR)
 ROOT_URLCONF = 'disturbance.urls'
 SITE_ID = 1
 DEPT_DOMAINS = env('DEPT_DOMAINS', ['dpaw.wa.gov.au', 'dbca.wa.gov.au'])
