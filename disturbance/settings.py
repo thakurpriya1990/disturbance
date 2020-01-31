@@ -86,7 +86,7 @@ CACHES = {
         'LOCATION': os.path.join(BASE_DIR, 'disturbance', 'cache'),
     }
 }
-STATIC_ROOT=os.path.join(BASE_DIR, 'staticfiles')
+STATIC_ROOT=os.path.join(BASE_DIR, 'staticfiles_ds')
 STATICFILES_DIRS.append(os.path.join(os.path.join(BASE_DIR, 'disturbance', 'static')))
 DEV_STATIC = env('DEV_STATIC',False)
 DEV_STATIC_URL = env('DEV_STATIC_URL')
