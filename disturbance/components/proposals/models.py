@@ -668,6 +668,7 @@ class Proposal(RevisionedMixin):
     def send_referral(self,request,referral_email,referral_text):
         with transaction.atomic():
             try:
+                referral_email = referral_email.lower()
                 if self.processing_status == 'with_assessor' or self.processing_status == 'with_referral':
                     self.processing_status = 'with_referral'
                     self.save()
@@ -905,7 +906,7 @@ class Proposal(RevisionedMixin):
                 #if not self.applicant_address:
                     raise ValidationError('The applicant needs to have set their postal address before approving this proposal.')
 
-                lodgement_number = self.previous_application.approval.lodgement_number if self.proposal_type in ['renewal', 'amendment'] else None # renewals/amendments keep same licence number
+                lodgement_number = self.previous_application.approval.lodgement_number if self.proposal_type in ['renewal', 'amendment'] else '' # renewals/amendments keep same licence number
                 preview_approval = PreviewTempApproval.objects.create(
                     current_proposal = self,
                     issue_date = timezone.now(),
@@ -1627,6 +1628,7 @@ class Referral(models.Model):
     def send_referral(self,request,referral_email,referral_text):
         with transaction.atomic():
             try:
+                referral_email = referral_email.lower()
                 if self.proposal.processing_status == 'with_referral':
                     if request.user != self.referral:
                         raise exceptions.ReferralNotAuthorized()

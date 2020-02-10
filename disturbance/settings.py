@@ -1,11 +1,12 @@
 from django.core.exceptions import ImproperlyConfigured
-from ledger.settings_base import *
+
 import os
 import confy
-
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 confy.read_environment_file(BASE_DIR+"/.env")
 os.environ.setdefault("BASE_DIR", BASE_DIR)
+
+from ledger.settings_base import *
 ROOT_URLCONF = 'disturbance.urls'
 SITE_ID = 1
 DEPT_DOMAINS = env('DEPT_DOMAINS', ['dpaw.wa.gov.au', 'dbca.wa.gov.au'])
@@ -99,7 +100,7 @@ SYSTEM_NAME = env('SYSTEM_NAME', 'Disturbance Approval System')
 SYSTEM_NAME_SHORT = env('SYSTEM_NAME_SHORT', 'DAS')
 SITE_PREFIX = env('SITE_PREFIX')
 SITE_DOMAIN = env('SITE_DOMAIN')
-SUPPORT_EMAIL = env('SUPPORT_EMAIL', SYSTEM_NAME_SHORT.lower() + '@' + SITE_DOMAIN)
+SUPPORT_EMAIL = env('SUPPORT_EMAIL', SYSTEM_NAME_SHORT.lower() + '@' + SITE_DOMAIN).lower()
 DEP_URL = env('DEP_URL','www.' + SITE_DOMAIN)
 DEP_PHONE = env('DEP_PHONE','(08) 9219 9000')
 DEP_PHONE_SUPPORT = env('DEP_PHONE_SUPPORT','(08) 9219 9000')
@@ -108,7 +109,8 @@ DEP_POSTAL = env('DEP_POSTAL','Locked Bag 104, Bentley Delivery Centre, Western 
 DEP_NAME = env('DEP_NAME','Department of Biodiversity, Conservation and Attractions')
 DEP_NAME_SHORT = env('DEP_NAME_SHORT','DBCA')
 SITE_URL = env('SITE_URL', 'https://' + SITE_PREFIX + '.' + SITE_DOMAIN)
-DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', 'no-reply@' + SITE_DOMAIN)
+DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', 'no-reply@' + SITE_DOMAIN).lower()
+CRON_EMAIL = env('CRON_EMAIL', 'cron@' + SITE_DOMAIN).lower()
 TENURE_SECTION = env('TENURE_SECTION', None)
 ASSESSMENT_REMINDER_DAYS = env('ASSESSMENT_REMINDER_DAYS', 15)
 

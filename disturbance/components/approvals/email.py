@@ -147,7 +147,6 @@ def send_approval_surrender_email_notification(approval, future_surrender=False)
         EmailUser.objects.create(email=sender, password='')
         sender_user = EmailUser.objects.get(email__icontains=sender)   
     msg = email.send(proposal.submitter.email, cc=all_ccs, context=context)
-    sender = settings.DEFAULT_FROM_EMAIL    
     _log_approval_email(msg, approval, sender=sender_user)
     _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender_user)
 
