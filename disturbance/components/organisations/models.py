@@ -368,6 +368,19 @@ class Organisation(models.Model):
             # delete contact person
             try:
                 org_contact = OrganisationContact.objects.get(organisation = self,email = delegate.user.email)
+                if org_contact.user_role == 'organisation_admin':
+                    #Last admin user should not be able to make himself user.
+                    if OrganisationContact.objects.filter(organisation = self,user_role = 'organisation_admin', user_status ='active').count() > 1 :
+                        org_contact.user_role ='organisation_user'
+                        org_contact.is_admin = False
+                        org_contact.save()
+                    else:
+                        raise ValidationError('This user is last Organisation Administrator.')
+                else:
+                    org_contact.user_role ='organisation_user'
+                    org_contact.is_admin = False
+                    org_contact.save()
+
                 org_contact.user_role ='organisation_user'
                 org_contact.is_admin = False
                 org_contact.save()
