@@ -84,6 +84,7 @@ class OrganisationViewSet(viewsets.ModelViewSet):
     def contacts(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
+            instance.update_contacts(request)
             serializer = OrganisationContactSerializer(instance.contacts.exclude(user_status='pending'), many=True)
             return Response(serializer.data);
         except serializers.ValidationError:
@@ -529,23 +530,6 @@ class OrganisationViewSet(viewsets.ModelViewSet):
             org.update_organisation(request)
             instance = serializer.save()
             serializer = self.get_serializer(org)
-            return Response(serializer.data);
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e.error_dict))
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
-
-    @detail_route(methods=['GET',])
-    def contacts(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            instance.update_contacts(request)
-            serializer = OrganisationContactSerializer(instance.contacts.all(),many=True)
             return Response(serializer.data);
         except serializers.ValidationError:
             print(traceback.print_exc())

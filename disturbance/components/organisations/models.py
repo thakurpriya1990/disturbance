@@ -98,24 +98,33 @@ class Organisation(models.Model):
     def add_user_contact(self,user,request,admin_flag,role):
         with transaction.atomic():
 
-            OrganisationContact.objects.create(
+            contact, created = OrganisationContact.objects.get_or_create(
                 organisation = self,
                 first_name = user.first_name,
                 last_name = user.last_name,
-                mobile_number = user.mobile_number,
-                phone_number = user.phone_number,
-                fax_number = user.fax_number,
                 email = user.email,
-                user_role = role,
-                user_status='pending',
-                is_admin = admin_flag
-
+                defaults = {
+                    'mobile_number': user.mobile_number,
+                    'phone_number': user.phone_number,
+                    'fax_number': user.fax_number,
+                    'user_role': role,
+                    'user_status': 'pending',
+                    'is_admin': admin_flag
+                }
             )
+
+            if not created:
+                contact.mobile_number = user.mobile_number
+                contact.phone_number = user.phone_number
+                contact.fax_number = user.fax_number
+                contact.user_role = role
+                contact.user_status = 'pending'
+                contact.is_admin = admin_flag
+                contact.save()
 
             # log linking
             self.log_user_action(OrganisationAction.ACTION_CONTACT_ADDED.format('{} {}({})'.format(user.first_name,user.last_name,user.email)),request)
     
-
 
     def update_organisation(self, request):
         # log organisation details updated (eg ../internal/organisations/access/2) - incorrect - this is for OrganisationRequesti not Organisation
