@@ -251,7 +251,7 @@
                         <div class="row">
                             <div class="panel panel-default">
                                 <div class="panel-heading">
-                                    <h3 class="panel-title">Applicant
+                                    <h3 class="panel-title">Applicant ahobaka22222233334
                                         <a class="panelClicker" :href="'#'+detailsBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="detailsBody">
                                             <span class="glyphicon glyphicon-chevron-up pull-right "></span>
                                         </a>
