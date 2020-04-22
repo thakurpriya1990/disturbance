@@ -350,7 +350,6 @@
                                     </h3>
                                 </div>
                                 <div class="panel-body panel-collapse collapse" :id="siteLocations">
-                                    <!--
                                     <MapLocations
                                         :key="defaultKey"
                                         ref="mapLocationsComponent" 
@@ -359,7 +358,6 @@
                                         :marker_latitude="-30" 
                                         @location-updated="locationUpdated"
                                     />
-                                    -->
                                 </div>
                             </div>
                         </div>
