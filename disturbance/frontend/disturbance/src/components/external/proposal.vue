@@ -1,11 +1,11 @@
 <template lang="html">
     <div class="container" >
         <form :action="proposal_form_url" method="post" name="new_proposal" enctype="multipart/form-data">
-          <div v-if="!proposal_readonly">
-            <div v-if="hasAmendmentRequest" class="row" style="color:red;">
+            <div v-if="!proposal_readonly">
+              <div v-if="hasAmendmentRequest" class="row" style="color:red;">
                 <div class="col-lg-12 pull-right">
-                  <div class="panel panel-default">
-                    <div class="panel-heading">
+                    <div class="panel panel-default">
+                      <div class="panel-heading">
                         <h3 class="panel-title" style="color:red;">An amendment has been requested for this Proposal
                           <a class="panelClicker" :href="'#'+pBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="pBody">
                                 <span class="glyphicon glyphicon-chevron-down pull-right "></span>
@@ -28,6 +28,7 @@
             <input type="text" name="region-text"class="form-control" disabled="true">
             -->
 
+            <!--
             <div id="error" v-if="missing_fields.length > 0" style="margin: 10px; padding: 5px; color: red; border:1px solid red;">
                 <b>Please answer the following mandatory question(s):</b>
                 <ul>
@@ -36,31 +37,35 @@
                     </li>
                 </ul>
             </div>
+            -->
 
-<!--             <NewApply v-if="proposal" :proposal="proposal"></NewApply>
- -->            <Proposal v-if="proposal" :proposal="proposal" id="proposalStart" :showSections="sectionShow">
-                  <NewApply v-if="proposal" :proposal="proposal"></NewApply>
+            <div v-if="proposal.application_type=='Apiary'">
+                <ProposalApiary v-if="proposal" :proposal="proposal" id="proposalStart" :showSections="sectionShow"></ProposalApiary>
+            </div>
+            <div v-else>
+                <ProposalDisturbance v-if="proposal" :proposal="proposal" id="proposalStart" :showSections="sectionShow"></ProposalDisturbance>
+                <NewApply v-if="proposal" :proposal="proposal"></NewApply>
+            </div>
 
+            <div>
                 <input type="hidden" name="csrfmiddlewaretoken" :value="csrf_token"/>
                 <input type='hidden' name="schema" :value="JSON.stringify(proposal)" />
                 <input type='hidden' name="proposal_id" :value="1" />
+
                 <div class="row" style="margin-bottom: 50px">
                   <div class="navbar navbar-fixed-bottom" style="background-color: #f5f5f5 ">
                   <div class="navbar-inner">
                     <div v-if="!proposal.readonly" class="container">
                       <p class="pull-right" style="margin-top:5px;">
-                        <!-- <input type="submit" class="btn btn-primary" value="Save and Exit"/> -->
                         <button id="sectionHide" @click.prevent="sectionHide" class="btn btn-primary">Show/Hide sections</button>
                         <input type="button" @click.prevent="save_exit" class="btn btn-primary" value="Save and Exit"/>
                         <input type="button" @click.prevent="save" class="btn btn-primary" value="Save and Continue"/>
 
                         <input v-if="!isSubmitting" type="button" @click.prevent="submit" class="btn btn-primary" value="Submit"/>
                         <button v-else disabled class="btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Submitting</button>
-                        <!-- <input type="submit" class="btn btn-primary" value="Submit"/> -->
 
-                        <!-- hidden 'save_and_continue_btn' used to allow File (file.vue component) to trigger save -->
                         <input id="save_and_continue_btn" type="hidden" @click.prevent="save_wo_confirm" class="btn btn-primary" value="Save Without Confirmation"/>
-                        
+
                       </p>
                     </div>
                     <div v-else class="container">
@@ -71,14 +76,17 @@
                       </p>
                     </div>
                   </div>
-                  </div>  
+                  </div>
                 </div>
-            </Proposal>           
+            </div>
+
         </form>
     </div>
 </template>
 <script>
-import Proposal from '../form.vue'
+import ProposalDisturbance from '../form.vue'
+import ProposalApiary from '../form_apiary.vue'
+//import ProposalApiary from '../form.vue'
 import NewApply from './proposal_apply_new.vue'
 import Vue from 'vue' 
 import {
@@ -105,7 +113,8 @@ export default {
     }
   },
   components: {
-      Proposal,
+      ProposalDisturbance,
+      ProposalApiary,
       NewApply,
   },
   computed: {

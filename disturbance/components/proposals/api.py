@@ -371,7 +371,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 document.hidden=True
                 document.save()
                 instance.save(version_comment='File hidden: {}'.format(document.name)) # to allow revision to be added to reversion history
-            
+
             elif action == 'save' and 'input_name' in request.POST and 'filename' in request.POST:
                 proposal_id = request.POST.get('proposal_id')
                 filename = request.POST.get('filename')
@@ -569,37 +569,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
         serializer = InternalProposalSerializer(instance,context={'request':request})
         return Response(serializer.data)
 
-#    @detail_route(methods=['post'])
-#    @renderer_classes((JSONRenderer,))
-#    def _submit(self, request, *args, **kwargs):
-#        try:
-#            #import ipdb; ipdb.set_trace()
-#            instance = self.get_object()
-#            save_proponent_data(instance,request,self)
-#            missing_fields = missing_required_fields(instance)
-#
-#            if False: #missing_fields:
-#            #if missing_fields:
-#                return Response({'missing_fields': missing_fields})
-#            else:
-#                #raise serializers.ValidationError(repr({'abcde': 123, 'missing_fields':True}))
-#                instance.submit(request,self)
-#                serializer = self.get_serializer(instance)
-#                #import ipdb; ipdb.set_trace()
-#                return Response(serializer.data)
-#        except serializers.ValidationError:
-#            print(traceback.print_exc())
-#            raise
-#        except ValidationError as e:
-#            if hasattr(e,'error_dict'):
-#                raise serializers.ValidationError(repr(e.error_dict))
-#            else:
-#                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
-#        except Exception as e:
-#            print(traceback.print_exc())
-#            raise serializers.ValidationError(str(e))
-
-
     @detail_route(methods=['post'])
     @renderer_classes((JSONRenderer,))
     def submit(self, request, *args, **kwargs):
@@ -623,30 +592,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
-
-#    @detail_route(methods=['post'])
-#    @renderer_classes((JSONRenderer,))
-#    def update_files(self, request, *args, **kwargs):
-#        try:
-#            #import ipdb; ipdb.set_trace()
-#            instance = self.get_object()
-#            instance.update(request,self)
-#            instance.save()
-#            serializer = self.get_serializer(instance)
-#            return Response(serializer.data)
-#            #return redirect(reverse('external'))
-#        except serializers.ValidationError:
-#            print(traceback.print_exc())
-#            raise
-#        except ValidationError as e:
-#            if hasattr(e,'error_dict'):
-#                raise serializers.ValidationError(repr(e.error_dict))
-#            else:
-#                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
-#        except Exception as e:
-#            print(traceback.print_exc())
-#            raise serializers.ValidationError(str(e))
-
 
     @detail_route(methods=['GET',])
     def assign_request_user(self, request, *args, **kwargs):
@@ -977,73 +922,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
         raise serializers.ValidationError(str(e))
 
-#    @detail_route(methods=['post'])
-#    @renderer_classes((JSONRenderer,))
-#    def save_section(self, request, *args, **kwargs):
-#        try:
-#            instance = self.get_object()
-#            save_proponent_data(instance,request,self)
-#            return redirect(reverse('external'))
-#        except serializers.ValidationError:
-#            print(traceback.print_exc())
-#            raise
-#        except ValidationError as e:
-#            raise serializers.ValidationError(repr(e.error_dict))
-#        except Exception as e:
-#            print(traceback.print_exc())
-#        raise serializers.ValidationError(str(e))
-#
-#
-#    @detail_route(methods=['post'])
-#    def _save_section(self, request, *args, **kwargs):
-#        import ipdb; ipdb.set_trace()
-#        try:
-#            instance = self.get_object()
-#
-#            if request.data.has_key('upload_file'):
-#                parent_section = request.data.get('upload_file')['parent_section']
-#                section = request.data.get('upload_file')['section']
-#                filename = request.data.get('upload_file')['filename']
-#                if isinstance(instance.data, list) and instance.data[0].has_key(parent_section): #  parent_section in instance.data[0]['proposalSummarySection'][0]:
-#                    if isinstance(instance.data[0].get(parent_section), list):
-#                        instance.data[0][parent_section][0][section] = filename
-#                    else:
-#                        instance.data[0][parent_section] = [{section: filename}]
-#                else:
-#                    if isinstance(instance.data, list):
-#                        instance.data.append( {parent_section: [{section: filename}]} )
-#                    else:
-#                        # instance.data == None
-#                        instance.data = [ {parent_section: [{section: filename}]} ]
-#                instance.save()
-#                return redirect(reverse('external'))
-#
-#
-#            elif request.data.has_key('delete_file'):
-#                # TODO currently assumes only one file in instance.data section
-#                parent_section = request.data.get('upload_file')['parent_section']
-#                section = request.data.get('delete_file')['section']
-#                filename = request.data.get('delete_file')['filename']
-#                #if section in instance.data[0]['proposalSummarySection'][0]:
-#                #    instance.data[0]['proposalSummarySection'][0][section] = ''
-#                if section in instance.data[0][parent_section][0]:
-#                    instance.data[0][parent_section][0][section] = ''
-#                    instance.save()
-#                    return redirect(reverse('external'))
-#
-#
-#            return redirect(reverse('external'))
-#        except serializers.ValidationError:
-
-#            print(traceback.print_exc())
-#            raise
-#        except ValidationError as e:
-#            raise serializers.ValidationError(repr(e.error_dict))
-#        except Exception as e:
-#            print(traceback.print_exc())
-#        raise serializers.ValidationError(str(e))
-
-
     @detail_route(methods=['post'])
     @renderer_classes((JSONRenderer,))
     def assessor_save(self, request, *args, **kwargs):
@@ -1061,31 +939,38 @@ class ProposalViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(str(e))
 
     def create(self, request, *args, **kwargs):
-        #import ipdb; ipdb.set_trace()
         try:
             http_status = status.HTTP_200_OK
-            application_type = request.data.get('application')
-            region = request.data.get('region')
+            application_type = ApplicationType.objects.get(id=request.data.get('application'))
+
+            region = request.data.get('region') if request.data.get('region') else 1
             district = request.data.get('district')
-            #tenure = request.data.get('tenure')
             activity = request.data.get('activity')
             sub_activity1 = request.data.get('sub_activity1')
             sub_activity2 = request.data.get('sub_activity2')
             category = request.data.get('category')
             approval_level = request.data.get('approval_level')
 
-            application_name = ApplicationType.objects.get(id=application_type).name
+#            region = 1
+#            district = None # 1
+#            activity = '' #'Water Management'
+#            sub_activity1 = '' #'Installation'
+#            sub_activity2 = ''
+#            category = ''
+#            approval_level = '' #'Regional Manager or delegate'
+
+
             # Get most recent versions of the Proposal Types
             qs_proposal_type = ProposalType.objects.all().order_by('name', '-version').distinct('name')
-            proposal_type = qs_proposal_type.get(name=application_name)
-
+            proposal_type = qs_proposal_type.get(name=application_type.name)
 
             data = {
                 #'schema': qs_proposal_type.order_by('-version').first().schema,
                 'schema': proposal_type.schema,
                 'submitter': request.user.id,
                 'applicant': request.data.get('behalf_of'),
-                'application_type': application_type,
+                'application_type': application_type.id,
+                'application_name': application_type.name,
                 'region': region,
                 'district': district,
                 'activity': activity,
@@ -1093,26 +978,21 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 'sub_activity_level1':sub_activity1,
                 'sub_activity_level2':sub_activity2,
                 'management_area':category,
-                #'tenure': tenure,
                 'data': [
-                    # {
-                    #     u'regionActivitySection': [{
-                    #         'Region': Region.objects.get(id=region).name if region else None,
-                    #         'District': District.objects.get(id=district).name if district else None,
-                    #         #'Tenure': Tenure.objects.get(id=tenure).name if tenure else None,
-                    #         #'ApplicationType': ApplicationType.objects.get(id=application_type).name
-                    #         'ActivityType': activity,
-                    #         'Sub-activity level 1': sub_activity1,
-                    #         'Sub-activity level 2': sub_activity2,
-                    #         'Management area': category,
-                    #     }]
-                    # }
-
                 ],
             }
             serializer = SaveProposalSerializer(data=data)
             serializer.is_valid(raise_exception=True)
-            serializer.save()
+            instance=serializer.save()
+
+            if application_type.name == ApplicationType.APIARY:
+                # TODO any APIARY specific settings go here - eg renewal, amendment
+                pass
+            else:
+                pass
+
+            serializer = SaveProposalSerializer(instance)
+            #import ipdb; ipdb.set_trace()
             return Response(serializer.data)
         except Exception as e:
             print(traceback.print_exc())
