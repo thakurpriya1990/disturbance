@@ -1,0 +1,167 @@
+<template lang="html">
+
+  <div class="container">
+    <div class="row" style="padding-bottom: 50px;">
+        <h3>Application: {{ proposal.lodgement_number }}</h3>
+        <h4>Application Type: {{proposal.proposal_type }}</h4>
+
+        <div class="col-md-12">
+            <div class="col-md-3">
+                <p>Site Locations</p>
+            </div>
+
+            <div class="col-md-9">
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h3 class="panel-title">Site Locations<small></small>
+                                <a class="panelClicker" :href="'#'+pBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="pBody">
+                                    <span class="glyphicon glyphicon-chevron-up pull-right "></span>
+                                </a>
+                            </h3>
+                        </div>
+                        <div class="panel-body collapse in" :id="pBody">
+                            <!-- <input v-model="name" placeholder="Enter name"> -->
+                            <TextField type="text" :name="Title" isRequired="true" help_text="help text ..." id="id_title" label="Title"></TextField>
+                            <IFrame width="1000" height="800" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" title="Apiary Sites Beekeeper's Map (WBV)" :src="webmap_src"></IFrame>
+                        </div>
+                    </div>
+
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h3 class="panel-title">Deed Poll<small></small>
+                            <a class="panelClicker" href="#deedPoll" data-toggle="collapse"  data-parent="#userInfo" expanded="true" aria-controls="deedPoll">
+                            <span class="glyphicon glyphicon-chevron-up pull-right "></span>
+                            </a>
+                            </h3>
+                        </div>
+                        <div class="panel-body collapse in" id="deedPoll">
+                                    <div class="row">
+                                        <div class="col-sm-12">
+                                            <label>Print <a :href="deed_poll_url" target="_blank">the deed poll</a>, sign it, have it witnessed and attach it to this application.</label>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-sm-12">
+                                            <FileField :proposal_id="proposal.id" isRepeatable="false" name="deed_poll" :id="'proposal'+proposal.id" :readonly="proposal.readonly" ref="deed_poll_doc"></FileField>
+                                        </div>
+                                    </div>
+                        </div>
+                    </div>
+
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h3 class="panel-title">Checklist<small></small>
+                            <a class="panelClicker" href="#checkList" data-toggle="collapse"  data-parent="#userInfo" expanded="true" aria-controls="checkList">
+                            <span class="glyphicon glyphicon-chevron-up pull-right "></span>
+                            </a>
+                            </h3>
+                        </div>
+                        <div class="panel-body collapse in" id="checkList">
+                                    <div class="row">
+                                        <div class="col-sm-12">
+                                            <label>Checklist items go here (pulled from Django Admin) ...</label>
+                                        </div>
+                                    </div>
+                        </div>
+                    </div>
+            </div>
+
+        </div>
+
+    </div>
+  </div>
+
+</template>
+
+<script>
+
+    import TextField from '@/components/forms/text.vue'
+    import IFrame from '@/components/forms/iframe.vue'
+    import FileField from '@/components/forms/filefield.vue'
+//    import Applicant from '@/components/common/tclass/applicant.vue'
+
+    export default {
+        props:{
+            proposal:{
+                type: Object,
+                required:true
+            },
+            canEditActivities:{
+              type: Boolean,
+              default: true
+            },
+            is_external:{
+              type: Boolean,
+              default: false
+            },
+            is_internal:{
+              type: Boolean,
+              default: false
+            },
+            is_referral:{
+              type: Boolean,
+              default: false
+            },
+            hasReferralMode:{
+                type:Boolean,
+                default: false
+            },
+            hasAssessorMode:{
+                type:Boolean,
+                default: false
+            },
+            referral:{
+                type: Object,
+                required:false
+            },
+            proposal_parks:{
+                type:Object,
+                default:null
+            },
+        },
+        data:function () {
+            let vm=this;
+            return{
+                values:null,
+                pBody: 'pBody'+vm._uid,
+                webmap_src: 'https://dpaw.maps.arcgis.com/apps/Embed/index.html?webmap=d89e2089045c40dcb3d56bafc60dadb3&extent=95.5777,-38.2527,149.5425,-12.3581&home=true&zoom=true&scale=true&search=true&searchextent=true&details=true&basemap_gallery=true&disable_scroll=true&theme=light',
+            }
+        },
+        components: {
+            TextField,
+            IFrame,
+            FileField,
+//            Applicant,
+//            Profile,
+        },
+        computed:{
+          //applicantType: function(){
+          //  return this.proposal.applicant_type;
+          //},
+        },
+        methods:{
+        },
+        mounted: function() {
+            let vm = this;
+            //vm.form = document.forms.new_proposal;
+            //window.addEventListener('beforeunload', vm.leaving);
+            //indow.addEventListener('onblur', vm.leaving);
+        }
+ 
+    }
+</script>
+
+<style lang="css" scoped>
+    .section{
+        text-transform: capitalize;
+    }
+    .list-group{
+        margin-bottom: 0;
+    }
+    .fixed-top{
+        position: fixed;
+        top:56px;
+    }
+
+</style>
+
