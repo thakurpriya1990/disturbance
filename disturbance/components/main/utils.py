@@ -2,6 +2,7 @@ import requests
 import json
 from django.conf import settings
 from django.core.cache import cache
+from django.db import connection
 
 
 def retrieve_department_users():
@@ -25,3 +26,10 @@ def get_department_user(email):
     except:
         raise
 
+def check_db_connection():
+    """  check connection to DB exists, connect if no connection exists """
+    try:
+        if not connection.is_usable():
+            connection.connect()
+    except Exception, e:
+        connection.connect()

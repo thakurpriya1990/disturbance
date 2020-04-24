@@ -28,7 +28,6 @@
             <input type="text" name="region-text"class="form-control" disabled="true">
             -->
 
-            <!--
             <div id="error" v-if="missing_fields.length > 0" style="margin: 10px; padding: 5px; color: red; border:1px solid red;">
                 <b>Please answer the following mandatory question(s):</b>
                 <ul>
@@ -37,10 +36,9 @@
                     </li>
                 </ul>
             </div>
-            -->
 
             <div v-if="proposal.application_type=='Apiary'">
-                <ProposalApiary v-if="proposal" :proposal="proposal" id="proposalStart" :showSections="sectionShow"></ProposalApiary>
+                <ProposalApiary v-if="proposal" :proposal="proposal" id="proposalStart" :showSections="sectionShow" ref="proposal_apiary" :is_external="true"></ProposalApiary>
             </div>
             <div v-else>
                 <ProposalDisturbance v-if="proposal" :proposal="proposal" id="proposalStart" :showSections="sectionShow"></ProposalDisturbance>
@@ -139,6 +137,7 @@ export default {
   methods: {
     save: function(e) {
       let vm = this;
+      vm.form=document.forms.new_proposal;
       let formData = new FormData(vm.form);
       console.log(formData);
       vm.$http.post(vm.proposal_form_url,formData).then(res=>{
@@ -152,6 +151,7 @@ export default {
     },
     save_exit: function(e) {
       let vm = this;
+      vm.form=document.forms.new_proposal;
       this.submitting = true;
       this.save(e);
 
@@ -163,6 +163,7 @@ export default {
 
     save_wo_confirm: function(e) {
       let vm = this;
+      vm.form=document.forms.new_proposal;
       let formData = new FormData(vm.form);
       vm.$http.post(vm.proposal_form_url,formData);
     },
@@ -341,6 +342,7 @@ export default {
 
     submit: function(){
         let vm = this;
+        vm.form=document.forms.new_proposal;
         let formData = new FormData(vm.form);
 
         var num_missing_fields = vm.validate()

@@ -5,6 +5,13 @@
         <h3>Application: {{ proposal.lodgement_number }}</h3>
         <h4>Application Type: {{proposal.proposal_type }}</h4>
 
+        <div v-if is_external>
+            <h4>Status: {{proposal.customer_status }}</h4>
+        </div>
+        <div v-else>
+            <h4>Status: {{proposal.processing_status }}</h4>
+        </div>
+
         <div class="col-md-12">
             <div class="col-md-3">
                 <p>Site Locations</p>
@@ -20,8 +27,21 @@
                             </h3>
                         </div>
                         <div class="panel-body collapse in" :id="pBody">
-                            <!-- <input v-model="name" placeholder="Enter name"> -->
-                            <TextField type="text" :name="Title" isRequired="true" help_text="help text ..." id="id_title" label="Title"></TextField>
+                            <span>
+                                <label :id="id" for="label" class="inline" >Title</label>
+                                <a href="" @click.prevent="toggleHelpText"><i class="fa fa-question-circle" style="color:blue">&nbsp;</i></a>
+                                <div v-show="showingHelpText">
+                                    <p class="col-md-9" v-html="help_text"></p>
+                                </div>
+                            </span>
+                            <input type="text" class="form-control" v-model="proposal.apiary_site_location.title" name="title" :disabled="proposal.readonly">
+                            <!--
+                            <input type="text" class="form-control" v-model="proposal.apiary_site_location.title" name="title">
+                            <TextField type="text" @value="proposal.apiary_site_location.title=$event" :value="proposal.apiary_site_location.title" name="title" isRequired="true" help_text="help text ..." id="id_title" label="Title""></TextField>
+                            <TextField type="text" value="assigned_officer" name="assigned_officer" isRequired="true" help_text="help text ..." id="id_title" label="Title""></TextField>
+                            -->
+                        </div>
+                        <div>
                             <IFrame width="1000" height="800" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" title="Apiary Sites Beekeeper's Map (WBV)" :src="webmap_src"></IFrame>
                         </div>
                     </div>
@@ -78,7 +98,6 @@
     import TextField from '@/components/forms/text.vue'
     import IFrame from '@/components/forms/iframe.vue'
     import FileField from '@/components/forms/filefield.vue'
-//    import Applicant from '@/components/common/tclass/applicant.vue'
 
     export default {
         props:{
@@ -124,30 +143,49 @@
             return{
                 values:null,
                 pBody: 'pBody'+vm._uid,
-                webmap_src: 'https://dpaw.maps.arcgis.com/apps/Embed/index.html?webmap=d89e2089045c40dcb3d56bafc60dadb3&extent=95.5777,-38.2527,149.5425,-12.3581&home=true&zoom=true&scale=true&search=true&searchextent=true&details=true&basemap_gallery=true&disable_scroll=true&theme=light',
+                webmap_src: 'https://dpaw.maps.arcgis.com/apps/Embed/index.html?webmap=1d956bc5513e40568a4f01950906b64b&extent=95.5777,-38.2527,149.5425,-12.3581&home=true&zoom=true&scale=true&search=true&searchextent=true&details=true&disable_scroll=true&theme=light',
+                title: '',
+                site_title: '',
+                showingHelpText: false,
+                help_text: 'My Help text ...',
             }
         },
         components: {
             TextField,
             IFrame,
             FileField,
-//            Applicant,
-//            Profile,
         },
         computed:{
-          //applicantType: function(){
-          //  return this.proposal.applicant_type;
-          //},
+//            readonly: function(){
+//                return !this.hasReferralMode && !this.hasAssessorMode ? true : false;
+//            },
+
         },
+        watch:{
+//            title: function(){
+//                let vm=this;
+//                if (vm.proposal){
+//                    vm.proposal.apiary_site_location.title = vm.title;
+//                }
+//            }
+        },
+
         methods:{
+//            mytest: function(){
+//                let vm=this;
+//                if (vm.proposal){
+//                    vm.proposal.apiary_site_location.title = vm.title;
+//                }
+//            },
+            toggleHelpText(){
+                this.showingHelpText = ! this.showingHelpText;
+            },
         },
         mounted: function() {
             let vm = this;
             //vm.form = document.forms.new_proposal;
-            //window.addEventListener('beforeunload', vm.leaving);
-            //indow.addEventListener('onblur', vm.leaving);
         }
- 
+
     }
 </script>
 

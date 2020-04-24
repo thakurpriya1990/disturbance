@@ -1,7 +1,9 @@
 <template lang="html">
     <div class="row">
 
-        <SiteLocation v-if="proposal" :proposal="proposal" id="site_locations"></SiteLocation>
+      <div class="form-group">
+        <SiteLocation v-if="proposal" :proposal="proposal" id="site_locations" ref="apiary_site_location" :is_external="is_external"></SiteLocation>
+      </div>
 
     </div>
 </template>

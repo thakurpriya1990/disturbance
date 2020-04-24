@@ -4,9 +4,21 @@ from preserialize.serialize import serialize
 from ledger.accounts.models import EmailUser, Document
 from disturbance.components.proposals.models import ProposalDocument, ProposalUserAction
 from disturbance.components.proposals.serializers import SaveProposalSerializer
+
+from disturbance.components.main.models import ApplicationType
+from disturbance.components.proposals.models import (
+    ProposalApiarySiteLocation,
+    #ProposalApiaryTemporaryUse,
+    #ProposalApiarySiteTransfer,
+)
+from disturbance.components.proposals.serializers_apiary import (
+    ProposalApiarySiteLocationSerializer,
+    ProposalApiaryTemporaryUseSerializer,
+    ProposalApiarySiteTransferSerializer,
+)
+
 import traceback
 import os
-
 import json
 
 import logging
@@ -319,7 +331,56 @@ class SpecialFieldsSearch(object):
         return item_data
 
 
+# -------------------------------------------------------------------------------------------------------------
+# APIARY Section starts here
+# -------------------------------------------------------------------------------------------------------------
+
 def save_proponent_data(instance,request,viewset):
+    if instance.application_type.name==ApplicationType.APIARY:
+        save_proponent_data_apiary(instance,request,viewset)
+    else:
+        save_proponent_data_disturbance(instance,request,viewset)
+
+
+def save_proponent_data_apiary(instance,request,viewset):
+    with transaction.atomic():
+        try:
+            data = {
+            }
+
+            try:
+                schema = request.data.get('schema')
+            except:
+                schema = request.POST.get('schema')
+
+            import ipdb; ipdb.set_trace()
+            sc = json.loads(schema)
+
+            #save Site Locations data
+            site_location_data =sc.get('apiary_site_location')
+            if site_location_data:
+                serializer = ProposalApiarySiteLocationSerializer(instance.apiary_site_location, data=site_location_data)
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+
+            #save Temporary Use data
+            temporary_use_data = sc.get('apiary_temporary_use')
+            if temporary_use_data:
+                serializer = ProposalApiaryTemporaryUseSerializer(instance.apiary_temporary_use, data=temporary_use_data)
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+
+            #save Site Transfer data
+            site_transfer_data = sc.get('apiary_site_transfer')
+            if site_transfer_data:
+                serializer = ProposalApiarySiteTransferSerializer(instance.apiary_site_transfer, data=site_transfer_data)
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+
+        except:
+            raise
+
+def save_proponent_data_disturbance(instance,request,viewset):
     with transaction.atomic():
         try:
             lookable_fields = ['isTitleColumnForDashboard','isActivityColumnForDashboard','isRegionColumnForDashboard']

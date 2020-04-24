@@ -39,6 +39,15 @@ def update_proposal_comms_log_filename(instance, filename):
 def update_amendment_request_doc_filename(instance, filename):
     return 'proposals/{}/amendment_request_documents/{}'.format(instance.amendment_request.proposal.id,filename)
 
+def update_apiary_doc_filename(instance, filename):
+    return 'proposals/{}/apiary_documents/{}'.format(instance.apiary_documents.proposal.id, filename)
+
+#def update_temporary_use_doc_filename(instance, filename):
+#    return 'proposals/{}/apiary_temporary_use_documents/{}'.format(instance.apiary_temporary_use.proposal.id, filename)
+#
+#def update_site_transfer_doc_filename(instance, filename):
+#    return 'proposals/{}/apiary_site_transfer_documents/{}'.format(instance.apiary_site_transfer.proposal.id, filename)
+
 
 def application_type_choicelist():
     try:
@@ -182,6 +191,21 @@ class ProposalApproverGroup(models.Model):
     @property
     def members_email(self):
         return [i.email for i in self.members.all()]
+
+class DefaultDocument(Document):
+    input_name = models.CharField(max_length=255,null=True,blank=True)
+    can_delete = models.BooleanField(default=True) # after initial submit prevent document from being deleted
+    visible = models.BooleanField(default=True) # to prevent deletion on file system, hidden and still be available in history
+
+    class Meta:
+        app_label = 'disturbance'
+        abstract =True
+
+    def delete(self):
+        if self.can_delete:
+            return super(DefaultDocument, self).delete()
+        logger.info('Cannot delete existing document object after Application has been submitted (including document submitted before Application pushback to status Draft): {}'.format(self.name))
+
 
 class ProposalDocument(Document):
     proposal = models.ForeignKey('Proposal',related_name='documents')
@@ -553,14 +577,14 @@ class Proposal(RevisionedMixin):
         if qs:
             return True
         return False
-    
-    
+
+
     def referral_email_list(self,user):
         qs=self.referrals.all()
         email_list=[]
         if self.assigned_officer:
             email_list.append(self.assigned_officer.email)
-        else: 
+        else:
             email_list.append(user.email)
         if qs:
             for r in qs:
@@ -568,7 +592,7 @@ class Proposal(RevisionedMixin):
         separator=', '
         email_list_string=separator.join(email_list)
         return email_list_string
-    
+
 
 
     def can_assess(self,user):
@@ -619,11 +643,13 @@ class Proposal(RevisionedMixin):
             if self.can_user_edit:
                 # Save the data first
                 save_proponent_data(self,request,viewset)
-                # Check if the special fields have been completed
-                missing_fields = self.__check_proposal_filled_out()
-                if missing_fields:
-                    error_text = 'The proposal has these missing fields, {}'.format(','.join(missing_fields))
-                    raise exceptions.ProposalMissingFields(detail=error_text)
+                #import ipdb; ipdb.set_trace()
+                if self.application_type.name != ApplicationType.APIARY:
+                    # Check if the special fields have been completed
+                    missing_fields = self.__check_proposal_filled_out()
+                    if missing_fields:
+                        error_text = 'The proposal has these missing fields, {}'.format(','.join(missing_fields))
+                        raise exceptions.ProposalMissingFields(detail=error_text)
                 self.submitter = request.user
                 #self.lodgement_date = datetime.datetime.strptime(timezone.now().strftime('%Y-%m-%d'),'%Y-%m-%d').date()
                 self.lodgement_date = timezone.now()
@@ -1829,12 +1855,6 @@ def search_reference(reference_number):
         raise ValidationError('Record with provided reference number does not exist')
 
 
-
-
-
-
-
-
 from ckeditor.fields import RichTextField
 class HelpPage(models.Model):
     HELP_TEXT_EXTERNAL = 1
@@ -1853,6 +1873,75 @@ class HelpPage(models.Model):
     class Meta:
         app_label = 'disturbance'
         unique_together = ('application_type', 'help_type', 'version')
+
+
+# --------------------------------------------------------------------------------------
+# Apiary Models Start
+# --------------------------------------------------------------------------------------
+
+class ProposalApiarySiteLocation(models.Model):
+    title = models.CharField('Title', max_length=200, null=True)
+    proposal = models.OneToOneField(Proposal, related_name='apiary_site_location', null=True)
+
+    def __str__(self):
+        return '{}'.format(self.title)
+
+    class Meta:
+        app_label = 'disturbance'
+
+
+class ProposalApiaryTemporaryUse(models.Model):
+    from_date=models.DateField('Period From Date', blank=True, null=True)
+    to_date=models.DateField('Period To Date', blank=True, null=True)
+    proposal = models.OneToOneField(Proposal, related_name='apiary_temporary_use', null=True)
+
+    def __str__(self):
+        return '{}'.format(self.title)
+
+    class Meta:
+        app_label = 'disturbance'
+
+
+class ProposalApiarySiteTransfer(models.Model):
+    email = models.EmailField('Email of Transferee', max_length=254, blank=True, null=True)
+    proposal = models.OneToOneField(Proposal, related_name='apiary_site_transfer', null=True)
+
+    def __str__(self):
+        return '{}'.format(self.title)
+
+    class Meta:
+        app_label = 'disturbance'
+
+
+class ProposalApiaryDocument(DefaultDocument):
+    proposal = models.ForeignKey('Proposal', related_name='apiary_documents')
+    _file = models.FileField(upload_to=update_apiary_doc_filename, max_length=512)
+
+    def delete(self):
+        if self.can_delete:
+            return super(ApiarySiteLocationDocument, self).delete()
+
+#class ApiaryTemporaryUseDocument(DefaultDocument):
+#    temporary_use = models.ForeignKey('ProposalApiaryTemporaryUse', related_name='apiary_temporary_use_documents')
+#    _file = models.FileField(upload_to=update_temporary_use_doc_filename, max_length=512)
+#
+#    def delete(self):
+#        if self.can_delete:
+#            return super(ApiarySiteLocationDocument, self).delete()
+#
+#class ApiarySiteTransferDocument(DefaultDocument):
+#    site_transfer = models.ForeignKey('ProposalApiarySiteTransfer', related_name='apiary_site_transfer_documents')
+#    _file = models.FileField(upload_to=update_site_transfer_doc_filename, max_length=512)
+#
+#    def delete(self):
+#        if self.can_delete:
+#            return super(ApiarySiteLocationDocument, self).delete()
+
+
+
+# --------------------------------------------------------------------------------------
+# Apiary Models End
+# --------------------------------------------------------------------------------------
 
 
 import reversion

@@ -29,6 +29,7 @@ from datetime import datetime, timedelta, date
 from disturbance.components.proposals.utils import save_proponent_data,save_assessor_data
 from disturbance.components.proposals.models import searchKeyWords, search_reference, ProposalUserAction
 from disturbance.utils import missing_required_fields, search_tenure
+from disturbance.components.main.utils import check_db_connection
 
 from django.urls import reverse
 from django.shortcuts import render, redirect, get_object_or_404
@@ -68,6 +69,12 @@ from disturbance.components.proposals.serializers import (
     ProposalReferralSerializer,
     AmendmentRequestDisplaySerializer,
     SaveProposalRegionSerializer,
+)
+from disturbance.components.proposals.serializers_apiary import (
+    ProposalApiarySerializer,
+    ProposalApiarySiteLocationSerializer,
+    ProposalApiaryTemporaryUseSerializer,
+    ProposalApiarySiteTransferSerializer,
 )
 from disturbance.components.approvals.models import Approval
 from disturbance.components.approvals.serializers import ApprovalSerializer
@@ -322,6 +329,61 @@ class ProposalViewSet(viewsets.ModelViewSet):
         logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return Proposal.objects.none()
 
+    def get_object(self):
+
+        check_db_connection()
+        try:
+            obj = super(ProposalViewSet, self).get_object()
+        except Exception, e:
+            # because current queryset excludes migrated licences
+            #import ipdb; ipdb.set_trace()
+            #obj = get_object_or_404(Proposal, id=self.kwargs['id'])
+            obj_id = self.kwargs['id'] if 'id' in self.kwargs else self.kwargs['pk']
+            obj = get_object_or_404(Proposal, id=obj_id)
+        return obj
+
+    def get_serializer_class(self):
+        try:
+            #import ipdb; ipdb.set_trace()
+            #application_type = Proposal.objects.get(id=self.kwargs.get('pk')).application_type.name
+            application_type = self.get_object().application_type.name
+            if application_type == ApplicationType.APIARY:
+                return ProposalApiarySerializer
+            else:
+                return ProposalSerializer
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            if hasattr(e,'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    def internal_serializer_class(self):
+        try:
+            #import ipdb; ipdb.set_trace()
+            #application_type = Proposal.objects.get(id=self.kwargs.get('pk')).application_type.name
+            application_type = self.get_object().application_type.name
+            if application_type == ApplicationType.APIARY:
+                return InternalApiaryProposalSerializer
+            else:
+                return InternalProposalSerializer
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            if hasattr(e,'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
     @list_route(methods=['GET',])
     def filter_list(self, request, *args, **kwargs):
         """ Used by the internal/external dashboard filters """
@@ -566,7 +628,9 @@ class ProposalViewSet(viewsets.ModelViewSet):
     def internal_proposal(self, request, *args, **kwargs):
         instance = self.get_object()
         instance.internal_view_log(request)
-        serializer = InternalProposalSerializer(instance,context={'request':request})
+        #serializer = InternalProposalSerializer(instance,context={'request':request})
+        serializer_class = self.internal_serializer_class()
+        serializer = serializer_class(instance,context={'request':request})
         return Response(serializer.data)
 
     @detail_route(methods=['post'])
@@ -576,7 +640,8 @@ class ProposalViewSet(viewsets.ModelViewSet):
             #import ipdb; ipdb.set_trace()
             instance = self.get_object()
             instance.submit(request,self)
-            instance.tenure = search_tenure(instance)
+            if instance.application_type.name != ApplicationType.APIARY:
+              instance.tenure = search_tenure(instance)
             instance.save()
             serializer = self.get_serializer(instance)
             return Response(serializer.data)
@@ -598,7 +663,9 @@ class ProposalViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             instance.assign_officer(request,request.user)
-            serializer = InternalProposalSerializer(instance,context={'request':request})
+            i#serializer = InternalProposalSerializer(instance,context={'request':request})
+            serializer_class = self.internal_serializer_class()
+            serializer = serializer_class(instance,context={'request':request})
             return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
@@ -623,7 +690,9 @@ class ProposalViewSet(viewsets.ModelViewSet):
             except EmailUser.DoesNotExist:
                 raise serializers.ValidationError('A user with the id passed in does not exist')
             instance.assign_officer(request,user)
-            serializer = InternalProposalSerializer(instance,context={'request':request})
+            #serializer = InternalProposalSerializer(instance,context={'request':request})
+            serializer_class = self.internal_serializer_class()
+            serializer = serializer_class(instance,context={'request':request})
             return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
@@ -640,7 +709,9 @@ class ProposalViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             instance.unassign(request)
-            serializer = InternalProposalSerializer(instance,context={'request':request})
+            #serializer = InternalProposalSerializer(instance,context={'request':request})
+            serializer_class = self.internal_serializer_class()
+            serializer = serializer_class(instance,context={'request':request})
             return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
@@ -664,7 +735,9 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 if not status in ['with_assessor','with_assessor_requirements','with_approver']:
                     raise serializers.ValidationError('The status provided is not allowed')
             instance.move_to_status(request,status, approver_comment)
-            serializer = InternalProposalSerializer(instance,context={'request':request})
+            #serializer = InternalProposalSerializer(instance,context={'request':request})
+            serializer_class = self.internal_serializer_class()
+            serializer = serializer_class(instance,context={'request':request})
             return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
@@ -689,7 +762,9 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 if not status in ['with_approver']:
                     raise serializers.ValidationError('The status provided is not allowed')
             instance.reissue_approval(request,status)
-            serializer = InternalProposalSerializer(instance,context={'request':request})
+            #serializer = InternalProposalSerializer(instance,context={'request':request})
+            serializer_class = self.internal_serializer_class()
+            serializer = serializer_class(instance,context={'request':request})
             return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
@@ -733,7 +808,9 @@ class ProposalViewSet(viewsets.ModelViewSet):
             serializer = ProposedApprovalSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             instance.proposed_approval(request,serializer.validated_data)
-            serializer = InternalProposalSerializer(instance,context={'request':request})
+            #serializer = InternalProposalSerializer(instance,context={'request':request})
+            serializer_class = self.internal_serializer_class()
+            serializer = serializer_class(instance,context={'request':request})
             return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
@@ -752,7 +829,9 @@ class ProposalViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             instance = instance.assing_approval_level_document(request)
-            serializer = InternalProposalSerializer(instance,context={'request':request})
+            #serializer = InternalProposalSerializer(instance,context={'request':request})
+            serializer_class = self.internal_serializer_class()
+            serializer = serializer_class(instance,context={'request':request})
             return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
@@ -771,7 +850,9 @@ class ProposalViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             instance = instance.save_approval_level_comment(request)
-            serializer = InternalProposalSerializer(instance,context={'request':request})
+            #serializer = InternalProposalSerializer(instance,context={'request':request})
+            serializer_class = self.internal_serializer_class()
+            serializer = serializer_class(instance,context={'request':request})
             return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
@@ -792,7 +873,9 @@ class ProposalViewSet(viewsets.ModelViewSet):
             serializer = ProposedApprovalSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             instance.final_approval(request,serializer.validated_data)
-            serializer = InternalProposalSerializer(instance,context={'request':request})
+            #serializer = InternalProposalSerializer(instance,context={'request':request})
+            serializer_class = self.internal_serializer_class()
+            serializer = serializer_class(instance,context={'request':request})
             return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
@@ -813,7 +896,9 @@ class ProposalViewSet(viewsets.ModelViewSet):
             serializer = PropedDeclineSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             instance.proposed_decline(request,serializer.validated_data)
-            serializer = InternalProposalSerializer(instance,context={'request':request})
+            #serializer = InternalProposalSerializer(instance,context={'request':request})
+            serializer_class = self.internal_serializer_class()
+            serializer = serializer_class(instance,context={'request':request})
             return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
@@ -834,7 +919,9 @@ class ProposalViewSet(viewsets.ModelViewSet):
             serializer = PropedDeclineSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             instance.final_decline(request,serializer.validated_data)
-            serializer = InternalProposalSerializer(instance,context={'request':request})
+            #serializer = InternalProposalSerializer(instance,context={'request':request})
+            serializer_class = self.internal_serializer_class()
+            serializer = serializer_class(instance,context={'request':request})
             return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
@@ -857,7 +944,9 @@ class ProposalViewSet(viewsets.ModelViewSet):
             #text=serializer.validated_data['text']
             #instance.send_referral(request,serializer.validated_data['email'])
             instance.send_referral(request,serializer.validated_data['email'], serializer.validated_data['text'])
-            serializer = InternalProposalSerializer(instance,context={'request':request})
+            #serializer = InternalProposalSerializer(instance,context={'request':request})
+            serializer_class = self.internal_serializer_class()
+            serializer = serializer_class(instance,context={'request':request})
             return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
@@ -943,22 +1032,14 @@ class ProposalViewSet(viewsets.ModelViewSet):
             http_status = status.HTTP_200_OK
             application_type = ApplicationType.objects.get(id=request.data.get('application'))
 
-            region = request.data.get('region') if request.data.get('region') else 1
+            #region = request.data.get('region') if request.data.get('region') else 1
+            region = request.data.get('region')
             district = request.data.get('district')
             activity = request.data.get('activity')
             sub_activity1 = request.data.get('sub_activity1')
             sub_activity2 = request.data.get('sub_activity2')
             category = request.data.get('category')
             approval_level = request.data.get('approval_level')
-
-#            region = 1
-#            district = None # 1
-#            activity = '' #'Water Management'
-#            sub_activity1 = '' #'Installation'
-#            sub_activity2 = ''
-#            category = ''
-#            approval_level = '' #'Regional Manager or delegate'
-
 
             # Get most recent versions of the Proposal Types
             qs_proposal_type = ProposalType.objects.all().order_by('name', '-version').distinct('name')
@@ -970,7 +1051,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 'submitter': request.user.id,
                 'applicant': request.data.get('behalf_of'),
                 'application_type': application_type.id,
-                'application_name': application_type.name,
                 'region': region,
                 'district': district,
                 'activity': activity,
@@ -987,7 +1067,21 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
             if application_type.name == ApplicationType.APIARY:
                 # TODO any APIARY specific settings go here - eg renewal, amendment
-                pass
+                details_data={
+                    'proposal': instance.id
+                }
+
+                serializer=ProposalApiarySiteLocationSerializer(data=details_data)
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+
+                serializer=ProposalApiaryTemporaryUseSerializer(data=details_data)
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+
+                serializer=ProposalApiarySiteTransferSerializer(data=details_data)
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
             else:
                 pass
 
@@ -1110,7 +1204,9 @@ class ReferralViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             instance.remind(request)
-            serializer = InternalProposalSerializer(instance.proposal,context={'request':request})
+            #serializer = InternalProposalSerializer(instance.proposal,context={'request':request})
+            serializer_class = self.internal_serializer_class()
+            serializer = serializer_class(instance,context={'request':request})
             return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
@@ -1127,7 +1223,9 @@ class ReferralViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             instance.recall(request)
-            serializer = InternalProposalSerializer(instance.proposal,context={'request':request})
+            #serializer = InternalProposalSerializer(instance.proposal,context={'request':request})
+            serializer_class = self.internal_serializer_class()
+            serializer = serializer_class(instance,context={'request':request})
             return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
@@ -1144,7 +1242,9 @@ class ReferralViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             instance.resend(request)
-            serializer = InternalProposalSerializer(instance.proposal,context={'request':request})
+            #serializer = InternalProposalSerializer(instance.proposal,context={'request':request})
+            serializer_class = self.internal_serializer_class()
+            serializer = serializer_class(instance,context={'request':request})
             return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
