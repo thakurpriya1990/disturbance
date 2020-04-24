@@ -338,6 +338,31 @@
                             </div>
                         </div>
                     </div>
+
+                    <div class="col-md-12">
+                        <div class="row">
+                            <div class="panel panel-default">
+                                <div class="panel-heading">
+                                    <h3 class="panel-title">Site Locations
+                                        <a class="panelClicker" :href="'#'+siteLocations" data-toggle="collapse"  data-parent="#userInfo" expanded="false" :aria-controls="siteLocations">
+                                            <span class="glyphicon glyphicon-chevron-down pull-right "></span>
+                                        </a>
+                                    </h3>
+                                </div>
+                                <div class="panel-body panel-collapse collapse" :id="siteLocations">
+                                    <MapLocations
+                                        :key="defaultKey"
+                                        ref="mapLocationsComponent" 
+                                        :readonly="false"
+                                        :marker_longitude="130" 
+                                        :marker_latitude="-30" 
+                                        @location-updated="locationUpdated"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="col-md-12">
                         <div class="row">
                             <form :action="proposal_form_url" method="post" name="new_proposal" enctype="multipart/form-data">
@@ -384,11 +409,8 @@ import ApprovalScreen from './proposal_approval.vue'
 import CommsLogs from '@common-utils/comms_logs.vue'
 import MoreReferrals from '@common-utils/more_referrals.vue'
 import ResponsiveDatatablesHelper from "@/utils/responsive_datatable_helper.js"
-import {
-    api_endpoints,
-    helpers
-}
-from '@/utils/hooks'
+import { api_endpoints, helpers } from '@/utils/hooks'
+import MapLocations from '@common-utils/map_locations.vue'
 export default {
     name: 'InternalProposal',
     data: function() {
@@ -397,6 +419,8 @@ export default {
             detailsBody: 'detailsBody'+vm._uid,
             addressBody: 'addressBody'+vm._uid,
             contactsBody: 'contactsBody'+vm._uid,
+            siteLocations: 'siteLocations'+vm._uid,
+            defaultKey: "aho",
             "proposal": null,
             "original_proposal": null,
             "loading": [],
@@ -468,6 +492,7 @@ export default {
         CommsLogs,
         MoreReferrals,
         NewApply,
+        MapLocations,
     },
     filters: {
         formatDate: function(data){
@@ -529,6 +554,9 @@ export default {
         },
     },
     methods: {
+        locationUpdated: function(){
+            console.log('in locationUpdated()');
+        },
         checkAssessorData: function(){
             //check assessor boxes and clear value of hidden assessor boxes so it won't get printed on approval pdf.
 

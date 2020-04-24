@@ -4,6 +4,7 @@ from django.conf.urls.static import static
 from rest_framework import routers
 from disturbance import views
 from disturbance.admin import disturbance_admin_site
+from disturbance.components.main.views import GeocodingAddressSearchTokenView
 from disturbance.components.proposals import views as proposal_views
 from disturbance.components.organisations import views as organisation_views
 
@@ -51,11 +52,14 @@ api_patterns = [
     url(r'^api/compliance_amendment_reason_choices',compliances_api.ComplianceAmendmentReasonChoicesView.as_view(),name='amendment_request_reason_choices'),
     url(r'^api/search_keywords',proposal_api.SearchKeywordsView.as_view(),name='search_keywords'),
     url(r'^api/search_reference',proposal_api.SearchReferenceView.as_view(),name='search_reference'),
+    url(r'^api/geocoding_address_search_token',
+        GeocodingAddressSearchTokenView.as_view(),
+        name='geocoding_address_search_token'),
 ]
 
 # URL Patterns
 urlpatterns = [
-    url(r'^admin/', disturbance_admin_site.urls),
+                  url(r'^admin/', disturbance_admin_site.urls),
     url(r'', include(api_patterns)),
     url(r'^$', views.DisturbanceRoutingView.as_view(), name='ds_home'),
     url(r'^contact/', views.DisturbanceContactView.as_view(), name='ds_contact'),
