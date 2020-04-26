@@ -20,13 +20,13 @@
                 </div>
                 <div class="panel-body collapse in" :id="pBody">
                     <span class="col-sm-12">
-                        <TextField type="text" :value="proposal.apiary_site_location.title" name="site_location_title" isRequired="true" help_text="help text ..." id="id_title" label="Title" :readonly="is_internal"></TextField>
+                        <TextField type="text" :value="proposal.apiary_site_location.title" name="site_location_title" isRequired="true" help_text="help text ..." id="id_title" label="Title" :readonly="is_internal || !proposal.can_user_edit"></TextField>
                     </span>
                     <span class="col-sm-6">
-                        <TextField type="text" :value="proposal.apiary_site_location.location.coordinates[0]" name="site_location_latitude" isRequired="true" id="id_latitude" label="Latitude" :readonly="is_internal"></TextField>
+                        <TextField type="text" :value="proposal.apiary_site_location.latitude" name="site_location_latitude" isRequired="true" id="id_latitude" label="Latitude" :readonly="is_internal || !proposal.can_user_edit"></TextField>
                     </span>
                     <span class="col-sm-6">
-                        <TextField type="text" :value="proposal.apiary_site_location.location.coordinates[1]" name="site_location_longitude" isRequired="true" id="id_longitude" label="Longitude" :readonly="is_internal"></TextField>
+                        <TextField type="text" :value="proposal.apiary_site_location.longitude" name="site_location_longitude" isRequired="true" id="id_longitude" label="Longitude" :readonly="is_internal || !proposal.can_user_edit"></TextField>
                     </span>
 
                     <!-- The below commented out block is equivalent to the <TextField> above for 'title'
@@ -142,8 +142,11 @@
                 values:null,
                 pBody: 'pBody'+vm._uid,
                 webmap_src: 'https://dpaw.maps.arcgis.com/apps/Embed/index.html?webmap=1d956bc5513e40568a4f01950906b64b&extent=95.5777,-38.2527,149.5425,-12.3581&home=true&zoom=true&scale=true&search=true&searchextent=true&details=true&disable_scroll=true&theme=light',
-                //title: vm.proposal.apiary_site_location.title,
-                site_title: '',
+                //title: proposal.apiary_site_location.title,
+                //latitude: proposal.apiary_site_location.location ? proposal.apiary_site_location.location.coordinates[0] : 2yy'',
+                //longitude: proposal.apiary_site_location ? proposal.apiary_site_location.location.coordinates[1] : '',
+                //latitude: -100,
+                //longitude: 100,
                 showingHelpText: false,
                 help_text: 'My Help text ...',
             }

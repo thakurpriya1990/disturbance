@@ -25,8 +25,14 @@ class ProposalApiarySiteLocationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ProposalApiarySiteLocation
-        fields = ('id', 'title', 'proposal', 'location')
+        fields = ('id', 'title', 'proposal', 'latitude', 'longitude')
         #fields = '__all__'
+
+    def get_latitude(self,obj):
+        return obj.latitude
+
+    def get_longitude(self,obj):
+        return obj.longitude
 
 
 class ProposalApiaryTemporaryUseSerializer(serializers.ModelSerializer):

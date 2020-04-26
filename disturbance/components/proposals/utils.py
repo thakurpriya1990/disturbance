@@ -355,15 +355,17 @@ def save_proponent_data_apiary(instance,request,viewset):
                 schema = request.POST.get('schema')
 
             sc = json.loads(schema)
-            #import ipdb; ipdb.set_trace()
 
             #save Site Locations data
+            #import ipdb; ipdb.set_trace()
             site_location_data =sc.get('apiary_site_location')
 
             if site_location_data:
                 site_location_data['title'] = request.data.get('site_location_title')
                 if request.data.get('site_location_latitude')  and request.data.get('site_location_longitude'):
-                    site_location_data.get('location')['coordinates'] = [float(request.data.get('site_location_latitude')), float(request.data.get('site_location_longitude'))]
+                    site_location = instance.apiary_site_location
+                    site_location.location = Point(float(request.data.get('site_location_latitude')), float(request.data.get('site_location_longitude')))
+                    site_location.save()
 
                 serializer = ProposalApiarySiteLocationSerializer(instance.apiary_site_location, data=site_location_data)
                 serializer.is_valid(raise_exception=True)
