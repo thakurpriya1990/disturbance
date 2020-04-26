@@ -353,7 +353,6 @@ def save_proponent_data_apiary(instance,request,viewset):
             except:
                 schema = request.POST.get('schema')
 
-            import ipdb; ipdb.set_trace()
             sc = json.loads(schema)
 
             #save Site Locations data
@@ -377,6 +376,11 @@ def save_proponent_data_apiary(instance,request,viewset):
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
 
+            import ipdb; ipdb.set_trace()
+            # save/update any additonal special propoerties here
+            instance.title = instance.apiary_site_location.title
+            instance.activity = instance.application_type.name
+            instance.save()
         except:
             raise
 

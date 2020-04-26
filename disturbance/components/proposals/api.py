@@ -72,6 +72,7 @@ from disturbance.components.proposals.serializers import (
 )
 from disturbance.components.proposals.serializers_apiary import (
     ProposalApiarySerializer,
+    InternalProposalApiarySerializer,
     ProposalApiarySiteLocationSerializer,
     ProposalApiaryTemporaryUseSerializer,
     ProposalApiarySiteTransferSerializer,
@@ -369,7 +370,8 @@ class ProposalViewSet(viewsets.ModelViewSet):
             #application_type = Proposal.objects.get(id=self.kwargs.get('pk')).application_type.name
             application_type = self.get_object().application_type.name
             if application_type == ApplicationType.APIARY:
-                return InternalApiaryProposalSerializer
+                return InternalProposalApiarySerializer
+                #return InternalProposalSerializer
             else:
                 return InternalProposalSerializer
         except serializers.ValidationError:

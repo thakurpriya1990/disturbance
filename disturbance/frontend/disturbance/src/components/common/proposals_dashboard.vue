@@ -564,7 +564,10 @@ export default {
             vm.$http.get(api_endpoints.filter_list).then((response) => {
                 vm.proposal_regions = response.body.regions;
                 //vm.proposal_districts = response.body.districts;
+
                 vm.proposal_activityTitles = response.body.activities;
+                vm.proposal_activityTitles.push('Apiary');
+
                 vm.proposal_submitters = response.body.submitters;
                 //vm.proposal_status = vm.level == 'internal' ? response.body.processing_status_choices: response.body.customer_status_choices;
                 vm.proposal_status = vm.level == 'internal' ? vm.internal_status: vm.external_status;

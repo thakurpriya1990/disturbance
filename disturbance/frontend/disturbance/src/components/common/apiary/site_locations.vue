@@ -1,95 +1,86 @@
 <template lang="html">
 
-  <div class="container">
     <div class="row" style="padding-bottom: 50px;">
-        <h3>Application: {{ proposal.lodgement_number }}</h3>
-        <h4>Application Type: {{proposal.proposal_type }}</h4>
+      <div>
+        <div v-if="is_external">
+            <h3>Application: {{ proposal.lodgement_number }}</h3>
+            <h4>Application Type: {{proposal.proposal_type }}</h4>
 
-        <div v-if is_external>
             <h4>Status: {{proposal.customer_status }}</h4>
-        </div>
-        <div v-else>
-            <h4>Status: {{proposal.processing_status }}</h4>
         </div>
 
         <div class="col-md-12">
-            <div class="col-md-3">
-                <p>Site Locations</p>
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Site Locations<small></small>
+                        <a class="panelClicker" :href="'#'+pBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="pBody">
+                            <span class="glyphicon glyphicon-chevron-up pull-right "></span>
+                        </a>
+                    </h3>
+                </div>
+                <div class="panel-body collapse in" :id="pBody">
+                    <span>
+                        <label :id="id" for="label" class="inline" >Title</label>
+                        <a href="" @click.prevent="toggleHelpText"><i class="fa fa-question-circle" style="color:blue">&nbsp;</i></a>
+                        <div v-show="showingHelpText">
+                            <p class="col-sm-12" v-html="help_text"></p>
+                        </div>
+                    </span>
+                    <input type="text" class="form-control" v-model="proposal.apiary_site_location.title" name="title" :disabled="proposal.readonly">
+                    <!--
+                    <input type="text" class="form-control" v-model="proposal.apiary_site_location.title" name="title">
+                    <TextField type="text" @value="proposal.apiary_site_location.title=$event" :value="proposal.apiary_site_location.title" name="title" isRequired="true" help_text="help text ..." id="id_title" label="Title""></TextField>
+                    <TextField type="text" value="assigned_officer" name="assigned_officer" isRequired="true" help_text="help text ..." id="id_title" label="Title""></TextField>
+                    -->
+                </div>
+                <div>
+                    <IFrame width="1000" height="800" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" title="Apiary Sites Beekeeper's Map (WBV)" :src="webmap_src"></IFrame>
+                </div>
             </div>
 
-            <div class="col-md-9">
-                    <div class="panel panel-default">
-                        <div class="panel-heading">
-                            <h3 class="panel-title">Site Locations<small></small>
-                                <a class="panelClicker" :href="'#'+pBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="pBody">
-                                    <span class="glyphicon glyphicon-chevron-up pull-right "></span>
-                                </a>
-                            </h3>
-                        </div>
-                        <div class="panel-body collapse in" :id="pBody">
-                            <span>
-                                <label :id="id" for="label" class="inline" >Title</label>
-                                <a href="" @click.prevent="toggleHelpText"><i class="fa fa-question-circle" style="color:blue">&nbsp;</i></a>
-                                <div v-show="showingHelpText">
-                                    <p class="col-md-9" v-html="help_text"></p>
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Deed Poll<small></small>
+                    <a class="panelClicker" href="#deedPoll" data-toggle="collapse"  data-parent="#userInfo" expanded="true" aria-controls="deedPoll">
+                    <span class="glyphicon glyphicon-chevron-up pull-right "></span>
+                    </a>
+                    </h3>
+                </div>
+                <div class="panel-body collapse in" id="deedPoll">
+                            <div class="row">
+                                <div class="col-sm-12">
+                                    <label>Print <a :href="deed_poll_url" target="_blank">the deed poll</a>, sign it, have it witnessed and attach it to this application.</label>
                                 </div>
-                            </span>
-                            <input type="text" class="form-control" v-model="proposal.apiary_site_location.title" name="title" :disabled="proposal.readonly">
-                            <!--
-                            <input type="text" class="form-control" v-model="proposal.apiary_site_location.title" name="title">
-                            <TextField type="text" @value="proposal.apiary_site_location.title=$event" :value="proposal.apiary_site_location.title" name="title" isRequired="true" help_text="help text ..." id="id_title" label="Title""></TextField>
-                            <TextField type="text" value="assigned_officer" name="assigned_officer" isRequired="true" help_text="help text ..." id="id_title" label="Title""></TextField>
-                            -->
-                        </div>
-                        <div>
-                            <IFrame width="1000" height="800" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" title="Apiary Sites Beekeeper's Map (WBV)" :src="webmap_src"></IFrame>
-                        </div>
-                    </div>
-
-                    <div class="panel panel-default">
-                        <div class="panel-heading">
-                            <h3 class="panel-title">Deed Poll<small></small>
-                            <a class="panelClicker" href="#deedPoll" data-toggle="collapse"  data-parent="#userInfo" expanded="true" aria-controls="deedPoll">
-                            <span class="glyphicon glyphicon-chevron-up pull-right "></span>
-                            </a>
-                            </h3>
-                        </div>
-                        <div class="panel-body collapse in" id="deedPoll">
-                                    <div class="row">
-                                        <div class="col-sm-12">
-                                            <label>Print <a :href="deed_poll_url" target="_blank">the deed poll</a>, sign it, have it witnessed and attach it to this application.</label>
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-sm-12">
-                                            <FileField :proposal_id="proposal.id" isRepeatable="false" name="deed_poll" :id="'proposal'+proposal.id" :readonly="proposal.readonly" ref="deed_poll_doc"></FileField>
-                                        </div>
-                                    </div>
-                        </div>
-                    </div>
-
-                    <div class="panel panel-default">
-                        <div class="panel-heading">
-                            <h3 class="panel-title">Checklist<small></small>
-                            <a class="panelClicker" href="#checkList" data-toggle="collapse"  data-parent="#userInfo" expanded="true" aria-controls="checkList">
-                            <span class="glyphicon glyphicon-chevron-up pull-right "></span>
-                            </a>
-                            </h3>
-                        </div>
-                        <div class="panel-body collapse in" id="checkList">
-                                    <div class="row">
-                                        <div class="col-sm-12">
-                                            <label>Checklist items go here (pulled from Django Admin) ...</label>
-                                        </div>
-                                    </div>
-                        </div>
-                    </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-12">
+                                    <FileField :proposal_id="proposal.id" isRepeatable="false" name="deed_poll" :id="'proposal'+proposal.id" :readonly="proposal.readonly" ref="deed_poll_doc"></FileField>
+                                </div>
+                            </div>
+                </div>
             </div>
 
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Checklist<small></small>
+                    <a class="panelClicker" href="#checkList" data-toggle="collapse"  data-parent="#userInfo" expanded="true" aria-controls="checkList">
+                    <span class="glyphicon glyphicon-chevron-up pull-right "></span>
+                    </a>
+                    </h3>
+                </div>
+                <div class="panel-body collapse in" id="checkList">
+                            <div class="row">
+                                <div class="col-sm-12">
+                                    <label>Checklist items go here (pulled from Django Admin) ...</label>
+                                </div>
+                            </div>
+                </div>
+            </div>
         </div>
 
+      </div>
+
     </div>
-  </div>
 
 </template>
 

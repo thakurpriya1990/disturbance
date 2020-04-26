@@ -1,9 +1,7 @@
 <template lang="html">
-    <div class="row">
+    <div>
 
-      <div class="form-group">
-        <SiteLocation v-if="proposal" :proposal="proposal" id="site_locations" ref="apiary_site_location" :is_external="is_external"></SiteLocation>
-      </div>
+        <SiteLocation :proposal="proposal" id="site_locations" ref="apiary_site_location" :is_external="is_external" :is_internal="is_internal"></SiteLocation>
 
     </div>
 </template>
