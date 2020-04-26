@@ -19,6 +19,10 @@
                     </h3>
                 </div>
                 <div class="panel-body collapse in" :id="pBody">
+                    <TextField type="text" :value="proposal.apiary_site_location.title" name="site_location_title" isRequired="true" help_text="help text ..." id="id_title" label="Title""></TextField>
+                    <TextField type="text" :value="proposal.apiary_site_location.location.coordinates[0]" name="site_location_latitude" isRequired="true" id="id_latitude" label="Latitude""></TextField>
+                    <TextField type="text" :value="proposal.apiary_site_location.location.coordinates[1]" name="site_location_longitude" isRequired="true" id="id_longitude" label="Longitude""></TextField>
+                    <!--
                     <span>
                         <label :id="id" for="label" class="inline" >Title</label>
                         <a href="" @click.prevent="toggleHelpText"><i class="fa fa-question-circle" style="color:blue">&nbsp;</i></a>
@@ -27,6 +31,7 @@
                         </div>
                     </span>
                     <input type="text" class="form-control" v-model="proposal.apiary_site_location.title" name="title" :disabled="proposal.readonly">
+                    -->
                     <!--
                     <input type="text" class="form-control" v-model="proposal.apiary_site_location.title" name="title">
                     <TextField type="text" @value="proposal.apiary_site_location.title=$event" :value="proposal.apiary_site_location.title" name="title" isRequired="true" help_text="help text ..." id="id_title" label="Title""></TextField>
@@ -135,7 +140,7 @@
                 values:null,
                 pBody: 'pBody'+vm._uid,
                 webmap_src: 'https://dpaw.maps.arcgis.com/apps/Embed/index.html?webmap=1d956bc5513e40568a4f01950906b64b&extent=95.5777,-38.2527,149.5425,-12.3581&home=true&zoom=true&scale=true&search=true&searchextent=true&details=true&disable_scroll=true&theme=light',
-                title: '',
+                //title: vm.proposal.apiary_site_location.title,
                 site_title: '',
                 showingHelpText: false,
                 help_text: 'My Help text ...',
@@ -153,24 +158,9 @@
 
         },
         watch:{
-//            title: function(){
-//                let vm=this;
-//                if (vm.proposal){
-//                    vm.proposal.apiary_site_location.title = vm.title;
-//                }
-//            }
         },
 
         methods:{
-//            mytest: function(){
-//                let vm=this;
-//                if (vm.proposal){
-//                    vm.proposal.apiary_site_location.title = vm.title;
-//                }
-//            },
-            toggleHelpText(){
-                this.showingHelpText = ! this.showingHelpText;
-            },
         },
         mounted: function() {
             let vm = this;

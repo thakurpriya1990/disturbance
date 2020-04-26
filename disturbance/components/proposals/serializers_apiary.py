@@ -1,4 +1,5 @@
 from django.conf import settings
+from drf_extra_fields.geo_fields import PointField
 from ledger.accounts.models import EmailUser,Address
 from disturbance.components.organisations.serializers import OrganisationSerializer
 from disturbance.components.proposals.serializers import (
@@ -24,7 +25,7 @@ class ProposalApiarySiteLocationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ProposalApiarySiteLocation
-        fields = ('id', 'title', 'proposal')
+        fields = ('id', 'title', 'proposal', 'location')
         #fields = '__all__'
 
 

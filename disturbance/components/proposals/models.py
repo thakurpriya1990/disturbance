@@ -4,6 +4,7 @@ import json
 import os
 import datetime
 from django.db import models,transaction
+from django.contrib.gis.db import models as gis_models
 from django.dispatch import receiver
 from django.db.models.signals import pre_delete
 from django.utils.encoding import python_2_unicode_compatible
@@ -1881,7 +1882,16 @@ class HelpPage(models.Model):
 
 class ProposalApiarySiteLocation(models.Model):
     title = models.CharField('Title', max_length=200, null=True)
+    location = gis_models.PointField(srid=4326, blank=True, null=True)
     proposal = models.OneToOneField(Proposal, related_name='apiary_site_location', null=True)
+
+    @property
+    def latitude(self):
+        return self.location.get_x()
+
+    @property
+    def longitude(self):
+        return self.location.get_y()
 
     def __str__(self):
         return '{}'.format(self.title)
