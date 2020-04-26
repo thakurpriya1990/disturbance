@@ -19,10 +19,17 @@
                     </h3>
                 </div>
                 <div class="panel-body collapse in" :id="pBody">
-                    <TextField type="text" :value="proposal.apiary_site_location.title" name="site_location_title" isRequired="true" help_text="help text ..." id="id_title" label="Title""></TextField>
-                    <TextField type="text" :value="proposal.apiary_site_location.location.coordinates[0]" name="site_location_latitude" isRequired="true" id="id_latitude" label="Latitude""></TextField>
-                    <TextField type="text" :value="proposal.apiary_site_location.location.coordinates[1]" name="site_location_longitude" isRequired="true" id="id_longitude" label="Longitude""></TextField>
-                    <!--
+                    <span class="col-sm-12">
+                        <TextField type="text" :value="proposal.apiary_site_location.title" name="site_location_title" isRequired="true" help_text="help text ..." id="id_title" label="Title" :readonly="is_internal"></TextField>
+                    </span>
+                    <span class="col-sm-6">
+                        <TextField type="text" :value="proposal.apiary_site_location.location.coordinates[0]" name="site_location_latitude" isRequired="true" id="id_latitude" label="Latitude" :readonly="is_internal"></TextField>
+                    </span>
+                    <span class="col-sm-6">
+                        <TextField type="text" :value="proposal.apiary_site_location.location.coordinates[1]" name="site_location_longitude" isRequired="true" id="id_longitude" label="Longitude" :readonly="is_internal"></TextField>
+                    </span>
+
+                    <!-- The below commented out block is equivalent to the <TextField> above for 'title'
                     <span>
                         <label :id="id" for="label" class="inline" >Title</label>
                         <a href="" @click.prevent="toggleHelpText"><i class="fa fa-question-circle" style="color:blue">&nbsp;</i></a>
@@ -31,11 +38,6 @@
                         </div>
                     </span>
                     <input type="text" class="form-control" v-model="proposal.apiary_site_location.title" name="title" :disabled="proposal.readonly">
-                    -->
-                    <!--
-                    <input type="text" class="form-control" v-model="proposal.apiary_site_location.title" name="title">
-                    <TextField type="text" @value="proposal.apiary_site_location.title=$event" :value="proposal.apiary_site_location.title" name="title" isRequired="true" help_text="help text ..." id="id_title" label="Title""></TextField>
-                    <TextField type="text" value="assigned_officer" name="assigned_officer" isRequired="true" help_text="help text ..." id="id_title" label="Title""></TextField>
                     -->
                 </div>
                 <div>
