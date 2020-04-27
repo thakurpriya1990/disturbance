@@ -1,11 +1,11 @@
 <template lang="html">
     <div class="container" >
         <form :action="proposal_form_url" method="post" name="new_proposal" enctype="multipart/form-data">
-          <div v-if="!proposal_readonly">
-            <div v-if="hasAmendmentRequest" class="row" style="color:red;">
+            <div v-if="!proposal_readonly">
+              <div v-if="hasAmendmentRequest" class="row" style="color:red;">
                 <div class="col-lg-12 pull-right">
-                  <div class="panel panel-default">
-                    <div class="panel-heading">
+                    <div class="panel panel-default">
+                      <div class="panel-heading">
                         <h3 class="panel-title" style="color:red;">An amendment has been requested for this Proposal
                           <a class="panelClicker" :href="'#'+pBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="pBody">
                                 <span class="glyphicon glyphicon-chevron-down pull-right "></span>
@@ -37,30 +37,33 @@
                 </ul>
             </div>
 
-<!--             <NewApply v-if="proposal" :proposal="proposal"></NewApply>
- -->            <Proposal v-if="proposal" :proposal="proposal" id="proposalStart" :showSections="sectionShow">
-                  <NewApply v-if="proposal" :proposal="proposal"></NewApply>
+            <div v-if="proposal.application_type=='Apiary'">
+                <ProposalApiary v-if="proposal" :proposal="proposal" id="proposalStart" :showSections="sectionShow" ref="proposal_apiary" :is_external="true"></ProposalApiary>
+            </div>
+            <div v-else>
+                <ProposalDisturbance v-if="proposal" :proposal="proposal" id="proposalStart" :showSections="sectionShow"></ProposalDisturbance>
+                <NewApply v-if="proposal" :proposal="proposal"></NewApply>
+            </div>
 
+            <div>
                 <input type="hidden" name="csrfmiddlewaretoken" :value="csrf_token"/>
                 <input type='hidden' name="schema" :value="JSON.stringify(proposal)" />
                 <input type='hidden' name="proposal_id" :value="1" />
+
                 <div class="row" style="margin-bottom: 50px">
                   <div class="navbar navbar-fixed-bottom" style="background-color: #f5f5f5 ">
                   <div class="navbar-inner">
                     <div v-if="!proposal.readonly" class="container">
                       <p class="pull-right" style="margin-top:5px;">
-                        <!-- <input type="submit" class="btn btn-primary" value="Save and Exit"/> -->
                         <button id="sectionHide" @click.prevent="sectionHide" class="btn btn-primary">Show/Hide sections</button>
                         <input type="button" @click.prevent="save_exit" class="btn btn-primary" value="Save and Exit"/>
                         <input type="button" @click.prevent="save" class="btn btn-primary" value="Save and Continue"/>
 
                         <input v-if="!isSubmitting" type="button" @click.prevent="submit" class="btn btn-primary" value="Submit"/>
                         <button v-else disabled class="btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Submitting</button>
-                        <!-- <input type="submit" class="btn btn-primary" value="Submit"/> -->
 
-                        <!-- hidden 'save_and_continue_btn' used to allow File (file.vue component) to trigger save -->
                         <input id="save_and_continue_btn" type="hidden" @click.prevent="save_wo_confirm" class="btn btn-primary" value="Save Without Confirmation"/>
-                        
+
                       </p>
                     </div>
                     <div v-else class="container">
@@ -71,14 +74,17 @@
                       </p>
                     </div>
                   </div>
-                  </div>  
+                  </div>
                 </div>
-            </Proposal>           
+            </div>
+
         </form>
     </div>
 </template>
 <script>
-import Proposal from '../form.vue'
+import ProposalDisturbance from '../form.vue'
+import ProposalApiary from '../form_apiary.vue'
+//import ProposalApiary from '../form.vue'
 import NewApply from './proposal_apply_new.vue'
 import Vue from 'vue' 
 import {
@@ -105,7 +111,8 @@ export default {
     }
   },
   components: {
-      Proposal,
+      ProposalDisturbance,
+      ProposalApiary,
       NewApply,
   },
   computed: {
@@ -117,6 +124,9 @@ export default {
     },
     csrf_token: function() {
       return helpers.getCookie('csrftoken')
+    },
+    application_fee_url: function() {
+      return (this.proposal) ? `/application_fee/${this.proposal.id}/` : '';
     },
     proposal_form_url: function() {
       return (this.proposal) ? `/api/proposal/${this.proposal.id}/draft.json` : '';
@@ -130,6 +140,7 @@ export default {
   methods: {
     save: function(e) {
       let vm = this;
+      vm.form=document.forms.new_proposal;
       let formData = new FormData(vm.form);
       console.log(formData);
       vm.$http.post(vm.proposal_form_url,formData).then(res=>{
@@ -143,6 +154,7 @@ export default {
     },
     save_exit: function(e) {
       let vm = this;
+      vm.form=document.forms.new_proposal;
       this.submitting = true;
       this.save(e);
 
@@ -154,6 +166,7 @@ export default {
 
     save_wo_confirm: function(e) {
       let vm = this;
+      vm.form=document.forms.new_proposal;
       let formData = new FormData(vm.form);
       vm.$http.post(vm.proposal_form_url,formData);
     },
@@ -332,6 +345,7 @@ export default {
 
     submit: function(){
         let vm = this;
+        vm.form=document.forms.new_proposal;
         let formData = new FormData(vm.form);
 
         var num_missing_fields = vm.validate()
@@ -346,7 +360,7 @@ export default {
 
         // remove the confirm prompt when navigating away from window (on button 'Submit' click)
         vm.submitting = true;
-        
+
         swal({
             title: "Submit Proposal",
             text: "Are you sure you want to submit this proposal?",
@@ -354,82 +368,70 @@ export default {
             showCancelButton: true,
             confirmButtonText: 'Submit'
         }).then(() => {
-          vm.submittingProposal = true;
-            vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/submit'),formData).then(res=>{
-                vm.proposal = res.body;
-                vm.$router.push({
-                    name: 'submit_proposal',
-                    params: { proposal: vm.proposal}
+            vm.submittingProposal = true;
+            // Only Apiary has an application fee
+            if (!vm.proposal.fee_paid && vm.proposal.application_type=='Apiary') {
+                vm.save_and_redirect();
+
+            } else {
+                /* just save and submit - no payment required (probably application was pushed back by assessor for amendment */
+                vm.save_wo_confirm()
+                vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/submit'),formData).then(res=>{
+                    vm.proposal = res.body;
+                    vm.$router.push({
+                        name: 'submit_proposal',
+                        params: { proposal: vm.proposal}
+                    });
+                },err=>{
+                    swal(
+                        'Submit Error',
+                        helpers.apiVueResourceError(err),
+                        'error'
+                    )
                 });
-            },err=>{
-                swal(
-                    'Submit Error',
-                    helpers.apiVueResourceError(err),
-                    'error'
-                )
-            });
+            }
         },(error) => {
+          vm.paySubmitting=false;
         });
+
+
+
         //vm.submittingProposal= false;
     },
 
-//    _submit: function(){
-//        let vm = this;
-//
-//        swal({
-//            title: "Submit Proposal",
-//            text: "Are you sure you want to submit this proposal?",
-//            type: "question",
-//            showCancelButton: true,
-//            confirmButtonText: 'Submit'
-//        }).then(() => {
-//            let formData = new FormData(vm.form);
-//            vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/submit'),formData).then(res=>{
-//                vm.proposal = res.body;
-//
-//                if ('missing_fields' in vm.proposal) {
-//                    var missing_text = '';
-//                    for (var i = 0; i < vm.proposal.missing_fields.length; i++) {
-//                        missing_text = missing_text + i + ". " + vm.proposal.missing_fields[i].label + '<br>'
-//                    }
-//                    //vm.proposal.missing_fields.forEach(function(field) {
-//                        //missing_text = missing_text + field.label + '<br>'
-//                    //});
-//                    swal({
-//                        title: "Required field(s) are missing",
-//                        html: missing_text,
-//                        confirmButtonText: 'Submit',
-//                        type: 'warning',
-//                    }).then(() => {
-//                        //vm.form = document.forms.new_proposal;
-//                        //vm.$router.go();
-//                        this.highlight_missing_fields(vm.proposal.missing_fields);
-//                        //this.proposal = vm.proposal;
-//
-//                        vm.$router.push({
-//                            name: 'draft_proposal',
-//                            params: { proposal_id:vm.proposal.id}
-//                            //params: { proposal: vm.proposal} 
-//                        });
-//
-//                    });
-//                } else {
-//
-//                    vm.$router.push({
-//                        name: 'submit_proposal',
-//                        params: { proposal: vm.proposal} 
-//                    });
-//                }
-//            },err=>{
-//                swal(
-//                    'Submit Error',
-//                    helpers.apiVueResourceError(err),
-//                    'error'
-//                )
-//            });
-//        },(error) => {
-//        });
-//    }
+    save_and_redirect: function(e) {
+      let vm = this;
+      vm.form=document.forms.new_proposal;
+      let formData = new FormData(vm.form);
+      //let formData = vm.set_formData()
+
+      //vm.save_applicant_data();
+      vm.$http.post(vm.proposal_form_url,formData).then(res=>{
+          /* after the above save, redirect to the Django post() method in ApplicationFeeView */
+          vm.post_and_redirect(vm.application_fee_url, {'csrfmiddlewaretoken' : vm.csrf_token});
+      },err=>{
+      });
+    },
+
+    post_and_redirect: function(url, postData) {
+        /* http.post and ajax do not allow redirect from Django View (post method), 
+           this function allows redirect by mimicking a form submit.
+
+           usage:  vm.post_and_redirect(vm.application_fee_url, {'csrfmiddlewaretoken' : vm.csrf_token});
+        */
+        var postFormStr = "<form method='POST' action='" + url + "'>";
+
+        for (var key in postData) {
+            if (postData.hasOwnProperty(key)) {
+                postFormStr += "<input type='hidden' name='" + key + "' value='" + postData[key] + "'>";
+            }
+        }
+        postFormStr += "</form>";
+        var formElement = $(postFormStr);
+        $('body').append(formElement);
+        $(formElement).submit();
+    },
+
 
   },
 
