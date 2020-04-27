@@ -25,6 +25,7 @@ INSTALLED_APPS += [
     'disturbance.components.proposals',
     'disturbance.components.approvals',
     'disturbance.components.compliances',
+    'disturbance.components.das_payments',
     'taggit',
     'rest_framework',
     'rest_framework_datatables',
@@ -65,8 +66,9 @@ REST_FRAMEWORK = {
 
 
 MIDDLEWARE_CLASSES += [
+    'disturbance.middleware.BookingTimerMiddleware',
     'disturbance.middleware.FirstTimeNagScreenMiddleware',
-    'reversion.middleware.RevisionMiddleware'
+    'disturbance.middleware.RevisionOverrideMiddleware'
 ]
 
 TEMPLATES[0]['DIRS'].append(os.path.join(BASE_DIR, 'disturbance', 'templates'))
@@ -111,10 +113,19 @@ DEP_POSTAL = env('DEP_POSTAL','Locked Bag 104, Bentley Delivery Centre, Western 
 DEP_NAME = env('DEP_NAME','Department of Biodiversity, Conservation and Attractions')
 DEP_NAME_SHORT = env('DEP_NAME_SHORT','DBCA')
 SITE_URL = env('SITE_URL', 'https://' + SITE_PREFIX + '.' + SITE_DOMAIN)
+PUBLIC_URL=env('PUBLIC_URL', SITE_URL)
 DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', 'no-reply@' + SITE_DOMAIN).lower()
+ADMIN_GROUP = env('ADMIN_GROUP', 'Disturbance Admin')
 CRON_EMAIL = env('CRON_EMAIL', 'cron@' + SITE_DOMAIN).lower()
 TENURE_SECTION = env('TENURE_SECTION', None)
 ASSESSMENT_REMINDER_DAYS = env('ASSESSMENT_REMINDER_DAYS', 15)
+
+OSCAR_BASKET_COOKIE_OPEN = 'das_basket'
+PAYMENT_SYSTEM_ID = env('PAYMENT_SYSTEM_ID', 'S557')
+PAYMENT_SYSTEM_PREFIX = env('PAYMENT_SYSTEM_PREFIX', PAYMENT_SYSTEM_ID.replace('S','0')) # '0557'
+os.environ['LEDGER_PRODUCT_CUSTOM_FIELDS'] = "('ledger_description','quantity','price_incl_tax','price_excl_tax','oracle_code')"
+
+
 
 BASE_URL=env('BASE_URL')
 

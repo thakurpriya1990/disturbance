@@ -26,7 +26,7 @@ from django.core.cache import cache
 from ledger.accounts.models import EmailUser, Address
 from ledger.address.models import Country
 from datetime import datetime, timedelta, date
-from disturbance.components.proposals.utils import save_proponent_data,save_assessor_data
+from disturbance.components.proposals.utils import save_proponent_data,save_assessor_data, proposal_submit
 from disturbance.components.proposals.models import searchKeyWords, search_reference, ProposalUserAction
 from disturbance.utils import missing_required_fields, search_tenure
 from disturbance.components.main.utils import check_db_connection
@@ -641,9 +641,11 @@ class ProposalViewSet(viewsets.ModelViewSet):
         try:
             #import ipdb; ipdb.set_trace()
             instance = self.get_object()
-            instance.submit(request,self)
             if instance.application_type.name != ApplicationType.APIARY:
-              instance.tenure = search_tenure(instance)
+                instance.submit(request,self)
+                instance.tenure = search_tenure(instance)
+            else:
+                proposal_submit(instance, request)
             instance.save()
             serializer = self.get_serializer(instance)
             return Response(serializer.data)
@@ -966,6 +968,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
     @renderer_classes((JSONRenderer,))
     def draft(self, request, *args, **kwargs):
         try:
+            #import ipdb; ipdb.set_trace()
             instance = self.get_object()
             save_proponent_data(instance,request,self)
             return redirect(reverse('external'))

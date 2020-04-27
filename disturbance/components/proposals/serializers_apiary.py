@@ -65,7 +65,7 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
     documents_url = serializers.SerializerMethodField()
     proposal_type = serializers.SerializerMethodField()
     get_history = serializers.ReadOnlyField()
-    #fee_invoice_url = serializers.SerializerMethodField()
+    fee_invoice_url = serializers.SerializerMethodField()
 
     submitter = serializers.CharField(source='submitter.get_full_name')
     processing_status = serializers.SerializerMethodField(read_only=True)
@@ -113,8 +113,9 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
 
                 #'applicant_details',
                 #'training_completed',
-                #'fee_invoice_url',
-                #'fee_paid',
+                'fee_invoice_url',
+                'fee_invoice_reference',
+                'fee_paid',
                 'activity',
                 'apiary_site_location',
                 'apiary_temporary_use',
@@ -144,7 +145,7 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
         return obj.get_proposal_type_display()
 
     def get_fee_invoice_url(self,obj):
-        return '/cols/payments/invoice-pdf/{}'.format(obj.fee_invoice_reference) if obj.fee_paid else None
+        return '/payments/invoice-pdf/{}'.format(obj.fee_invoice_reference) if obj.fee_paid else None
 
 class InternalProposalApiarySerializer(BaseProposalSerializer):
     # TODO next 3 commented lines - related to 'apply as an Org or as an individual'
@@ -169,7 +170,7 @@ class InternalProposalApiarySerializer(BaseProposalSerializer):
     #district = serializers.CharField(source='district.name', read_only=True)
     #assessor_assessment=ProposalAssessmentSerializer(read_only=True)
     #referral_assessments=ProposalAssessmentSerializer(read_only=True, many=True)
-    #fee_invoice_url = serializers.SerializerMethodField()
+    fee_invoice_url = serializers.SerializerMethodField()
 
     apiary_site_location = ProposalApiarySiteLocationSerializer()
     apiary_temporary_use = ProposalApiaryTemporaryUseSerializer()
@@ -227,8 +228,9 @@ class InternalProposalApiarySerializer(BaseProposalSerializer):
                 #'applicant_details',
                 #'assessor_assessment',
                 #'referral_assessments',
-                #'fee_invoice_url',
-                #'fee_paid',
+                'fee_invoice_reference',
+                'fee_invoice_url',
+                'fee_paid',
                 'apiary_site_location',
                 'apiary_temporary_use',
                 'apiary_site_transfer',
@@ -275,6 +277,6 @@ class InternalProposalApiarySerializer(BaseProposalSerializer):
         return obj.reversion_ids[:5]
 
     def get_fee_invoice_url(self,obj):
-        return '/cols/payments/invoice-pdf/{}'.format(obj.fee_invoice_reference) if obj.fee_paid else None
+        return '/payments/invoice-pdf/{}'.format(obj.fee_invoice_reference) if obj.fee_paid else None
 
 

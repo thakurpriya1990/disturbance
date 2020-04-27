@@ -152,7 +152,7 @@ export default {
             proposal_submitters: [],
             proposal_status: [],
             proposal_ex_headers:[
-                "Number","Region","District","Activity","Title","Submitter","Proponent","Status","Lodged on","Action"
+                "Number","Region","District","Activity","Title","Submitter","Proponent","Status","Lodged on","Invoice/Confirmation","Action"
                 //"LodgementNo","ProcessingStatus","AssessorProcess","CanUserEdit",
             ],
 
@@ -241,6 +241,20 @@ export default {
                         searchable: false, // handles by filter_queryset override method - class ProposalFilterBackend
                     },
                     {
+                        data: '',
+                        mRender:function (data,type,full) {
+                            let links = '';
+                            if (full.fee_paid) {
+                                links +=  `<a href='/payments/invoice-pdf/${full.fee_invoice_reference}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i></a> &nbsp`;
+                                links +=  `<a href='/payments/confirmation-pdf/${full.fee_invoice_reference}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i></a><br/>`;
+                            }
+                            return links;
+                        },
+                        name: '',
+                        searchable: false,
+                        orderable: false
+                    },
+                    {
                         data: "",
                         mRender:function (data,type,full) {
                             let links = '';
@@ -325,13 +339,8 @@ export default {
                 */
             },
             proposal_headers:[
-                "Number","Region","District","Activity","Title","Submitter","Proponent","Status","Lodged on","Assigned Officer","Action",
-                //"LodgementNo","CustomerStatus","AssessorProcess","CanUserEdit","CanUserView",
+                "Number","Region","District","Activity","Title","Submitter","Proponent","Status","Lodged on","Assigned Officer","Invoice/Confirmation","Action",
             ],
-            // proposal_headers:[
-            //     "Number","Region","Activity","Title","Submitter","Proponent","Status","Lodged on","Assigned Officer","Action",
-            //     //"LodgementNo","CustomerStatus","AssessorProcess","CanUserEdit","CanUserView",
-            // ],
             proposal_options:{
                 autoWidth: false,
                 language: {
@@ -418,6 +427,20 @@ export default {
                     {
                         data: "assigned_officer",
                         name: "assigned_officer__first_name, assigned_officer__last_name",
+                    },
+                    {
+                        data: '',
+                        mRender:function (data,type,full) {
+                            let links = '';
+                            if (full.fee_paid) {
+                                links +=  `<a href='/payments/invoice-pdf/${full.fee_invoice_reference}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i></a> &nbsp`;
+                                links +=  `<a href='/payments/confirmation-pdf/${full.fee_invoice_reference}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i></a><br/>`;
+                            }
+                            return links;
+                        },
+                        name: '',
+                        searchable: false,
+                        orderable: false
                     },
                     {
                         data: '',

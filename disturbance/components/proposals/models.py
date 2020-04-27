@@ -17,6 +17,7 @@ from taggit.models import TaggedItemBase
 from ledger.accounts.models import Organisation as ledger_organisation
 from ledger.accounts.models import EmailUser, RevisionedMixin
 from ledger.licence.models import  Licence
+from ledger.payments.models import Invoice
 from disturbance import exceptions
 from disturbance.components.organisations.models import Organisation
 from disturbance.components.main.models import CommunicationsLogEntry, UserAction, Document, Region, District, Tenure, ApplicationType
@@ -367,6 +368,8 @@ class Proposal(RevisionedMixin):
     sub_activity_level2 = models.CharField(max_length=255,null=True,blank=True)
     management_area = models.CharField(max_length=255,null=True,blank=True)
 
+    fee_invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
+
     class Meta:
         app_label = 'disturbance'
 
@@ -380,6 +383,24 @@ class Proposal(RevisionedMixin):
             new_lodgment_id = 'P{0:06d}'.format(self.pk)
             self.lodgement_number = new_lodgment_id
             self.save()
+
+    @property
+    def fee_paid(self):
+        return True if self.fee_invoice_reference or self.proposal_type=='amendment' else False
+
+    @property
+    def fee_amount(self):
+        return Invoice.objects.get(reference=self.fee_invoice_reference).amount if self.fee_paid else None
+
+    @property
+    def applicant_field(self):
+        if self.applicant:
+            return 'applicant'
+        elif self.proxy_applicant:
+            return 'proxy_applicant'
+        else:
+            return 'submitter'
+
 
     @property
     def reference(self):
@@ -679,6 +700,7 @@ class Proposal(RevisionedMixin):
                     raise ValidationError('An error occurred while submitting proposal (Submit email notifications failed)')
             else:
                 raise ValidationError('You can\'t edit this proposal at this moment')
+        return self
 
     def update(self,request,viewset):
         from disturbance.components.proposals.utils import save_proponent_data

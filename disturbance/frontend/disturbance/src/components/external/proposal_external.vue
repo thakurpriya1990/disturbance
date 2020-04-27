@@ -125,6 +125,9 @@ export default {
     csrf_token: function() {
       return helpers.getCookie('csrftoken')
     },
+    application_fee_url: function() {
+      return (this.proposal) ? `/application_fee/${this.proposal.id}/` : '';
+    },
     proposal_form_url: function() {
       return (this.proposal) ? `/api/proposal/${this.proposal.id}/draft.json` : '';
     },
@@ -357,7 +360,7 @@ export default {
 
         // remove the confirm prompt when navigating away from window (on button 'Submit' click)
         vm.submitting = true;
-        
+
         swal({
             title: "Submit Proposal",
             text: "Are you sure you want to submit this proposal?",
@@ -365,82 +368,70 @@ export default {
             showCancelButton: true,
             confirmButtonText: 'Submit'
         }).then(() => {
-          vm.submittingProposal = true;
-            vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/submit'),formData).then(res=>{
-                vm.proposal = res.body;
-                vm.$router.push({
-                    name: 'submit_proposal',
-                    params: { proposal: vm.proposal}
+            vm.submittingProposal = true;
+            // Only Apiary has an application fee
+            if (!vm.proposal.fee_paid && vm.proposal.application_type=='Apiary') {
+                vm.save_and_redirect();
+
+            } else {
+                /* just save and submit - no payment required (probably application was pushed back by assessor for amendment */
+                vm.save_wo_confirm()
+                vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/submit'),formData).then(res=>{
+                    vm.proposal = res.body;
+                    vm.$router.push({
+                        name: 'submit_proposal',
+                        params: { proposal: vm.proposal}
+                    });
+                },err=>{
+                    swal(
+                        'Submit Error',
+                        helpers.apiVueResourceError(err),
+                        'error'
+                    )
                 });
-            },err=>{
-                swal(
-                    'Submit Error',
-                    helpers.apiVueResourceError(err),
-                    'error'
-                )
-            });
+            }
         },(error) => {
+          vm.paySubmitting=false;
         });
+
+
+
         //vm.submittingProposal= false;
     },
 
-//    _submit: function(){
-//        let vm = this;
-//
-//        swal({
-//            title: "Submit Proposal",
-//            text: "Are you sure you want to submit this proposal?",
-//            type: "question",
-//            showCancelButton: true,
-//            confirmButtonText: 'Submit'
-//        }).then(() => {
-//            let formData = new FormData(vm.form);
-//            vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/submit'),formData).then(res=>{
-//                vm.proposal = res.body;
-//
-//                if ('missing_fields' in vm.proposal) {
-//                    var missing_text = '';
-//                    for (var i = 0; i < vm.proposal.missing_fields.length; i++) {
-//                        missing_text = missing_text + i + ". " + vm.proposal.missing_fields[i].label + '<br>'
-//                    }
-//                    //vm.proposal.missing_fields.forEach(function(field) {
-//                        //missing_text = missing_text + field.label + '<br>'
-//                    //});
-//                    swal({
-//                        title: "Required field(s) are missing",
-//                        html: missing_text,
-//                        confirmButtonText: 'Submit',
-//                        type: 'warning',
-//                    }).then(() => {
-//                        //vm.form = document.forms.new_proposal;
-//                        //vm.$router.go();
-//                        this.highlight_missing_fields(vm.proposal.missing_fields);
-//                        //this.proposal = vm.proposal;
-//
-//                        vm.$router.push({
-//                            name: 'draft_proposal',
-//                            params: { proposal_id:vm.proposal.id}
-//                            //params: { proposal: vm.proposal} 
-//                        });
-//
-//                    });
-//                } else {
-//
-//                    vm.$router.push({
-//                        name: 'submit_proposal',
-//                        params: { proposal: vm.proposal} 
-//                    });
-//                }
-//            },err=>{
-//                swal(
-//                    'Submit Error',
-//                    helpers.apiVueResourceError(err),
-//                    'error'
-//                )
-//            });
-//        },(error) => {
-//        });
-//    }
+    save_and_redirect: function(e) {
+      let vm = this;
+      vm.form=document.forms.new_proposal;
+      let formData = new FormData(vm.form);
+      //let formData = vm.set_formData()
+
+      //vm.save_applicant_data();
+      vm.$http.post(vm.proposal_form_url,formData).then(res=>{
+          /* after the above save, redirect to the Django post() method in ApplicationFeeView */
+          vm.post_and_redirect(vm.application_fee_url, {'csrfmiddlewaretoken' : vm.csrf_token});
+      },err=>{
+      });
+    },
+
+    post_and_redirect: function(url, postData) {
+        /* http.post and ajax do not allow redirect from Django View (post method), 
+           this function allows redirect by mimicking a form submit.
+
+           usage:  vm.post_and_redirect(vm.application_fee_url, {'csrfmiddlewaretoken' : vm.csrf_token});
+        */
+        var postFormStr = "<form method='POST' action='" + url + "'>";
+
+        for (var key in postData) {
+            if (postData.hasOwnProperty(key)) {
+                postFormStr += "<input type='hidden' name='" + key + "' value='" + postData[key] + "'>";
+            }
+        }
+        postFormStr += "</form>";
+        var formElement = $(postFormStr);
+        $('body').append(formElement);
+        $(formElement).submit();
+    },
+
 
   },
 

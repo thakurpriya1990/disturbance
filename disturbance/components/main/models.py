@@ -48,6 +48,11 @@ class ApplicationType(models.Model):
     order = models.PositiveSmallIntegerField(default=0)
     visible = models.BooleanField(default=True)
 
+    application_fee = models.DecimalField(max_digits=6, decimal_places=2)
+    oracle_code_application = models.CharField(max_length=50)
+    is_gst_exempt = models.BooleanField(default=True)
+
+
     class Meta:
         ordering = ['order', 'name']
         app_label = 'disturbance'
