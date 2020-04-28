@@ -138,7 +138,7 @@ class ApplicationFeeSuccessView(TemplateView):
                 except Invoice.DoesNotExist:
                     logger.error('{} tried paying an application fee with an incorrect invoice'.format('User {} with id {}'.format(proposal.submitter.get_full_name(), proposal.submitter.id) if proposal.submitter else 'An anonymous user'))
                     return redirect('external-proposal-detail', args=(proposal.id,))
-                if inv.system not in ['0557']:
+                if inv.system not in ['0517']:
                     logger.error('{} tried paying an application fee with an invoice from another system with reference number {}'.format('User {} with id {}'.format(proposal.submitter.get_full_name(), proposal.submitter.id) if proposal.submitter else 'An anonymous user',inv.reference))
                     return redirect('external-proposal-detail', args=(proposal.id,))
 
@@ -162,7 +162,6 @@ class ApplicationFeeSuccessView(TemplateView):
                     request.session['das_last_app_invoice'] = application_fee.id
                     delete_session_application_invoice(request.session)
 
-                    import ipdb; ipdb.set_trace()
                     send_application_fee_invoice_apiary_email_notification(request, proposal, invoice, recipients=[recipient])
                     send_application_fee_confirmation_apiary_email_notification(request, application_fee, invoice, recipients=[recipient])
 

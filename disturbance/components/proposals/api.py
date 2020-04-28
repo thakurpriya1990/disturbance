@@ -639,7 +639,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
     @renderer_classes((JSONRenderer,))
     def submit(self, request, *args, **kwargs):
         try:
-            #import ipdb; ipdb.set_trace()
             instance = self.get_object()
             if instance.application_type.name != ApplicationType.APIARY:
                 instance.submit(request,self)
@@ -968,7 +967,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
     @renderer_classes((JSONRenderer,))
     def draft(self, request, *args, **kwargs):
         try:
-            #import ipdb; ipdb.set_trace()
             instance = self.get_object()
             save_proponent_data(instance,request,self)
             return redirect(reverse('external'))
