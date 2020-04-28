@@ -94,6 +94,8 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'sub_activity_level1',
                 'sub_activity_level2',
                 'management_area',
+                'fee_invoice_reference',
+                'fee_paid',
                 )
         read_only_fields=('documents',)
 
@@ -180,7 +182,9 @@ class ListProposalSerializer(BaseProposalSerializer):
                 'can_officer_process',
                 'assessor_process',
                 'allowed_assessors',
-                'proposal_type'
+                'proposal_type',
+                'fee_invoice_reference',
+                'fee_paid',
                 )
         # the serverSide functionality of datatables is such that only columns that have field 'data' defined are requested from the serializer. We
         # also require the following additional fields for some of the mRender functions
@@ -202,6 +206,8 @@ class ListProposalSerializer(BaseProposalSerializer):
                 'can_officer_process',
                 'assessor_process',
                 'allowed_assessors',
+                'fee_invoice_reference',
+                'fee_paid',
                 )
 
     def get_assigned_officer(self,obj):
@@ -245,11 +251,11 @@ class ProposalSerializer(BaseProposalSerializer):
     #district = serializers.CharField(source='district.name', read_only=True)
     #tenure = serializers.CharField(source='tenure.name', read_only=True)
     comment_data= serializers.SerializerMethodField(read_only=True)
-       
+
     class Meta:
         model=Proposal
         fields = BaseProposalSerializer.Meta.fields + ('comment_data',)
-           
+
     def get_readonly(self,obj):
         return obj.can_user_view
 
@@ -418,6 +424,8 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'sub_activity_level1',
                 'sub_activity_level2',
                 'management_area',
+                'fee_invoice_reference',
+                'fee_paid',
                 )
         read_only_fields=('documents','requirements')
 
@@ -561,12 +569,12 @@ class ProposedApprovalSerializer(serializers.Serializer):
 class PropedDeclineSerializer(serializers.Serializer):
     reason = serializers.CharField()
     cc_email = serializers.CharField(required=False, allow_null=True)
-  
+
 class AmendmentRequestDocumentSerializer(serializers.ModelSerializer):
     class Meta:
         model = AmendmentRequestDocument
         fields = ('id', 'name', '_file')
-        #fields = '__all__' 
+        #fields = '__all__'
 
 class AmendmentRequestSerializer(serializers.ModelSerializer):
     #reason = serializers.SerializerMethodField()
