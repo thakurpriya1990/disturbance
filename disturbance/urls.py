@@ -6,6 +6,7 @@ from disturbance import views
 from disturbance.admin import disturbance_admin_site
 from disturbance.components.proposals import views as proposal_views
 from disturbance.components.organisations import views as organisation_views
+from disturbance.components.das_payments import views as payment_views
 
 from disturbance.components.users import api as users_api
 from disturbance.components.organisations import api as org_api
@@ -13,6 +14,7 @@ from disturbance.components.proposals import api as proposal_api
 from disturbance.components.approvals import api as approval_api
 from disturbance.components.compliances import api as compliances_api
 from disturbance.components.main import api as main_api
+from disturbance.components.das_payments import api as payment_api
 
 from ledger.urls import urlpatterns as ledger_patterns
 
@@ -38,6 +40,7 @@ router.register(r'regions', main_api.RegionViewSet)
 router.register(r'activity_matrix', main_api.ActivityMatrixViewSet)
 #router.register(r'tenure', main_api.TenureViewSet)
 router.register(r'application_types', main_api.ApplicationTypeViewSet)
+#router.register(r'payment',payment_api.PaymentViewSet)
 
 
 api_patterns = [
@@ -51,6 +54,7 @@ api_patterns = [
     url(r'^api/compliance_amendment_reason_choices',compliances_api.ComplianceAmendmentReasonChoicesView.as_view(),name='amendment_request_reason_choices'),
     url(r'^api/search_keywords',proposal_api.SearchKeywordsView.as_view(),name='search_keywords'),
     url(r'^api/search_reference',proposal_api.SearchReferenceView.as_view(),name='search_reference'),
+    #url(r'^api/reports/payment_settlements$', main_api.PaymentSettlementReportView.as_view(),name='payment-settlements-report'),
 ]
 
 # URL Patterns
@@ -71,6 +75,12 @@ urlpatterns = [
     #following url is used to include url path when sending Proposal amendment request to user.
     url(r'^proposal/$', proposal_views.ProposalView.as_view(), name='proposal'),
     url(r'^preview/licence-pdf/(?P<proposal_pk>\d+)',proposal_views.PreviewLicencePDFView.as_view(), name='preview_licence_pdf'),
+
+    url(r'^application_fee/(?P<proposal_pk>\d+)/$', payment_views.ApplicationFeeView.as_view(), name='application_fee'),
+    url(r'^success/fee/$', payment_views.ApplicationFeeSuccessView.as_view(), name='fee_success'),
+    url(r'payments/invoice-pdf/(?P<reference>\d+)', payment_views.InvoicePDFView.as_view(), name='invoice-pdf'),
+    url(r'payments/confirmation-pdf/(?P<reference>\d+)', payment_views.ConfirmationPDFView.as_view(), name='confirmation-pdf'),
+
 
     #following url is defined so that to include url path when sending Proposal amendment request to user.
     url(r'^external/proposal/(?P<proposal_pk>\d+)/$', views.ExternalProposalView.as_view(), name='external-proposal-detail'),
