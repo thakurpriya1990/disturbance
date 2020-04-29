@@ -55,14 +55,7 @@ api_patterns = [
     url(r'^api/compliance_amendment_reason_choices',compliances_api.ComplianceAmendmentReasonChoicesView.as_view(),name='amendment_request_reason_choices'),
     url(r'^api/search_keywords',proposal_api.SearchKeywordsView.as_view(),name='search_keywords'),
     url(r'^api/search_reference',proposal_api.SearchReferenceView.as_view(),name='search_reference'),
-<<<<<<< HEAD
-    url(r'^api/geocoding_address_search_token',
-        GeocodingAddressSearchTokenView.as_view(),
-        name='geocoding_address_search_token'),
-||||||| merged common ancestors
-=======
     #url(r'^api/reports/payment_settlements$', main_api.PaymentSettlementReportView.as_view(),name='payment-settlements-report'),
->>>>>>> 5508202e2cdc2a979dd600b2f72098341fd7bd1e
 ]
 
 # URL Patterns
