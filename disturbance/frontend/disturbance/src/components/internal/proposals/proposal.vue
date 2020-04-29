@@ -3,7 +3,9 @@
       <div class="row">
         <h3>Proposal: {{ proposal.lodgement_number }}</h3>
         <h4>Proposal Type: {{proposal.proposal_type }}</h4>
-        <h4>Approval Level: {{proposal.approval_level }}</h4>
+        <div v-if="proposal.application_type!='Apiary'">
+            <h4>Approval Level: {{proposal.approval_level }}</h4>
+        </div>
         <div class="col-md-3">
             <CommsLogs :comms_url="comms_url" :logs_url="logs_url" :comms_add_url="comms_add_url" :disable_add_entry="false"/>
             <div class="row" v-if="canSeeSubmission">
@@ -366,24 +368,33 @@
                     <div class="col-md-12">
                         <div class="row">
                             <form :action="proposal_form_url" method="post" name="new_proposal" enctype="multipart/form-data">
-                                <Proposal form_width="inherit" :withSectionsSelector="false" v-if="proposal" :proposal="proposal">
+
+                                <div v-if="proposal.application_type=='Apiary'">
+                                    <ProposalApiary v-if="proposal" :proposal="proposal" id="proposalStart" :showSections="sectionShow" ref="proposal_apiary" :is_external="false" :is_internal="true" :hasAssessorMode="hasAssessorMode"></ProposalApiary>
+                                </div>
+                                <div v-else>
+                                    <ProposalDisturbance form_width="inherit" :withSectionsSelector="false" v-if="proposal" :proposal="proposal"> </ProposalDisturbance>
                                     <NewApply v-if="proposal" :proposal="proposal"></NewApply>
+                                </div>
+
+
+                                <div>
                                     <input type="hidden" name="csrfmiddlewaretoken" :value="csrf_token"/>
                                     <input type='hidden' name="schema" :value="JSON.stringify(proposal)" />
                                     <input type='hidden' name="proposal_id" :value="1" />
                                     <div class="row" style="margin-bottom: 50px">
-                                    <div class="navbar navbar-fixed-bottom" v-if="hasAssessorMode" style="background-color: #f5f5f5;">
+                                      <div class="navbar navbar-fixed-bottom" v-if="hasAssessorMode" style="background-color: #f5f5f5;">
                                         <div class="navbar-inner">
                                             <div v-if="hasAssessorMode" class="container">
-                                            <p class="pull-right">                       
-                                            <button class="btn btn-primary pull-right" style="margin-top:5px;" @click.prevent="save()">Save Changes</button>
-                                            </p>                      
-                                            </div>                   
+                                              <p class="pull-right">
+                                                <button class="btn btn-primary pull-right" style="margin-top:5px;" @click.prevent="save()">Save Changes</button>
+                                              </p>
+                                            </div>
                                         </div>
-                                    </div>      
+                                      </div>
                                     </div>
 
-                                </Proposal>
+                                </div>
                             </form>
                         </div>
                     </div>
@@ -397,7 +408,9 @@
     </div>
 </template>
 <script>
-import Proposal from '../../form.vue'
+import ProposalDisturbance from '../../form.vue'
+//import ProposalApiary from '../../form_apiary.vue'
+import ProposalApiary from '@/components/form_apiary.vue'
 import NewApply from '../../external/proposal_apply_new.vue'
 import Vue from 'vue'
 import ProposedDecline from './proposal_proposed_decline.vue'
@@ -482,7 +495,8 @@ export default {
         }
     },
     components: {
-        Proposal,
+        ProposalDisturbance,
+        ProposalApiary,
         datatable,
         ProposedDecline,
         AmendmentRequest,
