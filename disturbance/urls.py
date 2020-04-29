@@ -60,7 +60,7 @@ api_patterns = [
 
 # URL Patterns
 urlpatterns = [
-                  url(r'^admin/', disturbance_admin_site.urls),
+    url(r'^admin/', disturbance_admin_site.urls),
     url(r'', include(api_patterns)),
     url(r'^$', views.DisturbanceRoutingView.as_view(), name='ds_home'),
     url(r'^contact/', views.DisturbanceContactView.as_view(), name='ds_contact'),
