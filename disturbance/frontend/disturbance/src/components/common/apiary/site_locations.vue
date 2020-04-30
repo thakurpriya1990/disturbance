@@ -315,12 +315,14 @@
             },
             removeSiteLocation: function(e){
                 let site_location_uuid = e.target.getAttribute("data-site-location-uuid");
+                console.log('uuid');
+                console.log(site_location_uuid);
 
-               // for (let i=0; i<this.site_locations.length; i++){
-               //     if (site_locations[i].uuid == site_location_uuid){
-               //         this.site_locations.splice(i, 1);
-               //     }
-               // }
+                for (let i=0; i<this.site_locations.length; i++){
+                    if (this.site_locations[i].uuid == site_location_uuid){
+                        this.site_locations.splice(i, 1);
+                    }
+                }
                 this.constructSiteLocationsTable();
             },
         },
