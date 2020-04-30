@@ -20,14 +20,73 @@
                 </div>
                 <div class="panel-body collapse in" :id="pBody">
                     <span class="col-sm-12">
-                        <TextField type="text" :value="proposal.apiary_site_location.title" name="site_location_title" isRequired="true" help_text="help text ..." id="id_title" label="Title" :readonly="is_internal || !proposal.can_user_edit"></TextField>
+                        <TextField 
+                            type="text" 
+                            :value="proposal.apiary_site_location.title" 
+                            name="site_location_title" 
+                            isRequired="true" 
+                            help_text="help text ..." 
+                            id="id_title" 
+                            label="Title" 
+                            :readonly="is_internal || !proposal.can_user_edit">
+                        </TextField>
+                    </span>
+                    <span class="col-sm-12">
+                        Mark the location of the new proposed site either by entering the latitude and longitude or by clicking the location in the map.
+                    </span>
+                    <div class="row col-sm-12">
+                    <div class="col-sm-4 form-group">
+                        <label class="inline">Latitude:</label>
+                        <div v-if="true">
+                            <input 
+                                :readonly="readonly" 
+                                type="number" 
+                                min="-90" 
+                                max="90" 
+                                class="form-control" 
+                                v-model.number="marker_lat" />
+                        </div>
+                    </div>
+                    </div>
+                    <div class="row col-sm-12">
+                    <div class="col-sm-4 form-group">
+                        <label class="inline">Longitude:</label>
+                        <div v-if="true">
+                            <input 
+                                :readonly="readonly" 
+                                type="number" 
+                                min="-180" 
+                                max="180" 
+                                class="form-control" 
+                                v-model.number="marker_lng" />
+                        </div>
+                    </div>
+                    </div>
+
+<!--
+                    <span class="col-sm-6">
+                        <TextField 
+                            type="text" 
+                            :value="proposal.apiary_site_location.latitude" 
+                            name="site_location_latitude" 
+                            isRequired="true" 
+                            id="id_latitude" 
+                            label="Latitude" 
+                            :readonly="is_internal || !proposal.can_user_edit">
+                        </TextField>
                     </span>
                     <span class="col-sm-6">
-                        <TextField type="text" :value="proposal.apiary_site_location.latitude" name="site_location_latitude" isRequired="true" id="id_latitude" label="Latitude" :readonly="is_internal || !proposal.can_user_edit"></TextField>
+                        <TextField 
+                            type="text" 
+                            :value="proposal.apiary_site_location.longitude" 
+                            name="site_location_longitude" 
+                            isRequired="true" 
+                            id="id_longitude" 
+                            label="Longitude" 
+                            :readonly="is_internal || !proposal.can_user_edit">
+                        </TextField>
                     </span>
-                    <span class="col-sm-6">
-                        <TextField type="text" :value="proposal.apiary_site_location.longitude" name="site_location_longitude" isRequired="true" id="id_longitude" label="Longitude" :readonly="is_internal || !proposal.can_user_edit"></TextField>
-                    </span>
+-->
 
                     <!-- The below commented out block is equivalent to the <TextField> above for 'title'
                     <span>
@@ -99,6 +158,14 @@
 
     export default {
         props:{
+            marker_longitude: {
+                required: false,
+                default: 131,
+            },
+            marker_latitude: {
+                required: false,
+                default: -31,
+            },
             proposal:{
                 type: Object,
                 required:true
