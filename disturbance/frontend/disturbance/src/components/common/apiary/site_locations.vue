@@ -1,163 +1,135 @@
 <template lang="html">
 
     <div class="row" style="padding-bottom: 50px;">
-      <div>
-        <div v-if="is_external">
-            <h3>Application: {{ proposal.lodgement_number }}</h3>
-            <h4>Application Type: {{proposal.proposal_type }}</h4>
-            <h4>Status: {{proposal.customer_status }}</h4>
+        <div>
+          <div v-if="is_external">
+              <h3>Application: {{ proposal.lodgement_number }}</h3>
+              <h4>Application Type: {{proposal.proposal_type }}</h4>
+              <h4>Status: {{proposal.customer_status }}</h4>
+          </div>
+
+
+          <div class="col-md-12">
+              <div class="panel panel-default">
+                  <div class="panel-heading">
+                      <h3 class="panel-title">Site Locations<small></small>
+                          <a class="panelClicker" :href="'#'+pBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="pBody">
+                              <span class="glyphicon glyphicon-chevron-up pull-right "></span>
+                          </a>
+                      </h3>
+                  </div>
+
+
+                  <div class="panel-body collapse in" :id="pBody">
+                      <span class="col-sm-12">
+                          <TextField 
+                              type="text" 
+                              :value="proposal.apiary_site_location.title" 
+                              name="site_location_title" 
+                              isRequired="true" 
+                              help_text="help text ..." 
+                              id="id_title" 
+                              label="Title" 
+                              :readonly="is_internal || !proposal.can_user_edit">
+                          </TextField>
+                      </span>
+                      <span class="col-sm-12">
+                          Mark the location of the new proposed site either by entering the latitude and longitude or by clicking the location in the map.
+                      </span>
+                      <div class="row col-sm-12">
+                          <div class="col-sm-4 form-group">
+                              <label class="inline">Latitude:</label>
+                              <div v-if="true">
+                                  <input 
+                                      :readonly="readonly" 
+                                      type="number" 
+                                      min="-90" 
+                                      max="90" 
+                                      class="form-control" 
+                                      v-model.number="marker_lat" />
+                              </div>
+                          </div>
+                      </div>
+                      <div class="row col-sm-12">
+                          <div class="col-sm-4 form-group">
+                              <label class="inline">Longitude:</label>
+                              <div v-if="true">
+                                  <input 
+                                      :readonly="readonly" 
+                                      type="number" 
+                                      min="-180" 
+                                      max="180" 
+                                      class="form-control" 
+                                      v-model.number="marker_lng" />
+                                  <input type="button" @click="addProposedSite" value="Add proposed site" class="btn btn-primary">
+                              </div>
+                          </div>
+                      </div>
+                      <div class="col-lg-12">
+                          <datatable ref="site_locations_table" id="site-locations-table" :dtOptions="dtOptions" :dtHeaders="dtHeaders" />
+                      </div>
+
+                      <iframe width="500" height="500" :src="webmap_src"></iframe>
+                          <!--
+                      <IFrame width="500" height="300" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" title="Apiary Sites Beekeeper's Map (WBV)" :src="webmap_src"></IFrame>
+                          -->
+
+                      <div class="col-lg-12">
+                          <label>
+                              Click <a @click="enlargeMapClicked">here</a> to enlarge map
+                          </label>
+                      </div>
+                      <div class="col-lg-12">
+                          <label>
+                              Click <a @click="existingSiteAvailableClicked">here</a> if you are interested in existing sites that are available by the site licence holder.
+                          </label>
+                      </div>
+                  </div>
+              </div>
+
+              <div class="panel panel-default">
+                  <div class="panel-heading">
+                      <h3 class="panel-title">Deed Poll<small></small>
+                      <a class="panelClicker" href="#deedPoll" data-toggle="collapse"  data-parent="#userInfo" expanded="true" aria-controls="deedPoll">
+                      <span class="glyphicon glyphicon-chevron-up pull-right "></span>
+                      </a>
+                      </h3>
+                  </div>
+                  <div class="panel-body collapse in" id="deedPoll">
+                      <div class="row">
+                          <div class="col-sm-12">
+                              <label>Print <a :href="deed_poll_url" target="_blank">the deed poll</a>, sign it, have it witnessed and attach it to this application.</label>
+                          </div>
+                      </div>
+                      <div class="row">
+                          <div class="col-sm-12">
+                              <FileField :proposal_id="proposal.id" isRepeatable="false" name="deed_poll" :id="'proposal'+proposal.id" :readonly="proposal.readonly" ref="deed_poll_doc"></FileField>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+
+              <div class="panel panel-default">
+                  <div class="panel-heading">
+                      <h3 class="panel-title">Checklist<small></small>
+                      <a class="panelClicker" href="#checkList" data-toggle="collapse"  data-parent="#userInfo" expanded="true" aria-controls="checkList">
+                      <span class="glyphicon glyphicon-chevron-up pull-right "></span>
+                      </a>
+                      </h3>
+                  </div>
+                  <div class="panel-body collapse in" id="checkList">
+                      <div class="row">
+                          <div class="col-sm-12">
+                              <label>Checklist items go here (pulled from Django Admin) ...</label>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+          </div>
+
         </div>
-
-        <div class="col-md-12">
-            <div class="panel panel-default">
-                <div class="panel-heading">
-                    <h3 class="panel-title">Site Locations<small></small>
-                        <a class="panelClicker" :href="'#'+pBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="pBody">
-                            <span class="glyphicon glyphicon-chevron-up pull-right "></span>
-                        </a>
-                    </h3>
-                </div>
-                <div class="panel-body collapse in" :id="pBody">
-                    <span class="col-sm-12">
-                        <TextField 
-                            type="text" 
-                            :value="proposal.apiary_site_location.title" 
-                            name="site_location_title" 
-                            isRequired="true" 
-                            help_text="help text ..." 
-                            id="id_title" 
-                            label="Title" 
-                            :readonly="is_internal || !proposal.can_user_edit">
-                        </TextField>
-                    </span>
-                    <span class="col-sm-12">
-                        Mark the location of the new proposed site either by entering the latitude and longitude or by clicking the location in the map.
-                    </span>
-                    <div class="row col-sm-12">
-                        <div class="col-sm-4 form-group">
-                            <label class="inline">Latitude:</label>
-                            <div v-if="true">
-                                <input 
-                                    :readonly="readonly" 
-                                    type="number" 
-                                    min="-90" 
-                                    max="90" 
-                                    class="form-control" 
-                                    v-model.number="marker_lat" />
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row col-sm-12">
-                        <div class="col-sm-4 form-group">
-                            <label class="inline">Longitude:</label>
-                            <div v-if="true">
-                                <input 
-                                    :readonly="readonly" 
-                                    type="number" 
-                                    min="-180" 
-                                    max="180" 
-                                    class="form-control" 
-                                    v-model.number="marker_lng" />
-                                <input type="button" @click="addProposedSite" value="Add proposed site" class="btn btn-primary">
-                            </div>
-                        </div>
-                    </div>
-<!--
-                    <span class="col-sm-6">
-                        <TextField 
-                            type="text" 
-                            :value="proposal.apiary_site_location.latitude" 
-                            name="site_location_latitude" 
-                            isRequired="true" 
-                            id="id_latitude" 
-                            label="Latitude" 
-                            :readonly="is_internal || !proposal.can_user_edit">
-                        </TextField>
-                    </span>
-                    <span class="col-sm-6">
-                        <TextField 
-                            type="text" 
-                            :value="proposal.apiary_site_location.longitude" 
-                            name="site_location_longitude" 
-                            isRequired="true" 
-                            id="id_longitude" 
-                            label="Longitude" 
-                            :readonly="is_internal || !proposal.can_user_edit">
-                        </TextField>
-                    </span>
--->
-
-                    <!-- The below commented out block is equivalent to the <TextField> above for 'title'
-                    <span>
-                        <label :id="id" for="label" class="inline" >Title</label>
-                        <a href="" @click.prevent="toggleHelpText"><i class="fa fa-question-circle" style="color:blue">&nbsp;</i></a>
-                        <div v-show="showingHelpText">
-                            <p class="col-sm-12" v-html="help_text"></p>
-                        </div>
-                    </span>
-                    <input type="text" class="form-control" v-model="proposal.apiary_site_location.title" name="title" :disabled="proposal.readonly">
-                    -->
-                    <div class="col-lg-12">
-                        <datatable ref="site_locations_table" id="site-locations-table" :dtOptions="dtOptions" :dtHeaders="dtHeaders" />
-                    </div>
-                    <!--
-                </div>
-                <div>
-                    -->
-                    <IFrame width="500" height="300" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" title="Apiary Sites Beekeeper's Map (WBV)" :src="webmap_src"></IFrame>
-                    <div class="col-lg-12">
-                        Click here to enlarge map
-                    </div>
-                    <div class="col-lg-12">
-                        Click here if you are interested in existing sites that are available by the site licence holder.
-                    </div>
-                </div>
-            </div>
-
-            <div class="panel panel-default">
-                <div class="panel-heading">
-                    <h3 class="panel-title">Deed Poll<small></small>
-                    <a class="panelClicker" href="#deedPoll" data-toggle="collapse"  data-parent="#userInfo" expanded="true" aria-controls="deedPoll">
-                    <span class="glyphicon glyphicon-chevron-up pull-right "></span>
-                    </a>
-                    </h3>
-                </div>
-                <div class="panel-body collapse in" id="deedPoll">
-                    <div class="row">
-                        <div class="col-sm-12">
-                            <label>Print <a :href="deed_poll_url" target="_blank">the deed poll</a>, sign it, have it witnessed and attach it to this application.</label>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-sm-12">
-                            <FileField :proposal_id="proposal.id" isRepeatable="false" name="deed_poll" :id="'proposal'+proposal.id" :readonly="proposal.readonly" ref="deed_poll_doc"></FileField>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="panel panel-default">
-                <div class="panel-heading">
-                    <h3 class="panel-title">Checklist<small></small>
-                    <a class="panelClicker" href="#checkList" data-toggle="collapse"  data-parent="#userInfo" expanded="true" aria-controls="checkList">
-                    <span class="glyphicon glyphicon-chevron-up pull-right "></span>
-                    </a>
-                    </h3>
-                </div>
-                <div class="panel-body collapse in" id="checkList">
-                    <div class="row">
-                        <div class="col-sm-12">
-                            <label>Checklist items go here (pulled from Django Admin) ...</label>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-      </div>
-
+        <SiteLocationsModal ref="site_locations_modal" />
     </div>
-
 </template>
 
 <script>
@@ -167,6 +139,7 @@
     import FileField from '@/components/forms/filefield.vue'
     import datatable from '@vue-utils/datatable.vue'
     import uuid from 'uuid';
+    import SiteLocationsModal from './site_locations_modal';
 
     export default {
         props:{
@@ -274,11 +247,10 @@
             IFrame,
             FileField,
             datatable,
+            SiteLocationsModal,
         },
         computed:{
-//            readonly: function(){
-//                return !this.hasReferralMode && !this.hasAssessorMode ? true : false;
-//            },
+
         },
         watch:{
             marker_lat: function(){
@@ -289,6 +261,15 @@
             },
         },
         methods:{
+            enlargeMapClicked: function() {
+                console.log('enlargeMapClicked');
+                this.$nextTick(() => {
+                    this.$refs.site_locations_modal.isModalOpen = true;
+                });
+            },
+            existingSiteAvailableClicked: function() {
+                console.log('existingSiteAvailableClicked');
+            },
             constructSiteLocationsTable: function(){
                 console.log('constructSiteLocationsTable');
                 console.log(this.site_locations);
