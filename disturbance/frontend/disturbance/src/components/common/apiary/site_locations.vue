@@ -78,7 +78,20 @@
                 <div class="panel-body collapse in" id="checkList">
                             <div class="row">
                                 <div class="col-sm-12">
-                                    <label>Checklist items go here (pulled from Django Admin) ...</label>
+                                        <li  class="col-sm-6" >
+                                        <label class="control-label">{{q.question.text}}</label></li>
+                                        <ul v-if="q.question.answer_type=='yes_no'" class="list-inline col-sm-6">
+                                            <li class="list-inline-item">
+                                                <input  class="form-check-input" v-model="q.answer" ref="Checkbox" type="radio" :name="'option'+q.id" :id="'answer_one'+q.id":value="true" data-parsley-required :disabled="readonly"/> Yes
+                                            </li>
+                                            <li class="list-inline-item">
+                                                <input  class="form-check-input" v-model="q.answer" ref="Checkbox" type="radio" :name="'option'+q.id" :id="'answer_two'+q.id" :value="false" data-parsley-required :disabled="readonly"/> No </li>
+                                        </ul>
+                                        <ul v-else class="list-inline col-sm-6">
+                                            <li class="list-inline-item">
+                                                <textarea :disabled="readonly" class="form-control" name="text_answer" placeholder="" v-model="q.text_answer"></textarea>
+                                            </li>
+                                        </ul>
                                 </div>
                             </div>
                 </div>
