@@ -3,7 +3,7 @@
         <modal transition="modal fade" @ok="ok()" @cancel="cancel()" :title="modalTitle" large force>
             <div class="container-fluid">
                 <div class="col-sm-12 form-group"><div class="row">
-                    <iframe width="100%" height="600" :src="webmap_src"></iframe>
+                        <iframe width="100%" height="600" :src="webmap_src"></iframe>
                 </div></div>
             </div>
             <div slot="footer">
@@ -31,7 +31,7 @@
     //import "jquery-ui/ui/widgets/draggable.js";
     import "bootstrap/dist/css/bootstrap.css";
     //import "awesomplete/awesomplete.css";
-    import IFrame from '@/components/forms/iframe.vue'
+    //import IFrame from '@/components/forms/iframe.vue'
     
     export default {
         name: "SiteLocationsModal",
@@ -50,7 +50,7 @@
         components: {
             modal,
             datatable,
-            IFrame,
+            //IFrame,
         },
         watch: {
     
