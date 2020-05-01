@@ -41,7 +41,6 @@
                               <label class="inline">Latitude:</label>
                               <div v-if="true">
                                   <input 
-                                      :readonly="readonly" 
                                       type="number" 
                                       min="-90" 
                                       max="90" 
@@ -55,7 +54,6 @@
                               <label class="inline">Longitude:</label>
                               <div v-if="true">
                                   <input 
-                                      :readonly="readonly" 
                                       type="number" 
                                       min="-180" 
                                       max="180" 
@@ -65,7 +63,8 @@
                               </div>
                           </div>
                       </div>
-                      <div class="col-lg-12">
+
+                      <div class="row col-sm-12">
                           <datatable ref="site_locations_table" id="site-locations-table" :dtOptions="dtOptions" :dtHeaders="dtHeaders" />
                       </div>
 
@@ -74,12 +73,12 @@
                       <IFrame width="500" height="300" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" title="Apiary Sites Beekeeper's Map (WBV)" :src="webmap_src"></IFrame>
                           -->
 
-                      <div class="col-lg-12">
+                      <div class="col-sm-12">
                           <label>
                               Click <a @click="enlargeMapClicked">here</a> to enlarge map
                           </label>
                       </div>
-                      <div class="col-lg-12">
+                      <div class="col-sm-12">
                           <label>
                               Click <a @click="existingSiteAvailableClicked">here</a> if you are interested in existing sites that are available by the site licence holder.
                           </label>
@@ -103,7 +102,7 @@
                       </div>
                       <div class="row">
                           <div class="col-sm-12">
-                              <FileField :proposal_id="proposal.id" isRepeatable="false" name="deed_poll" :id="'proposal'+proposal.id" :readonly="proposal.readonly" ref="deed_poll_doc"></FileField>
+                              <FileField :proposal_id="proposal.id" :isRepeatable="false" name="deed_poll" :id="'proposal'+proposal.id" :readonly="proposal.readonly" ref="deed_poll_doc"></FileField>
                           </div>
                       </div>
                   </div>
@@ -135,7 +134,7 @@
 <script>
 
     import TextField from '@/components/forms/text.vue'
-    import IFrame from '@/components/forms/iframe.vue'
+    //import IFrame from '@/components/forms/iframe.vue'
     import FileField from '@/components/forms/filefield.vue'
     import datatable from '@vue-utils/datatable.vue'
     import uuid from 'uuid';
@@ -204,6 +203,7 @@
                 marker_lng: null,
                 marker_lat: null,
                 site_locations: [],
+                deed_poll_url: '',
                 dtHeaders: [
                     'Latitude',
                     'Longitude',
@@ -244,7 +244,7 @@
         },
         components: {
             TextField,
-            IFrame,
+            //IFrame,
             FileField,
             datatable,
             SiteLocationsModal,
@@ -287,6 +287,7 @@
                 this.$refs.site_locations_table.vmDataTable.row.add(site_location).draw();
             },
             addProposedSite: function(){
+                console.log('addProposedSite');
                 if (this.marker_lat && this.marker_lng){
                     this.site_locations.push({
                         "latitude": this.marker_lat,
