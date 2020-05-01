@@ -28,7 +28,7 @@
                                         <p><strong>Level of approval: {{proposal.approval_level}}</strong></p>
                                         
                                     <div v-if="isApprovalLevel">    
-                                        <p v-if="proposal.approval_level_document"><strong>Attach documents: <a :href="proposal.approval_level_document[1]" target="_blank">{{proposal.approval_level_document[0]}}</a>
+                                        <p v-if="proposal.approval_level_document"><strong>Attach documents:</strong> <a :href="proposal.approval_level_document[1]" target="_blank">{{proposal.approval_level_document[0]}}</a>
                                         <span>
                                         <a @click="removeFile()" class="fa fa-trash-o" title="Remove file" style="cursor: pointer; color:red;"></a>
                                         </span></p>
@@ -60,9 +60,9 @@
                                         <p><strong>Level of approval: {{proposal.approval_level}}</strong></p>
                                         
                                         <div v-if="isApprovalLevel">    
-                                            <p v-if="proposal.approval_level_document"><strong>Attach documents: <a :href="proposal.approval_level_document[1]" target="_blank">{{proposal.approval_level_document[0]}}</a>
+                                            <p v-if="proposal.approval_level_document"><strong>Attach documents: </strong><a :href="proposal.approval_level_document[1]" target="_blank">{{proposal.approval_level_document[0]}}</a>
                                             </p>
-                                            <p v-if="proposal.approval_level_comment"><strong>Comments: {{proposal.approval_level_comment}}
+                                            <p v-if="proposal.approval_level_comment"><strong>Comments: {{proposal.approval_level_comment}}</strong>
                                             </p>
                                         </div>
                                     </template>                                    

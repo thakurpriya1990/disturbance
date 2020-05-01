@@ -1,5 +1,4 @@
 <template lang="html">
-    <div>
       <div class="col-sm-12">
 
         <!--<div v-if="uploaded_documents.length>0" class="form-group">-->

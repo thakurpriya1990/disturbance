@@ -5,6 +5,7 @@
                 <label :id="id">
                 <input :onclick="isClickable" ref="Checkbox" :name="name" type="checkbox" :class="group" data-parsley-required :data-conditions="options" @change="handleChange" :checked="isChecked" :required="isRequired"/>
                 {{ label }}
+                </label>
                 <template v-if="help_text">
                   <HelpText :help_text="help_text" />
                 </template>

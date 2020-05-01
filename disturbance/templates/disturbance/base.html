@@ -54,13 +54,17 @@
                                     <span class="icon-bar"></span>
                                     <span class="icon-bar"></span>
                                 </button>
-                                <a class="navbar-brand" href="{% url 'ds_home' %}"><div style="inline"><img src="{% static 'disturbance/img/dpaw_small.png' %}">{% if is_internal_login %}Proposals/Applications {% else %}Home {% endif %}</div></a>
+
+                                <a class="navbar-brand" href="{% url 'ds_home' %}"><div style="inline"><img src="{% static 'disturbance/img/dpaw_small.png' %}">{% if is_internal_login %}Proposals<br />Applications {% else %}Home {% endif %}</div></a>
+
                             </div>
                             <div id="navbar" class="navbar-collapse collapse">
                                 <ul class="nav navbar-nav">
                                     {% block left_menu_items %}
                                         {% if is_internal_login %}
-                                        <li><a href="/internal/approvals">Approvals/Licenses</a></li>
+
+                                        <li><a href="/internal/approvals">Approvals<br />Licence</a></li>
+
                                         <li><a href="/internal/compliances">Compliance with Requirements</a></li>
                                         <li><a href="/internal/organisations/access">Organisation Access</a></li>
                                         <li><a href="/internal/search">Search</a></li>
@@ -148,7 +152,11 @@
             <script type="text/javascript" src="https://static.dpaw.wa.gov.au/static/cdnjs/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script>-->
             <script type="text/javascript" src="{% static 'disturbance_vue/static/js/manifest.js' %}"></script>
             <script type="text/javascript" src="{% static 'disturbance_vue/static/js/vendor.js' %}"></script>
-            <script type="text/javascript" src="{% static 'disturbance_vue/static/js/app.js' %}"></script>
+            {% if app_build_url %}
+                <script type="text/javascript" src="{{ app_build_url }}"></script>
+            {% else %}
+                <script type="text/javascript" src="{% static 'disturbance_vue/static/js/app.js' %}"></script>
+            {% endif %}
         {% else %}
             <script type="text/javascript" src="{{ dev_url }}"></script>
         {% endif %}
