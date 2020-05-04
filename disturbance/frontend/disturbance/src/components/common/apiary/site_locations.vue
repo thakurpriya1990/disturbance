@@ -269,6 +269,7 @@
             },
             existingSiteAvailableClicked: function() {
                 console.log('existingSiteAvailableClicked');
+                alert("TODO: open screen 45: External - Contact Holder of Available Site in a different tab page.");
             },
             constructSiteLocationsTable: function(){
                 console.log('constructSiteLocationsTable');

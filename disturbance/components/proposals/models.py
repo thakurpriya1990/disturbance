@@ -1901,7 +1901,6 @@ class HelpPage(models.Model):
 # --------------------------------------------------------------------------------------
 # Apiary Models Start
 # --------------------------------------------------------------------------------------
-
 class ProposalApiarySiteLocation(models.Model):
     title = models.CharField('Title', max_length=200, null=True)
     location = gis_models.PointField(srid=4326, blank=True, null=True)
@@ -1917,6 +1916,17 @@ class ProposalApiarySiteLocation(models.Model):
 
     def __str__(self):
         return '{}'.format(self.title)
+
+    class Meta:
+        app_label = 'disturbance'
+
+
+class ApiarySite(models.Model):
+    proposal_apiary_site_location = models.ForeignKey(ProposalApiarySiteLocation, null=True, blank=True)
+    site_guid = models.CharField(max_length=30, blank=True)
+
+    def __str__(self):
+        return '{} - {}'.format(self.site_guid, self.proposal_apiary_site_location.proposal.title)
 
     class Meta:
         app_label = 'disturbance'
@@ -1951,7 +1961,7 @@ class ProposalApiaryDocument(DefaultDocument):
 
     def delete(self):
         if self.can_delete:
-            return super(ApiarySiteLocationDocument, self).delete()
+            return super(ProposalApiaryDocument, self).delete()
 
 #class ApiaryTemporaryUseDocument(DefaultDocument):
 #    temporary_use = models.ForeignKey('ProposalApiaryTemporaryUse', related_name='apiary_temporary_use_documents')
