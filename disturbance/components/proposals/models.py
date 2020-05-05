@@ -1935,6 +1935,19 @@ class ApiarySite(models.Model):
         app_label = 'disturbance'
 
 
+class OnSiteInformation(models.Model):
+    apiary_site = models.ForeignKey(ApiarySite, null=True, blank=True)
+    period_from = models.DateField(null=True, blank=True)
+    period_to = models.DateField(null=True, blank=True)
+    comments = models.TextField(blank=True)
+
+    def __str__(self):
+        return 'OnSiteInfo id: {}, date: {} to {}'.format(self.id, self.period_from, self.period_to)
+
+    class Meta:
+        app_label = 'disturbance'
+
+
 class ProposalApiaryTemporaryUse(models.Model):
     from_date=models.DateField('Period From Date', blank=True, null=True)
     to_date=models.DateField('Period To Date', blank=True, null=True)
