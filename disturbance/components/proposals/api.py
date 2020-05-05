@@ -345,8 +345,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
     def get_serializer_class(self):
         try:
-            #import ipdb; ipdb.set_trace()
-            #application_type = Proposal.objects.get(id=self.kwargs.get('pk')).application_type.name
             application_type = self.get_object().application_type.name
             if application_type == ApplicationType.APIARY:
                 return ProposalApiarySerializer
@@ -968,7 +966,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
     def draft(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
-            save_proponent_data(instance,request,self)
+            save_proponent_data(instance, request, self)
             return redirect(reverse('external'))
         except serializers.ValidationError:
             print(traceback.print_exc())

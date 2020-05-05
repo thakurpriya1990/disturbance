@@ -19,6 +19,7 @@ from disturbance.components.organisations.models import (
 from disturbance.components.main.serializers import CommunicationLogEntrySerializer
 from rest_framework import serializers
 
+
 class ProposalTypeSerializer(serializers.ModelSerializer):
     activities = serializers.SerializerMethodField()
     class Meta:
@@ -33,10 +34,12 @@ class ProposalTypeSerializer(serializers.ModelSerializer):
     def get_activities(self,obj):
         return obj.activities.names()
 
+
 class EmailUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = EmailUser
         fields = ('id','email','first_name','last_name','title','organisation')
+
 
 class BaseProposalSerializer(serializers.ModelSerializer):
     readonly = serializers.SerializerMethodField(read_only=True)
@@ -116,7 +119,6 @@ class BaseProposalSerializer(serializers.ModelSerializer):
 
     def get_proposal_type(self,obj):
         return obj.get_proposal_type_display()
-
 
 
 class DTProposalSerializer(BaseProposalSerializer):

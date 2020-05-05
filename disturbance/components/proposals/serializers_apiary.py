@@ -1,6 +1,8 @@
 from django.conf import settings
 from drf_extra_fields.geo_fields import PointField
 from ledger.accounts.models import EmailUser,Address
+from rest_framework_gis.serializers import GeoFeatureModelSerializer
+
 from disturbance.components.organisations.serializers import OrganisationSerializer
 from disturbance.components.proposals.serializers import (
     BaseProposalSerializer,
@@ -13,7 +15,7 @@ from disturbance.components.proposals.models import (
     ProposalApiarySiteLocation,
     ProposalApiaryTemporaryUse,
     ProposalApiarySiteTransfer,
-    ProposalApiaryDocument,
+    ProposalApiaryDocument, ApiarySite,
 )
 
 from disturbance.components.main.serializers import CommunicationLogEntrySerializer
@@ -21,18 +23,37 @@ from rest_framework import serializers
 from django.db.models import Q
 from reversion.models import Version
 
+
+class ApiarySiteSerializer(serializers.ModelSerializer):
+    proposal_apiary_site_location_id = serializers.IntegerField(write_only=True,)
+
+    class Meta:
+        model = ApiarySite
+        fields = (
+            'id',
+            'site_guid',
+            'proposal_apiary_site_location_id',
+        )
+
+
+#class ProposalApiarySiteLocationSerializer(GeoFeatureModelSerializer):
 class ProposalApiarySiteLocationSerializer(serializers.ModelSerializer):
+
+    apiary_sites = ApiarySiteSerializer(read_only=True, many=True)
 
     class Meta:
         model = ProposalApiarySiteLocation
-        fields = ('id', 'title', 'proposal', 'latitude', 'longitude')
-        #fields = '__all__'
+        # geo_field = 'location'
 
-    def get_latitude(self,obj):
-        return obj.latitude
-
-    def get_longitude(self,obj):
-        return obj.longitude
+        fields = (
+            'id',
+            'title',
+            'proposal',
+            # 'location',
+            'apiary_sites',
+            'longitude',
+            'latitude',
+        )
 
 
 class ProposalApiaryTemporaryUseSerializer(serializers.ModelSerializer):
@@ -53,6 +74,7 @@ class ProposalApiaryDocumentSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProposalApiaryDocument
         fields = ('id', 'name', '_file')
+
 
 class SaveProposalApiarySiteLocationSerializer(serializers.ModelSerializer):
     class Meta:
@@ -124,8 +146,6 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
                 )
         read_only_fields=('documents',)
 
-
-
     def get_documents_url(self,obj):
         return '/media/{}/proposals/{}/documents/'.format(settings.MEDIA_APP_DIR, obj.id)
 
@@ -146,6 +166,7 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
 
     def get_fee_invoice_url(self,obj):
         return '/payments/invoice-pdf/{}'.format(obj.fee_invoice_reference) if obj.fee_paid else None
+
 
 class InternalProposalApiarySerializer(BaseProposalSerializer):
     # TODO next 3 commented lines - related to 'apply as an Org or as an individual'

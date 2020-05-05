@@ -1,14 +1,20 @@
 <template lang="html">
     <div>
 
-        <SiteLocation :proposal="proposal" id="site_locations" ref="apiary_site_location" :is_external="is_external" :is_internal="is_internal"></SiteLocation>
+        <SiteLocations 
+            :proposal="proposal" 
+            id="site_locations" 
+            ref="apiary_site_locations" 
+            :is_external="is_external" 
+            :is_internal="is_internal">
+        </SiteLocations>
 
     </div>
 </template>
 
 <script>
 
-    import SiteLocation from '@/components/common/apiary/site_locations.vue'
+    import SiteLocations from '@/components/common/apiary/site_locations.vue'
 
     export default {
         props:{
@@ -57,7 +63,7 @@
             }
         },
         components: {
-              SiteLocation,
+              SiteLocations,
         },
         computed:{
           //applicantType: function(){
