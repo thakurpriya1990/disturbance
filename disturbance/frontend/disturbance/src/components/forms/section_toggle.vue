@@ -55,19 +55,11 @@ export default {
 
     },
     mounted: function() {
-        console.log('mounted section toggle');
-        //this.custom_id = uuid();
-
-        //$('.panelClicker[data-toggle="collapse"]').on('click',function () {
-        let id_str = '#' + this.custom_id;
-        console.log(id_str);
-        let elem = $(id_str);
-        console.log('elem');
-        console.log(elem);
+        let elem = $('#' + this.custom_id);
 
         elem.on('click',function () {
-            console.log('clicked');
             var chev = $(this).children()[0];
+            console.log('clicked')
             console.log(chev);
             window.setTimeout(function () {
                 $(chev).toggleClass("glyphicon-chevron-up glyphicon-chevron-down");
