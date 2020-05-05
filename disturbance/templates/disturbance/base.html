@@ -149,6 +149,7 @@
             <script type="text/javascript" src="{% static 'disturbance_vue/static/js/manifest.js' %}"></script>
             <script type="text/javascript" src="{% static 'disturbance_vue/static/js/vendor.js' %}"></script>
             {% if app_build_url %}
+                <!-- script type="text/javascript" src="{% static 'disturbance_vue/static/js/app.js' %}"></script -->
                 <script type="text/javascript" src="{{ app_build_url }}"></script>
             {% else %}
                 <script type="text/javascript" src="{% static 'disturbance_vue/static/js/app.js' %}"></script>

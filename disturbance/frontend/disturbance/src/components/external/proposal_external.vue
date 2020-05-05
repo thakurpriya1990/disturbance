@@ -37,7 +37,7 @@
                 </ul>
             </div>
 
-            <div v-if="proposal.application_type=='Apiary'">
+            <div v-if="proposal && proposal.application_type=='Apiary'">
                 <ProposalApiary v-if="proposal" :proposal="proposal" id="proposalStart" :showSections="sectionShow" ref="proposal_apiary" :is_external="true"></ProposalApiary>
             </div>
             <div v-else>
@@ -53,7 +53,7 @@
                 <div class="row" style="margin-bottom: 50px">
                   <div class="navbar navbar-fixed-bottom" style="background-color: #f5f5f5 ">
                   <div class="navbar-inner">
-                    <div v-if="!proposal.readonly" class="container">
+                    <div v-if="proposal && !proposal.readonly" class="container">
                       <p class="pull-right" style="margin-top:5px;">
                         <button id="sectionHide" @click.prevent="sectionHide" class="btn btn-primary">Show/Hide sections</button>
                         <input type="button" @click.prevent="save_exit" class="btn btn-primary" value="Save and Exit"/>
