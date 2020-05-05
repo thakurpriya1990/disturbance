@@ -1906,13 +1906,13 @@ class ProposalApiarySiteLocation(models.Model):
     location = gis_models.PointField(srid=4326, blank=True, null=True)
     proposal = models.OneToOneField(Proposal, related_name='apiary_site_location', null=True)
 
-    @property
-    def latitude(self):
-        return self.location.get_x()
-
-    @property
-    def longitude(self):
-        return self.location.get_y()
+    # @property
+    # def latitude(self):
+    #     return self.location.get_x()
+    #
+    # @property
+    # def longitude(self):
+    #     return self.location.get_y()
 
     def __str__(self):
         return '{}'.format(self.title)
@@ -1922,8 +1922,8 @@ class ProposalApiarySiteLocation(models.Model):
 
 
 class ApiarySite(models.Model):
-    proposal_apiary_site_location = models.ForeignKey(ProposalApiarySiteLocation, null=True, blank=True)
-    site_guid = models.CharField(max_length=30, blank=True)
+    proposal_apiary_site_location = models.ForeignKey(ProposalApiarySiteLocation, null=True, blank=True, related_name='apiary_sites')
+    site_guid = models.CharField(max_length=50, blank=True)
 
     def __str__(self):
         return '{} - {}'.format(self.site_guid, self.proposal_apiary_site_location.proposal.title)
