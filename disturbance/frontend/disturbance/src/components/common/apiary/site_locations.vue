@@ -274,10 +274,10 @@
                 alert("TODO: open screen 45: External - Contact Holder of Available Site in a different tab page.");
             },
             constructSiteLocationsTable: function(){
-                console.log('constructSiteLocationsTable');
-                console.log(this.site_locations);
+                // Clear table
                 this.$refs.site_locations_table.vmDataTable.clear().draw();
 
+                // Construct table
                 if (this.site_locations.length > 0){
                     for(let i=0; i<this.site_locations.length; i++){
                         this.addSiteLocationToTable(this.site_locations[i]);
@@ -316,13 +316,17 @@
         },
         mounted: function() {
             let vm = this;
-            //this.constructSiteLocationsTable();
-            //vm.form = document.forms.new_proposal;
-            vm.$nextTick(() => {
+            this.$nextTick(() => {
                 vm.addEventListeners();
             });
+            for(let i=0; i<this.proposal.apiary_site_location.apiary_sites.length; i++){
+                let a_site = this.proposal.apiary_site_location.apiary_sites[i];
+                a_site.longitude = 'retrieve from GIS server'
+                a_site.latitude = 'retrieve from GIS server'
+                this.site_locations.push(a_site);
+            }
+            this.constructSiteLocationsTable();
         }
-
     }
 </script>
 
