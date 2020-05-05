@@ -292,6 +292,7 @@
             addProposedSite: function(){
                 console.log('addProposedSite');
                 this.site_locations.push({
+                    "id": '',
                     "latitude": this.proposal.apiary_site_location.latitude,
                     "longitude": this.proposal.apiary_site_location.longitude,
                     "site_guid": uuid()

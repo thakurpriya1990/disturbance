@@ -368,18 +368,28 @@ def save_proponent_data_apiary(instance, request, viewset):
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
 
-                site_locations = request.data.get('site_locations')
-                site_locations = json.loads(site_locations)
-                for apiary_site in site_locations:
+                site_locations_received = json.loads(request.data.get('site_locations'))
+                site_locations_existing = site_location_data['apiary_sites']
+                site_ids_received = [item['id'] for item in site_locations_received]
+                site_ids_existing = [item['id'] for item in site_locations_existing]
+                site_ids_delete = [id for id in site_ids_existing if id not in site_ids_received]
+
+                for apiary_site in site_locations_received:
                     apiary_site['proposal_apiary_site_location_id'] = instance.apiary_site_location.id
                     try:
-                        a_site = ApiarySite.objects.get(site_guid=apiary_site.site_guid)
+                        # Update existing
+                        a_site = ApiarySite.objects.get(site_guid=apiary_site['site_guid'])
                         serializer = ApiarySiteSerializer(a_site, data=apiary_site)
                     except:
+                        # Create new
                         serializer = ApiarySiteSerializer(data=apiary_site)
                     finally:
                         serializer.is_valid(raise_exception=True)
                         serializer.save()
+
+                # Delete existing
+                sites_delete = ApiarySite.objects.filter(id__in=site_ids_delete)
+                sites_delete.delete()
 
             #save Temporary Use data
             temporary_use_data = sc.get('apiary_temporary_use')
@@ -399,7 +409,7 @@ def save_proponent_data_apiary(instance, request, viewset):
             instance.title = instance.apiary_site_location.title
             instance.activity = instance.application_type.name
             instance.save()
-        except:
+        except Exception as e:
             raise
 
 def save_proponent_data_disturbance(instance,request,viewset):
