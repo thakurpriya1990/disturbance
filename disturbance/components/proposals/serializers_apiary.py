@@ -36,19 +36,23 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
         )
 
 
-class ProposalApiarySiteLocationSerializer(GeoFeatureModelSerializer):
+#class ProposalApiarySiteLocationSerializer(GeoFeatureModelSerializer):
+class ProposalApiarySiteLocationSerializer(serializers.ModelSerializer):
+
     apiary_sites = ApiarySiteSerializer(read_only=True, many=True)
 
     class Meta:
         model = ProposalApiarySiteLocation
-        geo_field = 'location'
+        # geo_field = 'location'
 
         fields = (
             'id',
             'title',
             'proposal',
-            'location',
+            # 'location',
             'apiary_sites',
+            'longitude',
+            'latitude',
         )
 
 

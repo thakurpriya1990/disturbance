@@ -27,7 +27,7 @@
                             -->
                             <input
                                 type="text" 
-                                v-model="proposal.apiary_site_location.properties.title" 
+                                v-model="proposal.apiary_site_location.title" 
                                 :readonly="is_internal || !proposal.can_user_edit" 
                             />
                         </span>
@@ -43,7 +43,7 @@
                                         min="-90" 
                                         max="90" 
                                         class="form-control" 
-                                        v-model.number="proposal.apiary_site_location.geometry.coordinates[1]" 
+                                        v-model.number="proposal.apiary_site_location.latitude" 
                                         :readonly="is_internal || !proposal.can_user_edit" 
                                     />
                                 </div>
@@ -58,7 +58,7 @@
                                         min="-180" 
                                         max="180" 
                                         class="form-control" 
-                                        v-model.number="proposal.apiary_site_location.geometry.coordinates[0]" 
+                                        v-model.number="proposal.apiary_site_location.longitude" 
                                         :readonly="is_internal || !proposal.can_user_edit" 
                                     />
                                     <input type="button" @click="addProposedSite" value="Add proposed site" class="btn btn-primary">
@@ -193,6 +193,8 @@
                 site_locations: [],
                 deed_poll_url: '',
                 dtHeaders: [
+                    'id',
+                    'guid',
                     'Latitude',
                     'Longitude',
                     'Action',
@@ -212,6 +214,24 @@
                     columns: [
                         {
                             mRender: function (data, type, full) {
+                                if (full.id) {
+                                    return full.id;
+                                } else {
+                                    return '';
+                                }
+                            }
+                        },
+                        {
+                            mRender: function (data, type, full) {
+                                if (full.site_guid) {
+                                    return full.site_guid;
+                                } else {
+                                    return '';
+                                }
+                            }
+                        },
+                        {
+                            mRender: function (data, type, full) {
                                 return full.latitude;
                             }
                         },
@@ -222,7 +242,7 @@
                         },
                         {
                             mRender: function (data, type, full) {
-                                let ret_str = '<a href="#" class="delete_button" data-site-location-uuid="' + full.uuid + '">Delete</a>';
+                                let ret_str = '<span class="delete_button" style="color:#347ab7; cursor: pointer;" data-site-location-guid="' + full.site_guid + '">Delete</span>';
                                 return ret_str;
                             }
                         },
@@ -271,17 +291,9 @@
             },
             addProposedSite: function(){
                 console.log('addProposedSite');
-               // if (this.marker_lat && this.marker_lng){
-               //     this.site_locations.push({
-               //         "latitude": this.marker_lat,
-               //         "longitude": this.marker_lng,
-               //         "uuid": uuid()
-               //     });
-               //     this.constructSiteLocationsTable();
-               // }
                 this.site_locations.push({
-                    "latitude": this.proposal.apiary_site_location.geometry.coordinates[1],
-                    "longitude": this.proposal.apiary_site_location.geometry.coordinates[0],
+                    "latitude": this.proposal.apiary_site_location.latitude,
+                    "longitude": this.proposal.apiary_site_location.longitude,
                     "site_guid": uuid()
                 });
                 this.constructSiteLocationsTable();
@@ -290,12 +302,12 @@
                 $("#site-locations-table").on("click", ".delete_button", this.removeSiteLocation);
             },
             removeSiteLocation: function(e){
-                let site_location_uuid = e.target.getAttribute("data-site-location-uuid");
-                console.log('uuid');
-                console.log(site_location_uuid);
+                let site_location_guid = e.target.getAttribute("data-site-location-guid");
+                console.log('guid');
+                console.log(site_location_guid);
 
                 for (let i=0; i<this.site_locations.length; i++){
-                    if (this.site_locations[i].uuid == site_location_uuid){
+                    if (this.site_locations[i].site_guid == site_location_guid){
                         this.site_locations.splice(i, 1);
                     }
                 }
@@ -315,6 +327,9 @@
 </script>
 
 <style lang="css" scoped>
+    .delete_button {
+        color: #337ab7 !important;
+    }
     .section{
         text-transform: capitalize;
     }
