@@ -24,8 +24,21 @@ from django.db.models import Q
 from reversion.models import Version
 
 
+class OnSiteInformationSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = OnSiteInformation
+        fields = (
+            'id',
+            'period_from',
+            'period_to',
+            'comments',
+        )
+
+
 class ApiarySiteSerializer(serializers.ModelSerializer):
     proposal_apiary_site_location_id = serializers.IntegerField(write_only=True,)
+    onsiteinformation_set = OnSiteInformationSerializer(read_only=True, many=True,)
 
     class Meta:
         model = ApiarySite
@@ -33,22 +46,7 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
             'id',
             'site_guid',
             'proposal_apiary_site_location_id',
-        )
-
-
-class OnSiteInformationSerializer(serializers.ModelSerializer):
-    apiary_site = ApiarySiteSerializer(read_only=True,)
-    apiary_site_id = serializers.IntegerField(write_only=True,)
-
-    class Meta:
-        model = OnSiteInformation
-        fields = (
-            'id',
-            'apiary_site',
-            'period_from',
-            'period_to',
-            'comments',
-            'apiary_site_id',
+            'onsiteinformation_set',
         )
 
 
