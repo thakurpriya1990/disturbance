@@ -15,7 +15,7 @@ from disturbance.components.proposals.models import (
     ProposalApiarySiteLocation,
     ProposalApiaryTemporaryUse,
     ProposalApiarySiteTransfer,
-    ProposalApiaryDocument, ApiarySite,
+    ProposalApiaryDocument, ApiarySite, OnSiteInformation,
 )
 
 from disturbance.components.main.serializers import CommunicationLogEntrySerializer
@@ -36,7 +36,22 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
         )
 
 
-#class ProposalApiarySiteLocationSerializer(GeoFeatureModelSerializer):
+class OnSiteInformationSerializer(serializers.ModelSerializer):
+    apiary_site = ApiarySiteSerializer(read_only=True,)
+    apiary_site_id = serializers.IntegerField(write_only=True,)
+
+    class Meta:
+        model = OnSiteInformation
+        fields = (
+            'id',
+            'apiary_site',
+            'period_from',
+            'period_to',
+            'comments',
+            'apiary_site_id',
+        )
+
+
 class ProposalApiarySiteLocationSerializer(serializers.ModelSerializer):
 
     apiary_sites = ApiarySiteSerializer(read_only=True, many=True)
