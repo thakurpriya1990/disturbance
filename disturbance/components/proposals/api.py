@@ -27,7 +27,8 @@ from ledger.accounts.models import EmailUser, Address
 from ledger.address.models import Country
 from datetime import datetime, timedelta, date
 from disturbance.components.proposals.utils import save_proponent_data,save_assessor_data, proposal_submit
-from disturbance.components.proposals.models import searchKeyWords, search_reference, ProposalUserAction
+from disturbance.components.proposals.models import searchKeyWords, search_reference, ProposalUserAction, \
+    ProposalApiarySiteLocation
 from disturbance.utils import missing_required_fields, search_tenure
 from disturbance.components.main.utils import check_db_connection
 
@@ -308,6 +309,20 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         result_page = self.paginator.paginate_queryset(qs, request)
         serializer = ListProposalSerializer(result_page, context={'request':request}, many=True)
         return self.paginator.get_paginated_response(serializer.data)
+
+
+class ProposalApiarySiteLocationViewSet(viewsets.ModelViewSet):
+    queryset = ProposalApiarySiteLocation.objects.none()
+    serializer_class = ProposalApiarySiteLocationSerializer
+
+    @detail_route(methods=['GET', ])
+    def on_site_information_list(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = ProposalApiarySiteLocationSerializer(instance)
+        return Response(serializer.data)
+
+    def get_queryset(self):
+        return ProposalApiarySiteLocation.objects.all()
 
 
 class ProposalViewSet(viewsets.ModelViewSet):
