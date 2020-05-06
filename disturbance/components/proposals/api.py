@@ -66,10 +66,10 @@ from disturbance.components.proposals.serializers import (
     SearchReferenceSerializer,
     SearchKeywordSerializer,
     ListProposalSerializer,
-    ProposalReferralSerializer,
     AmendmentRequestDisplaySerializer,
     SaveProposalRegionSerializer,
 )
+from disturbance.components.proposals.serializers_base import ProposalReferralSerializer
 from disturbance.components.proposals.serializers_apiary import (
     ProposalApiarySerializer,
     InternalProposalApiarySerializer,

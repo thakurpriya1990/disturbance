@@ -1,15 +1,8 @@
 from django.conf import settings
-from drf_extra_fields.geo_fields import PointField
-from ledger.accounts.models import EmailUser,Address
-from rest_framework_gis.serializers import GeoFeatureModelSerializer
 
 from disturbance.components.organisations.serializers import OrganisationSerializer
-from disturbance.components.proposals.serializers import (
-    BaseProposalSerializer,
-    ProposalReferralSerializer,
-    ProposalDeclinedDetailsSerializer,
-    EmailUserSerializer,
-    )
+from disturbance.components.proposals.serializers_base import BaseProposalSerializer, ProposalReferralSerializer, \
+    ProposalDeclinedDetailsSerializer, EmailUserSerializer
 from disturbance.components.proposals.models import (
     Proposal,
     ProposalApiarySiteLocation,
@@ -18,10 +11,7 @@ from disturbance.components.proposals.models import (
     ProposalApiaryDocument, ApiarySite, OnSiteInformation,
 )
 
-from disturbance.components.main.serializers import CommunicationLogEntrySerializer
 from rest_framework import serializers
-from django.db.models import Q
-from reversion.models import Version
 
 
 class OnSiteInformationSerializer(serializers.ModelSerializer):

@@ -36,8 +36,9 @@ class ApprovalSerializer(serializers.ModelSerializer):
     title = serializers.CharField(source='current_proposal.title')
     #current_proposal = InternalProposalSerializer(many=False)
     can_approver_reissue = serializers.SerializerMethodField(read_only=True)
-    apiary_site_location = serializers.SerializerMethodField()
-    # apiary_site_location = ProposalApiarySiteLocationSerializer(source='current_proposal.apiary_site_location')
+
+    # apiary_site_location = serializers.SerializerMethodField()
+    current_proposal = ProposalSerializer()
 
     class Meta:
         model = Approval
@@ -77,7 +78,8 @@ class ApprovalSerializer(serializers.ModelSerializer):
             'can_amend',
             'can_reinstate', 
             'can_approver_reissue',
-            'apiary_site_location',
+            # 'apiary_site_location',
+            'current_proposal',
         )
         # the serverSide functionality of datatables is such that only columns that have field 'data' defined are requested from the serializer. We
         # also require the following additional fields for some of the mRender functions
@@ -122,9 +124,12 @@ class ApprovalSerializer(serializers.ModelSerializer):
                 return True
         return False
 
-    def get_apiary_site_location(self, obj):
-        temp = obj.current_proposal.apiary_site_location
-        return ''
+    # def get_apiary_site_location(self, obj):
+    #     if hasattr(obj.current_proposal, 'apiary_site_location'):
+    #         pasl = obj.current_proposal.apiary_site_location
+    #         return ProposalApiarySiteLocationSerializer(pasl).data
+    #     else:
+    #         return ''
 
 
 class ApprovalCancellationSerializer(serializers.Serializer):
