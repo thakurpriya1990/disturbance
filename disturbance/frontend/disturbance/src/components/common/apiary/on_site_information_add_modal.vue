@@ -5,14 +5,47 @@
                 <div class="row col-sm-12">
 
                     <div class="form-group"><div class="row">
-                        <label class="col-sm-3">New due date</label>
-                        <div class="col-sm-3">
+                        <label class="col-sm-3">Period From</label>
+                        <div class="col-sm-4">
                             <div class="input-group date" ref="periodFromDatePicker">
-                                <input type="text" class="form-control" placeholder="DD/MM/YYYY" v-model="on_site_info.period_from" />
+                                <input type="text" class="form-control" placeholder="DD/MM/YYYY" v-model="on_site_information.period_from" />
                                 <span class="input-group-addon">
                                     <span class="glyphicon glyphicon-calendar"></span>
                                 </span>
                             </div>
+                        </div>
+                    </div></div>
+
+                    <div class="form-group"><div class="row">
+                        <label class="col-sm-3">Period To</label>
+                        <div class="col-sm-4">
+                            <div class="input-group date" ref="periodToDatePicker">
+                                <input type="text" class="form-control" placeholder="DD/MM/YYYY" v-model="on_site_information.period_to" />
+                                <span class="input-group-addon">
+                                    <span class="glyphicon glyphicon-calendar"></span>
+                                </span>
+                            </div>
+                        </div>
+                    </div></div>
+
+                    <div class="form-group"><div class="row">
+                        <label class="col-sm-3">Site</label>
+                        <div class="col-sm-3">
+                            <select class="form-control" v-model="on_site_information.apiary_site">
+                                <option value=""></option>
+                                <option v-for="site in apiary_site_location.apiary_sites" :value="site" :key="site.id">
+                                    <span>
+                                        {{ site }}
+                                    </span>
+                                </option>
+                            </select>
+                        </div>
+                    </div></div>
+
+                    <div class="form-group"><div class="row">
+                        <label class="col-sm-3">Comments</label>
+                        <div class="col-sm-3">
+                            <textarea class="form-control" v-model="on_site_information.comments"/>
                         </div>
                     </div></div>
 
@@ -49,8 +82,8 @@ export default {
             processingDetails: false,
             isModalOpen: false,
             errorResponse: '',
-            on_site_info: {
-                apiary_site_id: null,
+            on_site_information: {
+                apiary_site: null,
                 comments: '',
                 period_from: null,
                 period_to: null,
@@ -61,6 +94,9 @@ export default {
       modal,
     },
     props:{
+        apiary_site_location: {
+            type: Object,
+        },
        // due_date_max: {
        //     type: String,
        //     default: '',
@@ -94,12 +130,12 @@ export default {
       //      }
       //  },
         addEventListeners: function () {
-            //this.isModalOpen=true;
             console.log('in addEventListeners');
 
             let vm = this;
-            let el_fr_date = $(vm.$refs.periodFromDatePicker);
-            let options = { format: "DD/MM/YYYY" };
+            let el_fr = $(vm.$refs.periodFromDatePicker);
+            let el_to = $(vm.$refs.periodToDatePicker);
+            let options = { format: "DD/MM/YYYY", showClear: true };
 
           //  if (vm.due_date_max){
           //      options['maxDate'] = vm.extendMaxDate;
@@ -115,13 +151,36 @@ export default {
            //     vm.new_due_date = coming_due_date.getDate() + '/' + (coming_due_date.getMonth() + 1) + '/' + coming_due_date.getFullYear();
            // }
 
-            el_fr_date.datetimepicker(options);
+            el_fr.datetimepicker(options);
+            el_to.datetimepicker(options);
 
-            el_fr_date.on("dp.change", function(e) {
-                if (el_fr_date.data("DateTimePicker").date()) {
-                    vm.on_site_info.period_from = e.date.format("DD/MM/YYYY");
-                } else if (el_fr_date.data("date") === "") {
-                    vm.on_site_info.period_from = null;
+            el_fr.on("dp.change", function(e) {
+                console.log('from changed');
+                console.log(e);
+
+                if (el_fr.data("DateTimePicker").date()) {
+                    console.log('from if');
+                    vm.on_site_information.period_from = e.date.format("DD/MM/YYYY");
+                    el_to.data('DateTimePicker').minDate(e.date);
+                } else if (el_fr.data("date") === "") {
+                    // Date has been cleared
+                    vm.on_site_information.period_from = null;
+                    el_to.data('DateTimePicker').minDate(false);
+                }
+            });
+
+            el_to.on("dp.change", function(e) {
+                console.log('to changed');
+                console.log(e);
+
+                if (el_to.data("DateTimePicker").date()) {
+                    console.log('to if');
+                    vm.on_site_information.period_to = e.date.format("DD/MM/YYYY");
+                    el_fr.data('DateTimePicker').maxDate(e.date);
+                } else if (el_to.data("date") === "") {
+                    // Date has been cleared
+                    vm.on_site_information.period_to = null;
+                    el_fr.data('DateTimePicker').maxDate(false);
                 }
             });
         },
@@ -130,7 +189,7 @@ export default {
                 this.processingDetails = true;
                 const response = await this.sendData();
                 this.close();
-                this.$parent.loadSanctionOutcome({ sanction_outcome_id: this.$parent.sanction_outcome.id });
+                //this.$parent.loadSanctionOutcome({ sanction_outcome_id: this.$parent.sanction_outcome.id });
             } catch (err){
                 this.processError(err);
             } finally {
@@ -172,7 +231,15 @@ export default {
         },
         sendData: async function () {
             let post_url = '/api/on_site_information/'
-            let payload = new FormData();
+            let payload = this.on_site_information
+
+            payload.period_from = moment(payload.period_from).format('YYYY-MM-DD');
+            payload.period_to = moment(payload.period_to).format('YYYY-MM-DD');
+            payload.apiary_site_id = payload.apiary_site.id;
+
+            console.log('payload');
+            console.log(payload);
+
             let res = await Vue.http.post(post_url, payload);
             return res
         },

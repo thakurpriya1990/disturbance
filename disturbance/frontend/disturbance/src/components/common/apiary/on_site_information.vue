@@ -1,12 +1,16 @@
 <template lang="html">
     <div>
-        <button class="btn btn-primary" @click="openOnSiteInformationAddModal">Add</button>
+        <div class="row">
+            <button :disabled="!addButtonEnabled" class="btn btn-primary pull-right" @click="openOnSiteInformationAddModal">Add</button>
+        </div>
+
         <div class="row col-sm-12">
             <datatable ref="on_site_information_table" id="on-site-information-table" :dtOptions="dtOptions" :dtHeaders="dtHeaders" />
         </div>
-        <div v-if="true">
-            <OnSiteInformationAddModal ref="on_site_information_add_modal" :key="modalBindId" />
-        </div>
+
+        <template v-if="apiary_site_location">
+            <OnSiteInformationAddModal ref="on_site_information_add_modal" :apiary_site_location="apiary_site_location" :key="modalBindId" />
+        </template>
     </div>
 </template>
 
@@ -37,7 +41,7 @@
         data:function () {
             let vm=this;
             return{
-                apiary_site_location: {},
+                apiary_site_location: null,
                 modalBindId: null,
                 dtHeaders: [
                     'id',
@@ -113,7 +117,15 @@
             datatable,
         },
         computed:{
-
+            addButtonEnabled: function() {
+                let enabled = false;
+                try {
+                    if(this.apiary_site_location.apiary_sites.length > 0){
+                        enabled = true
+                    }
+                } catch(err) { }
+                return enabled;
+            }
         },
         watch:{
             apiary_site_location_id: async function() {
@@ -127,7 +139,9 @@
 
                 try {
                     this.$nextTick(() => {
-                        this.$refs.on_site_information_add_modal.openMe();
+                        if (this.$refs.on_site_information_add_modal){
+                            this.$refs.on_site_information_add_modal.openMe();
+                        }
                     });
                 } catch (err) {
                     this.processError(err);

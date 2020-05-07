@@ -15,6 +15,7 @@ from rest_framework import serializers
 
 
 class OnSiteInformationSerializer(serializers.ModelSerializer):
+    apiary_site_id = serializers.IntegerField(write_only=True,)
 
     class Meta:
         model = OnSiteInformation
@@ -25,6 +26,9 @@ class OnSiteInformationSerializer(serializers.ModelSerializer):
             'period_to',
             'comments',
         )
+
+    def validate(self, attrs):
+        return attrs
 
 
 class ApiarySiteSerializer(serializers.ModelSerializer):
