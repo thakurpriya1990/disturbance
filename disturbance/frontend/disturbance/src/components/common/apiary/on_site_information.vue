@@ -1,16 +1,21 @@
 <template lang="html">
     <div>
+        <button class="btn btn-primary" @click="openOnSiteInformationAddModal">Add</button>
         <div class="row col-sm-12">
             <datatable ref="on_site_information_table" id="on-site-information-table" :dtOptions="dtOptions" :dtHeaders="dtHeaders" />
         </div>
+        
+        <OnSiteInformationAddModal ref="on_site_information_add_modal" />
     </div>
 </template>
 
 <script>
     import Vue from 'vue'
     import datatable from '@vue-utils/datatable.vue'
-    import uuid from 'uuid';
+    import uuid from 'uuid'
     import { api_endpoints, helpers, } from '@/utils/hooks'
+    import OnSiteInformationAddModal from './on_site_information_add_modal'
+    //import uuid from 'uuid'
 
     export default {
         props:{
@@ -32,6 +37,7 @@
             let vm=this;
             return{
                 apiary_site_location: {},
+                modalBindId: null,
                 dtHeaders: [
                     'id',
                     'from',
@@ -102,6 +108,7 @@
             }
         },
         components: {
+            OnSiteInformationAddModal,
             datatable,
         },
         computed:{
@@ -114,6 +121,23 @@
             }
         },
         methods:{
+            openOnSiteInformationAddModal: async function() {
+                console.log('openOnSiteInformationAddModal()');
+                try {
+                    this.$nextTick(() => {
+                        this.modalBindId = uuid()
+
+                        console.log('modalBindId');
+                        console.log(this.modalBindId);
+
+                        //this.$refs.on_site_information_add_modal.isModalOpen = true;
+                        this.$refs.on_site_information_add_modal.openMe();
+
+                    });
+                } catch (err) {
+                    this.processError(err);
+                }
+            },
             loadApiarySiteLocation: async function(id){
                 console.log('loadApiarySiteLocation');
                 console.log(id);

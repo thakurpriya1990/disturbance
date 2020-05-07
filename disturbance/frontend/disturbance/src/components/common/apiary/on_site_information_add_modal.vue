@@ -1,0 +1,186 @@
+<template lang="html">
+    <div>
+        <modal transition="modal fade" @ok="ok()" @cancel="cancel()" :title="modalTitle" large force>
+            <div class="container-fluid">
+                <div class="row col-sm-12">
+
+                    <div class="form-group"><div class="row">
+                        <label class="col-sm-3">New due date</label>
+                        <div class="col-sm-3">
+                            <div class="input-group date" ref="periodFromDatePicker">
+                                <input type="text" class="form-control" placeholder="DD/MM/YYYY" v-model="on_site_info.period_from" />
+                                <span class="input-group-addon">
+                                    <span class="glyphicon glyphicon-calendar"></span>
+                                </span>
+                            </div>
+                        </div>
+                    </div></div>
+
+                </div>
+            </div>
+            <div slot="footer">
+                <div v-if="errorResponse" class="form-group">
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <strong>
+                                <span style="white-space: pre;" v-html="errorResponse"></span>
+                            </strong>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" v-if="processingDetails" disabled class="btn btn-default" @click="ok"><i class="fa fa-spinner fa-spin"></i> Adding</button>
+                <button type="button" v-else class="btn btn-default" @click="ok">Ok</button>
+                <button type="button" class="btn btn-default" @click="cancel">Cancel</button>
+            </div>
+        </modal>
+    </div>
+</template>
+
+<script>
+import Vue from "vue";
+import modal from '@vue-utils/bootstrap-modal.vue';
+import { api_endpoints, helpers, cache_helper } from "@/utils/hooks";
+//import "jquery-ui/ui/widgets/draggable.js";
+
+export default {
+    name: "OnSiteInformationAdd",
+    data: function() {
+        return {
+            processingDetails: false,
+            isModalOpen: false,
+            errorResponse: '',
+            on_site_info: {
+                apiary_site_id: null,
+                comments: '',
+                period_from: null,
+                period_to: null,
+            },
+        }
+    },
+    components: {
+      modal,
+    },
+    props:{
+       // due_date_max: {
+       //     type: String,
+       //     default: '',
+       // },
+    },
+    watch:{
+        isModalOpen: function() {
+            console.log('in isModalOpen');
+            console.log(this.isModalOpen);
+        }
+    },
+    computed: {
+        modalTitle: function() {
+            return 'Add on site info'
+        },
+    },
+    mounted: function () {
+        this.$nextTick(() => {
+            this.addEventListeners();
+            //this.makeModalsDraggable();
+        });
+    },
+    methods: {
+        openMe: function () {
+            console.log('in openMe()');
+            this.isModalOpen = true;
+        },
+      //  makeModalsDraggable: function(){
+      //      this.elem_modal = $('.modal > .modal-dialog');
+      //      for (let i=0; i<this.elem_modal.length; i++){
+      //          $(this.elem_modal[i]).draggable();
+      //      }
+      //  },
+        addEventListeners: function () {
+            //this.isModalOpen=true;
+            console.log('in addEventListeners');
+
+            let vm = this;
+            let el_fr_date = $(vm.$refs.periodFromDatePicker);
+            let options = { format: "DD/MM/YYYY" };
+
+          //  if (vm.due_date_max){
+          //      options['maxDate'] = vm.extendMaxDate;
+          //  }
+
+           // if (vm.comingDueDate){
+           //     // Copy comingDuDate object
+           //     let coming_due_date = new Date(vm.comingDueDate.getTime());
+           //     // Calculate next day and set it to the datepicker as a minDate
+           //     coming_due_date.setDate(coming_due_date.getDate() + 1);
+           //     options['minDate'] = coming_due_date;
+           //     // Enter a default value to the input box
+           //     vm.new_due_date = coming_due_date.getDate() + '/' + (coming_due_date.getMonth() + 1) + '/' + coming_due_date.getFullYear();
+           // }
+
+            el_fr_date.datetimepicker(options);
+
+            el_fr_date.on("dp.change", function(e) {
+                if (el_fr_date.data("DateTimePicker").date()) {
+                    vm.on_site_info.period_from = e.date.format("DD/MM/YYYY");
+                } else if (el_fr_date.data("date") === "") {
+                    vm.on_site_info.period_from = null;
+                }
+            });
+        },
+        ok: async function () {
+            try {
+                this.processingDetails = true;
+                const response = await this.sendData();
+                this.close();
+                this.$parent.loadSanctionOutcome({ sanction_outcome_id: this.$parent.sanction_outcome.id });
+            } catch (err){
+                this.processError(err);
+            } finally {
+                this.processingDetails = false;
+            }
+        },
+        processError: async function(err) {
+            let errorText = '';
+            if (err.body.non_field_errors) {
+                // When non field errors raised
+                for (let i=0; i<err.body.non_field_errors.length; i++){
+                    errorText += err.body.non_field_errors[i] + '<br />';
+                }
+            } else if(Array.isArray(err.body)) {
+                // When general errors raised
+                for (let i=0; i<err.body.length; i++){
+                    errorText += err.body[i] + '<br />';
+                }
+            } else {
+                // When field errors raised
+                for (let field_name in err.body){
+                    if (err.body.hasOwnProperty(field_name)){
+                        errorText += field_name + ': ';
+                        for (let j=0; j<err.body[field_name].length; j++){
+                            errorText += err.body[field_name][j] + '<br />';
+                        }
+                    }
+                }
+            }
+            this.errorResponse = errorText;
+        },
+        cancel: async function() {
+            this.isModalOpen = false;
+            this.close();
+        },
+        close: function () {
+            let vm = this;
+            this.isModalOpen = false;
+        },
+        sendData: async function () {
+            let post_url = '/api/on_site_information/'
+            let payload = new FormData();
+            let res = await Vue.http.post(post_url, payload);
+            return res
+        },
+    },
+}
+</script>
+
+<style>
+
+</style>
