@@ -4,8 +4,9 @@
         <div class="row col-sm-12">
             <datatable ref="on_site_information_table" id="on-site-information-table" :dtOptions="dtOptions" :dtHeaders="dtHeaders" />
         </div>
-        
-        <OnSiteInformationAddModal ref="on_site_information_add_modal" />
+        <div v-if="true">
+            <OnSiteInformationAddModal ref="on_site_information_add_modal" :key="modalBindId" />
+        </div>
     </div>
 </template>
 
@@ -122,17 +123,11 @@
         },
         methods:{
             openOnSiteInformationAddModal: async function() {
-                console.log('openOnSiteInformationAddModal()');
+                this.modalBindId = uuid()
+
                 try {
                     this.$nextTick(() => {
-                        this.modalBindId = uuid()
-
-                        console.log('modalBindId');
-                        console.log(this.modalBindId);
-
-                        //this.$refs.on_site_information_add_modal.isModalOpen = true;
                         this.$refs.on_site_information_add_modal.openMe();
-
                     });
                 } catch (err) {
                     this.processError(err);

@@ -85,7 +85,6 @@ export default {
     },
     methods: {
         openMe: function () {
-            console.log('in openMe()');
             this.isModalOpen = true;
         },
       //  makeModalsDraggable: function(){
