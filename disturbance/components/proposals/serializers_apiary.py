@@ -1,31 +1,39 @@
 from django.conf import settings
-from drf_extra_fields.geo_fields import PointField
-from ledger.accounts.models import EmailUser,Address
-from rest_framework_gis.serializers import GeoFeatureModelSerializer
 
 from disturbance.components.organisations.serializers import OrganisationSerializer
-from disturbance.components.proposals.serializers import (
-    BaseProposalSerializer,
-    ProposalReferralSerializer,
-    ProposalDeclinedDetailsSerializer,
-    EmailUserSerializer,
-    )
+from disturbance.components.proposals.serializers_base import BaseProposalSerializer, ProposalReferralSerializer, \
+    ProposalDeclinedDetailsSerializer, EmailUserSerializer
 from disturbance.components.proposals.models import (
     Proposal,
     ProposalApiarySiteLocation,
     ProposalApiaryTemporaryUse,
     ProposalApiarySiteTransfer,
-    ProposalApiaryDocument, ApiarySite,
+    ProposalApiaryDocument, ApiarySite, OnSiteInformation,
 )
 
-from disturbance.components.main.serializers import CommunicationLogEntrySerializer
 from rest_framework import serializers
-from django.db.models import Q
-from reversion.models import Version
+
+
+class OnSiteInformationSerializer(serializers.ModelSerializer):
+    apiary_site_id = serializers.IntegerField(write_only=True,)
+
+    class Meta:
+        model = OnSiteInformation
+        fields = (
+            'id',
+            'apiary_site_id',
+            'period_from',
+            'period_to',
+            'comments',
+        )
+
+    def validate(self, attrs):
+        return attrs
 
 
 class ApiarySiteSerializer(serializers.ModelSerializer):
     proposal_apiary_site_location_id = serializers.IntegerField(write_only=True,)
+    # onsiteinformation_set = OnSiteInformationSerializer(read_only=True, many=True,)
 
     class Meta:
         model = ApiarySite
@@ -33,13 +41,13 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
             'id',
             'site_guid',
             'proposal_apiary_site_location_id',
+            # 'onsiteinformation_set',
         )
 
 
-#class ProposalApiarySiteLocationSerializer(GeoFeatureModelSerializer):
 class ProposalApiarySiteLocationSerializer(serializers.ModelSerializer):
-
     apiary_sites = ApiarySiteSerializer(read_only=True, many=True)
+    on_site_information_list = serializers.SerializerMethodField()  # This is used for displaying OnSite table at the frontend
 
     class Meta:
         model = ProposalApiarySiteLocation
@@ -53,7 +61,14 @@ class ProposalApiarySiteLocationSerializer(serializers.ModelSerializer):
             'apiary_sites',
             'longitude',
             'latitude',
+            'on_site_information_list',
         )
+
+    def get_on_site_information_list(self, obj):
+        on_site_information_list = OnSiteInformation.objects.filter(
+            apiary_site__in=ApiarySite.objects.filter(proposal_apiary_site_location=obj)
+        ).order_by('-period_from')
+        return OnSiteInformationSerializer(on_site_information_list, many=True).data
 
 
 class ProposalApiaryTemporaryUseSerializer(serializers.ModelSerializer):
