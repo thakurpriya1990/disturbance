@@ -93,409 +93,389 @@ import {
 }
 from '@/utils/hooks'
 export default {
-  data: function() {
-    return {
-      "proposal": null,
-      "loading": [],
-      form: null,
-      amendment_request: [],
-      //isDataSaved: false,
-      proposal_readonly: true,
-      hasAmendmentRequest: false,
-      submitting: false,
-      submittingProposal: false,
-      newText: "",
-      pBody: 'pBody',
-      missing_fields: [],
-      sectionShow: true,
-    }
-  },
-  components: {
-      ProposalDisturbance,
-      ProposalApiary,
-      NewApply,
-  },
-  computed: {
-    isLoading: function() {
-      return this.loading.length > 0
+    data: function() {
+        return {
+            "proposal": null,
+            "loading": [],
+            form: null,
+            amendment_request: [],
+            //isDataSaved: false,
+            proposal_readonly: true,
+            hasAmendmentRequest: false,
+            submitting: false,
+            submittingProposal: false,
+            newText: "",
+            pBody: 'pBody',
+            missing_fields: [],
+            sectionShow: true,
+        }
     },
-    isSubmitting: function() {
-      return this.submittingProposal;
+    components: {
+        ProposalDisturbance,
+        ProposalApiary,
+        NewApply,
     },
-    csrf_token: function() {
-      return helpers.getCookie('csrftoken')
+    computed: {
+        isLoading: function() {
+          return this.loading.length > 0
+        },
+        isSubmitting: function() {
+          return this.submittingProposal;
+        },
+        csrf_token: function() {
+          return helpers.getCookie('csrftoken')
+        },
+        application_fee_url: function() {
+          return (this.proposal) ? `/application_fee/${this.proposal.id}/` : '';
+        },
+        proposal_form_url: function() {
+          return (this.proposal) ? `/api/proposal/${this.proposal.id}/draft.json` : '';
+        },
+        proposal_submit_url: function() {
+          return (this.proposal) ? `/api/proposal/${this.proposal.id}/submit.json` : '';
+          //return this.submit();
+        },
     },
-    application_fee_url: function() {
-      return (this.proposal) ? `/application_fee/${this.proposal.id}/` : '';
-    },
-    proposal_form_url: function() {
-      return (this.proposal) ? `/api/proposal/${this.proposal.id}/draft.json` : '';
-    },
-    proposal_submit_url: function() {
-      return (this.proposal) ? `/api/proposal/${this.proposal.id}/submit.json` : '';
-      //return this.submit();
-    },
+    methods: {
+        save: function(e) {
+            console.log('***save');
 
-  },
-  methods: {
-    save: function(e) {
-      let vm = this;
-      vm.form=document.forms.new_proposal;
-      let formData = new FormData(vm.form);
-      console.log(formData);
-      vm.$http.post(vm.proposal_form_url,formData).then(res=>{
-          swal(
-            'Saved',
-            'Your proposal has been saved',
-            'success'
-          );
-      },err=>{
-      });
-    },
-    save_exit: function(e) {
-      let vm = this;
-      vm.form=document.forms.new_proposal;
-      this.submitting = true;
-      this.save(e);
+            let vm = this;
+            vm.form=document.forms.new_proposal;
+            let formData = new FormData(vm.form);
 
-      // redirect back to dashboard
-      vm.$router.push({
-        name: 'external-proposals-dash'
-      });
-    },
+            try {
+                // Add site locations
+                formData.append('site_locations', JSON.stringify(this.$refs.proposal_apiary.$refs.apiary_site_locations.site_locations));
+            } catch(e){ }
 
-    save_wo_confirm: function(e) {
-      let vm = this;
-      vm.form=document.forms.new_proposal;
-      let formData = new FormData(vm.form);
-      vm.$http.post(vm.proposal_form_url,formData);
-    },
-
-    sectionHide: function(e) {
-      let vm = this;
-      vm.sectionShow=!vm.sectionShow
-      //console.log(vm.sectionShow);
-    },
-
-    setdata: function(readonly){
-      this.proposal_readonly = readonly;
-    },
-
-    setAmendmentData: function(amendment_request){
-      this.amendment_request = amendment_request;
+            console.log(formData);
+            vm.$http.post(vm.proposal_form_url, formData).then(res=>{
+                swal(
+                    'Saved',
+                    'Your proposal has been saved',
+                    'success'
+                );
+            },err=>{
       
-      if (amendment_request.length > 0)
-        this.hasAmendmentRequest = true;
-        
-    },
-
-    splitText: function(aText){
-      let newText = '';
-      newText = aText.split("\n");
-      return newText;
-
-    },
-
-    leaving: function(e) {
-      let vm = this;
-      var dialogText = 'You have some unsaved changes.';
-      if (!vm.proposal_readonly && !vm.submitting){
-        e.returnValue = dialogText;
-        return dialogText;
-      }
-      else{
-        return null;
-      }
-    },
+            });
+        },
+        save_exit: function(e) {
+            let vm = this;
+            vm.form=document.forms.new_proposal;
+            this.submitting = true;
+            this.save(e);
+      
+            // redirect back to dashboard
+            vm.$router.push({
+                name: 'external-proposals-dash'
+            });
+        },
     
-    highlight_missing_fields: function(){
-        let vm = this;
-        for (var missing_field of vm.missing_fields) {
-            $("#" + missing_field.id).css("color", 'red');
-        }
-    },
-
-    validate: function(){
-        let vm = this;
-
-        // reset default colour
-        for (var field of vm.missing_fields) {
-            $("#" + field.id).css("color", '#515151');
-        }
-        vm.missing_fields = [];
-
-        // get all required fields, that are not hidden in the DOM
-        //var hidden_fields = $('input[type=text]:hidden, textarea:hidden, input[type=checkbox]:hidden, input[type=radio]:hidden, input[type=file]:hidden');
-        //hidden_fields.prop('required', null);
-        //var required_fields = $('select:required').not(':hidden');
-        var required_fields = $('input[type=text]:required, textarea:required, input[type=checkbox]:required, input[type=radio]:required, input[type=file]:required, select:required').not(':hidden');
-
-        // loop through all (non-hidden) required fields, and check data has been entered
-        required_fields.each(function() {
-            //console.log('type: ' + this.type + ' ' + this.name)
-            var id = 'id_' + this.name
-            if (this.type == 'radio') {
-                //if (this.type == 'radio' && !$("input[name="+this.name+"]").is(':checked')) {
-                if (!$("input[name="+this.name+"]").is(':checked')) {
-                    var text = $('#'+id).text()
-                    console.log('radio not checked: ' + this.type + ' ' + text)
-                    vm.missing_fields.push({id: id, label: text});
+        save_wo_confirm: function(e) {
+            let vm = this;
+            vm.form=document.forms.new_proposal;
+            let formData = new FormData(vm.form);
+            vm.$http.post(vm.proposal_form_url,formData);
+        },
+        sectionHide: function(e) {
+            let vm = this;
+            vm.sectionShow=!vm.sectionShow
+            //console.log(vm.sectionShow);
+        },
+        setdata: function(readonly){
+            this.proposal_readonly = readonly;
+        },
+        setAmendmentData: function(amendment_request){
+            this.amendment_request = amendment_request;
+            if (amendment_request.length > 0)
+                this.hasAmendmentRequest = true;
+        },
+        splitText: function(aText){
+            let newText = '';
+            newText = aText.split("\n");
+            return newText;
+        },
+        leaving: function(e) {
+            let vm = this;
+            var dialogText = 'You have some unsaved changes.';
+            if (!vm.proposal_readonly && !vm.submitting){
+                e.returnValue = dialogText;
+                return dialogText;
+            }
+            else{
+                return null;
+            }
+        },
+        highlight_missing_fields: function(){
+            let vm = this;
+            for (var missing_field of vm.missing_fields) {
+                $("#" + missing_field.id).css("color", 'red');
+            }
+        },
+        validate: function(){
+            let vm = this;
+    
+            // reset default colour
+            for (var field of vm.missing_fields) {
+                $("#" + field.id).css("color", '#515151');
+            }
+            vm.missing_fields = [];
+    
+            // get all required fields, that are not hidden in the DOM
+            //var hidden_fields = $('input[type=text]:hidden, textarea:hidden, input[type=checkbox]:hidden, input[type=radio]:hidden, input[type=file]:hidden');
+            //hidden_fields.prop('required', null);
+            //var required_fields = $('select:required').not(':hidden');
+            var required_fields = $('input[type=text]:required, textarea:required, input[type=checkbox]:required, input[type=radio]:required, input[type=file]:required, select:required').not(':hidden');
+    
+            // loop through all (non-hidden) required fields, and check data has been entered
+            required_fields.each(function() {
+                //console.log('type: ' + this.type + ' ' + this.name)
+                var id = 'id_' + this.name
+                if (this.type == 'radio') {
+                    //if (this.type == 'radio' && !$("input[name="+this.name+"]").is(':checked')) {
+                    if (!$("input[name="+this.name+"]").is(':checked')) {
+                        var text = $('#'+id).text()
+                        console.log('radio not checked: ' + this.type + ' ' + text)
+                        vm.missing_fields.push({id: id, label: text});
+                    }
                 }
-            }
-
-            if (this.type == 'checkbox') {
-                var id = 'id_' + this.className
-                if ($("[class="+this.className+"]:checked").length == 0) {
-                    try { var text = $('#'+id).text() } catch(error) { var text = $('#'+id).textContent }
-                    console.log('checkbox not checked: ' + this.type + ' ' + text)
-                    vm.missing_fields.push({id: id, label: text});
-                }   
-            }
-
-            if (this.type == 'select-one') {
-                if ($(this).val() == '') {
-                    var text = $('#'+id).text()  // this is the (question) label
-                    var id = 'id_' + $(this).prop('name'); // the label id
-                    console.log('selector not selected: ' + this.type + ' ' + text)
-                    vm.missing_fields.push({id: id, label: text});
+    
+                if (this.type == 'checkbox') {
+                    var id = 'id_' + this.className
+                    if ($("[class="+this.className+"]:checked").length == 0) {
+                        try { var text = $('#'+id).text() } catch(error) { var text = $('#'+id).textContent }
+                        console.log('checkbox not checked: ' + this.type + ' ' + text)
+                        vm.missing_fields.push({id: id, label: text});
+                    }   
                 }
-            }
-
-            if (this.type == 'file') {
-                var num_files = $('#'+id).attr('num_files')
-                if (num_files == "0") {
-                    var text = $('#'+id).text()
-                    console.log('file not uploaded: ' + this.type + ' ' + this.name)
-                    vm.missing_fields.push({id: id, label: text});
+    
+                if (this.type == 'select-one') {
+                    if ($(this).val() == '') {
+                        var text = $('#'+id).text()  // this is the (question) label
+                        var id = 'id_' + $(this).prop('name'); // the label id
+                        console.log('selector not selected: ' + this.type + ' ' + text)
+                        vm.missing_fields.push({id: id, label: text});
+                    }
                 }
-            }
-
-            if (this.type == 'text') {
-                if (this.value == '') {
-                    var text = $('#'+id).text()
-                    console.log('text not provided: ' + this.type + ' ' + this.name)
-                    vm.missing_fields.push({id: id, label: text});
+    
+                if (this.type == 'file') {
+                    var num_files = $('#'+id).attr('num_files')
+                    if (num_files == "0") {
+                        var text = $('#'+id).text()
+                        console.log('file not uploaded: ' + this.type + ' ' + this.name)
+                        vm.missing_fields.push({id: id, label: text});
+                    }
                 }
-            }
-
-            if (this.type == 'textarea') {
-                if (this.value == '') {
-                    var text = $('#'+id).text()
-                    console.log('textarea not provided: ' + this.type + ' ' + this.name)
-                    vm.missing_fields.push({id: id, label: text});
+    
+                if (this.type == 'text') {
+                    if (this.value == '') {
+                        var text = $('#'+id).text()
+                        console.log('text not provided: ' + this.type + ' ' + this.name)
+                        vm.missing_fields.push({id: id, label: text});
+                    }
                 }
-            }
-
+    
+                if (this.type == 'textarea') {
+                    if (this.value == '') {
+                        var text = $('#'+id).text()
+                        console.log('textarea not provided: ' + this.type + ' ' + this.name)
+                        vm.missing_fields.push({id: id, label: text});
+                    }
+                }
+    
+                /*
+                if (this.type == 'select') {
+                    if (this.value == '') {
+                        var text = $('#'+id).text()
+                        console.log('select not provided: ' + this.type + ' ' + this.name)
+                        vm.missing_fields.push({id: id, label: text});
+                    }
+                }
+    
+                if (this.type == 'multi-select') {
+                    if (this.value == '') {
+                        var text = $('#'+id).text()
+                        console.log('multi-select not provided: ' + this.type + ' ' + this.name)
+                        vm.missing_fields.push({id: id, label: text});
+                    }
+                }
+                */
+            });
+    
+            return vm.missing_fields.length
+    
             /*
-            if (this.type == 'select') {
-                if (this.value == '') {
-                    var text = $('#'+id).text()
-                    console.log('select not provided: ' + this.type + ' ' + this.name)
-                    vm.missing_fields.push({id: id, label: text});
-                }
-            }
-
-            if (this.type == 'multi-select') {
-                if (this.value == '') {
-                    var text = $('#'+id).text()
-                    console.log('multi-select not provided: ' + this.type + ' ' + this.name)
-                    vm.missing_fields.push({id: id, label: text});
-                }
+            if (emptyFields === 0) {
+                $('#form').submit();
+            } else {
+                $('#error').show();
+                return false;
             }
             */
-
-
-
-        });
-
-        return vm.missing_fields.length
-
-        /*
-        if (emptyFields === 0) {
-            $('#form').submit();
-        } else {
-            $('#error').show();
-            return false;
-        }
-        */
-    },
-    highlight_deficient_fields: function(deficient_fields){
-      let vm = this;
-      for (var deficient_field of deficient_fields) {
-        $("#" + "id_"+deficient_field).css("color", 'red');
-      }
-    },
-    deficientFields(){
-      let vm=this;
-      //console.log("I am here");
-      let deficient_fields=[]
-      $('.deficiency').each((i,d) => {
-        if($(d).val() != ''){
-          var name=$(d)[0].name
-          var tmp=name.replace("-comment-field","")
-          deficient_fields.push(tmp);
-          //console.log('data', $("#"+"id_" + tmp))
-        }
-      }); 
-      //console.log('deficient fields', deficient_fields);
-      vm.highlight_deficient_fields(deficient_fields);
-    },
-
-
-
-    submit: function(){
-        let vm = this;
-        vm.form=document.forms.new_proposal;
-        let formData = new FormData(vm.form);
-
-        var num_missing_fields = vm.validate()
-        if (num_missing_fields > 0) {
-            vm.highlight_missing_fields()
-            var top = ($('#error').offset() || { "top": NaN }).top;
-            $('html, body').animate({
-                scrollTop: top
-            }, 1);
-            return false;
-        }
-
-        // remove the confirm prompt when navigating away from window (on button 'Submit' click)
-        vm.submitting = true;
-
-        swal({
-            title: "Submit Proposal",
-            text: "Are you sure you want to submit this proposal?",
-            type: "question",
-            showCancelButton: true,
-            confirmButtonText: 'Submit'
-        }).then(() => {
-            vm.submittingProposal = true;
-            // Only Apiary has an application fee
-            if (!vm.proposal.fee_paid && vm.proposal.application_type=='Apiary') {
-                vm.save_and_redirect();
-
-            } else {
-                /* just save and submit - no payment required (probably application was pushed back by assessor for amendment */
-                vm.save_wo_confirm()
-                vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/submit'),formData).then(res=>{
-                    vm.proposal = res.body;
-                    vm.$router.push({
-                        name: 'submit_proposal',
-                        params: { proposal: vm.proposal}
+        },
+        highlight_deficient_fields: function(deficient_fields){
+            let vm = this;
+            for (var deficient_field of deficient_fields) {
+                $("#" + "id_"+deficient_field).css("color", 'red');
+            }
+        },
+        deficientFields(){
+            let vm=this;
+            //console.log("I am here");
+            let deficient_fields=[]
+            $('.deficiency').each((i,d) => {
+                if($(d).val() != ''){
+                    var name=$(d)[0].name
+                    var tmp=name.replace("-comment-field","")
+                    deficient_fields.push(tmp);
+                    //console.log('data', $("#"+"id_" + tmp))
+                }
+            }); 
+            //console.log('deficient fields', deficient_fields);
+            vm.highlight_deficient_fields(deficient_fields);
+        },
+        submit: function(){
+            let vm = this;
+            vm.form=document.forms.new_proposal;
+            let formData = new FormData(vm.form);
+    
+            var num_missing_fields = vm.validate()
+            if (num_missing_fields > 0) {
+                vm.highlight_missing_fields()
+                var top = ($('#error').offset() || { "top": NaN }).top;
+                $('html, body').animate({
+                    scrollTop: top
+                }, 1);
+                return false;
+            }
+    
+            // remove the confirm prompt when navigating away from window (on button 'Submit' click)
+            vm.submitting = true;
+    
+            swal({
+                title: "Submit Proposal",
+                text: "Are you sure you want to submit this proposal?",
+                type: "question",
+                showCancelButton: true,
+                confirmButtonText: 'Submit'
+            }).then(() => {
+                vm.submittingProposal = true;
+                // Only Apiary has an application fee
+                if (!vm.proposal.fee_paid && vm.proposal.application_type=='Apiary') {
+                    vm.save_and_redirect();
+    
+                } else {
+                    /* just save and submit - no payment required (probably application was pushed back by assessor for amendment */
+                    vm.save_wo_confirm()
+                    vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/submit'),formData).then(res=>{
+                        vm.proposal = res.body;
+                        vm.$router.push({
+                            name: 'submit_proposal',
+                            params: { proposal: vm.proposal}
+                        });
+                    },err=>{
+                        swal(
+                            'Submit Error',
+                            helpers.apiVueResourceError(err),
+                            'error'
+                        )
                     });
-                },err=>{
-                    swal(
-                        'Submit Error',
-                        helpers.apiVueResourceError(err),
-                        'error'
-                    )
-                });
+                }
+            },(error) => {
+              vm.paySubmitting=false;
+            });
+            //vm.submittingProposal= false;
+        },
+        save_and_redirect: function(e) {
+            let vm = this;
+            vm.form=document.forms.new_proposal;
+            let formData = new FormData(vm.form);
+            //let formData = vm.set_formData()
+
+            //vm.save_applicant_data();
+            vm.$http.post(vm.proposal_form_url,formData).then(res=>{
+                /* after the above save, redirect to the Django post() method in ApplicationFeeView */
+                vm.post_and_redirect(vm.application_fee_url, {'csrfmiddlewaretoken' : vm.csrf_token});
+            },err=>{
+            });
+        },
+        post_and_redirect: function(url, postData) {
+            /* http.post and ajax do not allow redirect from Django View (post method), 
+               this function allows redirect by mimicking a form submit.
+
+               usage:  vm.post_and_redirect(vm.application_fee_url, {'csrfmiddlewaretoken' : vm.csrf_token});
+            */
+            var postFormStr = "<form method='POST' action='" + url + "'>";
+
+            for (var key in postData) {
+                if (postData.hasOwnProperty(key)) {
+                    postFormStr += "<input type='hidden' name='" + key + "' value='" + postData[key] + "'>";
+                }
             }
-        },(error) => {
-          vm.paySubmitting=false;
-        });
-
-
-
-        //vm.submittingProposal= false;
+            postFormStr += "</form>";
+            var formElement = $(postFormStr);
+            $('body').append(formElement);
+            $(formElement).submit();
+        },
     },
-
-    save_and_redirect: function(e) {
-      let vm = this;
-      vm.form=document.forms.new_proposal;
-      let formData = new FormData(vm.form);
-      //let formData = vm.set_formData()
-
-      //vm.save_applicant_data();
-      vm.$http.post(vm.proposal_form_url,formData).then(res=>{
-          /* after the above save, redirect to the Django post() method in ApplicationFeeView */
-          vm.post_and_redirect(vm.application_fee_url, {'csrfmiddlewaretoken' : vm.csrf_token});
-      },err=>{
-      });
+    mounted: function() {
+        let vm = this;
+        vm.form = document.forms.new_proposal;
+        window.addEventListener('beforeunload', vm.leaving);
+        window.addEventListener('onblur', vm.leaving);
+        // this.$nextTick(() => {
+        //   console.log("I am here1");
+        //         if(vm.hasAmendmentRequest){
+        //           console.log("I am here2");
+        //             vm.deficientFields();
+        //         }
+        //     });
     },
-
-    post_and_redirect: function(url, postData) {
-        /* http.post and ajax do not allow redirect from Django View (post method), 
-           this function allows redirect by mimicking a form submit.
-
-           usage:  vm.post_and_redirect(vm.application_fee_url, {'csrfmiddlewaretoken' : vm.csrf_token});
-        */
-        var postFormStr = "<form method='POST' action='" + url + "'>";
-
-        for (var key in postData) {
-            if (postData.hasOwnProperty(key)) {
-                postFormStr += "<input type='hidden' name='" + key + "' value='" + postData[key] + "'>";
-            }
-        }
-        postFormStr += "</form>";
-        var formElement = $(postFormStr);
-        $('body').append(formElement);
-        $(formElement).submit();
-    },
-
-
-  },
-
-  
-  mounted: function() {
-    let vm = this;
-    vm.form = document.forms.new_proposal;
-    window.addEventListener('beforeunload', vm.leaving);
-    window.addEventListener('onblur', vm.leaving);
-    // this.$nextTick(() => {
-    //   console.log("I am here1");
-    //         if(vm.hasAmendmentRequest){
-    //           console.log("I am here2");
-    //             vm.deficientFields();
-    //         }
-    //     });
-  },
-  updated: function(){
-    let vm=this;
-      this.$nextTick(() => {
+    updated: function(){
+        let vm=this;
+        this.$nextTick(() => {
             if(vm.hasAmendmentRequest){
                 vm.deficientFields();
             }
         });
-  },
+    },
+  
+    beforeRouteEnter: function(to, from, next) {
+        if (to.params.proposal_id) {
+            let vm = this;
+            Vue.http.get(`/api/proposal/${to.params.proposal_id}.json`).then(res => {
+                next(vm => {
+                    vm.loading.push('fetching proposal')
+                    vm.proposal = res.body;
+                    vm.loading.splice('fetching proposal', 1);
+                    vm.setdata(vm.proposal.readonly);
 
-  beforeRouteEnter: function(to, from, next) {
-    if (to.params.proposal_id) {
-      let vm = this;
-      Vue.http.get(`/api/proposal/${to.params.proposal_id}.json`).then(res => {
-          next(vm => {
-            vm.loading.push('fetching proposal')
-            vm.proposal = res.body;
-            vm.loading.splice('fetching proposal', 1);
-            vm.setdata(vm.proposal.readonly);
-          
-            
-            Vue.http.get(helpers.add_endpoint_json(api_endpoints.proposals,to.params.proposal_id+'/amendment_request')).then((res) => {
-                     
-                      vm.setAmendmentData(res.body);
-                  
-                },
-              err => { 
+                    Vue.http.get(helpers.add_endpoint_json(api_endpoints.proposals,to.params.proposal_id+'/amendment_request')).then((res) => {
+                        vm.setAmendmentData(res.body);
+                    },
+                    err => { 
                         console.log(err);
-                  });
-              });
-          },
-        err => {
-          console.log(err);
-        });    
+                    });
+                });
+            },
+            err => {
+                console.log(err);
+            });    
+        }
+        else {
+            Vue.http.post('/api/proposal.json').then(res => {
+                next(vm => {
+                    vm.loading.push('fetching proposal')
+                    vm.proposal = res.body;
+                    vm.loading.splice('fetching proposal', 1);
+                });
+            },
+            err => {
+                console.log(err);
+            });
+        }
     }
-    else {
-      Vue.http.post('/api/proposal.json').then(res => {
-          next(vm => {
-            vm.loading.push('fetching proposal')
-            vm.proposal = res.body;
-            vm.loading.splice('fetching proposal', 1);
-          });
-        },
-        err => {
-          console.log(err);
-        });
-    }
-  }
 }
 </script>
 
