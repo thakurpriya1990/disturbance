@@ -3,7 +3,7 @@
         <div class="col-sm-12">
             <div class="panel panel-default">
                 <div class="panel-heading">
-                    <h3 class="panel-title">Approvals <small v-if="is_external">View existing approvals and amend or renew them</small>
+                    <h3 class="panel-title">Approvals/Licenses <small v-if="is_external">View existing approvals/licenses and amend or renew them</small>
                         <a :href="'#'+pBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="pBody">
                             <span class="glyphicon glyphicon-chevron-up pull-right "></span>
                         </a>
@@ -281,7 +281,7 @@ export default {
 
                                 }
                                 if(full.renewal_document && full.renewal_sent){
-                                  links +=  `<a href='${full.renewal_document}' target='_blank'>Renewal Notice</a><br/>`;  
+                                  links +=  `<a href='${full.renewal_document}' target='_blank'>Renewal Notice</a><br/>`;
 
                                 }
                                 // if(full.can_approver_reissue){
@@ -294,12 +294,12 @@ export default {
                                     if(full.can_action){
                                         links +=  `<a href='#${full.id}' data-surrender-approval='${full.id}'>Surrender</a><br/>`;
                                         if(full.can_amend){
-                                           links +=  `<a href='#${full.id}' data-amend-approval='${full.current_proposal}'>Amend</a><br/>`; 
-                                       }                                        
+                                           links +=  `<a href='#${full.id}' data-amend-approval='${full.current_proposal}'>Amend</a><br/>`;
+                                       }
                                     }
                                     if(full.renewal_document && full.renewal_sent && full.can_renew) {
                                     links +=  `<a href='#${full.id}' data-renew-approval='${full.current_proposal}'>Renew</a><br/>`;
-                                    }                                    
+                                    }
                                 }
                                 else {
                                     links +=  `<a href='/external/approval/${full.id}'>View</a><br/>`;
@@ -312,7 +312,7 @@ export default {
                         orderable: false,
                         name: ''
                     },
-                    
+
                 ],
                 processing: true,
 				/*
@@ -524,7 +524,7 @@ export default {
                 function(settings,data,dataIndex,original){
                     let found = false;
                     let filtered_regions = vm.filterProposalRegion.split(',');
-                    if (filtered_regions == 'All'){ return true; } 
+                    if (filtered_regions == 'All'){ return true; }
 
                     let regions = original.region != '' && original.region != null ? original.region.split(','): [];
 
@@ -545,7 +545,7 @@ export default {
             vm.$refs.proposal_datatable.table.dataTableExt.afnFiltering.push(
                 function(settings,data,dataIndex,original){
                     let filtered_submitter = vm.filterProposalSubmitter;
-                    if (filtered_submitter == 'All'){ return true; } 
+                    if (filtered_submitter == 'All'){ return true; }
                     return filtered_submitter == original.submitter.email;
                 }
             );
@@ -579,7 +579,7 @@ export default {
                         else{
                             return false;
                         }
-                    } 
+                    }
                     else{
                         return false;
                     }
@@ -591,29 +591,29 @@ export default {
             let vm = this;
             Vue.http.get(api_endpoints.profile).then((response) => {
                 vm.profile = response.body
-                              
+
             },(error) => {
                 console.log(error);
-                
+
             })
         },
 
         check_assessor: function(proposal){
-            let vm = this;         
+            let vm = this;
             //console.log(proposal.id, proposal.can_approver_reissue);
             var assessor = proposal.allowed_assessors.filter(function(elem){
                     return(elem.id==vm.profile.id)
 
                 });
-                
+
             if (assessor.length > 0){
                 //console.log(proposal.id, assessor)
                 return true;
             }
             else
-                return false;       
-            
-            return false;       
+                return false;
+
+            return false;
         },
 
         reissueApproval:function (proposal_id) {
@@ -632,7 +632,7 @@ export default {
                 emulateJSON:true,
                 })
                 .then((response) => {
-                    
+
                     vm.$router.push({
                     name:"internal-proposal",
                     params:{proposal_id:proposal_id}
@@ -642,7 +642,7 @@ export default {
                     swal({
                     title: "Reissue Approval",
                     text: error.body,
-                    type: "error",                   
+                    type: "error",
                     })
                 });
             },(error) => {
@@ -663,7 +663,7 @@ export default {
                 //confirmButtonColor:'#d9534f'
             }).then(() => {
                 vm.$http.post(helpers.add_endpoint_json(api_endpoints.approvals,(approval_id+'/approval_reinstate')),{
-                
+
                 })
                 .then((response) => {
                     swal(
@@ -672,13 +672,13 @@ export default {
                         'success'
                     )
                     vm.$refs.proposal_datatable.vmDataTable.ajax.reload();
-                    
+
                 }, (error) => {
                     console.log(error);
                     swal({
                     title: "Reinstate Approval",
                     text: error.body,
-                    type: "error",                   
+                    type: "error",
                     })
                 });
             },(error) => {
@@ -699,7 +699,7 @@ export default {
                 //confirmButtonColor:'#d9534f'
             }).then(() => {
                 vm.$http.get(helpers.add_endpoint_json(api_endpoints.proposals,(proposal_id+'/renew_approval')),{
-                
+
                 })
                 .then((response) => {
                    let proposal = {}
@@ -708,13 +708,13 @@ export default {
                     name:"draft_proposal",
                     params:{proposal_id: proposal.id}
                    });
-                    
+
                 }, (error) => {
                     console.log(error);
                     swal({
                     title: "Renew Approval",
                     text: error.body,
-                    type: "error",                   
+                    type: "error",
                     })
                 });
             },(error) => {
@@ -733,7 +733,7 @@ export default {
                 //confirmButtonColor:'#d9534f'
             }).then(() => {
                 vm.$http.get(helpers.add_endpoint_json(api_endpoints.proposals,(proposal_id+'/amend_approval')),{
-                
+
                 })
                 .then((response) => {
                    let proposal = {}
@@ -742,13 +742,13 @@ export default {
                     name:"draft_proposal",
                     params:{proposal_id: proposal.id}
                    });
-                    
+
                 }, (error) => {
                     console.log(error);
                     swal({
                     title: "Amend Approval",
                     text: error.body,
-                    type: "error",                   
+                    type: "error",
                     })
 
                 });
@@ -758,7 +758,7 @@ export default {
         },
 
         cancelApproval: function(approval_id){
-           
+
             this.$refs.approval_cancellation.approval_id = approval_id;
             this.$refs.approval_cancellation.isModalOpen = true;
         },
@@ -770,7 +770,7 @@ export default {
         },
 
         surrenderApproval: function(approval_id){
-           
+
             this.$refs.approval_surrender.approval_id = approval_id;
             this.$refs.approval_surrender.isModalOpen = true;
         },
@@ -784,8 +784,8 @@ export default {
             //console.log(approval);
             vm.$http.get(helpers.add_endpoint_json(api_endpoints.approvals,(id+'/approval_pdf_view_log')),{
                 })
-                .then((response) => {  
-                    //console.log(response)  
+                .then((response) => {
+                    //console.log(response)
                 }, (error) => {
                     console.log(error);
                 });

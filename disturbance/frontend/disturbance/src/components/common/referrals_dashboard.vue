@@ -3,7 +3,7 @@
         <div class="col-sm-12">
             <div class="panel panel-default">
                 <div class="panel-heading">
-                    <h3 class="panel-title">Proposals referred to me
+                    <h3 class="panel-title">Proposals/Applications referred to me
                         <a :href="'#'+pBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="pBody">
                             <span class="glyphicon glyphicon-chevron-up pull-right "></span>
                         </a>
@@ -382,7 +382,7 @@ export default {
                 function(settings,data,dataIndex,original){
                     let found = false;
                     let filtered_regions = vm.filterProposalRegion;
-                    if (filtered_regions.length == 0){ return true; } 
+                    if (filtered_regions.length == 0){ return true; }
 
                     let regions = original.region != '' && original.region != null ? original.region.split(','): [];
 
@@ -403,7 +403,7 @@ export default {
             vm.$refs.proposal_datatable.table.dataTableExt.afnFiltering.push(
                 function(settings,data,dataIndex,original){
                     let filtered_submitter = vm.filterProposalSubmitter;
-                    if (filtered_submitter == 'All'){ return true; } 
+                    if (filtered_submitter == 'All'){ return true; }
                     return filtered_submitter == original.submitter.email;
                 }
             );
@@ -437,7 +437,7 @@ export default {
                         else{
                             return false;
                         }
-                    } 
+                    }
                     else{
                         return false;
                     }
