@@ -1,12 +1,16 @@
 <template lang="html">
     <div>
-        apiary site location id: {{ apiary_site_location_id }}
+        <div class="row col-sm-12">
+            <datatable ref="on_site_information_table" id="on-site-information-table" :dtOptions="dtOptions" :dtHeaders="dtHeaders" />
+        </div>
     </div>
 </template>
 
 <script>
+    import Vue from 'vue'
     import datatable from '@vue-utils/datatable.vue'
     import uuid from 'uuid';
+    import { api_endpoints, helpers, } from '@/utils/hooks'
 
     export default {
         props:{
@@ -27,8 +31,13 @@
         data:function () {
             let vm=this;
             return{
+                apiary_site_location: {},
                 dtHeaders: [
                     'id',
+                    'from',
+                    'to',
+                    'site',
+                    'comments',
                 ],
                 dtOptions: {
                     serverSide: false,
@@ -52,6 +61,42 @@
                                 }
                             }
                         },
+                        {
+                            mRender: function (data, type, full) {
+                                if (full.period_from) {
+                                    return full.period_from;
+                                } else {
+                                    return '';
+                                }
+                            }
+                        },
+                        {
+                            mRender: function (data, type, full) {
+                                if (full.period_to) {
+                                    return full.period_to;
+                                } else {
+                                    return '';
+                                }
+                            }
+                        },
+                        {
+                            mRender: function (data, type, full) {
+                                if (full.apiary_site_id) {
+                                    return full.apiary_site_id;
+                                } else {
+                                    return '';
+                                }
+                            }
+                        },
+                        {
+                            mRender: function (data, type, full) {
+                                if (full.comments) {
+                                    return full.comments;
+                                } else {
+                                    return '';
+                                }
+                            }
+                        },
                     ],
                 },
             }
@@ -64,21 +109,36 @@
         },
         watch:{
             apiary_site_location_id: async function() {
-                console.log(this.apiary_site_location_id);
-                console.log('load pasl');
-                let temp = await this.loadOnSiteInformation(this.apiary_site_location_id);
-
-                console.log(temp);
+                await this.loadApiarySiteLocation(this.apiary_site_location_id);
+                this.constructOnSiteInformationTable();
             }
         },
         methods:{
-            loadOnSiteInformation: async function(id){
-
-
+            loadApiarySiteLocation: async function(id){
+                console.log('loadApiarySiteLocation');
+                console.log(id);
+                //http://localhost:8071/api/proposal_apiary_site_location/11/on_site_information_list/
+                let temp = await Vue.http.get('/api/proposal_apiary_site_location/' + id + '/on_site_information_list/')
+                this.apiary_site_location = temp.body;
             },
             constructOnSiteInformationTable: function(){
                 console.log('constructOnSiteInformationTable');
+                if (this.apiary_site_location && this.apiary_site_location.on_site_information_list){
+                    console.log('constructOnSiteInformationTable');
 
+                    // Clear table
+                    this.$refs.on_site_information_table.vmDataTable.clear().draw();
+
+                    // Construct table
+                    if (this.apiary_site_location.on_site_information_list.length > 0){
+                        for(let i=0; i<this.apiary_site_location.on_site_information_list.length; i++){
+                            this.addOnSiteInformationToTable(this.apiary_site_location.on_site_information_list[i]);
+                        }
+                    }
+                }
+            },
+            addOnSiteInformationToTable: function(on_site_information) {
+                this.$refs.on_site_information_table.vmDataTable.row.add(on_site_information).draw();
             },
             addEventListeners: function() {
 
