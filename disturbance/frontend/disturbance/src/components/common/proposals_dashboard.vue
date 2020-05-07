@@ -3,7 +3,7 @@
         <div class="col-sm-12">
             <div class="panel panel-default">
                 <div class="panel-heading">
-                    <h3 class="panel-title">Proposals <small v-if="is_external">View existing proposals and lodge new ones</small>
+                    <h3 class="panel-title">Proposals/Applications <small v-if="is_external">View existing proposals and lodge new ones</small>
                         <a :href="'#'+pBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="pBody">
                             <span class="glyphicon glyphicon-chevron-up pull-right "></span>
                         </a>
@@ -38,7 +38,7 @@
                             </div>
                         </div>
                         <div v-if="is_external" class="col-md-3">
-                            <router-link  style="margin-top:25px;" class="btn btn-primary pull-right" :to="{ name: 'apply_proposal' }">New Proposal</router-link>
+                            <router-link  style="margin-top:25px;" class="btn btn-primary pull-right" :to="{ name: 'apply_proposal' }">New Proposal/Application</router-link>
                         </div>
                     </div>
                     <div class="row">
@@ -262,9 +262,9 @@ export default {
                             if (!vm.is_external){
                                 /*if(vm.check_assessor(full) && full.can_officer_process)*/
                                 if(full.assessor_process){
-                                    
+
                                     links +=  `<a href='/internal/proposal/${full.id}'>Process</a><br/>`;
-                                
+
                             }
                                 else{
                                     links +=  `<a href='/internal/proposal/${full.id}'>View</a><br/>`;
@@ -450,8 +450,8 @@ export default {
                             let links = '';
                             if (!vm.is_external){
                                 /*if(vm.check_assessor(full) && full.can_officer_process)*/
-                                if(full.assessor_process){   
-                                        links +=  `<a href='/internal/proposal/${full.id}'>Process</a><br/>`;    
+                                if(full.assessor_process){
+                                        links +=  `<a href='/internal/proposal/${full.id}'>Process</a><br/>`;
                             }
                                 else{
                                     links +=  `<a href='/internal/proposal/${full.id}'>View</a><br/>`;
@@ -579,7 +579,7 @@ export default {
         is_referral: function(){
             return this.level == 'referral';
         },
-        
+
     },
     methods:{
         fetchFilterLists: function(){
@@ -682,7 +682,7 @@ export default {
                 function(settings,data,dataIndex,original){
                     let found = false;
                     let filtered_regions = vm.filterProposalRegion;
-                    if (filtered_regions.length == 0){ return true; } 
+                    if (filtered_regions.length == 0){ return true; }
 
                     let regions = original.region != '' && original.region != null ? original.region.split(','): [];
 
@@ -703,7 +703,7 @@ export default {
             vm.$refs.proposal_datatable.table.dataTableExt.afnFiltering.push(
                 function(settings,data,dataIndex,original){
                     let filtered_submitter = vm.filterProposalSubmitter;
-                    if (filtered_submitter == 'All'){ return true; } 
+                    if (filtered_submitter == 'All'){ return true; }
                     return filtered_submitter == original.submitter.email;
                 }
             );
@@ -737,7 +737,7 @@ export default {
                         else{
                             return false;
                         }
-                    } 
+                    }
                     else{
                         return false;
                     }
@@ -750,10 +750,10 @@ export default {
             let vm = this;
             Vue.http.get(api_endpoints.profile).then((response) => {
                 vm.profile = response.body
-                              
+
             },(error) => {
                 console.log(error);
-                
+
             })
         },
 
@@ -771,14 +771,14 @@ export default {
                  var assessor = proposal.allowed_assessors.filter(function(elem){
                     return(elem.id=vm.profile.id)
                 });
-                
+
                 if (assessor.length > 0)
                     return true;
                 else
                     return false;
-              
+
             }
-            
+
         },
     },
 
