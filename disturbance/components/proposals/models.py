@@ -1969,22 +1969,48 @@ class HelpPage(models.Model):
 # --------------------------------------------------------------------------------------
 # Apiary Models Start
 # --------------------------------------------------------------------------------------
-
 class ProposalApiarySiteLocation(models.Model):
     title = models.CharField('Title', max_length=200, null=True)
     location = gis_models.PointField(srid=4326, blank=True, null=True)
     proposal = models.OneToOneField(Proposal, related_name='apiary_site_location', null=True)
+    # We don't use GIS field, because these are just fields user input into the <input> field
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
 
-    @property
-    def latitude(self):
-        return self.location.get_x()
-
-    @property
-    def longitude(self):
-        return self.location.get_y()
+    # @property
+    # def latitude(self):
+    #     return self.location.get_x()
+    #
+    # @property
+    # def longitude(self):
+    #     return self.location.get_y()
 
     def __str__(self):
         return '{}'.format(self.title)
+
+    class Meta:
+        app_label = 'disturbance'
+
+
+class ApiarySite(models.Model):
+    proposal_apiary_site_location = models.ForeignKey(ProposalApiarySiteLocation, null=True, blank=True, related_name='apiary_sites')
+    site_guid = models.CharField(max_length=50, blank=True)
+
+    def __str__(self):
+        return '{} - {}'.format(self.site_guid, self.proposal_apiary_site_location.proposal.title)
+
+    class Meta:
+        app_label = 'disturbance'
+
+
+class OnSiteInformation(models.Model):
+    apiary_site = models.ForeignKey(ApiarySite, null=True, blank=True)
+    period_from = models.DateField(null=True, blank=True)
+    period_to = models.DateField(null=True, blank=True)
+    comments = models.TextField(blank=True)
+
+    def __str__(self):
+        return 'OnSiteInfo id: {}, date: {} to {}'.format(self.id, self.period_from, self.period_to)
 
     class Meta:
         app_label = 'disturbance'
@@ -2019,7 +2045,7 @@ class ProposalApiaryDocument(DefaultDocument):
 
     def delete(self):
         if self.can_delete:
-            return super(ApiarySiteLocationDocument, self).delete()
+            return super(ProposalApiaryDocument, self).delete()
 
 #class ApiaryTemporaryUseDocument(DefaultDocument):
 #    temporary_use = models.ForeignKey('ProposalApiaryTemporaryUse', related_name='apiary_temporary_use_documents')
