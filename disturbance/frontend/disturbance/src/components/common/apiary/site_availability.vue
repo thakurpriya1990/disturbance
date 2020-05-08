@@ -1,26 +1,13 @@
 <template lang="html">
     <div>
-        <div class="row">
-            <button :disabled="!addButtonEnabled" class="btn btn-primary pull-right" @click="openOnSiteInformationAddModal">Add</button>
-        </div>
-
         <div class="row col-sm-12">
             <datatable 
-                ref="on_site_information_table" 
-                id="on-site-information-table" 
+                ref="site_availability_table" 
+                id="site-availability-table" 
                 :dtOptions="dtOptions" 
                 :dtHeaders="dtHeaders" 
             />
         </div>
-
-        <template v-if="apiary_site_location">
-            <OnSiteInformationAddModal 
-                ref="on_site_information_add_modal" 
-                :apiary_site_location="apiary_site_location" 
-                :key="modalBindId" 
-                @on_site_information_added="onSiteInformationAdded"
-            />
-        </template>
     </div>
 </template>
 
@@ -29,7 +16,6 @@
     import datatable from '@vue-utils/datatable.vue'
     import uuid from 'uuid'
     import { api_endpoints, helpers, } from '@/utils/hooks'
-    import OnSiteInformationAddModal from './on_site_information_add_modal'
     //import uuid from 'uuid'
 
     export default {
@@ -55,10 +41,7 @@
                 modalBindId: null,
                 dtHeaders: [
                     'id',
-                    'from',
-                    'to',
                     'site',
-                    'comments',
                     'action',
                 ],
                 dtOptions: {
@@ -85,47 +68,18 @@
                         },
                         {
                             mRender: function (data, type, full) {
-                                if (full.period_from) {
-                                    return full.period_from;
-                                } else {
-                                    return '';
-                                }
+                                return '(site name)'
                             }
                         },
                         {
                             mRender: function (data, type, full) {
-                                if (full.period_to) {
-                                    return full.period_to;
+                                let action_list = ['View on map (TODO)',]
+                                if (full.available){
+                                    action_list.push('Mark as unavailable (TODO)');
                                 } else {
-                                    return '';
+                                    action_list.push('Mark as available (TODO)');
                                 }
-                            }
-                        },
-                        {
-                            mRender: function (data, type, full) {
-                                if (full.apiary_site) {
-                                    return full.apiary_site.id;
-                                } else {
-                                    return '';
-                                }
-                            }
-                        },
-                        {
-                            mRender: function (data, type, full) {
-                                if (full.comments) {
-                                    return full.comments;
-                                } else {
-                                    return '';
-                                }
-                            }
-                        },
-                        {
-                            mRender: function (data, type, full) {
-                                if (full.action) {
-                                    return full.action;
-                                } else {
-                                    return 'Edit (TODO)<br />Delete (TODO)';
-                                }
+                                return action_list.join('<br />');
                             }
                         },
                     ],
@@ -133,7 +87,6 @@
             }
         },
         components: {
-            OnSiteInformationAddModal,
             datatable,
         },
         computed:{
@@ -154,45 +107,28 @@
             }
         },
         methods:{
-            onSiteInformationAdded: async function() {
-                await this.loadApiarySiteLocation(this.apiary_site_location_id);
-                this.constructOnSiteInformationTable();
-            },
-            openOnSiteInformationAddModal: async function() {
-                this.modalBindId = uuid()
-
-                try {
-                    this.$nextTick(() => {
-                        if (this.$refs.on_site_information_add_modal){
-                            this.$refs.on_site_information_add_modal.openMe();
-                        }
-                    });
-                } catch (err) {
-                    this.processError(err);
-                }
-            },
             loadApiarySiteLocation: async function(id){
-                let temp = await Vue.http.get('/api/proposal_apiary_site_location/' + id + '/on_site_information_list/')
+                let temp = await Vue.http.get('/api/proposal_apiary_site_location/' + id)
                 this.apiary_site_location = temp.body;
             },
             constructOnSiteInformationTable: function(){
                 console.log('constructOnSiteInformationTable');
-                if (this.apiary_site_location && this.apiary_site_location.on_site_information_list){
+                if (this.apiary_site_location){
                     console.log('constructOnSiteInformationTable');
 
                     // Clear table
-                    this.$refs.on_site_information_table.vmDataTable.clear().draw();
+                    this.$refs.site_availability_table.vmDataTable.clear().draw();
 
                     // Construct table
-                    if (this.apiary_site_location.on_site_information_list.length > 0){
-                        for(let i=0; i<this.apiary_site_location.on_site_information_list.length; i++){
-                            this.addOnSiteInformationToTable(this.apiary_site_location.on_site_information_list[i]);
+                    if (this.apiary_site_location.apiary_sites.length > 0){
+                        for(let i=0; i<this.apiary_site_location.apiary_sites.length; i++){
+                            this.addApiarySiteToTable(this.apiary_site_location.apiary_sites[i]);
                         }
                     }
                 }
             },
-            addOnSiteInformationToTable: function(on_site_information) {
-                this.$refs.on_site_information_table.vmDataTable.row.add(on_site_information).draw();
+            addApiarySiteToTable: function(apiary_site) {
+                this.$refs.site_availability_table.vmDataTable.row.add(apiary_site).draw();
             },
             addEventListeners: function() {
 
