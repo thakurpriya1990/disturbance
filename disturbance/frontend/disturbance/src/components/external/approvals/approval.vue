@@ -96,6 +96,12 @@
             </div>
 
             <div class="row">
+                <FormSection :formCollapse="false" label="Site(s)" Index="site_avaiability">
+                    <SiteAvailability :apiary_site_location_id="apiary_site_location_id" ref="site_availability" />
+                </FormSection>
+            </div>
+
+            <div class="row">
                 <FormSection :formCollapse="false" label="On Site" Index="on_site">
                     <OnSiteInformation :apiary_site_location_id="apiary_site_location_id" ref="on_site_information" />
                 </FormSection>
@@ -113,6 +119,7 @@ import ResponsiveDatatablesHelper from "@/utils/responsive_datatable_helper.js"
 import FormSection from "@/components/forms/section_toggle.vue"
 import { api_endpoints, helpers } from '@/utils/hooks'
 import OnSiteInformation from '@/components/common/apiary/on_site_information.vue'
+import SiteAvailability from '@/components/common/apiary/site_availability.vue'
 
 export default {
     name: 'Approval',
@@ -159,6 +166,7 @@ export default {
         CommsLogs,
         FormSection,
         OnSiteInformation,
+        SiteAvailability,
     },
     computed: {
         isLoading: function () {

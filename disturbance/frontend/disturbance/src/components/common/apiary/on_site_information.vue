@@ -124,7 +124,7 @@
                                 if (full.action) {
                                     return full.action;
                                 } else {
-                                    return '';
+                                    return 'Edit (TODO)<br />Delete (TODO)';
                                 }
                             }
                         },
