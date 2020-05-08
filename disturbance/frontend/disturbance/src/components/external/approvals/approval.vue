@@ -25,53 +25,10 @@
                             </div>
                         </div>
                 </FormSection>
-
-                <!--
-                <div class="panel panel-default">
-                    <div class="panel-heading">
-                        <h3 class="panel-title">Holder
-                            <a class="panelClicker" :href="'#'+pBody" data-toggle="collapse" expanded="false"  data-parent="#userInfo" :aria-controls="pBody">
-                                <span class="glyphicon glyphicon-chevron-down pull-right "></span>
-                            </a>
-                        </h3> 
-                    </div>
-                    <div class="panel-body panel-collapse" :id="pBody">
-                        <div class="row">
-                            <div class="col-sm-12">
-                                <form class="form-horizontal" name="approval_form">
-                                    <div class="form-group">
-                                        <label for="" class="col-sm-3 control-label">Organisation</label>
-                                        <div class="col-sm-6">
-                                            <input type="text" disabled class="form-control" name="name" placeholder="" v-model="org.name">
-                                        </div>
-                                    </div>   
-                                    <div class="form-group">
-                                        <label for="" class="col-sm-3 control-label">ABN</label>
-                                        <div class="col-sm-6">
-                                            <input type="text" disabled class="form-control" name="abn" placeholder="" v-model="org.abn">
-                                        </div>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                -->
             </div>
 
             <div class="row">
                 <FormSection :formCollapse="false" label="Address Details" Index="address_details">
-                <!--
-                <div class="panel panel-default">
-                    <div class="panel-heading">
-                      <h3 class="panel-title">Address Details 
-                          <a class="panelClicker" :href="'#'+adBody" data-toggle="collapse" expanded="true"  data-parent="#userInfo" :aria-controls="adBody">
-                              <span class="glyphicon glyphicon-chevron-down pull-right "></span>
-                          </a>
-                      </h3>
-                    </div>
-                    <div v-if="loading.length == 0" class="panel-body collapse" :id="adBody">
-                -->
                         <form class="form-horizontal" action="index.html" method="post">
                             <div class="form-group">
                                 <label for="" class="col-sm-3 control-label">Street</label>
@@ -103,79 +60,45 @@
                                 </div>
                             </div>
                          </form>
-                         <!--
-                    </div>
-                </div>
-                         -->
                 </FormSection>
             </div>
 
             <div class="row">
                 <FormSection :formCollapse="false" label="Approval Details" Index="approval_details">
-                <!--
-                <div class="panel panel-default">
-                    <div class="panel-heading">
-                        <h3 class="panel-title">Approval Details 
-                            <a class="panelClicker" :href="'#'+oBody" data-toggle="collapse" expanded="true"  data-parent="#userInfo" :aria-controls="oBody">
-                                <span class="glyphicon glyphicon-chevron-down pull-right "></span>
-                            </a>
-                        </h3>
-                    </div>
-                    <div v-if="loading.length == 0" class="panel-body collapse" :id="oBody">
-                -->
-                        <form class="form-horizontal" action="index.html" method="post">
-                            <div class="form-group">
-                                <label for="" class="col-sm-3 control-label">Issue Date</label>
-                                <div class="col-sm-6">
-                                    <label for="" class="control-label pull-left">{{approval.issue_date | formatDate}}</label>
-                                </div>
+                    <form class="form-horizontal" action="index.html" method="post">
+                        <div class="form-group">
+                            <label for="" class="col-sm-3 control-label">Issue Date</label>
+                            <div class="col-sm-6">
+                                <label for="" class="control-label pull-left">{{approval.issue_date | formatDate}}</label>
                             </div>
-                            <div class="form-group">
-                                <label for="" class="col-sm-3 control-label" >Start Date</label>
-                                <div class="col-sm-6">
-                                    <label for="" class="control-label pull-left">{{approval.start_date | formatDate}}</label>
-                                </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="" class="col-sm-3 control-label" >Start Date</label>
+                            <div class="col-sm-6">
+                                <label for="" class="control-label pull-left">{{approval.start_date | formatDate}}</label>
                             </div>
-                            <div class="form-group">
-                                <label for="" class="col-sm-3 control-label">Expiry Date</label>
-                                <div class="col-sm-3">
-                                    <label for="" class="control-label pull-left">{{approval.expiry_date | formatDate}}</label>
-                                </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="" class="col-sm-3 control-label">Expiry Date</label>
+                            <div class="col-sm-3">
+                                <label for="" class="control-label pull-left">{{approval.expiry_date | formatDate}}</label>
                             </div>
-                            <div class="form-group">
-                                <label for="" class="col-sm-3 control-label" >Document</label>
-                                <div class="col-sm-4">
-                                    <p><a target="_blank" :href="approval.licence_document" class="control-label pull-left">Approval.pdf</a></p>
-                                </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="" class="col-sm-3 control-label" >Document</label>
+                            <div class="col-sm-4">
+                                <p><a target="_blank" :href="approval.licence_document" class="control-label pull-left">Approval.pdf</a></p>
                             </div>
-                         </form>
-                         <!--
-                    </div>
-                </div>
-                         -->
+                        </div>
+                     </form>
                 </FormSection>
 
             </div>
 
             <div class="row">
                 <FormSection :formCollapse="false" label="On Site" Index="on_site">
-                    AHO
+                    <OnSiteInformation :apiary_site_location_id="apiary_site_location_id" ref="on_site_information" />
                 </FormSection>
-
-                <!--
-                <div class="panel panel-default">
-                    <div class="panel-heading">
-                        <h3 class="panel-title">On Site 
-                            <a class="panelClicker" :href="'#'+onBody" data-toggle="collapse" expanded="true"  data-parent="#userInfo" :aria-controls="onBody">
-                                <span class="glyphicon glyphicon-chevron-down pull-right "></span>
-                            </a>
-                        </h3>
-                    </div>
-                    <div v-if="loading.length == 0" class="panel-body collapse" :id="oBody">
-                        Form fields
-                    </div>
-                </div>
-                -->
             </div>
         </div>
     </div>
@@ -188,11 +111,9 @@ import datatable from '@vue-utils/datatable.vue'
 import CommsLogs from '@common-utils/comms_logs.vue'
 import ResponsiveDatatablesHelper from "@/utils/responsive_datatable_helper.js"
 import FormSection from "@/components/forms/section_toggle.vue"
-import {
-  api_endpoints,
-  helpers
-}
-from '@/utils/hooks'
+import { api_endpoints, helpers } from '@/utils/hooks'
+import OnSiteInformation from '@/components/common/apiary/on_site_information.vue'
+
 export default {
     name: 'Approval',
     data() {
@@ -237,10 +158,18 @@ export default {
         datatable,
         CommsLogs,
         FormSection,
+        OnSiteInformation,
     },
     computed: {
         isLoading: function () {
             return this.loading.length > 0;
+        },
+        apiary_site_location_id: function() {
+            try {
+                return this.approval.current_proposal.apiary_site_location.id;
+            } catch(err) {
+                return 0;
+            }
         },
     },
     methods: {
