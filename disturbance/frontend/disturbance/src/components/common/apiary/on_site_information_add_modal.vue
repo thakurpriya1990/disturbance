@@ -205,14 +205,18 @@ export default {
         },
         sendData: async function () {
             let post_url = '/api/on_site_information/'
-            let payload = this.on_site_information
+            let payload = {}
+            Object.assign(payload, this.on_site_information);
+            let regex = new RegExp(/^\d{4}-\d{2}-\d{2}$/);
 
             // Sanitize period_from
             // Django requires 'YYYY-MM-DD' format
             try {
                 payload.period_from = moment(payload.period_from).format('YYYY-MM-DD');
+                if (!regex.test(payload.period_from)) {
+                    throw "Invalid"
+                }
             } catch (err){
-                console.log('err period_from');
                 payload.period_from = '';
             }
 
@@ -220,8 +224,10 @@ export default {
             // Django requires 'YYYY-MM-DD' format
             try {
                 payload.period_to = moment(payload.period_to).format('YYYY-MM-DD');
+                if (!regex.test(payload.period_to)) {
+                    throw "Invalid"
+                }
             } catch(err) {
-                console.log('err period_to');
                 payload.period_to = '';
             }
 
@@ -229,8 +235,7 @@ export default {
             try {
                 payload.apiary_site_id = payload.apiary_site.id;
             } catch(err) {
-                console.log('err apiary_site_id');
-                payload.apiary_site_id = ''
+                payload.apiary_site_id = 0
             }
 
             let res = await Vue.http.post(post_url, payload);

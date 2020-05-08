@@ -55,7 +55,7 @@
                     searchDelay: 1000,
                     lengthMenu: [ [10, 25, 50, 100, -1], [10, 25, 50, 100, "All"] ],
                     order: [
-                        [0, 'desc']
+                        [1, 'desc'], [0, 'desc'],
                     ],
                     language: {
                         processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
@@ -92,8 +92,9 @@
                         },
                         {
                             mRender: function (data, type, full) {
-                                if (full.apiary_site_id) {
-                                    return full.apiary_site_id;
+                                console.log(full);
+                                if (full.apiary_site) {
+                                    return full.apiary_site.id;
                                 } else {
                                     return '';
                                 }

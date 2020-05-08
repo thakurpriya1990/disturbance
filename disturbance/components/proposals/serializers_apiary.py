@@ -14,23 +14,6 @@ from disturbance.components.proposals.models import (
 from rest_framework import serializers
 
 
-class OnSiteInformationSerializer(serializers.ModelSerializer):
-    apiary_site_id = serializers.IntegerField(write_only=True,)
-
-    class Meta:
-        model = OnSiteInformation
-        fields = (
-            'id',
-            'apiary_site_id',
-            'period_from',
-            'period_to',
-            'comments',
-        )
-
-    def validate(self, attrs):
-        return attrs
-
-
 class ApiarySiteSerializer(serializers.ModelSerializer):
     proposal_apiary_site_location_id = serializers.IntegerField(write_only=True,)
     # onsiteinformation_set = OnSiteInformationSerializer(read_only=True, many=True,)
@@ -43,6 +26,48 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
             'proposal_apiary_site_location_id',
             # 'onsiteinformation_set',
         )
+
+
+class OnSiteInformationSerializer(serializers.ModelSerializer):
+    apiary_site_id = serializers.IntegerField(write_only=True, required=False)
+    apiary_site = ApiarySiteSerializer(read_only=True)
+
+    class Meta:
+        model = OnSiteInformation
+        fields = (
+            'id',
+            'apiary_site',
+            'apiary_site_id',
+            'period_from',
+            'period_to',
+            'comments',
+        )
+
+    def validate(self, data):
+        field_errors = {}
+        non_field_errors = []
+
+        if not data['apiary_site_id'] and not data['apiary_site_id'] > 0:
+            field_errors['Site'] = ['Please select a site',]
+        if not data['period_from']:
+            field_errors['Period from'] = ['Please select a date.',]
+        if not data['period_to']:
+            field_errors['Period to'] = ['Please select a date.',]
+        if not data['comments']:
+            field_errors['comments'] = ['Please enter comments.',]
+
+        # Raise errors
+        if field_errors:
+            raise serializers.ValidationError(field_errors)
+
+        if data['period_from'] > data['period_to']:
+            non_field_errors.append('Period "from" date must be before "to" date.')
+
+        # Raise errors
+        if non_field_errors:
+            raise serializers.ValidationError(non_field_errors)
+
+        return data
 
 
 class ProposalApiarySiteLocationSerializer(serializers.ModelSerializer):
@@ -68,7 +93,8 @@ class ProposalApiarySiteLocationSerializer(serializers.ModelSerializer):
         on_site_information_list = OnSiteInformation.objects.filter(
             apiary_site__in=ApiarySite.objects.filter(proposal_apiary_site_location=obj)
         ).order_by('-period_from')
-        return OnSiteInformationSerializer(on_site_information_list, many=True).data
+        ret = OnSiteInformationSerializer(on_site_information_list, many=True).data
+        return ret
 
 
 class ProposalApiaryTemporaryUseSerializer(serializers.ModelSerializer):
