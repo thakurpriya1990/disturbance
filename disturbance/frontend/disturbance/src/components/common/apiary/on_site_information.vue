@@ -5,11 +5,21 @@
         </div>
 
         <div class="row col-sm-12">
-            <datatable ref="on_site_information_table" id="on-site-information-table" :dtOptions="dtOptions" :dtHeaders="dtHeaders" />
+            <datatable 
+                ref="on_site_information_table" 
+                id="on-site-information-table" 
+                :dtOptions="dtOptions" 
+                :dtHeaders="dtHeaders" 
+            />
         </div>
 
         <template v-if="apiary_site_location">
-            <OnSiteInformationAddModal ref="on_site_information_add_modal" :apiary_site_location="apiary_site_location" :key="modalBindId" />
+            <OnSiteInformationAddModal 
+                ref="on_site_information_add_modal" 
+                :apiary_site_location="apiary_site_location" 
+                :key="modalBindId" 
+                @on_site_information_added="onSiteInformationAdded"
+            />
         </template>
     </div>
 </template>
@@ -49,13 +59,14 @@
                     'to',
                     'site',
                     'comments',
+                    'action',
                 ],
                 dtOptions: {
                     serverSide: false,
                     searchDelay: 1000,
                     lengthMenu: [ [10, 25, 50, 100, -1], [10, 25, 50, 100, "All"] ],
                     order: [
-                        [0, 'desc']
+                        [1, 'desc'], [0, 'desc'],
                     ],
                     language: {
                         processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
@@ -92,8 +103,8 @@
                         },
                         {
                             mRender: function (data, type, full) {
-                                if (full.apiary_site_id) {
-                                    return full.apiary_site_id;
+                                if (full.apiary_site) {
+                                    return full.apiary_site.id;
                                 } else {
                                     return '';
                                 }
@@ -103,6 +114,15 @@
                             mRender: function (data, type, full) {
                                 if (full.comments) {
                                     return full.comments;
+                                } else {
+                                    return '';
+                                }
+                            }
+                        },
+                        {
+                            mRender: function (data, type, full) {
+                                if (full.action) {
+                                    return full.action;
                                 } else {
                                     return '';
                                 }
@@ -134,6 +154,10 @@
             }
         },
         methods:{
+            onSiteInformationAdded: async function() {
+                await this.loadApiarySiteLocation(this.apiary_site_location_id);
+                this.constructOnSiteInformationTable();
+            },
             openOnSiteInformationAddModal: async function() {
                 this.modalBindId = uuid()
 
@@ -148,9 +172,6 @@
                 }
             },
             loadApiarySiteLocation: async function(id){
-                console.log('loadApiarySiteLocation');
-                console.log(id);
-                //http://localhost:8071/api/proposal_apiary_site_location/11/on_site_information_list/
                 let temp = await Vue.http.get('/api/proposal_apiary_site_location/' + id + '/on_site_information_list/')
                 this.apiary_site_location = temp.body;
             },
