@@ -1918,7 +1918,7 @@ class ProposalApiarySiteLocation(models.Model):
     #     return self.location.get_y()
 
     def __str__(self):
-        return '{}'.format(self.title)
+        return 'id:{} - {}'.format(self.id, self.title)
 
     class Meta:
         app_label = 'disturbance'

@@ -380,12 +380,12 @@ def save_proponent_data_apiary(instance, request, viewset):
                         # Update existing
                         a_site = ApiarySite.objects.get(site_guid=apiary_site['site_guid'])
                         serializer = ApiarySiteSerializer(a_site, data=apiary_site)
-                    except:
+                    except ApiarySite.DoesNotExist:
                         # Create new
                         serializer = ApiarySiteSerializer(data=apiary_site)
-                    finally:
-                        serializer.is_valid(raise_exception=True)
-                        serializer.save()
+
+                    serializer.is_valid(raise_exception=True)
+                    serializer.save()
 
                 # Delete existing
                 sites_delete = ApiarySite.objects.filter(id__in=site_ids_delete)

@@ -28,7 +28,6 @@ export default {
     data:function () {
         return {
             title:"Section title",
-            eventInitialised: false,
             panel_chevron_class: null,
             custom_id: uuid(),
         }
@@ -52,38 +51,17 @@ export default {
                 }
             }
         },
-
     },
     mounted: function() {
-        let elem = $('#' + this.custom_id);
-
-        elem.on('click',function () {
+        $('#' + this.custom_id).on('click',function () {
             var chev = $(this).children()[0];
-            console.log('clicked')
             console.log(chev);
             window.setTimeout(function () {
                 $(chev).toggleClass("glyphicon-chevron-up glyphicon-chevron-down");
-            },100);
+            }, 100);
         });
-        this.eventInitialised = true;
     },
     updated:function () {
-      //  let vm = this;
-      //  vm.$nextTick(()=>{
-      //      if (!vm.eventInitialised){
-      //          $('.panelClicker[data-toggle="collapse"]').on('click',function () {
-      //              var chev = $(this).children()[0];
-
-      //              console.log('*clicked');
-      //              console.log(chev);
-
-      //              //window.setTimeout(function () {
-      //                  $(chev).toggleClass("glyphicon-chevron-up glyphicon-chevron-down");
-      //              //},100);
-      //          });
-      //          this.eventInitialised = true;
-      //      }
-      //  });
     },
 }
 </script>
@@ -99,9 +77,4 @@ export default {
         flex-direction: column;
         min-height: 325px;
     }
-    /*
-    .tree-height{
-        height: 5000px;
-    }
-    */
 </style>
