@@ -27,7 +27,8 @@ from ledger.accounts.models import EmailUser, Address
 from ledger.address.models import Country
 from datetime import datetime, timedelta, date
 from disturbance.components.proposals.utils import save_proponent_data,save_assessor_data, proposal_submit
-from disturbance.components.proposals.models import searchKeyWords, search_reference, ProposalUserAction
+from disturbance.components.proposals.models import searchKeyWords, search_reference, ProposalUserAction, \
+    ProposalApiarySiteLocation, OnSiteInformation
 from disturbance.utils import missing_required_fields, search_tenure
 from disturbance.components.main.utils import check_db_connection
 
@@ -66,16 +67,16 @@ from disturbance.components.proposals.serializers import (
     SearchReferenceSerializer,
     SearchKeywordSerializer,
     ListProposalSerializer,
-    ProposalReferralSerializer,
     AmendmentRequestDisplaySerializer,
     SaveProposalRegionSerializer,
 )
+from disturbance.components.proposals.serializers_base import ProposalReferralSerializer
 from disturbance.components.proposals.serializers_apiary import (
     ProposalApiarySerializer,
     InternalProposalApiarySerializer,
     ProposalApiarySiteLocationSerializer,
     ProposalApiaryTemporaryUseSerializer,
-    ProposalApiarySiteTransferSerializer,
+    ProposalApiarySiteTransferSerializer, OnSiteInformationSerializer,
 )
 from disturbance.components.approvals.models import Approval
 from disturbance.components.approvals.serializers import ApprovalSerializer
@@ -308,6 +309,43 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         result_page = self.paginator.paginate_queryset(qs, request)
         serializer = ListProposalSerializer(result_page, context={'request':request}, many=True)
         return self.paginator.get_paginated_response(serializer.data)
+
+
+class OnSiteInformationViewSet(viewsets.ModelViewSet):
+    queryset = OnSiteInformation.objects.all()
+    serializer_class = OnSiteInformationSerializer
+
+    def create(self, request, *args, **kwargs):
+        try:
+            with transaction.atomic():
+                request_data = request.data
+                serializer = OnSiteInformationSerializer(data=request_data)
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+                return Response(serializer.data)
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+class ProposalApiarySiteLocationViewSet(viewsets.ModelViewSet):
+    queryset = ProposalApiarySiteLocation.objects.none()
+    serializer_class = ProposalApiarySiteLocationSerializer
+
+    @detail_route(methods=['GET', ])
+    def on_site_information_list(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = ProposalApiarySiteLocationSerializer(instance)
+        return Response(serializer.data)
+
+    def get_queryset(self):
+        return ProposalApiarySiteLocation.objects.all()
 
 
 class ProposalViewSet(viewsets.ModelViewSet):

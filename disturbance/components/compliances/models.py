@@ -231,6 +231,7 @@ class ComplianceDocument(Document):
     class Meta:
         app_label = 'disturbance'
 
+
 class ComplianceUserAction(UserAction):
     ACTION_CREATE = "Create compliance {}"
     ACTION_SUBMIT_REQUEST = "Submit compliance {}"

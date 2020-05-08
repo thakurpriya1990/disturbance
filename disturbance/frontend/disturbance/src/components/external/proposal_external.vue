@@ -173,10 +173,19 @@ export default {
         },
     
         save_wo_confirm: function(e) {
+            console.log('***save_wo_confirm');
+
             let vm = this;
             vm.form=document.forms.new_proposal;
             let formData = new FormData(vm.form);
-            vm.$http.post(vm.proposal_form_url,formData);
+
+            try {
+                // Add site locations
+                formData.append('site_locations', JSON.stringify(this.$refs.proposal_apiary.$refs.apiary_site_locations.site_locations));
+            } catch(e){ }
+
+            console.log(formData);
+            vm.$http.post(vm.proposal_form_url, formData);
         },
         sectionHide: function(e) {
             let vm = this;
@@ -336,6 +345,8 @@ export default {
             vm.highlight_deficient_fields(deficient_fields);
         },
         submit: function(){
+            console.log('submit');
+
             let vm = this;
             vm.form=document.forms.new_proposal;
             let formData = new FormData(vm.form);
@@ -392,6 +403,11 @@ export default {
             vm.form=document.forms.new_proposal;
             let formData = new FormData(vm.form);
             //let formData = vm.set_formData()
+
+            try {
+                // Add site locations
+                formData.append('site_locations', JSON.stringify(this.$refs.proposal_apiary.$refs.apiary_site_locations.site_locations));
+            } catch(e){ }
 
             //vm.save_applicant_data();
             vm.$http.post(vm.proposal_form_url,formData).then(res=>{
