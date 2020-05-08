@@ -156,12 +156,13 @@ export default {
 
             el_fr.on("dp.change", function(e) {
                 console.log('from changed');
-                console.log(e);
+                let selected_date = e.date.format('DD/MM/YYYY')
+                console.log(selected_date)
 
                 if (el_fr.data("DateTimePicker").date()) {
                     console.log('from if');
-                    vm.on_site_information.period_from = e.date.format("DD/MM/YYYY");
-                    el_to.data('DateTimePicker').minDate(e.date);
+                    vm.on_site_information.period_from = selected_date;
+                    el_to.data('DateTimePicker').minDate(selected_date);  // e.date is moment object
                 } else if (el_fr.data("date") === "") {
                     // Date has been cleared
                     vm.on_site_information.period_from = null;
@@ -171,12 +172,13 @@ export default {
 
             el_to.on("dp.change", function(e) {
                 console.log('to changed');
-                console.log(e);
+                let selected_date = e.date.format('DD/MM/YYYY')
+                console.log(selected_date)
 
                 if (el_to.data("DateTimePicker").date()) {
                     console.log('to if');
-                    vm.on_site_information.period_to = e.date.format("DD/MM/YYYY");
-                    el_fr.data('DateTimePicker').maxDate(e.date);
+                    vm.on_site_information.period_to = selected_date;
+                    el_fr.data('DateTimePicker').maxDate(selected_date);
                 } else if (el_to.data("date") === "") {
                     // Date has been cleared
                     vm.on_site_information.period_to = null;
