@@ -22,6 +22,7 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
         model = ApiarySite
         fields = (
             'id',
+            'available',
             'site_guid',
             'proposal_apiary_site_location_id',
             # 'onsiteinformation_set',
