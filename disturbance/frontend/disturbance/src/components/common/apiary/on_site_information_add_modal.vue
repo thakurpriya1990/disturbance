@@ -130,6 +130,7 @@ export default {
 
             el_fr.on("dp.change", function(e) {
                 console.log('from changed');
+                console.log(e);
                 let selected_date = e.date.format('DD/MM/YYYY')  // e.date is moment object
 
                 if (el_fr.data("DateTimePicker").date()) {
@@ -144,6 +145,7 @@ export default {
 
             el_to.on("dp.change", function(e) {
                 console.log('to changed');
+                console.log(e);
                 let selected_date = e.date.format('DD/MM/YYYY')
 
                 if (el_to.data("DateTimePicker").date()) {
@@ -160,8 +162,8 @@ export default {
             try {
                 this.processingDetails = true;
                 const response = await this.sendData();
+                this.$emit('on_site_information_added');
                 this.close();
-                //this.$parent.loadSanctionOutcome({ sanction_outcome_id: this.$parent.sanction_outcome.id });
             } catch (err){
                 console.log(err);
                 console.log('err');
