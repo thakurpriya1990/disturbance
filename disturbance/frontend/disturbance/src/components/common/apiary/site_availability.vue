@@ -68,12 +68,18 @@
                         },
                         {
                             mRender: function (data, type, full) {
-                                return 'site name?'
+                                return '(site name)'
                             }
                         },
                         {
                             mRender: function (data, type, full) {
-                                return 'View on map<br />Mark as available<br />(Mark as unavailable)'
+                                let action_list = ['View on map (TODO)',]
+                                if (full.available){
+                                    action_list.push('Mark as unavailable (TODO)');
+                                } else {
+                                    action_list.push('Mark as available (TODO)');
+                                }
+                                return action_list.join('<br />');
                             }
                         },
                     ],
