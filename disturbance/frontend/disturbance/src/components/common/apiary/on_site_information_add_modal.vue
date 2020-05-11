@@ -254,9 +254,6 @@ export default {
                 payload.apiary_site_id = 0
             }
 
-            console.log('payload');
-            console.log(payload);
-
             let res = await Vue.http.post(post_url, payload);
             return res
         },

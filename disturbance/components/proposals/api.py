@@ -318,25 +318,27 @@ class OnSiteInformationViewSet(viewsets.ModelViewSet):
 
     @staticmethod
     def _sanitize_date(data_dict, property_name):
-        if property_name not in data_dict or not data_dict[property_name]:
-            # There isn't 'period_from' in the data received
-            # Add the property and set the value to None
+        if property_name not in data_dict or not data_dict[property_name] or 'invalid' in data_dict[property_name].lower():
+            # There isn't 'period_from' in the data received, or
+            # the value in it is False, or
+            # the value has a substring 'invalid' in it
+            # Add the property if needed and set the value to None
             data_dict[property_name] = None
         else:
             # There is a 'period_from' in the data received
             m = re.match('^(\d{2}).(\d{2}).(\d{4})$', data_dict[property_name])
             if m:
-                # Date format is 'DD/MM/YYYY' probably
-                # Convert it to 'YYYY/MM/DD' format
                 year = m.group(3)
-                month = m.group(2)
-                day = m.group(1)
-                if int(month) > 12:
-                    # Assume the format is 'MM/DD/YYYY'
-                    data_dict[property_name] = year + '-' + day + '-' + month
+                if int(m.group(2)) > 12:
+                    # Date format is 'MM/DD/YYYY' probably
+                    month = m.group(1)
+                    day = m.group(2)
                 else:
-                    # Assume the format is 'DD/MM/YYYY'
-                    data_dict[property_name] = year + '-' + month + '-' + day
+                    # Date format is 'DD/MM/YYYY' probably
+                    month = m.group(2)
+                    day = m.group(1)
+
+                data_dict[property_name] = year + '-' + month + '-' + day
             else:
                 # Probably all file
                 pass
