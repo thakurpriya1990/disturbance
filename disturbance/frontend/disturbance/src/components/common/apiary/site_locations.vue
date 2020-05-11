@@ -8,7 +8,6 @@
                 <h4>Status: {{proposal.customer_status }}</h4>
             </div>
 
-
             <div class="col-md-12">
                 <div class="panel panel-default">
                     <div class="panel-heading">
@@ -109,69 +108,40 @@
                     </div>
                 </div>
 
-<!--
                 <div class="panel panel-default">
                     <div class="panel-heading">
                         <h3 class="panel-title">Checklist<small></small>
                         <a class="panelClicker" href="#checkList" data-toggle="collapse"  data-parent="#userInfo" expanded="true" aria-controls="checkList">
-                        <span class="glyphicon glyphicon-chevron-up pull-right "></span>
+                          <span class="glyphicon glyphicon-chevron-up pull-right "></span>
                         </a>
                         </h3>
                     </div>
                     <div class="panel-body collapse in" id="checkList">
                         <div class="row">
-                            <div class="col-sm-12">
-                                <label>Checklist items go here (pulled from Django Admin) ...</label>
+                            <div v-if="q" class="col-sm-12">
+                                <li class="col-sm-6" >
+                                    <label class="control-label">{{q.question.text}}</label>
+                                </li>
+                                <ul v-if="q.question.answer_type=='yes_no'" class="list-inline col-sm-6">
+                                    <li class="list-inline-item">
+                                        <input  class="form-check-input" v-model="q.answer" ref="Checkbox" type="radio" :name="'option'+q.id" :id="'answer_one'+q.id":value="true" data-parsley-required :disabled="readonly"/> Yes
+                                    </li>
+                                    <li class="list-inline-item">
+                                        <input  class="form-check-input" v-model="q.answer" ref="Checkbox" type="radio" :name="'option'+q.id" :id="'answer_two'+q.id" :value="false" data-parsley-required :disabled="readonly"/> No 
+                                    </li>
+                                </ul>
+                                <ul v-else class="list-inline col-sm-6">
+                                    <li class="list-inline-item">
+                                        <textarea :disabled="readonly" class="form-control" name="text_answer" placeholder="" v-model="q.text_answer"></textarea>
+                                    </li>
+                                </ul>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
--->
-              <div class="panel panel-default">
-                  <div class="panel-heading">
-                      <h3 class="panel-title">Checklist<small></small>
-                      <a class="panelClicker" href="#checkList" data-toggle="collapse"  data-parent="#userInfo" expanded="true" aria-controls="checkList">
-                      <span class="glyphicon glyphicon-chevron-up pull-right "></span>
-                      </a>
-                      </h3>
-                  </div>
-                  <!--
-                  <div class="panel-body collapse in" id="checkList">
-                      <div class="row">
-                          <div class="col-sm-12">
-                              <label>Checklist items go here (pulled from Django Admin) ...</label>
-                          </div>
-                      </div>
-                  </div>
-                  -->
-                  
-                  <div class="panel-body collapse in" id="checkList">
-                            <div class="row">
-                                <div class="col-sm-12">
-                                        <li  class="col-sm-6" >
-                                        <label class="control-label">{{q.question.text}}</label></li>
-                                        <ul v-if="q.question.answer_type=='yes_no'" class="list-inline col-sm-6">
-                                            <li class="list-inline-item">
-                                                <input  class="form-check-input" v-model="q.answer" ref="Checkbox" type="radio" :name="'option'+q.id" :id="'answer_one'+q.id":value="true" data-parsley-required :disabled="readonly"/> Yes
-                                            </li>
-                                            <li class="list-inline-item">
-                                                <input  class="form-check-input" v-model="q.answer" ref="Checkbox" type="radio" :name="'option'+q.id" :id="'answer_two'+q.id" :value="false" data-parsley-required :disabled="readonly"/> No </li>
-                                        </ul>
-                                        <ul v-else class="list-inline col-sm-6">
-                                            <li class="list-inline-item">
-                                                <textarea :disabled="readonly" class="form-control" name="text_answer" placeholder="" v-model="q.text_answer"></textarea>
-                                            </li>
-                                        </ul>
-                                </div>
-                            </div>
-                </div>
-                  
-              </div>
-          </div>
-
-          </div>
-          <SiteLocationsModal ref="site_locations_modal" />
+        </div>
+        <SiteLocationsModal ref="site_locations_modal" />
     </div>
 </template>
 
