@@ -320,6 +320,11 @@ class OnSiteInformationViewSet(viewsets.ModelViewSet):
         try:
             with transaction.atomic():
                 request_data = request.data
+
+                # Convert any false value to None.  If you pass '' as empty value to date field, it fails.
+                request_data['period_from'] = None if not request_data['period_from'] else request_data['period_from']
+                request_data['period_to'] = None if not request_data['period_to'] else request_data['period_to']
+
                 serializer = OnSiteInformationSerializer(data=request_data)
                 serializer.is_valid(raise_exception=True)
                 serializer.save()

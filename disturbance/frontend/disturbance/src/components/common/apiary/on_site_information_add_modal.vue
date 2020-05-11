@@ -73,7 +73,6 @@
 import Vue from "vue";
 import modal from '@vue-utils/bootstrap-modal.vue';
 import { api_endpoints, helpers, cache_helper } from "@/utils/hooks";
-//import "jquery-ui/ui/widgets/draggable.js";
 
 export default {
     name: "OnSiteInformationAdd",
@@ -97,10 +96,6 @@ export default {
         apiary_site_location: {
             type: Object,
         },
-       // due_date_max: {
-       //     type: String,
-       //     default: '',
-       // },
     },
     watch:{
         isModalOpen: function() {
@@ -116,19 +111,12 @@ export default {
     mounted: function () {
         this.$nextTick(() => {
             this.addEventListeners();
-            //this.makeModalsDraggable();
         });
     },
     methods: {
         openMe: function () {
             this.isModalOpen = true;
         },
-      //  makeModalsDraggable: function(){
-      //      this.elem_modal = $('.modal > .modal-dialog');
-      //      for (let i=0; i<this.elem_modal.length; i++){
-      //          $(this.elem_modal[i]).draggable();
-      //      }
-      //  },
         addEventListeners: function () {
             console.log('in addEventListeners');
 
@@ -137,31 +125,17 @@ export default {
             let el_to = $(vm.$refs.periodToDatePicker);
             let options = { format: "DD/MM/YYYY", showClear: true };
 
-          //  if (vm.due_date_max){
-          //      options['maxDate'] = vm.extendMaxDate;
-          //  }
-
-           // if (vm.comingDueDate){
-           //     // Copy comingDuDate object
-           //     let coming_due_date = new Date(vm.comingDueDate.getTime());
-           //     // Calculate next day and set it to the datepicker as a minDate
-           //     coming_due_date.setDate(coming_due_date.getDate() + 1);
-           //     options['minDate'] = coming_due_date;
-           //     // Enter a default value to the input box
-           //     vm.new_due_date = coming_due_date.getDate() + '/' + (coming_due_date.getMonth() + 1) + '/' + coming_due_date.getFullYear();
-           // }
-
             el_fr.datetimepicker(options);
             el_to.datetimepicker(options);
 
             el_fr.on("dp.change", function(e) {
                 console.log('from changed');
                 console.log(e);
+                let selected_date = e.date.format('DD/MM/YYYY')  // e.date is moment object
 
                 if (el_fr.data("DateTimePicker").date()) {
-                    console.log('from if');
-                    vm.on_site_information.period_from = e.date.format("DD/MM/YYYY");
-                    el_to.data('DateTimePicker').minDate(e.date);
+                    vm.on_site_information.period_from = selected_date;
+                    el_to.data('DateTimePicker').minDate(selected_date);  
                 } else if (el_fr.data("date") === "") {
                     // Date has been cleared
                     vm.on_site_information.period_from = null;
@@ -172,11 +146,11 @@ export default {
             el_to.on("dp.change", function(e) {
                 console.log('to changed');
                 console.log(e);
+                let selected_date = e.date.format('DD/MM/YYYY')
 
                 if (el_to.data("DateTimePicker").date()) {
-                    console.log('to if');
-                    vm.on_site_information.period_to = e.date.format("DD/MM/YYYY");
-                    el_fr.data('DateTimePicker').maxDate(e.date);
+                    vm.on_site_information.period_to = selected_date;
+                    el_fr.data('DateTimePicker').maxDate(selected_date);
                 } else if (el_to.data("date") === "") {
                     // Date has been cleared
                     vm.on_site_information.period_to = null;
@@ -188,9 +162,11 @@ export default {
             try {
                 this.processingDetails = true;
                 const response = await this.sendData();
+                this.$emit('on_site_information_added');
                 this.close();
-                //this.$parent.loadSanctionOutcome({ sanction_outcome_id: this.$parent.sanction_outcome.id });
             } catch (err){
+                console.log(err);
+                console.log('err');
                 this.processError(err);
             } finally {
                 this.processingDetails = false;
@@ -231,14 +207,38 @@ export default {
         },
         sendData: async function () {
             let post_url = '/api/on_site_information/'
-            let payload = this.on_site_information
+            let payload = {}
+            Object.assign(payload, this.on_site_information);
+            let regex = new RegExp(/^\d{4}-\d{2}-\d{2}$/);
 
-            payload.period_from = moment(payload.period_from).format('YYYY-MM-DD');
-            payload.period_to = moment(payload.period_to).format('YYYY-MM-DD');
-            payload.apiary_site_id = payload.apiary_site.id;
+            // Sanitize period_from
+            // Django requires 'YYYY-MM-DD' format
+            try {
+                payload.period_from = moment(payload.period_from).format('YYYY-MM-DD');
+                if (!regex.test(payload.period_from)) {
+                    throw "Invalid"
+                }
+            } catch (err){
+                payload.period_from = '';
+            }
 
-            console.log('payload');
-            console.log(payload);
+            // Sanitize period_to
+            // Django requires 'YYYY-MM-DD' format
+            try {
+                payload.period_to = moment(payload.period_to).format('YYYY-MM-DD');
+                if (!regex.test(payload.period_to)) {
+                    throw "Invalid"
+                }
+            } catch(err) {
+                payload.period_to = '';
+            }
+
+            // Django only needs apiary_site.id
+            try {
+                payload.apiary_site_id = payload.apiary_site.id;
+            } catch(err) {
+                payload.apiary_site_id = 0
+            }
 
             let res = await Vue.http.post(post_url, payload);
             return res

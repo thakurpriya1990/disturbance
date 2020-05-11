@@ -2009,6 +2009,7 @@ class ProposalApiarySiteLocation(models.Model):
 class ApiarySite(models.Model):
     proposal_apiary_site_location = models.ForeignKey(ProposalApiarySiteLocation, null=True, blank=True, related_name='apiary_sites')
     site_guid = models.CharField(max_length=50, blank=True)
+    available = models.BooleanField(default=False, )
 
     def __str__(self):
         return '{} - {}'.format(self.site_guid, self.proposal_apiary_site_location.proposal.title)
