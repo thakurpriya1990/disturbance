@@ -48,12 +48,12 @@ class OnSiteInformationSerializer(serializers.ModelSerializer):
         field_errors = {}
         non_field_errors = []
 
-        if not data['apiary_site_id'] and not data['apiary_site_id'] > 0:
-            field_errors['Site'] = ['Please select a site',]
         if not data['period_from']:
             field_errors['Period from'] = ['Please select a date.',]
         if not data['period_to']:
             field_errors['Period to'] = ['Please select a date.',]
+        if not data['apiary_site_id'] and not data['apiary_site_id'] > 0:
+            field_errors['Site'] = ['Please select a site',]
         if not data['comments']:
             field_errors['comments'] = ['Please enter comments.',]
 
