@@ -1925,7 +1925,7 @@ class ProposalApiarySiteLocation(models.Model):
 
 
 class SiteCategory(models.Model):
-    # This model is used to distinguish the application fees' differences
+    # This model is used to distinguish the application gtfees' differences
     name = models.CharField(max_length=200, blank=True)
 
     def __str__(self):
