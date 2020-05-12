@@ -11,7 +11,7 @@ from django.conf.urls import url
 from django.template.response import TemplateResponse
 from django.http import HttpResponse, HttpResponseRedirect
 
-from disturbance.components.proposals.models import SiteCategory, SiteApplicationFee
+from disturbance.components.proposals.models import SiteCategory, ApiarySiteFee
 from disturbance.utils import create_helppage_object
 # Register your models here.
 
@@ -124,10 +124,17 @@ class GlobalSettingsAdmin(admin.ModelAdmin):
     ordering = ('key',)
 
 
-class SiteApplicationFeeInline(admin.TabularInline):
-    model = SiteApplicationFee
+# class SiteApplicationFeeInline(admin.TabularInline):
+#     model = SiteApplicationFee
+#     extra = 0
+#     can_delete = True
+
+
+class ApiarySiteFeeInline(admin.TabularInline):
+    model = ApiarySiteFee
     extra = 0
     can_delete = True
+
 
 
 # @admin.register(SiteCategory)
@@ -142,7 +149,7 @@ class SiteApplicationFeeInline(admin.TabularInline):
 
 class SiteCategoryAdmin(admin.ModelAdmin):
 
-    inlines = [SiteApplicationFeeInline,]
+    inlines = [ApiarySiteFeeInline,]
 
 
 admin.site.register(disturbance.components.proposals.models.SiteCategory, SiteCategoryAdmin)

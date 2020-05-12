@@ -1939,7 +1939,8 @@ class SiteCategory(models.Model):
         return ret_date
 
     def retrieve_application_fee_by_date(self, target_date):
-        return SiteApplicationFee.objects.filter(
+        return ApiarySiteFee.objects.filter(
+            Q(fee_type=ApiarySiteFee.FEE_TYPE_APPLICATION) &
             Q(site_category=self) &
             Q(date_of_enforcement__lte=target_date)).order_by('date_of_enforcement', ).last().amount
 
@@ -1950,17 +1951,42 @@ class SiteCategory(models.Model):
         app_label = 'disturbance'
 
 
-class SiteApplicationFee(RevisionedMixin):
+class ApiarySiteFee(RevisionedMixin):
+    FEE_TYPE_APPLICATION = 'new_application'
+    FEE_TYPE_AMENDMENT = 'amendment'
+    FEE_TYPE_RENEWAL = 'renewal'
+    FEE_TYPE_TRANSFER = 'transfer'
+    FEE_TYPE_CHOICES = (
+        (FEE_TYPE_APPLICATION, 'New Application'),
+        (FEE_TYPE_AMENDMENT, 'Amendment'),
+        (FEE_TYPE_RENEWAL, 'Renewal'),
+        (FEE_TYPE_TRANSFER, 'Transfer'),
+    )
+    fee_type = models.CharField(max_length=40, choices=FEE_TYPE_CHOICES, default=FEE_TYPE_CHOICES[0][0])
     amount = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     date_of_enforcement = models.DateField(blank=True, null=True)
-    site_category = models.ForeignKey(SiteCategory, related_name='site_application_fees')
+    site_category = models.ForeignKey(SiteCategory, related_name='site_fees')
 
     class Meta:
         app_label = 'disturbance'
         ordering = ('date_of_enforcement', )  # oldest record first, latest record last
+        unique_together = ['fee_type', 'site_category']
 
     def __str__(self):
         return '${} ({}:{})'.format(self.amount, self.date_of_enforcement, self.site_category)
+
+
+# class SiteApplicationFee(RevisionedMixin):
+#     amount = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+#     date_of_enforcement = models.DateField(blank=True, null=True)
+#     site_category = models.ForeignKey(SiteCategory, related_name='site_application_fees')
+#
+#     class Meta:
+#         app_label = 'disturbance'
+#         ordering = ('date_of_enforcement', )  # oldest record first, latest record last
+#
+#     def __str__(self):
+#         return '${} ({}:{})'.format(self.amount, self.date_of_enforcement, self.site_category)
 
 
 class ApiarySite(models.Model):

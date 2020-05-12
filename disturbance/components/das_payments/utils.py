@@ -53,6 +53,8 @@ def create_fee_lines_apiary(proposal):
     min_mumber_of_sites_to_apply = 5
     line_items = []
 
+    # TODO: At first, the number of sites this applicant left must be retrieved form the database
+
     # Calculate total number of sites applied per category
     summary = {}
     for apiary_site in proposal.apiary_site_location.apiary_sites.all():
