@@ -3,8 +3,11 @@ from __future__ import unicode_literals
 import json
 import os
 import datetime
+
+import pytz
 from django.db import models,transaction
 from django.contrib.gis.db import models as gis_models
+from django.db.models import Q
 from django.dispatch import receiver
 from django.db.models.signals import pre_delete
 from django.utils.encoding import python_2_unicode_compatible
@@ -12,6 +15,7 @@ from django.core.exceptions import ValidationError
 from django.contrib.postgres.fields.jsonb import JSONField
 from django.utils import timezone
 from django.contrib.sites.models import Site
+from ledger.settings_base import TIME_ZONE
 from taggit.managers import TaggableManager
 from taggit.models import TaggedItemBase
 from ledger.accounts.models import Organisation as ledger_organisation
@@ -1928,6 +1932,17 @@ class SiteCategory(models.Model):
     # This model is used to distinguish the application gtfees' differences
     name = models.CharField(max_length=200, blank=True)
 
+    @property
+    def current_application_fee_per_site(self):
+        today_local = datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
+        ret_date = self.retrieve_application_fee_by_date(today_local)
+        return ret_date
+
+    def retrieve_application_fee_by_date(self, target_date):
+        return SiteApplicationFee.objects.filter(
+            Q(site_category=self) &
+            Q(date_of_enforcement__lte=target_date)).order_by('date_of_enforcement', ).last().amount
+
     def __str__(self):
         return '{}'.format(self.name)
 
@@ -1952,9 +1967,14 @@ class ApiarySite(models.Model):
     proposal_apiary_site_location = models.ForeignKey(ProposalApiarySiteLocation, null=True, blank=True, related_name='apiary_sites')
     site_guid = models.CharField(max_length=50, blank=True)
     available = models.BooleanField(default=False, )
+    site_category = models.ForeignKey(SiteCategory, null=True, blank=True)
 
     def __str__(self):
         return '{} - {}'.format(self.site_guid, self.proposal_apiary_site_location.proposal.title)
+
+    def get_current_application_fee_per_site(self):
+        current_fee = self.site_category.current_application_fee_per_site
+        return current_fee
 
     class Meta:
         app_label = 'disturbance'
