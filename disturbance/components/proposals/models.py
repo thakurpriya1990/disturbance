@@ -1950,6 +1950,27 @@ class SiteCategory(models.Model):
         app_label = 'disturbance'
 
 
+class ApiarySiteFee(RevisionedMixin):
+    FEE_TYPE_CHOICES = (
+        ('new_application', 'New Application'),
+        ('amendment', 'Amendment'),
+        ('renewal', 'Renewal'),
+        ('transfer', 'Transfer'),
+    )
+    fee_type = models.CharField(max_length=40, choices=FEE_TYPE_CHOICES, default=FEE_TYPE_CHOICES[0][0])
+    amount = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+    date_of_enforcement = models.DateField(blank=True, null=True)
+    site_category = models.ForeignKey(SiteCategory, related_name='site_fees')
+
+    class Meta:
+        app_label = 'disturbance'
+        ordering = ('date_of_enforcement', )  # oldest record first, latest record last
+        unique_together = ['fee_type', 'site_category']
+
+    def __str__(self):
+        return '${} ({}:{})'.format(self.amount, self.date_of_enforcement, self.site_category)
+
+
 class SiteApplicationFee(RevisionedMixin):
     amount = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     date_of_enforcement = models.DateField(blank=True, null=True)
