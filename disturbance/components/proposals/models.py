@@ -2062,6 +2062,52 @@ class ProposalApiaryDocument(DefaultDocument):
         if self.can_delete:
             return super(ProposalApiaryDocument, self).delete()
 
+class ApiaryReferralGroup(models.Model):
+    name = models.CharField(max_length=255)
+    #members = models.ManyToManyField(EmailUser,blank=True)
+    #regions = TaggableManager(verbose_name="Regions",help_text="A comma-separated list of regions.",through=TaggedProposalAssessorGroupRegions,related_name = "+",blank=True)
+    #activities = TaggableManager(verbose_name="Activities",help_text="A comma-separated list of activities.",through=TaggedProposalAssessorGroupActivities,related_name = "+",blank=True)
+    members = models.ManyToManyField(EmailUser)
+    region = models.ForeignKey(Region, null=True, blank=True)
+    default = models.BooleanField(default=False)
+
+    class Meta:
+        app_label = 'disturbance'
+
+    def __str__(self):
+        return self.name
+
+    def clean(self):
+        try:
+            default = ApiaryReferralGroup.objects.get(default=True)
+        except ApiaryReferralGroup.DoesNotExist:
+            default = None
+
+        if self.pk:
+            if not self.default and not self.region:
+                raise ValidationError('Only default can have no region set for apiary referral group. Please specifiy region')
+#            elif default and not self.default:
+#                raise ValidationError('There can only be one default proposal assessor group')
+        else:
+            if default and self.default:
+                raise ValidationError('There can only be one default apiary referral group')
+
+    #def member_is_assigned(self,member):
+     #   for p in self.current_proposals:
+      #      if p.assigned_officer == member:
+       #         return True
+        #return False
+
+    @property
+    def current_proposals(self):
+        #assessable_states = ['with_assessor','with_referral','with_assessor_requirements']
+        assessable_states = ['with_referral']
+        return Proposal.objects.filter(processing_status__in=assessable_states)
+
+    @property
+    def members_email(self):
+        return [i.email for i in self.members.all()]
+
 #class ApiaryTemporaryUseDocument(DefaultDocument):
 #    temporary_use = models.ForeignKey('ProposalApiaryTemporaryUse', related_name='apiary_temporary_use_documents')
 #    _file = models.FileField(upload_to=update_temporary_use_doc_filename, max_length=512)
