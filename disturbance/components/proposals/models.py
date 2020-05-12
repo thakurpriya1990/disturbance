@@ -242,6 +242,10 @@ class Proposal(RevisionedMixin):
                                 'amendment_required',
                             ]
 
+    APPLICANT_TYPE_ORGANISATION = 'organisation'
+    APPLICANT_TYPE_PROXY = 'proxy' # proxy also represents an individual making an Apiary application
+    APPLICANT_TYPE_SUBMITTER = 'submitter'
+
     # List of statuses from above that allow a customer to view an application (read-only)
     CUSTOMER_VIEWABLE_STATE = ['with_assessor', 'under_review', 'id_required', 'returns_required', 'approved', 'declined']
 
@@ -327,7 +331,7 @@ class Proposal(RevisionedMixin):
     lodgement_sequence = models.IntegerField(blank=True, default=0)
     #lodgement_date = models.DateField(blank=True, null=True)
     lodgement_date = models.DateTimeField(blank=True, null=True)
-
+    # 20200512 - proxy_applicant also represents an individual making an Apiary application
     proxy_applicant = models.ForeignKey(EmailUser, blank=True, null=True, related_name='disturbance_proxy')
     submitter = models.ForeignKey(EmailUser, blank=True, null=True, related_name='disturbance_proposals')
 
