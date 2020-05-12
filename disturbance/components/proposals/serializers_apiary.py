@@ -1,38 +1,101 @@
 from django.conf import settings
-from drf_extra_fields.geo_fields import PointField
-from ledger.accounts.models import EmailUser,Address
+
 from disturbance.components.organisations.serializers import OrganisationSerializer
-from disturbance.components.proposals.serializers import (
-    BaseProposalSerializer,
-    ProposalReferralSerializer,
-    ProposalDeclinedDetailsSerializer,
-    EmailUserSerializer,
-    )
+from disturbance.components.proposals.serializers_base import BaseProposalSerializer, ProposalReferralSerializer, \
+    ProposalDeclinedDetailsSerializer, EmailUserSerializer
 from disturbance.components.proposals.models import (
     Proposal,
     ProposalApiarySiteLocation,
     ProposalApiaryTemporaryUse,
     ProposalApiarySiteTransfer,
-    ProposalApiaryDocument,
+    ProposalApiaryDocument, ApiarySite, OnSiteInformation,
 )
 
-from disturbance.components.main.serializers import CommunicationLogEntrySerializer
 from rest_framework import serializers
-from django.db.models import Q
-from reversion.models import Version
+
+
+class ApiarySiteSerializer(serializers.ModelSerializer):
+    proposal_apiary_site_location_id = serializers.IntegerField(write_only=True,)
+    # onsiteinformation_set = OnSiteInformationSerializer(read_only=True, many=True,)
+
+    class Meta:
+        model = ApiarySite
+        fields = (
+            'id',
+            'available',
+            'site_guid',
+            'proposal_apiary_site_location_id',
+            # 'onsiteinformation_set',
+        )
+
+
+class OnSiteInformationSerializer(serializers.ModelSerializer):
+    apiary_site_id = serializers.IntegerField(write_only=True, required=False)
+    apiary_site = ApiarySiteSerializer(read_only=True)
+
+    class Meta:
+        model = OnSiteInformation
+        fields = (
+            'id',
+            'apiary_site',
+            'apiary_site_id',
+            'period_from',
+            'period_to',
+            'comments',
+        )
+
+    def validate(self, data):
+        field_errors = {}
+        non_field_errors = []
+
+        if not data['period_from']:
+            field_errors['Period from'] = ['Please select a date.',]
+        if not data['period_to']:
+            field_errors['Period to'] = ['Please select a date.',]
+        if not data['apiary_site_id'] and not data['apiary_site_id'] > 0:
+            field_errors['Site'] = ['Please select a site',]
+        if not data['comments']:
+            field_errors['comments'] = ['Please enter comments.',]
+
+        # Raise errors
+        if field_errors:
+            raise serializers.ValidationError(field_errors)
+
+        if data['period_from'] > data['period_to']:
+            non_field_errors.append('Period "from" date must be before "to" date.')
+
+        # Raise errors
+        if non_field_errors:
+            raise serializers.ValidationError(non_field_errors)
+
+        return data
+
 
 class ProposalApiarySiteLocationSerializer(serializers.ModelSerializer):
+    apiary_sites = ApiarySiteSerializer(read_only=True, many=True)
+    on_site_information_list = serializers.SerializerMethodField()  # This is used for displaying OnSite table at the frontend
 
     class Meta:
         model = ProposalApiarySiteLocation
-        fields = ('id', 'title', 'proposal', 'latitude', 'longitude')
-        #fields = '__all__'
+        # geo_field = 'location'
 
-    def get_latitude(self,obj):
-        return obj.latitude
+        fields = (
+            'id',
+            'title',
+            'proposal',
+            # 'location',
+            'apiary_sites',
+            'longitude',
+            'latitude',
+            'on_site_information_list',
+        )
 
-    def get_longitude(self,obj):
-        return obj.longitude
+    def get_on_site_information_list(self, obj):
+        on_site_information_list = OnSiteInformation.objects.filter(
+            apiary_site__in=ApiarySite.objects.filter(proposal_apiary_site_location=obj)
+        ).order_by('-period_from')
+        ret = OnSiteInformationSerializer(on_site_information_list, many=True).data
+        return ret
 
 
 class ProposalApiaryTemporaryUseSerializer(serializers.ModelSerializer):
@@ -53,6 +116,7 @@ class ProposalApiaryDocumentSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProposalApiaryDocument
         fields = ('id', 'name', '_file')
+
 
 class SaveProposalApiarySiteLocationSerializer(serializers.ModelSerializer):
     class Meta:
@@ -124,8 +188,6 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
                 )
         read_only_fields=('documents',)
 
-
-
     def get_documents_url(self,obj):
         return '/media/{}/proposals/{}/documents/'.format(settings.MEDIA_APP_DIR, obj.id)
 
@@ -146,6 +208,7 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
 
     def get_fee_invoice_url(self,obj):
         return '/payments/invoice-pdf/{}'.format(obj.fee_invoice_reference) if obj.fee_paid else None
+
 
 class InternalProposalApiarySerializer(BaseProposalSerializer):
     # TODO next 3 commented lines - related to 'apply as an Org or as an individual'
