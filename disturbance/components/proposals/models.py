@@ -2006,6 +2006,30 @@ class ProposalApiarySiteLocation(models.Model):
         app_label = 'disturbance'
 
 
+class SiteCategory(models.Model):
+    # This model is used to distinguish the application gtfees' differences
+    name = models.CharField(max_length=200, blank=True)
+
+    def __str__(self):
+        return '{}'.format(self.name)
+
+    class Meta:
+        app_label = 'disturbance'
+
+
+class SiteApplicationFee(RevisionedMixin):
+    amount = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+    date_of_enforcement = models.DateField(blank=True, null=True)
+    site_category = models.ForeignKey(SiteCategory, related_name='site_application_fees')
+
+    class Meta:
+        app_label = 'disturbance'
+        ordering = ('date_of_enforcement', )  # oldest record first, latest record last
+
+    def __str__(self):
+        return '${} ({}:{})'.format(self.amount, self.date_of_enforcement, self.site_category)
+
+
 class ApiarySite(models.Model):
     proposal_apiary_site_location = models.ForeignKey(ProposalApiarySiteLocation, null=True, blank=True, related_name='apiary_sites')
     site_guid = models.CharField(max_length=50, blank=True)
