@@ -4,7 +4,7 @@ from django.db import transaction
 from django.contrib.gis.geos import Point
 from preserialize.serialize import serialize
 from ledger.accounts.models import EmailUser, Document
-from disturbance.components.proposals.models import ProposalDocument, ProposalUserAction
+from disturbance.components.proposals.models import ProposalDocument, ProposalUserAction, ApiarySite
 from disturbance.components.proposals.serializers import SaveProposalSerializer
 
 from disturbance.components.main.models import ApplicationType
@@ -16,7 +16,7 @@ from disturbance.components.proposals.models import (
 from disturbance.components.proposals.serializers_apiary import (
     ProposalApiarySiteLocationSerializer,
     ProposalApiaryTemporaryUseSerializer,
-    ProposalApiarySiteTransferSerializer,
+    ProposalApiarySiteTransferSerializer, ApiarySiteSerializer,
 )
 from disturbance.components.proposals.email import send_submit_email_notification, send_external_submit_email_notification
 
@@ -338,14 +338,14 @@ class SpecialFieldsSearch(object):
 # APIARY Section starts here
 # -------------------------------------------------------------------------------------------------------------
 
-def save_proponent_data(instance,request,viewset):
+def save_proponent_data(instance, request, viewset):
     if instance.application_type.name==ApplicationType.APIARY:
-        save_proponent_data_apiary(instance,request,viewset)
+        save_proponent_data_apiary(instance, request, viewset)
     else:
         save_proponent_data_disturbance(instance,request,viewset)
 
 
-def save_proponent_data_apiary(instance,request,viewset):
+def save_proponent_data_apiary(instance, request, viewset):
     with transaction.atomic():
         #import ipdb; ipdb.set_trace()
         try:
@@ -364,15 +364,32 @@ def save_proponent_data_apiary(instance,request,viewset):
             site_location_data =sc.get('apiary_site_location')
 
             if site_location_data:
-                site_location_data['title'] = request.data.get('site_location_title')
-                if request.data.get('site_location_latitude')  and request.data.get('site_location_longitude'):
-                    site_location = instance.apiary_site_location
-                    site_location.location = Point(float(request.data.get('site_location_latitude')), float(request.data.get('site_location_longitude')))
-                    site_location.save()
-
                 serializer = ProposalApiarySiteLocationSerializer(instance.apiary_site_location, data=site_location_data)
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
+
+                site_locations_received = json.loads(request.data.get('site_locations'))
+                site_locations_existing = site_location_data['apiary_sites']
+                site_ids_received = [item['id'] for item in site_locations_received]
+                site_ids_existing = [item['id'] for item in site_locations_existing]
+                site_ids_delete = [id for id in site_ids_existing if id not in site_ids_received]
+
+                for apiary_site in site_locations_received:
+                    apiary_site['proposal_apiary_site_location_id'] = instance.apiary_site_location.id
+                    try:
+                        # Update existing
+                        a_site = ApiarySite.objects.get(site_guid=apiary_site['site_guid'])
+                        serializer = ApiarySiteSerializer(a_site, data=apiary_site)
+                    except ApiarySite.DoesNotExist:
+                        # Create new
+                        serializer = ApiarySiteSerializer(data=apiary_site)
+
+                    serializer.is_valid(raise_exception=True)
+                    serializer.save()
+
+                # Delete existing
+                sites_delete = ApiarySite.objects.filter(id__in=site_ids_delete)
+                sites_delete.delete()
 
             #save Temporary Use data
             temporary_use_data = sc.get('apiary_temporary_use')
@@ -392,7 +409,7 @@ def save_proponent_data_apiary(instance,request,viewset):
             instance.title = instance.apiary_site_location.title
             instance.activity = instance.application_type.name
             instance.save()
-        except:
+        except Exception as e:
             raise
 
 def save_proponent_data_disturbance(instance,request,viewset):

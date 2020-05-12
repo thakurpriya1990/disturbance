@@ -1,5 +1,3 @@
-from django.conf import settings
-from ledger.accounts.models import EmailUser,Address
 from disturbance.components.proposals.models import (
                                     ProposalType,
                                     Proposal,
@@ -8,9 +6,7 @@ from disturbance.components.proposals.models import (
                                     Referral,
                                     ProposalRequirement,
                                     ProposalStandardRequirement,
-                                    ProposalDeclinedDetails,
                                     AmendmentRequest,
-                                    AmendmentReason,
                                     AmendmentRequestDocument,
                                 )
 from disturbance.components.organisations.models import (
@@ -18,6 +14,11 @@ from disturbance.components.organisations.models import (
                             )
 from disturbance.components.main.serializers import CommunicationLogEntrySerializer
 from rest_framework import serializers
+
+from disturbance.components.proposals.serializers_apiary import ProposalApiarySiteLocationSerializer
+from disturbance.components.proposals.serializers_base import BaseProposalSerializer, ProposalReferralSerializer, \
+    ProposalDeclinedDetailsSerializer, EmailUserSerializer
+
 
 class ProposalTypeSerializer(serializers.ModelSerializer):
     activities = serializers.SerializerMethodField()
@@ -32,91 +33,6 @@ class ProposalTypeSerializer(serializers.ModelSerializer):
 
     def get_activities(self,obj):
         return obj.activities.names()
-
-class EmailUserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = EmailUser
-        fields = ('id','email','first_name','last_name','title','organisation')
-
-class BaseProposalSerializer(serializers.ModelSerializer):
-    readonly = serializers.SerializerMethodField(read_only=True)
-    documents_url = serializers.SerializerMethodField()
-    proposal_type = serializers.SerializerMethodField()
-    allowed_assessors = EmailUserSerializer(many=True)
-
-    get_history = serializers.ReadOnlyField()
-
-#    def __init__(self, *args, **kwargs):
-#        import ipdb; ipdb.set_trace()
-#        user = kwargs['context']['request'].user
-#
-#        super(BaseProposalSerializer, self).__init__(*args, **kwargs)
-#        self.fields['parent'].queryset = self.get_request(user)
-
-    class Meta:
-        model = Proposal
-        fields = (
-                'id',
-                'application_type',
-                'activity',
-                'approval_level',
-                'title',
-                'region',
-                'district',
-                'tenure',
-                #'assessor_data',
-                'data',
-                'schema',
-                'customer_status',
-                'processing_status',
-                'review_status',
-                #'hard_copy',
-                'applicant',
-                'proxy_applicant',
-                'submitter',
-                'assigned_officer',
-                'previous_application',
-                'get_history',
-                'lodgement_date',
-                'modified_date',
-                'documents',
-                'requirements',
-                'readonly',
-                'can_user_edit',
-                'can_user_view',
-                'documents_url',
-                'reference',
-                'lodgement_number',
-                'lodgement_sequence',
-                'can_officer_process',
-                'allowed_assessors',
-                'proposal_type',
-                'sub_activity_level1',
-                'sub_activity_level2',
-                'management_area',
-                'fee_invoice_reference',
-                'fee_paid',
-                )
-        read_only_fields=('documents',)
-
-    def get_documents_url(self,obj):
-        return '/media/proposals/{}/documents/'.format(obj.id)
-
-    def get_readonly(self,obj):
-        return False
-
-    def get_processing_status(self,obj):
-        return obj.get_processing_status_display()
-
-    def get_review_status(self,obj):
-        return obj.get_review_status_display()
-
-    def get_customer_status(self,obj):
-        return obj.get_customer_status_display()
-
-    def get_proposal_type(self,obj):
-        return obj.get_proposal_type_display()
-
 
 
 class DTProposalSerializer(BaseProposalSerializer):
@@ -252,15 +168,28 @@ class ProposalSerializer(BaseProposalSerializer):
     #tenure = serializers.CharField(source='tenure.name', read_only=True)
     comment_data= serializers.SerializerMethodField(read_only=True)
 
+    apiary_site_location = serializers.SerializerMethodField()
+
     class Meta:
         model=Proposal
-        fields = BaseProposalSerializer.Meta.fields + ('comment_data',)
+        fields = BaseProposalSerializer.Meta.fields + (
+            'comment_data',
+            'apiary_site_location',
+        )
 
     def get_readonly(self,obj):
         return obj.can_user_view
 
     def get_comment_data(self,obj):
          return obj.comment_data
+
+    def get_apiary_site_location(self, obj):
+        if hasattr(obj, 'apiary_site_location'):
+            pasl = obj.apiary_site_location
+            return ProposalApiarySiteLocationSerializer(pasl).data
+        else:
+            return ''
+
 
 class SaveProposalSerializer(BaseProposalSerializer):
     assessor_data = serializers.JSONField(required=False)
@@ -335,18 +264,6 @@ class ApplicantSerializer(serializers.ModelSerializer):
                     'phone_number',
                 )
 
-
-class ProposalReferralSerializer(serializers.ModelSerializer):
-    referral = serializers.CharField(source='referral.get_full_name')
-    processing_status = serializers.CharField(source='get_processing_status_display')
-    class Meta:
-        model = Referral
-        fields = '__all__'
-
-class ProposalDeclinedDetailsSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ProposalDeclinedDetails
-        fields = '__all__'
 
 class InternalProposalSerializer(BaseProposalSerializer):
     applicant = ApplicantSerializer()

@@ -1,3 +1,4 @@
+import re
 import traceback
 import os
 import base64
@@ -27,7 +28,8 @@ from ledger.accounts.models import EmailUser, Address
 from ledger.address.models import Country
 from datetime import datetime, timedelta, date
 from disturbance.components.proposals.utils import save_proponent_data,save_assessor_data, proposal_submit
-from disturbance.components.proposals.models import searchKeyWords, search_reference, ProposalUserAction
+from disturbance.components.proposals.models import searchKeyWords, search_reference, ProposalUserAction, \
+    ProposalApiarySiteLocation, OnSiteInformation
 from disturbance.utils import missing_required_fields, search_tenure
 from disturbance.components.main.utils import check_db_connection
 
@@ -66,16 +68,16 @@ from disturbance.components.proposals.serializers import (
     SearchReferenceSerializer,
     SearchKeywordSerializer,
     ListProposalSerializer,
-    ProposalReferralSerializer,
     AmendmentRequestDisplaySerializer,
     SaveProposalRegionSerializer,
 )
+from disturbance.components.proposals.serializers_base import ProposalReferralSerializer
 from disturbance.components.proposals.serializers_apiary import (
     ProposalApiarySerializer,
     InternalProposalApiarySerializer,
     ProposalApiarySiteLocationSerializer,
     ProposalApiaryTemporaryUseSerializer,
-    ProposalApiarySiteTransferSerializer,
+    ProposalApiarySiteTransferSerializer, OnSiteInformationSerializer,
 )
 from disturbance.components.approvals.models import Approval
 from disturbance.components.approvals.serializers import ApprovalSerializer
@@ -310,6 +312,76 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         return self.paginator.get_paginated_response(serializer.data)
 
 
+class OnSiteInformationViewSet(viewsets.ModelViewSet):
+    queryset = OnSiteInformation.objects.all()
+    serializer_class = OnSiteInformationSerializer
+
+    @staticmethod
+    def _sanitize_date(data_dict, property_name):
+        if property_name not in data_dict or not data_dict[property_name] or 'invalid' in data_dict[property_name].lower():
+            # There isn't 'period_from' in the data received, or
+            # the value in it is False, or
+            # the value has a substring 'invalid' in it
+            # Add the property if needed and set the value to None
+            data_dict[property_name] = None
+        else:
+            # There is a 'period_from' in the data received
+            m = re.match('^(\d{2}).(\d{2}).(\d{4})$', data_dict[property_name])
+            if m:
+                year = m.group(3)
+                if int(m.group(2)) > 12:
+                    # Date format is 'MM/DD/YYYY' probably
+                    month = m.group(1)
+                    day = m.group(2)
+                else:
+                    # Date format is 'DD/MM/YYYY' probably
+                    month = m.group(2)
+                    day = m.group(1)
+
+                data_dict[property_name] = year + '-' + month + '-' + day
+            else:
+                # Probably all file
+                pass
+
+        return data_dict
+
+    def create(self, request, *args, **kwargs):
+        try:
+            with transaction.atomic():
+                request_data = request.data
+
+                self._sanitize_date(request_data, 'period_from')
+                self._sanitize_date(request_data, 'period_to')
+
+                serializer = OnSiteInformationSerializer(data=request_data)
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+                return Response(serializer.data)
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+class ProposalApiarySiteLocationViewSet(viewsets.ModelViewSet):
+    queryset = ProposalApiarySiteLocation.objects.none()
+    serializer_class = ProposalApiarySiteLocationSerializer
+
+    @detail_route(methods=['GET', ])
+    def on_site_information_list(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = ProposalApiarySiteLocationSerializer(instance)
+        return Response(serializer.data)
+
+    def get_queryset(self):
+        return ProposalApiarySiteLocation.objects.all()
+
+
 class ProposalViewSet(viewsets.ModelViewSet):
     #import ipdb; ipdb.set_trace()
     #queryset = Proposal.objects.all()
@@ -345,8 +417,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
     def get_serializer_class(self):
         try:
-            #import ipdb; ipdb.set_trace()
-            #application_type = Proposal.objects.get(id=self.kwargs.get('pk')).application_type.name
             application_type = self.get_object().application_type.name
             if application_type == ApplicationType.APIARY:
                 return ProposalApiarySerializer
@@ -968,7 +1038,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
     def draft(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
-            save_proponent_data(instance,request,self)
+            save_proponent_data(instance, request, self)
             return redirect(reverse('external'))
         except serializers.ValidationError:
             print(traceback.print_exc())
