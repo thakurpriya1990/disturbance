@@ -48,31 +48,60 @@ def delete_session_application_invoice(session):
         session.modified = True
 
 
+def create_fee_lines_apiary(proposal):
+    now = datetime.now().strftime('%Y-%m-%d %H:%M')
+    min_mumber_of_sites_to_apply = 5
+    line_items = []
+
+    # Calculate total number of sites applied per category
+    summary = {}
+    for apiary_site in proposal.apiary_site_location.apiary_sites.all():
+        if apiary_site.site_category.id in summary:
+            summary[apiary_site.site_category.id] += 1
+        else:
+            summary[apiary_site.site_category.id] = 1
+
+    # Calculate number of sites to calculate the fee
+    for site_category_id, number_of_sites_applied in summary.items():
+        site_category = SiteCategory.objects.get(id=site_category_id)
+        number_of_sites_calculate = ((
+                                             number_of_sites_applied // min_mumber_of_sites_to_apply) + 1) * min_mumber_of_sites_to_apply
+        number_of_sites_remain = number_of_sites_calculate - number_of_sites_applied
+        application_price = site_category.current_application_fee_per_site
+        line_item = {
+            'ledger_description': 'Application Fee - {} - {} - {}'.format(now, proposal.lodgement_number,
+                                                                          site_category.name),
+            'oracle_code': proposal.application_type.oracle_code_application,
+            'price_incl_tax': application_price,
+            'price_excl_tax': application_price if proposal.application_type.is_gst_exempt else calculate_excl_gst(
+                application_price),
+            'quantity': number_of_sites_calculate,
+        }
+        line_items.append(line_item)
+
+    return line_items
+
+
 def create_fee_lines(proposal, invoice_text=None, vouchers=[], internal=False):
     """ Create the ledger lines - line item for application fee sent to payment system """
 
-    now = datetime.now().strftime('%Y-%m-%d %H:%M')
-
     if proposal.application_type.name == ApplicationType.APIARY:
-        # Calculate total number of sites applied per category
-        for a_category in SiteCategory.objects.all():
-            for apiary_site in proposal.apiary_site_location.apiary_sites.all():
-                pass
-
-        for apiary_site in proposal.apiary_site_location.apiary_sites.all():
-            fee_per_site = apiary_site.get_current_application_fee_per_site()
+        line_items = create_fee_lines_apiary(proposal)
     else:
-        application_price = proposal.application_type.application_fee
+        now = datetime.now().strftime('%Y-%m-%d %H:%M')
 
-    line_items = [
-        {
-            'ledger_description': 'Application Fee - {} - {}'.format(now, proposal.lodgement_number),
-            'oracle_code': proposal.application_type.oracle_code_application,
-            'price_incl_tax':  application_price,
-            'price_excl_tax':  application_price if proposal.application_type.is_gst_exempt else calculate_excl_gst(application_price),
-            'quantity': 1,
-        },
-    ]
+        # Non 'Apiary' proposal
+        application_price = proposal.application_type.application_fee
+        line_items = [
+            {
+                'ledger_description': 'Application Fee - {} - {}'.format(now, proposal.lodgement_number),
+                'oracle_code': proposal.application_type.oracle_code_application,
+                'price_incl_tax':  application_price,
+                'price_excl_tax':  application_price if proposal.application_type.is_gst_exempt else calculate_excl_gst(application_price),
+                'quantity': 1,
+            },
+        ]
+
     logger.info('{}'.format(line_items))
     return line_items
 

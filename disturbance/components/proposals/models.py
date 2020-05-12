@@ -1941,7 +1941,7 @@ class SiteCategory(models.Model):
     def retrieve_application_fee_by_date(self, target_date):
         return SiteApplicationFee.objects.filter(
             Q(site_category=self) &
-            Q(date_of_enforcement__lte=target_date)).order_by('date_of_enforcement', ).last()
+            Q(date_of_enforcement__lte=target_date)).order_by('date_of_enforcement', ).last().amount
 
     def __str__(self):
         return '{}'.format(self.name)
@@ -1973,10 +1973,7 @@ class ApiarySite(models.Model):
         return '{} - {}'.format(self.site_guid, self.proposal_apiary_site_location.proposal.title)
 
     def get_current_application_fee_per_site(self):
-        self.category_name = 'Forrest'  # TODO: retrieve from the GIS server
-                                        # TODO: It might be better to be category/category_name as a field of this model
-        site_category = SiteCategory.objects.get(name=self.category_name)
-        current_fee = site_category.current_application_fee_per_site
+        current_fee = self.site_category.current_application_fee_per_site
         return current_fee
 
     class Meta:
