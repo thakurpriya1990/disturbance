@@ -8,7 +8,8 @@
                         <label class="col-sm-3">Period From</label>
                         <div class="col-sm-4">
                             <div class="input-group date" ref="periodFromDatePicker">
-                                <input type="text" class="form-control" placeholder="DD/MM/YYYY" v-model="on_site_information.period_from" />
+                                <!-- input type="text" class="form-control" placeholder="DD/MM/YYYY" v-model="on_site_information.period_from" / -->
+                                <input type="text" class="form-control" placeholder="DD/MM/YYYY" />
                                 <span class="input-group-addon">
                                     <span class="glyphicon glyphicon-calendar"></span>
                                 </span>
@@ -20,7 +21,8 @@
                         <label class="col-sm-3">Period To</label>
                         <div class="col-sm-4">
                             <div class="input-group date" ref="periodToDatePicker">
-                                <input type="text" class="form-control" placeholder="DD/MM/YYYY" v-model="on_site_information.period_to" />
+                                <!-- input type="text" class="form-control" placeholder="DD/MM/YYYY" v-model="on_site_information.period_to" / -->
+                                <input type="text" class="form-control" placeholder="DD/MM/YYYY" />
                                 <span class="input-group-addon">
                                     <span class="glyphicon glyphicon-calendar"></span>
                                 </span>
@@ -123,7 +125,11 @@ export default {
             let vm = this;
             let el_fr = $(vm.$refs.periodFromDatePicker);
             let el_to = $(vm.$refs.periodToDatePicker);
-            let options = { format: "DD/MM/YYYY", showClear: true };
+            let options = { 
+                format: "DD/MM/YYYY", 
+                showClear: true ,
+                useCurrent: false,
+            };
 
             el_fr.datetimepicker(options);
             el_to.datetimepicker(options);
@@ -131,31 +137,60 @@ export default {
             el_fr.on("dp.change", function(e) {
                 console.log('from changed');
                 console.log(e);
-                let selected_date = e.date.format('DD/MM/YYYY')  // e.date is moment object
 
-                if (el_fr.data("DateTimePicker").date()) {
+                let selected_date = null;
+                if (e.date){
+                    // Date selected
+                    selected_date = e.date.format('DD/MM/YYYY')  // e.date is moment object
                     vm.on_site_information.period_from = selected_date;
                     el_to.data('DateTimePicker').minDate(selected_date);  
-                } else if (el_fr.data("date") === "") {
-                    // Date has been cleared
-                    vm.on_site_information.period_from = null;
-                    el_to.data('DateTimePicker').minDate(false);
+                } else {
+                    // Date not selected
+                    vm.on_site_information.period_from = selected_date;
+                    el_to.data('DateTimePicker').minDate(false);  
                 }
+                console.log('selected_date');
+                console.log(selected_date);
+
+
+               // if (el_fr.data("DateTimePicker").date()) {
+               //     console.log('fr-if')
+               //     vm.on_site_information.period_from = selected_date;
+               //     el_to.data('DateTimePicker').minDate(selected_date);  
+               // } else if (el_fr.data("date") === "") {
+               //     console.log('fr-else')
+               //     // Date has been cleared
+               //     vm.on_site_information.period_from = '';
+               //     el_to.data('DateTimePicker').minDate(false);
+               // }
             });
 
             el_to.on("dp.change", function(e) {
                 console.log('to changed');
                 console.log(e);
-                let selected_date = e.date.format('DD/MM/YYYY')
 
-                if (el_to.data("DateTimePicker").date()) {
+                let selected_date = null;
+                if (e.date){
+                    selected_date = e.date.format('DD/MM/YYYY');
                     vm.on_site_information.period_to = selected_date;
                     el_fr.data('DateTimePicker').maxDate(selected_date);
-                } else if (el_to.data("date") === "") {
-                    // Date has been cleared
-                    vm.on_site_information.period_to = null;
+                } else {
+                    vm.on_site_information.period_to = '';
                     el_fr.data('DateTimePicker').maxDate(false);
                 }
+                console.log('selected_date');
+                console.log(selected_date);
+
+               // if (el_to.data("DateTimePicker").date()) {
+               //     console.log('to-if')
+               //     vm.on_site_information.period_to = selected_date;
+               //     el_fr.data('DateTimePicker').maxDate(selected_date);
+               // } else if (el_to.data("date") === "") {
+               //     console.log('to-else')
+               //     // Date has been cleared
+               //     vm.on_site_information.period_to = '';
+               //     el_fr.data('DateTimePicker').maxDate(false);
+               // }
             });
         },
         ok: async function () {
@@ -173,6 +208,8 @@ export default {
             }
         },
         processError: async function(err) {
+            console.log('in processError');
+            console.log(err);
             let errorText = '';
             if (err.body.non_field_errors) {
                 // When non field errors raised
@@ -209,29 +246,6 @@ export default {
             let post_url = '/api/on_site_information/'
             let payload = {}
             Object.assign(payload, this.on_site_information);
-            let regex = new RegExp(/^\d{4}-\d{2}-\d{2}$/);
-
-            // Sanitize period_from
-            // Django requires 'YYYY-MM-DD' format
-            try {
-                payload.period_from = moment(payload.period_from).format('YYYY-MM-DD');
-                if (!regex.test(payload.period_from)) {
-                    throw "Invalid"
-                }
-            } catch (err){
-                payload.period_from = '';
-            }
-
-            // Sanitize period_to
-            // Django requires 'YYYY-MM-DD' format
-            try {
-                payload.period_to = moment(payload.period_to).format('YYYY-MM-DD');
-                if (!regex.test(payload.period_to)) {
-                    throw "Invalid"
-                }
-            } catch(err) {
-                payload.period_to = '';
-            }
 
             // Django only needs apiary_site.id
             try {
