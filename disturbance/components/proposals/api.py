@@ -1,3 +1,4 @@
+import re
 import traceback
 import os
 import base64
@@ -315,14 +316,42 @@ class OnSiteInformationViewSet(viewsets.ModelViewSet):
     queryset = OnSiteInformation.objects.all()
     serializer_class = OnSiteInformationSerializer
 
+    @staticmethod
+    def _sanitize_date(data_dict, property_name):
+        if property_name not in data_dict or not data_dict[property_name] or 'invalid' in data_dict[property_name].lower():
+            # There isn't 'period_from' in the data received, or
+            # the value in it is False, or
+            # the value has a substring 'invalid' in it
+            # Add the property if needed and set the value to None
+            data_dict[property_name] = None
+        else:
+            # There is a 'period_from' in the data received
+            m = re.match('^(\d{2}).(\d{2}).(\d{4})$', data_dict[property_name])
+            if m:
+                year = m.group(3)
+                if int(m.group(2)) > 12:
+                    # Date format is 'MM/DD/YYYY' probably
+                    month = m.group(1)
+                    day = m.group(2)
+                else:
+                    # Date format is 'DD/MM/YYYY' probably
+                    month = m.group(2)
+                    day = m.group(1)
+
+                data_dict[property_name] = year + '-' + month + '-' + day
+            else:
+                # Probably all file
+                pass
+
+        return data_dict
+
     def create(self, request, *args, **kwargs):
         try:
             with transaction.atomic():
                 request_data = request.data
 
-                # Convert any false value to None.  If you pass '' as empty value to date field, it fails.
-                request_data['period_from'] = None if not request_data['period_from'] else request_data['period_from']
-                request_data['period_to'] = None if not request_data['period_to'] else request_data['period_to']
+                self._sanitize_date(request_data, 'period_from')
+                self._sanitize_date(request_data, 'period_to')
 
                 serializer = OnSiteInformationSerializer(data=request_data)
                 serializer.is_valid(raise_exception=True)
