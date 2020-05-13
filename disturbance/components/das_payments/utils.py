@@ -9,7 +9,7 @@ from django.utils import timezone
 from dateutil.relativedelta import relativedelta
 
 from disturbance.components.main.models import ApplicationType
-from disturbance.components.proposals.models import Proposal, ProposalUserAction, SiteCategory
+from disturbance.components.proposals.models import Proposal, ProposalUserAction, SiteCategory, ApiarySiteFeeType
 from disturbance.components.organisations.models import Organisation
 from disturbance.components.das_payments.models import ApplicationFee
 from ledger.checkout.utils import create_basket_session, create_checkout_session, calculate_excl_gst
@@ -69,7 +69,7 @@ def create_fee_lines_apiary(proposal):
         number_of_sites_calculate = ((
                                              number_of_sites_applied // min_mumber_of_sites_to_apply) + 1) * min_mumber_of_sites_to_apply
         number_of_sites_remain = number_of_sites_calculate - number_of_sites_applied
-        application_price = site_category.current_application_fee_per_site
+        application_price = site_category.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_APPLICATION)
         line_item = {
             'ledger_description': 'Application Fee - {} - {} - {}'.format(now, proposal.lodgement_number,
                                                                           site_category.name),
