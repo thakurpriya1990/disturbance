@@ -1,3 +1,5 @@
+import pytz
+from django.db.models import Q
 from django.http import HttpResponseRedirect
 from django.core.urlresolvers import reverse
 from django.conf import settings
@@ -7,7 +9,12 @@ from django.db import transaction
 from datetime import datetime, timedelta, date
 from django.utils import timezone
 from dateutil.relativedelta import relativedelta
-from disturbance.components.proposals.models import Proposal, ProposalUserAction
+from ledger.accounts.models import EmailUser
+from ledger.settings_base import TIME_ZONE
+
+from disturbance.components.main.models import ApplicationType
+from disturbance.components.proposals.models import Proposal, ProposalUserAction, SiteCategory, ApiarySiteFeeType, \
+    ApiarySiteFeeRemainder
 from disturbance.components.organisations.models import Organisation
 from disturbance.components.das_payments.models import ApplicationFee
 from ledger.checkout.utils import create_basket_session, create_checkout_session, calculate_excl_gst
@@ -34,10 +41,12 @@ def get_session_application_invoice(session):
     except Invoice.DoesNotExist:
         raise Exception('Application not found for application {}'.format(application_fee_id))
 
+
 def set_session_application_invoice(session, application_fee):
     """ Application Fee session ID """
     session['das_app_invoice'] = application_fee.id
     session.modified = True
+
 
 def delete_session_application_invoice(session):
     """ Application Fee session ID """
@@ -46,28 +55,98 @@ def delete_session_application_invoice(session):
         session.modified = True
 
 
+def create_fee_lines_apiary(proposal):
+    now = datetime.now().strftime('%Y-%m-%d %H:%M')
+    today_local = datetime.now(pytz.timezone(TIME_ZONE)).date()
+    MIN_NUMBER_OF_SITES_TO_APPLY = 5
+    line_items = []
+
+    applicant = EmailUser.objects.get(email='katsufumi.shibata@dbca.wa.gov.au')  # Get proper applicant
+
+    # Calculate total number of sites applied per category
+    summary = {}
+    for apiary_site in proposal.apiary_site_location.apiary_sites.all():
+        if apiary_site.site_category.id in summary:
+            summary[apiary_site.site_category.id] += 1
+        else:
+            summary[apiary_site.site_category.id] = 1
+
+    # Calculate number of sites to calculate the fee
+    for site_category_id, number_of_sites_applied in summary.items():
+
+        site_category = SiteCategory.objects.get(id=site_category_id)
+
+        # Retrieve sites left
+        filter_site_category = Q(site_category=site_category)
+        filter_site_fee_type = Q(apiary_site_fee_type=ApiarySiteFeeType.objects.get(name=ApiarySiteFeeType.FEE_TYPE_APPLICATION))
+        filter_applicant = Q(applicant=applicant)
+        filter_expiry = Q(date_expiry__gte=today_local)
+        filter_used = Q(date_used__isnull=True)
+        site_fee_remainders = ApiarySiteFeeRemainder.objects.filter(
+            filter_site_category &
+            filter_site_fee_type &
+            filter_applicant &
+            filter_expiry &
+            filter_used
+        ).order_by('date_expiry')  # Older comes earlier
+
+        # Calculate deduction and set date_used field
+        number_of_sites_after_deduction = number_of_sites_applied
+        for site_left in site_fee_remainders:
+            if number_of_sites_after_deduction == 0:
+                break
+            number_of_sites_after_deduction -= 1
+            site_left.date_used = today_local
+            site_left.save()
+
+        quotient, remainder = divmod(number_of_sites_after_deduction, MIN_NUMBER_OF_SITES_TO_APPLY)
+        number_of_sites_calculate = quotient * MIN_NUMBER_OF_SITES_TO_APPLY + MIN_NUMBER_OF_SITES_TO_APPLY if remainder else quotient * MIN_NUMBER_OF_SITES_TO_APPLY
+        number_of_sites_to_add_as_remainder = number_of_sites_calculate - number_of_sites_after_deduction
+        application_price = site_category.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_APPLICATION)
+        line_item = {
+            'ledger_description': 'Application Fee - {} - {} - {}'.format(now, proposal.lodgement_number, site_category.name),
+            'oracle_code': proposal.application_type.oracle_code_application,
+            'price_incl_tax': application_price,
+            'price_excl_tax': application_price if proposal.application_type.is_gst_exempt else calculate_excl_gst(application_price),
+            'quantity': number_of_sites_calculate,
+        }
+        line_items.append(line_item)
+
+        # Add remainders
+        for i in range(number_of_sites_to_add_as_remainder):
+            ApiarySiteFeeRemainder.objects.create(
+                site_category=site_category,
+                apiary_site_fee_type=ApiarySiteFeeType.objects.get(name=ApiarySiteFeeType.FEE_TYPE_APPLICATION),
+                applicant=applicant,
+                date_expiry= today_local + timedelta(days=7)
+            )
+
+    return line_items
+
+
 def create_fee_lines(proposal, invoice_text=None, vouchers=[], internal=False):
     """ Create the ledger lines - line item for application fee sent to payment system """
 
-    now = datetime.now().strftime('%Y-%m-%d %H:%M')
-    application_price = proposal.application_type.application_fee
-    #licence_price = proposal.licence_fee_amount
-    line_items = [
-        {   'ledger_description': 'Application Fee - {} - {}'.format(now, proposal.lodgement_number),
-            'oracle_code': proposal.application_type.oracle_code_application,
-            'price_incl_tax':  application_price,
-            'price_excl_tax':  application_price if proposal.application_type.is_gst_exempt else calculate_excl_gst(application_price),
-            'quantity': 1,
-        },
-#        {   'ledger_description': 'Licence Charge {} - {} - {}'.format(proposal.other_details.get_preferred_licence_period_display(), now, proposal.lodgement_number),
-#            'oracle_code': proposal.application_type.oracle_code_licence,
-#            'price_incl_tax':  licence_price,
-#            'price_excl_tax':  licence_price if proposal.application_type.is_gst_exempt else calculate_excl_gst(licence_price),
-#            'quantity': 1,
-#        }
-    ]
+    if proposal.application_type.name == ApplicationType.APIARY:
+        line_items = create_fee_lines_apiary(proposal)
+    else:
+        now = datetime.now().strftime('%Y-%m-%d %H:%M')
+
+        # Non 'Apiary' proposal
+        application_price = proposal.application_type.application_fee
+        line_items = [
+            {
+                'ledger_description': 'Application Fee - {} - {}'.format(now, proposal.lodgement_number),
+                'oracle_code': proposal.application_type.oracle_code_application,
+                'price_incl_tax':  application_price,
+                'price_excl_tax':  application_price if proposal.application_type.is_gst_exempt else calculate_excl_gst(application_price),
+                'quantity': 1,
+            },
+        ]
+
     logger.info('{}'.format(line_items))
     return line_items
+
 
 def checkout(request, proposal, lines, return_url_ns='public_payment_success', return_preload_url_ns='public_payment_success', invoice_text=None, vouchers=[], proxy=False):
     basket_params = {
