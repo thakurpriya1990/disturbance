@@ -246,6 +246,10 @@ class Proposal(RevisionedMixin):
                                 'amendment_required',
                             ]
 
+    APPLICANT_TYPE_ORGANISATION = 'organisation'
+    APPLICANT_TYPE_PROXY = 'proxy' # proxy also represents an individual making an Apiary application
+    APPLICANT_TYPE_SUBMITTER = 'submitter'
+
     # List of statuses from above that allow a customer to view an application (read-only)
     CUSTOMER_VIEWABLE_STATE = ['with_assessor', 'under_review', 'id_required', 'returns_required', 'approved', 'declined']
 
@@ -331,7 +335,7 @@ class Proposal(RevisionedMixin):
     lodgement_sequence = models.IntegerField(blank=True, default=0)
     #lodgement_date = models.DateField(blank=True, null=True)
     lodgement_date = models.DateTimeField(blank=True, null=True)
-
+    # 20200512 - proxy_applicant also represents an individual making an Apiary application
     proxy_applicant = models.ForeignKey(EmailUser, blank=True, null=True, related_name='disturbance_proxy')
     submitter = models.ForeignKey(EmailUser, blank=True, null=True, related_name='disturbance_proposals')
 
@@ -395,6 +399,88 @@ class Proposal(RevisionedMixin):
     @property
     def fee_amount(self):
         return Invoice.objects.get(reference=self.fee_invoice_reference).amount if self.fee_paid else None
+
+    @property
+    def relevant_applicant(self):
+        if self.applicant:
+            return self.applicant
+        elif self.proxy_applicant:
+            return self.proxy_applicant
+        else:
+            return self.submitter
+
+    @property
+    def relevant_applicant_description(self):
+        if self.applicant:
+            return self.applicant.organisation.name
+        elif self.proxy_applicant:
+            return "{} {}".format(
+                self.proxy_applicant.first_name,
+                self.proxy_applicant.last_name)
+        else:
+            return "{} {}".format(
+                self.submitter.first_name,
+                self.submitter.last_name)
+
+    @property
+    def relevant_applicant_email(self):
+        if self.applicant and hasattr(self.applicant.organisation, 'email') and self.applicant.organisation.email:
+            return self.applicant.organisation.email
+        elif self.proxy_applicant:
+            return self.proxy_applicant.email
+        else:
+            return self.submitter.email
+
+    @property
+    def relevant_applicant_details(self):
+        if self.applicant:
+            return '{} \n{}'.format(
+                self.applicant.organisation.name,
+                self.applicant.address)
+        elif self.proxy_applicant:
+            return "{} {}\n{}".format(
+                self.proxy_applicant.first_name,
+                self.proxy_applicant.last_name,
+                self.proxy_applicant.addresses.all().first())
+        else:
+            return "{} {}\n{}".format(
+                self.submitter.first_name,
+                self.submitter.last_name,
+                self.submitter.addresses.all().first())
+
+    @property
+    def relevant_applicant_address(self):
+        if self.applicant:
+            return self.applicant.address
+        elif self.proxy_applicant:
+            #return self.proxy_applicant.addresses.all().first()
+            return self.proxy_applicant.residential_address
+        else:
+            #return self.submitter.addresses.all().first()
+            return self.submitter.residential_address
+
+    @property
+    def relevant_applicant_id(self):
+        return_value = None
+        if self.applicant:
+            print("APPLICANT")
+            return_value = self.applicant.id
+        elif self.proxy_applicant:
+            print("PROXY_APPLICANT")
+            return_value = self.proxy_applicant.id
+        else:
+            #return_value = self.submitter.id
+            pass
+        return return_value
+
+    @property
+    def relevant_applicant_type(self):
+        if self.applicant:
+            return self.APPLICANT_TYPE_ORGANISATION
+        elif self.proxy_applicant:
+            return self.APPLICANT_TYPE_PROXY
+        else:
+            return self.APPLICANT_TYPE_SUBMITTER
 
     @property
     def applicant_field(self):
@@ -2104,6 +2190,52 @@ class ProposalApiaryDocument(DefaultDocument):
     def delete(self):
         if self.can_delete:
             return super(ProposalApiaryDocument, self).delete()
+
+class ApiaryReferralGroup(models.Model):
+    name = models.CharField(max_length=255)
+    #members = models.ManyToManyField(EmailUser,blank=True)
+    #regions = TaggableManager(verbose_name="Regions",help_text="A comma-separated list of regions.",through=TaggedProposalAssessorGroupRegions,related_name = "+",blank=True)
+    #activities = TaggableManager(verbose_name="Activities",help_text="A comma-separated list of activities.",through=TaggedProposalAssessorGroupActivities,related_name = "+",blank=True)
+    members = models.ManyToManyField(EmailUser)
+    region = models.ForeignKey(Region, null=True, blank=True)
+    default = models.BooleanField(default=False)
+
+    class Meta:
+        app_label = 'disturbance'
+
+    def __str__(self):
+        return self.name
+
+    def clean(self):
+        try:
+            default = ApiaryReferralGroup.objects.get(default=True)
+        except ApiaryReferralGroup.DoesNotExist:
+            default = None
+
+        if self.pk:
+            if not self.default and not self.region:
+                raise ValidationError('Only default can have no region set for apiary referral group. Please specifiy region')
+#            elif default and not self.default:
+#                raise ValidationError('There can only be one default proposal assessor group')
+        else:
+            if default and self.default:
+                raise ValidationError('There can only be one default apiary referral group')
+
+    #def member_is_assigned(self,member):
+     #   for p in self.current_proposals:
+      #      if p.assigned_officer == member:
+       #         return True
+        #return False
+
+    @property
+    def current_proposals(self):
+        #assessable_states = ['with_assessor','with_referral','with_assessor_requirements']
+        assessable_states = ['with_referral']
+        return Proposal.objects.filter(processing_status__in=assessable_states)
+
+    @property
+    def members_email(self):
+        return [i.email for i in self.members.all()]
 
 #class ApiaryTemporaryUseDocument(DefaultDocument):
 #    temporary_use = models.ForeignKey('ProposalApiaryTemporaryUse', related_name='apiary_temporary_use_documents')

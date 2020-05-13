@@ -4,6 +4,7 @@ import OrgAccessTable from '../organisations/dashboard.vue'
 import OrgAccess from '../organisations/access.vue'
 import Organisation from '../organisations/manage.vue'
 import Proposal from '../proposals/proposal.vue'
+import ProposalApiary from '../proposals/proposal_apiary.vue'
 import Referral from '../referrals/referral.vue'
 import ApprovalDash from '../approvals/dashboard.vue'
 import ComplianceDash from '../compliances/dashboard.vue'
@@ -103,6 +104,11 @@ export default
                             path: 'referral/:referral_id',
                             component: Referral,
                             name:"internal-referral"
+                        },
+                        {
+                            path: 'apiary',
+                            component: ProposalApiary,
+                            name:"internal-proposal-apiary"
                         },
                     ]
                 },
