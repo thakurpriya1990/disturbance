@@ -170,7 +170,9 @@ def send_submit_email_notification(request, proposal):
     msg = email.send(proposal.assessor_recipients, context=context)
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     _log_proposal_email(msg, proposal, sender=sender)
-    _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
+    # Don't log organisation if application submitted on behalf of an individual
+    if proposal.applicant:
+        _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
     return msg
 
 def send_external_submit_email_notification(request, proposal):
@@ -188,7 +190,7 @@ def send_external_submit_email_notification(request, proposal):
     }
 
     all_ccs = []
-    if proposal.applicant.email:
+    if proposal.applicant and proposal.applicant.email:
         cc_list = proposal.applicant.email
         if cc_list:
             all_ccs = [cc_list]
@@ -196,7 +198,9 @@ def send_external_submit_email_notification(request, proposal):
     msg = email.send(proposal.submitter.email, cc= all_ccs, context=context)
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     _log_proposal_email(msg, proposal, sender=sender)
-    _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
+    # Don't log organisation if application submitted on behalf of an individual
+    if proposal.applicant:
+        _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
     return msg
 
 #send email when Proposal is 'proposed to decline' by assessor.
