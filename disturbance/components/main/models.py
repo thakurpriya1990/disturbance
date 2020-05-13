@@ -39,9 +39,19 @@ class District(models.Model):
 
 @python_2_unicode_compatible
 class ApplicationType(models.Model):
+
+    DISTURBANCE = 'Disturbance'
+    POWERLINE_MAINTENANCE = 'Powerline Maintenance'
+    APIARY = 'Apiary'
+
     name = models.CharField(max_length=64, unique=True)
     order = models.PositiveSmallIntegerField(default=0)
     visible = models.BooleanField(default=True)
+
+    application_fee = models.DecimalField(max_digits=6, decimal_places=2)
+    oracle_code_application = models.CharField(max_length=50)
+    is_gst_exempt = models.BooleanField(default=True)
+
 
     class Meta:
         ordering = ['order', 'name']
@@ -131,7 +141,7 @@ class Document(models.Model):
                             verbose_name='name', help_text='')
     description = models.TextField(blank=True,
                                    verbose_name='description', help_text='')
-    uploaded_date = models.DateTimeField(auto_now_add=True) 
+    uploaded_date = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         app_label = 'disturbance'
@@ -174,7 +184,7 @@ class SystemMaintenance(models.Model):
 class GlobalSettings(models.Model):
     keys = (
         ('assessment_reminder_days', 'Assessment reminder days'),
-        
+
     )
     key = models.CharField(max_length=255, choices=keys, blank=False, null=False, unique=True)
     value = models.CharField(max_length=255)

@@ -1,12 +1,27 @@
 import re
+from django.utils import timezone
 from django.db import transaction
+from django.contrib.gis.geos import Point
 from preserialize.serialize import serialize
 from ledger.accounts.models import EmailUser, Document
-from disturbance.components.proposals.models import ProposalDocument, ProposalUserAction
+from disturbance.components.proposals.models import ProposalDocument, ProposalUserAction, ApiarySite
 from disturbance.components.proposals.serializers import SaveProposalSerializer
+
+from disturbance.components.main.models import ApplicationType
+from disturbance.components.proposals.models import (
+    ProposalApiarySiteLocation,
+    #ProposalApiaryTemporaryUse,
+    #ProposalApiarySiteTransfer,
+)
+from disturbance.components.proposals.serializers_apiary import (
+    ProposalApiarySiteLocationSerializer,
+    ProposalApiaryTemporaryUseSerializer,
+    ProposalApiarySiteTransferSerializer, ApiarySiteSerializer,
+)
+from disturbance.components.proposals.email import send_submit_email_notification, send_external_submit_email_notification
+
 import traceback
 import os
-
 import json
 
 import logging
@@ -319,7 +334,85 @@ class SpecialFieldsSearch(object):
         return item_data
 
 
-def save_proponent_data(instance,request,viewset):
+# -------------------------------------------------------------------------------------------------------------
+# APIARY Section starts here
+# -------------------------------------------------------------------------------------------------------------
+
+def save_proponent_data(instance, request, viewset):
+    if instance.application_type.name==ApplicationType.APIARY:
+        save_proponent_data_apiary(instance, request, viewset)
+    else:
+        save_proponent_data_disturbance(instance,request,viewset)
+
+
+def save_proponent_data_apiary(instance, request, viewset):
+    with transaction.atomic():
+        #import ipdb; ipdb.set_trace()
+        try:
+            data = {
+            }
+
+            try:
+                schema = request.data.get('schema')
+            except:
+                schema = request.POST.get('schema')
+
+            sc = json.loads(schema)
+
+            #save Site Locations data
+            #import ipdb; ipdb.set_trace()
+            site_location_data =sc.get('apiary_site_location')
+
+            if site_location_data:
+                serializer = ProposalApiarySiteLocationSerializer(instance.apiary_site_location, data=site_location_data)
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+
+                site_locations_received = json.loads(request.data.get('site_locations'))
+                site_locations_existing = site_location_data['apiary_sites']
+                site_ids_received = [item['id'] for item in site_locations_received]
+                site_ids_existing = [item['id'] for item in site_locations_existing]
+                site_ids_delete = [id for id in site_ids_existing if id not in site_ids_received]
+
+                for apiary_site in site_locations_received:
+                    apiary_site['proposal_apiary_site_location_id'] = instance.apiary_site_location.id
+                    try:
+                        # Update existing
+                        a_site = ApiarySite.objects.get(site_guid=apiary_site['site_guid'])
+                        serializer = ApiarySiteSerializer(a_site, data=apiary_site)
+                    except ApiarySite.DoesNotExist:
+                        # Create new
+                        serializer = ApiarySiteSerializer(data=apiary_site)
+
+                    serializer.is_valid(raise_exception=True)
+                    serializer.save()
+
+                # Delete existing
+                sites_delete = ApiarySite.objects.filter(id__in=site_ids_delete)
+                sites_delete.delete()
+
+            #save Temporary Use data
+            temporary_use_data = sc.get('apiary_temporary_use')
+            if temporary_use_data:
+                serializer = ProposalApiaryTemporaryUseSerializer(instance.apiary_temporary_use, data=temporary_use_data)
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+
+            #save Site Transfer data
+            site_transfer_data = sc.get('apiary_site_transfer')
+            if site_transfer_data:
+                serializer = ProposalApiarySiteTransferSerializer(instance.apiary_site_transfer, data=site_transfer_data)
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+
+            # save/update any additonal special propoerties here
+            instance.title = instance.apiary_site_location.title
+            instance.activity = instance.application_type.name
+            instance.save()
+        except Exception as e:
+            raise
+
+def save_proponent_data_disturbance(instance,request,viewset):
     with transaction.atomic():
         try:
             lookable_fields = ['isTitleColumnForDashboard','isActivityColumnForDashboard','isRegionColumnForDashboard']
@@ -384,9 +477,9 @@ def save_proponent_data(instance,request,viewset):
 #            for f in request.FILES:
 #                #import ipdb; ipdb; ipdb.set_trace()
 #                try:
-#					document = instance.documents.get(input_name=f, name=request.FILES[f].name)
+#                   document = instance.documents.get(input_name=f, name=request.FILES[f].name)
 #                except ProposalDocument.DoesNotExist:
-#					document = instance.documents.get_or_create(input_name=f, name=request.FILES[f].name)[0]
+#                   document = instance.documents.get_or_create(input_name=f, name=request.FILES[f].name)[0]
 #                document._file = request.FILES[f]
 #                document.save()
 
@@ -427,6 +520,58 @@ def save_assessor_data(instance,request,viewset):
             instance.log_user_action(ProposalUserAction.ACTION_SAVE_APPLICATION.format(instance.id),request)
         except:
             raise
+
+def proposal_submit(proposal,request):
+    with transaction.atomic():
+        if proposal.can_user_edit:
+            proposal.submitter = request.user
+            #proposal.lodgement_date = datetime.datetime.strptime(timezone.now().strftime('%Y-%m-%d'),'%Y-%m-%d').date()
+            proposal.lodgement_date = timezone.now()
+            proposal.training_completed = True
+            if (proposal.amendment_requests):
+                qs = proposal.amendment_requests.filter(status = "requested")
+                if (qs):
+                    for q in qs:
+                        q.status = 'amended'
+                        q.save()
+
+            # Create a log entry for the proposal
+            proposal.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(proposal.id),request)
+            # Create a log entry for the organisation
+            #proposal.applicant.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(proposal.id),request)
+            applicant_field=getattr(proposal, proposal.applicant_field)
+            applicant_field.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(proposal.id),request)
+
+            ret1 = send_submit_email_notification(request, proposal)
+            ret2 = send_external_submit_email_notification(request, proposal)
+
+            #proposal.save_form_tabs(request)
+            if ret1 and ret2:
+                proposal.processing_status = 'with_assessor'
+                proposal.customer_status = 'with_assessor'
+                proposal.documents.all().update(can_delete=False)
+                #proposal.required_documents.all().update(can_delete=False)
+                proposal.save()
+            else:
+                raise ValidationError('An error occurred while submitting proposal (Submit email notifications failed)')
+            #Create assessor checklist with the current assessor_list type questions
+            #Assessment instance already exits then skip.
+#            try:
+#                assessor_assessment=ProposalAssessment.objects.get(proposal=proposal,referral_group=None, referral_assessment=False)
+#            except ProposalAssessment.DoesNotExist:
+#                assessor_assessment=ProposalAssessment.objects.create(proposal=proposal,referral_group=None, referral_assessment=False)
+#                checklist=ChecklistQuestion.objects.filter(list_type='assessor_list', obsolete=False)
+#                for chk in checklist:
+#                    try:
+#                        chk_instance=ProposalAssessmentAnswer.objects.get(question=chk, assessment=assessor_assessment)
+#                    except ProposalAssessmentAnswer.DoesNotExist:
+#                        chk_instance=ProposalAssessmentAnswer.objects.create(question=chk, assessment=assessor_assessment)
+#
+            return proposal
+
+        else:
+            raise ValidationError('You can\'t edit this proposal at this moment')
+
 
 def clone_proposal_with_status_reset(proposal):
     with transaction.atomic():

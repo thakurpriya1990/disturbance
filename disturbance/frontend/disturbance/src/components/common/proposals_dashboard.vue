@@ -3,7 +3,7 @@
         <div class="col-sm-12">
             <div class="panel panel-default">
                 <div class="panel-heading">
-                    <h3 class="panel-title">Proposals <small v-if="is_external">View existing proposals and lodge new ones</small>
+                    <h3 class="panel-title">Proposals/Applications <small v-if="is_external">View existing proposals and lodge new ones</small>
                         <a :href="'#'+pBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="pBody">
                             <span class="glyphicon glyphicon-chevron-up pull-right "></span>
                         </a>
@@ -38,7 +38,7 @@
                             </div>
                         </div>
                         <div v-if="is_external" class="col-md-3">
-                            <router-link  style="margin-top:25px;" class="btn btn-primary pull-right" :to="{ name: 'apply_proposal' }">New Proposal</router-link>
+                            <router-link  style="margin-top:25px;" class="btn btn-primary pull-right" :to="{ name: 'apply_proposal' }">New Proposal/Application</router-link>
                         </div>
                     </div>
                     <div class="row">
@@ -152,7 +152,7 @@ export default {
             proposal_submitters: [],
             proposal_status: [],
             proposal_ex_headers:[
-                "Number","Region","District","Activity","Title","Submitter","Proponent","Status","Lodged on","Action"
+                "Number","Region","District","Activity","Title","Submitter","Proponent","Status","Lodged on","Invoice/Confirmation","Action"
                 //"LodgementNo","ProcessingStatus","AssessorProcess","CanUserEdit",
             ],
 
@@ -241,15 +241,30 @@ export default {
                         searchable: false, // handles by filter_queryset override method - class ProposalFilterBackend
                     },
                     {
+                        data: '',
+                        mRender:function (data,type,full) {
+                            let links = '';
+                            if (full.fee_paid) {
+                                links +=  `<a href='/payments/invoice-pdf/${full.fee_invoice_reference}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i></a> &nbsp`;
+                                links +=  `<a href='/payments/confirmation-pdf/${full.fee_invoice_reference}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i></a><br/>`;
+                                links +=  `<a href='/ledger/payments/invoice/payment?invoice=${full.fee_invoice_reference}' target='_blank'>View Payment</a><br/>`;
+                            }
+                            return links;
+                        },
+                        name: '',
+                        searchable: false,
+                        orderable: false
+                    },
+                    {
                         data: "",
                         mRender:function (data,type,full) {
                             let links = '';
                             if (!vm.is_external){
                                 /*if(vm.check_assessor(full) && full.can_officer_process)*/
                                 if(full.assessor_process){
-                                    
+
                                     links +=  `<a href='/internal/proposal/${full.id}'>Process</a><br/>`;
-                                
+
                             }
                                 else{
                                     links +=  `<a href='/internal/proposal/${full.id}'>View</a><br/>`;
@@ -325,13 +340,8 @@ export default {
                 */
             },
             proposal_headers:[
-                "Number","Region","District","Activity","Title","Submitter","Proponent","Status","Lodged on","Assigned Officer","Action",
-                //"LodgementNo","CustomerStatus","AssessorProcess","CanUserEdit","CanUserView",
+                "Number","Region","District","Activity","Title","Submitter","Proponent","Status","Lodged on","Assigned Officer","Invoice/Confirmation","Action",
             ],
-            // proposal_headers:[
-            //     "Number","Region","Activity","Title","Submitter","Proponent","Status","Lodged on","Assigned Officer","Action",
-            //     //"LodgementNo","CustomerStatus","AssessorProcess","CanUserEdit","CanUserView",
-            // ],
             proposal_options:{
                 autoWidth: false,
                 language: {
@@ -423,10 +433,25 @@ export default {
                         data: '',
                         mRender:function (data,type,full) {
                             let links = '';
+                            if (full.fee_paid) {
+                                links +=  `<a href='/payments/invoice-pdf/${full.fee_invoice_reference}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i></a> &nbsp`;
+                                links +=  `<a href='/payments/confirmation-pdf/${full.fee_invoice_reference}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i></a><br/>`;
+                                links +=  `<a href='/ledger/payments/invoice/payment?invoice=${full.fee_invoice_reference}' target='_blank'>View Payment</a><br/>`;
+                            }
+                            return links;
+                        },
+                        name: '',
+                        searchable: false,
+                        orderable: false
+                    },
+                    {
+                        data: '',
+                        mRender:function (data,type,full) {
+                            let links = '';
                             if (!vm.is_external){
                                 /*if(vm.check_assessor(full) && full.can_officer_process)*/
-                                if(full.assessor_process){   
-                                        links +=  `<a href='/internal/proposal/${full.id}'>Process</a><br/>`;    
+                                if(full.assessor_process){
+                                        links +=  `<a href='/internal/proposal/${full.id}'>Process</a><br/>`;
                             }
                                 else{
                                     links +=  `<a href='/internal/proposal/${full.id}'>View</a><br/>`;
@@ -554,7 +579,7 @@ export default {
         is_referral: function(){
             return this.level == 'referral';
         },
-        
+
     },
     methods:{
         fetchFilterLists: function(){
@@ -564,7 +589,10 @@ export default {
             vm.$http.get(api_endpoints.filter_list).then((response) => {
                 vm.proposal_regions = response.body.regions;
                 //vm.proposal_districts = response.body.districts;
+
                 vm.proposal_activityTitles = response.body.activities;
+                vm.proposal_activityTitles.push('Apiary');
+
                 vm.proposal_submitters = response.body.submitters;
                 //vm.proposal_status = vm.level == 'internal' ? response.body.processing_status_choices: response.body.customer_status_choices;
                 vm.proposal_status = vm.level == 'internal' ? vm.internal_status: vm.external_status;
@@ -654,7 +682,7 @@ export default {
                 function(settings,data,dataIndex,original){
                     let found = false;
                     let filtered_regions = vm.filterProposalRegion;
-                    if (filtered_regions.length == 0){ return true; } 
+                    if (filtered_regions.length == 0){ return true; }
 
                     let regions = original.region != '' && original.region != null ? original.region.split(','): [];
 
@@ -675,7 +703,7 @@ export default {
             vm.$refs.proposal_datatable.table.dataTableExt.afnFiltering.push(
                 function(settings,data,dataIndex,original){
                     let filtered_submitter = vm.filterProposalSubmitter;
-                    if (filtered_submitter == 'All'){ return true; } 
+                    if (filtered_submitter == 'All'){ return true; }
                     return filtered_submitter == original.submitter.email;
                 }
             );
@@ -709,7 +737,7 @@ export default {
                         else{
                             return false;
                         }
-                    } 
+                    }
                     else{
                         return false;
                     }
@@ -722,10 +750,10 @@ export default {
             let vm = this;
             Vue.http.get(api_endpoints.profile).then((response) => {
                 vm.profile = response.body
-                              
+
             },(error) => {
                 console.log(error);
-                
+
             })
         },
 
@@ -743,14 +771,14 @@ export default {
                  var assessor = proposal.allowed_assessors.filter(function(elem){
                     return(elem.id=vm.profile.id)
                 });
-                
+
                 if (assessor.length > 0)
                     return true;
                 else
                     return false;
-              
+
             }
-            
+
         },
     },
 

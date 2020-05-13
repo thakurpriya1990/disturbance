@@ -4,6 +4,7 @@ import json
 import os
 import datetime
 from django.db import models,transaction
+from django.contrib.gis.db import models as gis_models
 from django.dispatch import receiver
 from django.db.models.signals import pre_delete
 from django.utils.encoding import python_2_unicode_compatible
@@ -16,6 +17,7 @@ from taggit.models import TaggedItemBase
 from ledger.accounts.models import Organisation as ledger_organisation
 from ledger.accounts.models import EmailUser, RevisionedMixin
 from ledger.licence.models import  Licence
+from ledger.payments.models import Invoice
 from disturbance import exceptions
 from disturbance.components.organisations.models import Organisation
 from disturbance.components.main.models import CommunicationsLogEntry, UserAction, Document, Region, District, Tenure, ApplicationType
@@ -38,6 +40,15 @@ def update_proposal_comms_log_filename(instance, filename):
 
 def update_amendment_request_doc_filename(instance, filename):
     return 'proposals/{}/amendment_request_documents/{}'.format(instance.amendment_request.proposal.id,filename)
+
+def update_apiary_doc_filename(instance, filename):
+    return 'proposals/{}/apiary_documents/{}'.format(instance.apiary_documents.proposal.id, filename)
+
+#def update_temporary_use_doc_filename(instance, filename):
+#    return 'proposals/{}/apiary_temporary_use_documents/{}'.format(instance.apiary_temporary_use.proposal.id, filename)
+#
+#def update_site_transfer_doc_filename(instance, filename):
+#    return 'proposals/{}/apiary_site_transfer_documents/{}'.format(instance.apiary_site_transfer.proposal.id, filename)
 
 
 def application_type_choicelist():
@@ -182,6 +193,21 @@ class ProposalApproverGroup(models.Model):
     @property
     def members_email(self):
         return [i.email for i in self.members.all()]
+
+class DefaultDocument(Document):
+    input_name = models.CharField(max_length=255,null=True,blank=True)
+    can_delete = models.BooleanField(default=True) # after initial submit prevent document from being deleted
+    visible = models.BooleanField(default=True) # to prevent deletion on file system, hidden and still be available in history
+
+    class Meta:
+        app_label = 'disturbance'
+        abstract =True
+
+    def delete(self):
+        if self.can_delete:
+            return super(DefaultDocument, self).delete()
+        logger.info('Cannot delete existing document object after Application has been submitted (including document submitted before Application pushback to status Draft): {}'.format(self.name))
+
 
 class ProposalDocument(Document):
     proposal = models.ForeignKey('Proposal',related_name='documents')
@@ -342,6 +368,8 @@ class Proposal(RevisionedMixin):
     sub_activity_level2 = models.CharField(max_length=255,null=True,blank=True)
     management_area = models.CharField(max_length=255,null=True,blank=True)
 
+    fee_invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
+
     class Meta:
         app_label = 'disturbance'
 
@@ -355,6 +383,24 @@ class Proposal(RevisionedMixin):
             new_lodgment_id = 'P{0:06d}'.format(self.pk)
             self.lodgement_number = new_lodgment_id
             self.save()
+
+    @property
+    def fee_paid(self):
+        return True if self.fee_invoice_reference or self.proposal_type=='amendment' else False
+
+    @property
+    def fee_amount(self):
+        return Invoice.objects.get(reference=self.fee_invoice_reference).amount if self.fee_paid else None
+
+    @property
+    def applicant_field(self):
+        if self.applicant:
+            return 'applicant'
+        elif self.proxy_applicant:
+            return 'proxy_applicant'
+        else:
+            return 'submitter'
+
 
     @property
     def reference(self):
@@ -553,14 +599,14 @@ class Proposal(RevisionedMixin):
         if qs:
             return True
         return False
-    
-    
+
+
     def referral_email_list(self,user):
         qs=self.referrals.all()
         email_list=[]
         if self.assigned_officer:
             email_list.append(self.assigned_officer.email)
-        else: 
+        else:
             email_list.append(user.email)
         if qs:
             for r in qs:
@@ -568,7 +614,7 @@ class Proposal(RevisionedMixin):
         separator=', '
         email_list_string=separator.join(email_list)
         return email_list_string
-    
+
 
 
     def can_assess(self,user):
@@ -619,11 +665,13 @@ class Proposal(RevisionedMixin):
             if self.can_user_edit:
                 # Save the data first
                 save_proponent_data(self,request,viewset)
-                # Check if the special fields have been completed
-                missing_fields = self.__check_proposal_filled_out()
-                if missing_fields:
-                    error_text = 'The proposal has these missing fields, {}'.format(','.join(missing_fields))
-                    raise exceptions.ProposalMissingFields(detail=error_text)
+                #import ipdb; ipdb.set_trace()
+                if self.application_type.name != ApplicationType.APIARY:
+                    # Check if the special fields have been completed
+                    missing_fields = self.__check_proposal_filled_out()
+                    if missing_fields:
+                        error_text = 'The proposal has these missing fields, {}'.format(','.join(missing_fields))
+                        raise exceptions.ProposalMissingFields(detail=error_text)
                 self.submitter = request.user
                 #self.lodgement_date = datetime.datetime.strptime(timezone.now().strftime('%Y-%m-%d'),'%Y-%m-%d').date()
                 self.lodgement_date = timezone.now()
@@ -652,6 +700,7 @@ class Proposal(RevisionedMixin):
                     raise ValidationError('An error occurred while submitting proposal (Submit email notifications failed)')
             else:
                 raise ValidationError('You can\'t edit this proposal at this moment')
+        return self
 
     def update(self,request,viewset):
         from disturbance.components.proposals.utils import save_proponent_data
@@ -1829,12 +1878,6 @@ def search_reference(reference_number):
         raise ValidationError('Record with provided reference number does not exist')
 
 
-
-
-
-
-
-
 from ckeditor.fields import RichTextField
 class HelpPage(models.Model):
     HELP_TEXT_EXTERNAL = 1
@@ -1853,6 +1896,135 @@ class HelpPage(models.Model):
     class Meta:
         app_label = 'disturbance'
         unique_together = ('application_type', 'help_type', 'version')
+
+
+# --------------------------------------------------------------------------------------
+# Apiary Models Start
+# --------------------------------------------------------------------------------------
+class ProposalApiarySiteLocation(models.Model):
+    title = models.CharField('Title', max_length=200, null=True)
+    location = gis_models.PointField(srid=4326, blank=True, null=True)
+    proposal = models.OneToOneField(Proposal, related_name='apiary_site_location', null=True)
+    # We don't use GIS field, because these are just fields user input into the <input> field
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+
+    # @property
+    # def latitude(self):
+    #     return self.location.get_x()
+    #
+    # @property
+    # def longitude(self):
+    #     return self.location.get_y()
+
+    def __str__(self):
+        return 'id:{} - {}'.format(self.id, self.title)
+
+    class Meta:
+        app_label = 'disturbance'
+
+
+class SiteCategory(models.Model):
+    # This model is used to distinguish the application gtfees' differences
+    name = models.CharField(max_length=200, blank=True)
+
+    def __str__(self):
+        return '{}'.format(self.name)
+
+    class Meta:
+        app_label = 'disturbance'
+
+
+class SiteApplicationFee(RevisionedMixin):
+    amount = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+    date_of_enforcement = models.DateField(blank=True, null=True)
+    site_category = models.ForeignKey(SiteCategory, related_name='site_application_fees')
+
+    class Meta:
+        app_label = 'disturbance'
+        ordering = ('date_of_enforcement', )  # oldest record first, latest record last
+
+    def __str__(self):
+        return '${} ({}:{})'.format(self.amount, self.date_of_enforcement, self.site_category)
+
+
+class ApiarySite(models.Model):
+    proposal_apiary_site_location = models.ForeignKey(ProposalApiarySiteLocation, null=True, blank=True, related_name='apiary_sites')
+    site_guid = models.CharField(max_length=50, blank=True)
+    available = models.BooleanField(default=False, )
+
+    def __str__(self):
+        return '{} - {}'.format(self.site_guid, self.proposal_apiary_site_location.proposal.title)
+
+    class Meta:
+        app_label = 'disturbance'
+
+
+class OnSiteInformation(models.Model):
+    apiary_site = models.ForeignKey(ApiarySite, null=True, blank=True)
+    period_from = models.DateField(null=True, blank=True)
+    period_to = models.DateField(null=True, blank=True)
+    comments = models.TextField(blank=True)
+
+    def __str__(self):
+        return 'OnSiteInfo id: {}, date: {} to {}'.format(self.id, self.period_from, self.period_to)
+
+    class Meta:
+        app_label = 'disturbance'
+
+
+class ProposalApiaryTemporaryUse(models.Model):
+    from_date=models.DateField('Period From Date', blank=True, null=True)
+    to_date=models.DateField('Period To Date', blank=True, null=True)
+    proposal = models.OneToOneField(Proposal, related_name='apiary_temporary_use', null=True)
+
+    def __str__(self):
+        return '{}'.format(self.title)
+
+    class Meta:
+        app_label = 'disturbance'
+
+
+class ProposalApiarySiteTransfer(models.Model):
+    email = models.EmailField('Email of Transferee', max_length=254, blank=True, null=True)
+    proposal = models.OneToOneField(Proposal, related_name='apiary_site_transfer', null=True)
+
+    def __str__(self):
+        return '{}'.format(self.title)
+
+    class Meta:
+        app_label = 'disturbance'
+
+
+class ProposalApiaryDocument(DefaultDocument):
+    proposal = models.ForeignKey('Proposal', related_name='apiary_documents')
+    _file = models.FileField(upload_to=update_apiary_doc_filename, max_length=512)
+
+    def delete(self):
+        if self.can_delete:
+            return super(ProposalApiaryDocument, self).delete()
+
+#class ApiaryTemporaryUseDocument(DefaultDocument):
+#    temporary_use = models.ForeignKey('ProposalApiaryTemporaryUse', related_name='apiary_temporary_use_documents')
+#    _file = models.FileField(upload_to=update_temporary_use_doc_filename, max_length=512)
+#
+#    def delete(self):
+#        if self.can_delete:
+#            return super(ApiarySiteLocationDocument, self).delete()
+#
+#class ApiarySiteTransferDocument(DefaultDocument):
+#    site_transfer = models.ForeignKey('ProposalApiarySiteTransfer', related_name='apiary_site_transfer_documents')
+#    _file = models.FileField(upload_to=update_site_transfer_doc_filename, max_length=512)
+#
+#    def delete(self):
+#        if self.can_delete:
+#            return super(ApiarySiteLocationDocument, self).delete()
+
+
+
+# --------------------------------------------------------------------------------------
+# Apiary Models End
+# --------------------------------------------------------------------------------------
 
 
 import reversion

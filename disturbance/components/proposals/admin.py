@@ -1,5 +1,7 @@
 from django.contrib import admin
 from ledger.accounts.models import EmailUser
+
+import disturbance
 from disturbance.components.proposals import models
 from disturbance.components.proposals import forms
 from disturbance.components.main.models import ActivityMatrix, SystemMaintenance, ApplicationType, GlobalSettings
@@ -8,6 +10,8 @@ from reversion.admin import VersionAdmin
 from django.conf.urls import url
 from django.template.response import TemplateResponse
 from django.http import HttpResponse, HttpResponseRedirect
+
+from disturbance.components.proposals.models import SiteCategory, SiteApplicationFee
 from disturbance.utils import create_helppage_object
 # Register your models here.
 
@@ -118,3 +122,27 @@ class ApplicationTypeAdmin(admin.ModelAdmin):
 class GlobalSettingsAdmin(admin.ModelAdmin):
     list_display = ['key', 'value']
     ordering = ('key',)
+
+
+class SiteApplicationFeeInline(admin.TabularInline):
+    model = SiteApplicationFee
+    extra = 0
+    can_delete = True
+
+
+# @admin.register(SiteCategory)
+# class SiteCategoryAdmin(admin.ModelAdmin):
+#     pass
+
+
+# @admin.register(SiteApplicationFee)
+# class SiteApplicationFeeAdmin(admin.ModelAdmin):
+#     pass
+
+
+class SiteCategoryAdmin(admin.ModelAdmin):
+
+    inlines = [SiteApplicationFeeInline,]
+
+
+admin.site.register(disturbance.components.proposals.models.SiteCategory, SiteCategoryAdmin)

@@ -105,7 +105,7 @@
                         <button v-if="!creatingProposal" @click.prevent="submit()" class="btn btn-primary pull-right">Continue</button>
                         <button v-else disabled class="pull-right btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Creating</button>
                     </div> -->
-                  </div>
+
                 </form>
             </div>
         </div>
