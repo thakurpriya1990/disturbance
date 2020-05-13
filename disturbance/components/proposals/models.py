@@ -479,7 +479,7 @@ class Proposal(RevisionedMixin):
             return self.APPLICANT_TYPE_SUBMITTER
 
     @property
-    def relevant_applicant_field(self):
+    def applicant_field(self):
         if self.applicant:
             return 'applicant'
         elif self.proxy_applicant:

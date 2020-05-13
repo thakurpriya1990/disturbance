@@ -124,6 +124,7 @@ class ListProposalSerializer(BaseProposalSerializer):
                 'allowed_assessors',
                 'fee_invoice_reference',
                 'fee_paid',
+                'application_type',
                 )
 
     def get_assigned_officer(self,obj):

@@ -1118,12 +1118,19 @@ class ProposalViewSet(viewsets.ModelViewSet):
             # Get most recent versions of the Proposal Types
             qs_proposal_type = ProposalType.objects.all().order_by('name', '-version').distinct('name')
             proposal_type = qs_proposal_type.get(name=application_type.name)
+            applicant = None
+            proxy_applicant = None
+            if request.data.get('behalf_of') == 'individual':
+                proxy_applicant = request.user.id
+            else:
+                applicant = request.data.get('behalf_of')
 
             data = {
                 #'schema': qs_proposal_type.order_by('-version').first().schema,
                 'schema': proposal_type.schema,
                 'submitter': request.user.id,
-                'applicant': request.data.get('behalf_of'),
+                'applicant': applicant,
+                'proxy_applicant': proxy_applicant,
                 'application_type': application_type.id,
                 'region': region,
                 'district': district,

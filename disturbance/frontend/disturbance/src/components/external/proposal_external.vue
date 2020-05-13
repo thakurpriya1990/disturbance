@@ -398,6 +398,7 @@ export default {
             });
             //vm.submittingProposal= false;
         },
+        // Apiary submission
         save_and_redirect: function(e) {
             let vm = this;
             vm.form=document.forms.new_proposal;
@@ -410,7 +411,7 @@ export default {
             } catch(e){ }
 
             //vm.save_applicant_data();
-            vm.$http.post(vm.proposal_form_url,formData).then(res=>{
+            vm.$http.post(vm.proposal_submit_url,formData).then(res=>{
                 /* after the above save, redirect to the Django post() method in ApplicationFeeView */
                 vm.post_and_redirect(vm.application_fee_url, {'csrfmiddlewaretoken' : vm.csrf_token});
             },err=>{

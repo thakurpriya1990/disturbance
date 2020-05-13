@@ -215,7 +215,7 @@ class InternalProposalApiarySerializer(BaseProposalSerializer):
     #applicant = ApplicantSerializer()
     #applicant = serializers.CharField(read_only=True)
     #org_applicant = OrganisationSerializer()
-    applicant = OrganisationSerializer() # for apply as Org only
+    #applicant = OrganisationSerializer() # for apply as Org only
     processing_status = serializers.SerializerMethodField(read_only=True)
     review_status = serializers.SerializerMethodField(read_only=True)
     customer_status = serializers.SerializerMethodField(read_only=True)
@@ -234,6 +234,8 @@ class InternalProposalApiarySerializer(BaseProposalSerializer):
     #assessor_assessment=ProposalAssessmentSerializer(read_only=True)
     #referral_assessments=ProposalAssessmentSerializer(read_only=True, many=True)
     fee_invoice_url = serializers.SerializerMethodField()
+    applicant = serializers.SerializerMethodField()
+    applicant_type = serializers.SerializerMethodField()
 
     apiary_site_location = ProposalApiarySiteLocationSerializer()
     apiary_temporary_use = ProposalApiaryTemporaryUseSerializer()
@@ -255,7 +257,7 @@ class InternalProposalApiarySerializer(BaseProposalSerializer):
                 'customer_status',
                 'processing_status',
                 'review_status',
-                'applicant',
+                #applicant',
                 #'org_applicant',
                 #'proxy_applicant',
                 'submitter',
@@ -294,6 +296,8 @@ class InternalProposalApiarySerializer(BaseProposalSerializer):
                 'fee_invoice_reference',
                 'fee_invoice_url',
                 'fee_paid',
+                'applicant',
+                'applicant_type',
                 'apiary_site_location',
                 'apiary_temporary_use',
                 'apiary_site_transfer',
@@ -341,5 +345,16 @@ class InternalProposalApiarySerializer(BaseProposalSerializer):
 
     def get_fee_invoice_url(self,obj):
         return '/payments/invoice-pdf/{}'.format(obj.fee_invoice_reference) if obj.fee_paid else None
+
+    def get_applicant(self,obj):
+        serializer = None
+        if obj.relevant_applicant_type == 'organisation':
+            serializer = OrganisationSerializer(obj.relevant_applicant)
+        else:
+            serializer = EmailUserSerializer(obj.relevant_applicant)
+        return serializer.data
+
+    def get_applicant_type(self,obj):
+        return obj.relevant_applicant_type
 
 
