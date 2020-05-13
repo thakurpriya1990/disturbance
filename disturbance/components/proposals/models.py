@@ -1938,13 +1938,13 @@ class SiteCategory(models.Model):
     # This model is used to distinguish the application gtfees' differences
     name = models.CharField(unique=True, max_length=50, choices=CATEGORY_CHOICES)
 
-    def retrieve_current_fee_per_site_by_type(self, fee_type):
+    def retrieve_current_fee_per_site_by_type(self, fee_type_name):
         today_local = datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
-        ret_date = self._retrieve_fee_by_date_and_type(today_local, fee_type)
+        ret_date = self._retrieve_fee_by_date_and_type(today_local, fee_type_name)
         return ret_date
 
-    def _retrieve_fee_by_date_and_type(self, target_date, fee_type):
-        fee_type_application = ApiarySiteFeeType.objects.get(name=fee_type)
+    def _retrieve_fee_by_date_and_type(self, target_date, fee_type_name):
+        fee_type_application = ApiarySiteFeeType.objects.get(name=fee_type_name)
         if not fee_type_application:
             raise Exception("Please select 'new_application' and save it at the Apiary Site Fee Type admin page")
 
@@ -2041,12 +2041,18 @@ class ApiarySite(models.Model):
 
 
 class ApiarySiteFeeRemainder(models.Model):
+    '''
+    A record of this model means a site is left
+
+    You have to check the validity of the record by date_expiry and date_used fields
+    '''
     site_category = models.ForeignKey(SiteCategory)
     apiary_site_fee_type = models.ForeignKey(ApiarySiteFeeType)
     applicant = models.ForeignKey(EmailUser)
-    number_of_sites_left = models.SmallIntegerField(default=0)
+    # number_of_sites_left = models.SmallIntegerField(default=0)
     datetime_created = models.DateTimeField(auto_now_add=True)
-    datetime_expired = models.DateTimeField(null=True, blank=True)
+    date_expiry = models.DateField(null=True, blank=True)
+    date_used = models.DateField(null=True, blank=True)
 
     def __str__(self):
         return 'Remainder: {} - {} - {} - {} site(s)'.format(self.applicant, self.site_category, self.apiary_site_fee_type, self.number_of_sites_left)
