@@ -3,8 +3,11 @@ from __future__ import unicode_literals
 import json
 import os
 import datetime
+
+import pytz
 from django.db import models,transaction
 from django.contrib.gis.db import models as gis_models
+from django.db.models import Q
 from django.dispatch import receiver
 from django.db.models.signals import pre_delete
 from django.utils.encoding import python_2_unicode_compatible
@@ -12,6 +15,7 @@ from django.core.exceptions import ValidationError
 from django.contrib.postgres.fields.jsonb import JSONField
 from django.utils import timezone
 from django.contrib.sites.models import Site
+from ledger.settings_base import TIME_ZONE
 from taggit.managers import TaggableManager
 from taggit.models import TaggedItemBase
 from ledger.accounts.models import Organisation as ledger_organisation
@@ -1925,20 +1929,78 @@ class ProposalApiarySiteLocation(models.Model):
 
 
 class SiteCategory(models.Model):
+    CATEGORY_SOUTH_WEST = 'south_west'
+    CATEGORY_REMOTE = 'remote'
+    CATEGORY_CHOICES = (
+        (CATEGORY_SOUTH_WEST, 'South West'),
+        (CATEGORY_REMOTE, 'Remote')
+    )
     # This model is used to distinguish the application gtfees' differences
-    name = models.CharField(max_length=200, blank=True)
+    name = models.CharField(unique=True, max_length=50, choices=CATEGORY_CHOICES)
+
+    def retrieve_current_fee_per_site_by_type(self, fee_type_name):
+        today_local = datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
+        ret_date = self._retrieve_fee_by_date_and_type(today_local, fee_type_name)
+        return ret_date
+
+    def _retrieve_fee_by_date_and_type(self, target_date, fee_type_name):
+        fee_type_application = ApiarySiteFeeType.objects.get(name=fee_type_name)
+        if not fee_type_application:
+            raise Exception("Please select 'new_application' and save it at the Apiary Site Fee Type admin page")
+
+        site_fee = ApiarySiteFee.objects.filter(
+                    Q(apiary_site_fee_type=fee_type_application) &
+                    Q(site_category=self) &
+                    Q(date_of_enforcement__lte=target_date)).order_by('date_of_enforcement', ).last()
+
+        if site_fee:
+            return site_fee.amount
+        else:
+            return None
 
     def __str__(self):
-        return '{}'.format(self.name)
+        for item in SiteCategory.CATEGORY_CHOICES:
+            if item[0] == self.name:
+                fee_application = self.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_APPLICATION)
+                fee_amendment = self.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_AMENDMENT)
+                fee_renewal = self.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_RENEWAL)
+                fee_transfer = self.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_TRANSFER)
+                return '{} - application: {}, amendment: {}, renewal: {}, transfer: {}'.format(item[1], fee_application, fee_amendment, fee_renewal, fee_transfer)
+        return '---'
 
     class Meta:
         app_label = 'disturbance'
 
 
-class SiteApplicationFee(RevisionedMixin):
+class ApiarySiteFeeType(RevisionedMixin):
+    FEE_TYPE_APPLICATION = 'new_application'
+    FEE_TYPE_AMENDMENT = 'amendment'
+    FEE_TYPE_RENEWAL = 'renewal'
+    FEE_TYPE_TRANSFER = 'transfer'
+    FEE_TYPE_CHOICES = (
+        (FEE_TYPE_APPLICATION, 'New Application'),
+        (FEE_TYPE_AMENDMENT, 'Amendment'),
+        (FEE_TYPE_RENEWAL, 'Renewal'),
+        (FEE_TYPE_TRANSFER, 'Transfer'),
+    )
+    name = models.CharField(unique=True, max_length=50, choices=FEE_TYPE_CHOICES,)
+    description = models.TextField(blank=True)
+
+    def __str__(self):
+        for item in ApiarySiteFeeType.FEE_TYPE_CHOICES:
+            if item[0] == self.name:
+                return '{}'.format(item[1])
+        return '---'
+
+    class Meta:
+        app_label = 'disturbance'
+
+
+class ApiarySiteFee(RevisionedMixin):
     amount = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     date_of_enforcement = models.DateField(blank=True, null=True)
-    site_category = models.ForeignKey(SiteCategory, related_name='site_application_fees')
+    site_category = models.ForeignKey(SiteCategory, related_name='site_fees')
+    apiary_site_fee_type = models.ForeignKey(ApiarySiteFeeType, null=True, blank=True)
 
     class Meta:
         app_label = 'disturbance'
@@ -1948,13 +2010,52 @@ class SiteApplicationFee(RevisionedMixin):
         return '${} ({}:{})'.format(self.amount, self.date_of_enforcement, self.site_category)
 
 
+# class SiteApplicationFee(RevisionedMixin):
+#     amount = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+#     date_of_enforcement = models.DateField(blank=True, null=True)
+#     site_category = models.ForeignKey(SiteCategory, related_name='site_application_fees')
+#
+#     class Meta:
+#         app_label = 'disturbance'
+#         ordering = ('date_of_enforcement', )  # oldest record first, latest record last
+#
+#     def __str__(self):
+#         return '${} ({}:{})'.format(self.amount, self.date_of_enforcement, self.site_category)
+
+
 class ApiarySite(models.Model):
     proposal_apiary_site_location = models.ForeignKey(ProposalApiarySiteLocation, null=True, blank=True, related_name='apiary_sites')
     site_guid = models.CharField(max_length=50, blank=True)
     available = models.BooleanField(default=False, )
+    site_category = models.ForeignKey(SiteCategory, null=True, blank=True)
 
     def __str__(self):
         return '{} - {}'.format(self.site_guid, self.proposal_apiary_site_location.proposal.title)
+
+    def get_current_application_fee_per_site(self):
+        current_fee = self.site_category.current_application_fee_per_site
+        return current_fee
+
+    class Meta:
+        app_label = 'disturbance'
+
+
+class ApiarySiteFeeRemainder(models.Model):
+    '''
+    A record of this model means a site is left
+
+    You have to check the validity of the record by date_expiry and date_used fields
+    '''
+    site_category = models.ForeignKey(SiteCategory)
+    apiary_site_fee_type = models.ForeignKey(ApiarySiteFeeType)
+    applicant = models.ForeignKey(EmailUser)
+    # number_of_sites_left = models.SmallIntegerField(default=0)
+    datetime_created = models.DateTimeField(auto_now_add=True)
+    date_expiry = models.DateField(null=True, blank=True)
+    date_used = models.DateField(null=True, blank=True)
+
+    def __str__(self):
+        return 'Remainder: {} - {} - {} - {} site(s)'.format(self.applicant, self.site_category, self.apiary_site_fee_type, self.number_of_sites_left)
 
     class Meta:
         app_label = 'disturbance'

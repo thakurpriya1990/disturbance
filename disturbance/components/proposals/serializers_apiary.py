@@ -16,6 +16,7 @@ from rest_framework import serializers
 
 class ApiarySiteSerializer(serializers.ModelSerializer):
     proposal_apiary_site_location_id = serializers.IntegerField(write_only=True,)
+    site_category_id = serializers.IntegerField(write_only=True,)
     # onsiteinformation_set = OnSiteInformationSerializer(read_only=True, many=True,)
 
     class Meta:
@@ -25,7 +26,7 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
             'available',
             'site_guid',
             'proposal_apiary_site_location_id',
-            # 'onsiteinformation_set',
+            'site_category_id',
         )
 
 

@@ -374,8 +374,12 @@ def save_proponent_data_apiary(instance, request, viewset):
                 site_ids_existing = [item['id'] for item in site_locations_existing]
                 site_ids_delete = [id for id in site_ids_existing if id not in site_ids_received]
 
-                for apiary_site in site_locations_received:
+                for index, apiary_site in enumerate(site_locations_received):
                     apiary_site['proposal_apiary_site_location_id'] = instance.apiary_site_location.id
+
+                    # TODO: site_category_id must be determined by the category retrieved from the GIS server
+                    apiary_site['site_category_id'] = 1 if index % 2 == 0 else 2
+
                     try:
                         # Update existing
                         a_site = ApiarySite.objects.get(site_guid=apiary_site['site_guid'])
