@@ -2040,6 +2040,21 @@ class ApiarySite(models.Model):
         app_label = 'disturbance'
 
 
+class ApiarySiteFeeRemainder(models.Model):
+    site_category = models.ForeignKey(SiteCategory)
+    apiary_site_fee_type = models.ForeignKey(ApiarySiteFeeType)
+    applicant = models.ForeignKey(EmailUser)
+    number_of_sites_left = models.SmallIntegerField(default=0)
+    datetime_created = models.DateTimeField(auto_now_add=True)
+    datetime_expired = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return 'Remainder: {} - {} - {} - {} site(s)'.format(self.applicant, self.site_category, self.apiary_site_fee_type, self.number_of_sites_left)
+
+    class Meta:
+        app_label = 'disturbance'
+
+
 class OnSiteInformation(models.Model):
     apiary_site = models.ForeignKey(ApiarySite, null=True, blank=True)
     period_from = models.DateField(null=True, blank=True)
