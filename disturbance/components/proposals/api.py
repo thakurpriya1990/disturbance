@@ -234,7 +234,8 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
             return Proposal.objects.all()
         elif is_customer(self.request):
             user_orgs = [org.id for org in user.disturbance_organisations.all()]
-            return  Proposal.objects.filter( Q(applicant_id__in = user_orgs) | Q(submitter = user) )
+            #return  Proposal.objects.filter( Q(applicant_id__in = user_orgs) | Q(submitter = user) )
+            return  Proposal.objects.filter( Q(relevant_applicant_id__in = user_orgs) | Q(submitter = user) )
             #queryset =  Proposal.objects.filter(region__isnull=False).filter( Q(applicant_id__in = user_orgs) | Q(submitter = user) )
         return Proposal.objects.none()
 
@@ -736,7 +737,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             instance.assign_officer(request,request.user)
-            i#serializer = InternalProposalSerializer(instance,context={'request':request})
+            #serializer = InternalProposalSerializer(instance,context={'request':request})
             serializer_class = self.internal_serializer_class()
             serializer = serializer_class(instance,context={'request':request})
             return Response(serializer.data)
@@ -1117,12 +1118,19 @@ class ProposalViewSet(viewsets.ModelViewSet):
             # Get most recent versions of the Proposal Types
             qs_proposal_type = ProposalType.objects.all().order_by('name', '-version').distinct('name')
             proposal_type = qs_proposal_type.get(name=application_type.name)
+            applicant = None
+            proxy_applicant = None
+            if request.data.get('behalf_of') == 'individual':
+                proxy_applicant = request.user.id
+            else:
+                applicant = request.data.get('behalf_of')
 
             data = {
                 #'schema': qs_proposal_type.order_by('-version').first().schema,
                 'schema': proposal_type.schema,
                 'submitter': request.user.id,
-                'applicant': request.data.get('behalf_of'),
+                'applicant': applicant,
+                'proxy_applicant': proxy_applicant,
                 'application_type': application_type.id,
                 'region': region,
                 'district': district,
