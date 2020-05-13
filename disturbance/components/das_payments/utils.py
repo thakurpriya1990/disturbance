@@ -1,3 +1,5 @@
+import pytz
+from django.db.models import Q
 from django.http import HttpResponseRedirect
 from django.core.urlresolvers import reverse
 from django.conf import settings
@@ -7,9 +9,12 @@ from django.db import transaction
 from datetime import datetime, timedelta, date
 from django.utils import timezone
 from dateutil.relativedelta import relativedelta
+from ledger.accounts.models import EmailUser
+from ledger.settings_base import TIME_ZONE
 
 from disturbance.components.main.models import ApplicationType
-from disturbance.components.proposals.models import Proposal, ProposalUserAction, SiteCategory
+from disturbance.components.proposals.models import Proposal, ProposalUserAction, SiteCategory, ApiarySiteFeeType, \
+    ApiarySiteFeeRemainder
 from disturbance.components.organisations.models import Organisation
 from disturbance.components.das_payments.models import ApplicationFee
 from ledger.checkout.utils import create_basket_session, create_checkout_session, calculate_excl_gst
@@ -36,10 +41,12 @@ def get_session_application_invoice(session):
     except Invoice.DoesNotExist:
         raise Exception('Application not found for application {}'.format(application_fee_id))
 
+
 def set_session_application_invoice(session, application_fee):
     """ Application Fee session ID """
     session['das_app_invoice'] = application_fee.id
     session.modified = True
+
 
 def delete_session_application_invoice(session):
     """ Application Fee session ID """
@@ -50,10 +57,11 @@ def delete_session_application_invoice(session):
 
 def create_fee_lines_apiary(proposal):
     now = datetime.now().strftime('%Y-%m-%d %H:%M')
-    min_mumber_of_sites_to_apply = 5
+    today_local = datetime.now(pytz.timezone(TIME_ZONE)).date()
+    MIN_NUMBER_OF_SITES_TO_APPLY = 5
     line_items = []
 
-    # TODO: At first, the number of sites this applicant left must be retrieved form the database
+    applicant = EmailUser.objects.get(email='katsufumi.shibata@dbca.wa.gov.au')  # Get proper applicant
 
     # Calculate total number of sites applied per category
     summary = {}
@@ -65,21 +73,53 @@ def create_fee_lines_apiary(proposal):
 
     # Calculate number of sites to calculate the fee
     for site_category_id, number_of_sites_applied in summary.items():
+
         site_category = SiteCategory.objects.get(id=site_category_id)
-        number_of_sites_calculate = ((
-                                             number_of_sites_applied // min_mumber_of_sites_to_apply) + 1) * min_mumber_of_sites_to_apply
-        number_of_sites_remain = number_of_sites_calculate - number_of_sites_applied
-        application_price = site_category.current_application_fee_per_site
+
+        # Retrieve sites left
+        filter_site_category = Q(site_category=site_category)
+        filter_site_fee_type = Q(apiary_site_fee_type=ApiarySiteFeeType.objects.get(name=ApiarySiteFeeType.FEE_TYPE_APPLICATION))
+        filter_applicant = Q(applicant=applicant)
+        filter_expiry = Q(date_expiry__gte=today_local)
+        filter_used = Q(date_used__isnull=True)
+        site_fee_remainders = ApiarySiteFeeRemainder.objects.filter(
+            filter_site_category &
+            filter_site_fee_type &
+            filter_applicant &
+            filter_expiry &
+            filter_used
+        ).order_by('date_expiry')  # Older comes earlier
+
+        # Calculate deduction and set date_used field
+        number_of_sites_after_deduction = number_of_sites_applied
+        for site_left in site_fee_remainders:
+            if number_of_sites_after_deduction == 0:
+                break
+            number_of_sites_after_deduction -= 1
+            site_left.date_used = today_local
+            site_left.save()
+
+        quotient, remainder = divmod(number_of_sites_after_deduction, MIN_NUMBER_OF_SITES_TO_APPLY)
+        number_of_sites_calculate = quotient * MIN_NUMBER_OF_SITES_TO_APPLY + MIN_NUMBER_OF_SITES_TO_APPLY if remainder else quotient * MIN_NUMBER_OF_SITES_TO_APPLY
+        number_of_sites_to_add_as_remainder = number_of_sites_calculate - number_of_sites_after_deduction
+        application_price = site_category.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_APPLICATION)
         line_item = {
-            'ledger_description': 'Application Fee - {} - {} - {}'.format(now, proposal.lodgement_number,
-                                                                          site_category.name),
+            'ledger_description': 'Application Fee - {} - {} - {}'.format(now, proposal.lodgement_number, site_category.name),
             'oracle_code': proposal.application_type.oracle_code_application,
             'price_incl_tax': application_price,
-            'price_excl_tax': application_price if proposal.application_type.is_gst_exempt else calculate_excl_gst(
-                application_price),
+            'price_excl_tax': application_price if proposal.application_type.is_gst_exempt else calculate_excl_gst(application_price),
             'quantity': number_of_sites_calculate,
         }
         line_items.append(line_item)
+
+        # Add remainders
+        for i in range(number_of_sites_to_add_as_remainder):
+            ApiarySiteFeeRemainder.objects.create(
+                site_category=site_category,
+                apiary_site_fee_type=ApiarySiteFeeType.objects.get(name=ApiarySiteFeeType.FEE_TYPE_APPLICATION),
+                applicant=applicant,
+                date_expiry= today_local + timedelta(days=7)
+            )
 
     return line_items
 
