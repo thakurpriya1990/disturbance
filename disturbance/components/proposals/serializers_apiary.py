@@ -8,7 +8,10 @@ from disturbance.components.proposals.models import (
     ProposalApiarySiteLocation,
     ProposalApiaryTemporaryUse,
     ProposalApiarySiteTransfer,
-    ProposalApiaryDocument, ApiarySite, OnSiteInformation,
+    ProposalApiaryDocument, 
+    ApiarySite, 
+    OnSiteInformation,
+    ApiaryReferralGroup,
 )
 
 from rest_framework import serializers
@@ -358,4 +361,12 @@ class InternalProposalApiarySerializer(BaseProposalSerializer):
     def get_applicant_type(self,obj):
         return obj.relevant_applicant_type
 
+
+class ApiaryReferralGroupSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ApiaryReferralGroup
+        fields = (
+                'id',
+                'name',
+                )
 

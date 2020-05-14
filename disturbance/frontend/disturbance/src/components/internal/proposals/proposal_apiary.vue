@@ -80,6 +80,10 @@
                                             <option value="null"></option>
                                             <option v-for="user in department_users" :value="user.email">{{user.name}}</option>
                                         </select-->
+                                        <select :disabled="!canLimitedAction" ref="apiary_referral_groups" class="form-control">
+                                            <option value="null"></option>
+                                            <option v-for="group in apiaryReferralGroups" :value="group.id">{{group.name}}</option>
+                                        </select>
                                         <template v-if='!sendingReferral'>
                                             <template v-if="selected_referral">
                                                 <label class="control-label pull-left"  for="Name">Comments</label>
@@ -442,7 +446,8 @@ export default {
             approver_comment: '',
             form: null,
             members: [],
-            department_users : [],
+            //department_users : [],
+            apiaryReferralGroups: [],
             contacts_table_initialised: false,
             initialisedSelects: false,
             showingProposal:false,
@@ -911,6 +916,19 @@ export default {
             });
             }
         },
+        fetchApiaryReferralGroups: function() {
+            this.loading.push('Loading Apiary Referral Groups');
+            this.$http.get(api_endpoints.apiary_referral_groups).then((response) => {
+                for (let group of response.body) {
+                    this.apiaryReferralGroups.push(group)
+                }
+                this.loading.splice('Loading Apiary Referral Groups',1);
+            },(error) => {
+                console.log(error);
+                this.loading.splice('Loading Apiary Referral Groups',1);
+            })
+
+        },
         /*
         fetchDeparmentUsers: function(){
             let vm = this;
@@ -1114,9 +1132,9 @@ export default {
         
     },
     mounted: function() {
-        let vm = this;
-        vm.fetchDeparmentUsers();
-        
+        //let vm = this;
+        //vm.fetchDeparmentUsers();
+        this.fetchApiaryReferralGroups();
     },
     updated: function(){
         let vm = this;
