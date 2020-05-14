@@ -8,7 +8,11 @@ from disturbance.components.proposals.models import (
     ProposalApiarySiteLocation,
     ProposalApiaryTemporaryUse,
     ProposalApiarySiteTransfer,
+
     ProposalApiaryDocument, ApiarySite, OnSiteInformation,
+
+    ProposalApiaryDocument,
+    #ApiaryChecklistQuestion,
 )
 
 from rest_framework import serializers
@@ -357,5 +361,15 @@ class InternalProposalApiarySerializer(BaseProposalSerializer):
 
     def get_applicant_type(self,obj):
         return obj.relevant_applicant_type
+
+# class ApiaryChecklistQuestionSerializer(serializers.ModelSerializer):
+#
+#     class Meta:
+#         model = ApiaryChecklistQuestion
+#         fields=('id',
+#                 'text',
+#                 'answer_type',
+#                 )
+
 
 

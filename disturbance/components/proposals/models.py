@@ -2237,6 +2237,24 @@ class ApiaryReferralGroup(models.Model):
     def members_email(self):
         return [i.email for i in self.members.all()]
 
+class ApiaryChecklistQuestion(models.Model):
+    ANSWER_TYPE_CHOICES = (
+        ('yes_no', 'Yes/No type'),
+        ('free_text', 'Free text type')
+    )
+    text = models.TextField()
+    answer_type = models.CharField('Answer Type',
+                                   max_length=30,
+                                   choices=ANSWER_TYPE_CHOICES,
+                                   default=ANSWER_TYPE_CHOICES[0][0])
+    order = models.PositiveIntegerField(default=1)
+
+    def __str__(self):
+        return self.text
+
+    class Meta:
+        pass
+
 #class ApiaryTemporaryUseDocument(DefaultDocument):
 #    temporary_use = models.ForeignKey('ProposalApiaryTemporaryUse', related_name='apiary_temporary_use_documents')
 #    _file = models.FileField(upload_to=update_temporary_use_doc_filename, max_length=512)
