@@ -235,7 +235,7 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         elif is_customer(self.request):
             user_orgs = [org.id for org in user.disturbance_organisations.all()]
             #return  Proposal.objects.filter( Q(applicant_id__in = user_orgs) | Q(submitter = user) )
-            return  Proposal.objects.filter( Q(relevant_applicant_id__in = user_orgs) | Q(submitter = user) )
+            return  Proposal.objects.filter( Q(applicant_id__in = user_orgs) | Q(submitter = user) | Q(proxy_applicant = user))
             #queryset =  Proposal.objects.filter(region__isnull=False).filter( Q(applicant_id__in = user_orgs) | Q(submitter = user) )
         return Proposal.objects.none()
 
