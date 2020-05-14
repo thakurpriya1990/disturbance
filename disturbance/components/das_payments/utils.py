@@ -61,7 +61,7 @@ def create_fee_lines_apiary(proposal):
     MIN_NUMBER_OF_SITES_TO_APPLY = 5
     line_items = []
 
-    applicant = EmailUser.objects.get(email='katsufumi.shibata@dbca.wa.gov.au')  # Get proper applicant
+    applicant = EmailUser.objects.get(email='katsufumi.shibata@dbca.wa.gov.au')  # TODO: Get proper applicant
 
     # Calculate total number of sites applied per category
     summary = {}
