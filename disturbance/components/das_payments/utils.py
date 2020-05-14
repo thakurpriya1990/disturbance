@@ -105,6 +105,13 @@ def create_fee_lines_apiary(proposal):
         number_of_sites_calculate = quotient * MIN_NUMBER_OF_SITES_TO_APPLY + MIN_NUMBER_OF_SITES_TO_APPLY if remainder else quotient * MIN_NUMBER_OF_SITES_TO_APPLY
         number_of_sites_to_add_as_remainder = number_of_sites_calculate - number_of_sites_after_deduction
         application_price = site_category.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_APPLICATION)
+
+        # Avoid ledger error (ledger doesn't accept quantity=0)
+        # in that case, set quantity=1 and price=0
+        if number_of_sites_calculate == 0:
+            number_of_sites_calculate = 1
+            application_price = 0
+
         line_item = {
             'ledger_description': 'Application Fee - {} - {} - {}'.format(now, proposal.lodgement_number, site_category.name),
             'oracle_code': proposal.application_type.oracle_code_application,
