@@ -76,10 +76,10 @@
                                 <div class="col-sm-12 top-buffer-s">
                                     <strong>Referrals</strong><br/>
                                     <div class="form-group">
-                                        <select :disabled="!canLimitedAction" ref="department_users" class="form-control">
+                                        <!--select :disabled="!canLimitedAction" ref="department_users" class="form-control">
                                             <option value="null"></option>
                                             <option v-for="user in department_users" :value="user.email">{{user.name}}</option>
-                                        </select>
+                                        </select-->
                                         <template v-if='!sendingReferral'>
                                             <template v-if="selected_referral">
                                                 <label class="control-label pull-left"  for="Name">Comments</label>
@@ -425,7 +425,7 @@ import ResponsiveDatatablesHelper from "@/utils/responsive_datatable_helper.js"
 import { api_endpoints, helpers } from '@/utils/hooks'
 import MapLocations from '@common-utils/map_locations.vue'
 export default {
-    name: 'InternalProposal',
+    name: 'InternalProposalApiary',
     data: function() {
         let vm = this;
         return {
@@ -911,6 +911,7 @@ export default {
             });
             }
         },
+        /*
         fetchDeparmentUsers: function(){
             let vm = this;
             vm.loading.push('Loading Department Users');
@@ -922,6 +923,7 @@ export default {
                 vm.loading.splice('Loading Department Users',1);
             })
         },
+        */
         initialiseAssignedOfficerSelect:function(reinit=false){
             let vm = this;
             if (reinit){
