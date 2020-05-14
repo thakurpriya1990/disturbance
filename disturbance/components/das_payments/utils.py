@@ -61,7 +61,7 @@ def create_fee_lines_apiary(proposal):
     MIN_NUMBER_OF_SITES_TO_APPLY = 5
     line_items = []
 
-    applicant = EmailUser.objects.get(email='katsufumi.shibata@dbca.wa.gov.au')  # Get proper applicant
+    # applicant = EmailUser.objects.get(email='katsufumi.shibata@dbca.wa.gov.au')  # TODO: Get proper applicant
 
     # Calculate total number of sites applied per category
     summary = {}
@@ -79,13 +79,15 @@ def create_fee_lines_apiary(proposal):
         # Retrieve sites left
         filter_site_category = Q(site_category=site_category)
         filter_site_fee_type = Q(apiary_site_fee_type=ApiarySiteFeeType.objects.get(name=ApiarySiteFeeType.FEE_TYPE_APPLICATION))
-        filter_applicant = Q(applicant=applicant)
+        filter_applicant = Q(applicant=proposal.applicant)
+        filter_proxy_applicant = Q(proxy_applicant=proposal.proxy_applicant)
         filter_expiry = Q(date_expiry__gte=today_local)
         filter_used = Q(date_used__isnull=True)
         site_fee_remainders = ApiarySiteFeeRemainder.objects.filter(
             filter_site_category &
             filter_site_fee_type &
             filter_applicant &
+            filter_proxy_applicant &
             filter_expiry &
             filter_used
         ).order_by('date_expiry')  # Older comes earlier
@@ -117,7 +119,8 @@ def create_fee_lines_apiary(proposal):
             ApiarySiteFeeRemainder.objects.create(
                 site_category=site_category,
                 apiary_site_fee_type=ApiarySiteFeeType.objects.get(name=ApiarySiteFeeType.FEE_TYPE_APPLICATION),
-                applicant=applicant,
+                applicant=proposal.applicant,
+                proxy_applicant=proposal.proxy_applicant,
                 date_expiry= today_local + timedelta(days=7)
             )
 
