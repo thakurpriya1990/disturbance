@@ -3,8 +3,11 @@ from __future__ import unicode_literals
 import json
 import os
 import datetime
+
+import pytz
 from django.db import models,transaction
 from django.contrib.gis.db import models as gis_models
+from django.db.models import Q
 from django.dispatch import receiver
 from django.db.models.signals import pre_delete
 from django.utils.encoding import python_2_unicode_compatible
@@ -12,6 +15,7 @@ from django.core.exceptions import ValidationError
 from django.contrib.postgres.fields.jsonb import JSONField
 from django.utils import timezone
 from django.contrib.sites.models import Site
+from ledger.settings_base import TIME_ZONE
 from taggit.managers import TaggableManager
 from taggit.models import TaggedItemBase
 from ledger.accounts.models import Organisation as ledger_organisation
@@ -242,6 +246,10 @@ class Proposal(RevisionedMixin):
                                 'amendment_required',
                             ]
 
+    APPLICANT_TYPE_ORGANISATION = 'organisation'
+    APPLICANT_TYPE_PROXY = 'proxy' # proxy also represents an individual making an Apiary application
+    APPLICANT_TYPE_SUBMITTER = 'submitter'
+
     # List of statuses from above that allow a customer to view an application (read-only)
     CUSTOMER_VIEWABLE_STATE = ['with_assessor', 'under_review', 'id_required', 'returns_required', 'approved', 'declined']
 
@@ -327,7 +335,7 @@ class Proposal(RevisionedMixin):
     lodgement_sequence = models.IntegerField(blank=True, default=0)
     #lodgement_date = models.DateField(blank=True, null=True)
     lodgement_date = models.DateTimeField(blank=True, null=True)
-
+    # 20200512 - proxy_applicant also represents an individual making an Apiary application
     proxy_applicant = models.ForeignKey(EmailUser, blank=True, null=True, related_name='disturbance_proxy')
     submitter = models.ForeignKey(EmailUser, blank=True, null=True, related_name='disturbance_proposals')
 
@@ -391,6 +399,88 @@ class Proposal(RevisionedMixin):
     @property
     def fee_amount(self):
         return Invoice.objects.get(reference=self.fee_invoice_reference).amount if self.fee_paid else None
+
+    @property
+    def relevant_applicant(self):
+        if self.applicant:
+            return self.applicant
+        elif self.proxy_applicant:
+            return self.proxy_applicant
+        else:
+            return self.submitter
+
+    @property
+    def relevant_applicant_description(self):
+        if self.applicant:
+            return self.applicant.organisation.name
+        elif self.proxy_applicant:
+            return "{} {}".format(
+                self.proxy_applicant.first_name,
+                self.proxy_applicant.last_name)
+        else:
+            return "{} {}".format(
+                self.submitter.first_name,
+                self.submitter.last_name)
+
+    @property
+    def relevant_applicant_email(self):
+        if self.applicant and hasattr(self.applicant.organisation, 'email') and self.applicant.organisation.email:
+            return self.applicant.organisation.email
+        elif self.proxy_applicant:
+            return self.proxy_applicant.email
+        else:
+            return self.submitter.email
+
+    @property
+    def relevant_applicant_details(self):
+        if self.applicant:
+            return '{} \n{}'.format(
+                self.applicant.organisation.name,
+                self.applicant.address)
+        elif self.proxy_applicant:
+            return "{} {}\n{}".format(
+                self.proxy_applicant.first_name,
+                self.proxy_applicant.last_name,
+                self.proxy_applicant.addresses.all().first())
+        else:
+            return "{} {}\n{}".format(
+                self.submitter.first_name,
+                self.submitter.last_name,
+                self.submitter.addresses.all().first())
+
+    @property
+    def relevant_applicant_address(self):
+        if self.applicant:
+            return self.applicant.address
+        elif self.proxy_applicant:
+            #return self.proxy_applicant.addresses.all().first()
+            return self.proxy_applicant.residential_address
+        else:
+            #return self.submitter.addresses.all().first()
+            return self.submitter.residential_address
+
+    @property
+    def relevant_applicant_id(self):
+        return_value = None
+        if self.applicant:
+            print("APPLICANT")
+            return_value = self.applicant.id
+        elif self.proxy_applicant:
+            print("PROXY_APPLICANT")
+            return_value = self.proxy_applicant.id
+        else:
+            #return_value = self.submitter.id
+            pass
+        return return_value
+
+    @property
+    def relevant_applicant_type(self):
+        if self.applicant:
+            return self.APPLICANT_TYPE_ORGANISATION
+        elif self.proxy_applicant:
+            return self.APPLICANT_TYPE_PROXY
+        else:
+            return self.APPLICANT_TYPE_SUBMITTER
 
     @property
     def applicant_field(self):
@@ -1925,20 +2015,78 @@ class ProposalApiarySiteLocation(models.Model):
 
 
 class SiteCategory(models.Model):
+    CATEGORY_SOUTH_WEST = 'south_west'
+    CATEGORY_REMOTE = 'remote'
+    CATEGORY_CHOICES = (
+        (CATEGORY_SOUTH_WEST, 'South West'),
+        (CATEGORY_REMOTE, 'Remote')
+    )
     # This model is used to distinguish the application gtfees' differences
-    name = models.CharField(max_length=200, blank=True)
+    name = models.CharField(unique=True, max_length=50, choices=CATEGORY_CHOICES)
+
+    def retrieve_current_fee_per_site_by_type(self, fee_type_name):
+        today_local = datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
+        ret_date = self._retrieve_fee_by_date_and_type(today_local, fee_type_name)
+        return ret_date
+
+    def _retrieve_fee_by_date_and_type(self, target_date, fee_type_name):
+        fee_type_application = ApiarySiteFeeType.objects.get(name=fee_type_name)
+        if not fee_type_application:
+            raise Exception("Please select 'new_application' and save it at the Apiary Site Fee Type admin page")
+
+        site_fee = ApiarySiteFee.objects.filter(
+                    Q(apiary_site_fee_type=fee_type_application) &
+                    Q(site_category=self) &
+                    Q(date_of_enforcement__lte=target_date)).order_by('date_of_enforcement', ).last()
+
+        if site_fee:
+            return site_fee.amount
+        else:
+            return None
 
     def __str__(self):
-        return '{}'.format(self.name)
+        for item in SiteCategory.CATEGORY_CHOICES:
+            if item[0] == self.name:
+                fee_application = self.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_APPLICATION)
+                fee_amendment = self.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_AMENDMENT)
+                fee_renewal = self.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_RENEWAL)
+                fee_transfer = self.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_TRANSFER)
+                return '{} - application: {}, amendment: {}, renewal: {}, transfer: {}'.format(item[1], fee_application, fee_amendment, fee_renewal, fee_transfer)
+        return '---'
 
     class Meta:
         app_label = 'disturbance'
 
 
-class SiteApplicationFee(RevisionedMixin):
+class ApiarySiteFeeType(RevisionedMixin):
+    FEE_TYPE_APPLICATION = 'new_application'
+    FEE_TYPE_AMENDMENT = 'amendment'
+    FEE_TYPE_RENEWAL = 'renewal'
+    FEE_TYPE_TRANSFER = 'transfer'
+    FEE_TYPE_CHOICES = (
+        (FEE_TYPE_APPLICATION, 'New Application'),
+        (FEE_TYPE_AMENDMENT, 'Amendment'),
+        (FEE_TYPE_RENEWAL, 'Renewal'),
+        (FEE_TYPE_TRANSFER, 'Transfer'),
+    )
+    name = models.CharField(unique=True, max_length=50, choices=FEE_TYPE_CHOICES,)
+    description = models.TextField(blank=True)
+
+    def __str__(self):
+        for item in ApiarySiteFeeType.FEE_TYPE_CHOICES:
+            if item[0] == self.name:
+                return '{}'.format(item[1])
+        return '---'
+
+    class Meta:
+        app_label = 'disturbance'
+
+
+class ApiarySiteFee(RevisionedMixin):
     amount = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     date_of_enforcement = models.DateField(blank=True, null=True)
-    site_category = models.ForeignKey(SiteCategory, related_name='site_application_fees')
+    site_category = models.ForeignKey(SiteCategory, related_name='site_fees')
+    apiary_site_fee_type = models.ForeignKey(ApiarySiteFeeType, null=True, blank=True)
 
     class Meta:
         app_label = 'disturbance'
@@ -1948,13 +2096,52 @@ class SiteApplicationFee(RevisionedMixin):
         return '${} ({}:{})'.format(self.amount, self.date_of_enforcement, self.site_category)
 
 
+# class SiteApplicationFee(RevisionedMixin):
+#     amount = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+#     date_of_enforcement = models.DateField(blank=True, null=True)
+#     site_category = models.ForeignKey(SiteCategory, related_name='site_application_fees')
+#
+#     class Meta:
+#         app_label = 'disturbance'
+#         ordering = ('date_of_enforcement', )  # oldest record first, latest record last
+#
+#     def __str__(self):
+#         return '${} ({}:{})'.format(self.amount, self.date_of_enforcement, self.site_category)
+
+
 class ApiarySite(models.Model):
     proposal_apiary_site_location = models.ForeignKey(ProposalApiarySiteLocation, null=True, blank=True, related_name='apiary_sites')
     site_guid = models.CharField(max_length=50, blank=True)
     available = models.BooleanField(default=False, )
+    site_category = models.ForeignKey(SiteCategory, null=True, blank=True)
 
     def __str__(self):
         return '{} - {}'.format(self.site_guid, self.proposal_apiary_site_location.proposal.title)
+
+    def get_current_application_fee_per_site(self):
+        current_fee = self.site_category.current_application_fee_per_site
+        return current_fee
+
+    class Meta:
+        app_label = 'disturbance'
+
+
+class ApiarySiteFeeRemainder(models.Model):
+    '''
+    A record of this model means a site is left
+
+    You have to check the validity of the record by date_expiry and date_used fields
+    '''
+    site_category = models.ForeignKey(SiteCategory)
+    apiary_site_fee_type = models.ForeignKey(ApiarySiteFeeType)
+    applicant = models.ForeignKey(EmailUser)
+    # number_of_sites_left = models.SmallIntegerField(default=0)
+    datetime_created = models.DateTimeField(auto_now_add=True)
+    date_expiry = models.DateField(null=True, blank=True)
+    date_used = models.DateField(null=True, blank=True)
+
+    def __str__(self):
+        return 'Remainder: {} - {} - {} - {} site(s)'.format(self.applicant, self.site_category, self.apiary_site_fee_type, self.number_of_sites_left)
 
     class Meta:
         app_label = 'disturbance'
@@ -2003,6 +2190,52 @@ class ProposalApiaryDocument(DefaultDocument):
     def delete(self):
         if self.can_delete:
             return super(ProposalApiaryDocument, self).delete()
+
+class ApiaryReferralGroup(models.Model):
+    name = models.CharField(max_length=255)
+    #members = models.ManyToManyField(EmailUser,blank=True)
+    #regions = TaggableManager(verbose_name="Regions",help_text="A comma-separated list of regions.",through=TaggedProposalAssessorGroupRegions,related_name = "+",blank=True)
+    #activities = TaggableManager(verbose_name="Activities",help_text="A comma-separated list of activities.",through=TaggedProposalAssessorGroupActivities,related_name = "+",blank=True)
+    members = models.ManyToManyField(EmailUser)
+    region = models.ForeignKey(Region, null=True, blank=True)
+    default = models.BooleanField(default=False)
+
+    class Meta:
+        app_label = 'disturbance'
+
+    def __str__(self):
+        return self.name
+
+    def clean(self):
+        try:
+            default = ApiaryReferralGroup.objects.get(default=True)
+        except ApiaryReferralGroup.DoesNotExist:
+            default = None
+
+        if self.pk:
+            if not self.default and not self.region:
+                raise ValidationError('Only default can have no region set for apiary referral group. Please specifiy region')
+#            elif default and not self.default:
+#                raise ValidationError('There can only be one default proposal assessor group')
+        else:
+            if default and self.default:
+                raise ValidationError('There can only be one default apiary referral group')
+
+    #def member_is_assigned(self,member):
+     #   for p in self.current_proposals:
+      #      if p.assigned_officer == member:
+       #         return True
+        #return False
+
+    @property
+    def current_proposals(self):
+        #assessable_states = ['with_assessor','with_referral','with_assessor_requirements']
+        assessable_states = ['with_referral']
+        return Proposal.objects.filter(processing_status__in=assessable_states)
+
+    @property
+    def members_email(self):
+        return [i.email for i in self.members.all()]
 
 #class ApiaryTemporaryUseDocument(DefaultDocument):
 #    temporary_use = models.ForeignKey('ProposalApiaryTemporaryUse', related_name='apiary_temporary_use_documents')
