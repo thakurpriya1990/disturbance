@@ -9,10 +9,12 @@ from disturbance.components.proposals.models import (
     ProposalApiaryTemporaryUse,
     ProposalApiarySiteTransfer,
 
-    ProposalApiaryDocument, ApiarySite, OnSiteInformation,
-
-    ProposalApiaryDocument,
     ApiaryChecklistQuestion,
+
+    ProposalApiaryDocument, 
+    ApiarySite, 
+    OnSiteInformation,
+    ApiaryReferralGroup,
 )
 
 from rest_framework import serializers
@@ -380,4 +382,12 @@ class ApiaryChecklistQuestionSerializer(serializers.ModelSerializer):
                 )
 
 
+
+class ApiaryReferralGroupSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ApiaryReferralGroup
+        fields = (
+                'id',
+                'name',
+                )
 
