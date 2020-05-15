@@ -27,7 +27,7 @@ from django.core.cache import cache
 from ledger.accounts.models import EmailUser, Address
 from ledger.address.models import Country
 from datetime import datetime, timedelta, date
-from disturbance.components.proposals.utils import save_proponent_data,save_assessor_data, proposal_submit
+from disturbance.components.proposals.utils import save_proponent_data,save_assessor_data, proposal_submit_apiary
 from disturbance.components.proposals.models import searchKeyWords, search_reference, ProposalUserAction, \
     ProposalApiarySiteLocation, OnSiteInformation
 from disturbance.utils import missing_required_fields, search_tenure
@@ -46,6 +46,7 @@ from disturbance.components.proposals.models import (
     AmendmentRequest,
     AmendmentReason,
     AmendmentRequestDocument,
+    ApiaryReferralGroup,
 
 )
 from disturbance.components.proposals.serializers import (
@@ -77,7 +78,9 @@ from disturbance.components.proposals.serializers_apiary import (
     InternalProposalApiarySerializer,
     ProposalApiarySiteLocationSerializer,
     ProposalApiaryTemporaryUseSerializer,
-    ProposalApiarySiteTransferSerializer, OnSiteInformationSerializer,
+    ProposalApiarySiteTransferSerializer, 
+    OnSiteInformationSerializer,
+    ApiaryReferralGroupSerializer,
 )
 from disturbance.components.approvals.models import Approval
 from disturbance.components.approvals.serializers import ApprovalSerializer
@@ -715,7 +718,8 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 instance.submit(request,self)
                 instance.tenure = search_tenure(instance)
             else:
-                proposal_submit(instance, request)
+                save_proponent_data(instance, request, self)
+                proposal_submit_apiary(instance, request)
             instance.save()
             serializer = self.get_serializer(instance)
             return Response(serializer.data)
@@ -1538,4 +1542,16 @@ class SearchReferenceView(views.APIView):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
+
+class ApiaryReferralGroupViewSet(viewsets.ModelViewSet):
+    queryset = ApiaryReferralGroup.objects.none()
+    serializer_class = ApiaryReferralGroupSerializer
+
+    def get_queryset(self):
+        #user = self.request.user
+        #import ipdb; ipdb.set_trace()
+        if is_internal(self.request): #user.is_authenticated():
+            return ApiaryReferralGroup.objects.all()
+        else:
+            return ApiaryReferralGroup.objects.none()
 
