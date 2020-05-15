@@ -12,7 +12,7 @@ from disturbance.components.proposals.models import (
     ProposalApiaryDocument, ApiarySite, OnSiteInformation,
 
     ProposalApiaryDocument,
-    #ApiaryChecklistQuestion,
+    ApiaryChecklistQuestion,
 )
 
 from rest_framework import serializers
@@ -80,6 +80,8 @@ class ProposalApiarySiteLocationSerializer(serializers.ModelSerializer):
     apiary_sites = ApiarySiteSerializer(read_only=True, many=True)
     on_site_information_list = serializers.SerializerMethodField()  # This is used for displaying OnSite table at the frontend
 
+    checklist_questions = serializers.SerializerMethodField()
+
     class Meta:
         model = ProposalApiarySiteLocation
         # geo_field = 'location'
@@ -93,6 +95,7 @@ class ProposalApiarySiteLocationSerializer(serializers.ModelSerializer):
             'longitude',
             'latitude',
             'on_site_information_list',
+            'checklist_questions',
         )
 
     def get_on_site_information_list(self, obj):
@@ -101,6 +104,10 @@ class ProposalApiarySiteLocationSerializer(serializers.ModelSerializer):
         ).order_by('-period_from')
         ret = OnSiteInformationSerializer(on_site_information_list, many=True).data
         return ret
+
+    def get_checklist_questions(self, obj):
+        checklistQuestion = {1: 'xyz'}
+        return checklistQuestion
 
 
 class ProposalApiaryTemporaryUseSerializer(serializers.ModelSerializer):
@@ -362,14 +369,15 @@ class InternalProposalApiarySerializer(BaseProposalSerializer):
     def get_applicant_type(self,obj):
         return obj.relevant_applicant_type
 
-# class ApiaryChecklistQuestionSerializer(serializers.ModelSerializer):
-#
-#     class Meta:
-#         model = ApiaryChecklistQuestion
-#         fields=('id',
-#                 'text',
-#                 'answer_type',
-#                 )
+class ApiaryChecklistQuestionSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = ApiaryChecklistQuestion
+        fields=('id',
+                'text',
+                'answer_type',
+                'order'
+                )
 
 
 

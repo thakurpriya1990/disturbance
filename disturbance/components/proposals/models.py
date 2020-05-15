@@ -2240,7 +2240,6 @@ class ApiaryReferralGroup(models.Model):
 class ApiaryChecklistQuestion(models.Model):
     ANSWER_TYPE_CHOICES = (
         ('yes_no', 'Yes/No type'),
-        ('free_text', 'Free text type')
     )
     text = models.TextField()
     answer_type = models.CharField('Answer Type',
@@ -2253,7 +2252,7 @@ class ApiaryChecklistQuestion(models.Model):
         return self.text
 
     class Meta:
-        pass
+        app_label = 'disturbance'
 
 #class ApiaryTemporaryUseDocument(DefaultDocument):
 #    temporary_use = models.ForeignKey('ProposalApiaryTemporaryUse', related_name='apiary_temporary_use_documents')
