@@ -21,7 +21,7 @@ from disturbance.components.organisations.models import Organisation
 from disturbance.components.das_payments.context_processors import disturbance_url, template_context
 from disturbance.components.das_payments.invoice_pdf import create_invoice_pdf_bytes
 from disturbance.components.das_payments.confirmation_pdf import create_confirmation_pdf_bytes
-from disturbance.components.proposals.utils import proposal_submit
+from disturbance.components.proposals.utils import proposal_submit_apiary
 from disturbance.components.das_payments.email import (
     send_application_fee_invoice_apiary_email_notification,
     send_application_fee_confirmation_apiary_email_notification,
