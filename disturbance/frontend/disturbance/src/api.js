@@ -50,4 +50,6 @@ module.exports = {
     system_name: 'Disturbance Approval System',
     //system_name_short: 'DAS',
 
+    // Apiary specific endpoints
+    apiary_referral_groups:"/api/apiary_referral_groups.json",
 }

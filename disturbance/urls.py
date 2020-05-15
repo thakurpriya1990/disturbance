@@ -19,6 +19,9 @@ from disturbance.components.das_payments import api as payment_api
 from ledger.urls import urlpatterns as ledger_patterns
 
 # API patterns
+from disturbance.management.default_data_manager import DefaultDataManager
+from disturbance.utils import are_migrations_running
+
 router = routers.DefaultRouter()
 router.register(r'organisations',org_api.OrganisationViewSet)
 router.register(r'proposal',proposal_api.ProposalViewSet)
@@ -42,6 +45,7 @@ router.register(r'regions', main_api.RegionViewSet)
 router.register(r'activity_matrix', main_api.ActivityMatrixViewSet)
 #router.register(r'tenure', main_api.TenureViewSet)
 router.register(r'application_types', main_api.ApplicationTypeViewSet)
+router.register(r'apiary_referral_groups', proposal_api.ApiaryReferralGroupViewSet)
 #router.register(r'payment',payment_api.PaymentViewSet)
 
 
@@ -101,6 +105,9 @@ urlpatterns = [
     url(r'^history/organisation/(?P<pk>\d+)/$', organisation_views.OrganisationHistoryCompareView.as_view(), name='organisation_history'),
 
 ] + ledger_patterns
+
+if not are_migrations_running():
+    DefaultDataManager()
 
 if settings.DEBUG:  # Serve media locally in development.
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
