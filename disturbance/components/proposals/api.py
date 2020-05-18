@@ -32,7 +32,7 @@ from ledger.address.models import Country
 from datetime import datetime, timedelta, date
 from disturbance.components.proposals.utils import save_proponent_data,save_assessor_data, proposal_submit_apiary
 from disturbance.components.proposals.models import searchKeyWords, search_reference, ProposalUserAction, \
-    ProposalApiarySiteLocation, OnSiteInformation
+    ProposalApiarySiteLocation, OnSiteInformation, ApiarySite
 from disturbance.utils import missing_required_fields, search_tenure
 from disturbance.components.main.utils import check_db_connection
 
@@ -81,9 +81,9 @@ from disturbance.components.proposals.serializers_apiary import (
     InternalProposalApiarySerializer,
     ProposalApiarySiteLocationSerializer,
     ProposalApiaryTemporaryUseSerializer,
-    ProposalApiarySiteTransferSerializer, 
+    ProposalApiarySiteTransferSerializer,
     OnSiteInformationSerializer,
-    ApiaryReferralGroupSerializer,
+    ApiaryReferralGroupSerializer, ApiarySiteSerializer,
 )
 from disturbance.components.approvals.models import Approval
 from disturbance.components.approvals.serializers import ApprovalSerializer
@@ -386,6 +386,33 @@ class OnSiteInformationViewSet(viewsets.ModelViewSet):
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
                 return Response(serializer.data)
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+
+class ApiarySiteViewSet(viewsets.ModelViewSet):
+    queryset = ApiarySite.objects.all()
+    serializer_class = ApiarySiteSerializer
+
+    def partial_update(self, request, *args, **kwargs):
+        try:
+            with transaction.atomic():
+                instance = self.get_object()
+                request_data = request.data
+
+                serializer = ApiarySiteSerializer(instance, data=request_data, partial=True)
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+
+                return Response({})
 
         except serializers.ValidationError:
             print(traceback.print_exc())
@@ -1227,6 +1254,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
+
 class ReferralViewSet(viewsets.ModelViewSet):
     #queryset = Referral.objects.all()
     queryset = Referral.objects.none()
@@ -1388,6 +1416,7 @@ class ReferralViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
+
 class ProposalRequirementViewSet(viewsets.ModelViewSet):
     #queryset = ProposalRequirement.objects.all()
     queryset = ProposalRequirement.objects.none()
@@ -1451,6 +1480,7 @@ class ProposalRequirementViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
+
 class ProposalStandardRequirementViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = ProposalStandardRequirement.objects.all()
     serializer_class = ProposalStandardRequirementSerializer
@@ -1462,6 +1492,7 @@ class ProposalStandardRequirementViewSet(viewsets.ReadOnlyModelViewSet):
             queryset = queryset.filter(text__icontains=search)
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
+
 
 class AmendmentRequestViewSet(viewsets.ModelViewSet):
     queryset = AmendmentRequest.objects.all()
@@ -1516,7 +1547,6 @@ class AmendmentRequestViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(str(e))
 
 
-
 class AmendmentRequestReasonChoicesView(views.APIView):
 
     renderer_classes = [JSONRenderer,]
@@ -1529,6 +1559,7 @@ class AmendmentRequestReasonChoicesView(views.APIView):
                 #choices_list.append({'key': c[0],'value': c[1]})
                 choices_list.append({'key': c.id,'value': c.reason})
         return Response(choices_list)
+
 
 class SearchKeywordsView(views.APIView):
     renderer_classes = [JSONRenderer,]
@@ -1543,6 +1574,7 @@ class SearchKeywordsView(views.APIView):
         #queryset = list(set(qs))
         serializer = SearchKeywordSerializer(qs, many=True)
         return Response(serializer.data)
+
 
 class SearchReferenceView(views.APIView):
     renderer_classes = [JSONRenderer,]

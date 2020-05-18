@@ -204,7 +204,6 @@
             deleteOnSiteInformation: async function(e) {
                 let vm = this;
                 let on_site_information_id = e.target.getAttribute("data-on-site-information-id");
-                console.log(on_site_information_id);
 
                 swal({
                       title: "Delete on site information",
@@ -215,9 +214,6 @@
                       confirmButtonText: "Yes, delete it",
                 }).then(
                     (accept) => {
-                        console.log('1');
-                        console.log(accept);
-
                         vm.$http.delete('/api/on_site_information/' + on_site_information_id).then(
                             async function(accept){
                                 await vm.loadApiarySiteLocation(this.apiary_site_location_id);
@@ -233,8 +229,7 @@
                         );
                     },
                     (reject)=>{
-                        console.log('2');
-                        console.log(reject);
+
                     }
                 )
             },
