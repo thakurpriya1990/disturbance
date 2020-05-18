@@ -4,6 +4,9 @@ import os
 import base64
 import geojson
 import json
+
+import pytz
+from ledger.settings_base import TIME_ZONE
 from six.moves.urllib.parse import urlparse
 from wsgiref.util import FileWrapper
 from django.db.models import Q, Min
@@ -317,7 +320,7 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
 
 
 class OnSiteInformationViewSet(viewsets.ModelViewSet):
-    queryset = OnSiteInformation.objects.all()
+    queryset = OnSiteInformation.objects.filter(datetime_deleted=None)
     serializer_class = OnSiteInformationSerializer
 
     @staticmethod
@@ -349,6 +352,28 @@ class OnSiteInformationViewSet(viewsets.ModelViewSet):
 
         return data_dict
 
+    def destroy(self, request, *args, **kwargs):
+        try:
+            with transaction.atomic():
+                instance = self.get_object()
+
+                now = datetime.now(pytz.timezone(TIME_ZONE))
+                serializer = OnSiteInformationSerializer(instance, {'datetime_deleted': now}, partial=True)
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+
+                return Response({})
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
     def create(self, request, *args, **kwargs):
         try:
             with transaction.atomic():
@@ -371,6 +396,7 @@ class OnSiteInformationViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
+
 
 class ProposalApiarySiteLocationViewSet(viewsets.ModelViewSet):
     queryset = ProposalApiarySiteLocation.objects.none()

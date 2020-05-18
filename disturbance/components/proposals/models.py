@@ -2152,6 +2152,7 @@ class OnSiteInformation(models.Model):
     period_from = models.DateField(null=True, blank=True)
     period_to = models.DateField(null=True, blank=True)
     comments = models.TextField(blank=True)
+    datetime_deleted = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return 'OnSiteInfo id: {}, date: {} to {}'.format(self.id, self.period_from, self.period_to)
@@ -2190,6 +2191,7 @@ class ProposalApiaryDocument(DefaultDocument):
     def delete(self):
         if self.can_delete:
             return super(ProposalApiaryDocument, self).delete()
+
 
 class ApiaryReferralGroup(models.Model):
     name = models.CharField(max_length=255)
