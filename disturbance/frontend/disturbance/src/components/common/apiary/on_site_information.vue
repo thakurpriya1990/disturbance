@@ -31,6 +31,8 @@
     import { api_endpoints, helpers, } from '@/utils/hooks'
     import OnSiteInformationAddModal from './on_site_information_add_modal'
     //import uuid from 'uuid'
+   // import Swal from 'sweetalert2'
+    //import Swal from 'sweetalert2/dist/sweetalert2.js'
 
     export default {
         props:{
@@ -124,7 +126,9 @@
                                 if (full.action) {
                                     return full.action;
                                 } else {
-                                    return 'Edit (TODO)<br />Delete (TODO)';
+                                    let ret = '<a><span class="delete_on_site_information" data-on-site-information-id="' + full.id + '"/>Delete</span></a>';
+                                    ret += '<br />Edit(TODO)'
+                                    return ret;
                                 }
                             }
                         },
@@ -195,7 +199,39 @@
                 this.$refs.on_site_information_table.vmDataTable.row.add(on_site_information).draw();
             },
             addEventListeners: function() {
+                $("#on-site-information-table").on("click", ".delete_on_site_information", this.deleteOnSiteInformation);
+            },
+            deleteOnSiteInformation: async function(e) {
+                let vm = this;
+                let on_site_information_id = e.target.getAttribute("data-on-site-information-id");
 
+                swal({
+                      title: "Delete on site information",
+                      text: "Are you sure you want to delete this?",
+                      type: "warning",
+                      showCancelButton: true,
+                      confirmButtonClass: "btn-danger",
+                      confirmButtonText: "Yes, delete it",
+                }).then(
+                    (accept) => {
+                        vm.$http.delete('/api/on_site_information/' + on_site_information_id).then(
+                            async function(accept){
+                                await vm.loadApiarySiteLocation(this.apiary_site_location_id);
+                                vm.constructOnSiteInformationTable();
+                            },
+                            reject=>{
+                                swal(
+                                    'Submit Error',
+                                    helpers.apiVueResourceError(err),
+                                    'error'
+                                )
+                            }
+                        );
+                    },
+                    (reject)=>{
+
+                    }
+                )
             },
         },
         created: function() {
