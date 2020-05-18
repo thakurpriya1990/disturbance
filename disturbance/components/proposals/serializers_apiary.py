@@ -108,8 +108,9 @@ class ProposalApiarySiteLocationSerializer(serializers.ModelSerializer):
         return ret
 
     def get_checklist_questions(self, obj):
-        checklistQuestion = {1: 'xyz'}
-        return checklistQuestion
+        checklistQuestion = ApiaryChecklistQuestion.objects.values('text')
+        ret = ApiaryChecklistQuestionSerializer(checklistQuestion, many=True).data
+        return ret
 
 
 class ProposalApiaryTemporaryUseSerializer(serializers.ModelSerializer):
