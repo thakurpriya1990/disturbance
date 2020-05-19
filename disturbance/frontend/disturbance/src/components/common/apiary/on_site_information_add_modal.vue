@@ -8,8 +8,10 @@
                         <label class="col-sm-3">Period From</label>
                         <div class="col-sm-4">
                             <div class="input-group date" ref="periodFromDatePicker">
-                                <!-- input type="text" class="form-control" placeholder="DD/MM/YYYY" v-model="on_site_information.period_from" / -->
-                                <input type="text" class="form-control" placeholder="DD/MM/YYYY" />
+                                <!-- 
+                                <input type="text" class="form-control" placeholder="DD/MM/YYYY" v-model="on_site_information.period_from" />
+                                -->
+                                <input type="text" class="form-control" placeholder="DD/MM/YYYY" id="period_from_input_element"/>
                                 <span class="input-group-addon">
                                     <span class="glyphicon glyphicon-calendar"></span>
                                 </span>
@@ -21,8 +23,10 @@
                         <label class="col-sm-3">Period To</label>
                         <div class="col-sm-4">
                             <div class="input-group date" ref="periodToDatePicker">
-                                <!-- input type="text" class="form-control" placeholder="DD/MM/YYYY" v-model="on_site_information.period_to" / -->
-                                <input type="text" class="form-control" placeholder="DD/MM/YYYY" />
+                                <!-- 
+                                    <input type="text" class="form-control" placeholder="DD/MM/YYYY" v-model="on_site_information.period_to" />
+                                -->
+                                <input type="text" class="form-control" placeholder="DD/MM/YYYY" id="period_to_input_element"/>
                                 <span class="input-group-addon">
                                     <span class="glyphicon glyphicon-calendar"></span>
                                 </span>
@@ -83,12 +87,6 @@ export default {
             processingDetails: false,
             isModalOpen: false,
             errorResponse: '',
-            on_site_information: {
-                apiary_site: null,
-                comments: '',
-                period_from: null,
-                period_to: null,
-            },
         }
     },
     components: {
@@ -98,6 +96,9 @@ export default {
         apiary_site_location: {
             type: Object,
         },
+        on_site_information: {
+            type: Object,
+        }
     },
     watch:{
         isModalOpen: function() {
@@ -149,20 +150,6 @@ export default {
                     vm.on_site_information.period_from = selected_date;
                     el_to.data('DateTimePicker').minDate(false);  
                 }
-                console.log('selected_date');
-                console.log(selected_date);
-
-
-               // if (el_fr.data("DateTimePicker").date()) {
-               //     console.log('fr-if')
-               //     vm.on_site_information.period_from = selected_date;
-               //     el_to.data('DateTimePicker').minDate(selected_date);  
-               // } else if (el_fr.data("date") === "") {
-               //     console.log('fr-else')
-               //     // Date has been cleared
-               //     vm.on_site_information.period_from = '';
-               //     el_to.data('DateTimePicker').minDate(false);
-               // }
             });
 
             el_to.on("dp.change", function(e) {
@@ -178,30 +165,50 @@ export default {
                     vm.on_site_information.period_to = '';
                     el_fr.data('DateTimePicker').maxDate(false);
                 }
-                console.log('selected_date');
-                console.log(selected_date);
-
-               // if (el_to.data("DateTimePicker").date()) {
-               //     console.log('to-if')
-               //     vm.on_site_information.period_to = selected_date;
-               //     el_fr.data('DateTimePicker').maxDate(selected_date);
-               // } else if (el_to.data("date") === "") {
-               //     console.log('to-else')
-               //     // Date has been cleared
-               //     vm.on_site_information.period_to = '';
-               //     el_fr.data('DateTimePicker').maxDate(false);
-               // }
             });
+
+            // Set dates in case they are passed from the parent component
+            let period_from_passed = vm.on_site_information.period_from;
+            let period_to_passed = vm.on_site_information.period_to;
+            let searchPattern = /^[0-9]{4}/
+
+            if (period_from_passed) {
+                if (searchPattern.test(period_from_passed)) {
+                    // Convert YYYY-MM-DD to DD/MM/YYYY
+                    period_from_passed = moment(period_from_passed, 'YYYY-MM-DD').format('DD/MM/YYYY');
+                    console.log('converted');
+                }
+                console.log('period_from_passed');
+                console.log(period_from_passed);
+                $('#period_from_input_element').val(period_from_passed);
+                el_to.data('DateTimePicker').minDate(period_from_passed);  
+            }
+
+            if (period_to_passed) {
+                if (searchPattern.test(period_to_passed)) {
+                    // Convert YYYY-MM-DD to DD/MM/YYYY
+                    period_to_passed = moment(period_to_passed, 'YYYY-MM-DD').format('DD/MM/YYYY');
+                    console.log('converted');
+                }
+                console.log('period_to_passed');
+                console.log(period_to_passed);
+                $('#period_to_input_element').val(period_to_passed);
+                el_fr.data('DateTimePicker').maxDate(period_to_passed);  
+            }
         },
         ok: async function () {
             try {
                 this.processingDetails = true;
+
+                // Update django database
                 const response = await this.sendData();
+
+                // Inform the parent component that the database has been updated
+                // so that the parent component can update a table
                 this.$emit('on_site_information_added');
+
                 this.close();
             } catch (err){
-                console.log(err);
-                console.log('err');
                 this.processError(err);
             } finally {
                 this.processingDetails = false;
@@ -243,7 +250,7 @@ export default {
             this.isModalOpen = false;
         },
         sendData: async function () {
-            let post_url = '/api/on_site_information/'
+            let base_url = '/api/on_site_information/'
             let payload = {}
             Object.assign(payload, this.on_site_information);
 
@@ -254,7 +261,14 @@ export default {
                 payload.apiary_site_id = 0
             }
 
-            let res = await Vue.http.post(post_url, payload);
+            let res = '';
+            if (this.on_site_information.id){
+                // Update existing on-site-information
+                res = await Vue.http.put(base_url + this.on_site_information.id + '/', payload);
+            } else {
+                // Create new on-site-information
+                res = await Vue.http.post(base_url, payload);
+            }
             return res
         },
     },
