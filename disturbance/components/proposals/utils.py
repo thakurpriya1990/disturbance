@@ -528,7 +528,8 @@ def save_assessor_data(instance,request,viewset):
         except:
             raise
 
-def proposal_submit_apiary(proposal,request):
+
+def proposal_submit_apiary(proposal, request):
     with transaction.atomic():
         if proposal.can_user_edit:
             proposal.submitter = request.user
