@@ -2182,6 +2182,17 @@ class ProposalApiaryTemporaryUse(models.Model):
         app_label = 'disturbance'
 
 
+class TemporaryUseApiarySite(models.Model):
+    '''
+    Apiary sites under a proposal can be partially used as temporary site
+    '''
+    proposal_apiary_temporary_use = models.ForeignKey(ProposalApiaryTemporaryUse, blank=True, null=True)
+    apiary_site = models.ForeignKey(ApiarySite, blank=True, null=True)
+
+    class Meta:
+        app_label = 'disturbance'
+
+
 class ProposalApiarySiteTransfer(models.Model):
     email = models.EmailField('Email of Transferee', max_length=254, blank=True, null=True)
     proposal = models.OneToOneField(Proposal, related_name='apiary_site_transfer', null=True)
