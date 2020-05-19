@@ -609,6 +609,15 @@ class Proposal(RevisionedMixin):
         return qs
 
     def __assessor_group(self):
+        # Alternative logic for Apiary applications
+        if self.application_type and self.application_type.name in (
+                ApplicationType.APIARY,
+                ApplicationType.TEMPORARY_USE,
+                ApplicationType.SITE_TRANSFER,
+                ):
+            group = ApiaryAssessorGroup.objects.first()
+            if group:
+                return group
         # TODO get list of assessor groups based on region and activity
         if self.region and self.activity:
             try:
@@ -626,6 +635,15 @@ class Proposal(RevisionedMixin):
 
 
     def __approver_group(self):
+        # Alternative logic for Apiary applications
+        if self.application_type and self.application_type.name in (
+                ApplicationType.APIARY,
+                ApplicationType.TEMPORARY_USE,
+                ApplicationType.SITE_TRANSFER,
+                ):
+            group = ApiaryApproverGroup.objects.first()
+            if group:
+                return group
         # TODO get list of approver groups based on region and activity
         if self.region and self.activity:
             try:
@@ -660,7 +678,18 @@ class Proposal(RevisionedMixin):
     @property
     def assessor_recipients(self):
         recipients = []
+        # Alternative logic for Apiary applications
+        if self.application_type and self.application_type.name in (
+                ApplicationType.APIARY,
+                ApplicationType.TEMPORARY_USE,
+                ApplicationType.SITE_TRANSFER,
+                ):
+            group = ApiaryAssessorGroup.objects.first()
+            if group:
+                return group
+            return group.members_email
         #import ipdb; ipdb.set_trace()
+        # Proposal logic
         try:
             recipients = ProposalAssessorGroup.objects.get(region=self.region).members_email
         except:
@@ -673,6 +702,17 @@ class Proposal(RevisionedMixin):
     @property
     def approver_recipients(self):
         recipients = []
+        # Alternative logic for Apiary applications
+        if self.application_type and self.application_type.name in (
+                ApplicationType.APIARY,
+                ApplicationType.TEMPORARY_USE,
+                ApplicationType.SITE_TRANSFER,
+                ):
+            group = ApiaryApproverGroup.objects.first()
+            if group:
+                return group
+            return group.members_email
+        # Proposal logic
         try:
             recipients = ProposalApproverGroup.objects.get(region=self.region).members_email
         except:
@@ -709,8 +749,14 @@ class Proposal(RevisionedMixin):
 
     def can_assess(self,user):
         if self.processing_status == 'with_assessor' or self.processing_status == 'with_referral' or self.processing_status == 'with_assessor_requirements':
+            # Apiary logic
+            return self.__assessor_group() in user.apiaryassessorgroup_set.all()
+            # Proposal logic
             return self.__assessor_group() in user.proposalassessorgroup_set.all()
         elif self.processing_status == 'with_approver':
+            # Apiary logic
+            return self.__assessor_group() in user.apiaryapprovergroup_set.all()
+            # Proposal logic
             return self.__approver_group() in user.proposalapprovergroup_set.all()
         else:
             return False
@@ -740,10 +786,16 @@ class Proposal(RevisionedMixin):
         else:
             if self.assigned_officer:
                 if self.assigned_officer == user:
+                    # Apiary logic
+                    return self.__assessor_group() in user.apiaryassessorgroup_set.all()
+                    # Proposal logic
                     return self.__assessor_group() in user.proposalassessorgroup_set.all()
                 else:
                     return False
             else:
+                # Apiary logic
+                return self.__assessor_group() in user.apiaryassessorgroup_set.all()
+                # Proposal logic
                 return self.__assessor_group() in user.proposalassessorgroup_set.all()
 
     def log_user_action(self, action, request):
@@ -2253,6 +2305,53 @@ class ApiaryReferralGroup(models.Model):
 #        if self.can_delete:
 #            return super(ApiarySiteLocationDocument, self).delete()
 
+
+class ApiaryAssessorGroup(models.Model):
+    site = models.OneToOneField(Site, default='1') 
+    members = models.ManyToManyField(EmailUser)
+
+    def __str__(self):
+        return 'Apiary Assessors Group'
+
+    @property
+    def all_members(self):
+        all_members = []
+        all_members.extend(self.members.all())
+        member_ids = [m.id for m in self.members.all()]
+        #all_members.extend(EmailUser.objects.filter(is_superuser=True,is_staff=True,is_active=True).exclude(id__in=member_ids))
+        return all_members
+
+    @property
+    def filtered_members(self):
+        return self.members.all()
+
+    class Meta:
+        app_label = 'disturbance'
+        verbose_name_plural = 'Apiary Assessors Group'
+
+
+class ApiaryApproverGroup(models.Model):
+    site = models.OneToOneField(Site, default='1') 
+    members = models.ManyToManyField(EmailUser)
+
+    def __str__(self):
+        return 'Apiary Approvers Group'
+
+    @property
+    def all_members(self):
+        all_members = []
+        all_members.extend(self.members.all())
+        member_ids = [m.id for m in self.members.all()]
+        #all_members.extend(EmailUser.objects.filter(is_superuser=True,is_staff=True,is_active=True).exclude(id__in=member_ids))
+        return all_members
+
+    @property
+    def filtered_members(self):
+        return self.members.all()
+
+    class Meta:
+        app_label = 'disturbance'
+        verbose_name_plural = 'Apiary Approvers Group'
 
 
 # --------------------------------------------------------------------------------------
