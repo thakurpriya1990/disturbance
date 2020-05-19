@@ -74,11 +74,14 @@
                         {
                             mRender: function (data, type, full) {
                                 let action_list = ['View on map (TODO)',]
+                                let display_text = ''
                                 if (full.available){
-                                    action_list.push('Mark as unavailable (TODO)');
+                                    display_text = 'Mark as unavailable';
                                 } else {
-                                    action_list.push('Mark as available (TODO)');
+                                    display_text = 'Mark as available';
                                 }
+                                let ret = '<a><span class="toggle_availability" data-apiary-site-id="' + full.id + '" data-apiary-site-available="' + full.available + '"/>' + display_text + '</span></a>';
+                                action_list.push(ret);
                                 return action_list.join('<br />');
                             }
                         },
@@ -131,10 +134,31 @@
                 this.$refs.site_availability_table.vmDataTable.row.add(apiary_site).draw();
             },
             addEventListeners: function() {
-
+                $("#site-availability-table").on("click", ".toggle_availability", this.toggleAvailability);
             },
+            toggleAvailability: function(e) {
+                let vm = this;
+                let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
+                let current_availability = e.target.getAttribute("data-apiary-site-available");
+                let requested_availability = current_availability === 'true' ? false : true
+
+                vm.$http.patch('/api/apiary_site/' + apiary_site_id + '/', { 'available': requested_availability }).then(
+                    async function(accept){
+                        await vm.loadApiarySiteLocation(vm.apiary_site_location_id);
+                        vm.constructOnSiteInformationTable();
+                    },
+                    reject=>{
+                        swal(
+                            'Submit Error',
+                            helpers.apiVueResourceError(err),
+                            'error'
+                        )
+                    }
+                );
+            }
         },
         created: function() {
+
         },
         mounted: function() {
             let vm = this;
