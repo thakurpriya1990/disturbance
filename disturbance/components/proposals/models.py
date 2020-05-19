@@ -2204,6 +2204,7 @@ class OnSiteInformation(models.Model):
     period_from = models.DateField(null=True, blank=True)
     period_to = models.DateField(null=True, blank=True)
     comments = models.TextField(blank=True)
+    datetime_deleted = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return 'OnSiteInfo id: {}, date: {} to {}'.format(self.id, self.period_from, self.period_to)
@@ -2213,12 +2214,32 @@ class OnSiteInformation(models.Model):
 
 
 class ProposalApiaryTemporaryUse(models.Model):
-    from_date=models.DateField('Period From Date', blank=True, null=True)
-    to_date=models.DateField('Period To Date', blank=True, null=True)
+    from_date = models.DateField('Period From Date', blank=True, null=True)
+    to_date = models.DateField('Period To Date', blank=True, null=True)
     proposal = models.OneToOneField(Proposal, related_name='apiary_temporary_use', null=True)
+    # proposal_apiary_site_location = models.ForeignKey(ProposalApiarySiteLocation, null=True, blank=True)
+    temporary_occupier_name = models.CharField(max_length=255, blank=True, null=True)
+    temporary_occupier_phone = models.CharField(max_length=50, blank=True, null=True)
+    temporary_occupier_mobile = models.CharField(max_length=50, blank=True, null=True)
+    temporary_occupier_email = models.EmailField(blank=True, null=True)
 
     def __str__(self):
-        return '{}'.format(self.title)
+        if self.proposal.apiary_site_location:
+            return 'id:{} - {}'.format(self.id, self.proposal.apiary_site_location.title)
+        else:
+            # Should not reach here
+            return 'id:{}'.format(self.id)
+
+    class Meta:
+        app_label = 'disturbance'
+
+
+class TemporaryUseApiarySite(models.Model):
+    '''
+    Apiary sites under a proposal can be partially used as temporary site
+    '''
+    proposal_apiary_temporary_use = models.ForeignKey(ProposalApiaryTemporaryUse, blank=True, null=True)
+    apiary_site = models.ForeignKey(ApiarySite, blank=True, null=True)
 
     class Meta:
         app_label = 'disturbance'
@@ -2242,6 +2263,7 @@ class ProposalApiaryDocument(DefaultDocument):
     def delete(self):
         if self.can_delete:
             return super(ProposalApiaryDocument, self).delete()
+
 
 class ApiaryReferralGroup(models.Model):
     name = models.CharField(max_length=255)
