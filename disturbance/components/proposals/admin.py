@@ -74,6 +74,44 @@ class ApiaryReferralGroupAdmin(admin.ModelAdmin):
         return super(ApiaryReferralGroupAdmin, self).has_delete_permission(request, obj)
 
 
+@admin.register(models.ApiaryAssessorGroup)
+class ApiaryAssessorGroupAdmin(admin.ModelAdmin):
+    filter_horizontal = ('members',)
+    exclude = ('site',)
+    actions = None
+
+    def formfield_for_manytomany(self, db_field, request, **kwargs):
+        if db_field.name == "members":
+            #kwargs["queryset"] = EmailUser.objects.filter(email__icontains='@dbca.wa.gov.au')
+            kwargs["queryset"] = EmailUser.objects.filter(is_staff=True)
+        return super(ApiaryAssessorGroupAdmin, self).formfield_for_manytomany(db_field, request, **kwargs)
+
+    def has_add_permission(self, request):
+        return True if models.ApiaryAssessorGroup.objects.count() == 0 else False
+
+    def has_delete_permission(self, request, obj=None):
+        return False 
+
+
+@admin.register(models.ApiaryApproverGroup)
+class ApiaryApproversGroupAdmin(admin.ModelAdmin):
+    filter_horizontal = ('members',)
+    exclude = ('site',)
+    actions = None
+
+    def formfield_for_manytomany(self, db_field, request, **kwargs):
+        if db_field.name == "members":
+            #kwargs["queryset"] = EmailUser.objects.filter(email__icontains='@dbca.wa.gov.au')
+            kwargs["queryset"] = EmailUser.objects.filter(is_staff=True)
+        return super(ApiaryApproverGroupAdmin, self).formfield_for_manytomany(db_field, request, **kwargs)
+
+    def has_add_permission(self, request):
+        return True if models.ApiaryApproverGroup.objects.count() == 0 else False
+
+    def has_delete_permission(self, request, obj=None):
+        return False 
+
+
 @admin.register(models.ProposalStandardRequirement)
 class ProposalStandardRequirementAdmin(admin.ModelAdmin):
     list_display = ['code','text','obsolete']
