@@ -43,6 +43,8 @@ class ApplicationType(models.Model):
     DISTURBANCE = 'Disturbance'
     POWERLINE_MAINTENANCE = 'Powerline Maintenance'
     APIARY = 'Apiary'
+    TEMPORARY_USE = 'Temporary Use'
+    SITE_TRANSFER = 'Site Transfer'
 
     name = models.CharField(max_length=64, unique=True)
     order = models.PositiveSmallIntegerField(default=0)
