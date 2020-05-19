@@ -374,6 +374,30 @@ class OnSiteInformationViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
+    def update(self, request, *args, **kwargs):
+        try:
+            with transaction.atomic():
+                instance = self.get_object()
+                request_data = request.data
+
+                self._sanitize_date(request_data, 'period_from')
+                self._sanitize_date(request_data, 'period_to')
+
+                serializer = OnSiteInformationSerializer(instance, data=request_data)
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+                return Response(serializer.data)
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
     def create(self, request, *args, **kwargs):
         try:
             with transaction.atomic():
