@@ -8,9 +8,6 @@
                         <label class="col-sm-3">Period From</label>
                         <div class="col-sm-4">
                             <div class="input-group date" ref="periodFromDatePicker">
-                                <!-- 
-                                <input type="text" class="form-control" placeholder="DD/MM/YYYY" v-model="on_site_information.period_from" />
-                                -->
                                 <input type="text" class="form-control" placeholder="DD/MM/YYYY" id="period_from_input_element"/>
                                 <span class="input-group-addon">
                                     <span class="glyphicon glyphicon-calendar"></span>
@@ -23,9 +20,6 @@
                         <label class="col-sm-3">Period To</label>
                         <div class="col-sm-4">
                             <div class="input-group date" ref="periodToDatePicker">
-                                <!-- 
-                                    <input type="text" class="form-control" placeholder="DD/MM/YYYY" v-model="on_site_information.period_to" />
-                                -->
                                 <input type="text" class="form-control" placeholder="DD/MM/YYYY" id="period_to_input_element"/>
                                 <span class="input-group-addon">
                                     <span class="glyphicon glyphicon-calendar"></span>
@@ -121,8 +115,6 @@ export default {
             this.isModalOpen = true;
         },
         addEventListeners: function () {
-            console.log('in addEventListeners');
-
             let vm = this;
             let el_fr = $(vm.$refs.periodFromDatePicker);
             let el_to = $(vm.$refs.periodToDatePicker);
@@ -136,9 +128,6 @@ export default {
             el_to.datetimepicker(options);
 
             el_fr.on("dp.change", function(e) {
-                console.log('from changed');
-                console.log(e);
-
                 let selected_date = null;
                 if (e.date){
                     // Date selected
@@ -153,9 +142,6 @@ export default {
             });
 
             el_to.on("dp.change", function(e) {
-                console.log('to changed');
-                console.log(e);
-
                 let selected_date = null;
                 if (e.date){
                     selected_date = e.date.format('DD/MM/YYYY');
@@ -176,10 +162,7 @@ export default {
                 if (searchPattern.test(period_from_passed)) {
                     // Convert YYYY-MM-DD to DD/MM/YYYY
                     period_from_passed = moment(period_from_passed, 'YYYY-MM-DD').format('DD/MM/YYYY');
-                    console.log('converted');
                 }
-                console.log('period_from_passed');
-                console.log(period_from_passed);
                 $('#period_from_input_element').val(period_from_passed);
                 el_to.data('DateTimePicker').minDate(period_from_passed);  
             }
@@ -188,10 +171,7 @@ export default {
                 if (searchPattern.test(period_to_passed)) {
                     // Convert YYYY-MM-DD to DD/MM/YYYY
                     period_to_passed = moment(period_to_passed, 'YYYY-MM-DD').format('DD/MM/YYYY');
-                    console.log('converted');
                 }
-                console.log('period_to_passed');
-                console.log(period_to_passed);
                 $('#period_to_input_element').val(period_to_passed);
                 el_fr.data('DateTimePicker').maxDate(period_to_passed);  
             }
