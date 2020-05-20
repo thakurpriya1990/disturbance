@@ -1,7 +1,7 @@
 <template lang="html">
     <div>
         <div class="row">
-            <button :disabled="!addButtonEnabled" class="btn btn-primary pull-right" @click="openOnSiteInformationAddModal">Add</button>
+            <button :disabled="!addButtonEnabled" class="btn btn-primary pull-right" @click="openOnSiteInformationModalToAdd">Add</button>
         </div>
 
         <div class="row col-sm-12">
@@ -17,6 +17,7 @@
             <OnSiteInformationAddModal 
                 ref="on_site_information_add_modal" 
                 :apiary_site_location="apiary_site_location" 
+                :on_site_information="on_site_information_to_edit"
                 :key="modalBindId" 
                 @on_site_information_added="onSiteInformationAdded"
             />
@@ -31,6 +32,8 @@
     import { api_endpoints, helpers, } from '@/utils/hooks'
     import OnSiteInformationAddModal from './on_site_information_add_modal'
     //import uuid from 'uuid'
+   // import Swal from 'sweetalert2'
+    //import Swal from 'sweetalert2/dist/sweetalert2.js'
 
     export default {
         props:{
@@ -52,6 +55,13 @@
             let vm=this;
             return{
                 apiary_site_location: null,
+                on_site_information_to_edit: {
+                    id: null,
+                    apiary_site: null,
+                    comments: '',
+                    period_from: null,
+                    period_to: null,
+                },
                 modalBindId: null,
                 dtHeaders: [
                     'id',
@@ -124,7 +134,10 @@
                                 if (full.action) {
                                     return full.action;
                                 } else {
-                                    return 'Edit (TODO)<br />Delete (TODO)';
+                                    let ret = '<a><span class="delete_on_site_information" data-on-site-information-id="' + full.id + '"/>Delete</span></a>';
+                                    ret += '<br />'
+                                    ret += '<a><span class="edit_on_site_information" data-on-site-information-id="' + full.id + '"/>Edit</span></a>';
+                                    return ret;
                                 }
                             }
                         },
@@ -158,8 +171,25 @@
                 await this.loadApiarySiteLocation(this.apiary_site_location_id);
                 this.constructOnSiteInformationTable();
             },
-            openOnSiteInformationAddModal: async function() {
+            openOnSiteInformationModalToAdd: async function(e){
+                console.log('in openOnSiteInformationModalToAdd()');
+                this.openOnSiteInformationModal({
+                    id: null,
+                    apiary_site: null,
+                    comments: '',
+                    period_from: null,
+                    period_to: null,
+                });
+            },
+            openOnSiteInformationModal: async function(obj_to_edit) {
+                console.log('in openOnSiteInformationModal()');
+                // Refresh the component key
                 this.modalBindId = uuid()
+
+                console.log('obj_to_edit');
+                console.log(obj_to_edit);
+
+                this.on_site_information_to_edit = obj_to_edit;
 
                 try {
                     this.$nextTick(() => {
@@ -195,7 +225,61 @@
                 this.$refs.on_site_information_table.vmDataTable.row.add(on_site_information).draw();
             },
             addEventListeners: function() {
+                $("#on-site-information-table").on("click", ".delete_on_site_information", this.deleteOnSiteInformation);
+                $("#on-site-information-table").on("click", ".edit_on_site_information", this.editOnSiteInformation);
+            },
+            editOnSiteInformation: async function(e) {
+                let vm = this;
+                let on_site_information_id = e.target.getAttribute("data-on-site-information-id");
+                let obj_to_edit = {
+                    id: null,
+                    apiary_site: null,
+                    comments: '',
+                    period_from: null,
+                    period_to: null,
+                }
 
+                for(let i=0; i<this.apiary_site_location.on_site_information_list.length; i++){
+                    if(this.apiary_site_location.on_site_information_list[i].id == on_site_information_id){
+                        obj_to_edit = this.apiary_site_location.on_site_information_list[i];
+                        break;
+                    }
+                }
+
+                this.openOnSiteInformationModal(obj_to_edit);
+
+            },
+            deleteOnSiteInformation: async function(e) {
+                let vm = this;
+                let on_site_information_id = e.target.getAttribute("data-on-site-information-id");
+
+                swal({
+                      title: "Delete on site information",
+                      text: "Are you sure you want to delete this?",
+                      type: "warning",
+                      showCancelButton: true,
+                      confirmButtonClass: "btn-danger",
+                      confirmButtonText: "Yes, delete it",
+                }).then(
+                    (accept) => {
+                        vm.$http.delete('/api/on_site_information/' + on_site_information_id).then(
+                            async function(accept){
+                                await vm.loadApiarySiteLocation(this.apiary_site_location_id);
+                                vm.constructOnSiteInformationTable();
+                            },
+                            reject=>{
+                                swal(
+                                    'Submit Error',
+                                    helpers.apiVueResourceError(err),
+                                    'error'
+                                )
+                            }
+                        );
+                    },
+                    (reject)=>{
+
+                    }
+                )
             },
         },
         created: function() {
