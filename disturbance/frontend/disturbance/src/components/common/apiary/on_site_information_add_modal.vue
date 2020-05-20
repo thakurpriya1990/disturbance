@@ -153,12 +153,14 @@ export default {
                 }
             });
 
+            //***
             // Set dates in case they are passed from the parent component
-            let period_from_passed = vm.on_site_information.period_from;
-            let period_to_passed = vm.on_site_information.period_to;
+            //***
             let searchPattern = /^[0-9]{4}/
 
+            let period_from_passed = vm.on_site_information.period_from;
             if (period_from_passed) {
+                // If date passed
                 if (searchPattern.test(period_from_passed)) {
                     // Convert YYYY-MM-DD to DD/MM/YYYY
                     period_from_passed = moment(period_from_passed, 'YYYY-MM-DD').format('DD/MM/YYYY');
@@ -167,7 +169,9 @@ export default {
                 el_to.data('DateTimePicker').minDate(period_from_passed);  
             }
 
+            let period_to_passed = vm.on_site_information.period_to;
             if (period_to_passed) {
+                // If date passed
                 if (searchPattern.test(period_to_passed)) {
                     // Convert YYYY-MM-DD to DD/MM/YYYY
                     period_to_passed = moment(period_to_passed, 'YYYY-MM-DD').format('DD/MM/YYYY');
