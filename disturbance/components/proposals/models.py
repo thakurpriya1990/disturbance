@@ -2162,13 +2162,13 @@ class ApiarySiteFee(RevisionedMixin):
 
 
 class ApiarySite(models.Model):
-    proposal_apiary_site_location = models.ForeignKey(ProposalApiary, null=True, blank=True, related_name='apiary_sites')
+    proposal_apiary = models.ForeignKey(ProposalApiary, null=True, blank=True, related_name='apiary_sites')
     site_guid = models.CharField(max_length=50, blank=True)
     available = models.BooleanField(default=False, )
     site_category = models.ForeignKey(SiteCategory, null=True, blank=True)
 
     def __str__(self):
-        return '{} - {}'.format(self.site_guid, self.proposal_apiary_site_location.proposal.title)
+        return '{} - {}'.format(self.site_guid, self.proposal_apiary.proposal.title)
 
     def get_current_application_fee_per_site(self):
         current_fee = self.site_category.current_application_fee_per_site
