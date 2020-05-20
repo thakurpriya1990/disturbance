@@ -2046,7 +2046,7 @@ class HelpPage(models.Model):
 class ProposalApiary(models.Model):
     title = models.CharField('Title', max_length=200, null=True)
     location = gis_models.PointField(srid=4326, blank=True, null=True)
-    proposal = models.OneToOneField(Proposal, related_name='apiary_site_location', null=True)
+    proposal = models.OneToOneField(Proposal, related_name='proposal_apiary', null=True)
     # We don't use GIS field, because these are just fields user input into the <input> field
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
