@@ -1,7 +1,7 @@
 from django.conf import settings
 from ledger.accounts.models import EmailUser,Address
 from ledger.payments.invoice.models import Invoice
-from disturbance.components.proposals.serializers_apiary import ProposalApiarySerializer, InternalProposalApiarySerializer
+from disturbance.components.proposals.serializers_apiary import ProposalApiaryTypeSerializer, InternalProposalApiarySerializer
 from disturbance.components.main.serializers import ApplicationTypeSerializer
 from disturbance.components.das_payments.models import (
     ApplicationFee,

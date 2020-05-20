@@ -32,7 +32,7 @@ from ledger.address.models import Country
 from datetime import datetime, timedelta, date
 from disturbance.components.proposals.utils import save_proponent_data,save_assessor_data, proposal_submit_apiary
 from disturbance.components.proposals.models import searchKeyWords, search_reference, ProposalUserAction, \
-    ProposalApiarySiteLocation, OnSiteInformation, ApiarySite
+    ProposalApiary, OnSiteInformation, ApiarySite
 from disturbance.utils import missing_required_fields, search_tenure
 from disturbance.components.main.utils import check_db_connection
 
@@ -77,9 +77,9 @@ from disturbance.components.proposals.serializers import (
 )
 from disturbance.components.proposals.serializers_base import ProposalReferralSerializer
 from disturbance.components.proposals.serializers_apiary import (
-    ProposalApiarySerializer,
+    ProposalApiaryTypeSerializer,
     InternalProposalApiarySerializer,
-    ProposalApiarySiteLocationSerializer,
+    ProposalApiarySerializer,
     ProposalApiaryTemporaryUseSerializer,
     ProposalApiarySiteTransferSerializer,
     OnSiteInformationSerializer,
@@ -449,18 +449,18 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(str(e))
 
 
-class ProposalApiarySiteLocationViewSet(viewsets.ModelViewSet):
-    queryset = ProposalApiarySiteLocation.objects.none()
-    serializer_class = ProposalApiarySiteLocationSerializer
+class ProposalApiaryViewSet(viewsets.ModelViewSet):
+    queryset = ProposalApiary.objects.none()
+    serializer_class = ProposalApiarySerializer
 
     @detail_route(methods=['GET', ])
     def on_site_information_list(self, request, *args, **kwargs):
         instance = self.get_object()
-        serializer = ProposalApiarySiteLocationSerializer(instance)
+        serializer = ProposalApiarySerializer(instance)
         return Response(serializer.data)
 
     def get_queryset(self):
-        return ProposalApiarySiteLocation.objects.all()
+        return ProposalApiary.objects.all()
 
 
 class ProposalViewSet(viewsets.ModelViewSet):
@@ -500,7 +500,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
         try:
             application_type = self.get_object().application_type.name
             if application_type == ApplicationType.APIARY:
-                return ProposalApiarySerializer
+                return ProposalApiaryTypeSerializer
             else:
                 return ProposalSerializer
         except serializers.ValidationError:
@@ -1233,7 +1233,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                     'proposal': instance.id
                 }
 
-                serializer=ProposalApiarySiteLocationSerializer(data=details_data)
+                serializer=ProposalApiarySerializer(data=details_data)
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
 
