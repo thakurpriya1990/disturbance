@@ -5,20 +5,20 @@
         </div>
 
         <div class="row col-sm-12">
-            <datatable 
-                ref="on_site_information_table" 
-                id="on-site-information-table" 
-                :dtOptions="dtOptions" 
-                :dtHeaders="dtHeaders" 
+            <datatable
+                ref="on_site_information_table"
+                id="on-site-information-table"
+                :dtOptions="dtOptions"
+                :dtHeaders="dtHeaders"
             />
         </div>
 
-        <template v-if="apiary_site_location">
-            <OnSiteInformationAddModal 
-                ref="on_site_information_add_modal" 
-                :apiary_site_location="apiary_site_location" 
+        <template v-if="proposal_apiary">
+            <OnSiteInformationAddModal
+                ref="on_site_information_add_modal"
+                :proposal_apiary="proposal_apiary"
                 :on_site_information="on_site_information_to_edit"
-                :key="modalBindId" 
+                :key="modalBindId"
                 @on_site_information_added="onSiteInformationAdded"
             />
         </template>
@@ -37,7 +37,7 @@
 
     export default {
         props:{
-            apiary_site_location_id:{
+            proposal_apiary_id:{
                 type: Number,
                 required: true,
                 default: 0,
@@ -54,7 +54,7 @@
         data:function () {
             let vm=this;
             return{
-                apiary_site_location: null,
+                proposal_apiary: null,
                 on_site_information_to_edit: {
                     id: null,
                     apiary_site: null,
@@ -153,7 +153,7 @@
             addButtonEnabled: function() {
                 let enabled = false;
                 try {
-                    if(this.apiary_site_location.apiary_sites.length > 0){
+                    if(this.proposal_apiary.apiary_sites.length > 0){
                         enabled = true
                     }
                 } catch(err) { }
@@ -161,14 +161,14 @@
             }
         },
         watch:{
-            apiary_site_location_id: async function() {
-                await this.loadApiarySiteLocation(this.apiary_site_location_id);
+            proposal_apiary_id: async function() {
+                await this.loadApiarySiteLocation(this.proposal_apiary_id);
                 this.constructOnSiteInformationTable();
             }
         },
         methods:{
             onSiteInformationAdded: async function() {
-                await this.loadApiarySiteLocation(this.apiary_site_location_id);
+                await this.loadApiarySiteLocation(this.proposal_apiary_id);
                 this.constructOnSiteInformationTable();
             },
             openOnSiteInformationModalToAdd: async function(e){
@@ -202,21 +202,21 @@
                 }
             },
             loadApiarySiteLocation: async function(id){
-                let temp = await Vue.http.get('/api/proposal_apiary_site_location/' + id + '/on_site_information_list/')
-                this.apiary_site_location = temp.body;
+                let temp = await Vue.http.get('/api/proposal_apiary/' + id + '/on_site_information_list/')
+                this.proposal_apiary = temp.body;
             },
             constructOnSiteInformationTable: function(){
                 console.log('constructOnSiteInformationTable');
-                if (this.apiary_site_location && this.apiary_site_location.on_site_information_list){
+                if (this.proposal_apiary && this.proposal_apiary.on_site_information_list){
                     console.log('constructOnSiteInformationTable');
 
                     // Clear table
                     this.$refs.on_site_information_table.vmDataTable.clear().draw();
 
                     // Construct table
-                    if (this.apiary_site_location.on_site_information_list.length > 0){
-                        for(let i=0; i<this.apiary_site_location.on_site_information_list.length; i++){
-                            this.addOnSiteInformationToTable(this.apiary_site_location.on_site_information_list[i]);
+                    if (this.proposal_apiary.on_site_information_list.length > 0){
+                        for(let i=0; i<this.proposal_apiary.on_site_information_list.length; i++){
+                            this.addOnSiteInformationToTable(this.proposal_apiary.on_site_information_list[i]);
                         }
                     }
                 }
@@ -239,9 +239,9 @@
                     period_to: null,
                 }
 
-                for(let i=0; i<this.apiary_site_location.on_site_information_list.length; i++){
-                    if(this.apiary_site_location.on_site_information_list[i].id == on_site_information_id){
-                        obj_to_edit = this.apiary_site_location.on_site_information_list[i];
+                for(let i=0; i<this.proposal_apiary.on_site_information_list.length; i++){
+                    if(this.proposal_apiary.on_site_information_list[i].id == on_site_information_id){
+                        obj_to_edit = this.proposal_apiary.on_site_information_list[i];
                         break;
                     }
                 }
@@ -264,7 +264,7 @@
                     (accept) => {
                         vm.$http.delete('/api/on_site_information/' + on_site_information_id).then(
                             async function(accept){
-                                await vm.loadApiarySiteLocation(this.apiary_site_location_id);
+                                await vm.loadApiarySiteLocation(this.proposal_apiary_id);
                                 vm.constructOnSiteInformationTable();
                             },
                             reject=>{

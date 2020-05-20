@@ -18,7 +18,7 @@ from rest_framework import serializers
 
 
 class ApiarySiteSerializer(serializers.ModelSerializer):
-    proposal_apiary_site_location_id = serializers.IntegerField(write_only=True,)
+    proposal_apiary_id = serializers.IntegerField(write_only=True,)
     site_category_id = serializers.IntegerField(write_only=True,)
     # onsiteinformation_set = OnSiteInformationSerializer(read_only=True, many=True,)
 
@@ -28,7 +28,7 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
             'id',
             'available',
             'site_guid',
-            'proposal_apiary_site_location_id',
+            'proposal_apiary_id',
             'site_category_id',
         )
 
@@ -103,7 +103,7 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
 
     def get_on_site_information_list(self, obj):
         on_site_information_list = OnSiteInformation.objects.filter(
-            apiary_site__in=ApiarySite.objects.filter(proposal_apiary_site_location=obj),
+            apiary_site__in=ApiarySite.objects.filter(proposal_apiary=obj),
             datetime_deleted=None,
         ).order_by('-period_from')
         ret = OnSiteInformationSerializer(on_site_information_list, many=True).data
@@ -149,7 +149,7 @@ class ProposalApiaryTypeSerializer(serializers.ModelSerializer):
     customer_status = serializers.SerializerMethodField(read_only=True)
 
     application_type = serializers.CharField(source='application_type.name', read_only=True)
-    apiary_site_location = ProposalApiarySerializer()
+    proposal_apiary = ProposalApiarySerializer()
     apiary_temporary_use = ProposalApiaryTemporaryUseSerializer()
     apiary_site_transfer = ProposalApiarySiteTransferSerializer()
 
@@ -193,7 +193,7 @@ class ProposalApiaryTypeSerializer(serializers.ModelSerializer):
                 'fee_invoice_reference',
                 'fee_paid',
                 'activity',
-                'apiary_site_location',
+                'proposal_apiary',
                 'apiary_temporary_use',
                 'apiary_site_transfer',
 
@@ -249,7 +249,7 @@ class InternalProposalApiarySerializer(BaseProposalSerializer):
     applicant = serializers.SerializerMethodField()
     applicant_type = serializers.SerializerMethodField()
 
-    apiary_site_location = ProposalApiarySerializer()
+    proposal_apiary = ProposalApiarySerializer()
     apiary_temporary_use = ProposalApiaryTemporaryUseSerializer()
     apiary_site_transfer = ProposalApiarySiteTransferSerializer()
 
@@ -310,7 +310,7 @@ class InternalProposalApiarySerializer(BaseProposalSerializer):
                 'fee_paid',
                 'applicant',
                 'applicant_type',
-                'apiary_site_location',
+                'proposal_apiary',
                 'apiary_temporary_use',
                 'apiary_site_transfer',
                 )

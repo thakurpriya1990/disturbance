@@ -2224,8 +2224,8 @@ class ProposalApiaryTemporaryUse(models.Model):
     temporary_occupier_email = models.EmailField(blank=True, null=True)
 
     def __str__(self):
-        if self.proposal.apiary_site_location:
-            return 'id:{} - {}'.format(self.id, self.proposal.apiary_site_location.title)
+        if self.proposal.proposal_apiary:
+            return 'id:{} - {}'.format(self.id, self.proposal.proposal_apiary.title)
         else:
             # Should not reach here
             return 'id:{}'.format(self.id)
