@@ -15,7 +15,7 @@ from disturbance.components.organisations.models import (
 from disturbance.components.main.serializers import CommunicationLogEntrySerializer
 from rest_framework import serializers
 
-from disturbance.components.proposals.serializers_apiary import ProposalApiarySiteLocationSerializer
+from disturbance.components.proposals.serializers_apiary import ProposalApiarySerializer
 from disturbance.components.proposals.serializers_base import BaseProposalSerializer, ProposalReferralSerializer, \
     ProposalDeclinedDetailsSerializer, EmailUserSerializer
 
@@ -169,13 +169,13 @@ class ProposalSerializer(BaseProposalSerializer):
     #tenure = serializers.CharField(source='tenure.name', read_only=True)
     comment_data= serializers.SerializerMethodField(read_only=True)
 
-    apiary_site_location = serializers.SerializerMethodField()
+    proposal_apiary = serializers.SerializerMethodField()
 
     class Meta:
         model=Proposal
         fields = BaseProposalSerializer.Meta.fields + (
             'comment_data',
-            'apiary_site_location',
+            'proposal_apiary',
         )
 
     def get_readonly(self,obj):
@@ -184,10 +184,10 @@ class ProposalSerializer(BaseProposalSerializer):
     def get_comment_data(self,obj):
          return obj.comment_data
 
-    def get_apiary_site_location(self, obj):
-        if hasattr(obj, 'apiary_site_location'):
-            pasl = obj.apiary_site_location
-            return ProposalApiarySiteLocationSerializer(pasl).data
+    def get_proposal_apiary(self, obj):
+        if hasattr(obj, 'proposal_apiary'):
+            pasl = obj.proposal_apiary
+            return ProposalApiarySerializer(pasl).data
         else:
             return ''
 
