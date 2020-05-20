@@ -79,7 +79,7 @@ from disturbance.components.proposals.serializers_base import ProposalReferralSe
 from disturbance.components.proposals.serializers_apiary import (
     ProposalApiaryTypeSerializer,
     InternalProposalApiarySerializer,
-    ProposalApiarySiteLocationSerializer,
+    ProposalApiarySerializer,
     ProposalApiaryTemporaryUseSerializer,
     ProposalApiarySiteTransferSerializer,
     OnSiteInformationSerializer,
@@ -451,12 +451,12 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
 
 class ProposalApiaryViewSet(viewsets.ModelViewSet):
     queryset = ProposalApiary.objects.none()
-    serializer_class = ProposalApiarySiteLocationSerializer
+    serializer_class = ProposalApiarySerializer
 
     @detail_route(methods=['GET', ])
     def on_site_information_list(self, request, *args, **kwargs):
         instance = self.get_object()
-        serializer = ProposalApiarySiteLocationSerializer(instance)
+        serializer = ProposalApiarySerializer(instance)
         return Response(serializer.data)
 
     def get_queryset(self):
@@ -1233,7 +1233,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                     'proposal': instance.id
                 }
 
-                serializer=ProposalApiarySiteLocationSerializer(data=details_data)
+                serializer=ProposalApiarySerializer(data=details_data)
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
 

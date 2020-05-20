@@ -16,7 +16,7 @@ from disturbance.components.proposals.models import (
     #ProposalApiarySiteTransfer,
 )
 from disturbance.components.proposals.serializers_apiary import (
-    ProposalApiarySiteLocationSerializer,
+    ProposalApiarySerializer,
     ProposalApiaryTemporaryUseSerializer,
     ProposalApiarySiteTransferSerializer, ApiarySiteSerializer,
 )
@@ -366,7 +366,7 @@ def save_proponent_data_apiary(instance, request, viewset):
             site_location_data =sc.get('apiary_site_location')
 
             if site_location_data:
-                serializer = ProposalApiarySiteLocationSerializer(instance.apiary_site_location, data=site_location_data)
+                serializer = ProposalApiarySerializer(instance.apiary_site_location, data=site_location_data)
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
 

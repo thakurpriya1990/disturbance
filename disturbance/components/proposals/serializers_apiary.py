@@ -82,7 +82,7 @@ class OnSiteInformationSerializer(serializers.ModelSerializer):
         return data
 
 
-class ProposalApiarySiteLocationSerializer(serializers.ModelSerializer):
+class ProposalApiarySerializer(serializers.ModelSerializer):
     apiary_sites = ApiarySiteSerializer(read_only=True, many=True)
     on_site_information_list = serializers.SerializerMethodField()  # This is used for displaying OnSite table at the frontend
 
@@ -149,7 +149,7 @@ class ProposalApiaryTypeSerializer(serializers.ModelSerializer):
     customer_status = serializers.SerializerMethodField(read_only=True)
 
     application_type = serializers.CharField(source='application_type.name', read_only=True)
-    apiary_site_location = ProposalApiarySiteLocationSerializer()
+    apiary_site_location = ProposalApiarySerializer()
     apiary_temporary_use = ProposalApiaryTemporaryUseSerializer()
     apiary_site_transfer = ProposalApiarySiteTransferSerializer()
 
@@ -249,7 +249,7 @@ class InternalProposalApiarySerializer(BaseProposalSerializer):
     applicant = serializers.SerializerMethodField()
     applicant_type = serializers.SerializerMethodField()
 
-    apiary_site_location = ProposalApiarySiteLocationSerializer()
+    apiary_site_location = ProposalApiarySerializer()
     apiary_temporary_use = ProposalApiaryTemporaryUseSerializer()
     apiary_site_transfer = ProposalApiarySiteTransferSerializer()
 
