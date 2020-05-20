@@ -2043,10 +2043,10 @@ class HelpPage(models.Model):
 # --------------------------------------------------------------------------------------
 # Apiary Models Start
 # --------------------------------------------------------------------------------------
-class ProposalApiarySiteLocation(models.Model):
+class ProposalApiary(models.Model):
     title = models.CharField('Title', max_length=200, null=True)
     location = gis_models.PointField(srid=4326, blank=True, null=True)
-    proposal = models.OneToOneField(Proposal, related_name='apiary_site_location', null=True)
+    proposal = models.OneToOneField(Proposal, related_name='proposal_apiary', null=True)
     # We don't use GIS field, because these are just fields user input into the <input> field
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
@@ -2162,13 +2162,13 @@ class ApiarySiteFee(RevisionedMixin):
 
 
 class ApiarySite(models.Model):
-    proposal_apiary_site_location = models.ForeignKey(ProposalApiarySiteLocation, null=True, blank=True, related_name='apiary_sites')
+    proposal_apiary = models.ForeignKey(ProposalApiary, null=True, blank=True, related_name='apiary_sites')
     site_guid = models.CharField(max_length=50, blank=True)
     available = models.BooleanField(default=False, )
     site_category = models.ForeignKey(SiteCategory, null=True, blank=True)
 
     def __str__(self):
-        return '{} - {}'.format(self.site_guid, self.proposal_apiary_site_location.proposal.title)
+        return '{} - {}'.format(self.site_guid, self.proposal_apiary.proposal.title)
 
     def get_current_application_fee_per_site(self):
         current_fee = self.site_category.current_application_fee_per_site
@@ -2224,8 +2224,8 @@ class ProposalApiaryTemporaryUse(models.Model):
     temporary_occupier_email = models.EmailField(blank=True, null=True)
 
     def __str__(self):
-        if self.proposal.apiary_site_location:
-            return 'id:{} - {}'.format(self.id, self.proposal.apiary_site_location.title)
+        if self.proposal.proposal_apiary:
+            return 'id:{} - {}'.format(self.id, self.proposal.proposal_apiary.title)
         else:
             # Should not reach here
             return 'id:{}'.format(self.id)
