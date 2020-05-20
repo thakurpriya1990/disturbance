@@ -65,7 +65,7 @@ def create_fee_lines_apiary(proposal):
 
     # Calculate total number of sites applied per category
     summary = {}
-    for apiary_site in proposal.apiary_site_location.apiary_sites.all():
+    for apiary_site in proposal.proposal_apiary.apiary_sites.all():
         if apiary_site.site_category.id in summary:
             summary[apiary_site.site_category.id] += 1
         else:
