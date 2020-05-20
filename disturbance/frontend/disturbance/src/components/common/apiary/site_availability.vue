@@ -1,11 +1,11 @@
 <template lang="html">
     <div>
         <div class="row col-sm-12">
-            <datatable 
-                ref="site_availability_table" 
-                id="site-availability-table" 
-                :dtOptions="dtOptions" 
-                :dtHeaders="dtHeaders" 
+            <datatable
+                ref="site_availability_table"
+                id="site-availability-table"
+                :dtOptions="dtOptions"
+                :dtHeaders="dtHeaders"
             />
         </div>
     </div>
@@ -20,7 +20,7 @@
 
     export default {
         props:{
-            apiary_site_location_id:{
+            proposal_apiary_id:{
                 type: Number,
                 required: true,
                 default: 0,
@@ -37,7 +37,7 @@
         data:function () {
             let vm=this;
             return{
-                apiary_site_location: null,
+                proposal_apiary: null,
                 modalBindId: null,
                 dtHeaders: [
                     'id',
@@ -96,7 +96,7 @@
             addButtonEnabled: function() {
                 let enabled = false;
                 try {
-                    if(this.apiary_site_location.apiary_sites.length > 0){
+                    if(this.proposal_apiary.apiary_sites.length > 0){
                         enabled = true
                     }
                 } catch(err) { }
@@ -104,28 +104,28 @@
             }
         },
         watch:{
-            apiary_site_location_id: async function() {
-                await this.loadApiarySiteLocation(this.apiary_site_location_id);
+            proposal_apiary_id: async function() {
+                await this.loadApiarySiteLocation(this.proposal_apiary_id);
                 this.constructOnSiteInformationTable();
             }
         },
         methods:{
             loadApiarySiteLocation: async function(id){
-                let temp = await Vue.http.get('/api/proposal_apiary_site_location/' + id)
-                this.apiary_site_location = temp.body;
+                let temp = await Vue.http.get('/api/proposal_apiary/' + id)
+                this.proposal_apiary = temp.body;
             },
             constructOnSiteInformationTable: function(){
                 console.log('constructOnSiteInformationTable');
-                if (this.apiary_site_location){
+                if (this.proposal_apiary){
                     console.log('constructOnSiteInformationTable');
 
                     // Clear table
                     this.$refs.site_availability_table.vmDataTable.clear().draw();
 
                     // Construct table
-                    if (this.apiary_site_location.apiary_sites.length > 0){
-                        for(let i=0; i<this.apiary_site_location.apiary_sites.length; i++){
-                            this.addApiarySiteToTable(this.apiary_site_location.apiary_sites[i]);
+                    if (this.proposal_apiary.apiary_sites.length > 0){
+                        for(let i=0; i<this.proposal_apiary.apiary_sites.length; i++){
+                            this.addApiarySiteToTable(this.proposal_apiary.apiary_sites[i]);
                         }
                     }
                 }
@@ -144,7 +144,7 @@
 
                 vm.$http.patch('/api/apiary_site/' + apiary_site_id + '/', { 'available': requested_availability }).then(
                     async function(accept){
-                        await vm.loadApiarySiteLocation(vm.apiary_site_location_id);
+                        await vm.loadApiarySiteLocation(vm.proposal_apiary_id);
                         vm.constructOnSiteInformationTable();
                     },
                     reject=>{
