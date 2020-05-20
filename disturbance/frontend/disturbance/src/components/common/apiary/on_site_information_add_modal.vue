@@ -33,7 +33,7 @@
                         <div class="col-sm-3">
                             <select class="form-control" v-model="on_site_information.apiary_site">
                                 <option value=""></option>
-                                <option v-for="site in apiary_site_location.apiary_sites" :value="site" :key="site.id">
+                                <option v-for="site in proposal_apiary.apiary_sites" :value="site" :key="site.id">
                                     <span>
                                         {{ site }}
                                     </span>
@@ -87,7 +87,7 @@ export default {
       modal,
     },
     props:{
-        apiary_site_location: {
+        proposal_apiary: {
             type: Object,
         },
         on_site_information: {
@@ -118,8 +118,8 @@ export default {
             let vm = this;
             let el_fr = $(vm.$refs.periodFromDatePicker);
             let el_to = $(vm.$refs.periodToDatePicker);
-            let options = { 
-                format: "DD/MM/YYYY", 
+            let options = {
+                format: "DD/MM/YYYY",
                 showClear: true ,
                 useCurrent: false,
             };
@@ -133,11 +133,11 @@ export default {
                     // Date selected
                     selected_date = e.date.format('DD/MM/YYYY')  // e.date is moment object
                     vm.on_site_information.period_from = selected_date;
-                    el_to.data('DateTimePicker').minDate(selected_date);  
+                    el_to.data('DateTimePicker').minDate(selected_date);
                 } else {
                     // Date not selected
                     vm.on_site_information.period_from = selected_date;
-                    el_to.data('DateTimePicker').minDate(false);  
+                    el_to.data('DateTimePicker').minDate(false);
                 }
             });
 
@@ -164,7 +164,7 @@ export default {
                     period_from_passed = moment(period_from_passed, 'YYYY-MM-DD').format('DD/MM/YYYY');
                 }
                 $('#period_from_input_element').val(period_from_passed);
-                el_to.data('DateTimePicker').minDate(period_from_passed);  
+                el_to.data('DateTimePicker').minDate(period_from_passed);
             }
 
             if (period_to_passed) {
@@ -173,7 +173,7 @@ export default {
                     period_to_passed = moment(period_to_passed, 'YYYY-MM-DD').format('DD/MM/YYYY');
                 }
                 $('#period_to_input_element').val(period_to_passed);
-                el_fr.data('DateTimePicker').maxDate(period_to_passed);  
+                el_fr.data('DateTimePicker').maxDate(period_to_passed);
             }
         },
         ok: async function () {

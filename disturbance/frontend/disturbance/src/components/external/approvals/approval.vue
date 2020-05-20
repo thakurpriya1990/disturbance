@@ -14,7 +14,7 @@
                                         <div class="col-sm-6">
                                             <input type="text" disabled class="form-control" name="name" placeholder="" v-model="org.name">
                                         </div>
-                                    </div>   
+                                    </div>
                                     <div class="form-group">
                                         <label for="" class="col-sm-3 control-label">ABN</label>
                                         <div class="col-sm-6">
@@ -97,13 +97,13 @@
 
             <div class="row">
                 <FormSection :formCollapse="false" label="Site(s)" Index="site_avaiability">
-                    <SiteAvailability :apiary_site_location_id="apiary_site_location_id" ref="site_availability" />
+                    <SiteAvailability :proposal_apiary_id="proposal_apiary_id" ref="site_availability" />
                 </FormSection>
             </div>
 
             <div class="row">
                 <FormSection :formCollapse="false" label="On Site" Index="on_site">
-                    <OnSiteInformation :apiary_site_location_id="apiary_site_location_id" ref="on_site_information" />
+                    <OnSiteInformation :proposal_apiary_id="proposal_apiary_id" ref="on_site_information" />
                 </FormSection>
             </div>
         </div>
@@ -159,7 +159,7 @@ export default {
             })
         },(error) => {
             console.log(error);
-        }) 
+        })
     },
     components: {
         datatable,
@@ -172,9 +172,9 @@ export default {
         isLoading: function () {
             return this.loading.length > 0;
         },
-        apiary_site_location_id: function() {
+        proposal_apiary_id: function() {
             try {
-                return this.approval.current_proposal.apiary_site_location.id;
+                return this.approval.current_proposal.proposal_apiary.id;
             } catch(err) {
                 return 0;
             }

@@ -94,7 +94,7 @@ class ApiaryAssessorGroupAdmin(admin.ModelAdmin):
 
 
 @admin.register(models.ApiaryApproverGroup)
-class ApiaryApproversGroupAdmin(admin.ModelAdmin):
+class ApiaryApproverGroupAdmin(admin.ModelAdmin):
     filter_horizontal = ('members',)
     exclude = ('site',)
     actions = None
