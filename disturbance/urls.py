@@ -25,7 +25,7 @@ from disturbance.utils import are_migrations_running
 router = routers.DefaultRouter()
 router.register(r'organisations',org_api.OrganisationViewSet)
 router.register(r'proposal',proposal_api.ProposalViewSet)
-router.register(r'proposal_apiary_site_location', proposal_api.ProposalApiarySiteLocationViewSet)
+router.register(r'proposal_apiary_site_location', proposal_api.ProposalApiaryViewSet)
 router.register(r'on_site_information', proposal_api.OnSiteInformationViewSet)
 router.register(r'apiary_site', proposal_api.ApiarySiteViewSet)
 router.register(r'proposal_paginated',proposal_api.ProposalPaginatedViewSet)

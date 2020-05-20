@@ -449,7 +449,7 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(str(e))
 
 
-class ProposalApiarySiteLocationViewSet(viewsets.ModelViewSet):
+class ProposalApiaryViewSet(viewsets.ModelViewSet):
     queryset = ProposalApiary.objects.none()
     serializer_class = ProposalApiarySiteLocationSerializer
 
