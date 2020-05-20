@@ -2166,6 +2166,9 @@ class ApiarySite(models.Model):
     site_guid = models.CharField(max_length=50, blank=True)
     available = models.BooleanField(default=False, )
     site_category = models.ForeignKey(SiteCategory, null=True, blank=True)
+    # Region and District may be included in the api response from the GIS server
+    region = models.ForeignKey(Region, null=True, blank=True)
+    district = models.ForeignKey(District, null=True, blank=True)
 
     def __str__(self):
         return '{} - {}'.format(self.site_guid, self.proposal_apiary_site_location.proposal.title)
@@ -2263,6 +2266,15 @@ class ProposalApiaryDocument(DefaultDocument):
     def delete(self):
         if self.can_delete:
             return super(ProposalApiaryDocument, self).delete()
+
+
+class DeedPollDocument(DefaultDocument):
+    proposal = models.ForeignKey('Proposal', related_name='deed_poll_documents')
+    _file = models.FileField(max_length=512)
+
+    def delete(self):
+        if self.can_delete:
+            return super(DeedPollDocument, self).delete()
 
 
 class ApiaryReferralGroup(models.Model):
