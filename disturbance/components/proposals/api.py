@@ -77,7 +77,7 @@ from disturbance.components.proposals.serializers import (
 )
 from disturbance.components.proposals.serializers_base import ProposalReferralSerializer
 from disturbance.components.proposals.serializers_apiary import (
-    ProposalApiarySerializer,
+    ProposalApiaryTypeSerializer,
     InternalProposalApiarySerializer,
     ProposalApiarySiteLocationSerializer,
     ProposalApiaryTemporaryUseSerializer,
@@ -500,7 +500,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
         try:
             application_type = self.get_object().application_type.name
             if application_type == ApplicationType.APIARY:
-                return ProposalApiarySerializer
+                return ProposalApiaryTypeSerializer
             else:
                 return ProposalSerializer
         except serializers.ValidationError:

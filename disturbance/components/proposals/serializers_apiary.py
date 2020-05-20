@@ -136,7 +136,7 @@ class SaveProposalApiarySiteLocationSerializer(serializers.ModelSerializer):
         fields = ('id', 'title', 'proposal')
 
 
-class ProposalApiarySerializer(serializers.ModelSerializer):
+class ProposalApiaryTypeSerializer(serializers.ModelSerializer):
     readonly = serializers.SerializerMethodField(read_only=True)
     documents_url = serializers.SerializerMethodField()
     proposal_type = serializers.SerializerMethodField()
