@@ -2043,7 +2043,7 @@ class HelpPage(models.Model):
 # --------------------------------------------------------------------------------------
 # Apiary Models Start
 # --------------------------------------------------------------------------------------
-class ProposalApiarySiteLocation(models.Model):
+class ProposalApiary(models.Model):
     title = models.CharField('Title', max_length=200, null=True)
     location = gis_models.PointField(srid=4326, blank=True, null=True)
     proposal = models.OneToOneField(Proposal, related_name='apiary_site_location', null=True)
@@ -2162,7 +2162,7 @@ class ApiarySiteFee(RevisionedMixin):
 
 
 class ApiarySite(models.Model):
-    proposal_apiary_site_location = models.ForeignKey(ProposalApiarySiteLocation, null=True, blank=True, related_name='apiary_sites')
+    proposal_apiary_site_location = models.ForeignKey(ProposalApiary, null=True, blank=True, related_name='apiary_sites')
     site_guid = models.CharField(max_length=50, blank=True)
     available = models.BooleanField(default=False, )
     site_category = models.ForeignKey(SiteCategory, null=True, blank=True)

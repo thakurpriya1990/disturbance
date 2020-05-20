@@ -32,7 +32,7 @@ from ledger.address.models import Country
 from datetime import datetime, timedelta, date
 from disturbance.components.proposals.utils import save_proponent_data,save_assessor_data, proposal_submit_apiary
 from disturbance.components.proposals.models import searchKeyWords, search_reference, ProposalUserAction, \
-    ProposalApiarySiteLocation, OnSiteInformation, ApiarySite
+    ProposalApiary, OnSiteInformation, ApiarySite
 from disturbance.utils import missing_required_fields, search_tenure
 from disturbance.components.main.utils import check_db_connection
 
@@ -450,7 +450,7 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
 
 
 class ProposalApiarySiteLocationViewSet(viewsets.ModelViewSet):
-    queryset = ProposalApiarySiteLocation.objects.none()
+    queryset = ProposalApiary.objects.none()
     serializer_class = ProposalApiarySiteLocationSerializer
 
     @detail_route(methods=['GET', ])
@@ -460,7 +460,7 @@ class ProposalApiarySiteLocationViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
     def get_queryset(self):
-        return ProposalApiarySiteLocation.objects.all()
+        return ProposalApiary.objects.all()
 
 
 class ProposalViewSet(viewsets.ModelViewSet):

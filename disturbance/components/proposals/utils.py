@@ -11,7 +11,7 @@ from disturbance.components.proposals.serializers import SaveProposalSerializer
 
 from disturbance.components.main.models import ApplicationType
 from disturbance.components.proposals.models import (
-    ProposalApiarySiteLocation,
+    ProposalApiary,
     #ProposalApiaryTemporaryUse,
     #ProposalApiarySiteTransfer,
 )

@@ -5,11 +5,11 @@ from disturbance.components.proposals.serializers_base import BaseProposalSerial
     ProposalDeclinedDetailsSerializer, EmailUserSerializer
 from disturbance.components.proposals.models import (
     Proposal,
-    ProposalApiarySiteLocation,
+    ProposalApiary,
     ProposalApiaryTemporaryUse,
     ProposalApiarySiteTransfer,
-    ProposalApiaryDocument, 
-    ApiarySite, 
+    ProposalApiaryDocument,
+    ApiarySite,
     OnSiteInformation,
     ApiaryReferralGroup,
 )
@@ -87,7 +87,7 @@ class ProposalApiarySiteLocationSerializer(serializers.ModelSerializer):
     on_site_information_list = serializers.SerializerMethodField()  # This is used for displaying OnSite table at the frontend
 
     class Meta:
-        model = ProposalApiarySiteLocation
+        model = ProposalApiary
         # geo_field = 'location'
 
         fields = (
@@ -132,7 +132,7 @@ class ProposalApiaryDocumentSerializer(serializers.ModelSerializer):
 
 class SaveProposalApiarySiteLocationSerializer(serializers.ModelSerializer):
     class Meta:
-        model = ProposalApiarySiteLocation
+        model = ProposalApiary
         fields = ('id', 'title', 'proposal')
 
 
