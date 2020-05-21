@@ -3,15 +3,28 @@
         <div class="row">
             <div class="col-sm-12">
                 <div class="row">
+
                     <FormSection :formCollapse="false" label="Period and Site(s)" Index="period_and_sites">
-                        component here
+                        <PeriodAndSites 
+                            :is_external=is_external 
+                            :is_internal=is_internal 
+                            :from_date="from_date"
+                            :to_date="to_date"
+                            :apiary_sites_array="apiary_sites_array"
+                        />
                     </FormSection>
+
                     <FormSection :formCollapse="false" label="Temporary Occupier" Index="temporary_occupier">
-                        component here
+                        <TemporaryOccupier 
+                            :is_external=is_external 
+                            :is_internal=is_internal 
+                        />
                     </FormSection>
+
                     <FormSection :formCollapse="false" label="Deed Poll" Index="deed_poll">
                         component here
                     </FormSection>
+
                 </div>
             </div>
         </div>
@@ -24,6 +37,8 @@
     import uuid from 'uuid'
     import { api_endpoints, helpers, } from '@/utils/hooks'
     import FormSection from "@/components/forms/section_toggle.vue"
+    import PeriodAndSites from "@/components/common/apiary/period_and_sites.vue"
+    import TemporaryOccupier from "@/components/common/apiary/temporary_occupier.vue"
 
     export default {
         props:{
@@ -41,11 +56,15 @@
 
             return{
                 pBody: 'pBody'+vm._uid,
+                from_date: null,
+                to_date: null,
             }
         },
         components: {
             FormSection,
             datatable,
+            PeriodAndSites,
+            TemporaryOccupier,
         },
         computed:{
 
@@ -54,41 +73,19 @@
 
         },
         methods:{
-            loadApiarySiteLocation: async function(id){
-                //let temp = await Vue.http.get('/api/proposal_apiary_site_location/' + id + '/on_site_information_list/')
-                //this.apiary_site_location = temp.body;
-            },
-            constructOnSiteInformationTable: function(){
-               // console.log('constructOnSiteInformationTable');
-               // if (this.apiary_site_location && this.apiary_site_location.on_site_information_list){
-               //     console.log('constructOnSiteInformationTable');
-
-               //     // Clear table
-               //     this.$refs.on_site_information_table.vmDataTable.clear().draw();
-
-               //     // Construct table
-               //     if (this.apiary_site_location.on_site_information_list.length > 0){
-               //         for(let i=0; i<this.apiary_site_location.on_site_information_list.length; i++){
-               //             this.addOnSiteInformationToTable(this.apiary_site_location.on_site_information_list[i]);
-               //         }
-               //     }
-               // }
-            },
-            addOnSiteInformationToTable: function(on_site_information) {
-                //this.$refs.on_site_information_table.vmDataTable.row.add(on_site_information).draw();
-            },
             addEventListeners: function() {
-              //  $("#on-site-information-table").on("click", ".delete_on_site_information", this.deleteOnSiteInformation);
-              //  $("#on-site-information-table").on("click", ".edit_on_site_information", this.editOnSiteInformation);
+
             },
         },
         created: function() {
+            this.from_date = moment('05/05/2020', 'DD/MM/YYYY');
+            this.to_date = moment('06/05/2020', 'DD/MM/YYYY');
+            this.apiary_sites_array = [];
         },
         mounted: function() {
             let vm = this;
             this.$nextTick(() => {
                 vm.addEventListeners();
-                this.constructOnSiteInformationTable();
             });
         }
     }

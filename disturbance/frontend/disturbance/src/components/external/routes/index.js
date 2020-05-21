@@ -68,7 +68,7 @@ export default
             ]
         },
         {
-            path: 'proposal_temporary_use/:approval_id',
+            path: 'proposal/:proposal_id/temporary_use',
             component: ProposalTemporaryUse,
         }
     ]
