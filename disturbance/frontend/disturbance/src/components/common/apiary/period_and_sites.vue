@@ -5,7 +5,7 @@
             <label class="col-sm-2">Period From</label>
             <div class="col-sm-4">
                 <div class="input-group date" ref="periodFromDatePicker">
-                    <input type="text" class="form-control" placeholder="DD/MM/YYYY" id="period_from_input_element"/>
+                    <input type="text" class="form-control" placeholder="DD/MM/YYYY" id="period_from_input_element" :disabled="!period_from_enabled" />
                     <span class="input-group-addon">
                         <span class="glyphicon glyphicon-calendar"></span>
                     </span>
@@ -17,7 +17,7 @@
             <label class="col-sm-2">Period To</label>
             <div class="col-sm-4">
                 <div class="input-group date" ref="periodToDatePicker">
-                    <input type="text" class="form-control" placeholder="DD/MM/YYYY" id="period_to_input_element"/>
+                    <input type="text" class="form-control" placeholder="DD/MM/YYYY" id="period_to_input_element" :disabled="!period_to_enabled" />
                     <span class="input-group-addon">
                         <span class="glyphicon glyphicon-calendar"></span>
                     </span>
@@ -59,6 +59,14 @@
                     return [];
                 }
             },
+            from_date_enabled: {
+                type: Boolean,
+                default: false,
+            },
+            to_date_enabled: {
+                type: Boolean,
+                default: false,
+            },
             is_external:{
               type: Boolean,
               default: false
@@ -99,10 +107,14 @@
                         {
                             mRender: function (data, type, full) {
                                 let checked_str = ''
+                                let disabled_str = ''
                                 if (full.used){
                                     checked_str = "checked";
                                 }
-                                return '<input type="checkbox" class="site_checkbox" data-apiary-site-id="' + full.id + '" ' + checked_str +'/>'
+                                if (!full.editable){
+                                    disabled_str = ' disabled="disabled" ';
+                                }
+                                return '<input type="checkbox" class="site_checkbox" data-apiary-site-id="' + full.id + '" ' + checked_str + disabled_str + '/>'
                             }
                         },
                         {
@@ -120,6 +132,8 @@
                 },
                 period_from: '',
                 period_to: '',
+                period_from_enabled: false,
+                period_to_enabled: false,
                 apiary_sites: [],
             }
         },
@@ -146,6 +160,8 @@
             if (this.apiary_sites_array.length > 0){
                 this.apiary_sites = this.apiary_sites_array;
             }
+            this.period_from_enabled = this.from_date_enabled;
+            this.period_to_enabled = this.to_date_enabled;
         },
         components: {
             datatable,

@@ -10,6 +10,8 @@
                             :is_internal=is_internal 
                             :from_date="from_date"
                             :to_date="to_date"
+                            :from_date_enabled="from_date_enabled"
+                            :to_date_enabled="to_date_enabled"
                             :apiary_sites_array="apiary_sites_array"
                             @from_date_changed="fromDateChanged"
                             @to_date_changed="toDateChanged"
@@ -61,6 +63,9 @@
                 pBody: 'pBody'+vm._uid,
                 from_date: null,
                 to_date: null,
+                apiary_sites_array: [],
+                from_date_enabled: true,
+                to_date_enabled: true,
             }
         },
         components: {
@@ -99,12 +104,21 @@
                 {
                     'id': 1,
                     'used': true,
+                    'editable': true,
                 },
                 {
                     'id': 2,
                     'used': false,
+                    'editable': false,
+                },
+                {
+                    'id': 3,
+                    'used': false,
+                    'editable': false,
                 },
             ];
+            this.from_date_enabled = false;
+            this.to_date_enabled = true;
         },
         mounted: function() {
             let vm = this;
