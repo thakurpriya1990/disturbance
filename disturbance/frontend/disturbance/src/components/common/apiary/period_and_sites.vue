@@ -46,11 +46,11 @@
     export default {
         props:{
             from_date: {
-                type: Object,
+                type: Object, // Expect moment obj
                 default: null,
             }, 
             to_date: {
-                type: Object,
+                type: Object, // Expect moment obj
                 default: null,
             }, 
             apiary_sites_array: {
@@ -98,7 +98,11 @@
                         },
                         {
                             mRender: function (data, type, full) {
-                                return '<input type="checkbox" />'
+                                let checked_str = ''
+                                if (full.used){
+                                    checked_str = "checked";
+                                }
+                                return '<input type="checkbox" class="site_checkbox" data-apiary-site-id="' + full.id + '" ' + checked_str +'/>'
                             }
                         },
                         {
@@ -108,7 +112,7 @@
                         },
                         {
                             mRender: function (data, type, full) {
-                                let ret = '<a><span class="view_on_map" data-apiary-site-id="' + full.id + '"/>View on Map</span></a>';
+                                let ret = '<a><span class="view_on_map" data-apiary-site-id="' + full.id + '"/>View on Map (TODO)</span></a>';
                                 return ret;
                             }
                         },
@@ -120,11 +124,24 @@
             }
         },
         created: function() {
+            // Copy the values from props (it is not allowd to change props' value)
             if (this.from_date){
-                this.period_from = this.from_date.format('DD/MM/YYYY');
+                if (this.from_date instanceof moment) {
+                    this.period_from = this.from_date.format('DD/MM/YYYY');
+                } else {
+                    // Wrong type of object, clear it
+                    console.warn('The value passed to from_date is wrong type');
+                    this.period_from = null;
+                }
             }
             if (this.to_date){
-                this.period_to = this.to_date.format('DD/MM/YYYY');
+                if (this.to_date instanceof moment) {
+                    this.period_to = this.to_date.format('DD/MM/YYYY');
+                } else {
+                    // Wrong type of object, clear it
+                    console.warn('The value passed to to_date is wrong type');
+                    this.period_to = null;
+                }
             }
             if (this.apiary_sites_array.length > 0){
                 this.apiary_sites = this.apiary_sites_array;
@@ -137,6 +154,14 @@
 
         },
         methods:{
+            viewSiteOnMap: function(e){
+                let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
+                console.log('view site-id: ' + apiary_site_id + ' on the map');
+            },
+            siteCheckboxClicked: function(e){
+                let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
+                this.$emit('site_checkbox_clicked', apiary_site_id, e.target.checked);
+            },
             constructApiarySitesTable: function(){
                 // Clear table
                 this.$refs.apiary_sites_table.vmDataTable.clear().draw();
@@ -152,6 +177,9 @@
                 this.$refs.apiary_sites_table.vmDataTable.row.add(apiary_site).draw();
             },
             addEventListeners: function () {
+                $("#apiary-sites-table").on("click", ".view_on_map", this.viewSiteOnMap);
+                $("#apiary-sites-table").on("click", ".site_checkbox", this.siteCheckboxClicked);
+
                 let vm = this;
                 let el_fr = $(vm.$refs.periodFromDatePicker);
                 let el_to = $(vm.$refs.periodToDatePicker);
@@ -176,6 +204,7 @@
                         vm.period_from = selected_date;
                         el_to.data('DateTimePicker').minDate(false);
                     }
+                    vm.$emit('from_date_changed', vm.period_from)
                 });
 
                 el_to.on("dp.change", function(e) {
@@ -188,6 +217,7 @@
                         vm.period_to = '';
                         el_fr.data('DateTimePicker').maxDate(false);
                     }
+                    vm.$emit('to_date_changed', vm.period_to)
                 });
 
                 //***

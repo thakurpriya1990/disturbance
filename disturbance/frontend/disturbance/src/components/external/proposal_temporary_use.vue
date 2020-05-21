@@ -11,6 +11,9 @@
                             :from_date="from_date"
                             :to_date="to_date"
                             :apiary_sites_array="apiary_sites_array"
+                            @from_date_changed="fromDateChanged"
+                            @to_date_changed="toDateChanged"
+                            @site_checkbox_clicked="siteChechboxClicked"
                         />
                     </FormSection>
 
@@ -73,6 +76,18 @@
 
         },
         methods:{
+            siteChechboxClicked: function(...values){
+                console.log('siteChechboxClicked');
+                console.log(values);
+            },
+            fromDateChanged: function(value){
+                console.log('fromDateChanged');
+                console.log(value);
+            },
+            toDateChanged: function(value){
+                console.log('toDateChanged');
+                console.log(value);
+            },
             addEventListeners: function() {
 
             },
@@ -80,7 +95,16 @@
         created: function() {
             this.from_date = moment('05/05/2020', 'DD/MM/YYYY');
             this.to_date = moment('06/05/2020', 'DD/MM/YYYY');
-            this.apiary_sites_array = [];
+            this.apiary_sites_array = [
+                {
+                    'id': 1,
+                    'used': true,
+                },
+                {
+                    'id': 2,
+                    'used': false,
+                },
+            ];
         },
         mounted: function() {
             let vm = this;
