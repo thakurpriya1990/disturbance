@@ -2065,6 +2065,53 @@ class ProposalApiary(models.Model):
     class Meta:
         app_label = 'disturbance'
 
+    def send_apiary_referral(self, request, group_id, referral_text):
+        with transaction.atomic():
+            try:
+                referral_email = referral_email.lower()
+                if self.processing_status == 'with_assessor' or self.processing_status == 'with_referral':
+                    self.processing_status = 'with_referral'
+                    self.save()
+                    referral = None
+                    ## TODO: create ApiaryReferral based on group_id, plus action log logic
+
+                    # Check if the user is in ledger
+                    try:
+                        user = EmailUser.objects.get(email__icontains=referral_email)
+                    except EmailUser.DoesNotExist:
+                        # Validate if it is a deparment user
+                        department_user = get_department_user(referral_email)
+                        if not department_user:
+                            raise ValidationError('The user you want to send the referral to is not a member of the department')
+                        # Check if the user is in ledger or create
+
+                        user,created = EmailUser.objects.get_or_create(email=department_user['email'].lower())
+                        if created:
+                            user.first_name = department_user['given_name']
+                            user.last_name = department_user['surname']
+                            user.save()
+                    try:
+                        Referral.objects.get(referral=user,proposal=self)
+                        raise ValidationError('A referral has already been sent to this user')
+                    except Referral.DoesNotExist:
+                        # Create Referral
+                        referral = Referral.objects.create(
+                            proposal = self,
+                            referral=user,
+                            sent_by=request.user,
+                            text=referral_text
+                        )
+                    # Create a log entry for the proposal
+                    self.log_user_action(ProposalUserAction.ACTION_SEND_REFERRAL_TO.format(referral.id,self.id,'{}({})'.format(user.get_full_name(),user.email)),request)
+                    # Create a log entry for the organisation
+                    self.applicant.log_user_action(ProposalUserAction.ACTION_SEND_REFERRAL_TO.format(referral.id,self.id,'{}({})'.format(user.get_full_name(),user.email)),request)
+                    # send email
+                    send_referral_email_notification(referral,request)
+                else:
+                    raise exceptions.ProposalReferralCannotBeSent()
+            except:
+                raise
+
 
 class SiteCategory(models.Model):
     CATEGORY_SOUTH_WEST = 'south_west'

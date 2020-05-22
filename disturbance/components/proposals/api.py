@@ -50,6 +50,7 @@ from disturbance.components.proposals.models import (
     AmendmentReason,
     AmendmentRequestDocument,
     ApiaryReferralGroup,
+    ProposalApiary,
 
 )
 from disturbance.components.proposals.serializers import (
@@ -83,7 +84,9 @@ from disturbance.components.proposals.serializers_apiary import (
     ProposalApiaryTemporaryUseSerializer,
     ProposalApiarySiteTransferSerializer,
     OnSiteInformationSerializer,
-    ApiaryReferralGroupSerializer, ApiarySiteSerializer,
+    ApiaryReferralGroupSerializer, 
+    ApiarySiteSerializer,
+    SendApiaryReferralSerializer,
 )
 from disturbance.components.approvals.models import Approval
 from disturbance.components.approvals.serializers import ApprovalSerializer
@@ -461,6 +464,52 @@ class ProposalApiaryViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return ProposalApiary.objects.all()
+
+    def internal_apiary_serializer_class(self):
+        try:
+            #import ipdb; ipdb.set_trace()
+            #application_type = Proposal.objects.get(id=self.kwargs.get('pk')).application_type.name
+            application_type = self.get_object().application_type.name
+            if application_type == ApplicationType.APIARY:
+                return InternalProposalApiarySerializer
+                #return InternalProposalSerializer
+            else:
+                pass
+                #return InternalProposalSerializer
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            if hasattr(e,'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['post'])
+    def apiary_assessor_send_referral(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            serializer = SendApiaryReferralSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            #instance.send_referral(request,serializer.validated_data['email'], serializer.validated_data['text'])
+            instance.send_apiary_referral(request,serializer.validated_data['group_id'], serializer.validated_data['text'])
+            serializer_class = self.internal_apiary_serializer_class()
+            serializer = serializer_class(instance,context={'request':request})
+            return Response(serializer.data)
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            if hasattr(e,'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
 
 
 class ProposalViewSet(viewsets.ModelViewSet):
