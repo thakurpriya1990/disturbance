@@ -38,10 +38,7 @@
 </template>
 
 <script>
-    import Vue from 'vue'
     import datatable from '@vue-utils/datatable.vue'
-    import uuid from 'uuid'
-    import { api_endpoints, helpers, } from '@/utils/hooks'
 
     export default {
         props:{
@@ -176,7 +173,10 @@
             },
             siteCheckboxClicked: function(e){
                 let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
-                this.$emit('site_checkbox_clicked', apiary_site_id, e.target.checked);
+                this.$emit('site_checkbox_clicked', {
+                    'apiary_site_id': apiary_site_id, 
+                    'checked': e.target.checked
+                }); 
             },
             constructApiarySitesTable: function(){
                 // Clear table
