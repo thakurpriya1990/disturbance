@@ -21,12 +21,12 @@
                     <div class="panel-body collapse in" :id="pBody">
                         <span class="col-sm-12">
                             <!--
-                            <TextField 
+                            <TextField
                             -->
                             <input
-                                type="text" 
-                                v-model="proposal.apiary_site_location.title" 
-                                :readonly="is_internal || !proposal.can_user_edit" 
+                                type="text"
+                                v-model="proposal.proposal_apiary.title"
+                                :readonly="is_internal || !proposal.can_user_edit"
                             />
                         </span>
                         <span class="col-sm-12">
@@ -36,13 +36,13 @@
                             <div class="col-sm-4 form-group">
                                 <label class="inline">Latitude:</label>
                                 <div v-if="true">
-                                    <input 
-                                        type="number" 
-                                        min="-90" 
-                                        max="90" 
-                                        class="form-control" 
-                                        v-model.number="proposal.apiary_site_location.latitude" 
-                                        :readonly="is_internal || !proposal.can_user_edit" 
+                                    <input
+                                        type="number"
+                                        min="-90"
+                                        max="90"
+                                        class="form-control"
+                                        v-model.number="proposal.proposal_apiary.latitude"
+                                        :readonly="is_internal || !proposal.can_user_edit"
                                     />
                                 </div>
                             </div>
@@ -51,13 +51,13 @@
                             <div class="col-sm-4 form-group">
                                 <label class="inline">Longitude:</label>
                                 <div v-if="true">
-                                    <input 
-                                        type="number" 
-                                        min="-180" 
-                                        max="180" 
-                                        class="form-control" 
-                                        v-model.number="proposal.apiary_site_location.longitude" 
-                                        :readonly="is_internal || !proposal.can_user_edit" 
+                                    <input
+                                        type="number"
+                                        min="-180"
+                                        max="180"
+                                        class="form-control"
+                                        v-model.number="proposal.proposal_apiary.longitude"
+                                        :readonly="is_internal || !proposal.can_user_edit"
                                     />
                                     <input type="button" @click="addProposedSite" value="Add proposed site" class="btn btn-primary">
                                 </div>
@@ -127,7 +127,7 @@
                                         <input  class="form-check-input" v-model="q.answer" ref="Checkbox" type="radio" :name="'option'+q.id" :id="'answer_one'+q.id":value="true" data-parsley-required :disabled="readonly"/> Yes
                                     </li>
                                     <li class="list-inline-item">
-                                        <input  class="form-check-input" v-model="q.answer" ref="Checkbox" type="radio" :name="'option'+q.id" :id="'answer_two'+q.id" :value="false" data-parsley-required :disabled="readonly"/> No 
+                                        <input  class="form-check-input" v-model="q.answer" ref="Checkbox" type="radio" :name="'option'+q.id" :id="'answer_two'+q.id" :value="false" data-parsley-required :disabled="readonly"/> No
                                     </li>
                                 </ul>
                                 <ul v-else class="list-inline col-sm-6">
@@ -306,8 +306,8 @@
                 console.log('addProposedSite');
                 this.site_locations.push({
                     "id": '',
-                    "latitude": this.proposal.apiary_site_location.latitude,
-                    "longitude": this.proposal.apiary_site_location.longitude,
+                    "latitude": this.proposal.proposal_apiary.latitude,
+                    "longitude": this.proposal.proposal_apiary.longitude,
                     "site_guid": uuid()
                 });
                 this.constructSiteLocationsTable();
@@ -333,8 +333,8 @@
             this.$nextTick(() => {
                 vm.addEventListeners();
             });
-            for(let i=0; i<this.proposal.apiary_site_location.apiary_sites.length; i++){
-                let a_site = this.proposal.apiary_site_location.apiary_sites[i];
+            for(let i=0; i<this.proposal.proposal_apiary.apiary_sites.length; i++){
+                let a_site = this.proposal.proposal_apiary.apiary_sites[i];
                 a_site.longitude = 'retrieve from GIS server'
                 a_site.latitude = 'retrieve from GIS server'
                 this.site_locations.push(a_site);
