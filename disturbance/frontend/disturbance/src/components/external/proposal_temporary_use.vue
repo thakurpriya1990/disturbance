@@ -49,7 +49,6 @@
                             <input type="button" @click.prevent="save" class="btn btn-primary" value="Save and Continue"/>
                             <input v-if="!isSubmitting" type="button" @click.prevent="submit" class="btn btn-primary" value="Submit"/>
                             <button v-else disabled class="btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Submitting</button>
-                            <input id="save_and_continue_btn" type="hidden" @click.prevent="save_wo_confirm" class="btn btn-primary" value="Save Without Confirmation"/>
                         </p>
                     </div>
                 </div>
@@ -110,6 +109,51 @@
 
         },
         methods:{
+            save: function(){
+                console.log('in save()');
+                let proposal_id = 0;
+                if (proposal_id){
+                    this.proposal_update();
+                } else {
+                    this.proposal_create();
+                }
+            },
+            save_exit: function() {
+                console.log('in save_exit()');
+                this.save();
+                this.exit();
+            },
+            submit: function() {
+                console.log('in submit');
+
+            },
+            exit: function() {
+                console.log('in exit');
+            },
+            proposal_create: function(){
+                console.log('in proposal_create');
+                vm.$http.post('/api/proposal/', '').then(res=>{
+                    swal(
+                        'Saved',
+                        'Your proposal has been created',
+                        'success'
+                    );
+                },err=>{
+
+                });
+            },
+            proposal_update: function(){
+                console.log('in proposal_update');
+                vm.$http.put('/api/proposal/', '').then(res=>{
+                    swal(
+                        'Saved',
+                        'Your proposal has been updated',
+                        'success'
+                    );
+                },err=>{
+
+                });
+            },
             occupierDataChanged: function(value){
                 console.log('occupierDataChanged');
                 //console.log(value);
@@ -137,6 +181,19 @@
             console.log('licence id: ');
             console.log(to.params.licence_id);
 
+            let vm = this;
+            Vue.http.get(`/api/approvals/${to.params.licence_id}.json`).then(res => {
+                next(vm => {
+           //    //     //vm.loading.push('fetching proposal')
+                    vm.proposal = res.body;
+           //    //     //vm.loading.splice('fetching proposal', 1);
+           //    //     //vm.setdata(vm.proposal.readonly);
+               });
+                },
+                err => {
+                    console.log(err);
+                });
+
             console.log('application id: ');
             if (to.params.application_id){
                 console.log(to.params.application_id);
@@ -147,20 +204,6 @@
             next();
         },
 
-       //     let vm = this;
-       //    // Vue.http.get(`/api/approval/${to.params.licence_id}.json`).then(res => {
-       //    //    // next(vm => {
-       //    //    //     //vm.loading.push('fetching proposal')
-       //    //    //     vm.proposal = res.body;
-       //    //    //     //vm.loading.splice('fetching proposal', 1);
-       //    //    //     //vm.setdata(vm.proposal.readonly);
-
-       //    //    // });
-       //    // },
-       //    // err => {
-       //    //     console.log(err);
-       //    // });
-       // },
         created: function() {
             //**********
             // Store test data

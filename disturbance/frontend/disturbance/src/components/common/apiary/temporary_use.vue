@@ -1,7 +1,16 @@
 <template lang="html">
     <div>
-        <div class="row">
+        <div class="row col-sm-12">
             <button class="btn btn-primary pull-right" @click="openNewTemporaryUse">New Temporary Use</button>
+        </div>
+
+        <div class="row col-sm-12">
+            <datatable
+                ref="temporary_use_table"
+                id="temporary-use-table"
+                :dtOptions="dtOptions"
+                :dtHeaders="dtHeaders"
+            />
         </div>
 
     </div>
@@ -36,6 +45,60 @@
             let vm=this;
             return{
                 proposal_apiary: null,
+                dtHeaders: [
+                    'id',
+                    'From',
+                    'To',
+                    'Site(s)',
+                    'Temporary Occupier',
+                    'Deed Poll',
+                ],
+                dtOptions: {
+                    serverSide: false,
+                    searchDelay: 1000,
+                    lengthMenu: [ [10, 25, 50, 100, -1], [10, 25, 50, 100, "All"] ],
+                    order: [
+                        [1, 'desc'], [0, 'desc'],
+                    ],
+                    language: {
+                        processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
+                    },
+                    responsive: true,
+                    processing: true,
+                    columns: [
+                        {
+                            visible: false,
+                            mRender: function (data, type, full) {
+                                return full.id;
+                            }
+                        },
+                        {
+                            mRender: function (data, type, full) {
+                                return full.from_date;
+                            }
+                        },
+                        {
+                            mRender: function (data, type, full) {
+                                return full.to_date;
+                            }
+                        },
+                        {
+                            mRender: function (data, type, full) {
+                                return 'site:' + full.id
+                            }
+                        },
+                        {
+                            mRender: function (data, type, full) {
+                                return full.temporary_occupier_name;
+                            }
+                        },
+                        {
+                            mRender: function (data, type, full) {
+                                return 'deed pole (TODO)';
+                            }
+                        },
+                    ],
+                },
             }
         },
         components: {
