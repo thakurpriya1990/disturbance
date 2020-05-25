@@ -2237,7 +2237,7 @@ class ApiaryReferralGroup(models.Model):
     def members_email(self):
         return [i.email for i in self.members.all()]
 
-class ApiaryChecklistQuestion(models.Model):
+class ApiaryApplicantChecklistQuestion(models.Model):
     ANSWER_TYPE_CHOICES = (
         ('yes_no', 'Yes/No type'),
     )
@@ -2253,6 +2253,19 @@ class ApiaryChecklistQuestion(models.Model):
 
     class Meta:
         app_label = 'disturbance'
+
+class ApiaryApplicantChecklistAnswer(models.Model):
+    question=models.ForeignKey(ApiaryApplicantChecklistQuestion, related_name='answers')
+    answer = models.NullBooleanField()
+    proposal = models.ForeignKey(Proposal, related_name='apiary_applicant_checklist')
+
+    def __str__(self):
+        return self.question.text
+
+    class Meta:
+        app_label = 'disturbance'
+        verbose_name = 'CheckList answer'
+        verbose_name_plural = 'CheckList answers'
 
 #class ApiaryTemporaryUseDocument(DefaultDocument):
 #    temporary_use = models.ForeignKey('ProposalApiaryTemporaryUse', related_name='apiary_temporary_use_documents')

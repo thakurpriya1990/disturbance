@@ -169,8 +169,8 @@ class SiteCategoryAdmin(admin.ModelAdmin):
 admin.site.register(disturbance.components.proposals.models.SiteCategory, SiteCategoryAdmin)
 
 #Added section to add checlist questions for deed pool in apiary via admin
-@admin.register(models.ApiaryChecklistQuestion)
-class ChecklistQuestionAdmin(admin.ModelAdmin):
+@admin.register(models.ApiaryApplicantChecklistQuestion)
+class ApiaryApplicantChecklistQuestionAdmin(admin.ModelAdmin):
     list_display = ['text', 'answer_type', 'order']
     ordering = ('order',)
 
