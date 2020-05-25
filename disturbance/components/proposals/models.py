@@ -1718,6 +1718,43 @@ class ProposalUserAction(UserAction):
     proposal = models.ForeignKey(Proposal, related_name='action_logs')
 
 
+#class ReferralRecipientGroup(models.Model):
+class ApiaryReferralGroup(models.Model):
+    #site = models.OneToOneField(Site, default='1')
+    name = models.CharField(max_length=30, unique=True)
+    members = models.ManyToManyField(EmailUser)
+
+    def __str__(self):
+        #return 'Referral Recipient Group'
+        return self.name
+
+    @property
+    def all_members(self):
+        all_members = []
+        all_members.extend(self.members.all())
+        member_ids = [m.id for m in self.members.all()]
+        #all_members.extend(EmailUser.objects.filter(is_superuser=True,is_staff=True,is_active=True).exclude(id__in=member_ids))
+        return all_members
+
+    @property
+    def filtered_members(self):
+        return self.members.all()
+
+    @property
+    def members_list(self):
+            return list(self.members.all().values_list('email', flat=True))
+
+    @property
+    def members_email(self):
+        return [i.email for i in self.members.all()]
+
+
+    class Meta:
+        app_label = 'disturbance'
+        verbose_name = "Apiary Referral Group"
+        verbose_name_plural = "Apiary Referral groups"
+
+
 class Referral(models.Model):
     SENT_CHOICES = (
         (1,'Sent From Assessor'),
@@ -1732,6 +1769,7 @@ class Referral(models.Model):
     proposal = models.ForeignKey(Proposal,related_name='referrals')
     sent_by = models.ForeignKey(EmailUser,related_name='disturbance_assessor_referrals')
     referral = models.ForeignKey(EmailUser,null=True,blank=True,related_name='disturbance_referalls')
+    referral_group = models.ForeignKey(ApiaryReferralGroup,null=True,blank=True,related_name='apiary_referral_groups')
     linked = models.BooleanField(default=False)
     sent_from = models.SmallIntegerField(choices=SENT_CHOICES,default=SENT_CHOICES[0][0])
     processing_status = models.CharField('Processing Status', max_length=30, choices=PROCESSING_STATUS_CHOICES,
@@ -2065,52 +2103,52 @@ class ProposalApiary(models.Model):
     class Meta:
         app_label = 'disturbance'
 
-    def send_apiary_referral(self, request, group_id, referral_text):
-        with transaction.atomic():
-            try:
-                referral_email = referral_email.lower()
-                if self.processing_status == 'with_assessor' or self.processing_status == 'with_referral':
-                    self.processing_status = 'with_referral'
-                    self.save()
-                    referral = None
-                    ## TODO: create ApiaryReferral based on group_id, plus action log logic
+    #def send_apiary_referral(self, request, group_id, referral_text):
+    #    with transaction.atomic():
+    #        try:
+    #            referral_email = referral_email.lower()
+    #            if self.processing_status == 'with_assessor' or self.processing_status == 'with_referral':
+    #                self.processing_status = 'with_referral'
+    #                self.save()
+    #                referral = None
+    #                ## TODO: create ApiaryReferral based on group_id, plus action log logic
 
-                    # Check if the user is in ledger
-                    try:
-                        user = EmailUser.objects.get(email__icontains=referral_email)
-                    except EmailUser.DoesNotExist:
-                        # Validate if it is a deparment user
-                        department_user = get_department_user(referral_email)
-                        if not department_user:
-                            raise ValidationError('The user you want to send the referral to is not a member of the department')
-                        # Check if the user is in ledger or create
+    #                # Check if the user is in ledger
+    #                try:
+    #                    user = EmailUser.objects.get(email__icontains=referral_email)
+    #                except EmailUser.DoesNotExist:
+    #                    # Validate if it is a deparment user
+    #                    department_user = get_department_user(referral_email)
+    #                    if not department_user:
+    #                        raise ValidationError('The user you want to send the referral to is not a member of the department')
+    #                    # Check if the user is in ledger or create
 
-                        user,created = EmailUser.objects.get_or_create(email=department_user['email'].lower())
-                        if created:
-                            user.first_name = department_user['given_name']
-                            user.last_name = department_user['surname']
-                            user.save()
-                    try:
-                        Referral.objects.get(referral=user,proposal=self)
-                        raise ValidationError('A referral has already been sent to this user')
-                    except Referral.DoesNotExist:
-                        # Create Referral
-                        referral = Referral.objects.create(
-                            proposal = self,
-                            referral=user,
-                            sent_by=request.user,
-                            text=referral_text
-                        )
-                    # Create a log entry for the proposal
-                    self.log_user_action(ProposalUserAction.ACTION_SEND_REFERRAL_TO.format(referral.id,self.id,'{}({})'.format(user.get_full_name(),user.email)),request)
-                    # Create a log entry for the organisation
-                    self.applicant.log_user_action(ProposalUserAction.ACTION_SEND_REFERRAL_TO.format(referral.id,self.id,'{}({})'.format(user.get_full_name(),user.email)),request)
-                    # send email
-                    send_referral_email_notification(referral,request)
-                else:
-                    raise exceptions.ProposalReferralCannotBeSent()
-            except:
-                raise
+    #                    user,created = EmailUser.objects.get_or_create(email=department_user['email'].lower())
+    #                    if created:
+    #                        user.first_name = department_user['given_name']
+    #                        user.last_name = department_user['surname']
+    #                        user.save()
+    #                try:
+    #                    Referral.objects.get(referral=user,proposal=self)
+    #                    raise ValidationError('A referral has already been sent to this user')
+    #                except Referral.DoesNotExist:
+    #                    # Create Referral
+    #                    referral = Referral.objects.create(
+    #                        proposal = self,
+    #                        referral=user,
+    #                        sent_by=request.user,
+    #                        text=referral_text
+    #                    )
+    #                # Create a log entry for the proposal
+    #                self.log_user_action(ProposalUserAction.ACTION_SEND_REFERRAL_TO.format(referral.id,self.id,'{}({})'.format(user.get_full_name(),user.email)),request)
+    #                # Create a log entry for the organisation
+    #                self.applicant.log_user_action(ProposalUserAction.ACTION_SEND_REFERRAL_TO.format(referral.id,self.id,'{}({})'.format(user.get_full_name(),user.email)),request)
+    #                # send email
+    #                send_referral_email_notification(referral,request)
+    #            else:
+    #                raise exceptions.ProposalReferralCannotBeSent()
+    #        except:
+    #            raise
 
 
 class SiteCategory(models.Model):
@@ -2324,51 +2362,6 @@ class DeedPollDocument(DefaultDocument):
             return super(DeedPollDocument, self).delete()
 
 
-class ApiaryReferralGroup(models.Model):
-    name = models.CharField(max_length=255)
-    #members = models.ManyToManyField(EmailUser,blank=True)
-    #regions = TaggableManager(verbose_name="Regions",help_text="A comma-separated list of regions.",through=TaggedProposalAssessorGroupRegions,related_name = "+",blank=True)
-    #activities = TaggableManager(verbose_name="Activities",help_text="A comma-separated list of activities.",through=TaggedProposalAssessorGroupActivities,related_name = "+",blank=True)
-    members = models.ManyToManyField(EmailUser)
-    region = models.ForeignKey(Region, null=True, blank=True)
-    default = models.BooleanField(default=False)
-
-    class Meta:
-        app_label = 'disturbance'
-
-    def __str__(self):
-        return self.name
-
-    def clean(self):
-        try:
-            default = ApiaryReferralGroup.objects.get(default=True)
-        except ApiaryReferralGroup.DoesNotExist:
-            default = None
-
-        if self.pk:
-            if not self.default and not self.region:
-                raise ValidationError('Only default can have no region set for apiary referral group. Please specifiy region')
-#            elif default and not self.default:
-#                raise ValidationError('There can only be one default proposal assessor group')
-        else:
-            if default and self.default:
-                raise ValidationError('There can only be one default apiary referral group')
-
-    #def member_is_assigned(self,member):
-     #   for p in self.current_proposals:
-      #      if p.assigned_officer == member:
-       #         return True
-        #return False
-
-    @property
-    def current_proposals(self):
-        #assessable_states = ['with_assessor','with_referral','with_assessor_requirements']
-        assessable_states = ['with_referral']
-        return Proposal.objects.filter(processing_status__in=assessable_states)
-
-    @property
-    def members_email(self):
-        return [i.email for i in self.members.all()]
 
 #class ApiaryTemporaryUseDocument(DefaultDocument):
 #    temporary_use = models.ForeignKey('ProposalApiaryTemporaryUse', related_name='apiary_temporary_use_documents')
