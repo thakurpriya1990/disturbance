@@ -102,6 +102,12 @@
             </div>
 
             <div class="row">
+                <FormSection :formCollapse="false" label="Temporary Use" Index="temporary_use">
+                    <TemporaryUse :proposal_apiary_id="proposal_apiary_id" ref="tempoary_use" />
+                </FormSection>
+            </div>
+
+            <div class="row">
                 <FormSection :formCollapse="false" label="On Site" Index="on_site">
                     <OnSiteInformation :proposal_apiary_id="proposal_apiary_id" ref="on_site_information" />
                 </FormSection>
@@ -119,6 +125,7 @@ import ResponsiveDatatablesHelper from "@/utils/responsive_datatable_helper.js"
 import FormSection from "@/components/forms/section_toggle.vue"
 import { api_endpoints, helpers } from '@/utils/hooks'
 import OnSiteInformation from '@/components/common/apiary/on_site_information.vue'
+import TemporaryUse from '@/components/common/apiary/temporary_use.vue'
 import SiteAvailability from '@/components/common/apiary/site_availability.vue'
 
 export default {
@@ -167,6 +174,7 @@ export default {
         FormSection,
         OnSiteInformation,
         SiteAvailability,
+        TemporaryUse,
     },
     computed: {
         isLoading: function () {
