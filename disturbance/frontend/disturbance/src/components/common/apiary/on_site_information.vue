@@ -1,23 +1,24 @@
 <template lang="html">
     <div>
         <div class="row">
-            <button :disabled="!addButtonEnabled" class="btn btn-primary pull-right" @click="openOnSiteInformationAddModal">Add</button>
+            <button :disabled="!addButtonEnabled" class="btn btn-primary pull-right" @click="openOnSiteInformationModalToAdd">Add</button>
         </div>
 
         <div class="row col-sm-12">
-            <datatable 
-                ref="on_site_information_table" 
-                id="on-site-information-table" 
-                :dtOptions="dtOptions" 
-                :dtHeaders="dtHeaders" 
+            <datatable
+                ref="on_site_information_table"
+                id="on-site-information-table"
+                :dtOptions="dtOptions"
+                :dtHeaders="dtHeaders"
             />
         </div>
 
-        <template v-if="apiary_site_location">
-            <OnSiteInformationAddModal 
-                ref="on_site_information_add_modal" 
-                :apiary_site_location="apiary_site_location" 
-                :key="modalBindId" 
+        <template v-if="proposal_apiary">
+            <OnSiteInformationAddModal
+                ref="on_site_information_add_modal"
+                :proposal_apiary="proposal_apiary"
+                :on_site_information="on_site_information_to_edit"
+                :key="modalBindId"
                 @on_site_information_added="onSiteInformationAdded"
             />
         </template>
@@ -31,10 +32,12 @@
     import { api_endpoints, helpers, } from '@/utils/hooks'
     import OnSiteInformationAddModal from './on_site_information_add_modal'
     //import uuid from 'uuid'
+   // import Swal from 'sweetalert2'
+    //import Swal from 'sweetalert2/dist/sweetalert2.js'
 
     export default {
         props:{
-            apiary_site_location_id:{
+            proposal_apiary_id:{
                 type: Number,
                 required: true,
                 default: 0,
@@ -51,7 +54,14 @@
         data:function () {
             let vm=this;
             return{
-                apiary_site_location: null,
+                proposal_apiary: null,
+                on_site_information_to_edit: {
+                    id: null,
+                    apiary_site: null,
+                    comments: '',
+                    period_from: null,
+                    period_to: null,
+                },
                 modalBindId: null,
                 dtHeaders: [
                     'id',
@@ -124,7 +134,10 @@
                                 if (full.action) {
                                     return full.action;
                                 } else {
-                                    return 'Edit (TODO)<br />Delete (TODO)';
+                                    let ret = '<a><span class="delete_on_site_information" data-on-site-information-id="' + full.id + '"/>Delete</span></a>';
+                                    ret += '<br />'
+                                    ret += '<a><span class="edit_on_site_information" data-on-site-information-id="' + full.id + '"/>Edit</span></a>';
+                                    return ret;
                                 }
                             }
                         },
@@ -140,7 +153,7 @@
             addButtonEnabled: function() {
                 let enabled = false;
                 try {
-                    if(this.apiary_site_location.apiary_sites.length > 0){
+                    if(this.proposal_apiary.apiary_sites.length > 0){
                         enabled = true
                     }
                 } catch(err) { }
@@ -148,18 +161,35 @@
             }
         },
         watch:{
-            apiary_site_location_id: async function() {
-                await this.loadApiarySiteLocation(this.apiary_site_location_id);
+            proposal_apiary_id: async function() {
+                await this.loadApiarySiteLocation(this.proposal_apiary_id);
                 this.constructOnSiteInformationTable();
             }
         },
         methods:{
             onSiteInformationAdded: async function() {
-                await this.loadApiarySiteLocation(this.apiary_site_location_id);
+                await this.loadApiarySiteLocation(this.proposal_apiary_id);
                 this.constructOnSiteInformationTable();
             },
-            openOnSiteInformationAddModal: async function() {
+            openOnSiteInformationModalToAdd: async function(e){
+                console.log('in openOnSiteInformationModalToAdd()');
+                this.openOnSiteInformationModal({
+                    id: null,
+                    apiary_site: null,
+                    comments: '',
+                    period_from: null,
+                    period_to: null,
+                });
+            },
+            openOnSiteInformationModal: async function(obj_to_edit) {
+                console.log('in openOnSiteInformationModal()');
+                // Refresh the component key
                 this.modalBindId = uuid()
+
+                console.log('obj_to_edit');
+                console.log(obj_to_edit);
+
+                this.on_site_information_to_edit = obj_to_edit;
 
                 try {
                     this.$nextTick(() => {
@@ -172,21 +202,21 @@
                 }
             },
             loadApiarySiteLocation: async function(id){
-                let temp = await Vue.http.get('/api/proposal_apiary_site_location/' + id + '/on_site_information_list/')
-                this.apiary_site_location = temp.body;
+                let temp = await Vue.http.get('/api/proposal_apiary/' + id + '/on_site_information_list/')
+                this.proposal_apiary = temp.body;
             },
             constructOnSiteInformationTable: function(){
                 console.log('constructOnSiteInformationTable');
-                if (this.apiary_site_location && this.apiary_site_location.on_site_information_list){
+                if (this.proposal_apiary && this.proposal_apiary.on_site_information_list){
                     console.log('constructOnSiteInformationTable');
 
                     // Clear table
                     this.$refs.on_site_information_table.vmDataTable.clear().draw();
 
                     // Construct table
-                    if (this.apiary_site_location.on_site_information_list.length > 0){
-                        for(let i=0; i<this.apiary_site_location.on_site_information_list.length; i++){
-                            this.addOnSiteInformationToTable(this.apiary_site_location.on_site_information_list[i]);
+                    if (this.proposal_apiary.on_site_information_list.length > 0){
+                        for(let i=0; i<this.proposal_apiary.on_site_information_list.length; i++){
+                            this.addOnSiteInformationToTable(this.proposal_apiary.on_site_information_list[i]);
                         }
                     }
                 }
@@ -195,7 +225,61 @@
                 this.$refs.on_site_information_table.vmDataTable.row.add(on_site_information).draw();
             },
             addEventListeners: function() {
+                $("#on-site-information-table").on("click", ".delete_on_site_information", this.deleteOnSiteInformation);
+                $("#on-site-information-table").on("click", ".edit_on_site_information", this.editOnSiteInformation);
+            },
+            editOnSiteInformation: async function(e) {
+                let vm = this;
+                let on_site_information_id = e.target.getAttribute("data-on-site-information-id");
+                let obj_to_edit = {
+                    id: null,
+                    apiary_site: null,
+                    comments: '',
+                    period_from: null,
+                    period_to: null,
+                }
 
+                for(let i=0; i<this.proposal_apiary.on_site_information_list.length; i++){
+                    if(this.proposal_apiary.on_site_information_list[i].id == on_site_information_id){
+                        obj_to_edit = this.proposal_apiary.on_site_information_list[i];
+                        break;
+                    }
+                }
+
+                this.openOnSiteInformationModal(obj_to_edit);
+
+            },
+            deleteOnSiteInformation: async function(e) {
+                let vm = this;
+                let on_site_information_id = e.target.getAttribute("data-on-site-information-id");
+
+                swal({
+                      title: "Delete on site information",
+                      text: "Are you sure you want to delete this?",
+                      type: "warning",
+                      showCancelButton: true,
+                      confirmButtonClass: "btn-danger",
+                      confirmButtonText: "Yes, delete it",
+                }).then(
+                    (accept) => {
+                        vm.$http.delete('/api/on_site_information/' + on_site_information_id).then(
+                            async function(accept){
+                                await vm.loadApiarySiteLocation(this.proposal_apiary_id);
+                                vm.constructOnSiteInformationTable();
+                            },
+                            reject=>{
+                                swal(
+                                    'Submit Error',
+                                    helpers.apiVueResourceError(err),
+                                    'error'
+                                )
+                            }
+                        );
+                    },
+                    (reject)=>{
+
+                    }
+                )
             },
         },
         created: function() {
