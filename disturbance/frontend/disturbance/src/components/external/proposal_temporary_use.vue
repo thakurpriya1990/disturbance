@@ -38,6 +38,24 @@
                 </div>
             </div>
         </div>
+
+        <div>
+            <div class="row" style="margin-bottom: 50px">
+                <div class="navbar navbar-fixed-bottom" style="background-color: #f5f5f5 ">
+                <div class="navbar-inner">
+                    <div class="container">
+                        <p class="pull-right" style="margin-top:5px;">
+                            <input type="button" @click.prevent="save_exit" class="btn btn-primary" value="Save and Exit"/>
+                            <input type="button" @click.prevent="save" class="btn btn-primary" value="Save and Continue"/>
+                            <input v-if="!isSubmitting" type="button" @click.prevent="submit" class="btn btn-primary" value="Submit"/>
+                            <button v-else disabled class="btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Submitting</button>
+                            <input id="save_and_continue_btn" type="hidden" @click.prevent="save_wo_confirm" class="btn btn-primary" value="Save Without Confirmation"/>
+                        </p>
+                    </div>
+                </div>
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 
@@ -66,7 +84,7 @@
 
             return{
                 pBody: 'pBody'+vm._uid,
-                proposal: null,
+                application: null,
                 from_date: null,
                 to_date: null,
                 apiary_sites_array: [],
@@ -76,6 +94,7 @@
                 phone: '',
                 mobile: '',
                 email: '',
+                isSubmitting: false,
             }
         },
         components: {
@@ -93,43 +112,55 @@
         methods:{
             occupierDataChanged: function(value){
                 console.log('occupierDataChanged');
-                console.log(value);
+                //console.log(value);
             },
             siteChechboxClicked: function(value){
                 console.log('siteChechboxClicked');
-                console.log(value);
+                //console.log(value);
             },
             fromDateChanged: function(value){
                 console.log('fromDateChanged');
-                console.log(value);
+                //console.log(value);
             },
             toDateChanged: function(value){
                 console.log('toDateChanged');
-                console.log(value);
+                //console.log(value);
             },
             addEventListeners: function() {
 
             },
         },
         beforeRouteEnter: function(to, from, next) {
-            console.log(to);
+           console.log(to);
             console.log(from);
-            console.log(next);
 
-            let vm = this;
-            Vue.http.get(`/api/proposal/${to.params.proposal_id}.json`).then(res => {
-                next(vm => {
-                    //vm.loading.push('fetching proposal')
-                    vm.proposal = res.body;
-                    //vm.loading.splice('fetching proposal', 1);
-                    //vm.setdata(vm.proposal.readonly);
+            console.log('licence id: ');
+            console.log(to.params.licence_id);
 
-                });
-            },
-            err => {
-                console.log(err);
-            });
+            console.log('application id: ');
+            if (to.params.application_id){
+                console.log(to.params.application_id);
+            } else {
+                console.log('not set');
+            }
+
+            next();
         },
+
+       //     let vm = this;
+       //    // Vue.http.get(`/api/approval/${to.params.licence_id}.json`).then(res => {
+       //    //    // next(vm => {
+       //    //    //     //vm.loading.push('fetching proposal')
+       //    //    //     vm.proposal = res.body;
+       //    //    //     //vm.loading.splice('fetching proposal', 1);
+       //    //    //     //vm.setdata(vm.proposal.readonly);
+
+       //    //    // });
+       //    // },
+       //    // err => {
+       //    //     console.log(err);
+       //    // });
+       // },
         created: function() {
             //**********
             // Store test data
