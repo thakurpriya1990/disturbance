@@ -11,12 +11,12 @@ from disturbance.components.proposals.serializers import SaveProposalSerializer
 
 from disturbance.components.main.models import ApplicationType
 from disturbance.components.proposals.models import (
-    ProposalApiarySiteLocation,
+    ProposalApiary,
     #ProposalApiaryTemporaryUse,
     #ProposalApiarySiteTransfer,
 )
 from disturbance.components.proposals.serializers_apiary import (
-    ProposalApiarySiteLocationSerializer,
+    ProposalApiarySerializer,
     ProposalApiaryTemporaryUseSerializer,
     ProposalApiarySiteTransferSerializer, ApiarySiteSerializer,
 )
@@ -363,10 +363,10 @@ def save_proponent_data_apiary(instance, request, viewset):
 
             #save Site Locations data
             #import ipdb; ipdb.set_trace()
-            site_location_data =sc.get('apiary_site_location')
+            site_location_data =sc.get('proposal_apiary')
 
             if site_location_data:
-                serializer = ProposalApiarySiteLocationSerializer(instance.apiary_site_location, data=site_location_data)
+                serializer = ProposalApiarySerializer(instance.proposal_apiary, data=site_location_data)
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
 
@@ -377,7 +377,7 @@ def save_proponent_data_apiary(instance, request, viewset):
                 site_ids_delete = [id for id in site_ids_existing if id not in site_ids_received]
 
                 for index, apiary_site in enumerate(site_locations_received):
-                    apiary_site['proposal_apiary_site_location_id'] = instance.apiary_site_location.id
+                    apiary_site['proposal_apiary_id'] = instance.proposal_apiary.id
 
                     # TODO: site_category_id must be determined by the category retrieved from the GIS server
                     site_categories = SiteCategory.objects.all()
@@ -413,7 +413,7 @@ def save_proponent_data_apiary(instance, request, viewset):
                 serializer.save()
 
             # save/update any additonal special propoerties here
-            instance.title = instance.apiary_site_location.title
+            instance.title = instance.proposal_apiary.title
             instance.activity = instance.application_type.name
             instance.save()
         except Exception as e:
@@ -528,7 +528,8 @@ def save_assessor_data(instance,request,viewset):
         except:
             raise
 
-def proposal_submit_apiary(proposal,request):
+
+def proposal_submit_apiary(proposal, request):
     with transaction.atomic():
         if proposal.can_user_edit:
             proposal.submitter = request.user

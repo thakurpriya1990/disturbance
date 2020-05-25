@@ -150,7 +150,7 @@ class ApplicationFeeSuccessView(TemplateView):
 
                     #proposal = proposal.submit(request, None)
                     #proposal.fee_invoice_reference = request.GET['invoice']
-                    proposal = proposal_submit(proposal, request)
+                    # proposal = proposal_submit_apiary(proposal, request)
                     if proposal and (invoice.payment_status == 'paid' or invoice.payment_status == 'over_paid'):
                         proposal.fee_invoice_reference = invoice_ref
                         proposal.save()

@@ -5,11 +5,11 @@ from disturbance.components.proposals.serializers_base import BaseProposalSerial
     ProposalDeclinedDetailsSerializer, EmailUserSerializer
 from disturbance.components.proposals.models import (
     Proposal,
-    ProposalApiarySiteLocation,
+    ProposalApiary,
     ProposalApiaryTemporaryUse,
     ProposalApiarySiteTransfer,
-    ProposalApiaryDocument, 
-    ApiarySite, 
+    ProposalApiaryDocument,
+    ApiarySite,
     OnSiteInformation,
     ApiaryReferralGroup,
 )
@@ -18,7 +18,7 @@ from rest_framework import serializers
 
 
 class ApiarySiteSerializer(serializers.ModelSerializer):
-    proposal_apiary_site_location_id = serializers.IntegerField(write_only=True,)
+    proposal_apiary_id = serializers.IntegerField(write_only=True,)
     site_category_id = serializers.IntegerField(write_only=True,)
     # onsiteinformation_set = OnSiteInformationSerializer(read_only=True, many=True,)
 
@@ -28,7 +28,7 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
             'id',
             'available',
             'site_guid',
-            'proposal_apiary_site_location_id',
+            'proposal_apiary_id',
             'site_category_id',
         )
 
@@ -36,6 +36,7 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
 class OnSiteInformationSerializer(serializers.ModelSerializer):
     apiary_site_id = serializers.IntegerField(write_only=True, required=False)
     apiary_site = ApiarySiteSerializer(read_only=True)
+    datetime_deleted = serializers.DateTimeField(write_only=True, required=False)
 
     class Meta:
         model = OnSiteInformation
@@ -46,41 +47,47 @@ class OnSiteInformationSerializer(serializers.ModelSerializer):
             'period_from',
             'period_to',
             'comments',
+            'datetime_deleted',
         )
 
     def validate(self, data):
         field_errors = {}
         non_field_errors = []
 
-        if not data['period_from']:
-            field_errors['Period from'] = ['Please select a date.',]
-        if not data['period_to']:
-            field_errors['Period to'] = ['Please select a date.',]
-        if not data['apiary_site_id'] and not data['apiary_site_id'] > 0:
-            field_errors['Site'] = ['Please select a site',]
-        if not data['comments']:
-            field_errors['comments'] = ['Please enter comments.',]
+        if not self.partial:
+            if not data['period_from']:
+                field_errors['Period from'] = ['Please select a date.',]
+            if not data['period_to']:
+                field_errors['Period to'] = ['Please select a date.',]
+            if not data['apiary_site_id'] and not data['apiary_site_id'] > 0:
+                field_errors['Site'] = ['Please select a site',]
+            if not data['comments']:
+                field_errors['comments'] = ['Please enter comments.',]
 
-        # Raise errors
-        if field_errors:
-            raise serializers.ValidationError(field_errors)
+            # Raise errors
+            if field_errors:
+                raise serializers.ValidationError(field_errors)
 
-        if data['period_from'] > data['period_to']:
-            non_field_errors.append('Period "from" date must be before "to" date.')
+            if data['period_from'] > data['period_to']:
+                non_field_errors.append('Period "from" date must be before "to" date.')
 
-        # Raise errors
-        if non_field_errors:
-            raise serializers.ValidationError(non_field_errors)
+            # Raise errors
+            if non_field_errors:
+                raise serializers.ValidationError(non_field_errors)
+        else:
+            # Partial udpate, which means the dict data doesn't have all the field
+            pass
+
 
         return data
 
 
-class ProposalApiarySiteLocationSerializer(serializers.ModelSerializer):
+class ProposalApiarySerializer(serializers.ModelSerializer):
     apiary_sites = ApiarySiteSerializer(read_only=True, many=True)
     on_site_information_list = serializers.SerializerMethodField()  # This is used for displaying OnSite table at the frontend
 
     class Meta:
-        model = ProposalApiarySiteLocation
+        model = ProposalApiary
         # geo_field = 'location'
 
         fields = (
@@ -96,7 +103,8 @@ class ProposalApiarySiteLocationSerializer(serializers.ModelSerializer):
 
     def get_on_site_information_list(self, obj):
         on_site_information_list = OnSiteInformation.objects.filter(
-            apiary_site__in=ApiarySite.objects.filter(proposal_apiary_site_location=obj)
+            apiary_site__in=ApiarySite.objects.filter(proposal_apiary=obj),
+            datetime_deleted=None,
         ).order_by('-period_from')
         ret = OnSiteInformationSerializer(on_site_information_list, many=True).data
         return ret
@@ -124,11 +132,11 @@ class ProposalApiaryDocumentSerializer(serializers.ModelSerializer):
 
 class SaveProposalApiarySiteLocationSerializer(serializers.ModelSerializer):
     class Meta:
-        model = ProposalApiarySiteLocation
+        model = ProposalApiary
         fields = ('id', 'title', 'proposal')
 
 
-class ProposalApiarySerializer(serializers.ModelSerializer):
+class ProposalApiaryTypeSerializer(serializers.ModelSerializer):
     readonly = serializers.SerializerMethodField(read_only=True)
     documents_url = serializers.SerializerMethodField()
     proposal_type = serializers.SerializerMethodField()
@@ -141,7 +149,7 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
     customer_status = serializers.SerializerMethodField(read_only=True)
 
     application_type = serializers.CharField(source='application_type.name', read_only=True)
-    apiary_site_location = ProposalApiarySiteLocationSerializer()
+    proposal_apiary = ProposalApiarySerializer()
     apiary_temporary_use = ProposalApiaryTemporaryUseSerializer()
     apiary_site_transfer = ProposalApiarySiteTransferSerializer()
 
@@ -185,7 +193,7 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
                 'fee_invoice_reference',
                 'fee_paid',
                 'activity',
-                'apiary_site_location',
+                'proposal_apiary',
                 'apiary_temporary_use',
                 'apiary_site_transfer',
 
@@ -241,7 +249,7 @@ class InternalProposalApiarySerializer(BaseProposalSerializer):
     applicant = serializers.SerializerMethodField()
     applicant_type = serializers.SerializerMethodField()
 
-    apiary_site_location = ProposalApiarySiteLocationSerializer()
+    proposal_apiary = ProposalApiarySerializer()
     apiary_temporary_use = ProposalApiaryTemporaryUseSerializer()
     apiary_site_transfer = ProposalApiarySiteTransferSerializer()
 
@@ -302,7 +310,7 @@ class InternalProposalApiarySerializer(BaseProposalSerializer):
                 'fee_paid',
                 'applicant',
                 'applicant_type',
-                'apiary_site_location',
+                'proposal_apiary',
                 'apiary_temporary_use',
                 'apiary_site_transfer',
                 )

@@ -12,7 +12,7 @@ from disturbance.components.organisations.models import (
 from disturbance.components.main.serializers import CommunicationLogEntrySerializer
 from rest_framework import serializers
 
-from disturbance.components.proposals.serializers_apiary import ProposalApiarySiteLocationSerializer
+from disturbance.components.proposals.serializers_apiary import ProposalApiarySerializer
 
 
 class EmailUserSerializer(serializers.ModelSerializer):
