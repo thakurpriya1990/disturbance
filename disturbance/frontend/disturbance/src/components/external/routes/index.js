@@ -68,8 +68,16 @@ export default
             ]
         },
         {
-            path: 'proposal/:proposal_id/temporary_use',
+            path: 'licence/:licence_id/temporary_use',
             component: ProposalTemporaryUse,
+            name: "external-new-temporary-use",
+            children: [
+                {
+                    path: ':application_id',
+                    component: ProposalTemporaryUse,
+                    name: "external-temporary-use",
+                },
+            ]
         }
     ]
 }

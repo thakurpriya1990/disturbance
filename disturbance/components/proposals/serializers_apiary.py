@@ -8,10 +8,15 @@ from disturbance.components.proposals.models import (
     ProposalApiary,
     ProposalApiaryTemporaryUse,
     ProposalApiarySiteTransfer,
+
+    ApiaryApplicantChecklistQuestion,
+    ApiaryApplicantChecklistAnswer,
+
     ProposalApiaryDocument,
     ApiarySite,
+
     OnSiteInformation,
-    ApiaryReferralGroup,
+    ApiaryReferralGroup, TemporaryUseApiarySite,
 )
 
 from rest_framework import serializers
@@ -86,6 +91,8 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
     apiary_sites = ApiarySiteSerializer(read_only=True, many=True)
     on_site_information_list = serializers.SerializerMethodField()  # This is used for displaying OnSite table at the frontend
 
+    checklist_questions = serializers.SerializerMethodField()
+
     class Meta:
         model = ProposalApiary
         # geo_field = 'location'
@@ -99,6 +106,7 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
             'longitude',
             'latitude',
             'on_site_information_list',
+            'checklist_questions',
         )
 
     def get_on_site_information_list(self, obj):
@@ -109,12 +117,41 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
         ret = OnSiteInformationSerializer(on_site_information_list, many=True).data
         return ret
 
+    def get_checklist_questions(self, obj):
+        checklistQuestion = ApiaryApplicantChecklistQuestion.objects.values('text')
+        ret = ApiaryApplicantChecklistQuestionSerializer(checklistQuestion, many=True).data
+        return ret
+
 
 class ProposalApiaryTemporaryUseSerializer(serializers.ModelSerializer):
+    proposal_id = serializers.IntegerField(write_only=True, required=False)
+    proposal_apiary_base_id = serializers.IntegerField(write_only=True, required=False)
 
     class Meta:
         model = ProposalApiaryTemporaryUse
-        fields = '__all__'
+        fields = (
+            'id',
+            'from_date',
+            'to_date',
+            'temporary_occupier_name',
+            'temporary_occupier_phone',
+            'temporary_occupier_mobile',
+            'temporary_occupier_email',
+            'proposal_id',
+            'proposal_apiary_base_id',
+        )
+
+
+class TemporaryUseApiarySiteSerializer(serializers.ModelSerializer):
+    proposal_apiary_temporary_use_id = serializers.IntegerField(write_only=True, required=False)
+    apiary_site_id= serializers.IntegerField(write_only=True, required=False)
+
+    class Meta:
+        model = TemporaryUseApiarySite
+        fields = (
+            'proposal_apiary_temporary_use_id',
+            'apiary_site_id',
+        )
 
 
 class ProposalApiarySiteTransferSerializer(serializers.ModelSerializer):
@@ -368,6 +405,26 @@ class InternalProposalApiarySerializer(BaseProposalSerializer):
 
     def get_applicant_type(self,obj):
         return obj.relevant_applicant_type
+
+class ApiaryApplicantChecklistQuestionSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = ApiaryApplicantChecklistQuestion
+        fields=('id',
+                'text',
+                'answer_type',
+                'order'
+                )
+
+class ApiaryApplicantChecklistAnswerSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = ApiaryApplicantChecklistAnswer
+        fields=('id',
+                'question',
+                'answer',
+                )
+
 
 
 class ApiaryReferralGroupSerializer(serializers.ModelSerializer):

@@ -2311,6 +2311,36 @@ class ApiaryReferralGroup(models.Model):
     def members_email(self):
         return [i.email for i in self.members.all()]
 
+class ApiaryApplicantChecklistQuestion(models.Model):
+    ANSWER_TYPE_CHOICES = (
+        ('yes_no', 'Yes/No type'),
+    )
+    text = models.TextField()
+    answer_type = models.CharField('Answer Type',
+                                   max_length=30,
+                                   choices=ANSWER_TYPE_CHOICES,
+                                   default=ANSWER_TYPE_CHOICES[0][0])
+    order = models.PositiveIntegerField(default=1)
+
+    def __str__(self):
+        return self.text
+
+    class Meta:
+        app_label = 'disturbance'
+
+class ApiaryApplicantChecklistAnswer(models.Model):
+    question=models.ForeignKey(ApiaryApplicantChecklistQuestion, related_name='answers')
+    answer = models.NullBooleanField()
+    proposal = models.ForeignKey(ProposalApiary, related_name='apiary_applicant_checklist')
+
+    def __str__(self):
+        return self.question.text
+
+    class Meta:
+        app_label = 'disturbance'
+        verbose_name = 'CheckList answer'
+        verbose_name_plural = 'CheckList answers'
+
 #class ApiaryTemporaryUseDocument(DefaultDocument):
 #    temporary_use = models.ForeignKey('ProposalApiaryTemporaryUse', related_name='apiary_temporary_use_documents')
 #    _file = models.FileField(upload_to=update_temporary_use_doc_filename, max_length=512)
