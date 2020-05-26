@@ -103,13 +103,20 @@
 
             <div class="row">
                 <FormSection :formCollapse="false" label="Temporary Use" Index="temporary_use">
-                    <TemporaryUse :proposal_apiary_id="proposal_apiary_id" ref="tempoary_use" />
+                    <TemporaryUse 
+                        :proposal_apiary_id="proposal_apiary_id" 
+                        :licence_id="approval.id"
+                        ref="tempoary_use" 
+                    />
                 </FormSection>
             </div>
 
             <div class="row">
                 <FormSection :formCollapse="false" label="On Site" Index="on_site">
-                    <OnSiteInformation :proposal_apiary_id="proposal_apiary_id" ref="on_site_information" />
+                    <OnSiteInformation 
+                        :proposal_apiary_id="proposal_apiary_id" 
+                        ref="on_site_information" 
+                    />
                 </FormSection>
             </div>
         </div>
@@ -124,9 +131,9 @@ import CommsLogs from '@common-utils/comms_logs.vue'
 import ResponsiveDatatablesHelper from "@/utils/responsive_datatable_helper.js"
 import FormSection from "@/components/forms/section_toggle.vue"
 import { api_endpoints, helpers } from '@/utils/hooks'
-import OnSiteInformation from '@/components/common/apiary/on_site_information.vue'
-import TemporaryUse from '@/components/common/apiary/temporary_use.vue'
-import SiteAvailability from '@/components/common/apiary/site_availability.vue'
+import OnSiteInformation from '@/components/common/apiary/section_on_site_information.vue'
+import TemporaryUse from '@/components/common/apiary/section_temporary_use.vue'
+import SiteAvailability from '@/components/common/apiary/section_site_availability.vue'
 
 export default {
     name: 'Approval',
