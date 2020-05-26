@@ -22,6 +22,26 @@ from disturbance.components.proposals.models import (
 from rest_framework import serializers
 
 
+class ApiaryApplicantChecklistQuestionSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = ApiaryApplicantChecklistQuestion
+        fields=('id',
+                'text',
+                'answer_type',
+                'order'
+                )
+
+class ApiaryApplicantChecklistAnswerSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = ApiaryApplicantChecklistAnswer
+        fields=('id',
+                'question',
+                'answer',
+                )
+
+
 class ApiarySiteSerializer(serializers.ModelSerializer):
     proposal_apiary_id = serializers.IntegerField(write_only=True,)
     site_category_id = serializers.IntegerField(write_only=True,)
@@ -91,8 +111,6 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
     apiary_sites = ApiarySiteSerializer(read_only=True, many=True)
     on_site_information_list = serializers.SerializerMethodField()  # This is used for displaying OnSite table at the frontend
 
-    checklist_questions = serializers.SerializerMethodField()
-
     class Meta:
         model = ProposalApiary
         # geo_field = 'location'
@@ -106,7 +124,6 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
             'longitude',
             'latitude',
             'on_site_information_list',
-            'checklist_questions',
         )
 
     def get_on_site_information_list(self, obj):
@@ -115,11 +132,6 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
             datetime_deleted=None,
         ).order_by('-period_from')
         ret = OnSiteInformationSerializer(on_site_information_list, many=True).data
-        return ret
-
-    def get_checklist_questions(self, obj):
-        checklistQuestion = ApiaryApplicantChecklistQuestion.objects.values('text')
-        ret = ApiaryApplicantChecklistQuestionSerializer(checklistQuestion, many=True).data
         return ret
 
 
@@ -290,6 +302,8 @@ class InternalProposalApiarySerializer(BaseProposalSerializer):
     apiary_temporary_use = ProposalApiaryTemporaryUseSerializer()
     apiary_site_transfer = ProposalApiarySiteTransferSerializer()
 
+    apiary_applicant_checklist = ApiaryApplicantChecklistAnswerSerializer(many=True)
+
     class Meta:
         model = Proposal
         fields = (
@@ -350,6 +364,7 @@ class InternalProposalApiarySerializer(BaseProposalSerializer):
                 'proposal_apiary',
                 'apiary_temporary_use',
                 'apiary_site_transfer',
+                'apiary_applicant_checklist',
                 )
         read_only_fields=('documents','requirements')
 
@@ -405,26 +420,6 @@ class InternalProposalApiarySerializer(BaseProposalSerializer):
 
     def get_applicant_type(self,obj):
         return obj.relevant_applicant_type
-
-class ApiaryApplicantChecklistQuestionSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = ApiaryApplicantChecklistQuestion
-        fields=('id',
-                'text',
-                'answer_type',
-                'order'
-                )
-
-class ApiaryApplicantChecklistAnswerSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = ApiaryApplicantChecklistAnswer
-        fields=('id',
-                'question',
-                'answer',
-                )
-
 
 
 class ApiaryReferralGroupSerializer(serializers.ModelSerializer):
