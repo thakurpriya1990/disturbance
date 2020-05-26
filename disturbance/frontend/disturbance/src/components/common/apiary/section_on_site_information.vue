@@ -1,6 +1,6 @@
 <template lang="html">
     <div>
-        <div class="row">
+        <div class="row col-sm-12">
             <button :disabled="!addButtonEnabled" class="btn btn-primary pull-right" @click="openOnSiteInformationModalToAdd">Add</button>
         </div>
 
