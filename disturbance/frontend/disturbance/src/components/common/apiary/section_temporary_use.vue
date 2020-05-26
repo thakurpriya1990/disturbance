@@ -32,6 +32,10 @@
                 required: true,
                 default: 0,
             },
+            licence_id: {
+                type: Number,
+                required: true,
+            },
             is_external:{
               type: Boolean,
               default: false
@@ -114,7 +118,7 @@
             openNewTemporaryUse: function() {
                 console.log('in openNewTemporaryUse');
                 //this.$router.push({name: 'draft_proposal', params: {proposal_id: '484'}});
-                this.$router.push({name: 'external-new-temporary-use', params: {licence_id: '2'}});
+                this.$router.push({name: 'external-new-temporary-use', params: {licence_id: this.licence_id}});
                 //this.$router.push({name: 'external-proposals-dash'}); //Navigate to dashboard
             },
             addEventListeners: function() {

@@ -64,8 +64,8 @@
     import uuid from 'uuid'
     import { api_endpoints, helpers, } from '@/utils/hooks'
     import FormSection from "@/components/forms/section_toggle.vue"
-    import PeriodAndSites from "@/components/common/apiary/period_and_sites.vue"
-    import TemporaryOccupier from "@/components/common/apiary/temporary_occupier.vue"
+    import PeriodAndSites from "@/components/common/apiary/section_period_and_sites.vue"
+    import TemporaryOccupier from "@/components/common/apiary/section_temporary_occupier.vue"
 
     export default {
         props:{
@@ -175,24 +175,11 @@
             },
         },
         beforeRouteEnter: function(to, from, next) {
-           console.log(to);
+            console.log(to);
             console.log(from);
 
             console.log('licence id: ');
             console.log(to.params.licence_id);
-
-            let vm = this;
-            Vue.http.get(`/api/approvals/${to.params.licence_id}.json`).then(res => {
-                next(vm => {
-           //    //     //vm.loading.push('fetching proposal')
-                    vm.proposal = res.body;
-           //    //     //vm.loading.splice('fetching proposal', 1);
-           //    //     //vm.setdata(vm.proposal.readonly);
-               });
-                },
-                err => {
-                    console.log(err);
-                });
 
             console.log('application id: ');
             if (to.params.application_id){
@@ -201,7 +188,18 @@
                 console.log('not set');
             }
 
-            next();
+            let vm = this;
+            Vue.http.get(`/api/approvals/${to.params.licence_id}.json`).then(res => {
+                next(vm => {
+                    console.log('res.body');
+                    console.log(res.body);
+                    vm.proposal = res.body;
+                    });
+                },
+                err => {
+                    console.log(err);
+                }
+            );
         },
 
         created: function() {
