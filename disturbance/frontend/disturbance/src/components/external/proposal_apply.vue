@@ -90,7 +90,7 @@
                                     <div class="form-group">
                                         <select class="form-control" style="width:40%" v-model="selected_application_id" @change="chainedSelectAppType(selected_application_id)">
 											<option value="" selected disabled>Select proposal type*</option>
-                                            <option v-for="application_type in application_types" :value="application_type.value">
+                                            <option v-for="application_type in applicationTypesList" :value="application_type.value">
                                                 {{ application_type.text }}
                                             </option>
                                         </select>
@@ -251,6 +251,21 @@ export default {
   components: {
   },
   computed: {
+      applicationTypesList: function() {
+          console.log("applicationTypesList")
+          let returnList = [];
+          for (let applicationType of this.application_types) {
+              // for individual applications, only Apiary should show
+              if (this.behalf_of === 'individual') {
+                  if (applicationType.text === 'Apiary') {
+                      returnList.push(applicationType);
+                  }
+              } else {
+                  returnList.push(applicationType);
+              }
+          }
+          return returnList;
+      },
     isLoading: function() {
       return this.loading.length > 0
     },
