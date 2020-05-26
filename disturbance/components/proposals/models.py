@@ -686,8 +686,7 @@ class Proposal(RevisionedMixin):
                 ):
             group = ApiaryAssessorGroup.objects.first()
             if group:
-                return group
-            return group.members_email
+                return group.members_email
         #import ipdb; ipdb.set_trace()
         # Proposal logic
         try:
@@ -710,8 +709,7 @@ class Proposal(RevisionedMixin):
                 ):
             group = ApiaryApproverGroup.objects.first()
             if group:
-                return group
-            return group.members_email
+                return group.members_email
         # Proposal logic
         try:
             recipients = ProposalApproverGroup.objects.get(region=self.region).members_email
@@ -2432,6 +2430,10 @@ class ApiaryAssessorGroup(models.Model):
     class Meta:
         app_label = 'disturbance'
         verbose_name_plural = 'Apiary Assessors Group'
+
+    @property
+    def members_email(self):
+        return [i.email for i in self.members.all()]
 
 
 class ApiaryApproverGroup(models.Model):
