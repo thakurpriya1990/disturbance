@@ -12,14 +12,11 @@ from disturbance.components.proposals.models import (
     ApiaryApplicantChecklistQuestion,
     ApiaryApplicantChecklistAnswer,
 
-    ProposalApiaryDocument, 
-    ApiarySite, 
-
     ProposalApiaryDocument,
     ApiarySite,
 
     OnSiteInformation,
-    ApiaryReferralGroup,
+    ApiaryReferralGroup, TemporaryUseApiarySite,
 )
 
 from rest_framework import serializers
@@ -127,10 +124,34 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
 
 
 class ProposalApiaryTemporaryUseSerializer(serializers.ModelSerializer):
+    proposal_id = serializers.IntegerField(write_only=True, required=False)
+    proposal_apiary_base_id = serializers.IntegerField(write_only=True, required=False)
 
     class Meta:
         model = ProposalApiaryTemporaryUse
-        fields = '__all__'
+        fields = (
+            'id',
+            'from_date',
+            'to_date',
+            'temporary_occupier_name',
+            'temporary_occupier_phone',
+            'temporary_occupier_mobile',
+            'temporary_occupier_email',
+            'proposal_id',
+            'proposal_apiary_base_id',
+        )
+
+
+class TemporaryUseApiarySiteSerializer(serializers.ModelSerializer):
+    proposal_apiary_temporary_use_id = serializers.IntegerField(write_only=True, required=False)
+    apiary_site_id= serializers.IntegerField(write_only=True, required=False)
+
+    class Meta:
+        model = TemporaryUseApiarySite
+        fields = (
+            'proposal_apiary_temporary_use_id',
+            'apiary_site_id',
+        )
 
 
 class ProposalApiarySiteTransferSerializer(serializers.ModelSerializer):
