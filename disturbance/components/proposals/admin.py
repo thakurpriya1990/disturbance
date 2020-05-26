@@ -62,16 +62,15 @@ class ProposalApproverGroupAdmin(admin.ModelAdmin):
 
 @admin.register(models.ApiaryReferralGroup)
 class ApiaryReferralGroupAdmin(admin.ModelAdmin):
-    list_display = ['name','default']
     filter_horizontal = ('members',)
-    form = forms.ApiaryReferralGroupAdminForm
-    readonly_fields = ['default']
-    #readonly_fields = ['default', 'regions', 'activities']
+    list_display = ['name']
+    exclude = ('site',)
+    actions = None
 
-    def has_delete_permission(self, request, obj=None):
-        if obj and obj.default:
-            return False
-        return super(ApiaryReferralGroupAdmin, self).has_delete_permission(request, obj)
+    def formfield_for_manytomany(self, db_field, request, **kwargs):
+        if db_field.name == "members":
+            kwargs["queryset"] = EmailUser.objects.filter(is_staff=True)
+        return super(ApiaryReferralGroupAdmin, self).formfield_for_manytomany(db_field, request, **kwargs)
 
 
 @admin.register(models.ApiaryAssessorGroup)
