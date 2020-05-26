@@ -430,3 +430,9 @@ class ApiaryReferralGroupSerializer(serializers.ModelSerializer):
                 'name',
                 )
 
+class SendApiaryReferralSerializer(serializers.Serializer):
+    #email = serializers.EmailField()
+    group_id = serializers.IntegerField()
+    text = serializers.CharField(allow_blank=True)
+
+

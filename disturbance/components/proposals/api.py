@@ -50,6 +50,7 @@ from disturbance.components.proposals.models import (
     AmendmentReason,
     AmendmentRequestDocument,
     ApiaryReferralGroup,
+    ProposalApiary,
 
 )
 from disturbance.components.proposals.serializers import (
@@ -83,7 +84,9 @@ from disturbance.components.proposals.serializers_apiary import (
     ProposalApiaryTemporaryUseSerializer,
     ProposalApiarySiteTransferSerializer,
     OnSiteInformationSerializer,
-    ApiaryReferralGroupSerializer, ApiarySiteSerializer,
+    ApiaryReferralGroupSerializer, 
+    ApiarySiteSerializer,
+    SendApiaryReferralSerializer,
 )
 from disturbance.components.approvals.models import Approval
 from disturbance.components.approvals.serializers import ApprovalSerializer
@@ -461,6 +464,96 @@ class ProposalApiaryViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return ProposalApiary.objects.all()
+
+    def internal_apiary_serializer_class(self):
+        try:
+            #import ipdb; ipdb.set_trace()
+            #application_type = Proposal.objects.get(id=self.kwargs.get('pk')).application_type.name
+            application_type = self.get_object().application_type.name
+            if application_type == ApplicationType.APIARY:
+                return InternalProposalApiarySerializer
+                #return InternalProposalSerializer
+            else:
+                pass
+                #return InternalProposalSerializer
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            if hasattr(e,'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['post'])
+    def apiary_assessor_send_referral(self, request, *args, **kwargs):
+        with transaction.atomic():
+            try:
+                instance = self.get_object()
+                serializer = SendApiaryReferralSerializer(data=request.data)
+                serializer.is_valid(raise_exception=True)
+                #instance.send_referral(request,serializer.validated_data['email'], serializer.validated_data['text'])
+                #instance.send_apiary_referral(request,serializer.validated_data['group_id'], serializer.validated_data['text'])
+                group = ApiaryReferralGroup.objects.get(id=serializer.validated_data['group_id'])
+                #referral_email = referral_email.lower()
+                if self.processing_status == 'with_assessor' or self.processing_status == 'with_referral':
+                    self.processing_status = 'with_referral'
+                    self.save()
+                    referral = None
+                    ## TODO: create ApiaryReferral based on group_id, plus action log logic
+
+                    # Check if the user is in ledger
+                    try:
+                        user = EmailUser.objects.get(email__icontains=referral_email)
+                    except EmailUser.DoesNotExist:
+                        # Validate if it is a deparment user
+                        department_user = get_department_user(referral_email)
+                        if not department_user:
+                            raise ValidationError('The user you want to send the referral to is not a member of the department')
+                        # Check if the user is in ledger or create
+
+                        user,created = EmailUser.objects.get_or_create(email=department_user['email'].lower())
+                        if created:
+                            user.first_name = department_user['given_name']
+                            user.last_name = department_user['surname']
+                            user.save()
+                    try:
+                        Referral.objects.get(referral=user,proposal=self)
+                        raise ValidationError('A referral has already been sent to this user')
+                    except Referral.DoesNotExist:
+                        # Create Referral
+                        referral = Referral.objects.create(
+                            proposal = self,
+                            referral=user,
+                            sent_by=request.user,
+                            text=referral_text
+                        )
+                    # Create a log entry for the proposal
+                    self.log_user_action(ProposalUserAction.ACTION_SEND_REFERRAL_TO.format(referral.id,self.id,'{}({})'.format(user.get_full_name(),user.email)),request)
+                    # Create a log entry for the organisation
+                    self.applicant.log_user_action(ProposalUserAction.ACTION_SEND_REFERRAL_TO.format(referral.id,self.id,'{}({})'.format(user.get_full_name(),user.email)),request)
+                    # send email
+                    send_referral_email_notification(referral,request)
+                else:
+                    raise exceptions.ProposalReferralCannotBeSent()
+
+                serializer_class = self.internal_apiary_serializer_class()
+                serializer = serializer_class(instance,context={'request':request})
+                return Response(serializer.data)
+            except serializers.ValidationError:
+                print(traceback.print_exc())
+                raise
+            except ValidationError as e:
+                if hasattr(e,'error_dict'):
+                    raise serializers.ValidationError(repr(e.error_dict))
+                else:
+                    raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+            except Exception as e:
+                print(traceback.print_exc())
+                raise serializers.ValidationError(str(e))
 
 
 class ProposalViewSet(viewsets.ModelViewSet):
