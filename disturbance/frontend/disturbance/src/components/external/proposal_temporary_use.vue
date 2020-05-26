@@ -10,6 +10,8 @@
                             :is_internal=is_internal 
                             :from_date="from_date"
                             :to_date="to_date"
+                            :from_date_enabled="from_date_enabled"
+                            :to_date_enabled="to_date_enabled"
                             :apiary_sites_array="apiary_sites_array"
                             @from_date_changed="fromDateChanged"
                             @to_date_changed="toDateChanged"
@@ -21,6 +23,11 @@
                         <TemporaryOccupier 
                             :is_external=is_external 
                             :is_internal=is_internal 
+                            :name=name
+                            :phone=phone
+                            :mobile=mobile
+                            :email=email
+                            @contents_changed="occupierDataChanged"
                         />
                     </FormSection>
 
@@ -28,6 +35,24 @@
                         component here
                     </FormSection>
 
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <div class="row" style="margin-bottom: 50px">
+                <div class="navbar navbar-fixed-bottom" style="background-color: #f5f5f5 ">
+                <div class="navbar-inner">
+                    <div class="container">
+                        <p class="pull-right" style="margin-top:5px;">
+                            <input type="button" @click.prevent="save_exit" class="btn btn-primary" value="Save and Exit"/>
+                            <input type="button" @click.prevent="save" class="btn btn-primary" value="Save and Continue"/>
+                            <input v-if="!isSubmitting" type="button" @click.prevent="submit" class="btn btn-primary" value="Submit"/>
+                            <button v-else disabled class="btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Submitting</button>
+                            <input id="save_and_continue_btn" type="hidden" @click.prevent="save_wo_confirm" class="btn btn-primary" value="Save Without Confirmation"/>
+                        </p>
+                    </div>
+                </div>
                 </div>
             </div>
         </div>
@@ -59,8 +84,17 @@
 
             return{
                 pBody: 'pBody'+vm._uid,
+                application: null,
                 from_date: null,
                 to_date: null,
+                apiary_sites_array: [],
+                from_date_enabled: true,
+                to_date_enabled: true,
+                name: '',
+                phone: '',
+                mobile: '',
+                email: '',
+                isSubmitting: false,
             }
         },
         components: {
@@ -76,35 +110,86 @@
 
         },
         methods:{
-            siteChechboxClicked: function(...values){
+            occupierDataChanged: function(value){
+                console.log('occupierDataChanged');
+                //console.log(value);
+            },
+            siteChechboxClicked: function(value){
                 console.log('siteChechboxClicked');
-                console.log(values);
+                //console.log(value);
             },
             fromDateChanged: function(value){
                 console.log('fromDateChanged');
-                console.log(value);
+                //console.log(value);
             },
             toDateChanged: function(value){
                 console.log('toDateChanged');
-                console.log(value);
+                //console.log(value);
             },
             addEventListeners: function() {
 
             },
         },
+        beforeRouteEnter: function(to, from, next) {
+           console.log(to);
+            console.log(from);
+
+            console.log('licence id: ');
+            console.log(to.params.licence_id);
+
+            console.log('application id: ');
+            if (to.params.application_id){
+                console.log(to.params.application_id);
+            } else {
+                console.log('not set');
+            }
+
+            next();
+        },
+
+       //     let vm = this;
+       //    // Vue.http.get(`/api/approval/${to.params.licence_id}.json`).then(res => {
+       //    //    // next(vm => {
+       //    //    //     //vm.loading.push('fetching proposal')
+       //    //    //     vm.proposal = res.body;
+       //    //    //     //vm.loading.splice('fetching proposal', 1);
+       //    //    //     //vm.setdata(vm.proposal.readonly);
+
+       //    //    // });
+       //    // },
+       //    // err => {
+       //    //     console.log(err);
+       //    // });
+       // },
         created: function() {
+            //**********
+            // Store test data
+            //**********
             this.from_date = moment('05/05/2020', 'DD/MM/YYYY');
             this.to_date = moment('06/05/2020', 'DD/MM/YYYY');
             this.apiary_sites_array = [
                 {
                     'id': 1,
                     'used': true,
+                    'editable': true,
                 },
                 {
                     'id': 2,
                     'used': false,
+                    'editable': false,
+                },
+                {
+                    'id': 3,
+                    'used': false,
+                    'editable': false,
                 },
             ];
+            this.from_date_enabled = false;
+            this.to_date_enabled = true;
+            this.name = 'AHO'
+            this.phone = '12345'
+            this.mobile = '67890'
+            this.email = 'mail@mail.com'
         },
         mounted: function() {
             let vm = this;
