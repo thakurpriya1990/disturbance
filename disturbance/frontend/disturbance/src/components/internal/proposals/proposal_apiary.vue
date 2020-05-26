@@ -981,7 +981,7 @@ export default {
         initialiseSelects: function(){
             let vm = this;
             if (!vm.initialisedSelects){
-                $(vm.$refs.department_users).select2({
+                $(vm.$refs.apiary_referral_groups).select2({
                     "theme": "bootstrap",
                     allowClear: true,
                     placeholder:"Select Referral"
@@ -999,6 +999,7 @@ export default {
             }
         },
         sendReferral: function(){
+            console.log("sendReferral")
             let vm = this;
             //vm.save_wo();
             vm.checkAssessorData();
@@ -1006,9 +1007,10 @@ export default {
             vm.sendingReferral = true;
             vm.$http.post(vm.proposal_form_url,formData).then(res=>{
             
-            let data = {'email':vm.selected_referral, 'text': vm.referral_text};
+            let data = {'group':vm.selected_referral, 'text': vm.referral_text};
             //vm.sendingReferral = true;
-            vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,(vm.proposal.id+'/assesor_send_referral')),JSON.stringify(data),{
+            //vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,(vm.proposal.id+'/assesor_send_referral')),JSON.stringify(data),{
+            vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal_apiary,(vm.proposal.id+'/apiary_assessor_send_referral')),JSON.stringify(data),{
                 emulateJSON:true
             }).then((response) => {
                 vm.sendingReferral = false;
@@ -1017,10 +1019,10 @@ export default {
                 vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
                 swal(
                     'Referral Sent',
-                    'The referral has been sent to '+vm.department_users.find(d => d.email == vm.selected_referral).name,
+                    'The referral has been sent to '+vm.apiary_referral_groups.find(d => d.id == vm.selected_referral).name,
                     'success'
                 )
-                $(vm.$refs.department_users).val(null).trigger("change");
+                $(vm.$refs.apiary_referral_groups).val(null).trigger("change");
                 vm.selected_referral = '';
                 vm.referral_text = '';
             }, (error) => {
