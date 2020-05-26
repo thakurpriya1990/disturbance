@@ -1,56 +1,76 @@
-<template id='temporary_use' >
-
-  <div class = "row">
-    <div class="col-sm-12">
-      <div class ="panel panel-default">
-        <div class = "panel-heading">
-          <h3 class= "panel-title">Temporary Use
-            <a :href="'#'+pBody" data-toggle="collapse" data-parent="#userInfo" expanded="true" :aria-controls="pBody">
-              <span class="glyphicon glyphicon-chevron-up pull-right "></span>
-            </a>
-           </h3>
+<template lang="html">
+    <div>
+        <div class="row">
+            <button class="btn btn-primary pull-right" @click="openNewTemporaryUse">New Temporary Use</button>
         </div>
-        <div class="panel-body collapse in" :id="pBody">
-          <div class ="row">
-            <div class="col-md=3">
-              <router-link style="margin-top:25px;" class="btn btn-primary pull-right" :to="#">New temporary use</router-link>
-            </div>
-          </div>
 
-          <div class="row">
-            <div class="col-md-3">
-              <div class="form-group">
-                <label for="">From:</label>
-                <select style="width:100%" class="form-control input-sm" multiple ref="#">
-                  <option>Test-1</option>
-                  <option>Test-2</option>
-                </select>
-              </div>
-            </div>
-            <div class="col-md-3">
-              <div class="form-group">
-                <label for="">To:</label>
-                <select style="width:100%" class="form-control input-sm" multiple ref="#">
-                  <option>Test-1</option>
-                  <option>Test-2</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          <div class="row">
-            <div class="col-lg-12">
-                <datatable v-if="level=='external'" ref="proposal_datatable" :id="datatable_id" :dtOptions="proposal_ex_options" :dtHeaders="proposal_ex_headers"/>
-                <datatable v-else ref="proposal_datatable" :id="datatable_id" :dtOptions="proposal_options" :dtHeaders="proposal_headers"/>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
-  </div>
-
 </template>
 
 <script>
+    import Vue from 'vue'
+    import datatable from '@vue-utils/datatable.vue'
+    import uuid from 'uuid'
+    import { api_endpoints, helpers, } from '@/utils/hooks'
+    //import uuid from 'uuid'
+   // import Swal from 'sweetalert2'
+    //import Swal from 'sweetalert2/dist/sweetalert2.js'
 
+    export default {
+        props:{
+            proposal_apiary_id:{
+                type: Number,
+                required: true,
+                default: 0,
+            },
+            is_external:{
+              type: Boolean,
+              default: false
+            },
+            is_internal:{
+              type: Boolean,
+              default: false
+            },
+        },
+        data:function () {
+            let vm=this;
+            return{
+                proposal_apiary: null,
+            }
+        },
+        components: {
+            datatable,
+        },
+        computed:{
+
+        },
+        watch:{
+
+        },
+        methods:{
+            openNewTemporaryUse: function() {
+                console.log('in openNewTemporaryUse');
+                //this.$router.push({name: 'draft_proposal', params: {proposal_id: '484'}});
+                this.$router.push({name: 'external-new-temporary-use', params: {licence_id: '2'}});
+                //this.$router.push({name: 'external-proposals-dash'}); //Navigate to dashboard
+            },
+            addEventListeners: function() {
+
+            },
+        },
+        created: function() {
+
+        },
+        mounted: function() {
+            let vm = this;
+            this.$nextTick(() => {
+                vm.addEventListeners();
+            });
+        }
+    }
 </script>
+
+<style lang="css" scoped>
+
+</style>
+
