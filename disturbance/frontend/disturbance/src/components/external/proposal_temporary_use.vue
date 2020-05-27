@@ -8,11 +8,11 @@
                         <PeriodAndSites 
                             :is_external=is_external 
                             :is_internal=is_internal 
-                            :from_date="from_date"
-                            :to_date="to_date"
+                            :from_date="proposal_apiary_temporary_use.from_date"
+                            :to_date="proposal_apiary_temporary_use.to_date"
+                            :apiary_sites_array="proposal_apiary_temporary_use.apiary_sites"
                             :from_date_enabled="from_date_enabled"
                             :to_date_enabled="to_date_enabled"
-                            :apiary_sites_array="apiary_sites_array"
                             @from_date_changed="fromDateChanged"
                             @to_date_changed="toDateChanged"
                             @site_checkbox_clicked="siteChechboxClicked"
@@ -23,10 +23,10 @@
                         <TemporaryOccupier 
                             :is_external=is_external 
                             :is_internal=is_internal 
-                            :name=name
-                            :phone=phone
-                            :mobile=mobile
-                            :email=email
+                            :name=proposal_apiary_temporary_use.temporary_occupier_name
+                            :phone=proposal_apiary_temporary_use.temporary_occupier_phone
+                            :mobile=proposal_apiary_temporary_use.temporary_occupier_mobile
+                            :email=proposal_apiary_temporary_use.temporary_occupier_email
                             @contents_changed="occupierDataChanged"
                         />
                     </FormSection>
@@ -42,17 +42,16 @@
         <div>
             <div class="row" style="margin-bottom: 50px">
                 <div class="navbar navbar-fixed-bottom" style="background-color: #f5f5f5 ">
-                <div class="navbar-inner">
-                    <div class="container">
-                        <p class="pull-right" style="margin-top:5px;">
-                            <input type="button" @click.prevent="save_exit" class="btn btn-primary" value="Save and Exit"/>
-                            <input type="button" @click.prevent="save" class="btn btn-primary" value="Save and Continue"/>
-                            <input v-if="!isSubmitting" type="button" @click.prevent="submit" class="btn btn-primary" value="Submit"/>
-                            <button v-else disabled class="btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Submitting</button>
-                            <input id="save_and_continue_btn" type="hidden" @click.prevent="save_wo_confirm" class="btn btn-primary" value="Save Without Confirmation"/>
-                        </p>
+                    <div class="navbar-inner">
+                        <div class="container">
+                            <p class="pull-right" style="margin-top:5px;">
+                                <input type="button" @click.prevent="save_exit" class="btn btn-primary" value="Save and Exit"/>
+                                <input type="button" @click.prevent="save" class="btn btn-primary" value="Save and Continue"/>
+                                <input v-if="!isSubmitting" type="button" @click.prevent="submit" class="btn btn-primary" value="Submit"/>
+                                <button v-else disabled class="btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Submitting</button>
+                            </p>
+                        </div>
                     </div>
-                </div>
                 </div>
             </div>
         </div>
@@ -65,8 +64,8 @@
     import uuid from 'uuid'
     import { api_endpoints, helpers, } from '@/utils/hooks'
     import FormSection from "@/components/forms/section_toggle.vue"
-    import PeriodAndSites from "@/components/common/apiary/period_and_sites.vue"
-    import TemporaryOccupier from "@/components/common/apiary/temporary_occupier.vue"
+    import PeriodAndSites from "@/components/common/apiary/section_period_and_sites.vue"
+    import TemporaryOccupier from "@/components/common/apiary/section_temporary_occupier.vue"
 
     export default {
         props:{
@@ -85,16 +84,18 @@
             return{
                 pBody: 'pBody'+vm._uid,
                 application: null,
-                from_date: null,
-                to_date: null,
-                apiary_sites_array: [],
                 from_date_enabled: true,
                 to_date_enabled: true,
-                name: '',
-                phone: '',
-                mobile: '',
-                email: '',
                 isSubmitting: false,
+                proposal_apiary_temporary_use: {
+                    from_date: null,
+                    to_date: null,
+                    temporary_occupier_name: '',
+                    temporary_occupier_phone: '',
+                    temporary_occupier_mobile: '',
+                    temporary_occupier_email: '',
+                    apiary_sites: [],
+                }
             }
         },
         components: {
@@ -110,28 +111,126 @@
 
         },
         methods:{
+            set_data: function() {
+                //**********
+                // Store test data
+                //**********
+                this.proposal_apiary_temporary_use.from_date = moment('05/05/2020', 'DD/MM/YYYY');
+                this.proposal_apiary_temporary_use.to_date = moment('06/05/2020', 'DD/MM/YYYY');
+                this.proposal_apiary_temporary_use.apiary_sites = [
+                    {
+                        'id': 1,
+                        'used': true,
+                        'editable': true,
+                    },
+                    {
+                        'id': 2,
+                        'used': false,
+                        'editable': false,
+                    },
+                    {
+                        'id': 3,
+                        'used': false,
+                        'editable': false,
+                    },
+                ];
+                this.proposal_apiary_temporary_use.temporary_occupier_name = 'AHO'
+                this.proposal_apiary_temporary_use.temporary_occupier_phone = '12345'
+                this.proposal_apiary_temporary_use.temporary_occupier_mobile = '67890'
+                this.proposal_apiary_temporary_use.temporary_occupier_email = 'mail@mail.com'
+                this.from_date_enabled = false;
+                this.to_date_enabled = true;
+            },
+            save: function(){
+                console.log('in save()');
+                let proposal_id = 0;
+                if (proposal_id){
+                    this.proposal_update();
+                } else {
+                    this.proposal_create();
+                }
+            },
+            save_exit: function() {
+                console.log('in save_exit()');
+                this.save();
+                this.exit();
+            },
+            submit: function() {
+                console.log('in submit');
+            },
+            exit: function() {
+                console.log('in exit()');
+            },
+            proposal_create: function(){
+                console.log('in proposal_create');
+
+                let data = {
+                    'category': '',
+                    'profile': '', // TODO
+                    'district': '',
+                    'application': '3',  // TODO retrieve the id of the 'Temporary Use' type
+                    'sub_activity2': '',
+                    'region': '',
+                    'approval_level': '',
+                    'behalf_of': '',  // TODO
+                    'activity': '',
+                    'sub_activity1': '',
+                    'proposal_apiary_temporary_use': this.proposal_apiary_temporary_use,
+                }
+
+                data.proposal_apiary_temporary_use.from_date = data.proposal_apiary_temporary_use.from_date.format('YYYY-MM-DD')
+                data.proposal_apiary_temporary_use.to_date = data.proposal_apiary_temporary_use.to_date.format('YYYY-MM-DD')
+
+                this.$http.post('/api/proposal/', data).then(res=>{
+                    swal(
+                        'Saved',
+                        'Your proposal has been created',
+                        'success'
+                    );
+                },err=>{
+
+                });
+            },
+            proposal_update: function(){
+                console.log('in proposal_update');
+                vm.$http.put('/api/proposal/', '').then(res=>{
+                    swal(
+                        'Saved',
+                        'Your proposal has been updated',
+                        'success'
+                    );
+                },err=>{
+
+                });
+            },
             occupierDataChanged: function(value){
-                console.log('occupierDataChanged');
-                //console.log(value);
+                this.proposal_apiary_temporary_use.temporary_occupier_name = value.occupier_name
+                this.proposal_apiary_temporary_use.temporary_occupier_phone = value.occupier_phone
+                this.proposal_apiary_temporary_use.temporary_occupier_mobile = value.occupier_mobile
+                this.proposal_apiary_temporary_use.temporary_occupier_email = value.occupier_email
             },
             siteChechboxClicked: function(value){
                 console.log('siteChechboxClicked');
-                //console.log(value);
+                console.log(value);
+                for (let item of this.proposal_apiary_temporary_use.apiary_sites){
+                    console.log(item);
+                    if (item.id == value.apiary_site_id){
+                        item.used = value.checked;
+                    }
+                }
             },
             fromDateChanged: function(value){
-                console.log('fromDateChanged');
-                //console.log(value);
+                this.proposal_apiary_temporary_use.from_date = moment(value, 'DD/MM/YYYY');
             },
             toDateChanged: function(value){
-                console.log('toDateChanged');
-                //console.log(value);
+                this.proposal_apiary_temporary_use.to_date = moment(value, 'DD/MM/YYYY');
             },
             addEventListeners: function() {
 
             },
         },
         beforeRouteEnter: function(to, from, next) {
-           console.log(to);
+            console.log(to);
             console.log(from);
 
             console.log('licence id: ');
@@ -144,52 +243,21 @@
                 console.log('not set');
             }
 
-            next();
+            let vm = this;
+            Vue.http.get(`/api/approvals/${to.params.licence_id}.json`).then(res => {
+                next(vm => {
+                    console.log('res.body');
+                    console.log(res.body);
+                    vm.proposal = res.body;
+                    });
+                },
+                err => {
+                    console.log(err);
+                }
+            );
         },
-
-       //     let vm = this;
-       //    // Vue.http.get(`/api/approval/${to.params.licence_id}.json`).then(res => {
-       //    //    // next(vm => {
-       //    //    //     //vm.loading.push('fetching proposal')
-       //    //    //     vm.proposal = res.body;
-       //    //    //     //vm.loading.splice('fetching proposal', 1);
-       //    //    //     //vm.setdata(vm.proposal.readonly);
-
-       //    //    // });
-       //    // },
-       //    // err => {
-       //    //     console.log(err);
-       //    // });
-       // },
         created: function() {
-            //**********
-            // Store test data
-            //**********
-            this.from_date = moment('05/05/2020', 'DD/MM/YYYY');
-            this.to_date = moment('06/05/2020', 'DD/MM/YYYY');
-            this.apiary_sites_array = [
-                {
-                    'id': 1,
-                    'used': true,
-                    'editable': true,
-                },
-                {
-                    'id': 2,
-                    'used': false,
-                    'editable': false,
-                },
-                {
-                    'id': 3,
-                    'used': false,
-                    'editable': false,
-                },
-            ];
-            this.from_date_enabled = false;
-            this.to_date_enabled = true;
-            this.name = 'AHO'
-            this.phone = '12345'
-            this.mobile = '67890'
-            this.email = 'mail@mail.com'
+            this.set_data();
         },
         mounted: function() {
             let vm = this;

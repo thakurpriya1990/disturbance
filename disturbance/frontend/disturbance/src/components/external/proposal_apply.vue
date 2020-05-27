@@ -337,6 +337,7 @@ export default {
 		}
 	},
     createProposal:function () {
+        console.log('createProposal');
         let vm = this;
         vm.creatingProposal = true;
 		vm.$http.post('/api/proposal.json',{

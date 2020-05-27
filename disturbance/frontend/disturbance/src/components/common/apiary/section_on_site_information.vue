@@ -1,6 +1,6 @@
 <template lang="html">
     <div>
-        <div class="row">
+        <div class="row col-sm-12">
             <button :disabled="!addButtonEnabled" class="btn btn-primary pull-right" @click="openOnSiteInformationModalToAdd">Add</button>
         </div>
 
@@ -172,7 +172,6 @@
                 this.constructOnSiteInformationTable();
             },
             openOnSiteInformationModalToAdd: async function(e){
-                console.log('in openOnSiteInformationModalToAdd()');
                 this.openOnSiteInformationModal({
                     id: null,
                     apiary_site: null,
@@ -182,12 +181,8 @@
                 });
             },
             openOnSiteInformationModal: async function(obj_to_edit) {
-                console.log('in openOnSiteInformationModal()');
                 // Refresh the component key
                 this.modalBindId = uuid()
-
-                console.log('obj_to_edit');
-                console.log(obj_to_edit);
 
                 this.on_site_information_to_edit = obj_to_edit;
 
@@ -206,9 +201,7 @@
                 this.proposal_apiary = temp.body;
             },
             constructOnSiteInformationTable: function(){
-                console.log('constructOnSiteInformationTable');
                 if (this.proposal_apiary && this.proposal_apiary.on_site_information_list){
-                    console.log('constructOnSiteInformationTable');
 
                     // Clear table
                     this.$refs.on_site_information_table.vmDataTable.clear().draw();

@@ -97,19 +97,31 @@
 
             <div class="row">
                 <FormSection :formCollapse="false" label="Site(s)" Index="site_avaiability">
-                    <SiteAvailability :proposal_apiary_id="proposal_apiary_id" ref="site_availability" />
+                    <SiteAvailability 
+                        :proposal_apiary_id="proposal_apiary_id" 
+                        ref="site_availability" 
+                    />
                 </FormSection>
             </div>
 
             <div class="row">
                 <FormSection :formCollapse="false" label="Temporary Use" Index="temporary_use">
-                    <TemporaryUse :proposal_apiary_id="proposal_apiary_id" ref="tempoary_use" />
+                    <template v-if="approval && approval.id">
+                        <TemporaryUse 
+                            :proposal_apiary_id="proposal_apiary_id" 
+                            :licence_id="approval.id"
+                            ref="tempoary_use" 
+                        />
+                    </template>
                 </FormSection>
             </div>
 
             <div class="row">
                 <FormSection :formCollapse="false" label="On Site" Index="on_site">
-                    <OnSiteInformation :proposal_apiary_id="proposal_apiary_id" ref="on_site_information" />
+                    <OnSiteInformation 
+                        :proposal_apiary_id="proposal_apiary_id" 
+                        ref="on_site_information" 
+                    />
                 </FormSection>
             </div>
         </div>
@@ -124,9 +136,9 @@ import CommsLogs from '@common-utils/comms_logs.vue'
 import ResponsiveDatatablesHelper from "@/utils/responsive_datatable_helper.js"
 import FormSection from "@/components/forms/section_toggle.vue"
 import { api_endpoints, helpers } from '@/utils/hooks'
-import OnSiteInformation from '@/components/common/apiary/on_site_information.vue'
-import TemporaryUse from '@/components/common/apiary/temporary_use.vue'
-import SiteAvailability from '@/components/common/apiary/site_availability.vue'
+import OnSiteInformation from '@/components/common/apiary/section_on_site_information.vue'
+import TemporaryUse from '@/components/common/apiary/section_temporary_use.vue'
+import SiteAvailability from '@/components/common/apiary/section_site_availability.vue'
 
 export default {
     name: 'Approval',
@@ -160,6 +172,9 @@ export default {
     beforeRouteEnter: function(to, from, next){
         Vue.http.get(helpers.add_endpoint_json(api_endpoints.approvals,to.params.approval_id)).then((response) => {
             next(vm => {
+                console.log('in next');
+                console.log('response.body: ');
+                console.log(response.body);
                 vm.approval = response.body;
                 vm.approval.applicant_id = response.body.applicant_id;
                 vm.fetchOrganisation(vm.approval.applicant_id)

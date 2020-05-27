@@ -115,9 +115,7 @@
                 this.proposal_apiary = temp.body;
             },
             constructOnSiteInformationTable: function(){
-                console.log('constructOnSiteInformationTable');
                 if (this.proposal_apiary){
-                    console.log('constructOnSiteInformationTable');
 
                     // Clear table
                     this.$refs.site_availability_table.vmDataTable.clear().draw();
