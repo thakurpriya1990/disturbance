@@ -1007,10 +1007,15 @@ export default {
             vm.sendingReferral = true;
             vm.$http.post(vm.proposal_form_url,formData).then(res=>{
             
-            let data = {'group':vm.selected_referral, 'text': vm.referral_text};
+            let data = {'group_id':vm.selected_referral, 'text': vm.referral_text};
             //vm.sendingReferral = true;
+            // need to create Referral, ApiaryReferral at this point
+            console.log(api_endpoints.proposal_apiary)
+            let url = helpers.add_endpoint_json(api_endpoints.proposal_apiary,(vm.proposal.proposal_apiary.id+'/apiary_assessor_send_referral'))
+            console.log(url)
             //vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,(vm.proposal.id+'/assesor_send_referral')),JSON.stringify(data),{
-            vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal_apiary,(vm.proposal.id+'/apiary_assessor_send_referral')),JSON.stringify(data),{
+            //vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal_apiary,(vm.proposal.id+'/apiary_assessor_send_referral')),JSON.stringify(data),{
+            vm.$http.post(url,JSON.stringify(data),{
                 emulateJSON:true
             }).then((response) => {
                 vm.sendingReferral = false;
