@@ -47,14 +47,19 @@ class ApplicationType(models.Model):
     SITE_TRANSFER = 'Site Transfer'
 
     APPLICATION_TYPES = (
-        DISTURBANCE,
-        POWERLINE_MAINTENANCE,
-        APIARY,
-        TEMPORARY_USE,
-        SITE_TRANSFER,
+        (DISTURBANCE, 'Disturbance'),
+        (POWERLINE_MAINTENANCE, 'Powerline Maintenance'),
+        (APIARY, 'Apiary'),
+        (TEMPORARY_USE, 'Temporary Use'),
+        (SITE_TRANSFER, 'Site Transfer'),
     )
 
-    name = models.CharField(max_length=64, unique=True)
+    #name = models.CharField(max_length=64, unique=True)
+    name = models.CharField(
+            verbose_name='Application Type name', 
+            max_length=64, 
+            choices=APPLICATION_TYPES, 
+            )
     order = models.PositiveSmallIntegerField(default=0)
     visible = models.BooleanField(default=True)
 
