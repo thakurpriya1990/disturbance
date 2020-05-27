@@ -326,13 +326,13 @@ class OnSiteInformationViewSet(viewsets.ModelViewSet):
     @staticmethod
     def _sanitize_date(data_dict, property_name):
         if property_name not in data_dict or not data_dict[property_name] or 'invalid' in data_dict[property_name].lower():
-            # There isn't 'period_from' in the data received, or
+            # There isn't 'property_name' in the data received, or
             # the value in it is False, or
             # the value has a substring 'invalid' in it
             # Add the property if needed and set the value to None
             data_dict[property_name] = None
         else:
-            # There is a 'period_from' in the data received
+            # There is a 'property_name' in the data received
             m = re.match('^(\d{2}).(\d{2}).(\d{4})$', data_dict[property_name])
             if m:
                 year = m.group(3)

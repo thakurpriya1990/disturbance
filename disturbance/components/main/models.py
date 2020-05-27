@@ -46,6 +46,14 @@ class ApplicationType(models.Model):
     TEMPORARY_USE = 'Temporary Use'
     SITE_TRANSFER = 'Site Transfer'
 
+    APPLICATION_TYPES = (
+        DISTURBANCE,
+        POWERLINE_MAINTENANCE,
+        APIARY,
+        TEMPORARY_USE,
+        SITE_TRANSFER,
+    )
+
     name = models.CharField(max_length=64, unique=True)
     order = models.PositiveSmallIntegerField(default=0)
     visible = models.BooleanField(default=True)

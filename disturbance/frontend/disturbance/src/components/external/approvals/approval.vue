@@ -97,17 +97,22 @@
 
             <div class="row">
                 <FormSection :formCollapse="false" label="Site(s)" Index="site_avaiability">
-                    <SiteAvailability :proposal_apiary_id="proposal_apiary_id" ref="site_availability" />
+                    <SiteAvailability 
+                        :proposal_apiary_id="proposal_apiary_id" 
+                        ref="site_availability" 
+                    />
                 </FormSection>
             </div>
 
             <div class="row">
                 <FormSection :formCollapse="false" label="Temporary Use" Index="temporary_use">
-                    <TemporaryUse 
-                        :proposal_apiary_id="proposal_apiary_id" 
-                        :licence_id="approval.id"
-                        ref="tempoary_use" 
-                    />
+                    <template v-if="approval && approval.id">
+                        <TemporaryUse 
+                            :proposal_apiary_id="proposal_apiary_id" 
+                            :licence_id="approval.id"
+                            ref="tempoary_use" 
+                        />
+                    </template>
                 </FormSection>
             </div>
 
@@ -167,6 +172,9 @@ export default {
     beforeRouteEnter: function(to, from, next){
         Vue.http.get(helpers.add_endpoint_json(api_endpoints.approvals,to.params.approval_id)).then((response) => {
             next(vm => {
+                console.log('in next');
+                console.log('response.body: ');
+                console.log(response.body);
                 vm.approval = response.body;
                 vm.approval.applicant_id = response.body.applicant_id;
                 vm.fetchOrganisation(vm.approval.applicant_id)
