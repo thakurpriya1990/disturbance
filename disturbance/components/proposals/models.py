@@ -26,7 +26,13 @@ from disturbance import exceptions
 from disturbance.components.organisations.models import Organisation
 from disturbance.components.main.models import CommunicationsLogEntry, UserAction, Document, Region, District, Tenure, ApplicationType
 from disturbance.components.main.utils import get_department_user
-from disturbance.components.proposals.email import send_referral_email_notification, send_proposal_decline_email_notification,send_proposal_approval_email_notification, send_amendment_email_notification
+from disturbance.components.proposals.email import (
+        send_referral_email_notification, 
+        send_apiary_referral_email_notification, 
+        send_proposal_decline_email_notification,
+        send_proposal_approval_email_notification, 
+        send_amendment_email_notification,
+        )
 from disturbance.ordered_model import OrderedModel
 from disturbance.components.proposals.email import send_submit_email_notification, send_external_submit_email_notification, send_approver_decline_email_notification, send_approver_approve_email_notification, send_referral_complete_email_notification, send_proposal_approver_sendback_email_notification, send_referral_recall_email_notification
 import copy
@@ -2073,60 +2079,48 @@ class ProposalApiary(models.Model):
     class Meta:
         app_label = 'disturbance'
 
-    def send_referral(self,request,referral_email,referral_text):
+    #def send_referral(self,request,referral_email,referral_text):
+    def send_referral(self, request, group_id, referral_text):
         with transaction.atomic():
             try:
-                if self.processing_status == 'with_assessor' or self.processing_status == 'with_referral':
-                    self.processing_status = 'with_referral'
+                if self.proposal.processing_status == 'with_assessor' or self.proposal.processing_status == 'with_referral':
+                    self.proposal.processing_status = 'with_referral'
+                    self.proposal.save()
                     self.save()
                     referral = None
 
                     # Check if the user is in ledger
                     try:
-                        #user = EmailUser.objects.get(email__icontains=referral_email)
-                        referral_group = ApiaryReferralGroup.objects.get(name__icontains=referral_email)
-                    #except EmailUser.DoesNotExist:
+                        #referral_group = ApiaryReferralGroup.objects.get(name__icontains=referral_email)
+                        referral_group = ApiaryReferralGroup.objects.get(id=group_id)
                     except ApiaryReferralGroup.DoesNotExist:
                         raise exceptions.ProposalReferralCannotBeSent()
-#                        # Validate if it is a deparment user
-#                        department_user = get_department_user(referral_email)
-#                        if not department_user:
-#                            raise ValidationError('The user you want to send the referral to is not a member of the department')
-#                        # Check if the user is in ledger or create
-#                        email = department_user['email'].lower()
-#                        user,created = EmailUser.objects.get_or_create(email=department_user['email'].lower())
-#                        if created:
-#                            user.first_name = department_user['given_name']
-#                            user.last_name = department_user['surname']
-#                            user.save()
                     try:
-                        #Referral.objects.get(referral=user,proposal=self)
-                        Referral.objects.get(referral_group=referral_group,proposal=self.proposal)
+                        existing_proposal = Referral.objects.get(proposal=self.proposal)
+                        ApiaryReferral.objects.get(referral_group=referral_group,proposal=existing_proposal)
+                        # Will only reach here if both a Referral and ApiaryReferral exist
                         raise ValidationError('A referral has already been sent to this group')
                     except Referral.DoesNotExist:
                         # Create Referral
                         referral = Referral.objects.create(
                             proposal = self.proposal,
                             #referral=user,
-                            referral_group=referral_group,
+                            #referral_group=referral_group,
                             sent_by=request.user,
                             text=referral_text
                         )
-                        #Create assessor checklist with the current assessor_list type questions
-                        #Assessment instance already exits then skip.
-                        #try:
-                        #    referral_assessment=ProposalAssessment.objects.get(proposal=self,referral_group=referral_group, referral_assessment=True, referral=referral)
-                        #except ProposalAssessment.DoesNotExist:
-                        #    referral_assessment=ProposalAssessment.objects.create(proposal=self,referral_group=referral_group, referral_assessment=True, referral=referral)
-                        #    checklist=ChecklistQuestion.objects.filter(list_type='referral_list', obsolete=False)
-                        #    for chk in checklist:
-                        #        try:
-                        #            chk_instance=ProposalAssessmentAnswer.objects.get(question=chk, assessment=referral_assessment)
-                        #        except ProposalAssessmentAnswer.DoesNotExist:
-                        #            chk_instance=ProposalAssessmentAnswer.objects.create(question=chk, assessment=referral_assessment)
+                        # Create corresponding ApiaryReferral
+                        apiary_referral = ApiaryReferral.objects.create(
+                            #proposal = self.referral.proposal,
+                            referral=referral,
+                            referral_group=referral_group,
+                            #sent_by=request.user,
+                            #text=referral_text
+                        )
+
                     # Create a log entry for the proposal
                     #self.log_user_action(ProposalUserAction.ACTION_SEND_REFERRAL_TO.format(referral.id,self.id,'{}({})'.format(user.get_full_name(),user.email)),request)
-                    self.log_user_action(
+                    self.proposal.log_user_action(
                             ProposalUserAction.APIARY_ACTION_SEND_REFERRAL_TO.format(
                                 referral.id,
                                 self.proposal.id,
@@ -2146,7 +2140,7 @@ class ProposalApiary(models.Model):
                             )
                     # send email
                     recipients = referral_group.members_list
-                    send_referral_email_notification(referral,recipients,request)
+                    send_apiary_referral_email_notification(referral, recipients, request)
                 else:
                     raise exceptions.ProposalReferralCannotBeSent()
             except:

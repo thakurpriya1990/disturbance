@@ -497,7 +497,9 @@ class ProposalApiaryViewSet(viewsets.ModelViewSet):
             serializer.is_valid(raise_exception=True)
             #text=serializer.validated_data['text']
             #instance.send_referral(request,serializer.validated_data['email'])
-            instance.send_referral(request,serializer.validated_data['email_group'], serializer.validated_data['text'])
+            #import ipdb; ipdb.set_trace()
+            #instance.send_referral(request,serializer.validated_data['email_group'], serializer.validated_data['text'])
+            instance.send_referral(request,serializer.validated_data['group_id'], serializer.validated_data['text'])
             serializer = ApiaryProposalSerializer(instance,context={'request':request})
             return Response(serializer.data)
         except serializers.ValidationError:

@@ -117,6 +117,56 @@ def send_referral_complete_email_notification(referral,request):
     _log_proposal_referral_email(msg, referral, sender=sender)
     _log_org_email(msg, referral.proposal.applicant, referral.referral, sender=sender)
 
+def send_apiary_referral_email_notification(referral,recipients,request,reminder=False):
+    email = ReferralSendNotificationEmail()
+    url = request.build_absolute_uri(reverse('internal-referral-detail',kwargs={'proposal_pk':referral.proposal.id,'referral_pk':referral.id}))
+
+    context = {
+        'proposal': referral.proposal,
+        'url': url,
+        'reminder':reminder,
+        'comments': referral.text
+    }
+
+    #msg = email.send(referral.referral.email, context=context)
+    #recipients = list(ReferralRecipientGroup.objects.get(name=referral.email_group).members.all().values_list('email', flat=True))
+    msg = email.send(recipients, context=context)
+    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    _log_proposal_referral_email(msg, referral, sender=sender)
+    #if referral.proposal.org_applicant:
+        #_log_org_email(msg, referral.proposal.org_applicant, referral.referral, sender=sender)
+    if referral.proposal.applicant:
+        _log_org_email(msg, referral.proposal.applicant, referral.referral, sender=sender)
+    else:
+        _log_user_email(msg, referral.proposal.submitter, referral.referral, sender=sender)
+
+def send_apiary_referral_complete_email_notification(referral,request):
+    email = ReferralCompleteNotificationEmail()
+    email.subject = referral.sent_by.email + ': ' + email.subject
+    url = request.build_absolute_uri(reverse('internal-proposal-detail',kwargs={'proposal_pk': referral.proposal.id}))
+
+    context = {
+        'completed_by': referral.referral,
+        'proposal': referral.proposal,
+        'url': url,
+        'referral_comments': referral.referral_text
+    }
+    attachments=[]
+    if referral.document:
+        file_name = referral.document._file.name
+        #attachment = (file_name, doc._file.file.read(), 'image/*')
+        attachment = (file_name, referral.document._file.file.read())
+        attachments.append(attachment)
+
+    msg = email.send(referral.sent_by.email,attachments=attachments, context=context)
+    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    _log_proposal_referral_email(msg, referral, sender=sender)
+    #if referral.proposal.org_applicant:
+        #_log_org_email(msg, referral.proposal.org_applicant, referral.referral, sender=sender)
+    if referral.proposal.applicant:
+        _log_org_email(msg, referral.proposal.applicant, referral.referral, sender=sender)
+    else:
+        _log_user_email(msg, referral.proposal.submitter, referral.referral, sender=sender)
 
 def send_amendment_email_notification(amendment_request, request, proposal):
     email = AmendmentRequestSendNotificationEmail()
