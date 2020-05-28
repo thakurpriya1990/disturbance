@@ -42,20 +42,39 @@
 
     export default {
         props:{
+            // If editing an existing proposal apiary temporary use, data is passed from the parent component
             from_date: {
                 type: Object, // Expect moment obj
                 default: null,
             }, 
+            // If editing an existing proposal apiary temporary use, data is passed from the parent component
             to_date: {
                 type: Object, // Expect moment obj
                 default: null,
             }, 
-            apiary_sites_array: {
+            // all the ApiarySite objects under this licence
+            // to be used to create the table
+            apiary_sites_available: {
                 type: Array,
                 default: function(){
                     return [];
                 }
             },
+            // all the ProposalApiaryTemporaryUse use objects under this licence 
+            // to be used to calculate each apirary site availability at any moment
+            existing_temporary_uses: {
+                type: Array,
+                default: function(){
+                    return [];
+                }
+            },
+         //   // This is existing temporary use object being edited
+         //   apiary_sites_being_edited: {
+         //       type: Array, 
+         //       default: function(){
+         //           return [];
+         //       }
+         //   },
             from_date_enabled: {
                 type: Boolean,
                 default: false,
@@ -103,12 +122,9 @@
                         },
                         {
                             mRender: function (data, type, full) {
-                                let checked_str = ''
+                                let checked_str = ''  // You can set "checked"
                                 let disabled_str = ''
-                                if (full.used){
-                                    checked_str = "checked";
-                                }
-                                if (!full.editable){
+                                if (full._site_used || !full._from_to_set){
                                     disabled_str = ' disabled="disabled" ';
                                 }
                                 return '<input type="checkbox" class="site_checkbox" data-apiary-site-id="' + full.id + '" ' + checked_str + disabled_str + '/>'
@@ -154,8 +170,8 @@
                     this.period_to = null;
                 }
             }
-            if (this.apiary_sites_array.length > 0){
-                this.apiary_sites = this.apiary_sites_array;
+            if (this.apiary_sites_available.length > 0){
+                this.apiary_sites = this.apiary_sites_available;
             }
             this.period_from_enabled = this.from_date_enabled;
             this.period_to_enabled = this.to_date_enabled;
@@ -179,6 +195,7 @@
                 }); 
             },
             constructApiarySitesTable: function(){
+                console.log('in constructApiarySitesTable');
                 // Clear table
                 this.$refs.apiary_sites_table.vmDataTable.clear().draw();
 
@@ -190,6 +207,50 @@
                 }
             },
             addApiarySiteToTable: function(apiary_site) {
+                console.log('in addApiarySiteToTable');
+                apiary_site['_site_used'] = false  // Make the site be temporary usable
+                apiary_site['_from_to_set'] = false
+
+                if (this.period_from && this.period_to){
+                    // Only when from and to dates are set
+                    apiary_site['_from_to_set'] = true
+
+                    outer_loop:
+                    for (let i=0; i<this.existing_temporary_uses.length; i++){
+                        // Check the usability to each existing temporary_use object
+                        let temp_use = this.existing_temporary_uses[i];
+
+                        for (let j=0; j<temp_use.apiary_sites.length; j++){
+                            let item_in_inter_table = temp_use.apiary_sites[j];
+
+                            if (item_in_inter_table.apiary_site.id == apiary_site.id){
+                                // Check the availability of the site
+                                let used_from_date = moment(temp_use.from_date, 'YYYY-MM-DD');
+                                let used_to_date = moment(temp_use.to_date, 'YYYY-MM-DD');
+                                let period_from = moment(this.period_from, 'DD/MM/YYYY');
+                                let period_to = moment(this.period_to, 'DD/MM/YYYY');
+
+                                console.log('used_from_date');
+                                console.log(used_from_date);
+                                console.log('used_to_date');
+                                console.log(used_to_date);
+                                console.log('period_from');
+                                console.log(period_from);
+                                console.log('period_to');
+                                console.log(period_to); 
+
+                                if (period_to < used_from_date || used_to_date < period_from){
+                                    // Site is not used.  Do nothing
+                                } else {
+                                    // This site is temporary used for the period from this.form_date to this.to_date
+                                    apiary_site['_site_used'] = true
+                                    break outer_loop;
+                                }
+                            }
+                        }
+                    }
+                }
+
                 this.$refs.apiary_sites_table.vmDataTable.row.add(apiary_site).draw();
             },
             addEventListeners: function () {
@@ -221,6 +282,7 @@
                         el_to.data('DateTimePicker').minDate(false);
                     }
                     vm.$emit('from_date_changed', vm.period_from)
+                    vm.constructApiarySitesTable();
                 });
 
                 el_to.on("dp.change", function(e) {
@@ -234,6 +296,7 @@
                         el_fr.data('DateTimePicker').maxDate(false);
                     }
                     vm.$emit('to_date_changed', vm.period_to)
+                    vm.constructApiarySitesTable();
                 });
 
                 //***

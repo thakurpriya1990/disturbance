@@ -2248,7 +2248,7 @@ class ApiarySite(models.Model):
     proposal_apiary = models.ForeignKey(ProposalApiary, null=True, blank=True, related_name='apiary_sites')
     site_guid = models.CharField(max_length=50, blank=True)
     available = models.BooleanField(default=False, )
-    temporary_used = models.BooleanField(default=False, )
+    # temporary_used = models.BooleanField(default=False, )
     site_category = models.ForeignKey(SiteCategory, null=True, blank=True)
     # Region and District may be included in the api response from the GIS server
     region = models.ForeignKey(Region, null=True, blank=True)
@@ -2322,10 +2322,10 @@ class ProposalApiaryTemporaryUse(models.Model):
 
 
 class TemporaryUseApiarySite(models.Model):
-    '''
+    """
     Apiary sites under a proposal can be partially used as temporary site
-    '''
-    proposal_apiary_temporary_use = models.ForeignKey(ProposalApiaryTemporaryUse, blank=True, null=True)
+    """
+    proposal_apiary_temporary_use = models.ForeignKey(ProposalApiaryTemporaryUse, blank=True, null=True, related_name='apiary_sites')
     apiary_site = models.ForeignKey(ApiarySite, blank=True, null=True)
 
     class Meta:
