@@ -46,11 +46,13 @@ def convert_utc_time_to_local(utc_time_str_with_z):
     """
     This function converts datetime str like '', which is in UTC, to python datetime in local
     """
-    # Serialized moment obj is supposed to be sent. Which is UTC timezone.
-    date_utc = datetime.strptime(utc_time_str_with_z, '%Y-%m-%dT%H:%M:%S.%fZ')
-    # Add timezone (UTC)
-    date_utc = date_utc.replace(tzinfo=pytz.UTC)
-    # Convert the timezone to TIME_ZONE
-    date_perth = date_utc.astimezone(pytz.timezone(settings.TIME_ZONE))
-
-    return date_perth
+    if utc_time_str_with_z:
+        # Serialized moment obj is supposed to be sent. Which is UTC timezone.
+        date_utc = datetime.strptime(utc_time_str_with_z, '%Y-%m-%dT%H:%M:%S.%fZ')
+        # Add timezone (UTC)
+        date_utc = date_utc.replace(tzinfo=pytz.UTC)
+        # Convert the timezone to TIME_ZONE
+        date_perth = date_utc.astimezone(pytz.timezone(settings.TIME_ZONE))
+        return date_perth
+    else:
+        return utc_time_str_with_z

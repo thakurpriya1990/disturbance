@@ -123,11 +123,13 @@
                         {
                             mRender: function (data, type, full) {
                                 let checked_str = ''  // You can set "checked"
-                                let disabled_str = ''
-                                if (full._site_used || !full._from_to_set){
-                                    disabled_str = ' disabled="disabled" ';
+                                if (full._site_used){
+                                    return 'not available';
+                                } else if (!full._from_and_to_date_set){
+                                    return '';
+                                } else {
+                                    return '<input type="checkbox" class="site_checkbox" data-apiary-site-id="' + full.id + '" ' + checked_str + '/>'
                                 }
-                                return '<input type="checkbox" class="site_checkbox" data-apiary-site-id="' + full.id + '" ' + checked_str + disabled_str + '/>'
                             }
                         },
                         {
@@ -209,11 +211,11 @@
             addApiarySiteToTable: function(apiary_site) {
                 console.log('in addApiarySiteToTable');
                 apiary_site['_site_used'] = false  // Make the site be temporary usable
-                apiary_site['_from_to_set'] = false
+                apiary_site['_from_and_to_date_set'] = false
 
                 if (this.period_from && this.period_to){
                     // Only when from and to dates are set
-                    apiary_site['_from_to_set'] = true
+                    apiary_site['_from_and_to_date_set'] = true
 
                     outer_loop:
                     for (let i=0; i<this.existing_temporary_uses.length; i++){
