@@ -34,7 +34,7 @@ from disturbance.components.proposals.utils import save_proponent_data,save_asse
 from disturbance.components.proposals.models import searchKeyWords, search_reference, ProposalUserAction, \
     ProposalApiary, OnSiteInformation, ApiarySite
 from disturbance.utils import missing_required_fields, search_tenure
-from disturbance.components.main.utils import check_db_connection
+from disturbance.components.main.utils import check_db_connection, convert_utc_time_to_local
 
 from django.urls import reverse
 from django.shortcuts import render, redirect, get_object_or_404
@@ -84,10 +84,11 @@ from disturbance.components.proposals.serializers_apiary import (
     ProposalApiaryTemporaryUseSerializer,
     ProposalApiarySiteTransferSerializer,
     OnSiteInformationSerializer,
-    ApiaryReferralGroupSerializer, 
+    ApiaryReferralGroupSerializer,
     ApiarySiteSerializer,
     SendApiaryReferralSerializer,
     ApiaryReferralSerializer,
+    TemporaryUseApiarySiteSerializer,
 )
 from disturbance.components.approvals.models import Approval
 from disturbance.components.approvals.serializers import ApprovalSerializer
@@ -1485,72 +1486,107 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         try:
-            http_status = status.HTTP_200_OK
-            application_type = ApplicationType.objects.get(id=request.data.get('application'))
+            with transaction.atomic():
+                http_status = status.HTTP_200_OK
+                application_type = ApplicationType.objects.get(id=request.data.get('application'))
 
-            #region = request.data.get('region') if request.data.get('region') else 1
-            region = request.data.get('region')
-            district = request.data.get('district')
-            activity = request.data.get('activity')
-            sub_activity1 = request.data.get('sub_activity1')
-            sub_activity2 = request.data.get('sub_activity2')
-            category = request.data.get('category')
-            approval_level = request.data.get('approval_level')
+                # Check if application type is Temporary Use
+                apiary_temp_use = request.data.get('proposal_apiary_temporary_use', None)
+                aho = ApplicationType.objects.filter(name=ApplicationType.TEMPORARY_USE)
+                application_type = ApplicationType.objects.get(name=ApplicationType.TEMPORARY_USE) if apiary_temp_use else application_type
 
-            # Get most recent versions of the Proposal Types
-            qs_proposal_type = ProposalType.objects.all().order_by('name', '-version').distinct('name')
-            proposal_type = qs_proposal_type.get(name=application_type.name)
-            applicant = None
-            proxy_applicant = None
-            if request.data.get('behalf_of') == 'individual':
-                proxy_applicant = request.user.id
-            else:
-                applicant = request.data.get('behalf_of')
+                #region = request.data.get('region') if request.data.get('region') else 1
+                region = request.data.get('region')
+                district = request.data.get('district')
+                activity = request.data.get('activity')
+                sub_activity1 = request.data.get('sub_activity1')
+                sub_activity2 = request.data.get('sub_activity2')
+                category = request.data.get('category')
+                approval_level = request.data.get('approval_level')
 
-            data = {
-                #'schema': qs_proposal_type.order_by('-version').first().schema,
-                'schema': proposal_type.schema,
-                'submitter': request.user.id,
-                'applicant': applicant,
-                'proxy_applicant': proxy_applicant,
-                'application_type': application_type.id,
-                'region': region,
-                'district': district,
-                'activity': activity,
-                'approval_level': approval_level,
-                'sub_activity_level1':sub_activity1,
-                'sub_activity_level2':sub_activity2,
-                'management_area':category,
-                'data': [
-                ],
-            }
-            serializer = SaveProposalSerializer(data=data)
-            serializer.is_valid(raise_exception=True)
-            instance=serializer.save()
+                # Get most recent versions of the Proposal Types
+                qs_proposal_type = ProposalType.objects.all().order_by('name', '-version').distinct('name')
+                proposal_type = qs_proposal_type.get(name=application_type.name)
+                applicant = None
+                proxy_applicant = None
+                if request.data.get('behalf_of') == 'individual':
+                    proxy_applicant = request.user.id
+                else:
+                    applicant = request.data.get('behalf_of')
 
-            if application_type.name == ApplicationType.APIARY:
-                # TODO any APIARY specific settings go here - eg renewal, amendment
-                details_data={
-                    'proposal': instance.id
+                data = {
+                    #'schema': qs_proposal_type.order_by('-version').first().schema,
+                    'schema': proposal_type.schema,
+                    'submitter': request.user.id,
+                    'applicant': applicant,
+                    'proxy_applicant': proxy_applicant,
+                    'application_type': application_type.id,
+                    'region': region,
+                    'district': district,
+                    'activity': activity,
+                    'approval_level': approval_level,
+                    'sub_activity_level1':sub_activity1,
+                    'sub_activity_level2':sub_activity2,
+                    'management_area':category,
+                    'data': [
+                    ],
                 }
-
-                serializer=ProposalApiarySerializer(data=details_data)
+                serializer = SaveProposalSerializer(data=data)
                 serializer.is_valid(raise_exception=True)
-                serializer.save()
+                proposal_obj = serializer.save()
 
-                serializer=ProposalApiaryTemporaryUseSerializer(data=details_data)
-                serializer.is_valid(raise_exception=True)
-                serializer.save()
+                # TODO any APIARY specific settings go here - eg renewal, amendment
+                details_data = {
+                    'proposal_id': proposal_obj.id
+                }
+                if application_type.name == ApplicationType.APIARY:
+                    serializer = ProposalApiarySerializer(data=details_data)
+                    serializer.is_valid(raise_exception=True)
+                    serializer.save()
+                elif application_type.name == ApplicationType.TEMPORARY_USE:
+                    # format from_date
+                    from_datetime = convert_utc_time_to_local(apiary_temp_use['from_date'])
+                    from_date = from_datetime.date()
 
-                serializer=ProposalApiarySiteTransferSerializer(data=details_data)
-                serializer.is_valid(raise_exception=True)
-                serializer.save()
-            else:
-                pass
+                    # format to_date
+                    to_datetime = convert_utc_time_to_local(apiary_temp_use['to_date'])
+                    to_date = to_datetime.date()
 
-            serializer = SaveProposalSerializer(instance)
-            #import ipdb; ipdb.set_trace()
-            return Response(serializer.data)
+                    details_data['from_date'] = from_date
+                    details_data['to_date'] = to_date
+                    details_data['temporary_occupier_name'] = apiary_temp_use['temporary_occupier_name']
+                    details_data['temporary_occupier_phone'] = apiary_temp_use['temporary_occupier_phone']
+                    details_data['temporary_occupier_mobile'] = apiary_temp_use['temporary_occupier_mobile']
+                    details_data['temporary_occupier_email'] = apiary_temp_use['temporary_occupier_email']
+                    details_data['proposal_apiary_base_id'] = apiary_temp_use['proposal_apiary_base_id']
+
+                    # Save ProposalApiaryTemporaryUse
+                    serializer = ProposalApiaryTemporaryUseSerializer(data=details_data)
+                    serializer.is_valid(raise_exception=True)
+                    new_temp_use = serializer.save()
+
+                    # Save TemporaryUseApiarySite
+                    for site in apiary_temp_use['apiary_sites']:
+                        if site['used']:
+                            data_to_save = {
+                                'proposal_apiary_temporary_use_id': new_temp_use.id,
+                                'apiary_site_id': site['id'],
+                            }
+                            serializer = TemporaryUseApiarySiteSerializer(data=data_to_save)
+                            serializer.is_valid(raise_exception=True)
+                            serializer.save()
+
+                elif application_type.name == ApplicationType.SITE_TRANSFER:
+                    serializer = ProposalApiarySiteTransferSerializer(data=details_data)
+                    serializer.is_valid(raise_exception=True)
+                    serializer.save()
+                else:
+                    pass
+                # END
+
+                serializer = SaveProposalSerializer(proposal_obj)
+                #import ipdb; ipdb.set_trace()
+                return Response(serializer.data)
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
