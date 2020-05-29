@@ -1491,7 +1491,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 application_type = ApplicationType.objects.get(id=request.data.get('application'))
 
                 # Check if application type is Temporary Use
-                apiary_temp_use = request.data.get('proposal_apiary_temporary_use', None)
+                apiary_temp_use = request.data.get('apiary_temporary_use', None)
                 aho = ApplicationType.objects.filter(name=ApplicationType.TEMPORARY_USE)
                 application_type = ApplicationType.objects.get(name=ApplicationType.TEMPORARY_USE) if apiary_temp_use else application_type
 
@@ -1546,11 +1546,11 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 elif application_type.name == ApplicationType.TEMPORARY_USE:
                     # format from_date
                     from_datetime = convert_utc_time_to_local(apiary_temp_use['from_date'])
-                    from_date = from_datetime.date()
+                    from_date = from_datetime.date() if from_datetime else None
 
                     # format to_date
                     to_datetime = convert_utc_time_to_local(apiary_temp_use['to_date'])
-                    to_date = to_datetime.date()
+                    to_date = to_datetime.date() if to_datetime else None
 
                     details_data['from_date'] = from_date
                     details_data['to_date'] = to_date
@@ -1582,10 +1582,8 @@ class ProposalViewSet(viewsets.ModelViewSet):
                     serializer.save()
                 else:
                     pass
-                # END
 
                 serializer = SaveProposalSerializer(proposal_obj)
-                #import ipdb; ipdb.set_trace()
                 return Response(serializer.data)
         except Exception as e:
             print(traceback.print_exc())
