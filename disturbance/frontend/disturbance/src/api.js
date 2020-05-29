@@ -52,4 +52,5 @@ module.exports = {
 
     // Apiary specific endpoints
     apiary_referral_groups:"/api/apiary_referral_groups.json",
+    proposal_apiary:"/api/proposal_apiary.json",
 }
