@@ -122,7 +122,7 @@
                                     <template>
                                             
                                     </template>
-                                    <MoreReferrals @refreshFromResponse="refreshFromResponse" :proposal="proposal" :canAction="canLimitedAction" :isFinalised="isFinalised" :referral_url="referralListURL"/>
+                                    <ApiaryReferralsForProposal @refreshFromResponse="refreshFromResponse" :proposal="proposal" :canAction="canLimitedAction" :isFinalised="isFinalised" :referral_url="referralListURL"/>
                                 </div>
                                 <div class="col-sm-12">
                                     <div class="separator"></div>
@@ -297,29 +297,29 @@
                                           <div class="form-group">
                                             <label for="" class="col-sm-3 control-label">Street</label>
                                             <div class="col-sm-6">
-                                                <input disabled type="text" class="form-control" name="street" placeholder="" v-model="proposal.applicant.address.line1">
+                                                <input disabled type="text" class="form-control" name="street" placeholder="" v-model="applicantAddress.line1">
                                             </div>
                                           </div>
                                           <div class="form-group">
                                             <label for="" class="col-sm-3 control-label" >Town/Suburb</label>
                                             <div class="col-sm-6">
-                                                <input disabled type="text" class="form-control" name="surburb" placeholder="" v-model="proposal.applicant.address.locality">
+                                                <input disabled type="text" class="form-control" name="surburb" placeholder="" v-model="applicantAddress.locality">
                                             </div>
                                           </div>
                                           <div class="form-group">
                                             <label for="" class="col-sm-3 control-label">State</label>
                                             <div class="col-sm-2">
-                                                <input disabled type="text" class="form-control" name="country" placeholder="" v-model="proposal.applicant.address.state">
+                                                <input disabled type="text" class="form-control" name="country" placeholder="" v-model="applicantAddress.state">
                                             </div>
                                             <label for="" class="col-sm-2 control-label">Postcode</label>
                                             <div class="col-sm-2">
-                                                <input disabled type="text" class="form-control" name="postcode" placeholder="" v-model="proposal.applicant.address.postcode">
+                                                <input disabled type="text" class="form-control" name="postcode" placeholder="" v-model="applicantAddress.postcode">
                                             </div>
                                           </div>
                                           <div class="form-group">
                                             <label for="" class="col-sm-3 control-label" >Country</label>
                                             <div class="col-sm-4">
-                                                <input disabled type="text" class="form-control" name="country" v-model="proposal.applicant.address.country"/>
+                                                <input disabled type="text" class="form-control" name="country" v-model="applicantAddress.country"/>
                                             </div>
                                           </div>
                                        </form>
@@ -328,7 +328,7 @@
                         </div>
                     </div>
                     <div class="col-md-12">
-                        <div class="row">
+                        <div class="row" v-if="organisationApplicant">
                             <div class="panel panel-default">
                                 <div class="panel-heading">
                                     <h3 class="panel-title">Contact Details
@@ -374,7 +374,7 @@
                             <form :action="proposal_form_url" method="post" name="new_proposal" enctype="multipart/form-data">
 
                                 <div v-if="proposal.application_type=='Apiary'">
-                                    <ProposalApiary v-if="proposal" :proposal="proposal" id="proposalStart" :showSections="sectionShow" ref="proposal_apiary" :is_external="false" :is_internal="true" :hasAssessorMode="hasAssessorMode"></ProposalApiary>
+                                    <!--ProposalApiary v-if="proposal" :proposal="proposal" id="proposalStart" :showSections="sectionShow" ref="proposal_apiary" :is_external="false" :is_internal="true" :hasAssessorMode="hasAssessorMode"></ProposalApiary-->
                                 </div>
                                 <div v-else>
                                     <ProposalDisturbance form_width="inherit" :withSectionsSelector="false" v-if="proposal" :proposal="proposal"> </ProposalDisturbance>
@@ -407,8 +407,8 @@
         </div>
         </div>
         <ProposedDecline ref="proposed_decline" :processing_status="proposal.processing_status" :proposal_id="proposal.id" @refreshFromResponse="refreshFromResponse"></ProposedDecline>
-        <AmendmentRequest ref="amendment_request" :proposal_id="proposal.id" @refreshFromResponse="refreshFromResponse"></AmendmentRequest>
-        <ProposedApproval ref="proposed_approval" :processing_status="proposal.processing_status" :proposal_id="proposal.id" :proposal_type='proposal.proposal_type' :isApprovalLevelDocument="isApprovalLevelDocument" :submitter_email="proposal.submitter_email" :applicant_email="applicant_email" @refreshFromResponse="refreshFromResponse"/>
+        <!--AmendmentRequest ref="amendment_request" :proposal_id="proposal.id" @refreshFromResponse="refreshFromResponse"></AmendmentRequest-->
+        <!--ProposedApproval ref="proposed_approval" :processing_status="proposal.processing_status" :proposal_id="proposal.id" :proposal_type='proposal.proposal_type' :isApprovalLevelDocument="isApprovalLevelDocument" :submitter_email="proposal.submitter_email" :applicant_email="applicant_email" @refreshFromResponse="refreshFromResponse"/-->
     </div>
 </template>
 <script>
@@ -424,7 +424,8 @@ import Requirements from './proposal_requirements.vue'
 import ProposedApproval from './proposed_issuance.vue'
 import ApprovalScreen from './proposal_approval.vue'
 import CommsLogs from '@common-utils/comms_logs.vue'
-import MoreReferrals from '@common-utils/more_referrals.vue'
+//import MoreReferrals from '@common-utils/more_referrals.vue'
+import ApiaryReferralsForProposal from '@common-utils/apiary/apiary_referrals_for_proposal.vue'
 import ResponsiveDatatablesHelper from "@/utils/responsive_datatable_helper.js"
 import { api_endpoints, helpers } from '@/utils/hooks'
 import MapLocations from '@common-utils/map_locations.vue'
@@ -509,7 +510,8 @@ export default {
         ProposedApproval,
         ApprovalScreen,
         CommsLogs,
-        MoreReferrals,
+        //MoreReferrals,
+        ApiaryReferralsForProposal,
         NewApply,
         MapLocations,
     },
@@ -535,7 +537,10 @@ export default {
           return helpers.getCookie('csrftoken')
         },
         proposal_form_url: function() {
-          return (this.proposal) ? `/api/proposal/${this.proposal.id}/assessor_save.json` : '';
+          //return (this.proposal) ? `/api/proposal/${this.proposal.id}/assessor_save.json` : '';
+            if (this.apiaryProposal) {
+                return `/api/proposal_apiary/${this.apiaryProposal.id}/assessor_save.json`;
+            }
         },
         isFinalised: function(){
             return this.proposal.processing_status == 'Declined' || this.proposal.processing_status == 'Approved';
@@ -570,6 +575,30 @@ export default {
         },
         applicant_email:function(){
             return this.proposal && this.proposal.applicant.email ? this.proposal.applicant.email : '';
+        },
+        applicantAddress: function() {
+            if (this.proposal && this.proposal.applicant_address) {
+                return this.proposal.applicant_address;
+            }
+        },
+        organisationApplicant: function() {
+            let oApplicant = false;
+            if (this.proposal && this.proposal.applicant_type === 'organisation') {
+                oApplicant = true;
+            }
+            return oApplicant;
+        },
+        individualApplicant: function() {
+            let iApplicant = false;
+            if (this.proposal && this.proposal.applicant_type === 'proxy') {
+                iApplicant = true;
+            }
+            return iApplicant;
+        },
+        apiaryProposal: function() {
+            if (this.proposal && this.proposal.proposal_apiary) {
+                return this.proposal.proposal_apiary;
+            }
         },
     },
     methods: {
@@ -1021,13 +1050,14 @@ export default {
                 vm.sendingReferral = false;
                 vm.original_proposal = helpers.copyObject(response.body);
                 vm.proposal = response.body;
-                vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
+                //vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
+                vm.proposal.relevant_applicant_address = vm.proposal.relevant_applicant_address != null ? vm.proposal.relevant_applicant_address : {};
                 swal(
                     'Referral Sent',
-                    'The referral has been sent to '+vm.apiary_referral_groups.find(d => d.id == vm.selected_referral).name,
+                    'The referral has been sent to '+vm.apiaryReferralGroups.find(d => d.id == vm.selected_referral).name,
                     'success'
                 )
-                $(vm.$refs.apiary_referral_groups).val(null).trigger("change");
+                $(vm.$refs.apiaryReferralGroups).val(null).trigger("change");
                 vm.selected_referral = '';
                 vm.referral_text = '';
             }, (error) => {
@@ -1167,6 +1197,7 @@ export default {
           Vue.http.get(`/api/proposal/${to.params.proposal_id}/internal_proposal.json`).then(res => {
               next(vm => {
                   vm.proposal = res.body;
+                  console.log(res.body)
                   vm.original_proposal = helpers.copyObject(res.body);
                   if (vm.proposal.applicant) {
                       vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
