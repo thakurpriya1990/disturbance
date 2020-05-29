@@ -40,7 +40,6 @@ def create_data_from_form(schema, post_data, file_data, post_data_index=None,spe
         comment_fields_search = CommentDataSearch()
     try:
         for item in schema:
-            #import ipdb; ipdb.set_trace()
             data.update(_create_data_from_item(item, post_data, file_data, 0, ''))
             #_create_data_from_item(item, post_data, file_data, 0, '')
             special_fields_search.extract_special_fields(item, post_data, file_data, 0, '')
@@ -528,6 +527,40 @@ def save_assessor_data(instance,request,viewset):
         except:
             raise
 
+def save_apiary_assessor_data(instance,request,viewset):
+    with transaction.atomic():
+        try:
+            #lookable_fields = ['isTitleColumnForDashboard','isActivityColumnForDashboard','isRegionColumnForDashboard']
+            #extracted_fields,special_fields,assessor_data,comment_data = create_data_from_form(
+             #   instance.schema, request.POST, request.FILES,special_fields=lookable_fields,assessor_data=True)
+
+            #logger.info("ASSESSOR DATA - Region: {}, Activity: {}".format(special_fields.get('isRegionColumnForDashboard',None), special_fields.get('isActivityColumnForDashboard',None)))
+
+            #data = {
+               # 'data': extracted_fields,
+              #  'assessor_data': assessor_data,
+             #   'comment_data': comment_data,
+            #}
+            #serializer = SaveProposalSerializer(instance, data, partial=True)
+            serializer = SaveProposalSerializer(instance, request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            viewset.perform_update(serializer)
+            # Save Documents
+            for f in request.FILES:
+                try:
+                    #document = instance.documents.get(name=str(request.FILES[f]))
+                    document = instance.documents.get(input_name=f)
+                except ProposalDocument.DoesNotExist:
+                    document = instance.documents.get_or_create(input_name=f)[0]
+                document.name = str(request.FILES[f])
+                if document._file and os.path.isfile(document._file.path):
+                    os.remove(document._file.path)
+                document._file = request.FILES[f]
+                document.save()
+            # End Save Documents
+            instance.log_user_action(ProposalUserAction.APIARY_ACTION_SAVE_APPLICATION.format(instance.id),request)
+        except:
+            raise
 
 def proposal_submit_apiary(proposal, request):
     with transaction.atomic():
