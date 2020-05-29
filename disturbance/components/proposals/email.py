@@ -135,10 +135,14 @@ def send_apiary_referral_email_notification(referral,recipients,request,reminder
     _log_proposal_referral_email(msg, referral, sender=sender)
     #if referral.proposal.org_applicant:
         #_log_org_email(msg, referral.proposal.org_applicant, referral.referral, sender=sender)
-    if referral.proposal.applicant:
-        _log_org_email(msg, referral.proposal.applicant, referral.referral, sender=sender)
+    if referral.proposal.applicant_field == 'proxy_applicant':
+        #_log_user_email(msg, referral.proposal.proxy_applicant, referral.referral, sender=sender)
+        _log_user_email(msg, referral.proposal.proxy_applicant, referral.apiary_referral.referral_group.members_email, sender=sender)
+    #elif referral.proposal.applicant:
+        #_log_org_email(msg, referral.proposal.applicant, referral.referral, sender=sender)
     else:
-        _log_user_email(msg, referral.proposal.submitter, referral.referral, sender=sender)
+        _log_user_email(msg, referral.proposal.submitter, referral.apiary_referral.referral_group.members_email, sender=sender)
+        #_log_user_email(msg, referral.proposal.submitter, referral.referral, sender=sender)
 
 def send_apiary_referral_complete_email_notification(referral,request):
     email = ReferralCompleteNotificationEmail()
@@ -163,10 +167,14 @@ def send_apiary_referral_complete_email_notification(referral,request):
     _log_proposal_referral_email(msg, referral, sender=sender)
     #if referral.proposal.org_applicant:
         #_log_org_email(msg, referral.proposal.org_applicant, referral.referral, sender=sender)
-    if referral.proposal.applicant:
-        _log_org_email(msg, referral.proposal.applicant, referral.referral, sender=sender)
+    if referral.proposal.applicant_field == 'proxy_applicant':
+        #_log_user_email(msg, referral.proposal.proxy_applicant, referral.referral, sender=sender)
+        _log_user_email(msg, referral.proposal.proxy_applicant, referral.apiary_referral.referral_group.members_email, sender=sender)
+    #elif referral.proposal.applicant:
+        #_log_org_email(msg, referral.proposal.applicant, referral.referral, sender=sender)
     else:
-        _log_user_email(msg, referral.proposal.submitter, referral.referral, sender=sender)
+        _log_user_email(msg, referral.proposal.submitter, referral.apiary_referral.referral_group.members_email, sender=sender)
+        #_log_user_email(msg, referral.proposal.submitter, referral.referral, sender=sender)
 
 def send_amendment_email_notification(amendment_request, request, proposal):
     email = AmendmentRequestSendNotificationEmail()
@@ -375,8 +383,6 @@ def send_assessment_reminder_email_notification(proposal):
     _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender_user)
     return msg
 
-
-
 def _log_proposal_referral_email(email_message, referral, sender=None):
     from disturbance.components.proposals.models import ProposalLogEntry
     if isinstance(email_message, (EmailMultiAlternatives, EmailMessage,)):
@@ -422,10 +428,6 @@ def _log_proposal_referral_email(email_message, referral, sender=None):
     email_entry = ProposalLogEntry.objects.create(**kwargs)
 
     return email_entry
-
-
-
-
 
 def _log_proposal_email(email_message, proposal, sender=None):
     from disturbance.components.proposals.models import ProposalLogEntry
@@ -520,3 +522,52 @@ def _log_org_email(email_message, organisation, customer ,sender=None):
     email_entry = OrganisationLogEntry.objects.create(**kwargs)
 
     return email_entry
+
+def _log_user_email(email_message, emailuser, referral_group_email_list, sender=None):
+    from ledger.accounts.models import EmailUserLogEntry
+    if isinstance(email_message, (EmailMultiAlternatives, EmailMessage,)):
+        # TODO this will log the plain text body, should we log the html instead
+        text = email_message.body
+        subject = email_message.subject
+        fromm = smart_text(sender) if sender else smart_text(email_message.from_email)
+        # the to email is normally a list
+        if isinstance(email_message.to, list):
+            to = ','.join(email_message.to)
+        else:
+            to = smart_text(email_message.to)
+        # we log the cc and bcc in the same cc field of the log entry as a ',' comma separated string
+        all_ccs = []
+        if email_message.cc:
+            all_ccs += list(email_message.cc)
+        if email_message.bcc:
+            all_ccs += list(email_message.bcc)
+        all_ccs = ','.join(all_ccs)
+
+    else:
+        text = smart_text(email_message)
+        subject = ''
+        to = customer
+        fromm = smart_text(sender) if sender else SYSTEM_NAME
+        all_ccs = ''
+
+    for customer in referral_group_email_list:
+        customer_email_user = EmailUser.objects.get(email=customer)
+
+        staff = sender
+
+        kwargs = {
+            'subject': subject,
+            'text': text,
+            #'emailuser': emailuser,
+            'emailuser': customer_email_user,
+            'customer': customer_email_user,
+            'staff': staff,
+            'to': to,
+            'fromm': fromm,
+            'cc': all_ccs
+        }
+
+        email_entry = EmailUserLogEntry.objects.create(**kwargs)
+    # TODO - fix return statement
+    return email_entry
+

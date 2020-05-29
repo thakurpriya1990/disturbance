@@ -22,7 +22,22 @@ from disturbance.components.proposals.models import (
 )
 
 from rest_framework import serializers
+from ledger.accounts.models import Address
 
+
+class ApplicantAddressSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Address
+        fields = (
+            'id',
+            'line1',
+            'line2',
+            'line3',
+            'locality',
+            'state',
+            'country',
+            'postcode'
+        ) 
 
 class ApiarySiteSerializer(serializers.ModelSerializer):
     proposal_apiary_id = serializers.IntegerField(write_only=True,)
@@ -287,6 +302,7 @@ class InternalProposalApiarySerializer(BaseProposalSerializer):
     fee_invoice_url = serializers.SerializerMethodField()
     applicant = serializers.SerializerMethodField()
     applicant_type = serializers.SerializerMethodField()
+    applicant_address = serializers.SerializerMethodField()
 
     proposal_apiary = ProposalApiarySerializer()
     apiary_temporary_use = ProposalApiaryTemporaryUseSerializer()
@@ -352,8 +368,16 @@ class InternalProposalApiarySerializer(BaseProposalSerializer):
                 'proposal_apiary',
                 'apiary_temporary_use',
                 'apiary_site_transfer',
+                'applicant_address',
                 )
         read_only_fields=('documents','requirements')
+
+    def get_applicant_address(self, obj):
+        address_serializer = None
+        if obj.relevant_applicant_address:
+            address_serializer = ApplicantAddressSerializer(obj.relevant_applicant_address)
+            return address_serializer.data
+        return address_serializer
 
     def get_approval_level_document(self,obj):
         if obj.approval_level_document is not None:

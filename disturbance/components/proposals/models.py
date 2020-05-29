@@ -1697,14 +1697,6 @@ class ProposalUserAction(UserAction):
     ACTION_BACK_TO_PROCESSING = "Back to processing for proposal {}"
     RECALL_REFERRAL = "Referral {} for proposal {} has been recalled"
     CONCLUDE_REFERRAL = "Referral {} for proposal {} has been concluded by {}"
-    # Apiary Referrals
-    APIARY_ACTION_SEND_REFERRAL_TO = "Send Apiary referral {} for proposal {} to {}"
-    APIARY_ACTION_RESEND_REFERRAL_TO = "Resend Apiary referral {} for proposal {} to {}"
-    APIARY_ACTION_REMIND_REFERRAL = "Send reminder for Apiary referral {} for proposal {} to {}"
-    APIARY_ACTION_ENTER_REQUIREMENTS = "Enter Requirements for proposal {}"
-    APIARY_ACTION_BACK_TO_PROCESSING = "Back to processing for proposal {}"
-    APIARY_RECALL_REFERRAL = "Apiary Referral {} for proposal {} has been recalled"
-    APIARY_CONCLUDE_REFERRAL = "Apiary Referral {} for proposal {} has been concluded by {}"
     #Approval
     ACTION_REISSUE_APPROVAL = "Reissue approval for proposal {}"
     ACTION_CANCEL_APPROVAL = "Cancel approval for proposal {}"
@@ -1713,6 +1705,15 @@ class ProposalUserAction(UserAction):
     ACTION_SURRENDER_APPROVAL = "Surrender approval for proposal {}"
     ACTION_RENEW_PROPOSAL = "Create Renewal proposal for proposal {}"
     ACTION_AMEND_PROPOSAL = "Create Amendment proposal for proposal {}"
+    # Apiary Actions
+    APIARY_ACTION_SEND_REFERRAL_TO = "Send Apiary referral {} for application {} to {}"
+    APIARY_ACTION_RESEND_REFERRAL_TO = "Resend Apiary referral {} for application {} to {}"
+    APIARY_ACTION_REMIND_REFERRAL = "Send reminder for Apiary referral {} for application {} to {}"
+    APIARY_ACTION_ENTER_REQUIREMENTS = "Enter Requirements for application {}"
+    APIARY_ACTION_BACK_TO_PROCESSING = "Back to processing for application {}"
+    APIARY_RECALL_REFERRAL = "Apiary Referral {} for application {} has been recalled"
+    APIARY_CONCLUDE_REFERRAL = "Apiary Referral {} for application {} has been concluded by {}"
+    APIARY_ACTION_SAVE_APPLICATION = "Save Apiary application {}"
 
 
 
@@ -2096,10 +2097,11 @@ class ProposalApiary(models.Model):
                     except ApiaryReferralGroup.DoesNotExist:
                         raise exceptions.ProposalReferralCannotBeSent()
                     try:
-                        existing_proposal = Referral.objects.get(proposal=self.proposal)
-                        ApiaryReferral.objects.get(referral_group=referral_group,proposal=existing_proposal)
-                        # Will only reach here if both a Referral and ApiaryReferral exist
-                        raise ValidationError('A referral has already been sent to this group')
+                        existing_referral = Referral.objects.get(proposal=self.proposal)
+                        if existing_referral:
+                            apiary_referral_list = ApiaryReferral.objects.filter(referral_group=referral_group,referral=existing_referral)
+                        if apiary_referral_list:
+                            raise ValidationError('A referral has already been sent to this group')
                     except Referral.DoesNotExist:
                         # Create Referral
                         referral = Referral.objects.create(
@@ -2118,29 +2120,29 @@ class ProposalApiary(models.Model):
                             #text=referral_text
                         )
 
-                    # Create a log entry for the proposal
-                    #self.log_user_action(ProposalUserAction.ACTION_SEND_REFERRAL_TO.format(referral.id,self.id,'{}({})'.format(user.get_full_name(),user.email)),request)
-                    self.proposal.log_user_action(
-                            ProposalUserAction.APIARY_ACTION_SEND_REFERRAL_TO.format(
-                                referral.id,
-                                self.proposal.id,
-                                '{}'.format(referral_group.name)
-                                ),
-                            request
-                            )
-                    # Create a log entry for the organisation
-                    #self.applicant.log_user_action(ProposalUserAction.ACTION_SEND_REFERRAL_TO.format(referral.id,self.id,'{}({})'.format(user.get_full_name(),user.email)),request)
-                    applicant_field=getattr(self.proposal, self.proposal.applicant_field)
-                    applicant_field.log_user_action(
-                            ProposalUserAction.APIARY_ACTION_SEND_REFERRAL_TO.format(
-                                referral.id,
-                                self.proposal.id,
-                                '{}'.format(referral_group.name)),
-                            request
-                            )
-                    # send email
-                    recipients = referral_group.members_list
-                    send_apiary_referral_email_notification(referral, recipients, request)
+                        # Create a log entry for the proposal
+                        #self.log_user_action(ProposalUserAction.ACTION_SEND_REFERRAL_TO.format(referral.id,self.id,'{}({})'.format(user.get_full_name(),user.email)),request)
+                        self.proposal.log_user_action(
+                                ProposalUserAction.APIARY_ACTION_SEND_REFERRAL_TO.format(
+                                    referral.id,
+                                    self.proposal.id,
+                                    '{}'.format(referral_group.name)
+                                    ),
+                                request
+                                )
+                        # Create a log entry for the organisation
+                        #self.applicant.log_user_action(ProposalUserAction.ACTION_SEND_REFERRAL_TO.format(referral.id,self.id,'{}({})'.format(user.get_full_name(),user.email)),request)
+                        applicant_field=getattr(self.proposal, self.proposal.applicant_field)
+                        applicant_field.log_user_action(
+                                ProposalUserAction.APIARY_ACTION_SEND_REFERRAL_TO.format(
+                                    referral.id,
+                                    self.proposal.id,
+                                    '{}'.format(referral_group.name)),
+                                request
+                                )
+                        # send email
+                        recipients = referral_group.members_list
+                        send_apiary_referral_email_notification(referral, recipients, request)
                 else:
                     raise exceptions.ProposalReferralCannotBeSent()
             except:
