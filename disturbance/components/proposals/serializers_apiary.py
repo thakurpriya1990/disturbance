@@ -302,7 +302,8 @@ class InternalProposalApiarySerializer(BaseProposalSerializer):
     apiary_temporary_use = ProposalApiaryTemporaryUseSerializer()
     apiary_site_transfer = ProposalApiarySiteTransferSerializer()
 
-    apiary_applicant_checklist = ApiaryApplicantChecklistAnswerSerializer(many=True)
+    #apiary_applicant_checklist = ApiaryApplicantChecklistAnswerSerializer(many=True)
+    applicant_checklist = serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
@@ -364,9 +365,18 @@ class InternalProposalApiarySerializer(BaseProposalSerializer):
                 'proposal_apiary',
                 'apiary_temporary_use',
                 'apiary_site_transfer',
-                'apiary_applicant_checklist',
+                #'apiary_applicant_checklist',
+                'applicant_checklist',
                 )
         read_only_fields=('documents','requirements')
+
+    def get_applicant_checklist(self, obj):
+        checklist = []
+        if obj.proposal_apiary and obj.proposal_apiary.apiary_applicant_checklist.all():
+            for answer in obj.proposal_apiary.apiary_applicant_checklist.all():
+                serialized_answer = ApiaryApplicantChecklistAnswerSerializer(answer)
+                checklist.append(serialized_answer.data)
+        return checklist
 
     def get_approval_level_document(self,obj):
         if obj.approval_level_document is not None:
