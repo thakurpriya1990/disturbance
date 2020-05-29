@@ -22,10 +22,18 @@ class DefaultDataManager(object):
                 logger.info("Created apiary site category: %s" % obj)
 
         for type_name in ApplicationType.APPLICATION_TYPES:
-            q_set = ApplicationType.objects.filter(name=type_name)
+            q_set = ApplicationType.objects.filter(name=type_name[0])
             if not q_set:
-                obj = ApplicationType.objects.create(name=type_name, application_fee=0, oracle_code_application='')
+                visibility = True if type_name[0] in (
+                        ApplicationType.DISTURBANCE, 
+                        ApplicationType.APIARY, 
+                        ApplicationType.POWERLINE_MAINTENANCE
+                        ) else False
+                obj = ApplicationType.objects.create(
+                        name=type_name[0],
+                        application_fee=0,
+                        oracle_code_application='',
+                        visible=visibility,
+                        )
                 logger.info("Created application type: %s" % obj)
-
-
 

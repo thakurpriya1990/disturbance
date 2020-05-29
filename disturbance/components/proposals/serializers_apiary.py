@@ -16,7 +16,9 @@ from disturbance.components.proposals.models import (
     ApiarySite,
 
     OnSiteInformation,
-    ApiaryReferralGroup, TemporaryUseApiarySite,
+    ApiaryReferralGroup, 
+    TemporaryUseApiarySite,
+    ApiaryReferral,
 )
 
 from rest_framework import serializers
@@ -448,4 +450,15 @@ class SendApiaryReferralSerializer(serializers.Serializer):
     group_id = serializers.IntegerField()
     text = serializers.CharField(allow_blank=True)
 
+class ApiaryReferralSerializer(serializers.ModelSerializer):
+    processing_status = serializers.CharField(source='get_processing_status_display')
+    latest_referrals = ProposalReferralSerializer(many=True)
+    can_be_completed = serializers.BooleanField()
+    class Meta:
+        model = ApiaryReferral
+        fields = '__all__'
+
+    def __init__(self,*args,**kwargs):
+        super(ReferralSerializer, self).__init__(*args, **kwargs)
+        self.fields['proposal'] = ReferralProposalSerializer(context={'request':self.context['request']})
 
