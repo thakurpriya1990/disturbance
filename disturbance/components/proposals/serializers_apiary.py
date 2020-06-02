@@ -19,6 +19,7 @@ from disturbance.components.proposals.models import (
     ApiaryReferralGroup, 
     TemporaryUseApiarySite,
     ApiaryReferral,
+    Referral,
 )
 
 from rest_framework import serializers
@@ -462,27 +463,73 @@ class ApiaryApplicantChecklistAnswerSerializer(serializers.ModelSerializer):
 
 
 class ApiaryReferralGroupSerializer(serializers.ModelSerializer):
+    all_members_list = serializers.SerializerMethodField()
     class Meta:
         model = ApiaryReferralGroup
         fields = (
                 'id',
                 'name',
+                'all_members_list',
                 )
+
+    def get_all_members_list(self, obj):
+        serializer = EmailUserSerializer(obj.all_members, many=True)
+        return serializer.data
+
 
 class SendApiaryReferralSerializer(serializers.Serializer):
     #email = serializers.EmailField()
     group_id = serializers.IntegerField()
     text = serializers.CharField(allow_blank=True)
 
+
 class ApiaryReferralSerializer(serializers.ModelSerializer):
-    processing_status = serializers.CharField(source='get_processing_status_display')
-    latest_referrals = ProposalReferralSerializer(many=True)
-    can_be_completed = serializers.BooleanField()
+    #processing_status = serializers.CharField(source='get_processing_status_display')
+    #latest_referrals = ProposalReferralSerializer(many=True)
+    #can_be_completed = serializers.BooleanField()
+    referral_group = ApiaryReferralGroupSerializer()
     class Meta:
         model = ApiaryReferral
-        fields = '__all__'
+        fields = (
+                'id',
+                'referral_group',
+                )
 
-    def __init__(self,*args,**kwargs):
-        super(ReferralSerializer, self).__init__(*args, **kwargs)
-        self.fields['proposal'] = ReferralProposalSerializer(context={'request':self.context['request']})
+    #def __init__(self,*args,**kwargs):
+     #   super(ReferralSerializer, self).__init__(*args, **kwargs)
+      #  self.fields['proposal'] = ReferralProposalSerializer(context={'request':self.context['request']})
+
+
+class DTApiaryReferralSerializer(serializers.ModelSerializer):
+    processing_status = serializers.CharField(source='proposal.get_processing_status_display')
+    referral_status = serializers.CharField(source='get_processing_status_display')
+    proposal_lodgement_date = serializers.CharField(source='proposal.lodgement_date')
+    proposal_lodgement_number = serializers.CharField(source='proposal.lodgement_number')
+    submitter = serializers.SerializerMethodField()
+    region = serializers.CharField(source='region.name', read_only=True)
+    #referral = EmailUserSerializer()
+    apiary_referral = ApiaryReferralSerializer()
+    class Meta:
+        model = Referral
+        fields = (
+            'id',
+            'region',
+            'activity',
+            'title',
+            'applicant',
+            'submitter',
+            'processing_status',
+            'referral_status',
+            'lodged_on',
+            'proposal',
+            'can_be_processed',
+            'referral',
+            'proposal_lodgement_date',
+            'proposal_lodgement_number',
+            'referral_text',
+            'apiary_referral',
+        )
+
+    def get_submitter(self,obj):
+        return EmailUserSerializer(obj.proposal.submitter).data
 
