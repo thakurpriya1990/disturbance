@@ -49,6 +49,7 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
         fields = (
             'id',
             'available',
+            # 'temporary_used',
             'site_guid',
             'proposal_apiary_id',
             'site_category_id',
@@ -140,9 +141,27 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
         return ret
 
 
+class TemporaryUseApiarySiteSerializer(serializers.ModelSerializer):
+    proposal_apiary_temporary_use_id = serializers.IntegerField(write_only=True, required=False)
+    apiary_site_id = serializers.IntegerField(write_only=True, required=False)
+    apiary_site = ApiarySiteSerializer(read_only=True)
+
+    def validate(self, attrs):
+        return attrs
+
+    class Meta:
+        model = TemporaryUseApiarySite
+        fields = (
+            'proposal_apiary_temporary_use_id',
+            'apiary_site_id',
+            'apiary_site',
+        )
+
+
 class ProposalApiaryTemporaryUseSerializer(serializers.ModelSerializer):
     proposal_id = serializers.IntegerField(write_only=True, required=False)
     proposal_apiary_base_id = serializers.IntegerField(write_only=True, required=False)
+    apiary_sites = TemporaryUseApiarySiteSerializer(many=True, read_only=True)
 
     class Meta:
         model = ProposalApiaryTemporaryUse
@@ -156,18 +175,7 @@ class ProposalApiaryTemporaryUseSerializer(serializers.ModelSerializer):
             'temporary_occupier_email',
             'proposal_id',
             'proposal_apiary_base_id',
-        )
-
-
-class TemporaryUseApiarySiteSerializer(serializers.ModelSerializer):
-    proposal_apiary_temporary_use_id = serializers.IntegerField(write_only=True, required=False)
-    apiary_site_id= serializers.IntegerField(write_only=True, required=False)
-
-    class Meta:
-        model = TemporaryUseApiarySite
-        fields = (
-            'proposal_apiary_temporary_use_id',
-            'apiary_site_id',
+            'apiary_sites',
         )
 
 
