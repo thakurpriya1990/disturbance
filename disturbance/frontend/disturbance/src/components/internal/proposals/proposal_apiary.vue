@@ -528,7 +528,7 @@ export default {
             return this.proposal!= null ? helpers.add_endpoint_json(api_endpoints.organisations,this.proposal.applicant.id+'/contacts') : '';
         },
         referralListURL: function(){
-            return this.proposal!= null ? helpers.add_endpoint_json(api_endpoints.referrals,'datatable_list')+'?proposal='+this.proposal.id : '';
+            return this.proposal!= null ? helpers.add_endpoint_json(api_endpoints.apiary_referrals,'datatable_list')+'?proposal='+this.proposal.id : '';
         },
         isLoading: function() {
           return this.loading.length > 0
