@@ -94,6 +94,7 @@ from disturbance.components.proposals.serializers_apiary import (
     SendApiaryReferralSerializer,
     ApiaryReferralSerializer,
     TemporaryUseApiarySiteSerializer,
+    DTApiaryReferralSerializer,
 )
 from disturbance.components.approvals.models import Approval
 from disturbance.components.approvals.serializers import ApprovalSerializer
@@ -297,8 +298,11 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         """
         #import ipdb; ipdb.set_trace()
         self.serializer_class = ReferralSerializer
-        qs = Referral.objects.filter(referral=request.user) if is_internal(self.request) else Referral.objects.none()
+        qs_r = Referral.objects.filter(referral=request.user) if is_internal(self.request) else Referral.objects.none()
         #qs = self.filter_queryset(self.request, qs, self)
+        # Add Apiary Referrals
+        qs_ra = Referral.objects.filter(apiary_referral__referral_group__members=request.user)
+        qs = qs_r.union(qs_ra) if qs_r else qs_ra
         qs = self.filter_queryset(qs)
 
         self.paginator.page_size = qs.count()
@@ -593,14 +597,19 @@ class ApiaryReferralViewSet(viewsets.ModelViewSet):
         qs = ApiaryReferralGroup.objects.filter().values_list('name', flat=True)
         return Response(qs)
 
-    #@list_route(methods=['GET',])
-    #def datatable_list(self, request, *args, **kwargs):
-    #    proposal = request.GET.get('proposal',None)
-    #    qs = self.get_queryset().all()
-    #    if proposal:
-    #        qs = qs.filter(proposal_id=int(proposal))
-    #    serializer = DTReferralSerializer(qs, many=True)
-    #    return Response(serializer.data)
+    @list_route(methods=['GET',])
+    def datatable_list(self, request, *args, **kwargs):
+        #import ipdb; ipdb.set_trace()
+        proposal_field = request.GET.get('proposal',None)
+        proposal = Proposal.objects.get(id=int(proposal_field))
+        #qs = self.get_queryset().all()
+        if proposal:
+            #qs = qs.filter(referral__proposal_id=int(proposal))
+            #qs = ApiaryReferral.objects.filter(referral__proposal=proposal).referral
+            qs = Referral.objects.filter(proposal=proposal)
+        #serializer = DTReferralSerializer(qs, many=True)
+        serializer = DTApiaryReferralSerializer(qs, many=True)
+        return Response(serializer.data)
 
 
     @detail_route(methods=['GET',])
@@ -652,6 +661,7 @@ class ApiaryReferralViewSet(viewsets.ModelViewSet):
 
     @detail_route(methods=['GET',])
     def remind(self, request, *args, **kwargs):
+        #import ipdb; ipdb.set_trace()
         try:
             instance = self.get_object()
             instance.remind(request)
