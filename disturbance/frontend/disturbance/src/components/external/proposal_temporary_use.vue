@@ -5,9 +5,9 @@
                 <div class="row">
 
                     <FormSection :formCollapse="false" label="Period and Site(s)" Index="period_and_sites">
-                        <PeriodAndSites 
-                            :is_external=is_external 
-                            :is_internal=is_internal 
+                        <PeriodAndSites
+                            :is_external=is_external
+                            :is_internal=is_internal
                             :from_date="proposal_apiary_temporary_use.from_date"
                             :to_date="proposal_apiary_temporary_use.to_date"
                             :apiary_sites_array="proposal_apiary_temporary_use.apiary_sites"
@@ -20,9 +20,9 @@
                     </FormSection>
 
                     <FormSection :formCollapse="false" label="Temporary Occupier" Index="temporary_occupier">
-                        <TemporaryOccupier 
-                            :is_external=is_external 
-                            :is_internal=is_internal 
+                        <TemporaryOccupier
+                            :is_external=is_external
+                            :is_internal=is_internal
                             :name=proposal_apiary_temporary_use.temporary_occupier_name
                             :phone=proposal_apiary_temporary_use.temporary_occupier_phone
                             :mobile=proposal_apiary_temporary_use.temporary_occupier_mobile
@@ -32,7 +32,11 @@
                     </FormSection>
 
                     <FormSection :formCollapse="false" label="Deed Poll" Index="deed_poll">
-                        component here
+                        <DeedPoll
+                        :is_external=is_external
+                            :is_internal=is_internal
+                            @contents_changed="occupierDataChanged"
+                        />
                     </FormSection>
 
                 </div>
@@ -66,6 +70,7 @@
     import FormSection from "@/components/forms/section_toggle.vue"
     import PeriodAndSites from "@/components/common/apiary/section_period_and_sites.vue"
     import TemporaryOccupier from "@/components/common/apiary/section_temporary_occupier.vue"
+    import DeedPoll from "@/components/common/apiary/section_deed_poll.vue"
 
     export default {
         props:{
