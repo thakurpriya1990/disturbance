@@ -258,15 +258,14 @@
             console.log(from);
 
             // Licence
-            console.log('licence id: ');
-            console.log(to.params.licence_id);
+            console.log('licence id: ' + to.params.licence_id);
+
             let vm = this;
             await Vue.http.get(`/api/approvals/${to.params.licence_id}.json`).then(res => {
                 next(vm => {
                         // ProposalApiaryTemporaryUse
-                        console.log('application id: ');
                         if (to.params.application_id){
-                            console.log(to.params.application_id);
+                            console.log('Editing an existing temporary use id: ' + to.params.application_id);
                             Vue.http.get(`/api/proposal/${to.params.application_id}.json`).then(re => {
                                 // TODO 
                                 console.log('application retrieved:');
@@ -299,11 +298,9 @@
                                 vm.temporary_occupier_key = uuid();
                             });
                         } else {
-                            console.log('no application id');
+                            console.log('Creating new temporary use');
                         }
 
-                        console.log('licence retrieved: ');
-                        console.log(res.body);
                         vm.licence = res.body;
                         for (let i=0; i<vm.licence.current_proposal.proposal_apiary.apiary_sites.length; i++){
                             let site = vm.licence.current_proposal.proposal_apiary.apiary_sites[i];
