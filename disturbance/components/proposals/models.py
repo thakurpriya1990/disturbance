@@ -2381,7 +2381,7 @@ class ApiaryApplicantChecklistQuestion(models.Model):
 class ApiaryApplicantChecklistAnswer(models.Model):
     question=models.ForeignKey(ApiaryApplicantChecklistQuestion, related_name='answers')
     answer = models.NullBooleanField()
-    apiary_proposal = models.ForeignKey(ProposalApiary, related_name='apiary_applicant_checklist')
+    proposal = models.ForeignKey(ProposalApiary, related_name='apiary_applicant_checklist')
 
     def __str__(self):
         return self.question.text
