@@ -86,6 +86,7 @@ from disturbance.components.proposals.serializers_apiary import (
     ProposalApiaryTypeSerializer,
     InternalProposalApiarySerializer,
     ProposalApiarySerializer,
+    SaveProposalApiarySerializer,
     ProposalApiaryTemporaryUseSerializer,
     ProposalApiarySiteTransferSerializer,
     OnSiteInformationSerializer,
@@ -1456,6 +1457,8 @@ class ProposalViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(str(e))
 
     def create(self, request, *args, **kwargs):
+        print(request.data)
+        #import ipdb; ipdb.set_trace()
         try:
             with transaction.atomic():
                 http_status = status.HTTP_200_OK
@@ -1511,7 +1514,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                     'proposal_id': proposal_obj.id
                 }
                 if application_type.name == ApplicationType.APIARY:
-                    serializer = ProposalApiarySerializer(data=details_data)
+                    serializer = SaveProposalApiarySerializer(data=details_data)
                     serializer.is_valid(raise_exception=True)
                     serializer.save()
                 elif application_type.name == ApplicationType.TEMPORARY_USE:

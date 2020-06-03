@@ -142,6 +142,30 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
         return ret
 
 
+class SaveProposalApiarySerializer(serializers.ModelSerializer):
+    proposal_id = serializers.IntegerField(
+            required=True, write_only=True, allow_null=False)
+
+    class Meta:
+        model = ProposalApiary
+        # geo_field = 'location'
+
+        fields = (
+            'id',
+            'title',
+            'proposal_id',
+            # 'location',
+            #'apiary_sites',
+            'longitude',
+            'latitude',
+            #'on_site_information_list',
+            #'checklist_questions',
+        )
+        read_only_fields = (
+                'id',
+                )
+
+
 class TemporaryUseApiarySiteSerializer(serializers.ModelSerializer):
     proposal_apiary_temporary_use_id = serializers.IntegerField(write_only=True, required=False)
     apiary_site_id = serializers.IntegerField(write_only=True, required=False)
