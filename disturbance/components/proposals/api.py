@@ -84,7 +84,7 @@ from disturbance.components.proposals.serializers import (
 from disturbance.components.proposals.serializers_base import ProposalReferralSerializer
 from disturbance.components.proposals.serializers_apiary import (
     ProposalApiaryTypeSerializer,
-    InternalProposalApiarySerializer,
+    ApiaryInternalProposalSerializer,
     ProposalApiarySerializer,
     SaveProposalApiarySerializer,
     ProposalApiaryTemporaryUseSerializer,
@@ -484,7 +484,7 @@ class ProposalApiaryViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             application_type = instance.proposal.application_type.name
             if application_type == ApplicationType.APIARY:
-                return InternalProposalApiarySerializer
+                return ApiaryInternalProposalSerializer
                 #return InternalProposalSerializer
             else:
                 pass
@@ -500,6 +500,16 @@ class ProposalApiaryViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['GET',])
+    def internal_apiary_proposal(self, request, *args, **kwargs):
+        instance = self.get_object()
+        proposal_instance = instance.proposal
+        proposal_instance.internal_view_log(request)
+        #serializer = InternalProposalSerializer(instance,context={'request':request})
+        serializer_class = self.internal_serializer_class()
+        serializer = serializer_class(proposal_instance,context={'request':request})
+        return Response(serializer.data)
 
     @detail_route(methods=['post'])
     def apiary_assessor_send_referral(self, request, *args, **kwargs):
@@ -666,8 +676,8 @@ class ApiaryReferralViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             instance.remind(request)
-            #serializer = InternalProposalSerializer(instance.proposal,context={'request':request})
-            serializer = self.get_serializer(instance, context={'request':request})
+            serializer = ApiaryInternalProposalSerializer(instance.referral.proposal,context={'request':request})
+            #serializer = self.get_serializer(instance, context={'request':request})
             return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
@@ -685,7 +695,8 @@ class ApiaryReferralViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             instance.recall(request)
             #serializer = InternalProposalSerializer(instance.proposal,context={'request':request})
-            serializer = self.get_serializer(instance, context={'request':request})
+            serializer = ApiaryInternalProposalSerializer(instance.referral.proposal,context={'request':request})
+            #serializer = self.get_serializer(instance, context={'request':request})
             return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
@@ -703,7 +714,8 @@ class ApiaryReferralViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             instance.resend(request)
             #serializer = InternalProposalSerializer(instance.proposal,context={'request':request})
-            serializer = self.get_serializer(instance, context={'request':request})
+            serializer = ApiaryInternalProposalSerializer(instance.referral.proposal,context={'request':request})
+            #serializer = self.get_serializer(instance, context={'request':request})
             return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
@@ -795,7 +807,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             #application_type = Proposal.objects.get(id=self.kwargs.get('pk')).application_type.name
             application_type = self.get_object().application_type.name
             if application_type == ApplicationType.APIARY:
-                return InternalProposalApiarySerializer
+                return ApiaryInternalProposalSerializer
                 #return InternalProposalSerializer
             else:
                 return InternalProposalSerializer
@@ -1676,9 +1688,7 @@ class ReferralViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             instance.remind(request)
-            #serializer = InternalProposalSerializer(instance.proposal,context={'request':request})
-            serializer_class = self.internal_serializer_class()
-            serializer = serializer_class(instance,context={'request':request})
+            serializer = InternalProposalSerializer(instance.proposal,context={'request':request})
             return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
@@ -1695,9 +1705,7 @@ class ReferralViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             instance.recall(request)
-            #serializer = InternalProposalSerializer(instance.proposal,context={'request':request})
-            serializer_class = self.internal_serializer_class()
-            serializer = serializer_class(instance,context={'request':request})
+            serializer = InternalProposalSerializer(instance.proposal,context={'request':request})
             return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
@@ -1714,9 +1722,7 @@ class ReferralViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             instance.resend(request)
-            #serializer = InternalProposalSerializer(instance.proposal,context={'request':request})
-            serializer_class = self.internal_serializer_class()
-            serializer = serializer_class(instance,context={'request':request})
+            serializer = InternalProposalSerializer(instance.proposal,context={'request':request})
             return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
