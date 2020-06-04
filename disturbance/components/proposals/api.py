@@ -84,8 +84,9 @@ from disturbance.components.proposals.serializers import (
 from disturbance.components.proposals.serializers_base import ProposalReferralSerializer
 from disturbance.components.proposals.serializers_apiary import (
     ProposalApiaryTypeSerializer,
-    InternalProposalApiarySerializer,
+    ApiaryInternalProposalSerializer,
     ProposalApiarySerializer,
+    SaveProposalApiarySerializer,
     ProposalApiaryTemporaryUseSerializer,
     ProposalApiarySiteTransferSerializer,
     OnSiteInformationSerializer,
@@ -94,6 +95,7 @@ from disturbance.components.proposals.serializers_apiary import (
     SendApiaryReferralSerializer,
     ApiaryReferralSerializer,
     TemporaryUseApiarySiteSerializer,
+    DTApiaryReferralSerializer,
 )
 from disturbance.components.approvals.models import Approval
 from disturbance.components.approvals.serializers import ApprovalSerializer
@@ -297,8 +299,11 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         """
         #import ipdb; ipdb.set_trace()
         self.serializer_class = ReferralSerializer
-        qs = Referral.objects.filter(referral=request.user) if is_internal(self.request) else Referral.objects.none()
+        qs_r = Referral.objects.filter(referral=request.user) if is_internal(self.request) else Referral.objects.none()
         #qs = self.filter_queryset(self.request, qs, self)
+        # Add Apiary Referrals
+        qs_ra = Referral.objects.filter(apiary_referral__referral_group__members=request.user)
+        qs = qs_r.union(qs_ra) if qs_r else qs_ra
         qs = self.filter_queryset(qs)
 
         self.paginator.page_size = qs.count()
@@ -479,7 +484,7 @@ class ProposalApiaryViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             application_type = instance.proposal.application_type.name
             if application_type == ApplicationType.APIARY:
-                return InternalProposalApiarySerializer
+                return ApiaryInternalProposalSerializer
                 #return InternalProposalSerializer
             else:
                 pass
@@ -495,6 +500,16 @@ class ProposalApiaryViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['GET',])
+    def internal_apiary_proposal(self, request, *args, **kwargs):
+        instance = self.get_object()
+        proposal_instance = instance.proposal
+        proposal_instance.internal_view_log(request)
+        #serializer = InternalProposalSerializer(instance,context={'request':request})
+        serializer_class = self.internal_serializer_class()
+        serializer = serializer_class(proposal_instance,context={'request':request})
+        return Response(serializer.data)
 
     @detail_route(methods=['post'])
     def apiary_assessor_send_referral(self, request, *args, **kwargs):
@@ -593,14 +608,19 @@ class ApiaryReferralViewSet(viewsets.ModelViewSet):
         qs = ApiaryReferralGroup.objects.filter().values_list('name', flat=True)
         return Response(qs)
 
-    #@list_route(methods=['GET',])
-    #def datatable_list(self, request, *args, **kwargs):
-    #    proposal = request.GET.get('proposal',None)
-    #    qs = self.get_queryset().all()
-    #    if proposal:
-    #        qs = qs.filter(proposal_id=int(proposal))
-    #    serializer = DTReferralSerializer(qs, many=True)
-    #    return Response(serializer.data)
+    @list_route(methods=['GET',])
+    def datatable_list(self, request, *args, **kwargs):
+        #import ipdb; ipdb.set_trace()
+        proposal_field = request.GET.get('proposal',None)
+        proposal = Proposal.objects.get(id=int(proposal_field))
+        #qs = self.get_queryset().all()
+        if proposal:
+            #qs = qs.filter(referral__proposal_id=int(proposal))
+            #qs = ApiaryReferral.objects.filter(referral__proposal=proposal).referral
+            qs = Referral.objects.filter(proposal=proposal)
+        #serializer = DTReferralSerializer(qs, many=True)
+        serializer = DTApiaryReferralSerializer(qs, many=True)
+        return Response(serializer.data)
 
 
     @detail_route(methods=['GET',])
@@ -652,11 +672,12 @@ class ApiaryReferralViewSet(viewsets.ModelViewSet):
 
     @detail_route(methods=['GET',])
     def remind(self, request, *args, **kwargs):
+        #import ipdb; ipdb.set_trace()
         try:
             instance = self.get_object()
             instance.remind(request)
-            #serializer = InternalProposalSerializer(instance.proposal,context={'request':request})
-            serializer = self.get_serializer(instance, context={'request':request})
+            serializer = ApiaryInternalProposalSerializer(instance.referral.proposal,context={'request':request})
+            #serializer = self.get_serializer(instance, context={'request':request})
             return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
@@ -674,7 +695,8 @@ class ApiaryReferralViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             instance.recall(request)
             #serializer = InternalProposalSerializer(instance.proposal,context={'request':request})
-            serializer = self.get_serializer(instance, context={'request':request})
+            serializer = ApiaryInternalProposalSerializer(instance.referral.proposal,context={'request':request})
+            #serializer = self.get_serializer(instance, context={'request':request})
             return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
@@ -692,7 +714,8 @@ class ApiaryReferralViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             instance.resend(request)
             #serializer = InternalProposalSerializer(instance.proposal,context={'request':request})
-            serializer = self.get_serializer(instance, context={'request':request})
+            serializer = ApiaryInternalProposalSerializer(instance.referral.proposal,context={'request':request})
+            #serializer = self.get_serializer(instance, context={'request':request})
             return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
@@ -784,7 +807,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             #application_type = Proposal.objects.get(id=self.kwargs.get('pk')).application_type.name
             application_type = self.get_object().application_type.name
             if application_type == ApplicationType.APIARY:
-                return InternalProposalApiarySerializer
+                return ApiaryInternalProposalSerializer
                 #return InternalProposalSerializer
             else:
                 return InternalProposalSerializer
@@ -1446,6 +1469,8 @@ class ProposalViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(str(e))
 
     def create(self, request, *args, **kwargs):
+        print(request.data)
+        #import ipdb; ipdb.set_trace()
         try:
             with transaction.atomic():
                 http_status = status.HTTP_200_OK
@@ -1501,7 +1526,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                     'proposal_id': proposal_obj.id
                 }
                 if application_type.name == ApplicationType.APIARY:
-                    serializer = ProposalApiarySerializer(data=details_data)
+                    serializer = SaveProposalApiarySerializer(data=details_data)
                     serializer.is_valid(raise_exception=True)
                     serializer.save()
                 elif application_type.name == ApplicationType.TEMPORARY_USE:
@@ -1663,9 +1688,7 @@ class ReferralViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             instance.remind(request)
-            #serializer = InternalProposalSerializer(instance.proposal,context={'request':request})
-            serializer_class = self.internal_serializer_class()
-            serializer = serializer_class(instance,context={'request':request})
+            serializer = InternalProposalSerializer(instance.proposal,context={'request':request})
             return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
@@ -1682,9 +1705,7 @@ class ReferralViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             instance.recall(request)
-            #serializer = InternalProposalSerializer(instance.proposal,context={'request':request})
-            serializer_class = self.internal_serializer_class()
-            serializer = serializer_class(instance,context={'request':request})
+            serializer = InternalProposalSerializer(instance.proposal,context={'request':request})
             return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
@@ -1701,9 +1722,7 @@ class ReferralViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             instance.resend(request)
-            #serializer = InternalProposalSerializer(instance.proposal,context={'request':request})
-            serializer_class = self.internal_serializer_class()
-            serializer = serializer_class(instance,context={'request':request})
+            serializer = InternalProposalSerializer(instance.proposal,context={'request':request})
             return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())

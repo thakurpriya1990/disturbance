@@ -184,6 +184,15 @@ export default {
                     },
                     {
                         data: "applicant",
+                        mRender:function (data,type,full) {
+                            if (data) {
+                                return `${data}`;
+                            } else if (full.proposal_proxy_applicant) {
+                                return full.proposal_proxy_applicant.name;
+                            } else {
+                                return '';
+                            }
+                        },
                         name: "proposal__applicant__organisation__name",
                     },
                     {
@@ -201,6 +210,7 @@ export default {
                         data: '',
                         mRender:function (data,type,full) {
                             let links = '';
+                            console.log(full)
                             links +=  full.can_be_processed ? `<a href='/internal/proposal/${full.proposal}/referral/${full.id}'>Process</a><br/>`: `<a href='/internal/proposal/${full.proposal}/referral/${full.id}'>View</a><br/>`;
                             return links;
                         },
