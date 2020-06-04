@@ -2563,7 +2563,7 @@ class ApiaryReferral(RevisionedMixin):
          #   return True
 
     def can_process(self, user):
-        if self.processing_status=='with_referral':
+        if self.referral.processing_status=='with_referral':
             group =  ApiaryReferralGroup.objects.filter(id=self.referral_group.id)
             #user=request.user
             if group and group[0] in user.apiaryreferralgroup_set.all():
@@ -2574,11 +2574,12 @@ class ApiaryReferral(RevisionedMixin):
 
 
     def recall(self,request):
+        #import ipdb; ipdb.set_trace();
         with transaction.atomic():
             if not self.referral.proposal.can_assess(request.user):
                 raise exceptions.ProposalNotAuthorized()
-            self.processing_status = 'recalled'
-            self.save()
+            self.referral.processing_status = 'recalled'
+            self.referral.save()
             # TODO Log proposal action
             self.referral.proposal.log_user_action(
                 ProposalUserAction.APIARY_RECALL_REFERRAL.format(
