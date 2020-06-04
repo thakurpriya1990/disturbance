@@ -115,7 +115,8 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
     apiary_sites = ApiarySiteSerializer(read_only=True, many=True)
     on_site_information_list = serializers.SerializerMethodField()  # This is used for displaying OnSite table at the frontend
 
-    checklist_questions = serializers.SerializerMethodField()
+    #checklist_questions = serializers.SerializerMethodField()
+    checklist_answers = serializers.SerializerMethodField()
 
     class Meta:
         model = ProposalApiary
@@ -130,7 +131,8 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
             'longitude',
             'latitude',
             'on_site_information_list',
-            'checklist_questions',
+            #'checklist_questions',
+            'checklist_answers',
         )
 
     def get_on_site_information_list(self, obj):
@@ -141,10 +143,13 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
         ret = OnSiteInformationSerializer(on_site_information_list, many=True).data
         return ret
 
-    def get_checklist_questions(self, obj):
-        checklistQuestion = ApiaryApplicantChecklistQuestion.objects.values('text')
-        ret = ApiaryApplicantChecklistQuestionSerializer(checklistQuestion, many=True).data
-        return ret
+    #def get_checklist_questions(self, obj):
+     #   checklistQuestion = ApiaryApplicantChecklistQuestion.objects.values('text')
+      #  ret = ApiaryApplicantChecklistQuestionSerializer(checklistQuestion, many=True).data
+       # return ret
+
+    def get_checklist_answers(self, obj):
+        return ApiaryApplicantChecklistAnswerSerializer(obj.apiary_applicant_checklist, many=True).data
 
 
 class SaveProposalApiarySerializer(serializers.ModelSerializer):
@@ -525,12 +530,14 @@ class ApiaryApplicantChecklistQuestionSerializer(serializers.ModelSerializer):
                 )
 
 class ApiaryApplicantChecklistAnswerSerializer(serializers.ModelSerializer):
+    question = ApiaryApplicantChecklistQuestionSerializer()
 
     class Meta:
         model = ApiaryApplicantChecklistAnswer
         fields=('id',
                 'question',
                 'answer',
+                'proposal_id',
                 )
 
 
