@@ -172,29 +172,29 @@
                                       <div class="form-group">
                                         <label for="" class="col-sm-3 control-label">Street</label>
                                         <div class="col-sm-6">
-                                            <input disabled type="text" class="form-control" name="street" placeholder="" v-model="proposal.applicant.address.line1">
+                                            <input disabled type="text" class="form-control" name="street" placeholder="" v-model="applicantAddress.line1">
                                         </div>
                                       </div>
                                       <div class="form-group">
                                         <label for="" class="col-sm-3 control-label" >Town/Suburb</label>
                                         <div class="col-sm-6">
-                                            <input disabled type="text" class="form-control" name="surburb" placeholder="" v-model="proposal.applicant.address.locality">
+                                            <input disabled type="text" class="form-control" name="surburb" placeholder="" v-model="applicantAddress.locality">
                                         </div>
                                       </div>
                                       <div class="form-group">
                                         <label for="" class="col-sm-3 control-label">State</label>
                                         <div class="col-sm-2">
-                                            <input disabled type="text" class="form-control" name="country" placeholder="" v-model="proposal.applicant.address.state">
+                                            <input disabled type="text" class="form-control" name="country" placeholder="" v-model="applicantAddress.state">
                                         </div>
                                         <label for="" class="col-sm-2 control-label">Postcode</label>
                                         <div class="col-sm-2">
-                                            <input disabled type="text" class="form-control" name="postcode" placeholder="" v-model="proposal.applicant.address.postcode">
+                                            <input disabled type="text" class="form-control" name="postcode" placeholder="" v-model="applicantAddress.postcode">
                                         </div>
                                       </div>
                                       <div class="form-group">
                                         <label for="" class="col-sm-3 control-label" >Country</label>
                                         <div class="col-sm-4">
-                                            <input disabled type="text" class="form-control" name="country" v-model="proposal.applicant.address.country"/>
+                                            <input disabled type="text" class="form-control" name="country" v-model="applicantAddress.country"/>
                                         </div>
                                       </div>
                                    </form>
@@ -202,7 +202,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-md-12">
+                <!--div class="col-md-12">
                     <div class="row">
                         <div class="panel panel-default">
                             <div class="panel-heading">
@@ -218,7 +218,7 @@
                             </div>
                         </div>
                     </div>
-                </div>
+                </div-->
                 <div class="col-md-12">
                     <div class="row">
                         <form :action="proposal_form_url" method="post" name="new_proposal" enctype="multipart/form-data">
@@ -265,7 +265,7 @@ import {
 }
 from '@/utils/hooks'
 export default {
-    name: 'Referral',
+    name: 'ApiaryReferral',
     data: function() {
         let vm = this;
         return {
@@ -369,7 +369,12 @@ export default {
         },
         isFinalised: function(){
             return !(this.referral != null  && this.referral.processing_status == 'Awaiting'); 
-        }
+        },
+        applicantAddress: function() {
+            if (this.proposal && this.proposal.applicant_address) {
+                return this.proposal.applicant_address;
+            }
+        },
     },
     methods: {
         refreshFromResponse:function(response){
