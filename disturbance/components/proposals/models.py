@@ -2089,6 +2089,7 @@ class ProposalApiary(models.Model):
                     self.proposal.save()
                     self.save()
                     referral = None
+                    #import ipdb; ipdb.set_trace()
 
                     # Check if the user is in ledger
                     try:
@@ -2096,13 +2097,15 @@ class ProposalApiary(models.Model):
                         referral_group = ApiaryReferralGroup.objects.get(id=group_id)
                     except ApiaryReferralGroup.DoesNotExist:
                         raise exceptions.ProposalReferralCannotBeSent()
-                    try:
-                        existing_referral = Referral.objects.get(proposal=self.proposal)
-                        if existing_referral:
-                            apiary_referral_list = ApiaryReferral.objects.filter(referral_group=referral_group,referral=existing_referral)
-                        if apiary_referral_list:
-                            raise ValidationError('A referral has already been sent to this group')
-                    except Referral.DoesNotExist:
+                    #try:
+                    existing_referral = Referral.objects.filter(proposal=self.proposal)
+                    #if existing_referral:
+                    apiary_referral_list = ApiaryReferral.objects.filter(referral_group=referral_group,referral=existing_referral) if existing_referral else None
+                    if apiary_referral_list:
+                        raise ValidationError('A referral has already been sent to this group')
+                    #except Referral.DoesNotExist:
+                    # Create referral if it does not exist for referral_group
+                    else:
                         # Create Referral
                         referral = Referral.objects.create(
                             proposal = self.proposal,
@@ -2624,7 +2627,7 @@ class ApiaryReferral(RevisionedMixin):
                 )
             # send email
             recipients = self.referral_group.members_list
-            send_referral_email_notification(self,recipients,request,reminder=True)
+            send_apiary_referral_email_notification(self.referral,recipients,request,reminder=True)
 
     def resend(self,request):
         with transaction.atomic():
@@ -2660,7 +2663,7 @@ class ApiaryReferral(RevisionedMixin):
                     )
             # send email
             recipients = self.referral_group.members_list
-            send_referral_email_notification(self,recipients,request)
+            send_apiary_referral_email_notification(self.referral,recipients,request)
 
     def complete(self,request):
         with transaction.atomic():
