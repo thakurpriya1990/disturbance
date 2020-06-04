@@ -2098,9 +2098,9 @@ class ProposalApiary(models.Model):
                     except ApiaryReferralGroup.DoesNotExist:
                         raise exceptions.ProposalReferralCannotBeSent()
                     #try:
-                    existing_referral = Referral.objects.get(proposal=self.proposal)
-                    if existing_referral:
-                        apiary_referral_list = ApiaryReferral.objects.filter(referral_group=referral_group,referral=existing_referral)
+                    existing_referral = Referral.objects.filter(proposal=self.proposal)
+                    #if existing_referral:
+                    apiary_referral_list = ApiaryReferral.objects.filter(referral_group=referral_group,referral=existing_referral) if existing_referral else None
                     if apiary_referral_list:
                         raise ValidationError('A referral has already been sent to this group')
                     #except Referral.DoesNotExist:

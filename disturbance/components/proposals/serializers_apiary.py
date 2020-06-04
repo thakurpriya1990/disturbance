@@ -1,8 +1,12 @@
 from django.conf import settings
 
 from disturbance.components.organisations.serializers import OrganisationSerializer
-from disturbance.components.proposals.serializers_base import BaseProposalSerializer, ProposalReferralSerializer, \
-    ProposalDeclinedDetailsSerializer, EmailUserSerializer
+from disturbance.components.proposals.serializers_base import (
+        BaseProposalSerializer, 
+        #ProposalReferralSerializer,
+        ProposalDeclinedDetailsSerializer,
+        EmailUserSerializer,
+        )
 from disturbance.components.proposals.models import (
     Proposal,
     ProposalApiary,
@@ -24,6 +28,7 @@ from disturbance.components.proposals.models import (
 
 from rest_framework import serializers
 from ledger.accounts.models import Address
+
 
 
 class ApplicantAddressSerializer(serializers.ModelSerializer):
@@ -309,7 +314,51 @@ class ProposalApiaryTypeSerializer(serializers.ModelSerializer):
         return '/payments/invoice-pdf/{}'.format(obj.fee_invoice_reference) if obj.fee_paid else None
 
 
-class InternalProposalApiarySerializer(BaseProposalSerializer):
+class ApiaryReferralGroupSerializer(serializers.ModelSerializer):
+    all_members_list = serializers.SerializerMethodField()
+    class Meta:
+        model = ApiaryReferralGroup
+        fields = (
+                'id',
+                'name',
+                'all_members_list',
+                )
+
+    def get_all_members_list(self, obj):
+        serializer = EmailUserSerializer(obj.all_members, many=True)
+        return serializer.data
+
+
+class ApiaryReferralSerializer(serializers.ModelSerializer):
+    #processing_status = serializers.CharField(source='get_processing_status_display')
+    #latest_referrals = ProposalReferralSerializer(many=True)
+    #can_be_completed = serializers.BooleanField()
+    referral_group = ApiaryReferralGroupSerializer()
+    class Meta:
+        model = ApiaryReferral
+        fields = (
+                'id',
+                'referral_group',
+                )
+
+    #def __init__(self,*args,**kwargs):
+     #   super(ReferralSerializer, self).__init__(*args, **kwargs)
+      #  self.fields['proposal'] = ReferralProposalSerializer(context={'request':self.context['request']})
+
+
+class ApiaryProposalReferralSerializer(serializers.ModelSerializer):
+    referral = serializers.CharField(source='referral.get_full_name')
+    processing_status = serializers.CharField(source='get_processing_status_display')
+    apiary_referral = serializers.SerializerMethodField()
+    class Meta:
+        model = Referral
+        fields = '__all__'
+
+    def get_apiary_referral(self, obj):
+        return ApiaryReferralSerializer(obj.apiary_referral).data
+
+
+class ApiaryInternalProposalSerializer(BaseProposalSerializer):
     # TODO next 3 commented lines - related to 'apply as an Org or as an individual'
     #applicant = ApplicantSerializer()
     #applicant = serializers.CharField(read_only=True)
@@ -324,7 +373,7 @@ class InternalProposalApiarySerializer(BaseProposalSerializer):
     assessor_mode = serializers.SerializerMethodField()
     current_assessor = serializers.SerializerMethodField()
     assessor_data = serializers.SerializerMethodField()
-    latest_referrals = ProposalReferralSerializer(many=True)
+    latest_referrals = ApiaryProposalReferralSerializer(many=True)
     allowed_assessors = EmailUserSerializer(many=True)
     approval_level_document = serializers.SerializerMethodField()
     application_type = serializers.CharField(source='application_type.name', read_only=True)
@@ -486,42 +535,10 @@ class ApiaryApplicantChecklistAnswerSerializer(serializers.ModelSerializer):
 
 
 
-class ApiaryReferralGroupSerializer(serializers.ModelSerializer):
-    all_members_list = serializers.SerializerMethodField()
-    class Meta:
-        model = ApiaryReferralGroup
-        fields = (
-                'id',
-                'name',
-                'all_members_list',
-                )
-
-    def get_all_members_list(self, obj):
-        serializer = EmailUserSerializer(obj.all_members, many=True)
-        return serializer.data
-
-
 class SendApiaryReferralSerializer(serializers.Serializer):
     #email = serializers.EmailField()
     group_id = serializers.IntegerField()
     text = serializers.CharField(allow_blank=True)
-
-
-class ApiaryReferralSerializer(serializers.ModelSerializer):
-    #processing_status = serializers.CharField(source='get_processing_status_display')
-    #latest_referrals = ProposalReferralSerializer(many=True)
-    #can_be_completed = serializers.BooleanField()
-    referral_group = ApiaryReferralGroupSerializer()
-    class Meta:
-        model = ApiaryReferral
-        fields = (
-                'id',
-                'referral_group',
-                )
-
-    #def __init__(self,*args,**kwargs):
-     #   super(ReferralSerializer, self).__init__(*args, **kwargs)
-      #  self.fields['proposal'] = ReferralProposalSerializer(context={'request':self.context['request']})
 
 
 class DTApiaryReferralSerializer(serializers.ModelSerializer):

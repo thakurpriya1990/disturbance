@@ -1104,15 +1104,16 @@ export default {
             }); */
         },
         remindReferral:function(r){
+            console.log(r)
             let vm = this;
             
-            vm.$http.get(helpers.add_endpoint_json(api_endpoints.referrals,r.id+'/remind')).then(response => {
+            vm.$http.get(helpers.add_endpoint_json(api_endpoints.apiary_referrals,r.apiary_referral.id+'/remind')).then(response => {
                 vm.original_proposal = helpers.copyObject(response.body);
                 vm.proposal = response.body;
                 vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
                 swal(
                     'Referral Reminder',
-                    'A reminder has been sent to '+r.referral,
+                    'A reminder has been sent to '+r.apiary_referral.referral_group.name,
                     'success'
                 )
             },
@@ -1127,13 +1128,13 @@ export default {
         resendReferral:function(r){
             let vm = this;
             
-            vm.$http.get(helpers.add_endpoint_json(api_endpoints.referrals,r.id+'/resend')).then(response => {
+            vm.$http.get(helpers.add_endpoint_json(api_endpoints.apiary_referrals,r.apiary_referral.id+'/resend')).then(response => {
                 vm.original_proposal = helpers.copyObject(response.body);
                 vm.proposal = response.body;
                 vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
                 swal(
                     'Referral Resent',
-                    'The referral has been resent to '+r.referral,
+                    'The referral has been resent to '+r.apiary_referral.referral_group.name,
                     'success'
                 )
             },
@@ -1148,13 +1149,13 @@ export default {
         recallReferral:function(r){
             let vm = this;
             
-            vm.$http.get(helpers.add_endpoint_json(api_endpoints.referrals,r.id+'/recall')).then(response => {
+            vm.$http.get(helpers.add_endpoint_json(api_endpoints.apiary_referrals,r.apiary_referral.id+'/recall')).then(response => {
                 vm.original_proposal = helpers.copyObject(response.body);
                 vm.proposal = response.body;
                 vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
                 swal(
                     'Referral Recall',
-                    'The referall has been recalled from '+r.referral,
+                    'The referall has been recalled from '+r.apiary_referral.referral_group.name,
                     'success'
                 )
             },
