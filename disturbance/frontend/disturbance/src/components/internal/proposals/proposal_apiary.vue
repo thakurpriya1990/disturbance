@@ -416,46 +416,25 @@
                                 <div class="panel-body collapse in" id="checkList">
 
                                     <form class="form-horizontal">
-                                            <ul class="list-unstyled col-sm-12" v-for="q in proposal.proposal_apiary.checklist_questions">
-                                                <div class="row">
-                                                    <div class="col-sm-12">
-                                                        <li  class="col-sm-6" >
-                                                        <label class="control-label">{{q.text}}</label></li>
+                                        <ul class="list-unstyled col-sm-12" v-for="q in proposal.proposal_apiary.checklist_answers">
+                                            <div class="row">
+                                                <div class="col-sm-12">
+                                                    <li class="col-sm-6">
+                                                        <label class="control-label">{{q.question.text}}</label>
+                                                    </li>
 
-                                                        <!-- <ul  class="list-inline col-sm-6">
-                                                            <li class="list-inline-item">
-                                                                <input  class="form-check-input" v-model="q.answer" ref="Checkbox" type="radio" :name="'option'+q.id" :id="'answer_one'+q.id":value="true" data-parsley-required :disabled="readonly"/> Yes
-                                                            </li>
-                                                            <li class="list-inline-item">
-                                                                <input  class="form-check-input" v-model="q.answer" ref="Checkbox" type="radio" :name="'option'+q.id" :id="'answer_two'+q.id" :value="false" data-parsley-required :disabled="readonly"/> No </li>
-                                                        </ul> -->
-
-
-                                                    </div>
+                                                    <ul  class="list-inline col-sm-6">
+                                                                <li class="list-inline-item">
+                                                                    <input  class="form-check-input" v-model="q.answer" ref="Checkbox" type="radio" :name="'option'+q.id" :id="'answer_one'+q.id":value="true" data-parsley-required :disabled="readonly"/> Yes
+                                                                </li>
+                                                                <li class="list-inline-item">
+                                                                    <input  class="form-check-input" v-model="q.answer" ref="Checkbox" type="radio" :name="'option'+q.id" :id="'answer_two'+q.id" :value="false" data-parsley-required :disabled="readonly"/> No </li>
+                                                     </ul>
                                                 </div>
-                                            </ul>
+                                            </div>
+                                        </ul>
 
                                      </form>
-
-                                     <ul class="list-unstyled col-sm-12" v-for="q in proposal.applicant_checklist">
-                                        <div class="row">
-                                            <div class="col-sm-12">
-                                                <li class="col-sm-6">
-                                                    <label class="control-label">{{q.question}}</label>
-                                                </li>
-
-                                                <ul  class="list-inline col-sm-6">
-                                                            <li class="list-inline-item">
-                                                                <input  class="form-check-input" v-model="q.answer" ref="Checkbox" type="radio" :name="'option'+q.id" :id="'answer_one'+q.id":value="true" data-parsley-required :disabled="readonly"/> Yes
-                                                            </li>
-                                                            <li class="list-inline-item">
-                                                                <input  class="form-check-input" v-model="q.answer" ref="Checkbox" type="radio" :name="'option'+q.id" :id="'answer_two'+q.id" :value="false" data-parsley-required :disabled="readonly"/> No </li>
-                                                 </ul>
-
-                                            </div>
-                                        </div>
-                                     </ul>
-
 
                                 </div>
                             </div>

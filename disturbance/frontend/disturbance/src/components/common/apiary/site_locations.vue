@@ -116,37 +116,36 @@
                         </a>
                         </h3>
                     </div>
+
                     <div class="panel-body collapse in" id="checkList">
 
                         <form class="form-horizontal">
-                                <ul class="list-unstyled col-sm-12" v-for="q in proposal.proposal_apiary.checklist_questions">
-                                    <div class="row">
-                                        <div class="col-sm-12">
-                                        <li  class="col-sm-6" >
-                                        <label class="control-label">{{q.text}}</label></li>
+                            <ul class="list-unstyled col-sm-12" v-for="q in proposal.proposal_apiary.checklist_answers">
+                                <div class="row">
+                                    <div class="col-sm-12">
+                                        <li class="col-sm-6">
+                                            <label class="control-label">{{q.question.text}}</label>
+                                        </li>
 
-                                     <!--   <ul v-if="q.question.answer_type=='yes_no'" class="list-inline col-sm-6">
-                                            <li class="list-inline-item">
-                                                <input  class="form-check-input" v-model="q.answer" ref="Checkbox" type="radio" :name="'option'+q.id" :id="'answer_one'+q.id":value="true" data-parsley-required :disabled="readonly"/> Yes
-                                            </li>
-                                            <li class="list-inline-item">
-                                                <input  class="form-check-input" v-model="q.answer" ref="Checkbox" type="radio" :name="'option'+q.id" :id="'answer_two'+q.id" :value="false" data-parsley-required :disabled="readonly"/> No </li>
-                                        </ul>
-                                     -->
-
+                                        <ul  class="list-inline col-sm-6">
+                                                    <li class="list-inline-item">
+                                                        <input  class="form-check-input" v-model="q.answer" ref="Checkbox" type="radio" :name="'option'+q.id" :id="'answer_one'+q.id":value="true" data-parsley-required :disabled="readonly"/> Yes
+                                                    </li>
+                                                    <li class="list-inline-item">
+                                                        <input  class="form-check-input" v-model="q.answer" ref="Checkbox" type="radio" :name="'option'+q.id" :id="'answer_two'+q.id" :value="false" data-parsley-required :disabled="readonly"/> No </li>
+                                         </ul>
                                     </div>
                                 </div>
-                                </ul>
-                                <div v-if="hasAssessorMode || hasReferralMode" class="form-group col-sm-12">
-                                        <button class="btn btn-primary pull-right" style="margin-top:5px;" @click.prevent="update()">Update</button>
-                                </div>
-                            </form>
+                            </ul>
+
+                         </form>
 
                     </div>
                 </div>
 
             </div>
         </div>
+
         <SiteLocationsModal ref="site_locations_modal" />
     </div>
 </template>
