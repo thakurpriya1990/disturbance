@@ -450,6 +450,7 @@ export default {
                             let links = '';
                             if (!vm.is_external){
                                 /*if(vm.check_assessor(full) && full.can_officer_process)*/
+                                /*
                                 if(full.assessor_process){
                                     if (full.application_type === 'Apiary') {
                                         links +=  `<a href='/internal/proposal/${full.id}/apiary'>Process</a><br/>`;
@@ -463,6 +464,13 @@ export default {
                                         links +=  `<a href='/internal/proposal/${full.id}'>View</a><br/>`;
                                     }
                                 }
+                                */
+                                if(full.assessor_process){
+                                    links +=  `<a href='/internal/proposal/${full.id}'>Process</a><br/>`;
+                                } else {
+                                    links +=  `<a href='/internal/proposal/${full.id}'>View</a><br/>`;
+                                    }
+
                             }
                             else{
                                 if (full.can_user_edit) {
