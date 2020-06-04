@@ -439,7 +439,7 @@ export default {
             contactsBody: 'contactsBody'+vm._uid,
             siteLocations: 'siteLocations'+vm._uid,
             defaultKey: "aho",
-            "proposal": null,
+            //"proposal": null,
             "original_proposal": null,
             "loading": [],
             selected_referral: '',
@@ -519,6 +519,11 @@ export default {
         formatDate: function(data){
             return data ? moment(data).format('DD/MM/YYYY HH:mm:ss'): '';
         }
+    },
+    props: {
+        proposal: {
+            type: Object,
+        },
     },
     watch: {
 
@@ -1194,6 +1199,10 @@ export default {
             }
         });
     },
+    created: function() {
+        this.hasAmendmentRequest = this.proposal.hasAmendmentRequest;
+    },
+    /*
     beforeRouteEnter: function(to, from, next) {
           Vue.http.get(`/api/proposal/${to.params.proposal_id}/internal_proposal.json`).then(res => {
               next(vm => {
@@ -1210,6 +1219,7 @@ export default {
               console.log(err);
             });
     },
+    */
     beforeRouteUpdate: function(to, from, next) {
           Vue.http.get(`/api/proposal/${to.params.proposal_id}.json`).then(res => {
               next(vm => {
