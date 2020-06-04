@@ -154,10 +154,30 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
         ret = OnSiteInformationSerializer(on_site_information_list, many=True).data
         return ret
 
-    def get_checklist_questions(self, obj):
+    def get_checklist_questions(self, proposalapiaryobj):
         checklistQuestion = ApiaryApplicantChecklistQuestion.objects.values('text')
+        #checklistAnswer = ApiaryApplicantChecklistAnswer.objects.filter(proposal=proposalapiaryobj)
+
         ret = ApiaryApplicantChecklistQuestionSerializer(checklistQuestion, many=True).data
+
+        #ret = ApiaryApplicantChecklistAnswerSerializer(checklistAnswer, many=True).data
+
         return ret
+
+        # checklistQuestion = ApiaryApplicantChecklistQuestion.objects.all()
+        # return_obj = []
+        # for question in checklistQuestion:
+        #     ret_obj = {}
+        #     answer = ApiaryApplicantChecklistAnswer.objects.filter(proposal=proposalapiaryobj, question=question)
+        #
+        #     serialized_q = ApiaryApplicantChecklistQuestionSerializer(question).data
+        #     serialized_a = ApiaryApplicantChecklistAnswerSerializer(answer).data
+        #     ret_obj['question'] = serialized_q
+        #     ret_obj['answer'] = serialized_a
+        #
+        #     return_obj.append(ret_obj)
+        #
+        # return return_obj
 
 
 class TemporaryUseApiarySiteSerializer(serializers.ModelSerializer):
