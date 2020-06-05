@@ -1,5 +1,6 @@
 import ExternalDashboard from '../dashboard.vue'
-import Proposal from '../proposal_external.vue'
+//import Proposal from '../proposal_external.vue'
+import Proposal from '../proposal_wrapper.vue'
 import ProposalApply from '../proposal_apply.vue'
 import ProposalSubmit from '../proposal_submit.vue'
 import Organisation from '../organisations/manage.vue'

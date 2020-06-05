@@ -2330,8 +2330,12 @@ class TemporaryUseApiarySite(models.Model):
     Apiary sites under a proposal can be partially used as temporary site
     """
     proposal_apiary_temporary_use = models.ForeignKey(ProposalApiaryTemporaryUse, blank=True, null=True, related_name='apiary_sites')
-    apiary_site = models.ForeignKey(ApiarySite, blank=True, null=True)
+    # apiary_site = models.ForeignKey(ApiarySite, blank=True, null=True)
     apiary_site_approval = models.ForeignKey('ApiarySiteApproval', blank=True, null=True)
+
+    @property
+    def apiary_site(self):
+        return self.apiary_site_approval.apiary_site
 
     class Meta:
         app_label = 'disturbance'
@@ -2341,8 +2345,8 @@ class ApiarySiteApproval(models.Model):
     """
     This is intermediate table between ApiarySite and Approval to hold an approved apiary site under a certain approval
     """
-    apiary_site = models.ForeignKey(ApiarySite, blank=True, null=True)
-    approval = models.ForeignKey('disturbance.Approval', blank=True, null=True)
+    apiary_site = models.ForeignKey(ApiarySite, blank=True, null=True, related_name='apiary_site_approval_set')
+    approval = models.ForeignKey('disturbance.Approval', blank=True, null=True, related_name='apiary_site_approval_set')
 
     class Meta:
         app_label = 'disturbance'

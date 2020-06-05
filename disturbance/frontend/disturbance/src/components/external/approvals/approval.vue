@@ -98,7 +98,7 @@
             <div class="row">
                 <FormSection :formCollapse="false" label="Site(s)" Index="site_avaiability">
                     <SiteAvailability 
-                        :proposal_apiary_id="proposal_apiary_id" 
+                        :initial_apiary_sites="test_apiary_sites" 
                         ref="site_availability" 
                     />
                 </FormSection>
@@ -159,11 +159,27 @@ export default {
                 address: {}
             },
 
+            test_apiary_sites: [],
             // Filters
 
         }
     },
-    watch: {},
+    watch: {
+        approval: {
+            deep: true,
+            handler(){
+                console.log('approval in watch');
+                console.log('length of approval.apiary_site_approval_set')
+                console.log(this.approval.apiary_site_approval_set.length);
+                console.log(this.approval.apiary_site_approval_set);
+                this.test_apiary_sites = []
+                for (let i=0; i<this.approval.apiary_site_approval_set.length; i++){
+                    console.log(this.approval.apiary_site_approval_set[i]);
+                    this.test_apiary_sites.push(this.approval.apiary_site_approval_set[i].apiary_site)
+                }
+            }
+        }
+    },
     filters: {
         formatDate: function(data){
             return moment(data).format('DD/MM/YYYY');

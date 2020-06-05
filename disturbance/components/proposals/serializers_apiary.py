@@ -20,10 +20,10 @@ from disturbance.components.proposals.models import (
     ApiarySite,
 
     OnSiteInformation,
-    ApiaryReferralGroup, 
+    ApiaryReferralGroup,
     TemporaryUseApiarySite,
     ApiaryReferral,
-    Referral,
+    Referral, ApiarySiteApproval,
 )
 
 from rest_framework import serializers
@@ -176,20 +176,42 @@ class SaveProposalApiarySerializer(serializers.ModelSerializer):
                 )
 
 
-class TemporaryUseApiarySiteSerializer(serializers.ModelSerializer):
-    proposal_apiary_temporary_use_id = serializers.IntegerField(write_only=True, required=False)
+class ApiarySiteApprovalSerializer(serializers.ModelSerializer):
     apiary_site_id = serializers.IntegerField(write_only=True, required=False)
     apiary_site = ApiarySiteSerializer(read_only=True)
 
+    class Meta:
+        model = ApiarySiteApproval
+        fields = (
+            'apiary_site_id',
+            'apiary_site',
+            # 'approval',
+        )
+
+
+class TemporaryUseApiarySiteSerializer(serializers.ModelSerializer):
+    proposal_apiary_temporary_use_id = serializers.IntegerField(write_only=True, required=False)
+    # apiary_site_id = serializers.IntegerField(write_only=True, required=False)
+    # apiary_site = ApiarySiteSerializer(read_only=True)
+    apiary_site_approval = ApiarySiteApprovalSerializer(read_only=True)
+    apiary_site_approval_id = serializers.IntegerField(write_only=True, required=False)
+    # apiary_site = serializers.SerializerMethodField()
+
     def validate(self, attrs):
         return attrs
+
+    def get_apiary_site(self, obj):
+        serializers = ApiarySiteSerializer(self.apiary_site_approval.apiary_site)
+        return serializers.data
 
     class Meta:
         model = TemporaryUseApiarySite
         fields = (
             'proposal_apiary_temporary_use_id',
-            'apiary_site_id',
-            'apiary_site',
+            'apiary_site_approval',
+            'apiary_site_approval_id',
+            # 'apiary_site_id',
+            # 'apiary_site',
         )
 
 

@@ -127,11 +127,8 @@
         methods:{
             save: function(){
                 console.log('in save()');
-                if (this.apiary_temporary_use && this.apiary_temporary_use.id){
-                    this.proposal_update();
-                } else {
-                    this.proposal_create();
-                }
+                // Proposal must be already created just after the user clicks on the 'Create' button on the modal
+                this.proposal_update();
             },
             save_exit: function() {
                 console.log('in save_exit()');
@@ -161,37 +158,37 @@
                 }
                 return data
             },
-            proposal_create: function(){
-                console.log('in proposal_create');
+          //  proposal_create: function(){
+          //      console.log('in proposal_create');
 
-                let vm = this;
-                let data = vm._get_basic_data();
+          //      let vm = this;
+          //      let data = vm._get_basic_data();
 
-                // Add proposal_apiary_base_id
-                data['apiary_temporary_use']['proposal_apiary_base_id'] = this.licence.current_proposal.id
+          //      // Add proposal_apiary_base_id
+          //      data['apiary_temporary_use']['proposal_apiary_base_id'] = this.licence.current_proposal.id
 
-                this.$http.post('/api/proposal/', data).then(res=>{
-                    console.log(res);
-                    let application_id = res.body.id;
-                    swal({
-                        title: 'Saved',
-                        text: 'Your proposal has been created',
-                        type: 'success',
-                        allowOutsideClick: false,
-                    }).then(
-                        res=>{
-                            // Redirect
-                            console.log('Redirect');
-                            //vm.$router.push({name: 'external-temporary-use', params: {licence_id: vm.licence.id, application_id: application_id}});
-                        }, 
-                        err=>{
-                            // Should not reach here because allowOutsideClick is set to false
-                        }
-                    );
-                },err=>{
-                    this.processError(err)
-                });
-            },
+          //      this.$http.post('/api/proposal/', data).then(res=>{
+          //          console.log(res);
+          //          let application_id = res.body.id;
+          //          swal({
+          //              title: 'Saved',
+          //              text: 'Your proposal has been created',
+          //              type: 'success',
+          //              allowOutsideClick: false,
+          //          }).then(
+          //              res=>{
+          //                  // Redirect
+          //                  console.log('Redirect');
+          //                  //vm.$router.push({name: 'external-temporary-use', params: {licence_id: vm.licence.id, application_id: application_id}});
+          //              }, 
+          //              err=>{
+          //                  // Should not reach here because allowOutsideClick is set to false
+          //              }
+          //          );
+          //      },err=>{
+          //          this.processError(err)
+          //      });
+          //  },
             proposal_update: function(){
                 console.log('in proposal_update');
 
