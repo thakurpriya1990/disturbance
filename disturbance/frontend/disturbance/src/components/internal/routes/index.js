@@ -3,9 +3,11 @@ import Search from '../search.vue'
 import OrgAccessTable from '../organisations/dashboard.vue'
 import OrgAccess from '../organisations/access.vue'
 import Organisation from '../organisations/manage.vue'
-import Proposal from '../proposals/proposal.vue'
-import ProposalApiary from '../proposals/proposal_apiary.vue'
-import Referral from '../referrals/referral.vue'
+//import Proposal from '../proposals/proposal.vue'
+//import ProposalApiary from '../proposals/proposal_apiary.vue'
+import Proposal from '../proposals/proposal_wrapper.vue';
+//import Referral from '../referrals/referral.vue'
+import Referral from '../referrals/referral_wrapper.vue'
 import ApprovalDash from '../approvals/dashboard.vue'
 import ComplianceDash from '../compliances/dashboard.vue'
 import Compliance from '../compliances/access.vue'
@@ -105,11 +107,13 @@ export default
                             component: Referral,
                             name:"internal-referral"
                         },
+                        /*
                         {
                             path: 'apiary',
                             component: ProposalApiary,
                             name:"internal-proposal-apiary"
                         },
+                        */
                     ]
                 },
  

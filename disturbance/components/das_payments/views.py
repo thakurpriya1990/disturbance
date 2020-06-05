@@ -203,12 +203,17 @@ class InvoicePDFView(View):
         invoice = get_object_or_404(Invoice, reference=self.kwargs['reference'])
         proposal = Proposal.objects.get(fee_invoice_reference=invoice.reference)
 
-        organisation = proposal.applicant.organisation.organisation_set.all()[0]
-        if self.check_owner(organisation):
+        if proposal.relevant_applicant_type == 'organisation':
+            organisation = proposal.applicant.organisation.organisation_set.all()[0]
+            if self.check_owner(organisation):
+                response = HttpResponse(content_type='application/pdf')
+                response.write(create_invoice_pdf_bytes('invoice.pdf', invoice, proposal))
+                return response
+            raise PermissionDenied
+        else:
             response = HttpResponse(content_type='application/pdf')
             response.write(create_invoice_pdf_bytes('invoice.pdf', invoice, proposal))
             return response
-        raise PermissionDenied
 
     def get_object(self):
         return  get_object_or_404(Invoice, reference=self.kwargs['reference'])
