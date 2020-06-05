@@ -2307,7 +2307,7 @@ class ProposalApiaryTemporaryUse(models.Model):
     from_date = models.DateField('Period From Date', blank=True, null=True)
     to_date = models.DateField('Period To Date', blank=True, null=True)
     proposal = models.OneToOneField(Proposal, related_name='apiary_temporary_use', null=True, blank=True)
-    proposal_apiary_base = models.ForeignKey(Proposal, related_name='apiary_temporary_use_set', null=True, blank=True)
+    # proposal_apiary_base = models.ForeignKey(Proposal, related_name='apiary_temporary_use_set', null=True, blank=True)
     temporary_occupier_name = models.CharField(max_length=255, blank=True, null=True)
     temporary_occupier_phone = models.CharField(max_length=50, blank=True, null=True)
     temporary_occupier_mobile = models.CharField(max_length=50, blank=True, null=True)

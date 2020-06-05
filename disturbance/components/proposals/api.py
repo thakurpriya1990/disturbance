@@ -1544,7 +1544,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                     details_data['temporary_occupier_phone'] = apiary_temp_use['temporary_occupier_phone']
                     details_data['temporary_occupier_mobile'] = apiary_temp_use['temporary_occupier_mobile']
                     details_data['temporary_occupier_email'] = apiary_temp_use['temporary_occupier_email']
-                    details_data['proposal_apiary_base_id'] = apiary_temp_use['proposal_apiary_base_id']
+                    # details_data['proposal_apiary_base_id'] = apiary_temp_use['proposal_apiary_base_id']
 
                     # Save ProposalApiaryTemporaryUse
                     serializer = ProposalApiaryTemporaryUseSerializer(data=details_data)

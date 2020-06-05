@@ -195,7 +195,7 @@ class TemporaryUseApiarySiteSerializer(serializers.ModelSerializer):
 
 class ProposalApiaryTemporaryUseSerializer(serializers.ModelSerializer):
     proposal_id = serializers.IntegerField(write_only=True, required=False)
-    proposal_apiary_base_id = serializers.IntegerField(write_only=True, required=False)
+    # proposal_apiary_base_id = serializers.IntegerField(write_only=True, required=False)
     apiary_sites = TemporaryUseApiarySiteSerializer(many=True, read_only=True)
 
     class Meta:
@@ -209,7 +209,7 @@ class ProposalApiaryTemporaryUseSerializer(serializers.ModelSerializer):
             'temporary_occupier_mobile',
             'temporary_occupier_email',
             'proposal_id',
-            'proposal_apiary_base_id',
+            # 'proposal_apiary_base_id',
             'apiary_sites',
         )
 
