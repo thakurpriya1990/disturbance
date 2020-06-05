@@ -2331,6 +2331,7 @@ class TemporaryUseApiarySite(models.Model):
     """
     proposal_apiary_temporary_use = models.ForeignKey(ProposalApiaryTemporaryUse, blank=True, null=True, related_name='apiary_sites')
     apiary_site = models.ForeignKey(ApiarySite, blank=True, null=True)
+    apiary_site_approval = models.ForeignKey('ApiarySiteApproval', blank=True, null=True)
 
     class Meta:
         app_label = 'disturbance'
@@ -2338,8 +2339,7 @@ class TemporaryUseApiarySite(models.Model):
 
 class ApiarySiteApproval(models.Model):
     """
-    This is intermediate table between ApiarySite and Approval.
-    self.apiary_site is licenced under the self.approval
+    This is intermediate table between ApiarySite and Approval to hold an approved apiary site under a certain approval
     """
     apiary_site = models.ForeignKey(ApiarySite, blank=True, null=True)
     approval = models.ForeignKey('disturbance.Approval', blank=True, null=True)
