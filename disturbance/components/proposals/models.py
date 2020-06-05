@@ -23,6 +23,7 @@ from ledger.accounts.models import EmailUser, RevisionedMixin
 from ledger.licence.models import  Licence
 from ledger.payments.models import Invoice
 from disturbance import exceptions
+# from disturbance.components.approvals.models import Approval
 from disturbance.components.organisations.models import Organisation
 from disturbance.components.main.models import CommunicationsLogEntry, UserAction, Document, Region, District, Tenure, ApplicationType
 from disturbance.components.main.utils import get_department_user
@@ -2330,6 +2331,18 @@ class TemporaryUseApiarySite(models.Model):
     """
     proposal_apiary_temporary_use = models.ForeignKey(ProposalApiaryTemporaryUse, blank=True, null=True, related_name='apiary_sites')
     apiary_site = models.ForeignKey(ApiarySite, blank=True, null=True)
+
+    class Meta:
+        app_label = 'disturbance'
+
+
+class ApiarySiteApproval(models.Model):
+    """
+    This is intermediate table between ApiarySite and Approval.
+    self.apiary_site is licenced under the self.approval
+    """
+    apiary_site = models.ForeignKey(ApiarySite, blank=True, null=True)
+    approval = models.ForeignKey('disturbance.Approval', blank=True, null=True)
 
     class Meta:
         app_label = 'disturbance'
