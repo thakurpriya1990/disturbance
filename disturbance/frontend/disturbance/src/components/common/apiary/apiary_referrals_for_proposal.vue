@@ -11,7 +11,7 @@ import {
     helpers
 }from '@/utils/hooks'
 export default {
-    name: 'MoreReferrals',
+    name: 'ApiaryReferrals',
     props: {
         isFinalised: {
             type: Boolean,
@@ -59,11 +59,16 @@ export default {
                         }
                     },
                     {
-                        title: 'Referral',
-                        data: 'referral',
+                        title: 'Referral Group',
+                        data: 'id',
                         render: function (data,type,full){
                             //return `<span>${data.first_name} ${data.last_name}</span>`; 
-                            return `<span>dummy referral blah</span>`; 
+                            let referralGroup = '';
+                            if (full.apiary_referral && full.apiary_referral.referral_group && full.apiary_referral.referral_group.name) {
+                                referralGroup = full.apiary_referral.referral_group.name;
+                            }
+                            //return `<span>dummy referral blah</span>`; 
+                            return referralGroup; 
                         }
                     },
                     {
@@ -79,12 +84,16 @@ export default {
                                 return result;
                             }
                             //var user = full.referral.first_name + ' ' + full.referral.last_name; 
-                            var user = 'dummy val';
+                            //var user = 'dummy val';
+                            let apiaryId = full.apiary_referral.id
+                            console.log(apiaryId)
                             if (full.referral_status == 'Awaiting'){
-                                result = `<a href="" data-id="${data}" data-user="${user}" class="remindRef">Remind</a>/<a href="" data-id="${data}" data-user="${user}" class="recallRef">Recall</a>`;
+                                //result = `<a href="" data-id="${data}" data-user="${user}" class="remindRef">Remind</a>/<a href="" data-id="${data}" data-user="${user}" class="recallRef">Recall</a>`;
+                                result = `<a href="" data-id="${apiaryId}" class="remindRef">Remind</a>/<a href="" data-id="${apiaryId}" class="recallRef">Recall</a>`;
                             }
                             else{
-                                result = `<a href="" data-id="${data}" data-user="${user}" class="resendRef">Resend</a>`;
+                                //result = `<a href="" data-id="${data}" data-user="${user}" class="resendRef">Resend</a>`;
+                                result = `<a href="" data-id="${apiaryId}" class="resendRef">Resend</a>`;
                             }
                             return result;
                         }
@@ -130,7 +139,7 @@ export default {
         remindReferral:function(_id,user){
             let vm = this;
             
-            vm.$http.get(helpers.add_endpoint_json(api_endpoints.referrals,_id+'/remind')).then(response => {
+            vm.$http.get(helpers.add_endpoint_json(api_endpoints.apiary_referrals,_id+'/remind')).then(response => {
                 vm.$emit('refreshFromResponse',response);
                 vm.table.ajax.reload();
                 swal(
@@ -149,7 +158,7 @@ export default {
         },
         resendReferral:function(_id,user){
             let vm = this;
-            vm.$http.get(helpers.add_endpoint_json(api_endpoints.referrals,_id+'/resend')).then(response => {
+            vm.$http.get(helpers.add_endpoint_json(api_endpoints.apiary_referrals,_id+'/resend')).then(response => {
                 vm.$emit('refreshFromResponse',response);
                 vm.table.ajax.reload();
                 swal(
@@ -169,7 +178,7 @@ export default {
         recallReferral:function(_id,user){
             let vm = this;
             
-            vm.$http.get(helpers.add_endpoint_json(api_endpoints.referrals,_id+'/recall')).then(response => {
+            vm.$http.get(helpers.add_endpoint_json(api_endpoints.apiary_referrals,_id+'/recall')).then(response => {
                 vm.$emit('refreshFromResponse',response);
                 vm.table.ajax.reload();
                 swal(
@@ -188,7 +197,7 @@ export default {
         },
         initialiseTable: function(){
             let vm = this;
-            let table_id = 'more-referrals-table'+vm._uid;
+            let table_id = 'apiary-referrals-table'+vm._uid;
             let popover_name = 'popover-'+ vm._uid;
             $(vm.$refs.showRef).popover({
                 content: function() {
@@ -220,18 +229,18 @@ export default {
                 }).on('click','.resendRef',function(e){
                     e.preventDefault();
                     var _id = $(this).data('id');
-                    var user = $(this).data('user');
-                    vm.resendReferral(_id,user);
+                    //var user = $(this).data('user');
+                    vm.resendReferral(_id);
                 }).on('click','.recallRef',function(e){
                     e.preventDefault();
                     var _id = $(this).data('id');
-                    var user = $(this).data('user');
-                    vm.recallReferral(_id,user);
+                    //var user = $(this).data('user');
+                    vm.recallReferral(_id);
                 }).on('click','.remindRef',function(e){
                     e.preventDefault();
                     var _id = $(this).data('id');
-                    var user = $(this).data('user');
-                    vm.remindReferral(_id,user);
+                    //var user = $(this).data('user');
+                    vm.remindReferral(_id);
                 });
             }).on('shown.bs.popover', function () {
                 var el = vm.$refs.showRef;

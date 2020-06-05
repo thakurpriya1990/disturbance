@@ -439,7 +439,7 @@ export default {
             contactsBody: 'contactsBody'+vm._uid,
             siteLocations: 'siteLocations'+vm._uid,
             defaultKey: "aho",
-            "proposal": null,
+            //"proposal": null,
             "original_proposal": null,
             "loading": [],
             selected_referral: '',
@@ -520,6 +520,11 @@ export default {
             return data ? moment(data).format('DD/MM/YYYY HH:mm:ss'): '';
         }
     },
+    props: {
+        proposal: {
+            type: Object,
+        },
+    },
     watch: {
 
     },
@@ -528,7 +533,7 @@ export default {
             return this.proposal!= null ? helpers.add_endpoint_json(api_endpoints.organisations,this.proposal.applicant.id+'/contacts') : '';
         },
         referralListURL: function(){
-            return this.proposal!= null ? helpers.add_endpoint_json(api_endpoints.referrals,'datatable_list')+'?proposal='+this.proposal.id : '';
+            return this.proposal!= null ? helpers.add_endpoint_json(api_endpoints.apiary_referrals,'datatable_list')+'?proposal='+this.proposal.id : '';
         },
         isLoading: function() {
           return this.loading.length > 0
@@ -1104,15 +1109,16 @@ export default {
             }); */
         },
         remindReferral:function(r){
+            console.log(r)
             let vm = this;
             
-            vm.$http.get(helpers.add_endpoint_json(api_endpoints.referrals,r.id+'/remind')).then(response => {
+            vm.$http.get(helpers.add_endpoint_json(api_endpoints.apiary_referrals,r.apiary_referral.id+'/remind')).then(response => {
                 vm.original_proposal = helpers.copyObject(response.body);
                 vm.proposal = response.body;
                 vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
                 swal(
                     'Referral Reminder',
-                    'A reminder has been sent to '+r.referral,
+                    'A reminder has been sent to '+r.apiary_referral.referral_group.name,
                     'success'
                 )
             },
@@ -1127,13 +1133,13 @@ export default {
         resendReferral:function(r){
             let vm = this;
             
-            vm.$http.get(helpers.add_endpoint_json(api_endpoints.referrals,r.id+'/resend')).then(response => {
+            vm.$http.get(helpers.add_endpoint_json(api_endpoints.apiary_referrals,r.apiary_referral.id+'/resend')).then(response => {
                 vm.original_proposal = helpers.copyObject(response.body);
                 vm.proposal = response.body;
                 vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
                 swal(
                     'Referral Resent',
-                    'The referral has been resent to '+r.referral,
+                    'The referral has been resent to '+r.apiary_referral.referral_group.name,
                     'success'
                 )
             },
@@ -1148,13 +1154,13 @@ export default {
         recallReferral:function(r){
             let vm = this;
             
-            vm.$http.get(helpers.add_endpoint_json(api_endpoints.referrals,r.id+'/recall')).then(response => {
+            vm.$http.get(helpers.add_endpoint_json(api_endpoints.apiary_referrals,r.apiary_referral.id+'/recall')).then(response => {
                 vm.original_proposal = helpers.copyObject(response.body);
                 vm.proposal = response.body;
                 vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
                 swal(
                     'Referral Recall',
-                    'The referall has been recalled from '+r.referral,
+                    'The referall has been recalled from '+r.apiary_referral.referral_group.name,
                     'success'
                 )
             },
@@ -1193,6 +1199,10 @@ export default {
             }
         });
     },
+    created: function() {
+        this.hasAmendmentRequest = this.proposal.hasAmendmentRequest;
+    },
+    /*
     beforeRouteEnter: function(to, from, next) {
           Vue.http.get(`/api/proposal/${to.params.proposal_id}/internal_proposal.json`).then(res => {
               next(vm => {
@@ -1209,6 +1219,7 @@ export default {
               console.log(err);
             });
     },
+    */
     beforeRouteUpdate: function(to, from, next) {
           Vue.http.get(`/api/proposal/${to.params.proposal_id}.json`).then(res => {
               next(vm => {

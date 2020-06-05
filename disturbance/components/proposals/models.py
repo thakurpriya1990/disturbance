@@ -2089,6 +2089,7 @@ class ProposalApiary(models.Model):
                     self.proposal.save()
                     self.save()
                     referral = None
+                    #import ipdb; ipdb.set_trace()
 
                     # Check if the user is in ledger
                     try:
@@ -2096,13 +2097,15 @@ class ProposalApiary(models.Model):
                         referral_group = ApiaryReferralGroup.objects.get(id=group_id)
                     except ApiaryReferralGroup.DoesNotExist:
                         raise exceptions.ProposalReferralCannotBeSent()
-                    try:
-                        existing_referral = Referral.objects.get(proposal=self.proposal)
-                        if existing_referral:
-                            apiary_referral_list = ApiaryReferral.objects.filter(referral_group=referral_group,referral=existing_referral)
-                        if apiary_referral_list:
-                            raise ValidationError('A referral has already been sent to this group')
-                    except Referral.DoesNotExist:
+                    #try:
+                    existing_referral = Referral.objects.filter(proposal=self.proposal)
+                    #if existing_referral:
+                    apiary_referral_list = ApiaryReferral.objects.filter(referral_group=referral_group,referral=existing_referral) if existing_referral else None
+                    if apiary_referral_list:
+                        raise ValidationError('A referral has already been sent to this group')
+                    #except Referral.DoesNotExist:
+                    # Create referral if it does not exist for referral_group
+                    else:
                         # Create Referral
                         referral = Referral.objects.create(
                             proposal = self.proposal,
@@ -2560,7 +2563,7 @@ class ApiaryReferral(RevisionedMixin):
          #   return True
 
     def can_process(self, user):
-        if self.processing_status=='with_referral':
+        if self.referral.processing_status=='with_referral':
             group =  ApiaryReferralGroup.objects.filter(id=self.referral_group.id)
             #user=request.user
             if group and group[0] in user.apiaryreferralgroup_set.all():
@@ -2571,11 +2574,12 @@ class ApiaryReferral(RevisionedMixin):
 
 
     def recall(self,request):
+        #import ipdb; ipdb.set_trace();
         with transaction.atomic():
             if not self.referral.proposal.can_assess(request.user):
                 raise exceptions.ProposalNotAuthorized()
-            self.processing_status = 'recalled'
-            self.save()
+            self.referral.processing_status = 'recalled'
+            self.referral.save()
             # TODO Log proposal action
             self.referral.proposal.log_user_action(
                 ProposalUserAction.APIARY_RECALL_REFERRAL.format(
@@ -2624,7 +2628,7 @@ class ApiaryReferral(RevisionedMixin):
                 )
             # send email
             recipients = self.referral_group.members_list
-            send_referral_email_notification(self,recipients,request,reminder=True)
+            send_apiary_referral_email_notification(self.referral,recipients,request,reminder=True)
 
     def resend(self,request):
         with transaction.atomic():
@@ -2660,7 +2664,7 @@ class ApiaryReferral(RevisionedMixin):
                     )
             # send email
             recipients = self.referral_group.members_list
-            send_referral_email_notification(self,recipients,request)
+            send_apiary_referral_email_notification(self.referral,recipients,request)
 
     def complete(self,request):
         with transaction.atomic():
