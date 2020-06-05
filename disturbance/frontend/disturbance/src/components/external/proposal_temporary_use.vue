@@ -18,7 +18,7 @@
                                 :to_date_enabled="to_date_enabled"
                                 @from_date_changed="fromDateChanged"
                                 @to_date_changed="toDateChanged"
-                                @site_checkbox_clicked="siteChechboxClicked"
+                                @site_checkbox_clicked="siteCheckboxClicked"
                                 :key="period_and_sites_key"
                             />
                         </template>
@@ -144,11 +144,7 @@
             exit: function() {
                 console.log('in exit()');
             },
-            proposal_create: function(){
-                console.log('in proposal_create');
-
-                let vm = this;
-
+            _get_basic_data: function(){
                 let data = {
                     'category': '',
                     'profile': '', // TODO how to determine this?
@@ -163,6 +159,14 @@
                     'sub_activity1': '',
                     'apiary_temporary_use': this.apiary_temporary_use,
                 }
+                return data
+            },
+            proposal_create: function(){
+                console.log('in proposal_create');
+
+                let vm = this;
+                let data = vm._get_basic_data();
+
                 // Add proposal_apiary_base_id
                 data['apiary_temporary_use']['proposal_apiary_base_id'] = this.licence.current_proposal.id
 
@@ -190,6 +194,10 @@
             },
             proposal_update: function(){
                 console.log('in proposal_update');
+
+                let vm = this;
+                let data = vm._get_basic_data();
+
                 this.$http.put('/api/proposal/' + this.apiary_temporary_use.id + '/', '{}').then(res=>{
                     swal(
                         'Saved',
@@ -206,8 +214,8 @@
                 this.apiary_temporary_use.temporary_occupier_mobile = value.occupier_mobile
                 this.apiary_temporary_use.temporary_occupier_email = value.occupier_email
             },
-            siteChechboxClicked: function(value){
-                console.log('siteChechboxClicked');
+            siteCheckboxClicked: function(value){
+                console.log('siteCheckboxClicked');
                 console.log(value);
                 for (let item of this.apiary_temporary_use.apiary_sites){
                     console.log(item);
@@ -269,6 +277,9 @@
                             Vue.http.get(`/api/proposal/${to.params.application_id}.json`).then(re => {
                                 // TODO 
                                 console.log('application retrieved:');
+                                console.log('application: ')
+                                console.log(re.body);
+                                console.log('application.apiary_temporary_use: ')
                                 console.log(re.body.apiary_temporary_use);
 
                                 //vm.apiary_temporary_use = re.body.apiary_temporary_use

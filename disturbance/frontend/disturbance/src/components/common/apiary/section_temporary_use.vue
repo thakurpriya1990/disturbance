@@ -116,8 +116,26 @@
         },
         methods:{
             openNewTemporaryUse: function() {
-                console.log('in openNewTemporaryUse');
-                //this.$router.push({name: 'draft_proposal', params: {proposal_id: '484'}});
+                let vm = this
+
+                swal({
+                    title: "Create Temporary Use Application",
+                    text: "Are you sure you want to create temporary use application?",
+                    type: "question",
+                    showCancelButton: true,
+                    confirmButtonText: 'Create'
+                }).then(
+                    () => {
+                        vm.createProposal();
+                    },
+                    (error) => {
+
+                    }
+                );
+            },
+            createProposal: function() {
+                console.log('in createProposal');
+
                 this.$router.push({name: 'external-new-temporary-use', params: {licence_id: this.licence_id}});
                 //this.$router.push({name: 'external-proposals-dash'}); //Navigate to dashboard
             },

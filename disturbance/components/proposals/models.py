@@ -2361,7 +2361,6 @@ class DeedPollDocument(DefaultDocument):
             return super(DeedPollDocument, self).delete()
 
 
-
 class ApiaryApplicantChecklistQuestion(models.Model):
     ANSWER_TYPE_CHOICES = (
         ('yes_no', 'Yes/No type'),
@@ -2378,6 +2377,7 @@ class ApiaryApplicantChecklistQuestion(models.Model):
 
     class Meta:
         app_label = 'disturbance'
+
 
 class ApiaryApplicantChecklistAnswer(models.Model):
     question=models.ForeignKey(ApiaryApplicantChecklistQuestion, related_name='answers')
