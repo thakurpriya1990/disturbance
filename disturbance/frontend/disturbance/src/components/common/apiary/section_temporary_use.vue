@@ -1,7 +1,7 @@
 <template lang="html">
     <div>
         <div class="row col-sm-12">
-            <button class="btn btn-primary pull-right" @click="openNewTemporaryUse">New Temporary Use</button>
+            <button v-if="!creatingProposal" class="btn btn-primary pull-right" @click="openNewTemporaryUse">New Temporary Use</button>
         </div>
 
         <div class="row col-sm-12">
@@ -49,6 +49,7 @@
             let vm=this;
             return{
                 proposal_apiary: null,
+                creatingProposal: false,
                 dtHeaders: [
                     'id',
                     'From',
@@ -133,11 +134,38 @@
                     }
                 );
             },
-            createProposal: function() {
-                console.log('in createProposal');
+            _get_basic_data: function(){
+                let data = {
+                    'category': '',
+                    'profile': '', // TODO how to determine this?
+                    'district': '',
+                    'application': '3',  // TODO Retrieve the id of the 'Temporary Use' type or handle it at the server side 
+                                         //      like if there is apiary_temporary_use attribute, it must be a temporary use application, or so.
+                    'sub_activity2': '',
+                    'region': '',
+                    'approval_level': '',
+                    'behalf_of': '',  // TODO how to determine this?
+                    'activity': '',
+                    'sub_activity1': '',
+                    //'apiary_temporary_use': this.apiary_temporary_use,
+                }
+                return data
+            },
+            createProposal:function () {
+                console.log('createProposal');
 
-                this.$router.push({name: 'external-new-temporary-use', params: {licence_id: this.licence_id}});
-                //this.$router.push({name: 'external-proposals-dash'}); //Navigate to dashboard
+                let vm = this;
+                vm.creatingProposal = true;
+                let data = vm._get_basic_data();
+
+                vm.$http.post('/api/proposal.json', data).then(res => {
+                    vm.proposal = res.body;
+                    vm.$router.push({ name:"draft_proposal", params:{ proposal_id:vm.proposal.id }});
+                    vm.creatingProposal = false;
+                },
+                err => {
+                    console.log(err);
+                });
             },
             addEventListeners: function() {
 

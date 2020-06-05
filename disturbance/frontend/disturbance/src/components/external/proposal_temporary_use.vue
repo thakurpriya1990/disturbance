@@ -182,7 +182,7 @@
                         res=>{
                             // Redirect
                             console.log('Redirect');
-                            vm.$router.push({name: 'external-temporary-use', params: {licence_id: vm.licence.id, application_id: application_id}});
+                            //vm.$router.push({name: 'external-temporary-use', params: {licence_id: vm.licence.id, application_id: application_id}});
                         }, 
                         err=>{
                             // Should not reach here because allowOutsideClick is set to false
