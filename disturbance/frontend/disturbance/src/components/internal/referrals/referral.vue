@@ -326,7 +326,7 @@ export default {
             logs_url: helpers.add_endpoint_json(api_endpoints.proposals,vm.$route.params.proposal_id+'/action_log'),
             comms_url: helpers.add_endpoint_json(api_endpoints.proposals,vm.$route.params.proposal_id+'/comms_log'),
             panelClickersInitialised: false,
-            //referral: {}
+            referral: {},
         }
     },
     components: {
@@ -342,8 +342,8 @@ export default {
         }
     },
     props:{
-            referral:{
-                type:Object,
+            referralId:{
+                type:Number,
             },
     },
     watch: {
@@ -705,6 +705,16 @@ export default {
             vm.initialiseSelects();
             vm.form = document.forms.new_proposal;
         });
+    },
+    created: function() {
+        Vue.http.get(helpers.add_endpoint_json(api_endpoints.referrals,this.referralId)).then(res => {
+                this.referral = res.body;
+                this.referral.proposal.applicant.address = this.proposal.applicant.address != null ? this.proposal.applicant.address : {};
+                //vm.fetchreferrallist(vm.referral.id);
+            },
+            err => {
+              console.log(err);
+            });
     },
     /*
     beforeRouteEnter: function(to, from, next) {
