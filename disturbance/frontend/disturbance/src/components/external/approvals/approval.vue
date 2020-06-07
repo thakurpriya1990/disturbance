@@ -97,7 +97,7 @@
 
             <div class="row">
                 <FormSection :formCollapse="false" label="Site(s)" Index="site_avaiability">
-                    <template v-if="approval.id">
+                    <template v-if="approval && approval.id">
                         <SiteAvailability 
                             :approval_id="approval.id"
                             ref="site_availability" 
@@ -120,11 +120,12 @@
 
             <div class="row">
                 <FormSection :formCollapse="false" label="On Site" Index="on_site">
-                    <OnSiteInformation 
-                        :proposal_apiary_id="proposal_apiary_id" 
-                        :on_site_information_list_initial="on_site_information_list"
-                        ref="on_site_information" 
-                    />
+                    <template v-if="approval && approval.id">
+                        <OnSiteInformation 
+                            :approval_id="approval.id"
+                            ref="on_site_information" 
+                        />
+                    </template>
                 </FormSection>
             </div>
         </div>

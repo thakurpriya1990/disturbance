@@ -41,7 +41,8 @@ from disturbance.components.approvals.serializers import (
     ApprovalLogEntrySerializer
 )
 from disturbance.components.proposals.models import ApiarySite, ApiarySiteApproval, OnSiteInformation
-from disturbance.components.proposals.serializers_apiary import ApiarySiteSerializer, OnSiteInformationSerializer
+from disturbance.components.proposals.serializers_apiary import ApiarySiteSerializer, OnSiteInformationSerializer, \
+    ApiarySiteOptimisedSerializer
 from disturbance.helpers import is_customer, is_internal
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 from disturbance.components.proposals.api import ProposalFilterBackend, ProposalRenderer
@@ -198,7 +199,12 @@ class ApprovalViewSet(viewsets.ModelViewSet):
     def on_site_information(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
-            on_site_info_qs = OnSiteInformation.objects.filter(apiary_site__in=ApiarySite.objects.filter(apiary_site_approval_set__in=ApiarySiteApproval.objects.filter(approval=instance)))
+            on_site_info_qs = OnSiteInformation.objects.filter(
+                apiary_site__in=ApiarySite.objects.filter(
+                    apiary_site_approval_set__in=ApiarySiteApproval.objects.filter(approval=instance)
+                ),
+                datetime_deleted=None
+            )
             serializers = OnSiteInformationSerializer(on_site_info_qs, many=True)
             return Response(serializers.data)
 
@@ -218,8 +224,12 @@ class ApprovalViewSet(viewsets.ModelViewSet):
     def apiary_site(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
+            optimised = request.query_params.get('optimised', False)
             apiary_site_qs = ApiarySite.objects.filter(apiary_site_approval_set__in=ApiarySiteApproval.objects.filter(approval=instance))
-            serializers = ApiarySiteSerializer(apiary_site_qs, many=True)
+            if optimised:
+                serializers = ApiarySiteOptimisedSerializer(apiary_site_qs, many=True)
+            else:
+                serializers = ApiarySiteSerializer(apiary_site_qs, many=True)
             return Response(serializers.data)
 
         except serializers.ValidationError:

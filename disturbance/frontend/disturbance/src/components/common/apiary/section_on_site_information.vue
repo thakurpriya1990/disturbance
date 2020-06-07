@@ -13,11 +13,11 @@
             />
         </div>
 
-        <template v-if="proposal_apiary">
+        <template v-if="approval_id">
             <OnSiteInformationModal
-                ref="on_site_information_add_modal"
-                :proposal_apiary="proposal_apiary"
+                ref="on_site_information_modal"
                 :on_site_information="on_site_information_to_edit"
+                :approval_id="approval_id"
                 :key="modalBindId"
                 @on_site_information_added="onSiteInformationAdded"
             />
@@ -37,18 +37,23 @@
 
     export default {
         props:{
-            on_site_information_list_initial: {
-                type: Array,
-                required: false,
-                default: function() {
-                    return [];
-                }
-            },
+           // on_site_information_list_initial: {
+           //     type: Array,
+           //     required: false,
+           //     default: function() {
+           //         return [];
+           //     }
+           // },
            // proposal_apiary_id:{
            //     type: Number,
            //     required: true,
            //     default: 0,
            // },
+            approval_id: {
+                type: Number,
+                required: true,
+                default: 0,
+            },
             is_external:{
               type: Boolean,
               default: false
@@ -121,8 +126,8 @@
                         },
                         {
                             mRender: function (data, type, full) {
-                                if (full.apiary_site) {
-                                    return full.apiary_site.id;
+                                if (full.apiary_site_id) {
+                                    return full.apiary_site_id;
                                 } else {
                                     return '';
                                 }
@@ -161,7 +166,7 @@
             addButtonEnabled: function() {
                 let enabled = false;
                 try {
-                    if(this.proposal_apiary.apiary_sites.length > 0){
+                    if(this.approval_id){
                         enabled = true
                     }
                 } catch(err) { }
@@ -169,21 +174,12 @@
             }
         },
         watch:{
-           // proposal_apiary_id: async function() {
-           //     await this.loadApiarySiteLocation(this.proposal_apiary_id);
-           //     this.constructOnSiteInformationTable();
-           // },
-            initial_on_site_information_list: {
-                deep: true,
-                handler(){
-                    console.log('in watch: initial_apiary_site');
-                    this.on_site_information_list = this.initial_on_site_information_list;
-                },
-            },
+
         },
         methods:{
             onSiteInformationAdded: async function() {
-                await this.loadApiarySiteLocation(this.proposal_apiary_id);
+                console.log('onSiteInformationAdded');
+                await this.loadOnSiteInformation(this.approval_id);
                 this.constructOnSiteInformationTable();
             },
             openOnSiteInformationModalToAdd: async function(e){
@@ -196,6 +192,8 @@
                 });
             },
             openOnSiteInformationModal: async function(obj_to_edit) {
+                console.log('in openOnSiteInformationModal');
+                console.log(obj_to_edit);
                 // Refresh the component key
                 this.modalBindId = uuid()
 
@@ -203,29 +201,22 @@
 
                 try {
                     this.$nextTick(() => {
-                        if (this.$refs.on_site_information_add_modal){
-                            this.$refs.on_site_information_add_modal.openMe();
+                        if (this.$refs.on_site_information_modal){
+                            this.$refs.on_site_information_modal.openMe();
                         }
                     });
                 } catch (err) {
-                    this.processError(err);
+                    this.processError(err)
                 }
             },
-            loadApiarySiteLocation: async function(id){
-                let temp = await Vue.http.get('/api/proposal_apiary/' + id + '/on_site_information_list/')
-                this.proposal_apiary = temp.body;
-            },
             constructOnSiteInformationTable: function(){
-                if (this.proposal_apiary && this.proposal_apiary.on_site_information_list){
+                // Clear table
+                this.$refs.on_site_information_table.vmDataTable.clear().draw();
 
-                    // Clear table
-                    this.$refs.on_site_information_table.vmDataTable.clear().draw();
-
-                    // Construct table
-                    if (this.proposal_apiary.on_site_information_list.length > 0){
-                        for(let i=0; i<this.proposal_apiary.on_site_information_list.length; i++){
-                            this.addOnSiteInformationToTable(this.proposal_apiary.on_site_information_list[i]);
-                        }
+                // Construct table
+                if (this.on_site_information_list.length > 0){
+                    for(let i=0; i<this.on_site_information_list.length; i++){
+                        this.addOnSiteInformationToTable(this.on_site_information_list[i]);
                     }
                 }
             },
@@ -239,6 +230,7 @@
             editOnSiteInformation: async function(e) {
                 let vm = this;
                 let on_site_information_id = e.target.getAttribute("data-on-site-information-id");
+                console.log('edit on_site_information_id: ' + on_site_information_id);
                 let obj_to_edit = {
                     id: null,
                     apiary_site: null,
@@ -247,9 +239,9 @@
                     period_to: null,
                 }
 
-                for(let i=0; i<this.proposal_apiary.on_site_information_list.length; i++){
-                    if(this.proposal_apiary.on_site_information_list[i].id == on_site_information_id){
-                        obj_to_edit = this.proposal_apiary.on_site_information_list[i];
+                for(let i=0; i<this.on_site_information_list.length; i++){
+                    if(this.on_site_information_list[i].id == on_site_information_id){
+                        obj_to_edit = this.on_site_information_list[i];
                         break;
                     }
                 }
@@ -270,9 +262,9 @@
                       confirmButtonText: "Yes, delete it",
                 }).then(
                     (accept) => {
-                        vm.$http.delete('/api/on_site_information/' + on_site_information_id).then(
+                        vm.$http.delete('/api/on_site_information/' + on_site_information_id + '/').then(
                             async function(accept){
-                                await vm.loadApiarySiteLocation(this.proposal_apiary_id);
+                                await vm.loadOnSiteInformation(this.approval_id);
                                 vm.constructOnSiteInformationTable();
                             },
                             reject=>{
@@ -289,8 +281,24 @@
                     }
                 )
             },
+            loadOnSiteInformation: async function(){
+                await this.$http.get('/api/approvals/' + this.approval_id + '/on_site_information/').then(
+                    (accept)=>{
+                        console.log('accept')
+                        console.log(accept.body)
+                        this.on_site_information_list = accept.body
+                        this.constructOnSiteInformationTable()
+                    },
+                    (reject)=>{
+                        console.log('reject')
+                    },
+                )
+            }
         },
         created: function() {
+            console.log('in created')
+            console.log('approval_id: ' + this.approval_id)
+            this.loadOnSiteInformation()
         },
         mounted: function() {
             let vm = this;

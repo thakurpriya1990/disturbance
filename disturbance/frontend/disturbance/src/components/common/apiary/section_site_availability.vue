@@ -20,13 +20,6 @@
 
     export default {
         props:{
-           // initial_apiary_sites: {
-           //     type: Array,
-           //     required: true,
-           //     default: function() {
-           //         return [];
-           //     }
-           // },
             approval_id: {
                 type: Number,
                 required: true,

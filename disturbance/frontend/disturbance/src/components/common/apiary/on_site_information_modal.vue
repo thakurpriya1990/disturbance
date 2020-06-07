@@ -33,7 +33,7 @@
                         <div class="col-sm-3">
                             <select class="form-control" v-model="on_site_information.apiary_site">
                                 <option value=""></option>
-                                <option v-for="site in proposal_apiary.apiary_sites" :value="site" :key="site.id">
+                                <option v-for="site in apiary_sites_options" :value="site" :key="site.id">
                                     <span>
                                         {{ site }}
                                     </span>
@@ -70,193 +70,216 @@
 </template>
 
 <script>
-import Vue from "vue";
-import modal from '@vue-utils/bootstrap-modal.vue';
-import { api_endpoints, helpers, cache_helper } from "@/utils/hooks";
+    import Vue from "vue";
+    import modal from '@vue-utils/bootstrap-modal.vue';
+    import { api_endpoints, helpers, cache_helper } from "@/utils/hooks";
 
-export default {
-    name: "OnSiteInformationAdd",
-    data: function() {
-        return {
-            processingDetails: false,
-            isModalOpen: false,
-            errorResponse: '',
-        }
-    },
-    components: {
-      modal,
-    },
-    props:{
-        proposal_apiary: {
-            type: Object,
+    export default {
+        name: "OnSiteInformationAdd",
+        data: function() {
+            return {
+                processingDetails: false,
+                isModalOpen: false,
+                errorResponse: '',
+                apiary_sites_options: [],
+            }
         },
-        on_site_information: {
-            type: Object,
-        }
-    },
-    watch:{
-        isModalOpen: function() {
-            console.log('in isModalOpen');
-            console.log(this.isModalOpen);
-        }
-    },
-    computed: {
-        modalTitle: function() {
-            return 'Add on site info'
+        components: {
+          modal,
         },
-    },
-    mounted: function () {
-        this.$nextTick(() => {
-            this.addEventListeners();
-        });
-    },
-    methods: {
-        openMe: function () {
-            this.isModalOpen = true;
+        props:{
+            on_site_information: {
+                type: Object,
+            },
+            approval_id: {
+                type: Number,
+                required: true,
+                default: 0,
+            },
         },
-        addEventListeners: function () {
-            let vm = this;
-            let el_fr = $(vm.$refs.periodFromDatePicker);
-            let el_to = $(vm.$refs.periodToDatePicker);
-            let options = {
-                format: "DD/MM/YYYY",
-                showClear: true ,
-                useCurrent: false,
-            };
-
-            el_fr.datetimepicker(options);
-            el_to.datetimepicker(options);
-
-            el_fr.on("dp.change", function(e) {
-                let selected_date = null;
-                if (e.date){
-                    // Date selected
-                    selected_date = e.date.format('DD/MM/YYYY')  // e.date is moment object
-                    vm.on_site_information.period_from = selected_date;
-                    el_to.data('DateTimePicker').minDate(selected_date);
-                } else {
-                    // Date not selected
-                    vm.on_site_information.period_from = selected_date;
-                    el_to.data('DateTimePicker').minDate(false);
-                }
+        watch:{
+            isModalOpen: function() {
+                console.log('in isModalOpen');
+                console.log(this.isModalOpen);
+            }
+        },
+        computed: {
+            modalTitle: function() {
+                return 'Add on site info'
+            },
+        },
+        mounted: function () {
+            this.$nextTick(() => {
+                this.addEventListeners();
             });
+        },
+        created: function() {
+            console.log('in created')
+            console.log('approval_id: ' + this.approval_id)
+            this.loadApiarySites()
+        },
+        methods: {
+            openMe: function () {
+                console.log('in openMe')
+                this.isModalOpen = true
+            },
+            loadApiarySites: async function(){
+                console.log('loadApiarySites');
 
-            el_to.on("dp.change", function(e) {
-                let selected_date = null;
-                if (e.date){
-                    selected_date = e.date.format('DD/MM/YYYY');
-                    vm.on_site_information.period_to = selected_date;
-                    el_fr.data('DateTimePicker').maxDate(selected_date);
+                await this.$http.get('/api/approvals/' + this.approval_id + '/apiary_site/?optimised=true').then(
+                    (accept)=>{
+                        console.log('accept')
+                        console.log(accept.body)
+                        this.apiary_sites_options = accept.body
+                    },
+                    (reject)=>{
+                        console.log('reject')
+                    },
+                )
+            },
+            addEventListeners: function () {
+                let vm = this;
+                let el_fr = $(vm.$refs.periodFromDatePicker);
+                let el_to = $(vm.$refs.periodToDatePicker);
+                let options = {
+                    format: "DD/MM/YYYY",
+                    showClear: true ,
+                    useCurrent: false,
+                };
+
+                el_fr.datetimepicker(options);
+                el_to.datetimepicker(options);
+
+                el_fr.on("dp.change", function(e) {
+                    let selected_date = null;
+                    if (e.date){
+                        // Date selected
+                        selected_date = e.date.format('DD/MM/YYYY')  // e.date is moment object
+                        vm.on_site_information.period_from = selected_date;
+                        el_to.data('DateTimePicker').minDate(selected_date);
+                    } else {
+                        // Date not selected
+                        vm.on_site_information.period_from = selected_date;
+                        el_to.data('DateTimePicker').minDate(false);
+                    }
+                });
+
+                el_to.on("dp.change", function(e) {
+                    let selected_date = null;
+                    if (e.date){
+                        selected_date = e.date.format('DD/MM/YYYY');
+                        vm.on_site_information.period_to = selected_date;
+                        el_fr.data('DateTimePicker').maxDate(selected_date);
+                    } else {
+                        vm.on_site_information.period_to = '';
+                        el_fr.data('DateTimePicker').maxDate(false);
+                    }
+                });
+
+                //***
+                // Set dates in case they are passed from the parent component
+                //***
+                let searchPattern = /^[0-9]{4}/
+
+                let period_from_passed = vm.on_site_information.period_from;
+                if (period_from_passed) {
+                    // If date passed
+                    if (searchPattern.test(period_from_passed)) {
+                        // Convert YYYY-MM-DD to DD/MM/YYYY
+                        period_from_passed = moment(period_from_passed, 'YYYY-MM-DD').format('DD/MM/YYYY');
+                    }
+                    $('#period_from_input_element').val(period_from_passed);
+                    el_to.data('DateTimePicker').minDate(period_from_passed);
+                }
+
+                let period_to_passed = vm.on_site_information.period_to;
+                if (period_to_passed) {
+                    // If date passed
+                    if (searchPattern.test(period_to_passed)) {
+                        // Convert YYYY-MM-DD to DD/MM/YYYY
+                        period_to_passed = moment(period_to_passed, 'YYYY-MM-DD').format('DD/MM/YYYY');
+                    }
+                    $('#period_to_input_element').val(period_to_passed);
+                    el_fr.data('DateTimePicker').maxDate(period_to_passed);
+                }
+            },
+            ok: async function () {
+                try {
+                    this.processingDetails = true;
+
+                    // Update django database
+                    const response = await this.sendData();
+
+                    // Inform the parent component that the database has been updated
+                    // so that the parent component can update a table
+                    this.$emit('on_site_information_added');
+
+                    this.close();
+                } catch (err){
+                    this.processError(err);
+                } finally {
+                    this.processingDetails = false;
+                }
+            },
+            processError: async function(err) {
+                console.log('in processError');
+                console.log(err);
+                let errorText = '';
+                if (err.body.non_field_errors) {
+                    // When non field errors raised
+                    for (let i=0; i<err.body.non_field_errors.length; i++){
+                        errorText += err.body.non_field_errors[i] + '<br />';
+                    }
+                } else if(Array.isArray(err.body)) {
+                    // When general errors raised
+                    for (let i=0; i<err.body.length; i++){
+                        errorText += err.body[i] + '<br />';
+                    }
                 } else {
-                    vm.on_site_information.period_to = '';
-                    el_fr.data('DateTimePicker').maxDate(false);
-                }
-            });
-
-            //***
-            // Set dates in case they are passed from the parent component
-            //***
-            let searchPattern = /^[0-9]{4}/
-
-            let period_from_passed = vm.on_site_information.period_from;
-            if (period_from_passed) {
-                // If date passed
-                if (searchPattern.test(period_from_passed)) {
-                    // Convert YYYY-MM-DD to DD/MM/YYYY
-                    period_from_passed = moment(period_from_passed, 'YYYY-MM-DD').format('DD/MM/YYYY');
-                }
-                $('#period_from_input_element').val(period_from_passed);
-                el_to.data('DateTimePicker').minDate(period_from_passed);
-            }
-
-            let period_to_passed = vm.on_site_information.period_to;
-            if (period_to_passed) {
-                // If date passed
-                if (searchPattern.test(period_to_passed)) {
-                    // Convert YYYY-MM-DD to DD/MM/YYYY
-                    period_to_passed = moment(period_to_passed, 'YYYY-MM-DD').format('DD/MM/YYYY');
-                }
-                $('#period_to_input_element').val(period_to_passed);
-                el_fr.data('DateTimePicker').maxDate(period_to_passed);
-            }
-        },
-        ok: async function () {
-            try {
-                this.processingDetails = true;
-
-                // Update django database
-                const response = await this.sendData();
-
-                // Inform the parent component that the database has been updated
-                // so that the parent component can update a table
-                this.$emit('on_site_information_added');
-
-                this.close();
-            } catch (err){
-                this.processError(err);
-            } finally {
-                this.processingDetails = false;
-            }
-        },
-        processError: async function(err) {
-            console.log('in processError');
-            console.log(err);
-            let errorText = '';
-            if (err.body.non_field_errors) {
-                // When non field errors raised
-                for (let i=0; i<err.body.non_field_errors.length; i++){
-                    errorText += err.body.non_field_errors[i] + '<br />';
-                }
-            } else if(Array.isArray(err.body)) {
-                // When general errors raised
-                for (let i=0; i<err.body.length; i++){
-                    errorText += err.body[i] + '<br />';
-                }
-            } else {
-                // When field errors raised
-                for (let field_name in err.body){
-                    if (err.body.hasOwnProperty(field_name)){
-                        errorText += field_name + ': ';
-                        for (let j=0; j<err.body[field_name].length; j++){
-                            errorText += err.body[field_name][j] + '<br />';
+                    // When field errors raised
+                    for (let field_name in err.body){
+                        if (err.body.hasOwnProperty(field_name)){
+                            errorText += field_name + ': ';
+                            for (let j=0; j<err.body[field_name].length; j++){
+                                errorText += err.body[field_name][j] + '<br />';
+                            }
                         }
                     }
                 }
-            }
-            this.errorResponse = errorText;
-        },
-        cancel: async function() {
-            this.isModalOpen = false;
-            this.close();
-        },
-        close: function () {
-            let vm = this;
-            this.isModalOpen = false;
-        },
-        sendData: async function () {
-            let base_url = '/api/on_site_information/'
-            let payload = {}
-            Object.assign(payload, this.on_site_information);
+                this.errorResponse = errorText;
+            },
+            cancel: async function() {
+                this.isModalOpen = false;
+                this.close();
+            },
+            close: function () {
+                let vm = this;
+                this.isModalOpen = false;
+            },
+            sendData: async function () {
+                let base_url = '/api/on_site_information/'
+                let payload = {}
+                Object.assign(payload, this.on_site_information);
 
-            // Django only needs apiary_site.id
-            try {
-                payload.apiary_site_id = payload.apiary_site.id;
-            } catch(err) {
-                payload.apiary_site_id = 0
-            }
+                // Django only needs apiary_site.id
+                try {
+                    payload.apiary_site_id = payload.apiary_site.id;
+                } catch(err) {
+                    payload.apiary_site_id = 0
+                }
 
-            let res = '';
-            if (this.on_site_information.id){
-                // Update existing on-site-information
-                res = await Vue.http.put(base_url + this.on_site_information.id + '/', payload);
-            } else {
-                // Create new on-site-information
-                res = await Vue.http.post(base_url, payload);
-            }
-            return res
+                let res = '';
+                if (this.on_site_information.id){
+                    // Update existing on-site-information
+                    res = await Vue.http.put(base_url + this.on_site_information.id + '/', payload);
+                } else {
+                    // Create new on-site-information
+                    res = await Vue.http.post(base_url, payload);
+                }
+                return res
+            },
         },
-    },
-}
+    }
 </script>
 
 <style>
