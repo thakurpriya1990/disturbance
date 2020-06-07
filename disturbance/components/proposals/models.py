@@ -29,12 +29,19 @@ from disturbance.components.main.utils import get_department_user
 from disturbance.components.proposals.email import (
         send_referral_email_notification, 
         send_apiary_referral_email_notification, 
+        send_apiary_referral_complete_email_notification, 
         send_proposal_decline_email_notification,
         send_proposal_approval_email_notification, 
         send_amendment_email_notification,
+        send_submit_email_notification, 
+        send_external_submit_email_notification, 
+        send_approver_decline_email_notification, 
+        send_approver_approve_email_notification, 
+        send_referral_complete_email_notification, 
+        send_proposal_approver_sendback_email_notification, 
+        send_referral_recall_email_notification
         )
 from disturbance.ordered_model import OrderedModel
-from disturbance.components.proposals.email import send_submit_email_notification, send_external_submit_email_notification, send_approver_decline_email_notification, send_approver_approve_email_notification, send_referral_complete_email_notification, send_proposal_approver_sendback_email_notification, send_referral_recall_email_notification
 import copy
 import subprocess
 
@@ -615,13 +622,20 @@ class Proposal(RevisionedMixin):
         qs =AmendmentRequest.objects.filter(proposal = self)
         return qs
 
-    def __assessor_group(self):
-        # Alternative logic for Apiary applications
+    @property
+    def apiary_group_application_type(self):
+        apiary = False
         if self.application_type and self.application_type.name in (
                 ApplicationType.APIARY,
                 ApplicationType.TEMPORARY_USE,
                 ApplicationType.SITE_TRANSFER,
                 ):
+            apiary = True
+        return apiary
+
+    def __assessor_group(self):
+        # Alternative logic for Apiary applications
+        if self.apiary_group_application_type:
             group = ApiaryAssessorGroup.objects.first()
             if group:
                 return group
@@ -643,11 +657,7 @@ class Proposal(RevisionedMixin):
 
     def __approver_group(self):
         # Alternative logic for Apiary applications
-        if self.application_type and self.application_type.name in (
-                ApplicationType.APIARY,
-                ApplicationType.TEMPORARY_USE,
-                ApplicationType.SITE_TRANSFER,
-                ):
+        if self.apiary_group_application_type:
             group = ApiaryApproverGroup.objects.first()
             if group:
                 return group
@@ -686,11 +696,7 @@ class Proposal(RevisionedMixin):
     def assessor_recipients(self):
         recipients = []
         # Alternative logic for Apiary applications
-        if self.application_type and self.application_type.name in (
-                ApplicationType.APIARY,
-                ApplicationType.TEMPORARY_USE,
-                ApplicationType.SITE_TRANSFER,
-                ):
+        if self.apiary_group_application_type:
             group = ApiaryAssessorGroup.objects.first()
             if group:
                 return group.members_email
@@ -709,11 +715,7 @@ class Proposal(RevisionedMixin):
     def approver_recipients(self):
         recipients = []
         # Alternative logic for Apiary applications
-        if self.application_type and self.application_type.name in (
-                ApplicationType.APIARY,
-                ApplicationType.TEMPORARY_USE,
-                ApplicationType.SITE_TRANSFER,
-                ):
+        if self.apiary_group_application_type:
             group = ApiaryApproverGroup.objects.first()
             if group:
                 return group.members_email
@@ -754,15 +756,19 @@ class Proposal(RevisionedMixin):
 
     def can_assess(self,user):
         if self.processing_status == 'with_assessor' or self.processing_status == 'with_referral' or self.processing_status == 'with_assessor_requirements':
-            # Apiary logic
-            return self.__assessor_group() in user.apiaryassessorgroup_set.all()
-            # Proposal logic
-            return self.__assessor_group() in user.proposalassessorgroup_set.all()
+            if self.apiary_group_application_type:
+                # Apiary logic
+                return self.__assessor_group() in user.apiaryassessorgroup_set.all()
+            else:
+                # Proposal logic
+                return self.__assessor_group() in user.proposalassessorgroup_set.all()
         elif self.processing_status == 'with_approver':
-            # Apiary logic
-            return self.__assessor_group() in user.apiaryapprovergroup_set.all()
-            # Proposal logic
-            return self.__approver_group() in user.proposalapprovergroup_set.all()
+            if self.apiary_group_application_type:
+                # Apiary logic
+                return self.__assessor_group() in user.apiaryapprovergroup_set.all()
+            else:
+                # Proposal logic
+                return self.__approver_group() in user.proposalapprovergroup_set.all()
         else:
             return False
 
@@ -791,17 +797,21 @@ class Proposal(RevisionedMixin):
         else:
             if self.assigned_officer:
                 if self.assigned_officer == user:
-                    # Apiary logic
-                    return self.__assessor_group() in user.apiaryassessorgroup_set.all()
-                    # Proposal logic
-                    return self.__assessor_group() in user.proposalassessorgroup_set.all()
+                    if self.apiary_group_application_type:
+                        # Apiary logic
+                        return self.__assessor_group() in user.apiaryassessorgroup_set.all()
+                    else:
+                        # Proposal logic
+                        return self.__assessor_group() in user.proposalassessorgroup_set.all()
                 else:
                     return False
             else:
-                # Apiary logic
-                return self.__assessor_group() in user.apiaryassessorgroup_set.all()
-                # Proposal logic
-                return self.__assessor_group() in user.proposalassessorgroup_set.all()
+                if self.apiary_group_application_type:
+                    # Apiary logic
+                    return self.__assessor_group() in user.apiaryassessorgroup_set.all()
+                else:
+                    # Proposal logic
+                    return self.__assessor_group() in user.proposalassessorgroup_set.all()
 
     def log_user_action(self, action, request):
         return ProposalUserAction.log_action(self, action, request.user)
@@ -2413,7 +2423,7 @@ class ApiaryApplicantChecklistAnswer(models.Model):
 
 
 class ApiaryAssessorGroup(models.Model):
-    site = models.OneToOneField(Site, default='1') 
+    #site = models.OneToOneField(Site, default='1') 
     members = models.ManyToManyField(EmailUser)
 
     def __str__(self):
@@ -2441,7 +2451,7 @@ class ApiaryAssessorGroup(models.Model):
 
 
 class ApiaryApproverGroup(models.Model):
-    site = models.OneToOneField(Site, default='1') 
+    #site = models.OneToOneField(Site, default='1') 
     members = models.ManyToManyField(EmailUser)
 
     def __str__(self):
@@ -2707,7 +2717,7 @@ class ApiaryReferral(RevisionedMixin):
                             ),
                         request
                         )
-                send_referral_complete_email_notification(self,request)
+                send_apiary_referral_complete_email_notification(self.referral, request, request.user)
             except:
                 raise
 
