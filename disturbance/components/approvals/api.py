@@ -40,8 +40,8 @@ from disturbance.components.approvals.serializers import (
     ApprovalUserActionSerializer,
     ApprovalLogEntrySerializer
 )
-from disturbance.components.proposals.models import ApiarySite, ApiarySiteApproval
-from disturbance.components.proposals.serializers_apiary import ApiarySiteSerializer
+from disturbance.components.proposals.models import ApiarySite, ApiarySiteApproval, OnSiteInformation
+from disturbance.components.proposals.serializers_apiary import ApiarySiteSerializer, OnSiteInformationSerializer
 from disturbance.helpers import is_customer, is_internal
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 from disturbance.components.proposals.api import ProposalFilterBackend, ProposalRenderer
@@ -192,6 +192,27 @@ class ApprovalViewSet(viewsets.ModelViewSet):
 #        #serializer = ListProposalSerializer(result_page, context={'request':request}, many=True)
 #        serializer = self.get_serializer(result_page, context={'request':request}, many=True)
 #        return paginator.get_paginated_response(serializer.data)
+
+
+    @detail_route(methods=['GET',])
+    def on_site_information(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            on_site_info_qs = OnSiteInformation.objects.filter(apiary_site__in=ApiarySite.objects.filter(apiary_site_approval_set__in=ApiarySiteApproval.objects.filter(approval=instance)))
+            serializers = OnSiteInformationSerializer(on_site_info_qs, many=True)
+            return Response(serializers.data)
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
 
     @detail_route(methods=['GET',])
     def apiary_site(self, request, *args, **kwargs):
