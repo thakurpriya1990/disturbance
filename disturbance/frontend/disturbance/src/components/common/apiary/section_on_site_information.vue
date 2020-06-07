@@ -14,7 +14,7 @@
         </div>
 
         <template v-if="proposal_apiary">
-            <OnSiteInformationAddModal
+            <OnSiteInformationModal
                 ref="on_site_information_add_modal"
                 :proposal_apiary="proposal_apiary"
                 :on_site_information="on_site_information_to_edit"
@@ -30,18 +30,25 @@
     import datatable from '@vue-utils/datatable.vue'
     import uuid from 'uuid'
     import { api_endpoints, helpers, } from '@/utils/hooks'
-    import OnSiteInformationAddModal from './on_site_information_add_modal'
+    import OnSiteInformationModal from './on_site_information_modal'
     //import uuid from 'uuid'
    // import Swal from 'sweetalert2'
     //import Swal from 'sweetalert2/dist/sweetalert2.js'
 
     export default {
         props:{
-            proposal_apiary_id:{
-                type: Number,
-                required: true,
-                default: 0,
+            on_site_information_list_initial: {
+                type: Array,
+                required: false,
+                default: function() {
+                    return [];
+                }
             },
+           // proposal_apiary_id:{
+           //     type: Number,
+           //     required: true,
+           //     default: 0,
+           // },
             is_external:{
               type: Boolean,
               default: false
@@ -55,6 +62,7 @@
             let vm=this;
             return{
                 proposal_apiary: null,
+                on_site_information_list: [],
                 on_site_information_to_edit: {
                     id: null,
                     apiary_site: null,
@@ -146,7 +154,7 @@
             }
         },
         components: {
-            OnSiteInformationAddModal,
+            OnSiteInformationModal,
             datatable,
         },
         computed:{
@@ -161,10 +169,17 @@
             }
         },
         watch:{
-            proposal_apiary_id: async function() {
-                await this.loadApiarySiteLocation(this.proposal_apiary_id);
-                this.constructOnSiteInformationTable();
-            }
+           // proposal_apiary_id: async function() {
+           //     await this.loadApiarySiteLocation(this.proposal_apiary_id);
+           //     this.constructOnSiteInformationTable();
+           // },
+            initial_on_site_information_list: {
+                deep: true,
+                handler(){
+                    console.log('in watch: initial_apiary_site');
+                    this.on_site_information_list = this.initial_on_site_information_list;
+                },
+            },
         },
         methods:{
             onSiteInformationAdded: async function() {

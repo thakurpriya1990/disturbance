@@ -20,12 +20,17 @@
 
     export default {
         props:{
-            initial_apiary_sites: {
-                type: Array,
+           // initial_apiary_sites: {
+           //     type: Array,
+           //     required: true,
+           //     default: function() {
+           //         return [];
+           //     }
+           // },
+            approval_id: {
+                type: Number,
                 required: true,
-                default: function() {
-                    return [];
-                }
+                default: 0,
             },
             is_external:{
               type: Boolean,
@@ -107,16 +112,31 @@
             }
         },
         watch:{
-            initial_apiary_sites: {
-                deep: true,
-                handler(){
-                    console.log('in watch: initial_apiary_site');
-                    this.apiary_sites = this.initial_apiary_sites;
-                    this.constructSitesTable();
-                },
-            },
+           // initial_apiary_sites: {
+           //     deep: true,
+           //     handler(){
+           //         console.log('in watch: initial_apiary_site');
+           //         this.apiary_sites = this.initial_apiary_sites;
+           //         this.constructSitesTable();
+           //     },
+           // },
         },
         methods:{
+            loadApiarySites: async function(){
+                console.log('loadApiarySites');
+
+                await this.$http.get('/api/approvals/' + this.approval_id + '/apiary_site/').then(
+                    (accept)=>{
+                        console.log('accept')
+                        console.log(accept.body)
+                        this.apiary_sites = accept.body
+                        this.constructSitesTable()
+                    },
+                    (reject)=>{
+                        console.log('reject')
+                    },
+                )
+            },
             constructSitesTable: function(){
                 console.log('constructSitesTable');
                 // Clear table
@@ -135,6 +155,14 @@
             addEventListeners: function() {
                 $("#site-availability-table").on("click", ".toggle_availability", this.toggleAvailability);
             },
+            updateApiarySite: function(site_updated) {
+                // Update internal apiary_site data
+                for (let i=0; i<this.apiary_sites.length; i++){
+                    if (this.apiary_sites[i].id == site_updated.id){
+                        this.apiary_sites[i].available = site_updated.available
+                    }
+                }
+            },
             toggleAvailability: function(e) {
                 let vm = this;
                 let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
@@ -143,12 +171,9 @@
 
                 vm.$http.patch('/api/apiary_site/' + apiary_site_id + '/', { 'available': requested_availability }).then(
                     async function(accept){
-                        for(let i=0; i<this.apiary_sites.length; i++){
-                            let apiary_site = this.apiary_sites[i];
-                            if (apiary_site.id == apiary_site_id){
-                                apiary_site.available = requested_availability;
-                            }
-                        }
+                        // Update the site in the table
+                        let site_updated = accept.body
+                        this.updateApiarySite(site_updated)
                         vm.constructSitesTable();
                     },
                     reject=>{
@@ -162,7 +187,9 @@
             },
         },
         created: function() {
-
+            console.log('in created')
+            console.log('approval_id: ' + this.approval_id)
+            this.loadApiarySites()
         },
         mounted: function() {
             let vm = this;

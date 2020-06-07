@@ -452,7 +452,7 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
 
-                return Response({})
+                return Response(serializer.data)
 
         except serializers.ValidationError:
             print(traceback.print_exc())

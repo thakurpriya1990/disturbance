@@ -197,7 +197,6 @@
                 }); 
             },
             constructApiarySitesTable: function(){
-                console.log('in constructApiarySitesTable');
                 // Clear table
                 this.$refs.apiary_sites_table.vmDataTable.clear().draw();
 

@@ -45,33 +45,16 @@ class ApplicantAddressSerializer(serializers.ModelSerializer):
             'postcode'
         ) 
 
-class ApiarySiteSerializer(serializers.ModelSerializer):
-    proposal_apiary_id = serializers.IntegerField(write_only=True,)
-    site_category_id = serializers.IntegerField(write_only=True,)
-    # onsiteinformation_set = OnSiteInformationSerializer(read_only=True, many=True,)
-
-    class Meta:
-        model = ApiarySite
-        fields = (
-            'id',
-            'available',
-            # 'temporary_used',
-            'site_guid',
-            'proposal_apiary_id',
-            'site_category_id',
-        )
-
-
 class OnSiteInformationSerializer(serializers.ModelSerializer):
     apiary_site_id = serializers.IntegerField(write_only=True, required=False)
-    apiary_site = ApiarySiteSerializer(read_only=True)
+    # apiary_site = ApiarySiteSerializer(read_only=True)
     datetime_deleted = serializers.DateTimeField(write_only=True, required=False)
 
     class Meta:
         model = OnSiteInformation
         fields = (
             'id',
-            'apiary_site',
+            # 'apiary_site',
             'apiary_site_id',
             'period_from',
             'period_to',
@@ -109,6 +92,24 @@ class OnSiteInformationSerializer(serializers.ModelSerializer):
 
 
         return data
+
+
+class ApiarySiteSerializer(serializers.ModelSerializer):
+    proposal_apiary_id = serializers.IntegerField(write_only=True,)
+    site_category_id = serializers.IntegerField(write_only=True,)
+    onsiteinformation_set = OnSiteInformationSerializer(read_only=True, many=True,)
+
+    class Meta:
+        model = ApiarySite
+        fields = (
+            'id',
+            'available',
+            # 'temporary_used',
+            'site_guid',
+            'proposal_apiary_id',
+            'site_category_id',
+            'onsiteinformation_set',
+        )
 
 
 class ProposalApiarySerializer(serializers.ModelSerializer):

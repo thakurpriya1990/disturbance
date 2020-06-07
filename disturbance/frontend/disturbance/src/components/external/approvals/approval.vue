@@ -97,10 +97,12 @@
 
             <div class="row">
                 <FormSection :formCollapse="false" label="Site(s)" Index="site_avaiability">
-                    <SiteAvailability 
-                        :initial_apiary_sites="test_apiary_sites" 
-                        ref="site_availability" 
-                    />
+                    <template v-if="approval.id">
+                        <SiteAvailability 
+                            :approval_id="approval.id"
+                            ref="site_availability" 
+                        />
+                    </template>
                 </FormSection>
             </div>
 
@@ -120,6 +122,7 @@
                 <FormSection :formCollapse="false" label="On Site" Index="on_site">
                     <OnSiteInformation 
                         :proposal_apiary_id="proposal_apiary_id" 
+                        :on_site_information_list_initial="on_site_information_list"
                         ref="on_site_information" 
                     />
                 </FormSection>
@@ -159,7 +162,9 @@ export default {
                 address: {}
             },
 
+            // variables passed to the child component
             test_apiary_sites: [],
+            on_site_information_list: [],
             // Filters
 
         }
@@ -172,11 +177,22 @@ export default {
                 console.log('length of approval.apiary_site_approval_set')
                 console.log(this.approval.apiary_site_approval_set.length);
                 console.log(this.approval.apiary_site_approval_set);
+
+                // Construct the array, which is passed to the child component, SiteAvailability
+                // Construct the array, which is passed to the child component, OnSiteInformation
                 this.test_apiary_sites = []
+                this.on_site_information_list = []
+
                 for (let i=0; i<this.approval.apiary_site_approval_set.length; i++){
                     console.log(this.approval.apiary_site_approval_set[i]);
                     this.test_apiary_sites.push(this.approval.apiary_site_approval_set[i].apiary_site)
+                    for (let j=0; j<this.approval.apiary_site_approval_set[i].apiary_site.onsiteinformation_set.length; j++){
+                        this.on_site_information_list.push(this.approval.apiary_site_approval_set[i].apiary_site.onsiteinformation_set[j])
+                    }
                 }
+
+                // Construct the array, which is passed to the child component, TemporaryUse
+
             }
         }
     },
