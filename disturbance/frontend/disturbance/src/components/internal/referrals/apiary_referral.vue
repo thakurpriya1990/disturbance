@@ -675,8 +675,8 @@ export default {
                     this.$http.post(helpers.add_endpoint_json(api_endpoints.apiary_referrals,this.referral.apiary_referral.id+'/complete'),JSON.stringify(data),{
                 emulateJSON:true
                 }).then(res => {
-                    this.referral = res.body;
-                    //this.referral.proposal.applicant.address = vm.referral.proposal.applicant.address != null ? vm.referral.proposal.applicant.address : {};
+                    //this.referral = res.body;
+                    vm.$router.push({ path: '/internal' });
                 },
                 error => {
                     swal(
