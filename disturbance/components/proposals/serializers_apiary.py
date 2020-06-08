@@ -391,6 +391,7 @@ class ApiaryInternalProposalSerializer(BaseProposalSerializer):
     customer_status = serializers.SerializerMethodField(read_only=True)
     #submitter = EmailUserAppViewSerializer()
     submitter = serializers.CharField(source='submitter.get_full_name')
+    submitter_email = serializers.CharField(source='submitter.email')
     proposaldeclineddetails = ProposalDeclinedDetailsSerializer()
     assessor_mode = serializers.SerializerMethodField()
     current_assessor = serializers.SerializerMethodField()
@@ -440,6 +441,7 @@ class ApiaryInternalProposalSerializer(BaseProposalSerializer):
                 #'org_applicant',
                 #'proxy_applicant',
                 'submitter',
+                'submitter_email',
                 #'applicant_type',
                 'assigned_officer',
                 'assigned_approver',
