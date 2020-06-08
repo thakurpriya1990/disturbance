@@ -301,12 +301,19 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         http://localhost:8499/api/proposal_paginated/referrals_internal/?format=datatables&draw=1&length=2
         """
         #import ipdb; ipdb.set_trace()
-        self.serializer_class = ReferralSerializer
+        #self.serializer_class = ReferralSerializer
+        referral_id_list = []
         qs_r = Referral.objects.filter(referral=request.user) if is_internal(self.request) else Referral.objects.none()
+        for r in qs_r:
+            referral_id_list.append(r.id)
         #qs = self.filter_queryset(self.request, qs, self)
         # Add Apiary Referrals
         qs_ra = Referral.objects.filter(apiary_referral__referral_group__members=request.user)
-        qs = qs_r.union(qs_ra) if qs_r else qs_ra
+        #qs = qs_r.union(qs_ra) if qs_r else qs_ra
+        for ar in qs_ra:
+            if ar.id not in referral_id_list:
+                referral_id_list.append(ar.id)
+        qs = Referral.objects.filter(id__in=referral_id_list)
         qs = self.filter_queryset(qs)
 
         self.paginator.page_size = qs.count()
