@@ -185,7 +185,7 @@ class ProposalSerializer(BaseProposalSerializer):
 
     proposal_apiary = serializers.SerializerMethodField()
     apiary_temporary_use = ProposalApiaryTemporaryUseSerializer(many=False, read_only=True)
-    apiary_temporary_use_set = ProposalApiaryTemporaryUseSerializer(many=True, read_only=True)
+    # apiary_temporary_use_set = ProposalApiaryTemporaryUseSerializer(many=True, read_only=True)
 
     class Meta:
         model = Proposal
@@ -193,7 +193,7 @@ class ProposalSerializer(BaseProposalSerializer):
             'comment_data',
             'proposal_apiary',
             'apiary_temporary_use',
-            'apiary_temporary_use_set',
+            # 'apiary_temporary_use_set',
         )
 
     def get_readonly(self,obj):

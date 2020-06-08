@@ -23,7 +23,6 @@ from ledger.accounts.models import EmailUser, RevisionedMixin
 from ledger.licence.models import  Licence
 from ledger.payments.models import Invoice
 from disturbance import exceptions
-# from disturbance.components.approvals.models import Approval
 from disturbance.components.organisations.models import Organisation
 from disturbance.components.main.models import CommunicationsLogEntry, UserAction, Document, Region, District, Tenure, ApplicationType
 from disturbance.components.main.utils import get_department_user
@@ -2323,6 +2322,7 @@ class ProposalApiaryTemporaryUse(models.Model):
     temporary_occupier_phone = models.CharField(max_length=50, blank=True, null=True)
     temporary_occupier_mobile = models.CharField(max_length=50, blank=True, null=True)
     temporary_occupier_email = models.EmailField(blank=True, null=True)
+    loaning_approval = models.ForeignKey('disturbance.Approval', blank=True, null=True)
 
     def __str__(self):
         if self.proposal.proposal_apiary:
@@ -2339,13 +2339,9 @@ class TemporaryUseApiarySite(models.Model):
     """
     Apiary sites under a proposal can be partially used as temporary site
     """
-    proposal_apiary_temporary_use = models.ForeignKey(ProposalApiaryTemporaryUse, blank=True, null=True, related_name='apiary_sites')
-    # apiary_site = models.ForeignKey(ApiarySite, blank=True, null=True)
-    apiary_site_approval = models.ForeignKey('ApiarySiteApproval', blank=True, null=True)
-
-    @property
-    def apiary_site(self):
-        return self.apiary_site_approval.apiary_site
+    proposal_apiary_temporary_use = models.ForeignKey(ProposalApiaryTemporaryUse, blank=True, null=True, related_name='temporary_use_apiary_sites')
+    apiary_site = models.ForeignKey(ApiarySite, blank=True, null=True)
+    selected = models.BooleanField(default=False)
 
     class Meta:
         app_label = 'disturbance'

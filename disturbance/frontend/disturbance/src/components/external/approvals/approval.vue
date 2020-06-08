@@ -111,7 +111,7 @@
                     <template v-if="approval && approval.id">
                         <TemporaryUse 
                             :proposal_apiary_id="proposal_apiary_id" 
-                            :licence_id="approval.id"
+                            :approval_id="approval.id"
                             ref="tempoary_use" 
                         />
                     </template>

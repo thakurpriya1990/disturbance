@@ -7,7 +7,6 @@ import Organisation from '../organisations/manage.vue'
 import Compliance from '../compliances/access.vue'
 import ComplianceSubmit from '../compliances/submit.vue'
 import Approval from '../approvals/approval.vue'
-import ProposalTemporaryUse from '../proposal_temporary_use.vue'
 export default
 {
     path: '/external',
