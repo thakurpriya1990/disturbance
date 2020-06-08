@@ -29,7 +29,26 @@ from disturbance.components.proposals.models import (
 from rest_framework import serializers
 from ledger.accounts.models import Address
 
+class ApiaryApplicantChecklistQuestionSerializer(serializers.ModelSerializer):
 
+    class Meta:
+        model = ApiaryApplicantChecklistQuestion
+        fields=('id',
+                'text',
+                'answer_type',
+                'order'
+                )
+
+class ApiaryApplicantChecklistAnswerSerializer(serializers.ModelSerializer):
+    question = ApiaryApplicantChecklistQuestionSerializer()
+
+    class Meta:
+        model = ApiaryApplicantChecklistAnswer
+        fields=('id',
+                'question',
+                'answer',
+                'proposal_id',
+                )
 
 class ApplicantAddressSerializer(serializers.ModelSerializer):
     class Meta:
@@ -148,9 +167,24 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
       #  ret = ApiaryApplicantChecklistQuestionSerializer(checklistQuestion, many=True).data
        # return ret
 
+
+        # checklistQuestion = ApiaryApplicantChecklistQuestion.objects.all()
+        # return_obj = []
+        # for question in checklistQuestion:
+        #     ret_obj = {}
+        #     answer = ApiaryApplicantChecklistAnswer.objects.filter(proposal=proposalapiaryobj, question=question)
+        #
+        #     serialized_q = ApiaryApplicantChecklistQuestionSerializer(question).data
+        #     serialized_a = ApiaryApplicantChecklistAnswerSerializer(answer).data
+        #     ret_obj['question'] = serialized_q
+        #     ret_obj['answer'] = serialized_a
+        #
+        #     return_obj.append(ret_obj)
+        #
+        # return return_obj
+
     def get_checklist_answers(self, obj):
         return ApiaryApplicantChecklistAnswerSerializer(obj.apiary_applicant_checklist, many=True).data
-
 
 class SaveProposalApiarySerializer(serializers.ModelSerializer):
     proposal_id = serializers.IntegerField(
@@ -383,6 +417,9 @@ class ApiaryInternalProposalSerializer(BaseProposalSerializer):
     apiary_temporary_use = ProposalApiaryTemporaryUseSerializer()
     apiary_site_transfer = ProposalApiarySiteTransferSerializer()
 
+    # apiary_applicant_checklist = ApiaryApplicantChecklistAnswerSerializer(many=True)
+    applicant_checklist = serializers.SerializerMethodField()
+
     class Meta:
         model = Proposal
         fields = (
@@ -444,6 +481,10 @@ class ApiaryInternalProposalSerializer(BaseProposalSerializer):
                 'apiary_temporary_use',
                 'apiary_site_transfer',
                 'applicant_address',
+
+                # 'apiary_applicant_checklist',
+                'applicant_checklist',
+                'applicant_address',
                 'applicant_first_name',
                 'applicant_last_name',
                 'applicant_phone_number',
@@ -451,6 +492,14 @@ class ApiaryInternalProposalSerializer(BaseProposalSerializer):
                 'applicant_email',
                 )
         read_only_fields=('documents','requirements')
+
+    def get_applicant_checklist(self, obj):
+        checklist = []
+        if obj.proposal_apiary and obj.proposal_apiary.apiary_applicant_checklist.all():
+            for answer in obj.proposal_apiary.apiary_applicant_checklist.all():
+                serialized_answer = ApiaryApplicantChecklistAnswerSerializer(answer)
+                checklist.append(serialized_answer.data)
+        return checklist
 
     def get_applicant_address(self, obj):
         address_serializer = None
@@ -579,27 +628,6 @@ class ApiaryReferralProposalSerializer(ApiaryInternalProposalSerializer):
             'assessor_level': 'referral',
             'assessor_box_view': obj.assessor_comments_view(user)
         }
-
-class ApiaryApplicantChecklistQuestionSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = ApiaryApplicantChecklistQuestion
-        fields=('id',
-                'text',
-                'answer_type',
-                'order'
-                )
-
-class ApiaryApplicantChecklistAnswerSerializer(serializers.ModelSerializer):
-    question = ApiaryApplicantChecklistQuestionSerializer()
-
-    class Meta:
-        model = ApiaryApplicantChecklistAnswer
-        fields=('id',
-                'question',
-                'answer',
-                'proposal_id',
-                )
 
 
 class SendApiaryReferralSerializer(serializers.Serializer):
