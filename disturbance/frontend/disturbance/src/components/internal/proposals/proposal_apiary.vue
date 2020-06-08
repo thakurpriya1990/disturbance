@@ -414,7 +414,7 @@
                                 </div>
 
                                 <div class="panel-body collapse in" id="checkList">
-
+                                <!-- TODO cleanup this part -->
                                     <form class="form-horizontal">
                                         <ul class="list-unstyled col-sm-12" v-for="q in proposal.proposal_apiary.checklist_answers">
                                             <div class="row">
@@ -425,10 +425,10 @@
 
                                                     <ul  class="list-inline col-sm-6">
                                                                 <li class="list-inline-item">
-                                                                    <input  class="form-check-input" v-model="q.answer" ref="Checkbox" type="radio" :name="'option'+q.id" :id="'answer_one'+q.id":value="true" data-parsley-required :disabled="readonly"/> Yes
+                                                                    <input  class="form-check-input" v-model="q.answer" ref="Checkbox" type="radio" :name="'option'+q.id" :id="'answer_one'+q.id":value="true" data-parsley-required disabled/> Yes
                                                                 </li>
                                                                 <li class="list-inline-item">
-                                                                    <input  class="form-check-input" v-model="q.answer" ref="Checkbox" type="radio" :name="'option'+q.id" :id="'answer_two'+q.id" :value="false" data-parsley-required :disabled="readonly"/> No </li>
+                                                                    <input  class="form-check-input" v-model="q.answer" ref="Checkbox" type="radio" :name="'option'+q.id" :id="'answer_two'+q.id" :value="false" data-parsley-required disabled/> No </li>
                                                      </ul>
                                                 </div>
                                             </div>
