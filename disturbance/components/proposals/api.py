@@ -301,7 +301,7 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         http://localhost:8499/api/proposal_paginated/referrals_internal/?format=datatables&draw=1&length=2
         """
         #import ipdb; ipdb.set_trace()
-        self.serializer_class = ReferralSerializer
+        #self.serializer_class = ReferralSerializer
         referral_id_list = []
         qs_r = Referral.objects.filter(referral=request.user) if is_internal(self.request) else Referral.objects.none()
         for r in qs_r:

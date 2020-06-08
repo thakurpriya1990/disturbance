@@ -424,6 +424,15 @@ class Proposal(RevisionedMixin):
             return self.submitter
 
     @property
+    def relevant_applicant_name(self):
+        if self.applicant:
+            return self.applicant.name
+        elif self.proxy_applicant:
+            return self.proxy_applicant.get_full_name()
+        else:
+            return self.submitter.get_full_name()
+
+    @property
     def relevant_applicant_description(self):
         if self.applicant:
             return self.applicant.organisation.name
