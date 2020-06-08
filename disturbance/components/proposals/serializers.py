@@ -36,6 +36,19 @@ class ProposalTypeSerializer(serializers.ModelSerializer):
         return obj.activities.names()
 
 
+class ProposalWrapperSerializer(serializers.ModelSerializer):
+    application_type_name = serializers.SerializerMethodField()
+    class Meta:
+        model = Proposal
+        fields = (
+            'id',
+            'application_type_name',
+        )
+
+    def get_application_type_name(self,obj):
+        return obj.application_type.name
+
+
 class DTProposalSerializer(BaseProposalSerializer):
     submitter = EmailUserSerializer()
     applicant = serializers.CharField(source='applicant.organisation.name')
@@ -405,6 +418,19 @@ class ReferralProposalSerializer(InternalProposalSerializer):
             'assessor_level': 'referral',
             'assessor_box_view': obj.assessor_comments_view(user)
         }
+
+class ReferralWrapperSerializer(serializers.ModelSerializer):
+    apiary_referral_exists = serializers.SerializerMethodField()
+    class Meta:
+        model = Referral
+        fields = (
+            'id',
+            'apiary_referral_exists',
+        )
+
+    def get_apiary_referral_exists(self,obj):
+        return hasattr(obj, 'apiary_referral')
+
 
 class ReferralSerializer(serializers.ModelSerializer):
     processing_status = serializers.CharField(source='get_processing_status_display')
