@@ -412,6 +412,11 @@ class ApiaryInternalProposalSerializer(BaseProposalSerializer):
     applicant = serializers.SerializerMethodField()
     applicant_type = serializers.SerializerMethodField()
     applicant_address = serializers.SerializerMethodField()
+    applicant_first_name = serializers.SerializerMethodField()
+    applicant_last_name = serializers.SerializerMethodField()
+    applicant_phone_number = serializers.SerializerMethodField()
+    applicant_mobile_number = serializers.SerializerMethodField()
+    applicant_email = serializers.SerializerMethodField()
 
     proposal_apiary = ProposalApiarySerializer()
     apiary_temporary_use = ProposalApiaryTemporaryUseSerializer()
@@ -478,6 +483,11 @@ class ApiaryInternalProposalSerializer(BaseProposalSerializer):
                 'apiary_temporary_use',
                 'apiary_site_transfer',
                 'applicant_address',
+                'applicant_first_name',
+                'applicant_last_name',
+                'applicant_phone_number',
+                'applicant_mobile_number',
+                'applicant_email',
                 )
         read_only_fields=('documents','requirements')
 
@@ -487,6 +497,26 @@ class ApiaryInternalProposalSerializer(BaseProposalSerializer):
             address_serializer = ApplicantAddressSerializer(obj.relevant_applicant_address)
             return address_serializer.data
         return address_serializer
+
+    def get_applicant_first_name(self, obj):
+        if obj.relevant_applicant and not obj.applicant:
+            return obj.relevant_applicant.first_name
+
+    def get_applicant_last_name(self, obj):
+        if obj.relevant_applicant and not obj.applicant:
+            return obj.relevant_applicant.last_name
+
+    def get_applicant_phone_number(self, obj):
+        if obj.relevant_applicant and not obj.applicant:
+            return obj.relevant_applicant.phone_number
+
+    def get_applicant_mobile_number(self, obj):
+        if obj.relevant_applicant and not obj.applicant:
+            return obj.relevant_applicant.mobile_number
+
+    def get_applicant_email(self, obj):
+        if obj.relevant_applicant and not obj.applicant:
+            return obj.relevant_applicant.email
 
     def get_approval_level_document(self,obj):
         if obj.approval_level_document is not None:

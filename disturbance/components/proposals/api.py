@@ -80,6 +80,8 @@ from disturbance.components.proposals.serializers import (
     ListProposalSerializer,
     AmendmentRequestDisplaySerializer,
     SaveProposalRegionSerializer,
+    ProposalWrapperSerializer,
+    ReferralWrapperSerializer,
 )
 from disturbance.components.proposals.serializers_base import ProposalReferralSerializer
 from disturbance.components.proposals.serializers_apiary import (
@@ -1073,6 +1075,16 @@ class ProposalViewSet(viewsets.ModelViewSet):
         serializer = serializer_class(instance,context={'request':request})
         return Response(serializer.data)
 
+    @detail_route(methods=['GET',])
+    def internal_proposal_wrapper(self, request, *args, **kwargs):
+        instance = self.get_object()
+        #instance.internal_view_log(request)
+        #serializer = InternalProposalSerializer(instance,context={'request':request})
+        serializer_class = ProposalWrapperSerializer #self.internal_serializer_class()
+        #serializer = serializer_class(instance,context={'request':request})
+        serializer = serializer_class(instance)
+        return Response(serializer.data)
+
     @detail_route(methods=['post'])
     @renderer_classes((JSONRenderer,))
     def submit(self, request, *args, **kwargs):
@@ -1666,6 +1678,16 @@ class ReferralViewSet(viewsets.ModelViewSet):
             processing_status_choices=processing_status,
         )
         return Response(data)
+
+    @detail_route(methods=['GET',])
+    def referral_wrapper(self, request, *args, **kwargs):
+        instance = self.get_object()
+        #instance.internal_view_log(request)
+        #serializer = InternalProposalSerializer(instance,context={'request':request})
+        serializer_class = ReferralWrapperSerializer #self.internal_serializer_class()
+        #serializer = serializer_class(instance,context={'request':request})
+        serializer = serializer_class(instance)
+        return Response(serializer.data)
 
 
     def retrieve(self, request, *args, **kwargs):

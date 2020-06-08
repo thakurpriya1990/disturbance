@@ -434,7 +434,7 @@ export default {
             contactsBody: 'contactsBody'+vm._uid,
             siteLocations: 'siteLocations'+vm._uid,
             defaultKey: "aho",
-            //"proposal": null,
+            "proposal": null,
             "original_proposal": null,
             "loading": [],
             selected_referral: '',
@@ -514,8 +514,8 @@ export default {
         }
     },
     props: {
-        proposal: {
-            type: Object,
+        proposalId: {
+            type: Number,
         },
     },
     watch: {
@@ -1141,8 +1141,16 @@ export default {
             }
         });
     },
-    created: function() {
-        this.hasAmendmentRequest = this.proposal.hasAmendmentRequest;
+    created: function() {          
+        Vue.http.get(`/api/proposal/${this.proposalId}/internal_proposal.json`).then(res => {
+            this.proposal = res.body;
+            this.original_proposal = helpers.copyObject(res.body);
+            this.proposal.applicant.address = this.proposal.applicant.address != null ? this.proposal.applicant.address : {};
+            this.hasAmendmentRequest=this.proposal.hasAmendmentRequest;
+        },
+        err => {
+          console.log(err);
+        });
     },
     /*
     beforeRouteEnter: function(to, from, next) {
@@ -1160,6 +1168,7 @@ export default {
     },
     */
     beforeRouteUpdate: function(to, from, next) {
+        console.log("beforeRouteUpdate")
           Vue.http.get(`/api/proposal/${to.params.proposal_id}.json`).then(res => {
               next(vm => {
                 vm.proposal = res.body;
