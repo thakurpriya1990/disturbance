@@ -37,7 +37,7 @@ from disturbance.components.proposals.utils import (
         proposal_submit_apiary,
         )
 from disturbance.components.proposals.models import searchKeyWords, search_reference, ProposalUserAction, \
-    ProposalApiary, OnSiteInformation, ApiarySite
+    ProposalApiary, OnSiteInformation, ApiarySite, ApiaryApplicantChecklistQuestion, ApiaryApplicantChecklistAnswer
 from disturbance.utils import missing_required_fields, search_tenure
 from disturbance.components.main.utils import check_db_connection, convert_utc_time_to_local
 
@@ -1541,7 +1541,11 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 if application_type.name == ApplicationType.APIARY:
                     serializer = SaveProposalApiarySerializer(data=details_data)
                     serializer.is_valid(raise_exception=True)
-                    serializer.save()
+                    proposal_apiary = serializer.save()
+                    for question in ApiaryApplicantChecklistQuestion.objects.all():
+                        new_answer = ApiaryApplicantChecklistAnswer.objects.create(proposal = proposal_apiary,
+                                                                                   question = question)
+
                 elif application_type.name == ApplicationType.TEMPORARY_USE:
                     # format from_date
                     from_datetime = convert_utc_time_to_local(apiary_temp_use['from_date'])
