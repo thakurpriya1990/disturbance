@@ -774,7 +774,7 @@ class Proposal(RevisionedMixin):
         elif self.processing_status == 'with_approver':
             if self.apiary_group_application_type:
                 # Apiary logic
-                return self.__assessor_group() in user.apiaryapprovergroup_set.all()
+                return self.__approver_group() in user.apiaryapprovergroup_set.all()
             else:
                 # Proposal logic
                 return self.__approver_group() in user.proposalapprovergroup_set.all()
@@ -2481,6 +2481,10 @@ class ApiaryApproverGroup(models.Model):
     class Meta:
         app_label = 'disturbance'
         verbose_name_plural = 'Apiary Approvers Group'
+
+    @property
+    def members_email(self):
+        return [i.email for i in self.members.all()]
 
 
 #class ReferralRecipientGroup(models.Model):
