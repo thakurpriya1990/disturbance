@@ -676,7 +676,7 @@ export default {
                 emulateJSON:true
                 }).then(res => {
                     //this.referral = res.body;
-                    vm.$router.push({ path: '/internal' });
+                    this.$router.push({ path: '/internal' });
                 },
                 error => {
                     swal(

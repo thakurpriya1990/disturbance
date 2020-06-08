@@ -2686,10 +2686,10 @@ class ApiaryReferral(RevisionedMixin):
                 if group and group[0] not in user.apiaryreferralgroup_set.all():
                     raise exceptions.ReferralNotAuthorized()
                 self.referral.processing_status = 'completed'
-                self.referral.referral = request.user
+                #self.referral.referral = request.user
                 self.referral.referral_text = request.user.get_full_name() + ': ' + request.data.get('referral_comment')
                 #self.add_referral_document(request)
-                self.save()
+                self.referral.save()
                 # TODO Log proposal action
                 #self.proposal.log_user_action(ProposalUserAction.CONCLUDE_REFERRAL.format(self.id,self.proposal.id,'{}({})'.format(self.referral.get_full_name(),self.referral.email)),request)
                 self.referral.proposal.log_user_action(
@@ -2704,6 +2704,7 @@ class ApiaryReferral(RevisionedMixin):
                         )
                 # TODO log organisation action
                 #self.proposal.applicant.log_user_action(ProposalUserAction.CONCLUDE_REFERRAL.format(self.id,self.proposal.id,'{}({})'.format(self.referral.get_full_name(),self.referral.email)),request)
+                #import ipdb;ipdb.set_trace();
                 applicant_field=getattr(
                         self.referral.proposal, 
                         self.referral.proposal.applicant_field
