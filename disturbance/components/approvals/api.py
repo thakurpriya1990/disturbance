@@ -227,8 +227,10 @@ class ApprovalViewSet(viewsets.ModelViewSet):
             optimised = request.query_params.get('optimised', False)
             apiary_site_qs = ApiarySite.objects.filter(apiary_site_approval_set__in=ApiarySiteApproval.objects.filter(approval=instance))
             if optimised:
+                # No on-site-information attached
                 serializers = ApiarySiteOptimisedSerializer(apiary_site_qs, many=True)
             else:
+                # With on-site-information
                 serializers = ApiarySiteSerializer(apiary_site_qs, many=True)
             return Response(serializers.data)
 
