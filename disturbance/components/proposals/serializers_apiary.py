@@ -368,23 +368,6 @@ class ApiaryReferralGroupSerializer(serializers.ModelSerializer):
         return serializer.data
 
 
-class ApiaryReferralSerializer(serializers.ModelSerializer):
-    #processing_status = serializers.CharField(source='get_processing_status_display')
-    #latest_referrals = ProposalReferralSerializer(many=True)
-    #can_be_completed = serializers.BooleanField()
-    referral_group = ApiaryReferralGroupSerializer()
-    class Meta:
-        model = ApiaryReferral
-        fields = (
-                'id',
-                'referral_group',
-                )
-
-    #def __init__(self,*args,**kwargs):
-     #   super(ReferralSerializer, self).__init__(*args, **kwargs)
-      #  self.fields['proposal'] = ReferralProposalSerializer(context={'request':self.context['request']})
-
-
 class ApiaryProposalReferralSerializer(serializers.ModelSerializer):
     referral = serializers.CharField(source='referral.get_full_name')
     processing_status = serializers.CharField(source='get_processing_status_display')
@@ -424,6 +407,11 @@ class ApiaryInternalProposalSerializer(BaseProposalSerializer):
     applicant = serializers.SerializerMethodField()
     applicant_type = serializers.SerializerMethodField()
     applicant_address = serializers.SerializerMethodField()
+    applicant_first_name = serializers.SerializerMethodField()
+    applicant_last_name = serializers.SerializerMethodField()
+    applicant_phone_number = serializers.SerializerMethodField()
+    applicant_mobile_number = serializers.SerializerMethodField()
+    applicant_email = serializers.SerializerMethodField()
 
     proposal_apiary = ProposalApiarySerializer()
     apiary_temporary_use = ProposalApiaryTemporaryUseSerializer()
@@ -497,6 +485,11 @@ class ApiaryInternalProposalSerializer(BaseProposalSerializer):
                 # 'apiary_applicant_checklist',
                 'applicant_checklist',
                 'applicant_address',
+                'applicant_first_name',
+                'applicant_last_name',
+                'applicant_phone_number',
+                'applicant_mobile_number',
+                'applicant_email',
                 )
         read_only_fields=('documents','requirements')
 
@@ -514,6 +507,26 @@ class ApiaryInternalProposalSerializer(BaseProposalSerializer):
             address_serializer = ApplicantAddressSerializer(obj.relevant_applicant_address)
             return address_serializer.data
         return address_serializer
+
+    def get_applicant_first_name(self, obj):
+        if obj.relevant_applicant and not obj.applicant:
+            return obj.relevant_applicant.first_name
+
+    def get_applicant_last_name(self, obj):
+        if obj.relevant_applicant and not obj.applicant:
+            return obj.relevant_applicant.last_name
+
+    def get_applicant_phone_number(self, obj):
+        if obj.relevant_applicant and not obj.applicant:
+            return obj.relevant_applicant.phone_number
+
+    def get_applicant_mobile_number(self, obj):
+        if obj.relevant_applicant and not obj.applicant:
+            return obj.relevant_applicant.mobile_number
+
+    def get_applicant_email(self, obj):
+        if obj.relevant_applicant and not obj.applicant:
+            return obj.relevant_applicant.email
 
     def get_approval_level_document(self,obj):
         if obj.approval_level_document is not None:
@@ -567,6 +580,54 @@ class ApiaryInternalProposalSerializer(BaseProposalSerializer):
 
     def get_applicant_type(self,obj):
         return obj.relevant_applicant_type
+
+
+class ApiaryReferralSerializer(serializers.ModelSerializer):
+    #processing_status = serializers.CharField(source='get_processing_status_display')
+    #latest_referrals = ProposalReferralSerializer(many=True)
+    #can_be_completed = serializers.BooleanField()
+    referral_group = ApiaryReferralGroupSerializer()
+    class Meta:
+        model = ApiaryReferral
+        fields = (
+                'id',
+                'referral_group',
+                )
+
+    #def __init__(self,*args,**kwargs):
+     #   super(ReferralSerializer, self).__init__(*args, **kwargs)
+      #  self.fields['proposal'] = ReferralProposalSerializer(context={'request':self.context['request']})
+
+
+class FullApiaryReferralSerializer(serializers.ModelSerializer):
+    processing_status = serializers.CharField(source='get_processing_status_display')
+    latest_referrals = ApiaryProposalReferralSerializer(many=True)
+    can_be_completed = serializers.BooleanField()
+    apiary_referral = ApiaryReferralSerializer()
+    class Meta:
+        model = Referral
+        fields = '__all__'
+
+    def __init__(self,*args,**kwargs):
+        super(FullApiaryReferralSerializer, self).__init__(*args, **kwargs)
+        self.fields['proposal'] = ApiaryReferralProposalSerializer(context={'request':self.context['request']})
+
+
+class ApiaryReferralProposalSerializer(ApiaryInternalProposalSerializer):
+    def get_assessor_mode(self,obj):
+        # TODO check if the proposal has been accepted or declined
+        request = self.context['request']
+        user = request.user._wrapped if hasattr(request.user,'_wrapped') else request.user
+        try:
+            referral = Referral.objects.get(proposal=obj,referral=user)
+        except:
+            referral = None
+        return {
+            'assessor_mode': True,
+            'assessor_can_assess': referral.can_assess_referral(user) if referral else None,
+            'assessor_level': 'referral',
+            'assessor_box_view': obj.assessor_comments_view(user)
+        }
 
 
 class SendApiaryReferralSerializer(serializers.Serializer):

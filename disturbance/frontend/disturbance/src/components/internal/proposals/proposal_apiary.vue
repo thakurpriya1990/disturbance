@@ -263,22 +263,43 @@
                                         </a>
                                     </h3>
                                 </div>
-                                <div class="panel-body panel-collapse collapse in" :id="detailsBody">
-                                      <form class="form-horizontal">
-                                          <div class="form-group">
-                                            <label for="" class="col-sm-3 control-label">Name</label>
-                                            <div class="col-sm-6">
-                                                <input disabled type="text" class="form-control" name="applicantName" placeholder="" v-model="proposal.applicant.name">
-                                            </div>
-                                          </div>
-                                          <div class="form-group">
-                                            <label for="" class="col-sm-3 control-label" >ABN/ACN</label>
-                                            <div class="col-sm-6">
-                                                <input disabled type="text" class="form-control" name="applicantABN" placeholder="" v-model="proposal.applicant.abn">
-                                            </div>
-                                          </div>
-                                      </form>
+                                <div v-if="organisationApplicant">
+                                    <div class="panel-body panel-collapse collapse in" :id="detailsBody">
+                                          <form class="form-horizontal">
+                                              <div class="form-group">
+                                                <label for="" class="col-sm-3 control-label">Name</label>
+                                                <div class="col-sm-6">
+                                                    <input disabled type="text" class="form-control" name="applicantName" placeholder="" v-model="proposal.applicant.name">
+                                                </div>
+                                              </div>
+                                              <div class="form-group">
+                                                <label for="" class="col-sm-3 control-label" >ABN/ACN</label>
+                                                <div class="col-sm-6">
+                                                    <input disabled type="text" class="form-control" name="applicantABN" placeholder="" v-model="proposal.applicant.abn">
+                                                </div>
+                                              </div>
+                                          </form>
+                                    </div>
                                 </div>
+                                <div v-else>
+                                    <div class="panel-body panel-collapse collapse in" :id="detailsBody">
+                                          <form class="form-horizontal">
+                                              <div class="form-group">
+                                                <label for="" class="col-sm-3 control-label">Given Name(s)</label>
+                                                <div class="col-sm-6">
+                                                    <input disabled type="text" class="form-control" name="applicantFirstName" placeholder="" v-model="proposal.applicant_first_name">
+                                                </div>
+                                              </div>
+                                              <div class="form-group">
+                                                <label for="" class="col-sm-3 control-label" >Last Name</label>
+                                                <div class="col-sm-6">
+                                                    <input disabled type="text" class="form-control" name="applicantLastName" placeholder="" v-model="proposal.applicant_last_name">
+                                                </div>
+                                              </div>
+                                          </form>
+                                    </div>
+                                </div>
+
                             </div>
                         </div>
                     </div>
@@ -328,7 +349,7 @@
                         </div>
                     </div>
                     <div class="col-md-12">
-                        <div class="row" v-if="organisationApplicant">
+                        <div class="row">
                             <div class="panel panel-default">
                                 <div class="panel-heading">
                                     <h3 class="panel-title">Contact Details
@@ -338,8 +359,32 @@
                                     </h3>
                                 </div>
                                 <div class="panel-body panel-collapse collapse" :id="contactsBody">
-                                    <table ref="contacts_datatable" :id="contacts_table_id" class="hover table table-striped table-bordered dt-responsive" cellspacing="0" width="100%">
-                                    </table>
+                                    <div v-if="organisationApplicant">
+                                        <table ref="contacts_datatable" :id="contacts_table_id" class="hover table table-striped table-bordered dt-responsive" cellspacing="0" width="100%">
+                                        </table>
+                                    </div>
+                                    <div v-else>
+                                      <form class="form-horizontal">
+                                          <div class="form-group">
+                                            <label for="" class="col-sm-3 control-label">Phone (work)</label>
+                                            <div class="col-md-8">
+                                                <input disabled type="text" class="form-control" name="applicantWorkPhone" placeholder="" v-model="proposal.applicant_phone_number">
+                                            </div>
+                                          </div>
+                                          <div class="form-group">
+                                            <label for="" class="col-sm-3 control-label" >Mobile</label>
+                                            <div class="col-md-8">
+                                                <input disabled type="text" class="form-control" name="applicantMobileNumber" placeholder="" v-model="proposal.applicant_mobile_number">
+                                            </div>
+                                          </div>
+                                          <div class="form-group">
+                                            <label for="" class="col-sm-3 control-label" >Email</label>
+                                            <div class="col-md-8">
+                                                <input disabled type="text" class="form-control" name="applicantEmail" placeholder="" v-model="proposal.applicant_email">
+                                            </div>
+                                          </div>
+                                      </form>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -597,6 +642,11 @@ export default {
         formatDate: function(data){
             return data ? moment(data).format('DD/MM/YYYY HH:mm:ss'): '';
         }
+    },
+    props: {
+        proposalId: {
+            type: Number,
+        },
     },
     watch: {
 
@@ -1271,6 +1321,21 @@ export default {
             }
         });
     },
+    created: function() {
+        Vue.http.get(`/api/proposal/${this.proposalId}/internal_proposal.json`).then(res => {
+              this.proposal = res.body;
+              console.log(res.body)
+              this.original_proposal = helpers.copyObject(res.body);
+              if (this.proposal.applicant) {
+                  this.proposal.applicant.address = this.proposal.applicant.address != null ? this.proposal.applicant.address : {};
+              }
+              this.hasAmendmentRequest = this.proposal.hasAmendmentRequest;
+        },
+        err => {
+          console.log(err);
+        });
+    },
+    /*
     beforeRouteEnter: function(to, from, next) {
           Vue.http.get(`/api/proposal/${to.params.proposal_id}/internal_proposal.json`).then(res => {
               next(vm => {
@@ -1287,7 +1352,9 @@ export default {
               console.log(err);
             });
     },
+    */
     beforeRouteUpdate: function(to, from, next) {
+        console.log("beforeRouteUpdate");
           Vue.http.get(`/api/proposal/${to.params.proposal_id}.json`).then(res => {
               next(vm => {
                   vm.proposal = res.body;

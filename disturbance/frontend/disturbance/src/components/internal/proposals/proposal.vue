@@ -513,6 +513,11 @@ export default {
             return data ? moment(data).format('DD/MM/YYYY HH:mm:ss'): '';
         }
     },
+    props: {
+        proposalId: {
+            type: Number,
+        },
+    },
     watch: {
 
     },
@@ -1136,6 +1141,18 @@ export default {
             }
         });
     },
+    created: function() {          
+        Vue.http.get(`/api/proposal/${this.proposalId}/internal_proposal.json`).then(res => {
+            this.proposal = res.body;
+            this.original_proposal = helpers.copyObject(res.body);
+            this.proposal.applicant.address = this.proposal.applicant.address != null ? this.proposal.applicant.address : {};
+            this.hasAmendmentRequest=this.proposal.hasAmendmentRequest;
+        },
+        err => {
+          console.log(err);
+        });
+    },
+    /*
     beforeRouteEnter: function(to, from, next) {
           Vue.http.get(`/api/proposal/${to.params.proposal_id}/internal_proposal.json`).then(res => {
               next(vm => {
@@ -1149,7 +1166,9 @@ export default {
               console.log(err);
             });
     },
+    */
     beforeRouteUpdate: function(to, from, next) {
+        console.log("beforeRouteUpdate")
           Vue.http.get(`/api/proposal/${to.params.proposal_id}.json`).then(res => {
               next(vm => {
                 vm.proposal = res.body;
