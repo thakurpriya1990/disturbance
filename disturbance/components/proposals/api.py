@@ -80,6 +80,8 @@ from disturbance.components.proposals.serializers import (
     ListProposalSerializer,
     AmendmentRequestDisplaySerializer,
     SaveProposalRegionSerializer,
+    ProposalWrapperSerializer,
+    ReferralWrapperSerializer,
 )
 from disturbance.components.proposals.serializers_base import ProposalReferralSerializer
 from disturbance.components.proposals.serializers_apiary import (
@@ -96,6 +98,7 @@ from disturbance.components.proposals.serializers_apiary import (
     ApiaryReferralSerializer,
     TemporaryUseApiarySiteSerializer,
     DTApiaryReferralSerializer,
+    FullApiaryReferralSerializer,
 )
 from disturbance.components.approvals.models import Approval
 from disturbance.components.approvals.serializers import ApprovalSerializer
@@ -1072,6 +1075,16 @@ class ProposalViewSet(viewsets.ModelViewSet):
         serializer = serializer_class(instance,context={'request':request})
         return Response(serializer.data)
 
+    @detail_route(methods=['GET',])
+    def internal_proposal_wrapper(self, request, *args, **kwargs):
+        instance = self.get_object()
+        #instance.internal_view_log(request)
+        #serializer = InternalProposalSerializer(instance,context={'request':request})
+        serializer_class = ProposalWrapperSerializer #self.internal_serializer_class()
+        #serializer = serializer_class(instance,context={'request':request})
+        serializer = serializer_class(instance)
+        return Response(serializer.data)
+
     @detail_route(methods=['post'])
     @renderer_classes((JSONRenderer,))
     def submit(self, request, *args, **kwargs):
@@ -1613,6 +1626,30 @@ class ReferralViewSet(viewsets.ModelViewSet):
             return queryset
         return Referral.objects.none()
 
+    def get_serializer_class(self):
+        #import ipdb; ipdb.set_trace()
+        try:
+            #referral_id = self.kwargs.get('referral_id')
+            #if referral_id:
+             #   referral = Referral.objects.get(id=referral_id)
+            referral = self.get_object()
+            apiary_referral_attribute_exists = getattr(referral, 'apiary_referral', None)
+            if apiary_referral_attribute_exists:
+                return FullApiaryReferralSerializer
+            else:
+                return ReferralSerializer
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            if hasattr(e,'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
     @list_route(methods=['GET',])
     def filter_list(self, request, *args, **kwargs):
         """ Used by the external dashboard filters """
@@ -1633,10 +1670,21 @@ class ReferralViewSet(viewsets.ModelViewSet):
         )
         return Response(data)
 
+    @detail_route(methods=['GET',])
+    def referral_wrapper(self, request, *args, **kwargs):
+        instance = self.get_object()
+        #instance.internal_view_log(request)
+        #serializer = InternalProposalSerializer(instance,context={'request':request})
+        serializer_class = ReferralWrapperSerializer #self.internal_serializer_class()
+        #serializer = serializer_class(instance,context={'request':request})
+        serializer = serializer_class(instance)
+        return Response(serializer.data)
+
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = self.get_serializer(instance, context={'request':request})
+        #serializer = self.get_serializer_class(request)
         return Response(serializer.data)
 
     @list_route(methods=['GET',])
