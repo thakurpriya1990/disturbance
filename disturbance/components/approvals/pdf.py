@@ -469,8 +469,9 @@ def _create_renewal(renewal_buffer, approval, proposal):
 
     elements = []
 
-
-    title = approval.title.encode('UTF-8')
+    title = ''
+    if approval.title:
+        title = approval.title.encode('UTF-8')
 
     # additional information
     '''if approval.additional_information:
