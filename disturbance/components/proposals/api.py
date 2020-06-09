@@ -1599,12 +1599,25 @@ class ProposalViewSet(viewsets.ModelViewSet):
             http_status = status.HTTP_200_OK
             application_type = ApplicationType.objects.get(id=request.data.get('application'))
 
-            # Check if application type is Temporary Use
-            apiary_temp_use = request.data.get('apiary_temporary_use', None)
-            application_type = ApplicationType.objects.get(name=ApplicationType.TEMPORARY_USE) if apiary_temp_use else application_type
+            # When there is a parameter named 'application_type_str', we may need to update application_type
+            application_type_str = request.data.get('application_type_str', None)
+            if application_type_str == 'temporary_use':
+                application_type = ApplicationType.objects.get(name=ApplicationType.TEMPORARY_USE)
+            elif application_type_str == 'site_transfer':
+                application_type = ApplicationType.objects.get(name=ApplicationType.SITE_TRANSFER)
 
+            if application_type.name == ApplicationType.APIARY:
+                pass
+                # TODO Update new apiary application
 
-            # TODO
+            elif application_type.name == ApplicationType.TEMPORARY_USE:
+                pass
+                # TODO Update temporary use application
+
+            elif application_type.name == ApplicationType.SITE_TRANSFER:
+                pass
+                # TODO update Site Transfer Application
+
 
             instance = self.get_object()
             serializer = SaveProposalSerializer(instance, data=request.data)

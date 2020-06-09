@@ -154,6 +154,7 @@
                     'activity': '',
                     'sub_activity1': '',
                     'apiary_temporary_use': this.apiary_temporary_use,
+                    'application_type_str': 'temporary_use',
                 }
                 return data
             },
@@ -163,15 +164,17 @@
                 let vm = this;
                 let data = vm._get_basic_data();
 
-                this.$http.put('/api/proposal/' + this.apiary_temporary_use.id + '/', '{}').then(res=>{
-                    swal(
-                        'Saved',
-                        'Your proposal has been updated',
-                        'success'
-                    );
-                },err=>{
+                this.$http.put('/api/proposal/' + this.apiary_temporary_use.id + '/', data).then(
+                    res=>{
+                        swal(
+                            'Saved',
+                            'Your proposal has been updated',
+                            'success'
+                        );
+                    },err=>{
 
-                });
+                    }
+                );
             },
             occupierDataChanged: function(value){
                 console.log('in occupierDataChanged')
