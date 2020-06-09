@@ -18,7 +18,7 @@
                                 :to_date_enabled="to_date_enabled"
                                 @from_date_changed="fromDateChanged"
                                 @to_date_changed="toDateChanged"
-                                @site_checkbox_clicked="siteChechboxClicked"
+                                @site_checkbox_clicked="siteCheckboxClicked"
                                 :key="period_and_sites_key"
                             />
                         </template>
@@ -132,11 +132,8 @@
         methods:{
             save: function(){
                 console.log('in save()');
-                if (this.apiary_temporary_use && this.apiary_temporary_use.id){
-                    this.proposal_update();
-                } else {
-                    this.proposal_create();
-                }
+                // Proposal must be already created just after the user clicks on the 'Create' button on the modal
+                this.proposal_update();
             },
             save_exit: function() {
                 console.log('in save_exit()');
@@ -149,11 +146,7 @@
             exit: function() {
                 console.log('in exit()');
             },
-            proposal_create: function(){
-                console.log('in proposal_create');
-
-                let vm = this;
-
+            _get_basic_data: function(){
                 let data = {
                     'category': '',
                     'profile': '', // TODO how to determine this?
@@ -168,33 +161,45 @@
                     'sub_activity1': '',
                     'apiary_temporary_use': this.apiary_temporary_use,
                 }
-                // Add proposal_apiary_base_id
-                data['apiary_temporary_use']['proposal_apiary_base_id'] = this.licence.current_proposal.id
-
-                this.$http.post('/api/proposal/', data).then(res=>{
-                    console.log(res);
-                    let application_id = res.body.id;
-                    swal({
-                        title: 'Saved',
-                        text: 'Your proposal has been created',
-                        type: 'success',
-                        allowOutsideClick: false,
-                    }).then(
-                        res=>{
-                            // Redirect
-                            console.log('Redirect');
-                            vm.$router.push({name: 'external-temporary-use', params: {licence_id: vm.licence.id, application_id: application_id}});
-                        },
-                        err=>{
-                            // Should not reach here because allowOutsideClick is set to false
-                        }
-                    );
-                },err=>{
-                    this.processError(err)
-                });
+                return data
             },
+          //  proposal_create: function(){
+          //      console.log('in proposal_create');
+
+          //      let vm = this;
+          //      let data = vm._get_basic_data();
+
+          //      // Add proposal_apiary_base_id
+          //      data['apiary_temporary_use']['proposal_apiary_base_id'] = this.licence.current_proposal.id
+
+          //      this.$http.post('/api/proposal/', data).then(res=>{
+          //          console.log(res);
+          //          let application_id = res.body.id;
+          //          swal({
+          //              title: 'Saved',
+          //              text: 'Your proposal has been created',
+          //              type: 'success',
+          //              allowOutsideClick: false,
+          //          }).then(
+          //              res=>{
+          //                  // Redirect
+          //                  console.log('Redirect');
+          //                  //vm.$router.push({name: 'external-temporary-use', params: {licence_id: vm.licence.id, application_id: application_id}});
+          //              }, 
+          //              err=>{
+          //                  // Should not reach here because allowOutsideClick is set to false
+          //              }
+          //          );
+          //      },err=>{
+          //          this.processError(err)
+          //      });
+          //  },
             proposal_update: function(){
                 console.log('in proposal_update');
+
+                let vm = this;
+                let data = vm._get_basic_data();
+
                 this.$http.put('/api/proposal/' + this.apiary_temporary_use.id + '/', '{}').then(res=>{
                     swal(
                         'Saved',
@@ -211,8 +216,8 @@
                 this.apiary_temporary_use.temporary_occupier_mobile = value.occupier_mobile
                 this.apiary_temporary_use.temporary_occupier_email = value.occupier_email
             },
-            siteChechboxClicked: function(value){
-                console.log('siteChechboxClicked');
+            siteCheckboxClicked: function(value){
+                console.log('siteCheckboxClicked');
                 console.log(value);
                 for (let item of this.apiary_temporary_use.apiary_sites){
                     console.log(item);
@@ -263,18 +268,20 @@
             console.log(from);
 
             // Licence
-            console.log('licence id: ');
-            console.log(to.params.licence_id);
+            console.log('licence id: ' + to.params.licence_id);
+
             let vm = this;
             await Vue.http.get(`/api/approvals/${to.params.licence_id}.json`).then(res => {
                 next(vm => {
                         // ProposalApiaryTemporaryUse
-                        console.log('application id: ');
                         if (to.params.application_id){
-                            console.log(to.params.application_id);
+                            console.log('Editing an existing temporary use id: ' + to.params.application_id);
                             Vue.http.get(`/api/proposal/${to.params.application_id}.json`).then(re => {
                                 // TODO
                                 console.log('application retrieved:');
+                                console.log('application: ')
+                                console.log(re.body);
+                                console.log('application.apiary_temporary_use: ')
                                 console.log(re.body.apiary_temporary_use);
 
                                 //vm.apiary_temporary_use = re.body.apiary_temporary_use
@@ -304,11 +311,9 @@
                                 vm.temporary_occupier_key = uuid();
                             });
                         } else {
-                            console.log('no application id');
+                            console.log('Creating new temporary use');
                         }
 
-                        console.log('licence retrieved: ');
-                        console.log(res.body);
                         vm.licence = res.body;
                         for (let i=0; i<vm.licence.current_proposal.proposal_apiary.apiary_sites.length; i++){
                             let site = vm.licence.current_proposal.proposal_apiary.apiary_sites[i];

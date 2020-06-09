@@ -461,7 +461,7 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
 
-                return Response({})
+                return Response(serializer.data)
 
         except serializers.ValidationError:
             print(traceback.print_exc())
@@ -1498,7 +1498,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
                 # Check if application type is Temporary Use
                 apiary_temp_use = request.data.get('apiary_temporary_use', None)
-                aho = ApplicationType.objects.filter(name=ApplicationType.TEMPORARY_USE)
                 application_type = ApplicationType.objects.get(name=ApplicationType.TEMPORARY_USE) if apiary_temp_use else application_type
 
                 #region = request.data.get('region') if request.data.get('region') else 1
@@ -1568,7 +1567,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                     details_data['temporary_occupier_phone'] = apiary_temp_use['temporary_occupier_phone']
                     details_data['temporary_occupier_mobile'] = apiary_temp_use['temporary_occupier_mobile']
                     details_data['temporary_occupier_email'] = apiary_temp_use['temporary_occupier_email']
-                    details_data['proposal_apiary_base_id'] = apiary_temp_use['proposal_apiary_base_id']
+                    # details_data['proposal_apiary_base_id'] = apiary_temp_use['proposal_apiary_base_id']
 
                     # Save ProposalApiaryTemporaryUse
                     serializer = ProposalApiaryTemporaryUseSerializer(data=details_data)
@@ -1576,11 +1575,12 @@ class ProposalViewSet(viewsets.ModelViewSet):
                     new_temp_use = serializer.save()
 
                     # Save TemporaryUseApiarySite
-                    for site in apiary_temp_use['apiary_sites']:
-                        if site['used']:
+                    print(apiary_temp_use['apiary_sites'])
+                    for site_approval in apiary_temp_use['apiary_sites_approval']:
+                        if site_approval['used']:
                             data_to_save = {
                                 'proposal_apiary_temporary_use_id': new_temp_use.id,
-                                'apiary_site_id': site['id'],
+                                'apiary_site_approval_id': site_approval['id'],
                             }
                             serializer = TemporaryUseApiarySiteSerializer(data=data_to_save)
                             serializer.is_valid(raise_exception=True)
@@ -1602,8 +1602,17 @@ class ProposalViewSet(viewsets.ModelViewSet):
     def update(self, request, *args, **kwargs):
         try:
             http_status = status.HTTP_200_OK
+            application_type = ApplicationType.objects.get(id=request.data.get('application'))
+
+            # Check if application type is Temporary Use
+            apiary_temp_use = request.data.get('apiary_temporary_use', None)
+            application_type = ApplicationType.objects.get(name=ApplicationType.TEMPORARY_USE) if apiary_temp_use else application_type
+
+
+            # TODO
+
             instance = self.get_object()
-            serializer = SaveProposalSerializer(instance,data=request.data)
+            serializer = SaveProposalSerializer(instance, data=request.data)
             serializer.is_valid(raise_exception=True)
             self.perform_update(serializer)
             return Response(serializer.data)
