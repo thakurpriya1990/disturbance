@@ -6,9 +6,9 @@
 
                     <FormSection :formCollapse="false" label="Period and Site(s)" Index="period_and_sites">
                         <template v-if="licence">
-                            <PeriodAndSites 
-                                :is_external=is_external 
-                                :is_internal=is_internal 
+                            <PeriodAndSites
+                                :is_external=is_external
+                                :is_internal=is_internal
                                 :from_date="apiary_temporary_use.from_date"
                                 :to_date="apiary_temporary_use.to_date"
                                 :apiary_sites_available="apiary_sites_available"
@@ -26,9 +26,9 @@
 
                     <FormSection :formCollapse="false" label="Temporary Occupier" Index="temporary_occupier">
                         <template v-if="licence">
-                            <TemporaryOccupier 
-                                :is_external=is_external 
-                                :is_internal=is_internal 
+                            <TemporaryOccupier
+                                :is_external=is_external
+                                :is_internal=is_internal
                                 :name=apiary_temporary_use.temporary_occupier_name
                                 :phone=apiary_temporary_use.temporary_occupier_phone
                                 :mobile=apiary_temporary_use.temporary_occupier_mobile
@@ -40,7 +40,11 @@
                     </FormSection>
 
                     <FormSection :formCollapse="false" label="Deed Poll" Index="deed_poll">
-                        component here
+                        <DeedPoll
+                        :is_external=is_external
+                            :is_internal=is_internal
+                            @contents_changed="occupierDataChanged"
+                        />
                     </FormSection>
 
                 </div>
@@ -74,6 +78,7 @@
     import FormSection from "@/components/forms/section_toggle.vue"
     import PeriodAndSites from "@/components/common/apiary/section_period_and_sites.vue"
     import TemporaryOccupier from "@/components/common/apiary/section_temporary_occupier.vue"
+    import DeedPoll from "@/components/common/apiary/section_deed_poll.vue"
 
     export default {
         props:{
@@ -146,7 +151,7 @@
                     'category': '',
                     'profile': '', // TODO how to determine this?
                     'district': '',
-                    'application': '3',  // TODO Retrieve the id of the 'Temporary Use' type or handle it at the server side 
+                    'application': '3',  // TODO Retrieve the id of the 'Temporary Use' type or handle it at the server side
                                          //      like if there is apiary_temporary_use attribute, it must be a temporary use application, or so.
                     'sub_activity2': '',
                     'region': '',
@@ -272,7 +277,7 @@
                         if (to.params.application_id){
                             console.log('Editing an existing temporary use id: ' + to.params.application_id);
                             Vue.http.get(`/api/proposal/${to.params.application_id}.json`).then(re => {
-                                // TODO 
+                                // TODO
                                 console.log('application retrieved:');
                                 console.log('application: ')
                                 console.log(re.body);

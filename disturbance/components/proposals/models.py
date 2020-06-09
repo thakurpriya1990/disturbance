@@ -425,6 +425,15 @@ class Proposal(RevisionedMixin):
             return self.submitter
 
     @property
+    def relevant_applicant_name(self):
+        if self.applicant:
+            return self.applicant.name
+        elif self.proxy_applicant:
+            return self.proxy_applicant.get_full_name()
+        else:
+            return self.submitter.get_full_name()
+
+    @property
     def relevant_applicant_description(self):
         if self.applicant:
             return self.applicant.organisation.name
@@ -766,7 +775,7 @@ class Proposal(RevisionedMixin):
         elif self.processing_status == 'with_approver':
             if self.apiary_group_application_type:
                 # Apiary logic
-                return self.__assessor_group() in user.apiaryapprovergroup_set.all()
+                return self.__approver_group() in user.apiaryapprovergroup_set.all()
             else:
                 # Proposal logic
                 return self.__approver_group() in user.proposalapprovergroup_set.all()
@@ -2490,6 +2499,10 @@ class ApiaryApproverGroup(models.Model):
         app_label = 'disturbance'
         verbose_name_plural = 'Apiary Approvers Group'
 
+    @property
+    def members_email(self):
+        return [i.email for i in self.members.all()]
+
 
 #class ReferralRecipientGroup(models.Model):
 class ApiaryReferralGroup(models.Model):
@@ -2703,10 +2716,10 @@ class ApiaryReferral(RevisionedMixin):
                 if group and group[0] not in user.apiaryreferralgroup_set.all():
                     raise exceptions.ReferralNotAuthorized()
                 self.referral.processing_status = 'completed'
-                self.referral.referral = request.user
+                #self.referral.referral = request.user
                 self.referral.referral_text = request.user.get_full_name() + ': ' + request.data.get('referral_comment')
                 #self.add_referral_document(request)
-                self.save()
+                self.referral.save()
                 # TODO Log proposal action
                 #self.proposal.log_user_action(ProposalUserAction.CONCLUDE_REFERRAL.format(self.id,self.proposal.id,'{}({})'.format(self.referral.get_full_name(),self.referral.email)),request)
                 self.referral.proposal.log_user_action(
@@ -2721,6 +2734,7 @@ class ApiaryReferral(RevisionedMixin):
                         )
                 # TODO log organisation action
                 #self.proposal.applicant.log_user_action(ProposalUserAction.CONCLUDE_REFERRAL.format(self.id,self.proposal.id,'{}({})'.format(self.referral.get_full_name(),self.referral.email)),request)
+                #import ipdb;ipdb.set_trace();
                 applicant_field=getattr(
                         self.referral.proposal, 
                         self.referral.proposal.applicant_field
