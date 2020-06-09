@@ -83,6 +83,10 @@ module.exports = {
         } );
     } );
   },
+  add_endpoint_join: function ( api_string, addition ) {
+    // assumes api_string has trailing forward slash "/" character required for POST
+    return api_string + addition;
+  },
   add_endpoint_json: function ( string, addition ) {
     var res = string.split( ".json" )
     return res[ 0 ] + '/' + addition + '.json';
