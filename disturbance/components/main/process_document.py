@@ -55,7 +55,7 @@ def process_generic_document(request, instance, document_type=None, *args, **kwa
                         file=d._file.url,
                         id=d.id,
                         name=d.name,
-                        input_name=d.input_name,
+                        #input_name=d.input_name,
                         ) for d in instance.deed_poll_documents.filter(input_name=input_name) if d._file]
             return {'filedata': returned_file_data}
 
@@ -77,9 +77,10 @@ def process_generic_document(request, instance, document_type=None, *args, **kwa
 
 def delete_document(request, instance, comms_instance, document_type, input_name=None):
     # example document_type
-    if document_type == 'deed_poll_documents' and 'document_id' in request.data and input_name:
+    if document_type == 'deed_poll_documents' and 'document_id' in request.data:
         document_id = request.data.get('document_id')
-        document = instance.deed_poll_documents.get(id=document_id, input_name=input_name)
+        #document = instance.deed_poll_documents.get(id=document_id, input_name=input_name)
+        document = instance.deed_poll_documents.get(id=document_id)
 
     # comms_log doc store delete
     elif comms_instance and 'document_id' in request.data:
@@ -145,8 +146,11 @@ def save_document(request, instance, comms_instance, document_type, input_name=N
             document = instance.deed_poll_documents.get_or_create(
                 input_name=input_name, name=filename)[0]
             path = default_storage.save(
-                'disturbance/{}/{}/deed_poll_documents/{}/{}'.format(
-                    instance._meta.model_name, instance.id, input_name, filename), ContentFile(
+                #'disturbance/{}/{}/deed_poll_documents/{}/{}'.format(
+                #'{}/{}/deed_poll_documents/{}'.format(
+                'proposals/{}/deed_poll_documents/{}'.format(
+                    #instance._meta.model_name, instance.id, input_name, filename), ContentFile(
+                    instance.proposal.id, filename), ContentFile(
                     _file.read()))
 
             document._file = path
@@ -160,7 +164,7 @@ def save_document(request, instance, comms_instance, document_type, input_name=N
             document = comms_instance.documents.get_or_create(
                 name=filename)[0]
             path = default_storage.save(
-                'disturbance/{}/{}/communications/{}/documents/{}'.format(
+                '{}/{}/communications/{}/documents/{}'.format(
                     instance._meta.model_name, instance.id, comms_instance.id, filename), ContentFile(
                     _file.read()))
 
@@ -175,7 +179,7 @@ def save_document(request, instance, comms_instance, document_type, input_name=N
             document = instance.documents.get_or_create(
                 name=filename)[0]
             path = default_storage.save(
-                'disturbance/{}/{}/documents/{}'.format(
+                '{}/{}/documents/{}'.format(
                     instance._meta.model_name, instance.id, filename), ContentFile(
                     _file.read()))
 
@@ -188,7 +192,7 @@ def save_comms_log_document_obj(instance, comms_instance, temp_document):
     document = comms_instance.documents.get_or_create(
         name=temp_document.name)[0]
     path = default_storage.save(
-        'disturbance/{}/{}/communications/{}/documents/{}'.format(
+        '{}/{}/communications/{}/documents/{}'.format(
             instance._meta.model_name, 
             instance.id, 
             comms_instance.id, 
@@ -205,7 +209,7 @@ def save_default_document_obj(instance, temp_document):
     document = instance.documents.get_or_create(
         name=temp_document.name)[0]
     path = default_storage.save(
-        'disturbance/{}/{}/documents/{}'.format(
+        '{}/{}/documents/{}'.format(
             instance._meta.model_name, 
             instance.id, 
             temp_document.name
