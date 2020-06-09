@@ -1,6 +1,5 @@
 <template lang="html">
     <div class="container" >
-        This is proposal_external.vue
         <form :action="proposal_form_url" method="post" name="new_proposal" enctype="multipart/form-data">
             <div v-if="!proposal_readonly">
               <div v-if="hasAmendmentRequest" class="row" style="color:red;">
