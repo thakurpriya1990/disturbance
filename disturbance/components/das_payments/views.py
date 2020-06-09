@@ -98,7 +98,9 @@ class ApplicationFeeSuccessView(TemplateView):
 
     def get(self, request, *args, **kwargs):
         print (" APPLICATION FEE SUCCESS ")
-#        for ss in request.session.keys():
+
+
+        #        for ss in request.session.keys():
 #            print (ss)
 #            print (request.session[ss])
 
@@ -154,6 +156,7 @@ class ApplicationFeeSuccessView(TemplateView):
                     if proposal and (invoice.payment_status == 'paid' or invoice.payment_status == 'over_paid'):
                         proposal.fee_invoice_reference = invoice_ref
                         proposal.save()
+                        proposal_submit_apiary(proposal, request)
                     else:
                         logger.error('Invoice payment status is {}'.format(invoice.payment_status))
                         raise
