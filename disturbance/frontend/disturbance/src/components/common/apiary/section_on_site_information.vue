@@ -13,11 +13,11 @@
             />
         </div>
 
-        <template v-if="proposal_apiary">
-            <OnSiteInformationAddModal
-                ref="on_site_information_add_modal"
-                :proposal_apiary="proposal_apiary"
+        <template v-if="approval_id">
+            <OnSiteInformationModal
+                ref="on_site_information_modal"
                 :on_site_information="on_site_information_to_edit"
+                :approval_id="approval_id"
                 :key="modalBindId"
                 @on_site_information_added="onSiteInformationAdded"
             />
@@ -30,14 +30,26 @@
     import datatable from '@vue-utils/datatable.vue'
     import uuid from 'uuid'
     import { api_endpoints, helpers, } from '@/utils/hooks'
-    import OnSiteInformationAddModal from './on_site_information_add_modal'
+    import OnSiteInformationModal from './on_site_information_modal'
     //import uuid from 'uuid'
    // import Swal from 'sweetalert2'
     //import Swal from 'sweetalert2/dist/sweetalert2.js'
 
     export default {
         props:{
-            proposal_apiary_id:{
+           // on_site_information_list_initial: {
+           //     type: Array,
+           //     required: false,
+           //     default: function() {
+           //         return [];
+           //     }
+           // },
+           // proposal_apiary_id:{
+           //     type: Number,
+           //     required: true,
+           //     default: 0,
+           // },
+            approval_id: {
                 type: Number,
                 required: true,
                 default: 0,
@@ -55,6 +67,7 @@
             let vm=this;
             return{
                 proposal_apiary: null,
+                on_site_information_list: [],
                 on_site_information_to_edit: {
                     id: null,
                     apiary_site: null,
@@ -113,8 +126,8 @@
                         },
                         {
                             mRender: function (data, type, full) {
-                                if (full.apiary_site) {
-                                    return full.apiary_site.id;
+                                if (full.apiary_site_id) {
+                                    return full.apiary_site_id;
                                 } else {
                                     return '';
                                 }
@@ -146,14 +159,14 @@
             }
         },
         components: {
-            OnSiteInformationAddModal,
+            OnSiteInformationModal,
             datatable,
         },
         computed:{
             addButtonEnabled: function() {
                 let enabled = false;
                 try {
-                    if(this.proposal_apiary.apiary_sites.length > 0){
+                    if(this.approval_id){
                         enabled = true
                     }
                 } catch(err) { }
@@ -161,14 +174,12 @@
             }
         },
         watch:{
-            proposal_apiary_id: async function() {
-                await this.loadApiarySiteLocation(this.proposal_apiary_id);
-                this.constructOnSiteInformationTable();
-            }
+
         },
         methods:{
             onSiteInformationAdded: async function() {
-                await this.loadApiarySiteLocation(this.proposal_apiary_id);
+                console.log('onSiteInformationAdded');
+                await this.loadOnSiteInformation(this.approval_id);
                 this.constructOnSiteInformationTable();
             },
             openOnSiteInformationModalToAdd: async function(e){
@@ -181,6 +192,8 @@
                 });
             },
             openOnSiteInformationModal: async function(obj_to_edit) {
+                console.log('in openOnSiteInformationModal');
+                console.log(obj_to_edit);
                 // Refresh the component key
                 this.modalBindId = uuid()
 
@@ -188,29 +201,22 @@
 
                 try {
                     this.$nextTick(() => {
-                        if (this.$refs.on_site_information_add_modal){
-                            this.$refs.on_site_information_add_modal.openMe();
+                        if (this.$refs.on_site_information_modal){
+                            this.$refs.on_site_information_modal.openMe();
                         }
                     });
                 } catch (err) {
-                    this.processError(err);
+                    this.processError(err)
                 }
             },
-            loadApiarySiteLocation: async function(id){
-                let temp = await Vue.http.get('/api/proposal_apiary/' + id + '/on_site_information_list/')
-                this.proposal_apiary = temp.body;
-            },
             constructOnSiteInformationTable: function(){
-                if (this.proposal_apiary && this.proposal_apiary.on_site_information_list){
+                // Clear table
+                this.$refs.on_site_information_table.vmDataTable.clear().draw();
 
-                    // Clear table
-                    this.$refs.on_site_information_table.vmDataTable.clear().draw();
-
-                    // Construct table
-                    if (this.proposal_apiary.on_site_information_list.length > 0){
-                        for(let i=0; i<this.proposal_apiary.on_site_information_list.length; i++){
-                            this.addOnSiteInformationToTable(this.proposal_apiary.on_site_information_list[i]);
-                        }
+                // Construct table
+                if (this.on_site_information_list.length > 0){
+                    for(let i=0; i<this.on_site_information_list.length; i++){
+                        this.addOnSiteInformationToTable(this.on_site_information_list[i]);
                     }
                 }
             },
@@ -224,6 +230,7 @@
             editOnSiteInformation: async function(e) {
                 let vm = this;
                 let on_site_information_id = e.target.getAttribute("data-on-site-information-id");
+                console.log('edit on_site_information_id: ' + on_site_information_id);
                 let obj_to_edit = {
                     id: null,
                     apiary_site: null,
@@ -232,9 +239,9 @@
                     period_to: null,
                 }
 
-                for(let i=0; i<this.proposal_apiary.on_site_information_list.length; i++){
-                    if(this.proposal_apiary.on_site_information_list[i].id == on_site_information_id){
-                        obj_to_edit = this.proposal_apiary.on_site_information_list[i];
+                for(let i=0; i<this.on_site_information_list.length; i++){
+                    if(this.on_site_information_list[i].id == on_site_information_id){
+                        obj_to_edit = this.on_site_information_list[i];
                         break;
                     }
                 }
@@ -255,9 +262,9 @@
                       confirmButtonText: "Yes, delete it",
                 }).then(
                     (accept) => {
-                        vm.$http.delete('/api/on_site_information/' + on_site_information_id).then(
+                        vm.$http.delete('/api/on_site_information/' + on_site_information_id + '/').then(
                             async function(accept){
-                                await vm.loadApiarySiteLocation(this.proposal_apiary_id);
+                                await vm.loadOnSiteInformation(this.approval_id);
                                 vm.constructOnSiteInformationTable();
                             },
                             reject=>{
@@ -274,8 +281,24 @@
                     }
                 )
             },
+            loadOnSiteInformation: async function(){
+                await this.$http.get('/api/approvals/' + this.approval_id + '/on_site_information/').then(
+                    (accept)=>{
+                        console.log('accept')
+                        console.log(accept.body)
+                        this.on_site_information_list = accept.body
+                        this.constructOnSiteInformationTable()
+                    },
+                    (reject)=>{
+                        console.log('reject')
+                    },
+                )
+            }
         },
         created: function() {
+            console.log('in created')
+            console.log('approval_id: ' + this.approval_id)
+            this.loadOnSiteInformation()
         },
         mounted: function() {
             let vm = this;

@@ -185,7 +185,7 @@ class ProposalSerializer(BaseProposalSerializer):
 
     proposal_apiary = serializers.SerializerMethodField()
     apiary_temporary_use = ProposalApiaryTemporaryUseSerializer(many=False, read_only=True)
-    apiary_temporary_use_set = ProposalApiaryTemporaryUseSerializer(many=True, read_only=True)
+    # apiary_temporary_use_set = ProposalApiaryTemporaryUseSerializer(many=True, read_only=True)
 
     class Meta:
         model = Proposal
@@ -193,7 +193,7 @@ class ProposalSerializer(BaseProposalSerializer):
             'comment_data',
             'proposal_apiary',
             'apiary_temporary_use',
-            'apiary_temporary_use_set',
+            # 'apiary_temporary_use_set',
         )
 
     def get_readonly(self,obj):
@@ -474,7 +474,7 @@ class DTReferralSerializer(serializers.ModelSerializer):
     submitter = serializers.SerializerMethodField()
     region = serializers.CharField(source='region.name', read_only=True)
     referral = EmailUserSerializer()
-    proposal_proxy_applicant = serializers.SerializerMethodField()
+    relevant_applicant_name = serializers.SerializerMethodField()
     #proposal_application_type = serializers.SerializerMethodField()
 
     class Meta:
@@ -484,7 +484,8 @@ class DTReferralSerializer(serializers.ModelSerializer):
             'region',
             'activity',
             'title',
-            'applicant',
+            #'applicant',
+            'relevant_applicant_name',
             'submitter',
             'processing_status',
             'referral_status',
@@ -495,15 +496,13 @@ class DTReferralSerializer(serializers.ModelSerializer):
             'proposal_lodgement_date',
             'proposal_lodgement_number',
             'referral_text',
-            'proposal_proxy_applicant',
         )
 
     def get_submitter(self,obj):
         return EmailUserSerializer(obj.proposal.submitter).data
 
-    def get_proposal_proxy_applicant(self,obj):
-        if obj.proposal.proxy_applicant:
-            return EmailUserSerializer(obj.proposal.proxy_applicant).data
+    def get_relevant_applicant_name(self,obj):
+        return obj.proposal.relevant_applicant_name
 
 class ProposalRequirementSerializer(serializers.ModelSerializer):
     due_date = serializers.DateField(input_formats=['%d/%m/%Y'],required=False,allow_null=True)

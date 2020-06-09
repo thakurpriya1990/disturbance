@@ -301,12 +301,19 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         http://localhost:8499/api/proposal_paginated/referrals_internal/?format=datatables&draw=1&length=2
         """
         #import ipdb; ipdb.set_trace()
-        self.serializer_class = ReferralSerializer
+        #self.serializer_class = ReferralSerializer
+        referral_id_list = []
         qs_r = Referral.objects.filter(referral=request.user) if is_internal(self.request) else Referral.objects.none()
+        for r in qs_r:
+            referral_id_list.append(r.id)
         #qs = self.filter_queryset(self.request, qs, self)
         # Add Apiary Referrals
         qs_ra = Referral.objects.filter(apiary_referral__referral_group__members=request.user)
-        qs = qs_r.union(qs_ra) if qs_r else qs_ra
+        #qs = qs_r.union(qs_ra) if qs_r else qs_ra
+        for ar in qs_ra:
+            if ar.id not in referral_id_list:
+                referral_id_list.append(ar.id)
+        qs = Referral.objects.filter(id__in=referral_id_list)
         qs = self.filter_queryset(qs)
 
         self.paginator.page_size = qs.count()
@@ -454,7 +461,7 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
 
-                return Response({})
+                return Response(serializer.data)
 
         except serializers.ValidationError:
             print(traceback.print_exc())
@@ -1489,10 +1496,12 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 http_status = status.HTTP_200_OK
                 application_type = ApplicationType.objects.get(id=request.data.get('application'))
 
-                # Check if application type is Temporary Use
-                apiary_temp_use = request.data.get('apiary_temporary_use', None)
-                aho = ApplicationType.objects.filter(name=ApplicationType.TEMPORARY_USE)
-                application_type = ApplicationType.objects.get(name=ApplicationType.TEMPORARY_USE) if apiary_temp_use else application_type
+                # When there is a parameter named 'application_type_str', we may need to update application_type
+                application_type_str = request.data.get('application_type_str', None)
+                if application_type_str == 'temporary_use':
+                    application_type = ApplicationType.objects.get(name=ApplicationType.TEMPORARY_USE)
+                elif application_type_str == 'site_transfer':
+                    application_type = ApplicationType.objects.get(name=ApplicationType.SITE_TRANSFER)
 
                 #region = request.data.get('region') if request.data.get('region') else 1
                 region = request.data.get('region')
@@ -1547,37 +1556,41 @@ class ProposalViewSet(viewsets.ModelViewSet):
                                                                                    question = question)
 
                 elif application_type.name == ApplicationType.TEMPORARY_USE:
-                    # format from_date
-                    from_datetime = convert_utc_time_to_local(apiary_temp_use['from_date'])
-                    from_date = from_datetime.date() if from_datetime else None
+                    approval_id = request.data.get('approval_id')
+                    approval = Approval.objects.get(id=approval_id)
 
-                    # format to_date
-                    to_datetime = convert_utc_time_to_local(apiary_temp_use['to_date'])
-                    to_date = to_datetime.date() if to_datetime else None
-
-                    details_data['from_date'] = from_date
-                    details_data['to_date'] = to_date
-                    details_data['temporary_occupier_name'] = apiary_temp_use['temporary_occupier_name']
-                    details_data['temporary_occupier_phone'] = apiary_temp_use['temporary_occupier_phone']
-                    details_data['temporary_occupier_mobile'] = apiary_temp_use['temporary_occupier_mobile']
-                    details_data['temporary_occupier_email'] = apiary_temp_use['temporary_occupier_email']
-                    details_data['proposal_apiary_base_id'] = apiary_temp_use['proposal_apiary_base_id']
-
+                    # # format from_date
+                    # from_datetime = convert_utc_time_to_local(apiary_temp_use['from_date'])
+                    # from_date = from_datetime.date() if from_datetime else None
+                    #
+                    # # format to_date
+                    # to_datetime = convert_utc_time_to_local(apiary_temp_use['to_date'])
+                    # to_date = to_datetime.date() if to_datetime else None
+                    #
+                    # details_data['from_date'] = from_date
+                    # details_data['to_date'] = to_date
+                    # details_data['temporary_occupier_name'] = apiary_temp_use['temporary_occupier_name']
+                    # details_data['temporary_occupier_phone'] = apiary_temp_use['temporary_occupier_phone']
+                    # details_data['temporary_occupier_mobile'] = apiary_temp_use['temporary_occupier_mobile']
+                    # details_data['temporary_occupier_email'] = apiary_temp_use['temporary_occupier_email']
+                    # # details_data['proposal_apiary_base_id'] = apiary_temp_use['proposal_apiary_base_id']
+                    #
                     # Save ProposalApiaryTemporaryUse
+
+                    details_data['loaning_approval_id'] = approval_id
                     serializer = ProposalApiaryTemporaryUseSerializer(data=details_data)
                     serializer.is_valid(raise_exception=True)
                     new_temp_use = serializer.save()
 
                     # Save TemporaryUseApiarySite
-                    for site in apiary_temp_use['apiary_sites']:
-                        if site['used']:
-                            data_to_save = {
-                                'proposal_apiary_temporary_use_id': new_temp_use.id,
-                                'apiary_site_id': site['id'],
-                            }
-                            serializer = TemporaryUseApiarySiteSerializer(data=data_to_save)
-                            serializer.is_valid(raise_exception=True)
-                            serializer.save()
+                    for site_approval in approval.apiary_site_approval_set.all():
+                        data_to_save = {
+                            'proposal_apiary_temporary_use_id': new_temp_use.id,
+                            'apiary_site_id': site_approval.apiary_site.id,
+                        }
+                        serializer = TemporaryUseApiarySiteSerializer(data=data_to_save)
+                        serializer.is_valid(raise_exception=True)
+                        serializer.save()
 
                 elif application_type.name == ApplicationType.SITE_TRANSFER:
                     serializer = ProposalApiarySiteTransferSerializer(data=details_data)
@@ -1595,8 +1608,30 @@ class ProposalViewSet(viewsets.ModelViewSet):
     def update(self, request, *args, **kwargs):
         try:
             http_status = status.HTTP_200_OK
+            application_type = ApplicationType.objects.get(id=request.data.get('application'))
+
+            # When there is a parameter named 'application_type_str', we may need to update application_type
+            application_type_str = request.data.get('application_type_str', None)
+            if application_type_str == 'temporary_use':
+                application_type = ApplicationType.objects.get(name=ApplicationType.TEMPORARY_USE)
+            elif application_type_str == 'site_transfer':
+                application_type = ApplicationType.objects.get(name=ApplicationType.SITE_TRANSFER)
+
+            if application_type.name == ApplicationType.APIARY:
+                pass
+                # TODO Update new apiary application
+
+            elif application_type.name == ApplicationType.TEMPORARY_USE:
+                pass
+                # TODO Update temporary use application
+
+            elif application_type.name == ApplicationType.SITE_TRANSFER:
+                pass
+                # TODO update Site Transfer Application
+
+
             instance = self.get_object()
-            serializer = SaveProposalSerializer(instance,data=request.data)
+            serializer = SaveProposalSerializer(instance, data=request.data)
             serializer.is_valid(raise_exception=True)
             self.perform_update(serializer)
             return Response(serializer.data)
