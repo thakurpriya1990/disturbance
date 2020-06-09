@@ -97,10 +97,12 @@
 
             <div class="row">
                 <FormSection :formCollapse="false" label="Site(s)" Index="site_avaiability">
-                    <SiteAvailability 
-                        :proposal_apiary_id="proposal_apiary_id" 
-                        ref="site_availability" 
-                    />
+                    <template v-if="approval && approval.id">
+                        <SiteAvailability 
+                            :approval_id="approval.id"
+                            ref="site_availability" 
+                        />
+                    </template>
                 </FormSection>
             </div>
 
@@ -109,7 +111,7 @@
                     <template v-if="approval && approval.id">
                         <TemporaryUse 
                             :proposal_apiary_id="proposal_apiary_id" 
-                            :licence_id="approval.id"
+                            :approval_id="approval.id"
                             ref="tempoary_use" 
                         />
                     </template>
@@ -118,10 +120,12 @@
 
             <div class="row">
                 <FormSection :formCollapse="false" label="On Site" Index="on_site">
-                    <OnSiteInformation 
-                        :proposal_apiary_id="proposal_apiary_id" 
-                        ref="on_site_information" 
-                    />
+                    <template v-if="approval && approval.id">
+                        <OnSiteInformation 
+                            :approval_id="approval.id"
+                            ref="on_site_information" 
+                        />
+                    </template>
                 </FormSection>
             </div>
         </div>
@@ -159,11 +163,40 @@ export default {
                 address: {}
             },
 
+            // variables passed to the child component
+            test_apiary_sites: [],
+            on_site_information_list: [],
             // Filters
 
         }
     },
-    watch: {},
+    watch: {
+        approval: {
+            deep: true,
+            handler(){
+                console.log('approval in watch');
+                console.log('length of approval.apiary_site_approval_set')
+                console.log(this.approval.apiary_site_approval_set.length);
+                console.log(this.approval.apiary_site_approval_set);
+
+                // Construct the array, which is passed to the child component, SiteAvailability
+                // Construct the array, which is passed to the child component, OnSiteInformation
+                this.test_apiary_sites = []
+                this.on_site_information_list = []
+
+                for (let i=0; i<this.approval.apiary_site_approval_set.length; i++){
+                    console.log(this.approval.apiary_site_approval_set[i]);
+                    this.test_apiary_sites.push(this.approval.apiary_site_approval_set[i].apiary_site)
+                    for (let j=0; j<this.approval.apiary_site_approval_set[i].apiary_site.onsiteinformation_set.length; j++){
+                        this.on_site_information_list.push(this.approval.apiary_site_approval_set[i].apiary_site.onsiteinformation_set[j])
+                    }
+                }
+
+                // Construct the array, which is passed to the child component, TemporaryUse
+
+            }
+        }
+    },
     filters: {
         formatDate: function(data){
             return moment(data).format('DD/MM/YYYY');

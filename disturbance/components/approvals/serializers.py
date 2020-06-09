@@ -12,7 +12,7 @@ from disturbance.components.organisations.models import (
 from disturbance.components.main.serializers import CommunicationLogEntrySerializer
 from rest_framework import serializers
 
-from disturbance.components.proposals.serializers_apiary import ProposalApiarySerializer
+from disturbance.components.proposals.serializers_apiary import ProposalApiarySerializer, ApiarySiteApprovalSerializer
 
 
 class EmailUserSerializer(serializers.ModelSerializer):
@@ -39,6 +39,7 @@ class ApprovalSerializer(serializers.ModelSerializer):
 
     # apiary_site_location = serializers.SerializerMethodField()
     current_proposal = ProposalSerializer()
+    apiary_site_approval_set = ApiarySiteApprovalSerializer(read_only=True, many=True)
 
     class Meta:
         model = Approval
@@ -80,6 +81,7 @@ class ApprovalSerializer(serializers.ModelSerializer):
             'can_approver_reissue',
             # 'apiary_site_location',
             'current_proposal',
+            'apiary_site_approval_set',
         )
         # the serverSide functionality of datatables is such that only columns that have field 'data' defined are requested from the serializer. We
         # also require the following additional fields for some of the mRender functions
