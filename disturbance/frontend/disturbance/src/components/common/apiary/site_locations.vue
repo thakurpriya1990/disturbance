@@ -66,6 +66,8 @@
 
                         <template v-if="proposal && proposal.proposal_apiary">
                             <div class="row col-sm-12 debug-info">
+                                <div>latitude >= 0 ==> SouthWest</div>
+                                <div>latitude < 0 ==> Remote</div>
                                 <template v-for="remainder in proposal.proposal_apiary.site_remainders">
                                     <div>
                                         {{ remainder.category_name }}: {{ remainder.remainders }} left (${{ remainder.fee }}/site)
