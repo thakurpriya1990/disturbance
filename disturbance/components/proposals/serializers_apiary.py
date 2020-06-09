@@ -1,4 +1,9 @@
+import pytz
 from django.conf import settings
+from datetime import datetime, timedelta, date
+from django.db.models import Q
+
+from ledger.settings_base import TIME_ZONE
 
 from disturbance.components.organisations.serializers import OrganisationSerializer
 from disturbance.components.proposals.serializers_base import (
@@ -23,7 +28,7 @@ from disturbance.components.proposals.models import (
     ApiaryReferralGroup,
     TemporaryUseApiarySite,
     ApiaryReferral,
-    Referral, ApiarySiteApproval,
+    Referral, ApiarySiteApproval, ApiarySiteFeeType, ApiarySiteFeeRemainder, SiteCategory,
 )
 
 from rest_framework import serializers
@@ -153,6 +158,7 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
 
     #checklist_questions = serializers.SerializerMethodField()
     checklist_answers = serializers.SerializerMethodField()
+    site_remainders = serializers.SerializerMethodField()
 
     class Meta:
         model = ProposalApiary
@@ -169,7 +175,45 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
             'on_site_information_list',
             #'checklist_questions',
             'checklist_answers',
+            'site_remainders',
         )
+
+    def get_site_remainders(self, proposal_apiary):
+        today_local = datetime.now(pytz.timezone(TIME_ZONE)).date()
+
+        ret_list = []
+        for category in SiteCategory.CATEGORY_CHOICES:
+            try:
+                # Retrieve sites left
+                filter_site_category = Q(site_category__name=category[0])
+                filter_site_fee_type = Q(apiary_site_fee_type=ApiarySiteFeeType.objects.get(name=ApiarySiteFeeType.FEE_TYPE_APPLICATION))
+                filter_applicant = Q(applicant=proposal_apiary.proposal.applicant)
+                filter_proxy_applicant = Q(proxy_applicant=proposal_apiary.proposal.proxy_applicant)
+                filter_expiry = Q(date_expiry__gte=today_local)
+                filter_used = Q(date_used__isnull=True)
+                site_fee_remainders = ApiarySiteFeeRemainder.objects.filter(
+                    filter_site_category &
+                    filter_site_fee_type &
+                    filter_applicant &
+                    filter_proxy_applicant &
+                    filter_expiry &
+                    filter_used
+                ).order_by('date_expiry')  # Older comes earlier
+
+                # Retrieve current fee
+                site_category = SiteCategory.objects.get(name=category[0])
+                fee = site_category.retrieve_fee_by_date_and_type(today_local, ApiarySiteFeeType.FEE_TYPE_APPLICATION)
+
+                remainder = {
+                    'category_name': category[1],
+                    'remainders': site_fee_remainders.count(),
+                    'fee': fee,
+                }
+                ret_list.append(remainder)
+            except:
+                pass
+
+        return ret_list
 
     def get_on_site_information_list(self, obj):
         on_site_information_list = OnSiteInformation.objects.filter(
@@ -202,6 +246,7 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
 
     def get_checklist_answers(self, obj):
         return ApiaryApplicantChecklistAnswerSerializer(obj.apiary_applicant_checklist, many=True).data
+
 
 class SaveProposalApiarySerializer(serializers.ModelSerializer):
     proposal_id = serializers.IntegerField(

@@ -106,8 +106,8 @@ def create_fee_lines_apiary(proposal):
         number_of_sites_to_add_as_remainder = number_of_sites_calculate - number_of_sites_after_deduction
         application_price = site_category.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_APPLICATION)
 
-        # Avoid ledger error (ledger doesn't accept quantity=0)
-        # in that case, set quantity=1 and price=0
+        # Avoid ledger error
+        # ledger doesn't accept quantity=0). Alternatively, set quantity=1 and price=0
         if number_of_sites_calculate == 0:
             number_of_sites_calculate = 1
             application_price = 0
@@ -128,7 +128,7 @@ def create_fee_lines_apiary(proposal):
                 apiary_site_fee_type=ApiarySiteFeeType.objects.get(name=ApiarySiteFeeType.FEE_TYPE_APPLICATION),
                 applicant=proposal.applicant,
                 proxy_applicant=proposal.proxy_applicant,
-                date_expiry= today_local + timedelta(days=7)
+                date_expiry=today_local + timedelta(days=7)
             )
 
     return line_items
