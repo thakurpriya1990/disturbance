@@ -34,7 +34,6 @@ from disturbance.components.proposals.utils import (
         save_proponent_data,
         save_assessor_data, 
         save_apiary_assessor_data, 
-        proposal_submit_apiary,
         )
 from disturbance.components.proposals.models import searchKeyWords, search_reference, ProposalUserAction, \
     ProposalApiary, OnSiteInformation, ApiarySite, ApiaryApplicantChecklistQuestion, ApiaryApplicantChecklistAnswer
@@ -1102,7 +1101,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 instance.tenure = search_tenure(instance)
             else:
                 save_proponent_data(instance, request, self)
-                proposal_submit_apiary(instance, request)
+                # proposal_submit_apiary(instance, request)
             instance.save()
             serializer = self.get_serializer(instance)
             return Response(serializer.data)

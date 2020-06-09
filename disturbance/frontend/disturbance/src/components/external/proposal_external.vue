@@ -400,7 +400,7 @@ export default {
             //vm.submittingProposal= false;
         },
         // Apiary submission
-        save_and_redirect: function(e) {
+        save_and_redirect: async function(e) {
             console.log('save_and_redirect');
             let vm = this;
             vm.form=document.forms.new_proposal;
@@ -414,12 +414,7 @@ export default {
                 console.log('Error in save_and_redirect()');
                 console.log(e);
             }
-            console.log('proposal_submit_url');
-            console.log(vm.proposal_submit_url);
-            console.log('application_fee_url');
-            console.log(vm.application_fee_url);
 
-            //vm.save_applicant_data();
             vm.$http.post(vm.proposal_submit_url,formData).then(res=>{
                 /* after the above save, redirect to the Django post() method in ApplicationFeeView */
                 vm.post_and_redirect(vm.application_fee_url, {'csrfmiddlewaretoken' : vm.csrf_token});
