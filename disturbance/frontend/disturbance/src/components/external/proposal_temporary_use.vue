@@ -5,6 +5,7 @@
                 <div class="row">
 
                     <FormSection :formCollapse="false" label="Period and Site(s)" Index="period_and_sites">
+
                         <template v-if="apiary_temporary_use">
                             <PeriodAndSites 
                                 :is_external=is_external 
@@ -39,7 +40,11 @@
                     </FormSection>
 
                     <FormSection :formCollapse="false" label="Deed Poll" Index="deed_poll">
-                        component here
+                        <DeedPoll
+                        :is_external=is_external
+                            :is_internal=is_internal
+                            @contents_changed="occupierDataChanged"
+                        />
                     </FormSection>
 
                 </div>
@@ -73,6 +78,7 @@
     import FormSection from "@/components/forms/section_toggle.vue"
     import PeriodAndSites from "@/components/common/apiary/section_period_and_sites.vue"
     import TemporaryOccupier from "@/components/common/apiary/section_temporary_occupier.vue"
+    import DeedPoll from "@/components/common/apiary/section_deed_poll.vue"
 
     export default {
         props:{
@@ -145,7 +151,7 @@
                     'category': '',
                     'profile': '', // TODO how to determine this?
                     'district': '',
-                    'application': '3',  // TODO Retrieve the id of the 'Temporary Use' type or handle it at the server side 
+                    'application': '3',  // TODO Retrieve the id of the 'Temporary Use' type or handle it at the server side
                                          //      like if there is apiary_temporary_use attribute, it must be a temporary use application, or so.
                     'sub_activity2': '',
                     'region': '',
@@ -232,7 +238,6 @@
             },
             loadProposal: async function(proposal_id) {
                 let vm = this
-
                 Vue.http.get(`/api/proposal/${proposal_id}.json`).then(re => {
                     console.log('in loadProposal');
                     console.log(re.body)

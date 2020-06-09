@@ -37,7 +37,7 @@ from disturbance.components.proposals.utils import (
         proposal_submit_apiary,
         )
 from disturbance.components.proposals.models import searchKeyWords, search_reference, ProposalUserAction, \
-    ProposalApiary, OnSiteInformation, ApiarySite
+    ProposalApiary, OnSiteInformation, ApiarySite, ApiaryApplicantChecklistQuestion, ApiaryApplicantChecklistAnswer
 from disturbance.utils import missing_required_fields, search_tenure
 from disturbance.components.main.utils import check_db_connection, convert_utc_time_to_local
 
@@ -301,12 +301,19 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         http://localhost:8499/api/proposal_paginated/referrals_internal/?format=datatables&draw=1&length=2
         """
         #import ipdb; ipdb.set_trace()
-        self.serializer_class = ReferralSerializer
+        #self.serializer_class = ReferralSerializer
+        referral_id_list = []
         qs_r = Referral.objects.filter(referral=request.user) if is_internal(self.request) else Referral.objects.none()
+        for r in qs_r:
+            referral_id_list.append(r.id)
         #qs = self.filter_queryset(self.request, qs, self)
         # Add Apiary Referrals
         qs_ra = Referral.objects.filter(apiary_referral__referral_group__members=request.user)
-        qs = qs_r.union(qs_ra) if qs_r else qs_ra
+        #qs = qs_r.union(qs_ra) if qs_r else qs_ra
+        for ar in qs_ra:
+            if ar.id not in referral_id_list:
+                referral_id_list.append(ar.id)
+        qs = Referral.objects.filter(id__in=referral_id_list)
         qs = self.filter_queryset(qs)
 
         self.paginator.page_size = qs.count()
@@ -1543,7 +1550,11 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 if application_type.name == ApplicationType.APIARY:
                     serializer = SaveProposalApiarySerializer(data=details_data)
                     serializer.is_valid(raise_exception=True)
-                    serializer.save()
+                    proposal_apiary = serializer.save()
+                    for question in ApiaryApplicantChecklistQuestion.objects.all():
+                        new_answer = ApiaryApplicantChecklistAnswer.objects.create(proposal = proposal_apiary,
+                                                                                   question = question)
+
                 elif application_type.name == ApplicationType.TEMPORARY_USE:
                     approval_id = request.data.get('approval_id')
                     approval = Approval.objects.get(id=approval_id)
