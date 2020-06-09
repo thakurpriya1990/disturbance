@@ -2326,11 +2326,12 @@ class ProposalApiaryTemporaryUse(models.Model):
     from_date = models.DateField('Period From Date', blank=True, null=True)
     to_date = models.DateField('Period To Date', blank=True, null=True)
     proposal = models.OneToOneField(Proposal, related_name='apiary_temporary_use', null=True, blank=True)
-    proposal_apiary_base = models.ForeignKey(Proposal, related_name='apiary_temporary_use_set', null=True, blank=True)
+    # proposal_apiary_base = models.ForeignKey(Proposal, related_name='apiary_temporary_use_set', null=True, blank=True)
     temporary_occupier_name = models.CharField(max_length=255, blank=True, null=True)
     temporary_occupier_phone = models.CharField(max_length=50, blank=True, null=True)
     temporary_occupier_mobile = models.CharField(max_length=50, blank=True, null=True)
     temporary_occupier_email = models.EmailField(blank=True, null=True)
+    loaning_approval = models.ForeignKey('disturbance.Approval', blank=True, null=True)
 
     def __str__(self):
         if self.proposal.proposal_apiary:
@@ -2347,8 +2348,20 @@ class TemporaryUseApiarySite(models.Model):
     """
     Apiary sites under a proposal can be partially used as temporary site
     """
-    proposal_apiary_temporary_use = models.ForeignKey(ProposalApiaryTemporaryUse, blank=True, null=True, related_name='apiary_sites')
+    proposal_apiary_temporary_use = models.ForeignKey(ProposalApiaryTemporaryUse, blank=True, null=True, related_name='temporary_use_apiary_sites')
     apiary_site = models.ForeignKey(ApiarySite, blank=True, null=True)
+    selected = models.BooleanField(default=False)
+
+    class Meta:
+        app_label = 'disturbance'
+
+
+class ApiarySiteApproval(models.Model):
+    """
+    This is intermediate table between ApiarySite and Approval to hold an approved apiary site under a certain approval
+    """
+    apiary_site = models.ForeignKey(ApiarySite, blank=True, null=True, related_name='apiary_site_approval_set')
+    approval = models.ForeignKey('disturbance.Approval', blank=True, null=True, related_name='apiary_site_approval_set')
 
     class Meta:
         app_label = 'disturbance'
@@ -2383,7 +2396,6 @@ class DeedPollDocument(DefaultDocument):
             return super(DeedPollDocument, self).delete()
 
 
-
 class ApiaryApplicantChecklistQuestion(models.Model):
     ANSWER_TYPE_CHOICES = (
         ('yes_no', 'Yes/No type'),
@@ -2400,6 +2412,7 @@ class ApiaryApplicantChecklistQuestion(models.Model):
 
     class Meta:
         app_label = 'disturbance'
+
 
 class ApiaryApplicantChecklistAnswer(models.Model):
     question=models.ForeignKey(ApiaryApplicantChecklistQuestion, related_name='answers')

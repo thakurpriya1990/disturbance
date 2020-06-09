@@ -211,7 +211,7 @@ export default {
             text: "Are you sure you want to create ",
             type: "question",
             showCancelButton: true,
-            confirmButtonText: 'Accept'
+            confirmButtonText: 'Accept1'
         }).then(() => {
          	vm.createProposal();
         },(error) => {
