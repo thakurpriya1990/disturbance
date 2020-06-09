@@ -11,7 +11,7 @@
             <div class="row" v-if="canSeeSubmission">
                 <div class="panel panel-default">
                     <div class="panel-heading">
-                       Submission 
+                       Submission
                     </div>
                     <div class="panel-body panel-collapse">
                         <div class="row">
@@ -61,7 +61,7 @@
             <div class="row">
                 <div class="panel panel-default">
                     <div class="panel-heading">
-                        Workflow 
+                        Workflow
                     </div>
                     <div class="panel-body panel-collapse">
                         <div class="row">
@@ -120,7 +120,7 @@
                                         </tr>
                                     </table>
                                     <template>
-                                            
+
                                     </template>
                                     <ApiaryReferralsForProposal @refreshFromResponse="refreshFromResponse" :proposal="proposal" :canAction="canLimitedAction" :isFinalised="isFinalised" :referral_url="referralListURL"/>
                                 </div>
@@ -261,7 +261,7 @@
                                         <a class="panelClicker" :href="'#'+detailsBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="detailsBody">
                                             <span class="glyphicon glyphicon-chevron-up pull-right "></span>
                                         </a>
-                                    </h3> 
+                                    </h3>
                                 </div>
                                 <div v-if="organisationApplicant">
                                     <div class="panel-body panel-collapse collapse in" :id="detailsBody">
@@ -311,7 +311,7 @@
                                         <a class="panelClicker" :href="'#'+addressBody" data-toggle="collapse"  data-parent="#userInfo" expanded="false" :aria-controls="addressBody">
                                             <span class="glyphicon glyphicon-chevron-down pull-right "></span>
                                         </a>
-                                    </h3> 
+                                    </h3>
                                 </div>
                                 <div class="panel-body panel-collapse collapse" :id="addressBody">
                                       <form class="form-horizontal">
@@ -403,16 +403,88 @@
                                 <div class="panel-body panel-collapse collapse" :id="siteLocations">
                                     <MapLocations
                                         :key="defaultKey"
-                                        ref="mapLocationsComponent" 
+                                        ref="mapLocationsComponent"
                                         :readonly="false"
-                                        :marker_longitude="130" 
-                                        :marker_latitude="-30" 
+                                        :marker_longitude="130"
+                                        :marker_latitude="-30"
                                         @location-updated="locationUpdated"
                                     />
                                 </div>
                             </div>
                         </div>
                     </div>
+
+                    <div class="col-md-12">
+
+                        <div class="row">
+
+                            <div class="panel panel-default">
+
+                                <div class="panel-heading">
+                                    <h3 class="panel-title">Deed Poll<small></small>
+                                    <a class="panelClicker" href="#deedPoll" data-toggle="collapse"  data-parent="#userInfo" expanded="true" aria-controls="deedPoll">
+                                    <span class="glyphicon glyphicon-chevron-up pull-right "></span>
+                                    </a>
+                                    </h3>
+                                </div>
+
+                                <div class="panel-body collapse in" id="deedPoll">
+                                    <div class="row">
+                                        <div class="col-sm-12">
+                                            <label>Print <a :href="deed_poll_url" target="_blank">the deed poll</a>, sign it, have it witnessed and attach it to this application.</label>
+                                        </div>
+                                    </div>
+                                     <div class="row">
+                                        <div class="col-sm-12">
+                                            <FileField :proposal_id="proposal.id" :isRepeatable="false" name="deed_poll" :id="'proposal'+proposal.id" :readonly="proposal.readonly" ref="deed_poll_doc"></FileField>
+                                        </div>
+                                     </div>
+                                 </div>
+
+                             </div>
+
+                        </div>
+
+                     </div>
+
+                     <div class="col-md-12">
+                        <div class="row">
+                            <div class="panel panel-default">
+                                <div class="panel-heading">
+                                    <h3 class="panel-title">Checklist<small></small>
+                                    <a class="panelClicker" href="#checkList" data-toggle="collapse"  data-parent="#userInfo" expanded="true" aria-controls="checkList">
+                                      <span class="glyphicon glyphicon-chevron-up pull-right "></span>
+                                    </a>
+                                    </h3>
+                                </div>
+
+                                <div class="panel-body collapse in" id="checkList">
+                                <!-- TODO cleanup this part -->
+                                    <form class="form-horizontal">
+                                        <ul class="list-unstyled col-sm-12" v-for="q in proposal.proposal_apiary.checklist_answers">
+                                            <div class="row">
+                                                <div class="col-sm-12">
+                                                    <li class="col-sm-6">
+                                                        <label class="control-label">{{q.question.text}}</label>
+                                                    </li>
+
+                                                    <ul  class="list-inline col-sm-6">
+                                                                <li class="list-inline-item">
+                                                                    <input  class="form-check-input" v-model="q.answer" ref="Checkbox" type="radio" :name="'option'+q.id" :id="'answer_one'+q.id":value="true" data-parsley-required disabled/> Yes
+                                                                </li>
+                                                                <li class="list-inline-item">
+                                                                    <input  class="form-check-input" v-model="q.answer" ref="Checkbox" type="radio" :name="'option'+q.id" :id="'answer_two'+q.id" :value="false" data-parsley-required disabled/> No </li>
+                                                     </ul>
+                                                </div>
+                                            </div>
+                                        </ul>
+
+                                     </form>
+
+                                </div>
+                            </div>
+                        </div>
+                     </div>
 
                     <div class="col-md-12">
                         <div class="row">
@@ -452,8 +524,8 @@
         </div>
         </div>
         <ProposedDecline ref="proposed_decline" :processing_status="proposal.processing_status" :proposal_id="proposal.id" @refreshFromResponse="refreshFromResponse"></ProposedDecline>
-        <!--AmendmentRequest ref="amendment_request" :proposal_id="proposal.id" @refreshFromResponse="refreshFromResponse"></AmendmentRequest-->
-        <!--ProposedApproval ref="proposed_approval" :processing_status="proposal.processing_status" :proposal_id="proposal.id" :proposal_type='proposal.proposal_type' :isApprovalLevelDocument="isApprovalLevelDocument" :submitter_email="proposal.submitter_email" :applicant_email="applicant_email" @refreshFromResponse="refreshFromResponse"/-->
+        <AmendmentRequest ref="amendment_request" :proposal_id="proposal.id" @refreshFromResponse="refreshFromResponse"></AmendmentRequest>
+        <ProposedApproval ref="proposed_approval" :processing_status="proposal.processing_status" :proposal_id="proposal.id" :proposal_type='proposal.proposal_type' :isApprovalLevelDocument="isApprovalLevelDocument" :submitter_email="proposal.submitter_email" :applicant_email="applicant_email" @refreshFromResponse="refreshFromResponse"/>
     </div>
 </template>
 <script>
@@ -474,6 +546,9 @@ import ApiaryReferralsForProposal from '@common-utils/apiary/apiary_referrals_fo
 import ResponsiveDatatablesHelper from "@/utils/responsive_datatable_helper.js"
 import { api_endpoints, helpers } from '@/utils/hooks'
 import MapLocations from '@common-utils/map_locations.vue'
+
+import FileField from '@/components/forms/filefield.vue'
+
 export default {
     name: 'InternalProposalApiary',
     data: function() {
@@ -559,6 +634,9 @@ export default {
         ApiaryReferralsForProposal,
         NewApply,
         MapLocations,
+
+        FileField,
+
     },
     filters: {
         formatDate: function(data){
@@ -672,7 +750,7 @@ export default {
                         if(ele[0].value!=''){
                             //console.log(visiblity, ele[0].name, ele[0].value)
                             ele[0].value=''
-                        } 
+                        }
                     }
                 }
             });
@@ -710,7 +788,7 @@ export default {
         },
         issueProposal:function(){
             //this.$refs.proposed_approval.approval = helpers.copyObject(this.proposal.proposed_issuance_approval);
-            
+
             //save approval level comment before opening 'issue approval' modal
             if(this.proposal && this.proposal.processing_status == 'With Approver' && this.proposal.approval_level != null && this.proposal.approval_level_document == null){
                 if (this.proposal.approval_level_comment!='')
@@ -744,9 +822,9 @@ export default {
             // if(this.proposal.applicant.email){
             //     this.$refs.proposed_approval.applicant_email=helpers.copyObject(this.proposal.applicant.email);
             // }
-            this.$refs.proposed_approval.isModalOpen = true; 
+            this.$refs.proposed_approval.isModalOpen = true;
             }
-            
+
         },
         declineProposal:function(){
             this.$refs.proposed_decline.decline = this.proposal.proposaldeclineddetails != null ? helpers.copyObject(this.proposal.proposaldeclineddetails): {};
@@ -757,10 +835,10 @@ export default {
             let values = '';
             $('.deficiency').each((i,d) => {
                 values +=  $(d).val() != '' ? `Question - ${$(d).data('question')}\nDeficiency - ${$(d).val()}\n\n`: '';
-            }); 
+            });
             //this.deficientFields();
             this.$refs.amendment_request.amendment.text = values;
-            
+
             this.$refs.amendment_request.isModalOpen = true;
         },
         highlight_deficient_fields: function(deficient_fields){
@@ -779,7 +857,7 @@ export default {
                     deficient_fields.push(tmp);
                     //console.log('data', $("#"+"id_" + tmp))
                 }
-            }); 
+            });
             //console.log('deficient fields', deficient_fields);
             vm.highlight_deficient_fields(deficient_fields);
         },
@@ -802,7 +880,7 @@ export default {
           let formData = new FormData(vm.form);
           vm.$http.post(vm.proposal_form_url,formData).then(res=>{
 
-              
+
           },err=>{
           });
         },
@@ -911,7 +989,7 @@ export default {
             vm.checkAssessorData();
             let formData = new FormData(vm.form);
             vm.$http.post(vm.proposal_form_url,formData).then(res=>{ //save Proposal before changing status so that unsaved assessor data is saved.
-            
+
             let data = {'status': status, 'approver_comment': vm.approver_comment}
             vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,(vm.proposal.id+'/switch_status')),JSON.stringify(data),{
                 emulateJSON:true,
@@ -935,7 +1013,7 @@ export default {
                     'error'
                 )
             });
-              
+
           },err=>{
           });
         }
@@ -1071,7 +1149,7 @@ export default {
                 }).
                 on("select2:unselect",function (e) {
                     var selected = $(e.currentTarget);
-                    vm.selected_referral = '' 
+                    vm.selected_referral = ''
                 });
                 vm.initialiseAssignedOfficerSelect();
                 vm.initialisedSelects = true;
@@ -1085,7 +1163,7 @@ export default {
             let formData = new FormData(vm.form);
             vm.sendingReferral = true;
             vm.$http.post(vm.proposal_form_url,formData).then(res=>{
-            
+
             let data = {'group_id':vm.selected_referral, 'text': vm.referral_text};
             //vm.sendingReferral = true;
             // need to create Referral, ApiaryReferral at this point
@@ -1120,11 +1198,11 @@ export default {
                 vm.sendingReferral = false;
             });
 
-              
+
           },err=>{
           });
-         
-        //this.$refs.referral_comment.selected_referral = vm.selected_referral;           
+
+        //this.$refs.referral_comment.selected_referral = vm.selected_referral;
         //this.$refs.referral_comment.isModalOpen = true;
 
           /*  let data = {'email':vm.selected_referral};
@@ -1156,7 +1234,7 @@ export default {
         remindReferral:function(r){
             console.log(r)
             let vm = this;
-            
+
             vm.$http.get(helpers.add_endpoint_json(api_endpoints.apiary_referrals,r.apiary_referral.id+'/remind')).then(response => {
                 vm.original_proposal = helpers.copyObject(response.body);
                 vm.proposal = response.body;
@@ -1177,7 +1255,7 @@ export default {
         },
         resendReferral:function(r){
             let vm = this;
-            
+
             vm.$http.get(helpers.add_endpoint_json(api_endpoints.apiary_referrals,r.apiary_referral.id+'/resend')).then(response => {
                 vm.original_proposal = helpers.copyObject(response.body);
                 vm.proposal = response.body;
@@ -1198,7 +1276,6 @@ export default {
         },
         recallReferral:function(r){
             let vm = this;
-            
             vm.$http.get(helpers.add_endpoint_json(api_endpoints.apiary_referrals,r.apiary_referral.id+'/recall')).then(response => {
                 vm.original_proposal = helpers.copyObject(response.body);
                 vm.proposal = response.body;
@@ -1217,7 +1294,7 @@ export default {
                 )
             });
         }
-        
+
     },
     mounted: function() {
         //let vm = this;
@@ -1232,7 +1309,7 @@ export default {
                 window.setTimeout(function () {
                     $(chev).toggleClass("glyphicon-chevron-down glyphicon-chevron-up");
                 },100);
-            }); 
+            });
             vm.panelClickersInitialised = true;
         }
         this.$nextTick(() => {
