@@ -29,7 +29,14 @@
                                 <div class="col-sm-offset-2 col-sm-8">
                                     <div class="form-group">
                                         <div class="input-group date" ref="add_attachments" style="width: 70%;">
-                                            <FileField ref="filefield" :uploaded_documents="amendment.amendment_request_documents" :delete_url="delete_url" :proposal_id="proposal_id" isRepeatable="true" name="amendment_request_file" @refreshFromResponse="refreshFromResponse"/>
+                                            <!--FileField ref="filefield" :uploaded_documents="amendment.amendment_request_documents" :delete_url="delete_url" :proposal_id="proposal_id" isRepeatable="true" name="amendment_request_file" @refreshFromResponse="refreshFromResponse"/-->
+                                            <FileField 
+                                            ref="filefield" 
+                                            :uploaded_documents="amendment.amendment_request_documents" 
+                                            :delete_url="delete_url" 
+                                            :proposal_id="proposal_id" 
+                                            :isRepeatable="true" 
+                                            name="amendment_request_file"/>
                                         </div>
                                     </div>
                                 </div>

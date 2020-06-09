@@ -182,6 +182,7 @@ export default {
                         },
                         name: "proposal__submitter__email",
                     },
+                    /*
                     {
                         data: "applicant",
                         mRender:function (data,type,full) {
@@ -194,6 +195,11 @@ export default {
                             }
                         },
                         name: "proposal__applicant__organisation__name",
+                    },
+                    */
+                    {
+                        data: "relevant_applicant_name",
+                        name: "proposal__relevant_applicant_name",
                     },
                     {
                         data: "processing_status",

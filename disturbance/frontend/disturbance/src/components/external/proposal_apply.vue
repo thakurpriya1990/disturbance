@@ -340,15 +340,13 @@ export default {
         console.log('createProposal');
         let vm = this;
         vm.creatingProposal = true;
-        let activity = vm.selected_application_name == 'Apiary' ? 'Apiary' : vm.selected_activity;
-
 		vm.$http.post('/api/proposal.json',{
 			behalf_of: vm.behalf_of,
 			application: vm.selected_application_id,
 			region: vm.selected_region,
 			district: vm.selected_district,
 			//tenure: vm.selected_tenure,
-            activity: activity,
+			activity: vm.selected_activity,
             sub_activity1: vm.selected_sub_activity1,
             sub_activity2: vm.selected_sub_activity2,
             category: vm.selected_category,

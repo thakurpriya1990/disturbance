@@ -224,10 +224,52 @@
                         </div>
                     </div>
                 </div>
-                <!--div class="col-md-12">
+                <div class="col-md-12">
+                    <div class="row">
+                        <div class="panel panel-default">
+                            <div class="panel-heading">
+                                <h3 class="panel-title">Contact Details
+                                    <a class="panelClicker" :href="'#'+contactsBody" data-toggle="collapse"  data-parent="#userInfo" expanded="false" :aria-controls="contactsBody">
+                                        <span class="glyphicon glyphicon-chevron-down pull-right "></span>
+                                    </a>
+                                </h3>
+                            </div>
+                            <div class="panel-body panel-collapse collapse" :id="contactsBody">
+                                <div v-if="organisationApplicant">
+                                    <table ref="contacts_datatable" :id="contacts_table_id" class="hover table table-striped table-bordered dt-responsive" cellspacing="0" width="100%">
+                                    </table>
+                                </div>
+                                <div v-else>
+                                  <form class="form-horizontal">
+                                      <div class="form-group">
+                                        <label for="" class="col-sm-3 control-label">Phone (work)</label>
+                                        <div class="col-md-8">
+                                            <input disabled type="text" class="form-control" name="applicantWorkPhone" placeholder="" v-model="proposal.applicant_phone_number">
+                                        </div>
+                                      </div>
+                                      <div class="form-group">
+                                        <label for="" class="col-sm-3 control-label" >Mobile</label>
+                                        <div class="col-md-8">
+                                            <input disabled type="text" class="form-control" name="applicantMobileNumber" placeholder="" v-model="proposal.applicant_mobile_number">
+                                        </div>
+                                      </div>
+                                      <div class="form-group">
+                                        <label for="" class="col-sm-3 control-label" >Email</label>
+                                        <div class="col-md-8">
+                                            <input disabled type="text" class="form-control" name="applicantEmail" placeholder="" v-model="proposal.applicant_email">
+                                        </div>
+                                      </div>
+                                  </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-12">
                     <div class="row">
                         <form :action="proposal_form_url" method="post" name="new_proposal" enctype="multipart/form-data">
-                            <Proposal form_width="inherit" :withSectionsSelector="false" v-if="proposal" :proposal="proposal">
+                            <ProposalApiary form_width="inherit" :withSectionsSelector="false" v-if="proposal" :proposal="proposal">
                                 <NewApply v-if="proposal" :proposal="proposal"></NewApply>
                                 <input type="hidden" name="csrfmiddlewaretoken" :value="csrf_token"/>
                                 <input type='hidden' name="schema" :value="JSON.stringify(proposal)" />
@@ -242,17 +284,17 @@
                                         </div>
                                 </div>      
 
-                            </Proposal>
+                            </ProposalApiary>
                         </form>
                     </div>
-                </div-->
+                </div>
             </div>
         </div>
         </div>
     </div>
 </template>
 <script>
-import Proposal from '../../form.vue'
+import ProposalApiary from '../../form_apiary.vue'
 import NewApply from '../../external/proposal_apply_new.vue'
 import Vue from 'vue'
 import datatable from '@vue-utils/datatable.vue'
@@ -330,7 +372,7 @@ export default {
         }
     },
     components: {
-        Proposal,
+        ProposalApiary,
         datatable,
         CommsLogs,
         MoreReferrals,
@@ -675,8 +717,8 @@ export default {
                     this.$http.post(helpers.add_endpoint_json(api_endpoints.apiary_referrals,this.referral.apiary_referral.id+'/complete'),JSON.stringify(data),{
                 emulateJSON:true
                 }).then(res => {
-                    this.referral = res.body;
-                    //this.referral.proposal.applicant.address = vm.referral.proposal.applicant.address != null ? vm.referral.proposal.applicant.address : {};
+                    //this.referral = res.body;
+                    this.$router.push({ path: '/internal' });
                 },
                 error => {
                     swal(

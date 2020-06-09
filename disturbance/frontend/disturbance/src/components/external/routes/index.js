@@ -1,12 +1,12 @@
 import ExternalDashboard from '../dashboard.vue'
-import Proposal from '../proposal_external.vue'
+//import Proposal from '../proposal_external.vue'
+import Proposal from '../proposal_wrapper.vue'
 import ProposalApply from '../proposal_apply.vue'
 import ProposalSubmit from '../proposal_submit.vue'
 import Organisation from '../organisations/manage.vue'
 import Compliance from '../compliances/access.vue'
 import ComplianceSubmit from '../compliances/submit.vue'
 import Approval from '../approvals/approval.vue'
-import ProposalTemporaryUse from '../proposal_temporary_use.vue'
 export default
 {
     path: '/external',
@@ -67,17 +67,5 @@ export default
                 },
             ]
         },
-        {
-            path: 'licence/:licence_id/temporary_use',
-            component: ProposalTemporaryUse,
-            name: "external-new-temporary-use",
-            children: [
-                {
-                    path: ':application_id',
-                    component: ProposalTemporaryUse,
-                    name: "external-temporary-use",
-                },
-            ]
-        }
     ]
 }
