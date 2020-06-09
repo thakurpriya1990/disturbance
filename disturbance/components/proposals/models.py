@@ -2386,14 +2386,29 @@ class ProposalApiaryDocument(DefaultDocument):
         if self.can_delete:
             return super(ProposalApiaryDocument, self).delete()
 
-
-class DeedPollDocument(DefaultDocument):
-    proposal = models.ForeignKey('Proposal', related_name='deed_poll_documents')
-    _file = models.FileField(max_length=512)
+class DeedPollDocument(Document):
+    proposal = models.ForeignKey(ProposalApiary, related_name='deed_poll_documents')
+    _file = models.FileField(max_length=255)
+    input_name = models.CharField(max_length=255, blank=True, null=True)
+    # after initial submit prevent document from being deleted
+    can_delete = models.BooleanField(default=True)
+    #version_comment = models.CharField(max_length=255, blank=True, null=True)
+    visible = models.BooleanField(default=True) # to prevent deletion on file system, hidden and still be available in history
 
     def delete(self):
         if self.can_delete:
             return super(DeedPollDocument, self).delete()
+
+    class Meta:
+        app_label = 'disturbance'
+
+#class DeedPollDocument(DefaultDocument):
+#    proposal = models.ForeignKey('Proposal', related_name='deed_poll_documents')
+#    _file = models.FileField(max_length=512)
+#
+#    def delete(self):
+#        if self.can_delete:
+#            return super(DeedPollDocument, self).delete()
 
 
 class ApiaryApplicantChecklistQuestion(models.Model):
