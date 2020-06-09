@@ -61,20 +61,13 @@
                 }
             },
             // all the ProposalApiaryTemporaryUse use objects under this licence 
-            // to be used to calculate each apirary site availability at any moment
+            // to be used to calculate each apirary site availability at any moment given
             existing_temporary_uses: {
                 type: Array,
                 default: function(){
                     return [];
                 }
             },
-         //   // This is existing temporary use object being edited
-         //   apiary_sites_being_edited: {
-         //       type: Array, 
-         //       default: function(){
-         //           return [];
-         //       }
-         //   },
             from_date_enabled: {
                 type: Boolean,
                 default: false,
@@ -117,29 +110,26 @@
                         {
                             visible: false,
                             mRender: function (data, type, full) {
-                                return full.id;
+                                return full.apiary_site.id;
                             }
                         },
                         {
                             mRender: function (data, type, full) {
-                                let checked_str = ''  // You can set "checked"
-                                if (full._site_used){
-                                    return 'not available';
-                                } else if (!full._from_and_to_date_set){
-                                    return '';
+                                if (full.selected){
+                                    return '<input type="checkbox" class="site_checkbox" data-apiary-site-id="' + full.apiary_site.id + '" checked/>'
                                 } else {
-                                    return '<input type="checkbox" class="site_checkbox" data-apiary-site-id="' + full.id + '" ' + checked_str + '/>'
+                                    return '<input type="checkbox" class="site_checkbox" data-apiary-site-id="' + full.apiary_site.id + '" />'
                                 }
                             }
                         },
                         {
                             mRender: function (data, type, full) {
-                                return 'site:' + full.id
+                                return 'site:' + full.apiary_site.id
                             }
                         },
                         {
                             mRender: function (data, type, full) {
-                                let ret = '<a><span class="view_on_map" data-apiary-site-id="' + full.id + '"/>View on Map (TODO)</span></a>';
+                                let ret = '<a><span class="view_on_map" data-apiary-site-id="' + full.apiary_site.id + '"/>View on Map (TODO)</span></a>';
                                 return ret;
                             }
                         },
@@ -149,7 +139,7 @@
                 period_to: '',
                 period_from_enabled: false,
                 period_to_enabled: false,
-                apiary_sites: [],
+                temporary_use_apiary_sites: [],
             }
         },
         created: function() {
@@ -173,7 +163,7 @@
                 }
             }
             if (this.apiary_sites_available.length > 0){
-                this.apiary_sites = this.apiary_sites_available;
+                this.temporary_use_apiary_sites = this.apiary_sites_available;
             }
             this.period_from_enabled = this.from_date_enabled;
             this.period_to_enabled = this.to_date_enabled;
@@ -201,58 +191,59 @@
                 this.$refs.apiary_sites_table.vmDataTable.clear().draw();
 
                 // Construct table
-                if (this.apiary_sites.length > 0){
-                    for(let i=0; i<this.apiary_sites.length; i++){
-                        this.addApiarySiteToTable(this.apiary_sites[i]);
+                if (this.temporary_use_apiary_sites.length > 0){
+                    for(let i=0; i<this.temporary_use_apiary_sites.length; i++){
+                        this.addApiarySiteToTable(this.temporary_use_apiary_sites[i]);
                     }
                 }
             },
-            addApiarySiteToTable: function(apiary_site) {
+            addApiarySiteToTable: function(temporary_use_apiary_site) {
                 console.log('in addApiarySiteToTable');
-                apiary_site['_site_used'] = false  // Make the site be temporary usable
-                apiary_site['_from_and_to_date_set'] = false
+                //apiary_site['_site_used'] = false  // Make the site be temporary usable
+                //apiary_site['_from_and_to_date_set'] = false
 
                 if (this.period_from && this.period_to){
                     // Only when from and to dates are set
-                    apiary_site['_from_and_to_date_set'] = true
+                    //apiary_site['_from_and_to_date_set'] = true
 
-                    outer_loop:
-                    for (let i=0; i<this.existing_temporary_uses.length; i++){
-                        // Check the usability to each existing temporary_use object
-                        let temp_use = this.existing_temporary_uses[i];
+                //    outer_loop:
+                //    for (let i=0; i<this.existing_temporary_uses.length; i++){
+                //        // Check the usability to each existing temporary_use object
+                //        let temp_use = this.existing_temporary_uses[i];
 
-                        for (let j=0; j<temp_use.apiary_sites.length; j++){
-                            let item_in_inter_table = temp_use.apiary_sites[j];
+                //        for (let j=0; j<temp_use.apiary_sites.length; j++){
+                //            let item_in_inter_table = temp_use.apiary_sites[j];
 
-                            if (item_in_inter_table.apiary_site.id == apiary_site.id){
-                                // Check the availability of the site
-                                let used_from_date = moment(temp_use.from_date, 'YYYY-MM-DD');
-                                let used_to_date = moment(temp_use.to_date, 'YYYY-MM-DD');
-                                let period_from = moment(this.period_from, 'DD/MM/YYYY');
-                                let period_to = moment(this.period_to, 'DD/MM/YYYY');
+                //            if (item_in_inter_table.apiary_site.id == apiary_site.id){
+                //                // Check the availability of the site
+                //                let used_from_date = moment(temp_use.from_date, 'YYYY-MM-DD');
+                //                let used_to_date = moment(temp_use.to_date, 'YYYY-MM-DD');
+                //                let period_from = moment(this.period_from, 'DD/MM/YYYY');
+                //                let period_to = moment(this.period_to, 'DD/MM/YYYY');
 
-                                console.log('used_from_date');
-                                console.log(used_from_date);
-                                console.log('used_to_date');
-                                console.log(used_to_date);
-                                console.log('period_from');
-                                console.log(period_from);
-                                console.log('period_to');
-                                console.log(period_to); 
+                //                console.log('used_from_date');
+                //                console.log(used_from_date);
+                //                console.log('used_to_date');
+                //                console.log(used_to_date);
+                //                console.log('period_from');
+                //                console.log(period_from);
+                //                console.log('period_to');
+                //                console.log(period_to); 
 
-                                if (period_to < used_from_date || used_to_date < period_from){
-                                    // Site is not used.  Do nothing
-                                } else {
-                                    // This site is temporary used for the period from this.form_date to this.to_date
-                                    apiary_site['_site_used'] = true
-                                    break outer_loop;
-                                }
-                            }
-                        }
-                    }
+                //                if (period_to < used_from_date || used_to_date < period_from){
+                //                    // Site is not used.  Do nothing
+                //                } else {
+                //                    // This site is temporary used for the period from this.form_date to this.to_date
+                //                    apiary_site['_site_used'] = true
+                //                    break outer_loop;
+                //                }
+                //            }
+                //        }
+                //    }
+
                 }
 
-                this.$refs.apiary_sites_table.vmDataTable.row.add(apiary_site).draw();
+                this.$refs.apiary_sites_table.vmDataTable.row.add(temporary_use_apiary_site).draw();
             },
             addEventListeners: function () {
                 $("#apiary-sites-table").on("click", ".view_on_map", this.viewSiteOnMap);

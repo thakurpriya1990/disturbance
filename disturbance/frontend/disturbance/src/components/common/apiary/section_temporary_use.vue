@@ -32,7 +32,7 @@
                 required: true,
                 default: 0,
             },
-            licence_id: {
+            approval_id: {
                 type: Number,
                 required: true,
             },
@@ -147,7 +147,8 @@
                     'behalf_of': '',  // TODO how to determine this?
                     'activity': '',
                     'sub_activity1': '',
-                    //'apiary_temporary_use': this.apiary_temporary_use,
+                    'application_type_str': 'temporary_use',
+                    'approval_id': this.approval_id,
                 }
                 return data
             },
@@ -160,7 +161,11 @@
 
                 vm.$http.post('/api/proposal.json', data).then(res => {
                     vm.proposal = res.body;
-                    vm.$router.push({ name:"draft_proposal", params:{ proposal_id:vm.proposal.id }});
+
+                    console.log('returned: ')
+                    console.log(vm.proposal)
+
+                    vm.$router.push({ name:"draft_proposal", params:{ proposal_id: vm.proposal.id }});
                     vm.creatingProposal = false;
                 },
                 err => {

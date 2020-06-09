@@ -5,17 +5,17 @@
                 <div class="row">
 
                     <FormSection :formCollapse="false" label="Period and Site(s)" Index="period_and_sites">
-                        <template v-if="licence">
-                            <PeriodAndSites
-                                :is_external=is_external
-                                :is_internal=is_internal
+
+                        <template v-if="apiary_temporary_use">
+                            <PeriodAndSites 
+                                :is_external=is_external 
+                                :is_internal=is_internal 
                                 :from_date="apiary_temporary_use.from_date"
                                 :to_date="apiary_temporary_use.to_date"
-                                :apiary_sites_available="apiary_sites_available"
-                                :existing_temporary_uses="existing_temporary_uses"
-                                :apiary_sites_being_edited="apiary_temporary_use.apiary_sites"
                                 :from_date_enabled="from_date_enabled"
                                 :to_date_enabled="to_date_enabled"
+                                :apiary_sites_available="apiary_temporary_use.temporary_use_apiary_sites"
+                                :existing_temporary_uses="existing_temporary_uses"
                                 @from_date_changed="fromDateChanged"
                                 @to_date_changed="toDateChanged"
                                 @site_checkbox_clicked="siteCheckboxClicked"
@@ -25,10 +25,10 @@
                     </FormSection>
 
                     <FormSection :formCollapse="false" label="Temporary Occupier" Index="temporary_occupier">
-                        <template v-if="licence">
-                            <TemporaryOccupier
-                                :is_external=is_external
-                                :is_internal=is_internal
+                        <template v-if="apiary_temporary_use">
+                            <TemporaryOccupier 
+                                :is_external=is_external 
+                                :is_internal=is_internal 
                                 :name=apiary_temporary_use.temporary_occupier_name
                                 :phone=apiary_temporary_use.temporary_occupier_phone
                                 :mobile=apiary_temporary_use.temporary_occupier_mobile
@@ -160,69 +160,44 @@
                     'activity': '',
                     'sub_activity1': '',
                     'apiary_temporary_use': this.apiary_temporary_use,
+                    'application_type_str': 'temporary_use',
                 }
                 return data
             },
-          //  proposal_create: function(){
-          //      console.log('in proposal_create');
-
-          //      let vm = this;
-          //      let data = vm._get_basic_data();
-
-          //      // Add proposal_apiary_base_id
-          //      data['apiary_temporary_use']['proposal_apiary_base_id'] = this.licence.current_proposal.id
-
-          //      this.$http.post('/api/proposal/', data).then(res=>{
-          //          console.log(res);
-          //          let application_id = res.body.id;
-          //          swal({
-          //              title: 'Saved',
-          //              text: 'Your proposal has been created',
-          //              type: 'success',
-          //              allowOutsideClick: false,
-          //          }).then(
-          //              res=>{
-          //                  // Redirect
-          //                  console.log('Redirect');
-          //                  //vm.$router.push({name: 'external-temporary-use', params: {licence_id: vm.licence.id, application_id: application_id}});
-          //              }, 
-          //              err=>{
-          //                  // Should not reach here because allowOutsideClick is set to false
-          //              }
-          //          );
-          //      },err=>{
-          //          this.processError(err)
-          //      });
-          //  },
             proposal_update: function(){
                 console.log('in proposal_update');
 
                 let vm = this;
                 let data = vm._get_basic_data();
 
-                this.$http.put('/api/proposal/' + this.apiary_temporary_use.id + '/', '{}').then(res=>{
-                    swal(
-                        'Saved',
-                        'Your proposal has been updated',
-                        'success'
-                    );
-                },err=>{
+                this.$http.put('/api/proposal/' + this.apiary_temporary_use.id + '/', data).then(
+                    res=>{
+                        swal(
+                            'Saved',
+                            'Your proposal has been updated',
+                            'success'
+                        );
+                    },err=>{
 
-                });
+                    }
+                );
             },
             occupierDataChanged: function(value){
+                console.log('in occupierDataChanged')
+                console.log(value)
+
                 this.apiary_temporary_use.temporary_occupier_name = value.occupier_name
                 this.apiary_temporary_use.temporary_occupier_phone = value.occupier_phone
                 this.apiary_temporary_use.temporary_occupier_mobile = value.occupier_mobile
                 this.apiary_temporary_use.temporary_occupier_email = value.occupier_email
             },
             siteCheckboxClicked: function(value){
-                console.log('siteCheckboxClicked');
+                console.log('in siteCheckboxClicked');
                 console.log(value);
-                for (let item of this.apiary_temporary_use.apiary_sites){
-                    console.log(item);
-                    if (item.id == value.apiary_site_id){
-                        item.used = value.checked;
+
+                for (let temporary_use_apiary_site of this.apiary_temporary_use.temporary_use_apiary_sites){
+                    if (temporary_use_apiary_site.apiary_site.id == value.apiary_site_id){
+                        temporary_use_apiary_site.selected = value.checked;
                     }
                 }
             },
@@ -261,78 +236,42 @@
                 }
                 await swal("Error", errorText, "error");
             },
-        },
-        beforeRouteEnter: async function(to, from, next) {
-            console.log('in beforeRouteEnter');
-            console.log(to);
-            console.log(from);
+            loadProposal: async function(proposal_id) {
+                let vm = this
+                Vue.http.get(`/api/proposal/${proposal_id}.json`).then(re => {
+                    console.log('in loadProposal');
+                    console.log(re.body)
 
-            // Licence
-            console.log('licence id: ' + to.params.licence_id);
+                    //let temp_use = re.body.apiary_temporary_use
+                    vm.apiary_temporary_use = re.body.apiary_temporary_use
+                    if (vm.apiary_temporary_use.from_date){
+                        console.log(vm.apiary_temporary_use.from_date);
+                        vm.apiary_temporary_use.from_date = moment(vm.apiary_temporary_use.from_date, 'YYYY-MM-DD');
+                        console.log(vm.apiary_temporary_use.from_date);
+                    }
+                    if (vm.apiary_temporary_use.to_date){
+                        console.log(vm.apiary_temporary_use.to_date);
+                        vm.apiary_temporary_use.to_date = moment(vm.apiary_temporary_use.to_date, 'YYYY-MM-DD');
+                        console.log(vm.apiary_temporary_use.to_date);
+                    }
+                    //vm.apiary_temporary_use.to_date = moment('06/05/2020', 'DD/MM/YYYY');
+                   // vm.apiary_temporary_use.id = temp_use.id
+                   // vm.apiary_temporary_use.temporary_occupier_name = temp_use.temporary_occupier_name
+                   // vm.apiary_temporary_use.temporary_occupier_phone = temp_use.temporary_occupier_phone
+                   // vm.apiary_temporary_use.temporary_occupier_mobile = temp_use.temporary_occupier_mobile
+                   // vm.apiary_temporary_use.temporary_occupier_email = temp_use.temporary_occupier_email
 
-            let vm = this;
-            await Vue.http.get(`/api/approvals/${to.params.licence_id}.json`).then(res => {
-                next(vm => {
-                        // ProposalApiaryTemporaryUse
-                        if (to.params.application_id){
-                            console.log('Editing an existing temporary use id: ' + to.params.application_id);
-                            Vue.http.get(`/api/proposal/${to.params.application_id}.json`).then(re => {
-                                // TODO
-                                console.log('application retrieved:');
-                                console.log('application: ')
-                                console.log(re.body);
-                                console.log('application.apiary_temporary_use: ')
-                                console.log(re.body.apiary_temporary_use);
-
-                                //vm.apiary_temporary_use = re.body.apiary_temporary_use
-                                // User is goint to edit existing application
-                                // TODO: load ProposalApiaryTemporaryUse object and set it to the apiary_temporary_use
-                                let temp_use = re.body.apiary_temporary_use
-                                if (temp_use.from_date){
-                                    console.log(temp_use.from_date);
-                                    vm.apiary_temporary_use.from_date = moment(temp_use.from_date, 'YYYY-MM-DD');
-                                    console.log(vm.apiary_temporary_use.from_date);
-                                }
-                                if (temp_use.to_date){
-                                    console.log(temp_use.to_date);
-                                    vm.apiary_temporary_use.to_date = moment(temp_use.to_date, 'YYYY-MM-DD');
-                                    console.log(vm.apiary_temporary_use.to_date);
-                                }
-                                //vm.apiary_temporary_use.to_date = moment('06/05/2020', 'DD/MM/YYYY');
-                                vm.apiary_temporary_use.id = temp_use.id
-                                vm.apiary_temporary_use.temporary_occupier_name = temp_use.temporary_occupier_name
-                                vm.apiary_temporary_use.temporary_occupier_phone = temp_use.temporary_occupier_phone
-                                vm.apiary_temporary_use.temporary_occupier_mobile = temp_use.temporary_occupier_mobile
-                                vm.apiary_temporary_use.temporary_occupier_email = temp_use.temporary_occupier_email
-
-                                // Update PeriodAndSites component
-                                vm.period_and_sites_key = uuid();
-                                // Update TemporaryOccupier component
-                                vm.temporary_occupier_key = uuid();
-                            });
-                        } else {
-                            console.log('Creating new temporary use');
-                        }
-
-                        vm.licence = res.body;
-                        for (let i=0; i<vm.licence.current_proposal.proposal_apiary.apiary_sites.length; i++){
-                            let site = vm.licence.current_proposal.proposal_apiary.apiary_sites[i];
-                            vm.apiary_sites_available.push(site);
-                        }
-                        for (let j=0; j<vm.licence.current_proposal.apiary_temporary_use_set.length; j++){
-                            let temporary_use = vm.licence.current_proposal.apiary_temporary_use_set[j]
-                            vm.existing_temporary_uses.push(temporary_use);
-                        }
-                    });
-                },
-                err => {
-                    console.log(err);
-                }
-            ).then(res => {
-            });
+                    // Update PeriodAndSites component
+                    vm.period_and_sites_key = uuid();
+                    // Update TemporaryOccupier component
+                    vm.temporary_occupier_key = uuid();
+                });
+            },
         },
         created: function() {
-
+            if (this.$route.params.proposal_id) {
+                this.loadProposal(this.$route.params.proposal_id)
+            }
         },
         mounted: function() {
             let vm = this;

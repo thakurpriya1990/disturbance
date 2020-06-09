@@ -242,34 +242,37 @@ class ApiarySiteApprovalSerializer(serializers.ModelSerializer):
 
 class TemporaryUseApiarySiteSerializer(serializers.ModelSerializer):
     proposal_apiary_temporary_use_id = serializers.IntegerField(write_only=True, required=False)
-    # apiary_site_id = serializers.IntegerField(write_only=True, required=False)
-    # apiary_site = ApiarySiteSerializer(read_only=True)
-    apiary_site_approval = ApiarySiteApprovalSerializer(read_only=True)
-    apiary_site_approval_id = serializers.IntegerField(write_only=True, required=False)
+    apiary_site_id = serializers.IntegerField(write_only=True, required=False)
+    apiary_site = ApiarySiteSerializer(read_only=True)
+    # apiary_site_approval = ApiarySiteApprovalSerializer(read_only=True)
+    # apiary_site_approval_id = serializers.IntegerField(write_only=True, required=False)
     # apiary_site = serializers.SerializerMethodField()
 
     def validate(self, attrs):
         return attrs
 
-    def get_apiary_site(self, obj):
-        serializers = ApiarySiteSerializer(self.apiary_site_approval.apiary_site)
-        return serializers.data
-
     class Meta:
         model = TemporaryUseApiarySite
         fields = (
             'proposal_apiary_temporary_use_id',
-            'apiary_site_approval',
-            'apiary_site_approval_id',
-            # 'apiary_site_id',
-            # 'apiary_site',
+            # 'apiary_site_approval',
+            # 'apiary_site_approval_id',
+            'apiary_site_id',
+            'apiary_site',
+            'selected',
         )
 
 
 class ProposalApiaryTemporaryUseSerializer(serializers.ModelSerializer):
     proposal_id = serializers.IntegerField(write_only=True, required=False)
-    # proposal_apiary_base_id = serializers.IntegerField(write_only=True, required=False)
-    apiary_sites = TemporaryUseApiarySiteSerializer(many=True, read_only=True)
+    loaning_approval_id = serializers.IntegerField(write_only=True, required=False)
+    # temporary_use_apiary_sites = serializers.SerializerMethodField()
+    temporary_use_apiary_sites = TemporaryUseApiarySiteSerializer(read_only=True, many=True)
+
+    # def get_temporary_use_apiary_sites(self, obj):
+    #     qs = TemporaryUseApiarySite.objects.get(proposal_apiary_temporary_use=obj)
+    #     serializers = TemporaryUseApiarySiteSerializer(qs, many=True)
+    #     return serializers.data
 
     class Meta:
         model = ProposalApiaryTemporaryUse
@@ -282,8 +285,8 @@ class ProposalApiaryTemporaryUseSerializer(serializers.ModelSerializer):
             'temporary_occupier_mobile',
             'temporary_occupier_email',
             'proposal_id',
-            # 'proposal_apiary_base_id',
-            'apiary_sites',
+            'loaning_approval_id',
+            'temporary_use_apiary_sites',
         )
 
 
