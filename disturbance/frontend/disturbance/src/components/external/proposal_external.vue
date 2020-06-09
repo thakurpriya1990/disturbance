@@ -1,5 +1,6 @@
 <template lang="html">
     <div class="container" >
+        This is proposal_external.vue
         <form :action="proposal_form_url" method="post" name="new_proposal" enctype="multipart/form-data">
             <div v-if="!proposal_readonly">
               <div v-if="hasAmendmentRequest" class="row" style="color:red;">
@@ -446,6 +447,8 @@ export default {
         },
     },
     mounted: function() {
+        console.log('in mounted')
+
         let vm = this;
         vm.form = document.forms.new_proposal;
         window.addEventListener('beforeunload', vm.leaving);
@@ -459,6 +462,8 @@ export default {
         //     });
     },
     updated: function(){
+        console.log('in updated')
+
         let vm=this;
         this.$nextTick(() => {
             if(vm.hasAmendmentRequest){
@@ -466,41 +471,68 @@ export default {
             }
         });
     },
-  
-    beforeRouteEnter: function(to, from, next) {
-        if (to.params.proposal_id) {
-            let vm = this;
-            Vue.http.get(`/api/proposal/${to.params.proposal_id}.json`).then(res => {
-                next(vm => {
-                    vm.loading.push('fetching proposal')
-                    vm.proposal = res.body;
-                    vm.loading.splice('fetching proposal', 1);
-                    vm.setdata(vm.proposal.readonly);
+    created: function() {
+        console.log('in created')
+        console.log('proposal_id: ' + this.$route.params.proposal_id)
+        let proposal_id = this.$route.params.proposal_id
 
-                    Vue.http.get(helpers.add_endpoint_json(api_endpoints.proposals,to.params.proposal_id+'/amendment_request')).then((res) => {
-                        vm.setAmendmentData(res.body);
-                    },
-                    err => { 
-                        console.log(err);
-                    });
+        let vm = this;
+        Vue.http.get(`/api/proposal/${ proposal_id }.json`).then(
+            res => {
+                vm.loading.push('fetching proposal')
+                vm.proposal = res.body;
+                vm.loading.splice('fetching proposal', 1);
+                vm.setdata(vm.proposal.readonly);
+
+                Vue.http.get(helpers.add_endpoint_json(api_endpoints.proposals, proposal_id + '/amendment_request')).then((res) => {
+                    vm.setAmendmentData(res.body);
+                },
+                err => { 
+                    console.log(err);
                 });
             },
             err => {
                 console.log(err);
-            });    
-        }
-        else {
-            Vue.http.post('/api/proposal.json').then(res => {
-                next(vm => {
-                    vm.loading.push('fetching proposal')
-                    vm.proposal = res.body;
-                    vm.loading.splice('fetching proposal', 1);
-                });
-            },
-            err => {
-                console.log(err);
-            });
-        }
+            }
+        );
+    },
+    beforeRouteEnter: function(to, from, next) {
+        console.log('in beforeRouteEnter')
+        console.log('id: ' + to.params.proposal_id)
+
+       // if (to.params.proposal_id) {
+       //     let vm = this;
+       //     Vue.http.get(`/api/proposal/${to.params.proposal_id}.json`).then(res => {
+       //         next(vm => {
+       //             vm.loading.push('fetching proposal')
+       //             vm.proposal = res.body;
+       //             vm.loading.splice('fetching proposal', 1);
+       //             vm.setdata(vm.proposal.readonly);
+
+       //             Vue.http.get(helpers.add_endpoint_json(api_endpoints.proposals,to.params.proposal_id+'/amendment_request')).then((res) => {
+       //                 vm.setAmendmentData(res.body);
+       //             },
+       //             err => { 
+       //                 console.log(err);
+       //             });
+       //         });
+       //     },
+       //     err => {
+       //         console.log(err);
+       //     });    
+       // }
+       // else {
+       //     Vue.http.post('/api/proposal.json').then(res => {
+       //         next(vm => {
+       //             vm.loading.push('fetching proposal')
+       //             vm.proposal = res.body;
+       //             vm.loading.splice('fetching proposal', 1);
+       //         });
+       //     },
+       //     err => {
+       //         console.log(err);
+       //     });
+       // }
     }
 }
 </script>
