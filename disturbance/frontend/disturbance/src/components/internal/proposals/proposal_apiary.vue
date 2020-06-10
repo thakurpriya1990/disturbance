@@ -389,109 +389,12 @@
                             </div>
                         </div>
                     </div>
-
-                    <div class="col-md-12">
-                        <div class="row">
-                            <div class="panel panel-default">
-                                <div class="panel-heading">
-                                    <h3 class="panel-title">Site Locations
-                                        <a class="panelClicker" :href="'#'+siteLocations" data-toggle="collapse"  data-parent="#userInfo" expanded="false" :aria-controls="siteLocations">
-                                            <span class="glyphicon glyphicon-chevron-down pull-right "></span>
-                                        </a>
-                                    </h3>
-                                </div>
-                                <div class="panel-body panel-collapse collapse" :id="siteLocations">
-                                    <MapLocations
-                                        :key="defaultKey"
-                                        ref="mapLocationsComponent"
-                                        :readonly="false"
-                                        :marker_longitude="130"
-                                        :marker_latitude="-30"
-                                        @location-updated="locationUpdated"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-md-12">
-
-                        <div class="row">
-
-                            <div class="panel panel-default">
-
-                                <div class="panel-heading">
-                                    <h3 class="panel-title">Deed Poll<small></small>
-                                    <a class="panelClicker" href="#deedPoll" data-toggle="collapse"  data-parent="#userInfo" expanded="true" aria-controls="deedPoll">
-                                    <span class="glyphicon glyphicon-chevron-up pull-right "></span>
-                                    </a>
-                                    </h3>
-                                </div>
-
-                                <div class="panel-body collapse in" id="deedPoll">
-                                    <div class="row">
-                                        <div class="col-sm-12">
-                                            <label>Print <a :href="deed_poll_url" target="_blank">the deed poll</a>, sign it, have it witnessed and attach it to this application.</label>
-                                        </div>
-                                    </div>
-                                     <div class="row">
-                                        <div class="col-sm-12">
-                                            <FileField :proposal_id="proposal.id" :isRepeatable="false" name="deed_poll" :id="'proposal'+proposal.id" :readonly="proposal.readonly" ref="deed_poll_doc"></FileField>
-                                        </div>
-                                     </div>
-                                 </div>
-
-                             </div>
-
-                        </div>
-
-                     </div>
-
-                     <div class="col-md-12">
-                        <div class="row">
-                            <div class="panel panel-default">
-                                <div class="panel-heading">
-                                    <h3 class="panel-title">Checklist<small></small>
-                                    <a class="panelClicker" href="#checkList" data-toggle="collapse"  data-parent="#userInfo" expanded="true" aria-controls="checkList">
-                                      <span class="glyphicon glyphicon-chevron-up pull-right "></span>
-                                    </a>
-                                    </h3>
-                                </div>
-
-                                <div class="panel-body collapse in" id="checkList">
-                                <!-- TODO cleanup this part -->
-                                    <form class="form-horizontal">
-                                        <ul class="list-unstyled col-sm-12" v-for="q in proposal.proposal_apiary.checklist_answers">
-                                            <div class="row">
-                                                <div class="col-sm-12">
-                                                    <li class="col-sm-6">
-                                                        <label class="control-label">{{q.question.text}}</label>
-                                                    </li>
-
-                                                    <ul  class="list-inline col-sm-6">
-                                                                <li class="list-inline-item">
-                                                                    <input  class="form-check-input" v-model="q.answer" ref="Checkbox" type="radio" :name="'option'+q.id" :id="'answer_one'+q.id":value="true" data-parsley-required disabled/> Yes
-                                                                </li>
-                                                                <li class="list-inline-item">
-                                                                    <input  class="form-check-input" v-model="q.answer" ref="Checkbox" type="radio" :name="'option'+q.id" :id="'answer_two'+q.id" :value="false" data-parsley-required disabled/> No </li>
-                                                     </ul>
-                                                </div>
-                                            </div>
-                                        </ul>
-
-                                     </form>
-
-                                </div>
-                            </div>
-                        </div>
-                     </div>
-
                     <div class="col-md-12">
                         <div class="row">
                             <form :action="proposal_form_url" method="post" name="new_proposal" enctype="multipart/form-data">
 
                                 <div v-if="proposal.application_type=='Apiary'">
-                                    <!--ProposalApiary v-if="proposal" :proposal="proposal" id="proposalStart" :showSections="sectionShow" ref="proposal_apiary" :is_external="false" :is_internal="true" :hasAssessorMode="hasAssessorMode"></ProposalApiary-->
+                                    <ProposalApiary v-if="proposal" :proposal="proposal" id="proposalStart" :showSections="sectionShow" ref="proposal_apiary" :is_external="false" :is_internal="true" :hasAssessorMode="hasAssessorMode"></ProposalApiary>
                                 </div>
                                 <div v-else>
                                     <ProposalDisturbance form_width="inherit" :withSectionsSelector="false" v-if="proposal" :proposal="proposal"> </ProposalDisturbance>

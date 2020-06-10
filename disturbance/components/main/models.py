@@ -218,3 +218,23 @@ class GlobalSettings(models.Model):
     def __str__(self):
         return self.key
 
+
+class TemporaryDocumentCollection(models.Model):
+    #input_name = models.CharField(max_length=255, null=True, blank=True)
+
+    class Meta:
+        app_label = 'disturbance'
+
+
+# temp document obj for generic file upload component
+class TemporaryDocument(Document):
+    temp_document_collection = models.ForeignKey(
+        TemporaryDocumentCollection,
+        related_name='documents')
+    _file = models.FileField(max_length=255)
+    #input_name = models.CharField(max_length=255, null=True, blank=True)
+
+    class Meta:
+        app_label = 'disturbance'
+
+

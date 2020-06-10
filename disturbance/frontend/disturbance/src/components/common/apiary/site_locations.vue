@@ -64,6 +64,22 @@
                             </div>
                         </div>
 
+                        <template v-if="proposal && proposal.proposal_apiary">
+                            <div class="row col-sm-12 debug-info">
+                                How to set a site 'SouthWest'/'Remote':
+                                <div class="debug-message">
+                                    <div>when latitude is more than or equal to 0, then the proposed site is regarded as 'SouthWest'</div>
+                                    <div>when latitude is less than 0, then the proposed site is regarded as 'Remote'</div>
+                                </div>
+                                Remainders:
+                                <div v-for="remainder in proposal.proposal_apiary.site_remainders" class="debug-remainders">
+                                    <div>
+                                        {{ remainder.category_name }}: {{ remainder.remainders }} left (${{ remainder.fee }}/site)
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+
                         <div class="row col-sm-12">
                             <datatable ref="site_locations_table" id="site-locations-table" :dtOptions="dtOptions" :dtHeaders="dtHeaders" />
                         </div>
@@ -86,27 +102,6 @@
                     </div>
                 </div>
 
-                <div class="panel panel-default">
-                    <div class="panel-heading">
-                        <h3 class="panel-title">Deed Poll<small></small>
-                        <a class="panelClicker" href="#deedPoll" data-toggle="collapse"  data-parent="#userInfo" expanded="true" aria-controls="deedPoll">
-                        <span class="glyphicon glyphicon-chevron-up pull-right "></span>
-                        </a>
-                        </h3>
-                    </div>
-                    <div class="panel-body collapse in" id="deedPoll">
-                        <div class="row">
-                            <div class="col-sm-12">
-                                <label>Print <a :href="deed_poll_url" target="_blank">the deed poll</a>, sign it, have it witnessed and attach it to this application.</label>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-sm-12">
-                                <FileField :proposal_id="proposal.id" :isRepeatable="false" name="deed_poll" :id="'proposal'+proposal.id" :readonly="proposal.readonly" ref="deed_poll_doc"></FileField>
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
                 <div class="panel panel-default">
                     <div class="panel-heading">
@@ -153,7 +148,7 @@
 <script>
 
     import TextField from '@/components/forms/text.vue'
-    import FileField from '@/components/forms/filefield.vue'
+    //import FileField from '@/components/forms/filefield.vue'
     import datatable from '@vue-utils/datatable.vue'
     import uuid from 'uuid';
     import SiteLocationsModal from './site_locations_modal';
@@ -270,7 +265,7 @@
         },
         components: {
             TextField,
-            FileField,
+            //FileField,
             datatable,
             SiteLocationsModal,
         },
@@ -362,5 +357,17 @@
     .fixed-top{
         position: fixed;
         top:56px;
+    }
+    .debug-info {
+        background: #CCC;
+        padding: 1em;
+        margin: 1em;
+    }
+    .debug-message {
+        margin: 0 0 1em 0;
+        padding: 0 0 0 1em
+    }
+    .debug-remainders {
+        padding: 0 0 0 1em
     }
 </style>
