@@ -64,6 +64,18 @@
                             </div>
                         </div>
 
+                        <template v-if="proposal && proposal.proposal_apiary">
+                            <div class="row col-sm-12 debug-info">
+                                <div>latitude >= 0 ==> SouthWest</div>
+                                <div>latitude < 0 ==> Remote</div>
+                                <template v-for="remainder in proposal.proposal_apiary.site_remainders">
+                                    <div>
+                                        {{ remainder.category_name }}: {{ remainder.remainders }} left (${{ remainder.fee }}/site)
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+
                         <div class="row col-sm-12">
                             <datatable ref="site_locations_table" id="site-locations-table" :dtOptions="dtOptions" :dtHeaders="dtHeaders" />
                         </div>
@@ -341,5 +353,10 @@
     .fixed-top{
         position: fixed;
         top:56px;
+    }
+    .debug-info {
+        background: #CCC;
+        padding: 1em;
+        margin: 1em;
     }
 </style>

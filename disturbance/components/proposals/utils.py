@@ -378,9 +378,12 @@ def save_proponent_data_apiary(instance, request, viewset):
                 for index, apiary_site in enumerate(site_locations_received):
                     apiary_site['proposal_apiary_id'] = instance.proposal_apiary.id
 
-                    # TODO: site_category_id must be determined by the category retrieved from the GIS server
-                    site_categories = SiteCategory.objects.all()
-                    apiary_site['site_category_id'] = site_categories[0].id if index % 2 == 0 else site_categories[1].id
+                    # TODO: retrieve category (south-west / remote) from GIS server
+                    if int(apiary_site['latitude']) >= 0:
+                        category_obj = SiteCategory.objects.get(name='south_west')
+                    else:
+                        category_obj = SiteCategory.objects.get(name='remote')
+                    apiary_site['site_category_id'] = category_obj.id
 
                     try:
                         # Update existing
@@ -417,6 +420,7 @@ def save_proponent_data_apiary(instance, request, viewset):
             instance.save()
         except Exception as e:
             raise
+
 
 def save_proponent_data_disturbance(instance,request,viewset):
     with transaction.atomic():
@@ -493,6 +497,7 @@ def save_proponent_data_disturbance(instance,request,viewset):
         except:
             raise
 
+
 def save_assessor_data(instance,request,viewset):
     with transaction.atomic():
         try:
@@ -526,6 +531,7 @@ def save_assessor_data(instance,request,viewset):
             instance.log_user_action(ProposalUserAction.ACTION_SAVE_APPLICATION.format(instance.id),request)
         except:
             raise
+
 
 def save_apiary_assessor_data(instance,request,viewset):
     with transaction.atomic():
@@ -561,6 +567,7 @@ def save_apiary_assessor_data(instance,request,viewset):
             instance.log_user_action(ProposalUserAction.APIARY_ACTION_SAVE_APPLICATION.format(instance.id),request)
         except:
             raise
+
 
 def proposal_submit_apiary(proposal, request):
     with transaction.atomic():
