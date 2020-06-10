@@ -393,14 +393,15 @@
                         <div class="row">
                             <form :action="proposal_form_url" method="post" name="new_proposal" enctype="multipart/form-data">
 
-                                <div v-if="proposal.application_type=='Apiary'">
-                                    <ProposalApiary v-if="proposal" :proposal="proposal" id="proposalStart" :showSections="sectionShow" ref="proposal_apiary" :is_external="false" :is_internal="true" :hasAssessorMode="hasAssessorMode"></ProposalApiary>
-                                </div>
-                                <div v-else>
-                                    <ProposalDisturbance form_width="inherit" :withSectionsSelector="false" v-if="proposal" :proposal="proposal"> </ProposalDisturbance>
-                                    <NewApply v-if="proposal" :proposal="proposal"></NewApply>
-                                </div>
-
+                                <ProposalApiary 
+                                v-if="proposal" 
+                                :proposal="proposal" 
+                                id="proposalStart" 
+                                ref="proposal_apiary" 
+                                :is_external="false" 
+                                :is_internal="true" 
+                                :hasAssessorMode="hasAssessorMode"
+                                />
 
                                 <div>
                                     <input type="hidden" name="csrfmiddlewaretoken" :value="csrf_token"/>
@@ -1157,6 +1158,7 @@ export default {
             });
         },
         resendReferral:function(r){
+            console.log(r)
             let vm = this;
 
             vm.$http.get(helpers.add_endpoint_json(api_endpoints.apiary_referrals,r.apiary_referral.id+'/resend')).then(response => {
@@ -1178,6 +1180,7 @@ export default {
             });
         },
         recallReferral:function(r){
+            console.log(r)
             let vm = this;
             vm.$http.get(helpers.add_endpoint_json(api_endpoints.apiary_referrals,r.apiary_referral.id+'/recall')).then(response => {
                 vm.original_proposal = helpers.copyObject(response.body);
@@ -1227,7 +1230,7 @@ export default {
     created: function() {
         Vue.http.get(`/api/proposal/${this.proposalId}/internal_proposal.json`).then(res => {
               this.proposal = res.body;
-              console.log(res.body)
+              //console.log(res.body)
               this.original_proposal = helpers.copyObject(res.body);
               if (this.proposal.applicant) {
                   this.proposal.applicant.address = this.proposal.applicant.address != null ? this.proposal.applicant.address : {};
