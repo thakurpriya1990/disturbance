@@ -122,6 +122,7 @@
             datatable,
             PeriodAndSites,
             TemporaryOccupier,
+            DeedPoll,
         },
         computed:{
 
@@ -131,7 +132,6 @@
         },
         methods:{
             save: function(){
-                console.log('in save()');
                 // Proposal must be already created just after the user clicks on the 'Create' button on the modal
                 this.proposal_update();
             },
@@ -142,6 +142,7 @@
             },
             submit: function() {
                 console.log('in submit');
+                this.proposal_submit();
             },
             exit: function() {
                 console.log('in exit()');
@@ -164,21 +165,43 @@
                 }
                 return data
             },
-            proposal_update: function(){
-                console.log('in proposal_update');
+            proposal_submit: function(){
+                console.log('in proposal_submit')
 
                 let vm = this;
                 let data = vm._get_basic_data();
+                let proposal_id = this.$route.params.proposal_id
 
-                this.$http.put('/api/proposal/' + this.apiary_temporary_use.id + '/', data).then(
+                this.$http.post('/api/proposal/' + proposal_id + '/submit/', data).then(
                     res=>{
                         swal(
                             'Saved',
                             'Your proposal has been updated',
                             'success'
                         );
-                    },err=>{
+                    },
+                    err=>{
+                        this.processError(err)
+                    }
+                );
+            },
+            proposal_update: function(){
+                console.log('in proposal_update');
 
+                let vm = this;
+                let data = vm._get_basic_data();
+                let proposal_id = this.$route.params.proposal_id
+
+                this.$http.put('/api/proposal/' + proposal_id + '/', data).then(
+                    res=>{
+                        swal(
+                            'Saved',
+                            'Your proposal has been updated',
+                            'success'
+                        );
+                    },
+                    err=>{
+                        this.processError(err)
                     }
                 );
             },
