@@ -294,11 +294,14 @@ class TemporaryUseApiarySiteSerializer(serializers.ModelSerializer):
     # apiary_site = serializers.SerializerMethodField()
 
     def validate(self, attrs):
+        # TODO: check if the site is not temporary used to another person for the period
+        # TODO: check if the licence is valid, etc
         return attrs
 
     class Meta:
         model = TemporaryUseApiarySite
         fields = (
+            'id',
             'proposal_apiary_temporary_use_id',
             # 'apiary_site_approval',
             # 'apiary_site_approval_id',
@@ -311,13 +314,10 @@ class TemporaryUseApiarySiteSerializer(serializers.ModelSerializer):
 class ProposalApiaryTemporaryUseSerializer(serializers.ModelSerializer):
     proposal_id = serializers.IntegerField(write_only=True, required=False)
     loaning_approval_id = serializers.IntegerField(write_only=True, required=False)
-    # temporary_use_apiary_sites = serializers.SerializerMethodField()
     temporary_use_apiary_sites = TemporaryUseApiarySiteSerializer(read_only=True, many=True)
 
-    # def get_temporary_use_apiary_sites(self, obj):
-    #     qs = TemporaryUseApiarySite.objects.get(proposal_apiary_temporary_use=obj)
-    #     serializers = TemporaryUseApiarySiteSerializer(qs, many=True)
-    #     return serializers.data
+    def validate(self, attr):
+        return attr
 
     class Meta:
         model = ProposalApiaryTemporaryUse
