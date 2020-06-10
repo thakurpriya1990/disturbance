@@ -66,13 +66,17 @@
 
                         <template v-if="proposal && proposal.proposal_apiary">
                             <div class="row col-sm-12 debug-info">
-                                <div>latitude >= 0 ==> SouthWest</div>
-                                <div>latitude < 0 ==> Remote</div>
-                                <template v-for="remainder in proposal.proposal_apiary.site_remainders">
+                                How to set a site 'SouthWest'/'Remote':
+                                <div class="debug-message">
+                                    <div>when latitude is more than or equal to 0, then the proposed site is regarded as 'SouthWest'</div>
+                                    <div>when latitude is less than 0, then the proposed site is regarded as 'Remote'</div>
+                                </div>
+                                Remainders:
+                                <div v-for="remainder in proposal.proposal_apiary.site_remainders" class="debug-remainders">
                                     <div>
                                         {{ remainder.category_name }}: {{ remainder.remainders }} left (${{ remainder.fee }}/site)
                                     </div>
-                                </template>
+                                </div>
                             </div>
                         </template>
 
@@ -358,5 +362,12 @@
         background: #CCC;
         padding: 1em;
         margin: 1em;
+    }
+    .debug-message {
+        margin: 0 0 1em 0;
+        padding: 0 0 0 1em
+    }
+    .debug-remainders {
+        padding: 0 0 0 1em
     }
 </style>
