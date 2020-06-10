@@ -31,10 +31,10 @@ from ledger.accounts.models import EmailUser, Address
 from ledger.address.models import Country
 from datetime import datetime, timedelta, date
 from disturbance.components.proposals.utils import (
-        save_proponent_data,
-        save_assessor_data, 
-        save_apiary_assessor_data, 
-        )
+    save_proponent_data,
+    save_assessor_data,
+    save_apiary_assessor_data, update_proposal_apiary_temporary_use,
+)
 from disturbance.components.proposals.models import searchKeyWords, search_reference, ProposalUserAction, \
     ProposalApiary, OnSiteInformation, ApiarySite, ApiaryApplicantChecklistQuestion, ApiaryApplicantChecklistAnswer, \
     ProposalApiaryTemporaryUse, TemporaryUseApiarySite
@@ -1652,23 +1652,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 # Only ProposalApiaryTemporaryUse object needs to be updated
                 apiary_temporary_use_obj = ProposalApiaryTemporaryUse.objects.get(id=request.data.get('apiary_temporary_use')['id'])
                 apiary_temporary_use_data = request.data.get('apiary_temporary_use')
-                apiary_temporary_use_data['from_date'] = convert_moment_str_to_python_datetime_obj(apiary_temporary_use_data['from_date']).date() if apiary_temporary_use_data['from_date'] else None
-                apiary_temporary_use_data['to_date'] = convert_moment_str_to_python_datetime_obj(apiary_temporary_use_data['to_date']).date() if apiary_temporary_use_data['to_date'] else None
-                serializer = ProposalApiaryTemporaryUseSerializer(apiary_temporary_use_obj, data=apiary_temporary_use_data)
-                serializer.is_valid(raise_exception=True)
-                patu = serializer.save()
-
-                # Update TemporaryUseApiarySite
-                for item in apiary_temporary_use_data['temporary_use_apiary_sites']:
-                    tuas_obj = TemporaryUseApiarySite.objects.get(id=item['id'])
-                    serializer = TemporaryUseApiarySiteSerializer(tuas_obj, data=item)
-                    serializer.is_valid(raise_exception=True)
-                    serializer.save()
-
-                # request.data['application_type'] = application_type.id
-                # qs_proposal_type = ProposalType.objects.all().order_by('name', '-version').distinct('name')
-                # proposal_type = qs_proposal_type.get(name=application_type.name)
-                # request.data['schema'] = proposal_type.schema,
+                update_proposal_apiary_temporary_use(apiary_temporary_use_obj, apiary_temporary_use_data)
 
                 proposal_obj = self.get_object()
                 serializer = ProposalSerializer(proposal_obj)
