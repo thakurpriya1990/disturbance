@@ -408,18 +408,7 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
             if temporary_use_data:
                 apiary_temporary_use_obj = ProposalApiaryTemporaryUse.objects.get(id=request.data.get('apiary_temporary_use')['id'])
                 apiary_temporary_use_data = request.data.get('apiary_temporary_use')
-                apiary_temporary_use_data['from_date'] = convert_moment_str_to_python_datetime_obj(apiary_temporary_use_data['from_date']).date()
-                apiary_temporary_use_data['to_date'] = convert_moment_str_to_python_datetime_obj(apiary_temporary_use_data['to_date']).date()
-                serializer = ProposalApiaryTemporaryUseSerializer(apiary_temporary_use_obj, data=apiary_temporary_use_data)
-                serializer.is_valid(raise_exception=True)
-                patu = serializer.save()
-
-                # Update TemporaryUseApiarySite
-                for item in apiary_temporary_use_data['temporary_use_apiary_sites']:
-                    tuas_obj = TemporaryUseApiarySite.objects.get(id=item['id'])
-                    serializer = TemporaryUseApiarySiteSerializer(tuas_obj, data=item)
-                    serializer.is_valid(raise_exception=True)
-                    serializer.save()
+                update_proposal_apiary_temporary_use(apiary_temporary_use_obj, apiary_temporary_use_data)
 
                 proposal_obj.processing_status = 'with_assessor'
                 proposal_obj.customer_status = 'with_assessor'
@@ -440,6 +429,21 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
             proposal_obj.save()
         except Exception as e:
             raise
+
+
+def update_proposal_apiary_temporary_use(temp_use_obj, temp_use_data):
+    temp_use_data['from_date'] = convert_moment_str_to_python_datetime_obj(temp_use_data['from_date']).date() if temp_use_data['from_date'] else None
+    temp_use_data['to_date'] = convert_moment_str_to_python_datetime_obj(temp_use_data['to_date']).date() if temp_use_data['to_date'] else None
+    serializer = ProposalApiaryTemporaryUseSerializer(temp_use_obj, data=temp_use_data)
+    serializer.is_valid(raise_exception=True)
+    patu = serializer.save()
+
+    # Update TemporaryUseApiarySite
+    for item in temp_use_data['temporary_use_apiary_sites']:
+        tuas_obj = TemporaryUseApiarySite.objects.get(id=item['id'])
+        serializer = TemporaryUseApiarySiteSerializer(tuas_obj, data=item)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
 
 
 def save_proponent_data_disturbance(instance,request,viewset):
@@ -465,7 +469,7 @@ def save_proponent_data_disturbance(instance,request,viewset):
                 'data': extracted_fields,
                 'processing_status': instance.PROCESSING_STATUS_CHOICES[1][0] if instance.processing_status == 'temp' else instance.processing_status,
                 'customer_status': instance.PROCESSING_STATUS_CHOICES[1][0] if instance.processing_status == 'temp' else instance.customer_status,
-               # 'lodgement_sequence': 1 if instance.lodgement_sequence == 0 else instance.lodgement_sequence,
+                # 'lodgement_sequence': 1 if instance.lodgement_sequence == 0 else instance.lodgement_sequence,
 
             }
             data = {
@@ -475,7 +479,7 @@ def save_proponent_data_disturbance(instance,request,viewset):
                 'data': extracted_fields,
                 'processing_status': instance.PROCESSING_STATUS_CHOICES[1][0] if instance.processing_status == 'temp' else instance.processing_status,
                 'customer_status': instance.PROCESSING_STATUS_CHOICES[1][0] if instance.processing_status == 'temp' else instance.customer_status,
-               # 'lodgement_sequence': 1 if instance.lodgement_sequence == 0 else instance.lodgement_sequence,
+                # 'lodgement_sequence': 1 if instance.lodgement_sequence == 0 else instance.lodgement_sequence,
                 'activity': form_data.get('activity',None),
                 'region': form_data.get('region',None),
                 'district': form_data.get('district',None),
@@ -492,28 +496,28 @@ def save_proponent_data_disturbance(instance,request,viewset):
             instance.log_user_action(ProposalUserAction.ACTION_SAVE_APPLICATION.format(instance.id),request)
 
             # Save Documents
-#            for f in request.FILES:
-#                try:
-#                    #document = instance.documents.get(name=str(request.FILES[f]))
-#                    document = instance.documents.get(input_name=f)
-#                except ProposalDocument.DoesNotExist:
-#                    document = instance.documents.get_or_create(input_name=f)[0]
-#                document.name = str(request.FILES[f])
-#                if document._file and os.path.isfile(document._file.path):
-#                    os.remove(document._file.path)
-#                document._file = request.FILES[f]
-#                document.save()
+        #            for f in request.FILES:
+        #                try:
+        #                    #document = instance.documents.get(name=str(request.FILES[f]))
+        #                    document = instance.documents.get(input_name=f)
+        #                except ProposalDocument.DoesNotExist:
+        #                    document = instance.documents.get_or_create(input_name=f)[0]
+        #                document.name = str(request.FILES[f])
+        #                if document._file and os.path.isfile(document._file.path):
+        #                    os.remove(document._file.path)
+        #                document._file = request.FILES[f]
+        #                document.save()
 
-#            for f in request.FILES:
-#                #import ipdb; ipdb; ipdb.set_trace()
-#                try:
-#                   document = instance.documents.get(input_name=f, name=request.FILES[f].name)
-#                except ProposalDocument.DoesNotExist:
-#                   document = instance.documents.get_or_create(input_name=f, name=request.FILES[f].name)[0]
-#                document._file = request.FILES[f]
-#                document.save()
+        #            for f in request.FILES:
+        #                #import ipdb; ipdb; ipdb.set_trace()
+        #                try:
+        #                   document = instance.documents.get(input_name=f, name=request.FILES[f].name)
+        #                except ProposalDocument.DoesNotExist:
+        #                   document = instance.documents.get_or_create(input_name=f, name=request.FILES[f].name)[0]
+        #                document._file = request.FILES[f]
+        #                document.save()
 
-            # End Save Documents
+        # End Save Documents
         except:
             raise
 
