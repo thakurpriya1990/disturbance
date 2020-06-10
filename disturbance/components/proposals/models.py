@@ -851,7 +851,8 @@ class Proposal(RevisionedMixin):
                 # Create a log entry for the proposal
                 self.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.id),request)
                 # Create a log entry for the organisation
-                self.applicant.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.id),request)
+                if self.applicant:
+                    self.applicant.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.id),request)
 
                 #import ipdb; ipdb.set_trace()
                 ret1 = send_submit_email_notification(request, self)
@@ -918,7 +919,8 @@ class Proposal(RevisionedMixin):
                     # Create a log entry for the proposal
                     self.log_user_action(ProposalUserAction.ACTION_SEND_REFERRAL_TO.format(referral.id,self.id,'{}({})'.format(user.get_full_name(),user.email)),request)
                     # Create a log entry for the organisation
-                    self.applicant.log_user_action(ProposalUserAction.ACTION_SEND_REFERRAL_TO.format(referral.id,self.id,'{}({})'.format(user.get_full_name(),user.email)),request)
+                    if self.applicant:
+                        self.applicant.log_user_action(ProposalUserAction.ACTION_SEND_REFERRAL_TO.format(referral.id,self.id,'{}({})'.format(user.get_full_name(),user.email)),request)
                     # send email
                     send_referral_email_notification(referral,request)
                 else:
@@ -940,7 +942,8 @@ class Proposal(RevisionedMixin):
                         # Create a log entry for the proposal
                         self.log_user_action(ProposalUserAction.ACTION_ASSIGN_TO_APPROVER.format(self.id,'{}({})'.format(officer.get_full_name(),officer.email)),request)
                         # Create a log entry for the organisation
-                        self.applicant.log_user_action(ProposalUserAction.ACTION_ASSIGN_TO_APPROVER.format(self.id,'{}({})'.format(officer.get_full_name(),officer.email)),request)
+                        if self.applicant:
+                            self.applicant.log_user_action(ProposalUserAction.ACTION_ASSIGN_TO_APPROVER.format(self.id,'{}({})'.format(officer.get_full_name(),officer.email)),request)
                 else:
                     if officer != self.assigned_officer:
                         self.assigned_officer = officer
@@ -948,7 +951,8 @@ class Proposal(RevisionedMixin):
                         # Create a log entry for the proposal
                         self.log_user_action(ProposalUserAction.ACTION_ASSIGN_TO_ASSESSOR.format(self.id,'{}({})'.format(officer.get_full_name(),officer.email)),request)
                         # Create a log entry for the organisation
-                        self.applicant.log_user_action(ProposalUserAction.ACTION_ASSIGN_TO_ASSESSOR.format(self.id,'{}({})'.format(officer.get_full_name(),officer.email)),request)
+                        if self.applicant:
+                            self.applicant.log_user_action(ProposalUserAction.ACTION_ASSIGN_TO_ASSESSOR.format(self.id,'{}({})'.format(officer.get_full_name(),officer.email)),request)
             except:
                 raise
 
@@ -977,7 +981,8 @@ class Proposal(RevisionedMixin):
                 self.save(version_comment=comment) # to allow revision to be added to reversion history
                 self.log_user_action(ProposalUserAction.ACTION_APPROVAL_LEVEL_DOCUMENT.format(self.id),request)
                 # Create a log entry for the organisation
-                self.applicant.log_user_action(ProposalUserAction.ACTION_APPROVAL_LEVEL_DOCUMENT.format(self.id),request)
+                if self.applicant:
+                    self.applicant.log_user_action(ProposalUserAction.ACTION_APPROVAL_LEVEL_DOCUMENT.format(self.id),request)
                 return self
             except:
                 raise
@@ -990,7 +995,8 @@ class Proposal(RevisionedMixin):
                 self.save()
                 self.log_user_action(ProposalUserAction.ACTION_APPROVAL_LEVEL_COMMENT.format(self.id),request)
                 # Create a log entry for the organisation
-                self.applicant.log_user_action(ProposalUserAction.ACTION_APPROVAL_LEVEL_COMMENT.format(self.id),request)
+                if self.applicant:
+                    self.applicant.log_user_action(ProposalUserAction.ACTION_APPROVAL_LEVEL_COMMENT.format(self.id),request)
                 return self
             except:
                 raise
@@ -1007,7 +1013,8 @@ class Proposal(RevisionedMixin):
                         # Create a log entry for the proposal
                         self.log_user_action(ProposalUserAction.ACTION_UNASSIGN_APPROVER.format(self.id),request)
                         # Create a log entry for the organisation
-                        self.applicant.log_user_action(ProposalUserAction.ACTION_UNASSIGN_APPROVER.format(self.id),request)
+                        if self.applicant:
+                            self.applicant.log_user_action(ProposalUserAction.ACTION_UNASSIGN_APPROVER.format(self.id),request)
                 else:
                     if self.assigned_officer:
                         self.assigned_officer = None
@@ -1015,7 +1022,8 @@ class Proposal(RevisionedMixin):
                         # Create a log entry for the proposal
                         self.log_user_action(ProposalUserAction.ACTION_UNASSIGN_ASSESSOR.format(self.id),request)
                         # Create a log entry for the organisation
-                        self.applicant.log_user_action(ProposalUserAction.ACTION_UNASSIGN_ASSESSOR.format(self.id),request)
+                        if self.applicant:
+                            self.applicant.log_user_action(ProposalUserAction.ACTION_UNASSIGN_ASSESSOR.format(self.id),request)
             except:
                 raise
 
@@ -1079,7 +1087,8 @@ class Proposal(RevisionedMixin):
                 # Log proposal action
                 self.log_user_action(ProposalUserAction.ACTION_PROPOSED_DECLINE.format(self.id),request)
                 # Log entry for organisation
-                self.applicant.log_user_action(ProposalUserAction.ACTION_PROPOSED_DECLINE.format(self.id),request)
+                if self.applicant:
+                    self.applicant.log_user_action(ProposalUserAction.ACTION_PROPOSED_DECLINE.format(self.id),request)
 
                 send_approver_decline_email_notification(reason, request, self)
             except:
@@ -1104,7 +1113,8 @@ class Proposal(RevisionedMixin):
                 # Log proposal action
                 self.log_user_action(ProposalUserAction.ACTION_DECLINE.format(self.id),request)
                 # Log entry for organisation
-                self.applicant.log_user_action(ProposalUserAction.ACTION_DECLINE.format(self.id),request)
+                if self.applicant:
+                    self.applicant.log_user_action(ProposalUserAction.ACTION_DECLINE.format(self.id),request)
                 send_proposal_decline_email_notification(self,request, proposal_decline)
             except:
                 raise
@@ -1166,7 +1176,8 @@ class Proposal(RevisionedMixin):
                 # Log proposal action
                 self.log_user_action(ProposalUserAction.ACTION_PROPOSED_APPROVAL.format(self.id),request)
                 # Log entry for organisation
-                self.applicant.log_user_action(ProposalUserAction.ACTION_PROPOSED_APPROVAL.format(self.id),request)
+                if self.applicant:
+                    self.applicant.log_user_action(ProposalUserAction.ACTION_PROPOSED_APPROVAL.format(self.id),request)
 
                 send_approver_approve_email_notification(request, self)
             except:
@@ -1195,7 +1206,8 @@ class Proposal(RevisionedMixin):
                 # Log proposal action
                 self.log_user_action(ProposalUserAction.ACTION_ISSUE_APPROVAL_.format(self.id),request)
                 # Log entry for organisation
-                self.applicant.log_user_action(ProposalUserAction.ACTION_ISSUE_APPROVAL_.format(self.id),request)
+                if self.applicant:
+                    self.applicant.log_user_action(ProposalUserAction.ACTION_ISSUE_APPROVAL_.format(self.id),request)
 
                 if self.processing_status == 'approved':
                     # TODO if it is an ammendment proposal then check appropriately
@@ -1288,7 +1300,8 @@ class Proposal(RevisionedMixin):
                         # Log proposal action
                         self.log_user_action(ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.id),request)
                         # Log entry for organisation
-                        self.applicant.log_user_action(ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.id),request)
+                        if self.applicant:
+                            self.applicant.log_user_action(ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.id),request)
                     self.approval = approval
                 #send Proposal approval email with attachment
                 send_proposal_approval_email_notification(self,request)
@@ -1428,7 +1441,8 @@ class Proposal(RevisionedMixin):
                 # Create a log entry for the proposal
                 self.log_user_action(ProposalUserAction.ACTION_RENEW_PROPOSAL.format(self.id),request)
                 # Create a log entry for the organisation
-                self.applicant.log_user_action(ProposalUserAction.ACTION_RENEW_PROPOSAL.format(self.id),request)
+                if self.applicant:
+                    self.applicant.log_user_action(ProposalUserAction.ACTION_RENEW_PROPOSAL.format(self.id),request)
                 #Log entry for approval
                 from disturbance.components.approvals.models import ApprovalUserAction
                 self.approval.log_user_action(ApprovalUserAction.ACTION_RENEW_APPROVAL.format(self.approval.id),request)
@@ -1471,7 +1485,8 @@ class Proposal(RevisionedMixin):
                 # Create a log entry for the proposal
                 self.log_user_action(ProposalUserAction.ACTION_AMEND_PROPOSAL.format(self.id),request)
                 # Create a log entry for the organisation
-                self.applicant.log_user_action(ProposalUserAction.ACTION_AMEND_PROPOSAL.format(self.id),request)
+                if self.applicant:
+                    self.applicant.log_user_action(ProposalUserAction.ACTION_AMEND_PROPOSAL.format(self.id),request)
                 #Log entry for approval
                 from disturbance.components.approvals.models import ApprovalUserAction
                 self.approval.log_user_action(ApprovalUserAction.ACTION_AMEND_APPROVAL.format(self.approval.id),request)
@@ -2117,9 +2132,9 @@ class ProposalApiary(models.Model):
                     except ApiaryReferralGroup.DoesNotExist:
                         raise exceptions.ProposalReferralCannotBeSent()
                     #try:
-                    existing_referral = Referral.objects.filter(proposal=self.proposal)
+                    existing_referrals = Referral.objects.filter(proposal=self.proposal)
                     #if existing_referral:
-                    apiary_referral_list = ApiaryReferral.objects.filter(referral_group=referral_group,referral=existing_referral) if existing_referral else None
+                    apiary_referral_list = ApiaryReferral.objects.filter(referral_group=referral_group,referral__in=existing_referrals) if existing_referrals else None
                     if apiary_referral_list:
                         raise ValidationError('A referral has already been sent to this group')
                     #except Referral.DoesNotExist:
