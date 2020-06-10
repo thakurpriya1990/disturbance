@@ -34,7 +34,6 @@ from disturbance.components.proposals.utils import (
         save_proponent_data,
         save_assessor_data, 
         save_apiary_assessor_data, 
-        proposal_submit_apiary,
         )
 from disturbance.components.proposals.models import searchKeyWords, search_reference, ProposalUserAction, \
     ProposalApiary, OnSiteInformation, ApiarySite, ApiaryApplicantChecklistQuestion, ApiaryApplicantChecklistAnswer
@@ -113,6 +112,10 @@ from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 from rest_framework_datatables.filters import DatatablesFilterBackend
 from rest_framework_datatables.renderers import DatatablesRenderer
 from rest_framework.filters import BaseFilterBackend
+from disturbance.components.main.process_document import (
+        process_generic_document, 
+        #save_comms_log_document_obj
+        )
 
 import logging
 logger = logging.getLogger(__name__)
@@ -520,6 +523,29 @@ class ProposalApiaryViewSet(viewsets.ModelViewSet):
         serializer_class = self.internal_serializer_class()
         serializer = serializer_class(proposal_instance,context={'request':request})
         return Response(serializer.data)
+
+    @detail_route(methods=['POST'])
+    @renderer_classes((JSONRenderer,))
+    def process_deed_poll_document(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            returned_data = process_generic_document(request, instance, document_type='deed_poll_documents')
+            if returned_data:
+                return Response(returned_data)
+            else:
+                return Response()
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
 
     @detail_route(methods=['post'])
     def apiary_assessor_send_referral(self, request, *args, **kwargs):
@@ -1102,7 +1128,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 instance.tenure = search_tenure(instance)
             else:
                 save_proponent_data(instance, request, self)
-                proposal_submit_apiary(instance, request)
+                # proposal_submit_apiary(instance, request)
             instance.save()
             serializer = self.get_serializer(instance)
             return Response(serializer.data)
