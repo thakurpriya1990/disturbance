@@ -269,11 +269,20 @@
                 <div class="col-md-12">
                     <div class="row">
                         <form :action="proposal_form_url" method="post" name="new_proposal" enctype="multipart/form-data">
-                            <ProposalApiary form_width="inherit" :withSectionsSelector="false" v-if="proposal" :proposal="proposal">
-                                <NewApply v-if="proposal" :proposal="proposal"></NewApply>
+                            <!--ProposalApiary form_width="inherit" :withSectionsSelector="false" v-if="proposal" :proposal="proposal"-->
+                            <ProposalApiary 
+                            v-if="proposal" 
+                            :proposal="proposal" 
+                            id="proposalStart" 
+                            ref="proposal_apiary" 
+                            :is_external="false" 
+                            :is_internal="true" 
+                            :hasAssessorMode="hasAssessorMode"
+                            />
+                                <!--NewApply v-if="proposal" :proposal="proposal"></NewApply>
                                 <input type="hidden" name="csrfmiddlewaretoken" :value="csrf_token"/>
                                 <input type='hidden' name="schema" :value="JSON.stringify(proposal)" />
-                                <input type='hidden' name="proposal_id" :value="1" />
+                                <input type='hidden' name="proposal_id" :value="1" /-->
                                 <div class="navbar navbar-fixed-bottom" v-if="!proposal.can_user_edit && !isFinalised" style="background-color: #f5f5f5 ">
                                         <div class="navbar-inner">
                                             <div v-if="!isFinalised" class="container">
@@ -434,6 +443,9 @@ export default {
                 retVal = true;
             }
             return retVal;
+        },
+        hasAssessorMode:function(){
+            return this.proposal && this.proposal.assessor_mode.has_assessor_mode ? true : false;
         },
     },
     methods: {
