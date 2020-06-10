@@ -144,7 +144,8 @@
             },
             exit: function() {
                 console.log('in exit()');
-                this.$router.push({ name: 'external-proposals-dash' });
+                //this.$router.push({ name: 'external-proposals-dash' });
+                this.$router.push({ name: 'external-approval', params: {approval_id: this.apiary_temporary_use.loaning_approval_id }})
             },
             _get_basic_data: function(){
                 let data = {
