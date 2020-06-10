@@ -1544,6 +1544,11 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 applicant = None
                 proxy_applicant = None
                 if request.data.get('behalf_of') == 'individual':
+                    # Validate User for Individual applications
+                    request_user = EmailUser.objects.get(id=request.user.id)
+                    if not request_user.residential_address:
+                        raise ValidationError('null_applicant_address')
+                    # Assign request.user as applicant
                     proxy_applicant = request.user.id
                 else:
                     applicant = request.data.get('behalf_of')
