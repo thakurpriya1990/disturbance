@@ -71,10 +71,15 @@ def create_fee_lines_apiary(proposal):
         else:
             summary[apiary_site.site_category.id] = 1
 
+    # Once payment success, data is updated based on this variable
+    # This variable is stored in the session
+    db_process_after_success = {'site_remainder_used': [], 'site_remainder_to_be_added': []}
+
     # Calculate number of sites to calculate the fee
     for site_category_id, number_of_sites_applied in summary.items():
 
         site_category = SiteCategory.objects.get(id=site_category_id)
+
 
         # Retrieve sites left
         filter_site_category = Q(site_category=site_category)
@@ -98,8 +103,11 @@ def create_fee_lines_apiary(proposal):
             if number_of_sites_after_deduction == 0:
                 break
             number_of_sites_after_deduction -= 1
-            site_left.date_used = today_local
-            site_left.save()
+            site_remainder_used = {
+                'id': site_left.id,
+                'date_used': today_local.strftime('%Y-%m-%d')
+            }
+            db_process_after_success['site_remainder_used'].append(site_remainder_used)
 
         quotient, remainder = divmod(number_of_sites_after_deduction, MIN_NUMBER_OF_SITES_TO_APPLY)
         number_of_sites_calculate = quotient * MIN_NUMBER_OF_SITES_TO_APPLY + MIN_NUMBER_OF_SITES_TO_APPLY if remainder else quotient * MIN_NUMBER_OF_SITES_TO_APPLY
@@ -123,22 +131,25 @@ def create_fee_lines_apiary(proposal):
 
         # Add remainders
         for i in range(number_of_sites_to_add_as_remainder):
-            ApiarySiteFeeRemainder.objects.create(
-                site_category=site_category,
-                apiary_site_fee_type=ApiarySiteFeeType.objects.get(name=ApiarySiteFeeType.FEE_TYPE_APPLICATION),
-                applicant=proposal.applicant,
-                proxy_applicant=proposal.proxy_applicant,
-                date_expiry=today_local + timedelta(days=7)
-            )
+            site_to_be_added = {
+                'site_category_id': site_category.id,
+                'apiary_site_fee_type_name': ApiarySiteFeeType.FEE_TYPE_APPLICATION,
+                'applicant_id': proposal.applicant.id if proposal.applicant else None,
+                'proxy_applicant_id': proposal.proxy_applicant.id if proposal.proxy_applicant else None,
+                'date_expiry': (today_local + timedelta(days=7)).strftime('%Y-%m-%d')
+            }
+            db_process_after_success['site_remainder_to_be_added'].append(site_to_be_added)
 
-    return line_items
+    return line_items, db_process_after_success
 
 
 def create_fee_lines(proposal, invoice_text=None, vouchers=[], internal=False):
     """ Create the ledger lines - line item for application fee sent to payment system """
 
+    db_processes_after_success = {}
+
     if proposal.application_type.name == ApplicationType.APIARY:
-        line_items = create_fee_lines_apiary(proposal)
+        line_items, db_processes_after_success = create_fee_lines_apiary(proposal)  # This function returns line items and db_processes as a tuple
     else:
         now = datetime.now().strftime('%Y-%m-%d %H:%M')
 
@@ -155,7 +166,8 @@ def create_fee_lines(proposal, invoice_text=None, vouchers=[], internal=False):
         ]
 
     logger.info('{}'.format(line_items))
-    return line_items
+
+    return line_items, db_processes_after_success
 
 
 def checkout(request, proposal, lines, return_url_ns='public_payment_success', return_preload_url_ns='public_payment_success', invoice_text=None, vouchers=[], proxy=False):
