@@ -132,20 +132,20 @@
         },
         methods:{
             save: function(){
-                // Proposal must be already created just after the user clicks on the 'Create' button on the modal
                 this.proposal_update();
             },
-            save_exit: function() {
-                console.log('in save_exit()');
-                this.save();
+            save_exit: async function() {
+                await this.proposal_update();
                 this.exit();
             },
-            submit: function() {
-                console.log('in submit');
-                this.proposal_submit();
+            submit: async function() {
+                await this.proposal_submit();
+                this.exit();
             },
             exit: function() {
                 console.log('in exit()');
+                //this.$router.push({ name: 'external-proposals-dash' });
+                this.$router.push({ name: 'external-approval', params: {approval_id: this.apiary_temporary_use.loaning_approval_id }})
             },
             _get_basic_data: function(){
                 let data = {
@@ -165,7 +165,7 @@
                 }
                 return data
             },
-            proposal_submit: function(){
+            proposal_submit: function() {
                 console.log('in proposal_submit')
 
                 let vm = this;
@@ -185,14 +185,14 @@
                     }
                 );
             },
-            proposal_update: function(){
+            proposal_update: async function(){
                 console.log('in proposal_update');
 
                 let vm = this;
                 let data = vm._get_basic_data();
                 let proposal_id = this.$route.params.proposal_id
 
-                this.$http.put('/api/proposal/' + proposal_id + '/', data).then(
+                await this.$http.put('/api/proposal/' + proposal_id + '/', data).then(
                     res=>{
                         swal(
                             'Saved',
