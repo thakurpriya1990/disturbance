@@ -2183,10 +2183,10 @@ class SiteCategory(models.Model):
 
     def retrieve_current_fee_per_site_by_type(self, fee_type_name):
         today_local = datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
-        ret_date = self._retrieve_fee_by_date_and_type(today_local, fee_type_name)
+        ret_date = self.retrieve_fee_by_date_and_type(today_local, fee_type_name)
         return ret_date
 
-    def _retrieve_fee_by_date_and_type(self, target_date, fee_type_name):
+    def retrieve_fee_by_date_and_type(self, target_date, fee_type_name):
         fee_type_application = ApiarySiteFeeType.objects.get(name=fee_type_name)
         if not fee_type_application:
             raise Exception("Please select 'new_application' and save it at the Apiary Site Fee Type admin page")
@@ -2194,7 +2194,8 @@ class SiteCategory(models.Model):
         site_fee = ApiarySiteFee.objects.filter(
                     Q(apiary_site_fee_type=fee_type_application) &
                     Q(site_category=self) &
-                    Q(date_of_enforcement__lte=target_date)).order_by('date_of_enforcement', ).last()
+                    Q(date_of_enforcement__lte=target_date)
+                    ).order_by('date_of_enforcement', ).last()
 
         if site_fee:
             return site_fee.amount
