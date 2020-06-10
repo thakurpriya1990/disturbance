@@ -85,7 +85,8 @@ def send_referral_email_notification(referral,request,reminder=False):
     msg = email.send(referral.referral.email, context=context)
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     _log_proposal_referral_email(msg, referral, sender=sender)
-    _log_org_email(msg, referral.proposal.applicant, referral.referral, sender=sender)
+    if proposal.applicant:
+        _log_org_email(msg, referral.proposal.applicant, referral.referral, sender=sender)
 
 def send_referral_recall_email_notification(referral,request):
     email = ReferralRecallNotificationEmail()
@@ -99,7 +100,8 @@ def send_referral_recall_email_notification(referral,request):
     msg = email.send(referral.referral.email, context=context)
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     _log_proposal_referral_email(msg, referral, sender=sender)
-    _log_org_email(msg, referral.proposal.applicant, referral.referral, sender=sender)
+    if proposal.applicant:
+        _log_org_email(msg, referral.proposal.applicant, referral.referral, sender=sender)
 
 
 def send_referral_complete_email_notification(referral,request):
@@ -115,7 +117,8 @@ def send_referral_complete_email_notification(referral,request):
     msg = email.send(referral.sent_by.email, context=context)
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     _log_proposal_referral_email(msg, referral, sender=sender)
-    _log_org_email(msg, referral.proposal.applicant, referral.referral, sender=sender)
+    if proposal.applicant:
+        _log_org_email(msg, referral.proposal.applicant, referral.referral, sender=sender)
 
 def send_apiary_referral_email_notification(referral,recipients,request,reminder=False):
     email = ReferralSendNotificationEmail()
@@ -133,16 +136,34 @@ def send_apiary_referral_email_notification(referral,recipients,request,reminder
     msg = email.send(recipients, context=context)
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     _log_proposal_referral_email(msg, referral, sender=sender)
-    #if referral.proposal.org_applicant:
-        #_log_org_email(msg, referral.proposal.org_applicant, referral.referral, sender=sender)
-    if referral.proposal.applicant_field == 'proxy_applicant':
-        #_log_user_email(msg, referral.proposal.proxy_applicant, referral.referral, sender=sender)
+    if referral.proposal.applicant:
+        _log_org_email(msg, referral.proposal.applicant, referral.apiary_referral.referral_group.members_email, sender=sender)
+    elif referral.proposal.applicant_field == 'proxy_applicant':
         _log_user_email(msg, referral.proposal.proxy_applicant, referral.apiary_referral.referral_group.members_email, sender=sender)
-    #elif referral.proposal.applicant:
-        #_log_org_email(msg, referral.proposal.applicant, referral.referral, sender=sender)
     else:
         _log_user_email(msg, referral.proposal.submitter, referral.apiary_referral.referral_group.members_email, sender=sender)
-        #_log_user_email(msg, referral.proposal.submitter, referral.referral, sender=sender)
+
+# BB 20200610 this is not called at present, in line with existing DAS behaviour
+def send_apiary_referral_recall_email_notification(referral,recipients,request):
+    email = ReferralRecallNotificationEmail()
+    url = request.build_absolute_uri(reverse('internal-referral-detail',kwargs={'proposal_pk':referral.proposal.id,'referral_pk':referral.id}))
+
+    context = {
+        'proposal': referral.proposal,
+        'url': url,
+    }
+
+    #msg = email.send(referral.referral.email, context=context)
+    msg = email.send(recipients, context=context)
+    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    _log_proposal_referral_email(msg, referral, sender=sender)
+    if referral.proposal.applicant:
+        _log_org_email(msg, referral.proposal.applicant, referral.apiary_referral.referral_group.members_email, sender=sender)
+    elif referral.proposal.applicant_field == 'proxy_applicant':
+        _log_user_email(msg, referral.proposal.proxy_applicant, referral.apiary_referral.referral_group.members_email, sender=sender)
+    else:
+        _log_user_email(msg, referral.proposal.submitter, referral.apiary_referral.referral_group.members_email, sender=sender)
+
 
 def send_apiary_referral_complete_email_notification(referral,request, completed_by):
     email = ReferralCompleteNotificationEmail()
@@ -161,16 +182,12 @@ def send_apiary_referral_complete_email_notification(referral,request, completed
     msg = email.send(referral.sent_by.email, context=context)
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     _log_proposal_referral_email(msg, referral, sender=sender)
-    #if referral.proposal.org_applicant:
-        #_log_org_email(msg, referral.proposal.org_applicant, referral.referral, sender=sender)
-    if referral.proposal.applicant_field == 'proxy_applicant':
-        #_log_user_email(msg, referral.proposal.proxy_applicant, referral.referral, sender=sender)
+    if referral.proposal.applicant:
+        _log_org_email(msg, referral.proposal.applicant, referral.apiary_referral.referral_group.members_email, sender=sender)
+    elif referral.proposal.applicant_field == 'proxy_applicant':
         _log_user_email(msg, referral.proposal.proxy_applicant, referral.apiary_referral.referral_group.members_email, sender=sender)
-    #elif referral.proposal.applicant:
-        #_log_org_email(msg, referral.proposal.applicant, referral.referral, sender=sender)
     else:
         _log_user_email(msg, referral.proposal.submitter, referral.apiary_referral.referral_group.members_email, sender=sender)
-        #_log_user_email(msg, referral.proposal.submitter, referral.referral, sender=sender)
 
 def send_amendment_email_notification(amendment_request, request, proposal):
     email = AmendmentRequestSendNotificationEmail()
@@ -207,7 +224,8 @@ def send_amendment_email_notification(amendment_request, request, proposal):
     msg = email.send(proposal.submitter.email, cc=all_ccs, context=context,  attachments=attachments)
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     _log_proposal_email(msg, proposal, sender=sender)
-    _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
+    if proposal.applicant:
+        _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
 
 def send_submit_email_notification(request, proposal):
     email = SubmitSendNotificationEmail()
@@ -270,7 +288,8 @@ def send_approver_decline_email_notification(reason, request, proposal):
     msg = email.send(proposal.approver_recipients, context=context)
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     _log_proposal_email(msg, proposal, sender=sender)
-    _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
+    if proposal.applicant:
+        _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
 
 def send_approver_approve_email_notification(request, proposal):
     email = ApproverApproveSendNotificationEmail()
@@ -286,7 +305,8 @@ def send_approver_approve_email_notification(request, proposal):
     msg = email.send(proposal.approver_recipients, context=context)
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     _log_proposal_email(msg, proposal, sender=sender)
-    _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
+    if proposal.applicant:
+        _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
 
 def send_proposal_decline_email_notification(proposal,request,proposal_decline):
     email = ProposalDeclineSendNotificationEmail()
@@ -305,7 +325,8 @@ def send_proposal_decline_email_notification(proposal,request,proposal_decline):
     msg = email.send(proposal.submitter.email, bcc= all_ccs, context=context)
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     _log_proposal_email(msg, proposal, sender=sender)
-    _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
+    if proposal.applicant:
+        _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
 
 def send_proposal_approver_sendback_email_notification(request, proposal):
     email = ApproverSendBackNotificationEmail()
@@ -319,7 +340,8 @@ def send_proposal_approver_sendback_email_notification(request, proposal):
     msg = email.send(proposal.assessor_recipients, context=context)
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     _log_proposal_email(msg, proposal, sender=sender)
-    _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
+    if proposal.applicant:
+        _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
 
 
 
@@ -350,7 +372,8 @@ def send_proposal_approval_email_notification(proposal,request):
     msg = email.send(proposal.submitter.email, bcc= all_ccs, attachments=attachment, context=context)
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     _log_proposal_email(msg, proposal, sender=sender)
-    _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
+    if proposal.applicant:
+        _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
 
 
 def send_assessment_reminder_email_notification(proposal):
@@ -376,7 +399,8 @@ def send_assessment_reminder_email_notification(proposal):
         EmailUser.objects.create(email=sender, password='')
         sender_user = EmailUser.objects.get(email__icontains=sender)
     _log_proposal_email(msg, proposal, sender=sender_user)
-    _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender_user)
+    if proposal.applicant:
+        _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender_user)
     return msg
 
 def _log_proposal_referral_email(email_message, referral, sender=None):
