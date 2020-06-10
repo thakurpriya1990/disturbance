@@ -393,14 +393,15 @@
                         <div class="row">
                             <form :action="proposal_form_url" method="post" name="new_proposal" enctype="multipart/form-data">
 
-                                <div v-if="proposal.application_type=='Apiary'">
-                                    <ProposalApiary v-if="proposal" :proposal="proposal" id="proposalStart" :showSections="sectionShow" ref="proposal_apiary" :is_external="false" :is_internal="true" :hasAssessorMode="hasAssessorMode"></ProposalApiary>
-                                </div>
-                                <div v-else>
-                                    <ProposalDisturbance form_width="inherit" :withSectionsSelector="false" v-if="proposal" :proposal="proposal"> </ProposalDisturbance>
-                                    <NewApply v-if="proposal" :proposal="proposal"></NewApply>
-                                </div>
-
+                                <ProposalApiary 
+                                v-if="proposal" 
+                                :proposal="proposal" 
+                                id="proposalStart" 
+                                ref="proposal_apiary" 
+                                :is_external="false" 
+                                :is_internal="true" 
+                                :hasAssessorMode="hasAssessorMode"
+                                />
 
                                 <div>
                                     <input type="hidden" name="csrfmiddlewaretoken" :value="csrf_token"/>
