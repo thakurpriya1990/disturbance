@@ -1652,8 +1652,8 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 # Only ProposalApiaryTemporaryUse object needs to be updated
                 apiary_temporary_use_obj = ProposalApiaryTemporaryUse.objects.get(id=request.data.get('apiary_temporary_use')['id'])
                 apiary_temporary_use_data = request.data.get('apiary_temporary_use')
-                apiary_temporary_use_data['from_date'] = convert_moment_str_to_python_datetime_obj(apiary_temporary_use_data['from_date']).date()
-                apiary_temporary_use_data['to_date'] = convert_moment_str_to_python_datetime_obj(apiary_temporary_use_data['to_date']).date()
+                apiary_temporary_use_data['from_date'] = convert_moment_str_to_python_datetime_obj(apiary_temporary_use_data['from_date']).date() if apiary_temporary_use_data['from_date'] else None
+                apiary_temporary_use_data['to_date'] = convert_moment_str_to_python_datetime_obj(apiary_temporary_use_data['to_date']).date() if apiary_temporary_use_data['to_date'] else None
                 serializer = ProposalApiaryTemporaryUseSerializer(apiary_temporary_use_obj, data=apiary_temporary_use_data)
                 serializer.is_valid(raise_exception=True)
                 patu = serializer.save()
