@@ -20,7 +20,7 @@
             <div class="panel-body collapse in" id="deedPoll">
                 <div class="row">
                     <div class="col-sm-12">
-                        <label>Print <a :href="deed_poll_url" target="_blank">the deed poll</a>, sign it, have it witnessed and attach it to this application.</label>
+                        <label>Print <a :href="deedPollUrl" target="_blank">the deed poll</a>, sign it, have it witnessed and attach it to this application.</label>
                     </div>
                 </div>
                 <div class="row">
@@ -155,6 +155,9 @@
                         )
                 }
                 return url;
+            },
+            deedPollUrl: function() {
+                return '';
             },
           //applicantType: function(){
           //  return this.proposal.applicant_type;
