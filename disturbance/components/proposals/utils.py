@@ -6,8 +6,15 @@ from django.db import transaction
 from django.contrib.gis.geos import Point
 from preserialize.serialize import serialize
 from ledger.accounts.models import EmailUser, Document
+# <<<<<<< HEAD
 from disturbance.components.proposals.models import ProposalDocument, ProposalUserAction, ApiarySite, SiteCategory, \
-    ProposalApiaryTemporaryUse, TemporaryUseApiarySite
+    ProposalApiaryTemporaryUse, TemporaryUseApiarySite, ApiaryApplicantChecklistAnswer
+# ||||||| merged common ancestors
+# from disturbance.components.proposals.models import ProposalDocument, ProposalUserAction, ApiarySite, SiteCategory
+# =======
+# from disturbance.components.proposals.models import ProposalDocument, ProposalUserAction, ApiarySite, SiteCategory, \
+#     ApiaryApplicantChecklistAnswer
+# >>>>>>> 1199cfade15f594dbeb87911b405a4cd30fa2307
 from disturbance.components.proposals.serializers import SaveProposalSerializer
 
 from disturbance.components.main.models import ApplicationType
@@ -396,8 +403,14 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
 
                         serializer = ApiarySiteSerializer(data=apiary_site)
 
+
                     serializer.is_valid(raise_exception=True)
                     serializer.save()
+
+                for new_answer in site_location_data['checklist_answers']:
+                    ans = ApiaryApplicantChecklistAnswer.objects.get(id=new_answer['id'])
+                    ans.answer = new_answer['answer']
+                    ans.save()
 
                 # Delete existing
                 sites_delete = ApiarySite.objects.filter(id__in=site_ids_delete)
@@ -678,7 +691,7 @@ def clone_proposal_with_status_reset(proposal):
 
 
             # clone documents
-            for proposal_document in ProposalDocuments.objects.filter(proposal=original_proposal_id):
+            for proposal_document in ProposalDocument.objects.filter(proposal=original_proposal_id):
                 proposal_document.proposal = proposal
                 proposal_document.id = None
                 proposal_document.save()
