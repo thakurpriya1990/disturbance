@@ -56,6 +56,7 @@
                     <div v-if="proposal && !proposal.readonly" class="container">
                       <p class="pull-right" style="margin-top:5px;">
                         <button id="sectionHide" @click.prevent="sectionHide" class="btn btn-primary">Show/Hide sections</button>
+                        <!--
                         <input type="button" @click.prevent="save_exit" class="btn btn-primary" value="Save and Exit"/>
                         <input type="button" @click.prevent="save" class="btn btn-primary" value="Save and Continue"/>
 
@@ -63,7 +64,14 @@
                         <button v-else disabled class="btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Submitting</button>
 
                         <input id="save_and_continue_btn" type="hidden" @click.prevent="save_wo_confirm" class="btn btn-primary" value="Save Without Confirmation"/>
+                        -->
+                        <input type="button" @click.prevent="save_exit" class="btn btn-primary" value="Save and Exit"/>
+                        <input type="button" @click.prevent="save(true)" class="btn btn-primary" value="Save and Continue"/>
 
+                        <input v-if="!isSubmitting" type="button" @click.prevent="submit" class="btn btn-primary" value="Submit"/>
+                        <button v-else disabled class="btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Submitting</button>
+
+                        <input id="save_and_continue_btn" type="hidden" @click.prevent="save(false)" class="btn btn-primary" value="Save Without Confirmation"/>
                       </p>
                     </div>
                     <div v-else class="container">
@@ -137,34 +145,39 @@ export default {
         },
     },
     methods: {
-        save: function(e) {
+        save: function(confirmation_required) {
             console.log('***save');
 
             let vm = this;
             vm.form=document.forms.new_proposal;
             let formData = new FormData(vm.form);
 
-            try {
-                // Add site locations
-                formData.append('site_locations', JSON.stringify(this.$refs.proposal_apiary.$refs.apiary_site_locations.site_locations));
-            } catch(e){ }
+           // try {
+           //     // Add site locations
+           //     formData.append('site_locations', JSON.stringify(this.$refs.proposal_apiary.$refs.apiary_site_locations.site_locations));
+           // } catch(e){ }
 
             console.log(formData);
-            vm.$http.post(vm.proposal_form_url, formData).then(res=>{
-                swal(
-                    'Saved',
-                    'Your proposal has been saved',
-                    'success'
-                );
-            },err=>{
-      
-            });
+
+            if (confirmation_required){
+                vm.$http.post(vm.proposal_form_url, formData).then(res=>{
+                    swal(
+                        'Saved',
+                        'Your proposal has been saved',
+                        'success'
+                    );
+                },err=>{
+          
+                });
+            } else {
+                vm.$http.post(vm.proposal_form_url, formData)
+            }
         },
         save_exit: function(e) {
             let vm = this;
             vm.form=document.forms.new_proposal;
             this.submitting = true;
-            this.save(e);
+            this.save(true);
       
             // redirect back to dashboard
             vm.$router.push({
@@ -172,21 +185,21 @@ export default {
             });
         },
     
-        save_wo_confirm: function(e) {
-            console.log('***save_wo_confirm');
+       // save_wo_confirm: function(e) {
+       //     console.log('***save_wo_confirm');
 
-            let vm = this;
-            vm.form=document.forms.new_proposal;
-            let formData = new FormData(vm.form);
+       //     let vm = this;
+       //     vm.form=document.forms.new_proposal;
+       //     let formData = new FormData(vm.form);
 
-            try {
-                // Add site locations
-                formData.append('site_locations', JSON.stringify(this.$refs.proposal_apiary.$refs.apiary_site_locations.site_locations));
-            } catch(e){ }
+       //     try {
+       //         // Add site locations
+       //         formData.append('site_locations', JSON.stringify(this.$refs.proposal_apiary.$refs.apiary_site_locations.site_locations));
+       //     } catch(e){ }
 
-            console.log(formData);
-            vm.$http.post(vm.proposal_form_url, formData);
-        },
+       //     console.log(formData);
+       //     vm.$http.post(vm.proposal_form_url, formData);
+       // },
         sectionHide: function(e) {
             let vm = this;
             vm.sectionShow=!vm.sectionShow
@@ -379,7 +392,8 @@ export default {
     
                 } else {
                     /* just save and submit - no payment required (probably application was pushed back by assessor for amendment */
-                    vm.save_wo_confirm()
+                    //vm.save_wo_confirm()
+                    vm.save(false)
                     vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/submit'),formData).then(res=>{
                         vm.proposal = res.body;
                         vm.$router.push({
@@ -407,13 +421,13 @@ export default {
             let formData = new FormData(vm.form);
             //let formData = vm.set_formData()
 
-            try {
-                // Add site locations
-                formData.append('site_locations', JSON.stringify(this.$refs.proposal_apiary.$refs.apiary_site_locations.site_locations));
-            } catch(e){
-                console.log('Error in save_and_redirect()');
-                console.log(e);
-            }
+           // try {
+           //     // Add site locations
+           //     formData.append('site_locations', JSON.stringify(this.$refs.proposal_apiary.$refs.apiary_site_locations.site_locations));
+           // } catch(e){
+           //     console.log('Error in save_and_redirect()');
+           //     console.log(e);
+           // }
 
             vm.$http.post(vm.proposal_submit_url,formData).then(res=>{
                 /* after the above save, redirect to the Django post() method in ApplicationFeeView */

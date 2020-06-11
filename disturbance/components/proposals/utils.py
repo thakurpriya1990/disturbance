@@ -372,10 +372,16 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
 
-                site_locations_received = json.loads(request.data.get('site_locations'))
-                site_locations_existing = site_location_data['apiary_sites']
+                site_locations_received = site_location_data['apiary_sites']
+                # site_locations_existing_with_none = [item if item['id'] else None for item in site_location_data['apiary_sites']]
+                # site_locations_existing = []
+                # for item in site_locations_existing_with_none:
+                #     if item:
+                #         site_locations_existing.append(item)
+
                 site_ids_received = [item['id'] for item in site_locations_received]
-                site_ids_existing = [item['id'] for item in site_locations_existing]
+                # site_ids_existing = [item['id'] for item in site_locations_existing]
+                site_ids_existing = [site.id for site in ApiarySite.objects.filter(proposal_apiary_id=site_location_data['id'])]
                 site_ids_delete = [id for id in site_ids_existing if id not in site_ids_received]
 
                 for index, apiary_site in enumerate(site_locations_received):
