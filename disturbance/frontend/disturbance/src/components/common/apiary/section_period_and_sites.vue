@@ -39,7 +39,11 @@
             </div>
         </div>
 
-        <SiteSelection />
+<!--
+        <SiteSelection 
+            :apiary_sites_with_selection="temporary_use_apiary_sites" 
+       />
+-->
 
     </div>
 </template>
