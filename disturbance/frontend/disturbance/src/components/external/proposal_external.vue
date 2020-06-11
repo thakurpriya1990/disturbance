@@ -152,7 +152,6 @@ export default {
             vm.form=document.forms.new_proposal;
             let formData = new FormData(vm.form);
 
-//<<<<<<< HEAD
             if (confirmation_required){
                 vm.$http.post(vm.proposal_form_url, formData).then(res=>{
                     swal(
@@ -166,96 +165,18 @@ export default {
             } else {
                 vm.$http.post(vm.proposal_form_url, formData)
             }
-//||||||| merged common ancestors
-//            try {
-//                // Add site locations
-//                formData.append('site_locations', JSON.stringify(this.$refs.proposal_apiary.$refs.apiary_site_locations.site_locations));
-//            } catch(e){ }
-//
-//            console.log(formData);
-//            vm.$http.post(vm.proposal_form_url, formData).then(res=>{
-//                swal(
-//                    'Saved',
-//                    'Your proposal has been saved',
-//                    'success'
-//                );
-//            },err=>{
-//      
-//            });
-//=======
-//            try {
-//                // Add site locations
-//                formData.append('site_locations', JSON.stringify(this.$refs.proposal_apiary.$refs.apiary_site_locations.site_locations));
-//                formData.append('checklist_answers', JSON.stringify(this.proposal.proposal_apiary.checklist_answers));
-//            } catch(e){ }
-//
-//            console.log(formData);
-//            vm.$http.post(vm.proposal_form_url, formData).then(res=>{
-//                swal(
-//                    'Saved',
-//                    'Your proposal has been saved',
-//                    'success'
-//                );
-//            },err=>{
-//
-//            });
-//>>>>>>> 1199cfade15f594dbeb87911b405a4cd30fa2307
         },
         save_exit: function(e) {
             let vm = this;
             vm.form=document.forms.new_proposal;
             this.submitting = true;
-//<<<<<<< HEAD
             this.save(true);
-      
-//||||||| merged common ancestors
-//            this.save(e);
-//      
-//=======
-//            this.save(e);
-//
-//>>>>>>> 1199cfade15f594dbeb87911b405a4cd30fa2307
+            
             // redirect back to dashboard
             vm.$router.push({
                 name: 'external-proposals-dash'
             });
         },
-//<<<<<<< HEAD
-//||||||| merged common ancestors
-//    
-//        save_wo_confirm: function(e) {
-//            console.log('***save_wo_confirm');
-//
-//            let vm = this;
-//            vm.form=document.forms.new_proposal;
-//            let formData = new FormData(vm.form);
-//
-//            try {
-//                // Add site locations
-//                formData.append('site_locations', JSON.stringify(this.$refs.proposal_apiary.$refs.apiary_site_locations.site_locations));
-//            } catch(e){ }
-//
-//            console.log(formData);
-//            vm.$http.post(vm.proposal_form_url, formData);
-//        },
-//=======
-//
-//        save_wo_confirm: function(e) {
-//            console.log('***save_wo_confirm');
-//
-//            let vm = this;
-//            vm.form=document.forms.new_proposal;
-//            let formData = new FormData(vm.form);
-//
-//            try {
-//                // Add site locations
-//                formData.append('site_locations', JSON.stringify(this.$refs.proposal_apiary.$refs.apiary_site_locations.site_locations));
-//            } catch(e){ }
-//
-//            console.log(formData);
-//            vm.$http.post(vm.proposal_form_url, formData);
-//        },
-//>>>>>>> 1199cfade15f594dbeb87911b405a4cd30fa2307
         sectionHide: function(e) {
             let vm = this;
             vm.sectionShow=!vm.sectionShow
