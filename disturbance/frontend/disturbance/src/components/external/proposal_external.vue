@@ -16,7 +16,7 @@
                         <div v-for="a in amendment_request">
                           <p>Reason: {{a.reason}}</p>
                           <p v-if="a.amendment_request_documents">Documents:<p v-for="d in a.amendment_request_documents"><a :href="d._file" target="_blank" class="control-label pull-left">{{d.name   }}</a><br></p></p>
-                          <p>Details: <p v-for="t in splitText(a.text)">{{t}}</p></p>  
+                          <p>Details: <p v-for="t in splitText(a.text)">{{t}}</p></p>
                       </div>
                     </div>
                   </div>
@@ -86,7 +86,7 @@ import ProposalDisturbance from '../form.vue'
 import ProposalApiary from '../form_apiary.vue'
 //import ProposalApiary from '../form.vue'
 import NewApply from './proposal_apply_new.vue'
-import Vue from 'vue' 
+import Vue from 'vue'
 import {
   api_endpoints,
   helpers
@@ -147,6 +147,7 @@ export default {
             try {
                 // Add site locations
                 formData.append('site_locations', JSON.stringify(this.$refs.proposal_apiary.$refs.apiary_site_locations.site_locations));
+                formData.append('checklist_answers', JSON.stringify(this.proposal.proposal_apiary.checklist_answers));
             } catch(e){ }
 
             console.log(formData);
@@ -157,7 +158,7 @@ export default {
                     'success'
                 );
             },err=>{
-      
+
             });
         },
         save_exit: function(e) {
@@ -165,13 +166,13 @@ export default {
             vm.form=document.forms.new_proposal;
             this.submitting = true;
             this.save(e);
-      
+
             // redirect back to dashboard
             vm.$router.push({
                 name: 'external-proposals-dash'
             });
         },
-    
+
         save_wo_confirm: function(e) {
             console.log('***save_wo_confirm');
 
@@ -224,19 +225,19 @@ export default {
         },
         validate: function(){
             let vm = this;
-    
+
             // reset default colour
             for (var field of vm.missing_fields) {
                 $("#" + field.id).css("color", '#515151');
             }
             vm.missing_fields = [];
-    
+
             // get all required fields, that are not hidden in the DOM
             //var hidden_fields = $('input[type=text]:hidden, textarea:hidden, input[type=checkbox]:hidden, input[type=radio]:hidden, input[type=file]:hidden');
             //hidden_fields.prop('required', null);
             //var required_fields = $('select:required').not(':hidden');
             var required_fields = $('input[type=text]:required, textarea:required, input[type=checkbox]:required, input[type=radio]:required, input[type=file]:required, select:required').not(':hidden');
-    
+
             // loop through all (non-hidden) required fields, and check data has been entered
             required_fields.each(function() {
                 //console.log('type: ' + this.type + ' ' + this.name)
@@ -249,16 +250,16 @@ export default {
                         vm.missing_fields.push({id: id, label: text});
                     }
                 }
-    
+
                 if (this.type == 'checkbox') {
                     var id = 'id_' + this.className
                     if ($("[class="+this.className+"]:checked").length == 0) {
                         try { var text = $('#'+id).text() } catch(error) { var text = $('#'+id).textContent }
                         console.log('checkbox not checked: ' + this.type + ' ' + text)
                         vm.missing_fields.push({id: id, label: text});
-                    }   
+                    }
                 }
-    
+
                 if (this.type == 'select-one') {
                     if ($(this).val() == '') {
                         var text = $('#'+id).text()  // this is the (question) label
@@ -267,7 +268,7 @@ export default {
                         vm.missing_fields.push({id: id, label: text});
                     }
                 }
-    
+
                 if (this.type == 'file') {
                     var num_files = $('#'+id).attr('num_files')
                     if (num_files == "0") {
@@ -276,7 +277,7 @@ export default {
                         vm.missing_fields.push({id: id, label: text});
                     }
                 }
-    
+
                 if (this.type == 'text') {
                     if (this.value == '') {
                         var text = $('#'+id).text()
@@ -284,7 +285,7 @@ export default {
                         vm.missing_fields.push({id: id, label: text});
                     }
                 }
-    
+
                 if (this.type == 'textarea') {
                     if (this.value == '') {
                         var text = $('#'+id).text()
@@ -292,7 +293,7 @@ export default {
                         vm.missing_fields.push({id: id, label: text});
                     }
                 }
-    
+
                 /*
                 if (this.type == 'select') {
                     if (this.value == '') {
@@ -301,7 +302,7 @@ export default {
                         vm.missing_fields.push({id: id, label: text});
                     }
                 }
-    
+
                 if (this.type == 'multi-select') {
                     if (this.value == '') {
                         var text = $('#'+id).text()
@@ -311,9 +312,9 @@ export default {
                 }
                 */
             });
-    
+
             return vm.missing_fields.length
-    
+
             /*
             if (emptyFields === 0) {
                 $('#form').submit();
@@ -340,7 +341,7 @@ export default {
                     deficient_fields.push(tmp);
                     //console.log('data', $("#"+"id_" + tmp))
                 }
-            }); 
+            });
             //console.log('deficient fields', deficient_fields);
             vm.highlight_deficient_fields(deficient_fields);
         },
@@ -350,7 +351,7 @@ export default {
             let vm = this;
             vm.form=document.forms.new_proposal;
             let formData = new FormData(vm.form);
-    
+
             var num_missing_fields = vm.validate()
             if (num_missing_fields > 0) {
                 vm.highlight_missing_fields()
@@ -360,10 +361,10 @@ export default {
                 }, 1);
                 return false;
             }
-    
+
             // remove the confirm prompt when navigating away from window (on button 'Submit' click)
             vm.submitting = true;
-    
+
             swal({
                 title: "Submit Proposal",
                 text: "Are you sure you want to submit this proposal?",
@@ -376,7 +377,7 @@ export default {
                 // Only Apiary has an application fee
                 if (!vm.proposal.fee_paid && vm.proposal.application_type=='Apiary') {
                     vm.save_and_redirect();
-    
+
                 } else {
                     /* just save and submit - no payment required (probably application was pushed back by assessor for amendment */
                     vm.save_wo_confirm()
@@ -422,7 +423,7 @@ export default {
             });
         },
         post_and_redirect: function(url, postData) {
-            /* http.post and ajax do not allow redirect from Django View (post method), 
+            /* http.post and ajax do not allow redirect from Django View (post method),
                this function allows redirect by mimicking a form submit.
 
                usage:  vm.post_and_redirect(vm.application_fee_url, {'csrfmiddlewaretoken' : vm.csrf_token});
@@ -481,7 +482,7 @@ export default {
                 Vue.http.get(helpers.add_endpoint_json(api_endpoints.proposals, proposal_id + '/amendment_request')).then((res) => {
                     vm.setAmendmentData(res.body);
                 },
-                err => { 
+                err => {
                     console.log(err);
                 });
             },
@@ -506,14 +507,14 @@ export default {
        //             Vue.http.get(helpers.add_endpoint_json(api_endpoints.proposals,to.params.proposal_id+'/amendment_request')).then((res) => {
        //                 vm.setAmendmentData(res.body);
        //             },
-       //             err => { 
+       //             err => {
        //                 console.log(err);
        //             });
        //         });
        //     },
        //     err => {
        //         console.log(err);
-       //     });    
+       //     });
        // }
        // else {
        //     Vue.http.post('/api/proposal.json').then(res => {

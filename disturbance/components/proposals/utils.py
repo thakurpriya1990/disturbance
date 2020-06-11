@@ -6,7 +6,8 @@ from django.db import transaction
 from django.contrib.gis.geos import Point
 from preserialize.serialize import serialize
 from ledger.accounts.models import EmailUser, Document
-from disturbance.components.proposals.models import ProposalDocument, ProposalUserAction, ApiarySite, SiteCategory
+from disturbance.components.proposals.models import ProposalDocument, ProposalUserAction, ApiarySite, SiteCategory, \
+    ApiaryApplicantChecklistAnswer
 from disturbance.components.proposals.serializers import SaveProposalSerializer
 
 from disturbance.components.main.models import ApplicationType
@@ -393,8 +394,14 @@ def save_proponent_data_apiary(instance, request, viewset):
                         # Create new
                         serializer = ApiarySiteSerializer(data=apiary_site)
 
+
                     serializer.is_valid(raise_exception=True)
                     serializer.save()
+
+                for new_answer in site_location_data['checklist_answers']:
+                    ans = ApiaryApplicantChecklistAnswer.objects.get(id=new_answer['id'])
+                    ans.answer = new_answer['answer']
+                    ans.save()
 
                 # Delete existing
                 sites_delete = ApiarySite.objects.filter(id__in=site_ids_delete)
