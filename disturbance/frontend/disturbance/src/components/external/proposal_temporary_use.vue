@@ -117,7 +117,6 @@
             datatable,
             PeriodAndSites,
             TemporaryOccupier,
-            DeedPoll,
         },
         computed:{
 
