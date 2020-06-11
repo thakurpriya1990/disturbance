@@ -26,12 +26,17 @@
         </div></div>
 
         <div class="row col-sm-12">
-            <datatable
-                ref="apiary_sites_table"
-                id="apiary-sites-table"
-                :dtOptions="dtOptions"
-                :dtHeaders="dtHeaders"
-            />
+            <div class="col-sm-6">
+                <datatable
+                    ref="apiary_sites_table"
+                    id="apiary-sites-table"
+                    :dtOptions="dtOptions"
+                    :dtHeaders="dtHeaders"
+                />
+            </div>
+            <div class="col-sm-6 placeholder-for-map">
+                Map here
+            </div>
         </div>
 
     </div>
@@ -139,7 +144,8 @@
                 period_to: '',
                 period_from_enabled: false,
                 period_to_enabled: false,
-                temporary_use_apiary_sites: [],
+                temporary_use_apiary_sites: [],  // Used to construct the sites table
+                                                 // Array of TemporaryUseApiarySite objects
             }
         },
         created: function() {
@@ -330,5 +336,7 @@
 </script>
 
 <style lang="css" scoped>
-
+.placeholder-for-map {
+    background: #BBB;
+}
 </style>

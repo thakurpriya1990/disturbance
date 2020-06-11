@@ -39,6 +39,7 @@ export default
         {
             path: 'approval/:approval_id',
             component: Approval,
+            name: "external-approval"
         },
         {
             path: 'proposal',

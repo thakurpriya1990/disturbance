@@ -1,85 +1,63 @@
 <template lang="html">
     <div>
 
-        <SiteLocations
-            :proposal="proposal"
-            id="site_locations"
-            ref="apiary_site_locations"
-            :is_external="is_external"
-            :is_internal="is_internal">
-        </SiteLocations>
-
-        <div class="panel panel-default">
-            <div class="panel-heading">
-                <h3 class="panel-title">Deed Poll<small></small>
-                <a class="panelClicker" href="#deedPoll" data-toggle="collapse"  data-parent="#userInfo" expanded="true" aria-controls="deedPoll">
-                <span class="glyphicon glyphicon-chevron-up pull-right "></span>
-                </a>
-                </h3>
-            </div>
-            <div class="panel-body collapse in" id="deedPoll">
-                <div class="row">
-                    <div class="col-sm-12">
-                        <label>Print <a :href="deedPollUrl" target="_blank">the deed poll</a>, sign it, have it witnessed and attach it to this application.</label>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-sm-12">
-                        <FileField
-                        ref="deed_poll_documents"
-                        name="deed-poll-documents"
-                        :isRepeatable="true"
-                        :documentActionUrl="deedPollDocumentUrl"
-                        :readonly="is_internal"
-                        />
-                        <!--FileField
-                        :proposal_id="proposal.id"
-                        :isRepeatable="false"
-                        name="deed_poll"
-                        :id="'proposal'+proposal.id"
-                        :readonly="proposal.readonly"
-                        ref="deed_poll_doc"
-                        /-->
-                    </div>
-                </div>
+        <div>
+            <div v-if="is_external">
+                <h3>Application: {{ proposal.lodgement_number }}</h3>
+                <h4>Application Type: {{proposal.proposal_type }}</h4>
+                <h4>Status: {{proposal.customer_status }}</h4>
             </div>
         </div>
 
-        <div class="panel panel-default">
-            <div class="panel-heading">
-                <h3 class="panel-title">Checklist<small></small>
-                <a class="panelClicker" href="#checkList" data-toggle="collapse"  data-parent="#userInfo" expanded="true" aria-controls="checkList">
-                  <span class="glyphicon glyphicon-chevron-up pull-right "></span>
-                </a>
-                </h3>
+        <FormSection :formCollapse="false" label="Site Locations" Index="site_locations">
+            <SiteLocations
+                :proposal="proposal"
+                id="site_locations"
+                ref="apiary_site_locations"
+                :is_external="is_external"
+                :is_internal="is_internal">
+            </SiteLocations>
+        </FormSection>
+
+        <FormSection :formCollapse="false" label="Deed Poll" Index="deed_poll">
+            <div class="row">
+                <div class="col-sm-12">
+                    <label>Print <a :href="deedPollUrl" target="_blank">the deed poll</a>, sign it, have it witnessed and attach it to this application.</label>
+                </div>
             </div>
-
-            <div class="panel-body collapse in" id="checkList">
-
-                <form class="form-horizontal">
-                    <ul class="list-unstyled col-sm-12" v-for="q in proposal.proposal_apiary.checklist_answers">
-                        <div class="row">
-                            <div class="col-sm-12">
-                                <li class="col-sm-6">
-                                    <label class="control-label">{{q.question.text}}</label>
-                                </li>
-
-                                <ul  class="list-inline col-sm-6">
-                                    <li class="list-inline-item">
-                                        <input  class="form-check-input" v-model="q.answer" ref="Checkbox" type="radio" :name="'option'+q.id" :id="'answer_one'+q.id":value="true" data-parsley-required :disabled="readonly"/> Yes
-                                    </li>
-                                    <li class="list-inline-item">
-                                        <input  class="form-check-input" v-model="q.answer" ref="Checkbox" type="radio" :name="'option'+q.id" :id="'answer_two'+q.id" :value="false" data-parsley-required :disabled="readonly"/> No
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
-                    </ul>
-
-                 </form>
-
+            <div class="row">
+                <div class="col-sm-12">
+                    <FileField
+                    ref="deed_poll_documents"
+                    name="deed-poll-documents"
+                    :isRepeatable="true"
+                    :documentActionUrl="deedPollDocumentUrl"
+                    :readonly="is_internal"
+                    />
+                </div>
             </div>
-        </div>
+        </FormSection>
+
+        <FormSection :formCollapse="false" label="Checklist" Index="checklist">
+            <ul class="list-unstyled col-sm-12" v-for="q in proposal.proposal_apiary.checklist_answers">
+                <div class="row">
+                    <div class="col-sm-12">
+                        <li class="col-sm-6">
+                            <label class="control-label">{{q.question.text}}</label>
+                        </li>
+
+                        <ul  class="list-inline col-sm-6">
+                            <li class="list-inline-item">
+                                <input  class="form-check-input" v-model="q.answer" ref="Checkbox" type="radio" :name="'option'+q.id" :id="'answer_one'+q.id":value="true" data-parsley-required :disabled="readonly"/> Yes
+                            </li>
+                            <li class="list-inline-item">
+                                <input  class="form-check-input" v-model="q.answer" ref="Checkbox" type="radio" :name="'option'+q.id" :id="'answer_two'+q.id" :value="false" data-parsley-required :disabled="readonly"/> No
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </ul>
+        </FormSection>
 
     </div>
 </template>
@@ -88,6 +66,7 @@
 
     import SiteLocations from '@/components/common/apiary/site_locations.vue'
     import FileField from '@/components/forms/filefield_immediate.vue'
+    import FormSection from "@/components/forms/section_toggle.vue"
     import {
         api_endpoints,
         helpers
@@ -142,7 +121,8 @@
         },
         components: {
             SiteLocations,
-            FileField
+            FileField,
+            FormSection,
         },
         computed:{
             deedPollDocumentUrl: function() {
