@@ -135,8 +135,8 @@ class OnSiteInformationSerializer(serializers.ModelSerializer):
 
 
 class ApiarySiteSerializer(serializers.ModelSerializer):
-    proposal_apiary_id = serializers.IntegerField(write_only=True,)
-    site_category_id = serializers.IntegerField(write_only=True,)
+    proposal_apiary_id = serializers.IntegerField(write_only=True, required=False)
+    site_category_id = serializers.IntegerField(write_only=True, required=False)
     onsiteinformation_set = OnSiteInformationSerializer(read_only=True, many=True,)
 
     class Meta:

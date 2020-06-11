@@ -381,19 +381,19 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                 for index, apiary_site in enumerate(site_locations_received):
                     apiary_site['proposal_apiary_id'] = proposal_obj.proposal_apiary.id
 
-                    # TODO: retrieve category (south-west / remote) from GIS server
-                    if int(apiary_site['latitude']) >= 0:
-                        category_obj = SiteCategory.objects.get(name='south_west')
-                    else:
-                        category_obj = SiteCategory.objects.get(name='remote')
-                    apiary_site['site_category_id'] = category_obj.id
-
                     try:
                         # Update existing
                         a_site = ApiarySite.objects.get(site_guid=apiary_site['site_guid'])
                         serializer = ApiarySiteSerializer(a_site, data=apiary_site)
                     except ApiarySite.DoesNotExist:
                         # Create new
+                        # TODO: retrieve category (south-west / remote) from GIS server
+                        if int(float(apiary_site['latitude'])) >= 0:
+                            category_obj = SiteCategory.objects.get(name='south_west')
+                        else:
+                            category_obj = SiteCategory.objects.get(name='remote')
+                        apiary_site['site_category_id'] = category_obj.id
+
                         serializer = ApiarySiteSerializer(data=apiary_site)
 
                     serializer.is_valid(raise_exception=True)
