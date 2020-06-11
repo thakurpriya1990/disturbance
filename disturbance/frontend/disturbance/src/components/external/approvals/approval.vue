@@ -110,7 +110,6 @@
                 <FormSection :formCollapse="false" label="Temporary Use" Index="temporary_use">
                     <template v-if="approval && approval.id">
                         <TemporaryUse 
-                            :proposal_apiary_id="proposal_apiary_id" 
                             :approval_id="approval.id"
                             ref="tempoary_use" 
                         />
