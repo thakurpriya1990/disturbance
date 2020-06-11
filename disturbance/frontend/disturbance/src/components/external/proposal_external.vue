@@ -152,13 +152,6 @@ export default {
             vm.form=document.forms.new_proposal;
             let formData = new FormData(vm.form);
 
-           // try {
-           //     // Add site locations
-           //     formData.append('site_locations', JSON.stringify(this.$refs.proposal_apiary.$refs.apiary_site_locations.site_locations));
-           // } catch(e){ }
-
-            console.log(formData);
-
             if (confirmation_required){
                 vm.$http.post(vm.proposal_form_url, formData).then(res=>{
                     swal(
@@ -184,22 +177,6 @@ export default {
                 name: 'external-proposals-dash'
             });
         },
-    
-       // save_wo_confirm: function(e) {
-       //     console.log('***save_wo_confirm');
-
-       //     let vm = this;
-       //     vm.form=document.forms.new_proposal;
-       //     let formData = new FormData(vm.form);
-
-       //     try {
-       //         // Add site locations
-       //         formData.append('site_locations', JSON.stringify(this.$refs.proposal_apiary.$refs.apiary_site_locations.site_locations));
-       //     } catch(e){ }
-
-       //     console.log(formData);
-       //     vm.$http.post(vm.proposal_form_url, formData);
-       // },
         sectionHide: function(e) {
             let vm = this;
             vm.sectionShow=!vm.sectionShow
@@ -419,15 +396,6 @@ export default {
             let vm = this;
             vm.form=document.forms.new_proposal;
             let formData = new FormData(vm.form);
-            //let formData = vm.set_formData()
-
-           // try {
-           //     // Add site locations
-           //     formData.append('site_locations', JSON.stringify(this.$refs.proposal_apiary.$refs.apiary_site_locations.site_locations));
-           // } catch(e){
-           //     console.log('Error in save_and_redirect()');
-           //     console.log(e);
-           // }
 
             vm.$http.post(vm.proposal_submit_url,formData).then(res=>{
                 /* after the above save, redirect to the Django post() method in ApplicationFeeView */
@@ -507,40 +475,6 @@ export default {
     beforeRouteEnter: function(to, from, next) {
         console.log('in beforeRouteEnter')
         console.log('id: ' + to.params.proposal_id)
-
-       // if (to.params.proposal_id) {
-       //     let vm = this;
-       //     Vue.http.get(`/api/proposal/${to.params.proposal_id}.json`).then(res => {
-       //         next(vm => {
-       //             vm.loading.push('fetching proposal')
-       //             vm.proposal = res.body;
-       //             vm.loading.splice('fetching proposal', 1);
-       //             vm.setdata(vm.proposal.readonly);
-
-       //             Vue.http.get(helpers.add_endpoint_json(api_endpoints.proposals,to.params.proposal_id+'/amendment_request')).then((res) => {
-       //                 vm.setAmendmentData(res.body);
-       //             },
-       //             err => { 
-       //                 console.log(err);
-       //             });
-       //         });
-       //     },
-       //     err => {
-       //         console.log(err);
-       //     });    
-       // }
-       // else {
-       //     Vue.http.post('/api/proposal.json').then(res => {
-       //         next(vm => {
-       //             vm.loading.push('fetching proposal')
-       //             vm.proposal = res.body;
-       //             vm.loading.splice('fetching proposal', 1);
-       //         });
-       //     },
-       //     err => {
-       //         console.log(err);
-       //     });
-       // }
     }
 }
 </script>
