@@ -39,11 +39,14 @@
             </div>
         </div>
 
+        <SiteSelection />
+
     </div>
 </template>
 
 <script>
     import datatable from '@vue-utils/datatable.vue'
+    import SiteSelection from '@/components/common/apiary/component_site_selection.vue'
 
     export default {
         props:{
@@ -176,6 +179,7 @@
         },
         components: {
             datatable,
+            SiteSelection,
         },
         computed:{
 
