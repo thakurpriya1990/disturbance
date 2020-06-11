@@ -313,6 +313,15 @@
                     "site_guid": uuid()
                 });
                 this.constructSiteLocationsTable();
+
+                ///// test /////
+                this.proposal.proposal_apiary.apiary_sites.push({
+                    "id": '',
+                    "latitude": this.proposal.proposal_apiary.latitude,
+                    "longitude": this.proposal.proposal_apiary.longitude,
+                    "site_guid": uuid()
+                })
+                ///// test /////
             },
             addEventListeners: function(){
                 $("#site-locations-table").on("click", ".delete_button", this.removeSiteLocation);
@@ -327,6 +336,15 @@
                         this.site_locations.splice(i, 1);
                     }
                 }
+
+                ///// test /////
+                for (let i=0; i<this.proposal.proposal_apiary.apiary_sites.length; i++){
+                    if (this.proposal.proposal_apiary.apiary_sites[i].site_guid == site_location_guid){
+                        this.proposal.proposal_apiary.apiary_sites.splice(i, 1);
+                    }
+                }
+                ///// test /////
+
                 this.constructSiteLocationsTable();
             },
         },
