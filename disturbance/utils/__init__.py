@@ -1,5 +1,7 @@
 import sys
+from datetime import datetime
 
+import pytz
 from django.conf import settings
 from disturbance.components.proposals.models import Proposal, ProposalType, HelpPage, ApplicationType
 from collections import OrderedDict
@@ -163,6 +165,21 @@ def test_compare_data():
 def compare_proposal(current_proposal, prev_proposal_id):
     prev_proposal = Proposal.objects.get(id=prev_proposal_id)
     return compare_data(current_proposal.data[0], prev_proposal.data[0], current_proposal.schema)
+
+
+def convert_moment_str_to_python_datetime_obj(moment_str):
+    """
+    This function convert moment-obj-str to python datetime obj
+    """
+    # Serialized moment obj is supposed to be sent. Which is UTC timezone.
+    date_utc = datetime.strptime(moment_str, '%Y-%m-%dT%H:%M:%S.%fZ')
+    # Add timezone (UTC)
+    date_utc = date_utc.replace(tzinfo=pytz.UTC)
+    # Convert the timezone to TIME_ZONE
+    date_perth = date_utc.astimezone(pytz.timezone(settings.TIME_ZONE))
+
+    return date_perth
+
 
 def compare_data(dict1, dict2, schema):
     """
