@@ -83,17 +83,16 @@ export default {
                             if (!vm.canAction){
                                 return result;
                             }
-                            //var user = full.referral.first_name + ' ' + full.referral.last_name; 
+                            var user = full.apiary_referral.referral_group.name; 
                             //var user = 'dummy val';
                             let apiaryId = full.apiary_referral.id
-                            console.log(apiaryId)
                             if (full.referral_status == 'Awaiting'){
                                 //result = `<a href="" data-id="${data}" data-user="${user}" class="remindRef">Remind</a>/<a href="" data-id="${data}" data-user="${user}" class="recallRef">Recall</a>`;
-                                result = `<a href="" data-id="${apiaryId}" class="remindRef">Remind</a>/<a href="" data-id="${apiaryId}" class="recallRef">Recall</a>`;
+                                result = `<a href="" data-id="${apiaryId}" data-user="${user}" class="remindRef">Remind</a>/<a href="" data-id="${apiaryId}" data-user="${user}" class="recallRef">Recall</a>`;
                             }
                             else{
                                 //result = `<a href="" data-id="${data}" data-user="${user}" class="resendRef">Resend</a>`;
-                                result = `<a href="" data-id="${apiaryId}" class="resendRef">Resend</a>`;
+                                result = `<a href="" data-id="${apiaryId}" data-user="${user}" class="resendRef">Resend</a>`;
                             }
                             return result;
                         }
@@ -229,18 +228,18 @@ export default {
                 }).on('click','.resendRef',function(e){
                     e.preventDefault();
                     var _id = $(this).data('id');
-                    //var user = $(this).data('user');
-                    vm.resendReferral(_id);
+                    var user = $(this).data('user');
+                    vm.resendReferral(_id, user);
                 }).on('click','.recallRef',function(e){
                     e.preventDefault();
                     var _id = $(this).data('id');
-                    //var user = $(this).data('user');
-                    vm.recallReferral(_id);
+                    var user = $(this).data('user');
+                    vm.recallReferral(_id, user);
                 }).on('click','.remindRef',function(e){
                     e.preventDefault();
                     var _id = $(this).data('id');
-                    //var user = $(this).data('user');
-                    vm.remindReferral(_id);
+                    var user = $(this).data('user');
+                    vm.remindReferral(_id,user);
                 });
             }).on('shown.bs.popover', function () {
                 var el = vm.$refs.showRef;

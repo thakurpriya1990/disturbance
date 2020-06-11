@@ -270,7 +270,9 @@
             SiteLocationsModal,
         },
         computed:{
-
+            readonly: function() {
+                return false;
+            },
         },
         watch:{
 
