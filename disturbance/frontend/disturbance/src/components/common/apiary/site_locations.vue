@@ -1,147 +1,86 @@
 <template lang="html">
+    <div>
 
-    <div class="row" style="padding-bottom: 50px;">
-        <div>
-            <div v-if="is_external">
-                <h3>Application: {{ proposal.lodgement_number }}</h3>
-                <h4>Application Type: {{proposal.proposal_type }}</h4>
-                <h4>Status: {{proposal.customer_status }}</h4>
+            <span class="row col-sm-12">
+                <input
+                    type="text"
+                    v-model="proposal.proposal_apiary.title"
+                    :readonly="is_internal || !proposal.can_user_edit"
+                />
+            </span>
+
+            <span class="row col-sm-12">
+                Mark the location of the new proposed site either by entering the latitude and longitude or by clicking the location in the map.
+            </span>
+
+            <div class="row col-sm-12">
+                <div class="col-sm-4 form-group">
+                    <label class="inline">Latitude:</label>
+                    <div v-if="true">
+                        <input
+                            type="number"
+                            min="-90"
+                            max="90"
+                            class="form-control"
+                            v-model.number="proposal.proposal_apiary.latitude"
+                            :readonly="is_internal || !proposal.can_user_edit"
+                        />
+                    </div>
+                </div>
             </div>
 
-            <div class="col-md-12">
-                <div class="panel panel-default">
-                    <div class="panel-heading">
-                        <h3 class="panel-title">Site Locations<small></small>
-                            <a class="panelClicker" :href="'#'+pBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="pBody">
-                                <span class="glyphicon glyphicon-chevron-up pull-right "></span>
-                            </a>
-                        </h3>
+            <div class="row col-sm-12">
+                <div class="col-sm-4 form-group">
+                    <label class="inline">Longitude:</label>
+                    <div v-if="true">
+                        <input
+                            type="number"
+                            min="-180"
+                            max="180"
+                            class="form-control"
+                            v-model.number="proposal.proposal_apiary.longitude"
+                            :readonly="is_internal || !proposal.can_user_edit"
+                        />
+                        <input type="button" @click="addProposedSite" value="Add proposed site" class="btn btn-primary">
                     </div>
+                </div>
+            </div>
 
-                    <div class="panel-body collapse in" :id="pBody">
-                        <span class="col-sm-12">
-                            <!--
-                            <TextField
-                            -->
-                            <input
-                                type="text"
-                                v-model="proposal.proposal_apiary.title"
-                                :readonly="is_internal || !proposal.can_user_edit"
-                            />
-                        </span>
-                        <span class="col-sm-12">
-                            Mark the location of the new proposed site either by entering the latitude and longitude or by clicking the location in the map.
-                        </span>
-                        <div class="row col-sm-12">
-                            <div class="col-sm-4 form-group">
-                                <label class="inline">Latitude:</label>
-                                <div v-if="true">
-                                    <input
-                                        type="number"
-                                        min="-90"
-                                        max="90"
-                                        class="form-control"
-                                        v-model.number="proposal.proposal_apiary.latitude"
-                                        :readonly="is_internal || !proposal.can_user_edit"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row col-sm-12">
-                            <div class="col-sm-4 form-group">
-                                <label class="inline">Longitude:</label>
-                                <div v-if="true">
-                                    <input
-                                        type="number"
-                                        min="-180"
-                                        max="180"
-                                        class="form-control"
-                                        v-model.number="proposal.proposal_apiary.longitude"
-                                        :readonly="is_internal || !proposal.can_user_edit"
-                                    />
-                                    <input type="button" @click="addProposedSite" value="Add proposed site" class="btn btn-primary">
-                                </div>
-                            </div>
-                        </div>
-
-                        <template v-if="proposal && proposal.proposal_apiary">
-                            <div class="row col-sm-12 debug-info">
-                                How to set a site 'SouthWest'/'Remote':
-                                <div class="debug-message">
-                                    <div>when latitude is more than or equal to 0, then the proposed site is regarded as 'SouthWest'</div>
-                                    <div>when latitude is less than 0, then the proposed site is regarded as 'Remote'</div>
-                                </div>
-                                Remainders:
-                                <div v-for="remainder in proposal.proposal_apiary.site_remainders" class="debug-remainders">
-                                    <div>
-                                        {{ remainder.category_name }}: {{ remainder.remainders }} left (${{ remainder.fee }}/site)
-                                    </div>
-                                </div>
-                            </div>
-                        </template>
-
-                        <div class="row col-sm-12">
-                            <datatable ref="site_locations_table" id="site-locations-table" :dtOptions="dtOptions" :dtHeaders="dtHeaders" />
-                        </div>
-
-                        <iframe width="500" height="500" :src="webmap_src"></iframe>
-                            <!--
-                        <IFrame width="500" height="300" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" title="Apiary Sites Beekeeper's Map (WBV)" :src="webmap_src"></IFrame>
-                            -->
-
-                        <div class="col-sm-12">
-                            <label>
-                                Click <a @click="enlargeMapClicked">here</a> to enlarge map
-                            </label>
-                        </div>
-                        <div class="col-sm-12">
-                            <label>
-                                Click <a @click="existingSiteAvailableClicked">here</a> if you are interested in existing sites that are available by the site licence holder.
-                            </label>
+            <template v-if="proposal && proposal.proposal_apiary">
+                <div class="row col-sm-12 debug-info">
+                    How to set a site 'SouthWest'/'Remote':
+                    <div class="debug-message">
+                        <div>when latitude is more than or equal to 0, then the proposed site is regarded as 'SouthWest'</div>
+                        <div>when latitude is less than 0, then the proposed site is regarded as 'Remote'</div>
+                    </div>
+                    Remainders:
+                    <div v-for="remainder in proposal.proposal_apiary.site_remainders" class="debug-remainders">
+                        <div>
+                            {{ remainder.category_name }}: {{ remainder.remainders }} left (${{ remainder.fee }}/site)
                         </div>
                     </div>
                 </div>
+            </template>
 
-
-                <div class="panel panel-default">
-                    <div class="panel-heading">
-                        <h3 class="panel-title">Checklist<small></small>
-                        <a class="panelClicker" href="#checkList" data-toggle="collapse"  data-parent="#userInfo" expanded="true" aria-controls="checkList">
-                          <span class="glyphicon glyphicon-chevron-up pull-right "></span>
-                        </a>
-                        </h3>
-                    </div>
-
-                    <div class="panel-body collapse in" id="checkList">
-
-                        <form class="form-horizontal">
-                            <ul class="list-unstyled col-sm-12" v-for="q in proposal.proposal_apiary.checklist_answers">
-                                <div class="row">
-                                    <div class="col-sm-12">
-                                        <li class="col-sm-6">
-                                            <label class="control-label">{{q.question.text}}</label>
-                                        </li>
-
-                                        <ul  class="list-inline col-sm-6">
-                                                    <li class="list-inline-item">
-                                                        <input  class="form-check-input" v-model="q.answer" ref="Checkbox" type="radio" :name="'option'+q.id" :id="'answer_one'+q.id":value="true" data-parsley-required :disabled="readonly"/> Yes
-                                                    </li>
-                                                    <li class="list-inline-item">
-                                                        <input  class="form-check-input" v-model="q.answer" ref="Checkbox" type="radio" :name="'option'+q.id" :id="'answer_two'+q.id" :value="false" data-parsley-required :disabled="readonly"/> No </li>
-                                         </ul>
-                                    </div>
-                                </div>
-                            </ul>
-
-                         </form>
-
-                    </div>
-                </div>
-
+            <div class="row col-sm-12">
+                <datatable ref="site_locations_table" id="site-locations-table" :dtOptions="dtOptions" :dtHeaders="dtHeaders" />
             </div>
-        </div>
+
+            <iframe width="500" height="500" :src="webmap_src"></iframe>
+
+            <div class="row col-sm-12">
+                <label>
+                    Click <a @click="enlargeMapClicked">here</a> to enlarge map
+                </label>
+            </div>
+            <div class="row col-sm-12">
+                <label>
+                    Click <a @click="existingSiteAvailableClicked">here</a> if you are interested in existing sites that are available by the site licence holder.
+                </label>
+            </div>
 
         <SiteLocationsModal ref="site_locations_modal" />
+
     </div>
 </template>
 
