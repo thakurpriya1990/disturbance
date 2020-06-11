@@ -27,11 +27,6 @@
 
     export default {
         props:{
-            proposal_apiary_id:{
-                type: Number,
-                required: true,
-                default: 0,
-            },
             approval_id: {
                 type: Number,
                 required: true,
@@ -50,6 +45,7 @@
             return{
                 proposal_apiary: null,
                 creatingProposal: false,
+                temporary_uses: [],
                 dtHeaders: [
                     'id',
                     'From',
@@ -89,7 +85,13 @@
                         },
                         {
                             mRender: function (data, type, full) {
-                                return 'site:' + full.id
+                                let ret_str = ''
+                                for (let i=0; i<full.temporary_use_apiary_sites.length; i++){
+                                    if (full.temporary_use_apiary_sites[i].selected){
+                                        ret_str += 'apiary site ID: ' + full.temporary_use_apiary_sites[i].apiary_site.id + '<br />'
+                                    }
+                                }
+                                return ret_str
                             }
                         },
                         {
@@ -116,6 +118,31 @@
 
         },
         methods:{
+            loadTemporaryUses: async function(){
+                console.log('loadTemporaryUses');
+
+                await this.$http.get('/api/approvals/' + this.approval_id + '/temporary_use/').then(
+                    (accept)=>{
+                        console.log('accept')
+                        console.log(accept.body)
+                        this.temporary_uses = accept.body
+                        this.constructTemporaryUseTable()
+                    },
+                    (reject)=>{
+                        console.log('reject')
+                    },
+                )
+            },
+            constructTemporaryUseTable: function() {
+                this.$refs.temporary_use_table.vmDataTable.clear().draw();
+
+                for (let i=0; i<this.temporary_uses.length; i++){
+                    this.addTemporaryUseToTable(this.temporary_uses[i]);
+                }
+            },
+            addTemporaryUseToTable: function(temporary_use) {
+                this.$refs.temporary_use_table.vmDataTable.row.add(temporary_use).draw();
+            },
             openNewTemporaryUse: function() {
                 let vm = this
 
@@ -177,7 +204,7 @@
             },
         },
         created: function() {
-
+            this.loadTemporaryUses()
         },
         mounted: function() {
             let vm = this;
