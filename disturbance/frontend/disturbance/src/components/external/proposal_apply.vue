@@ -362,6 +362,19 @@ export default {
 		},
 		err => {
 			console.log(err);
+            console.log(err.bodyText);
+            if (err.bodyText.includes("null_applicant_address")) {
+                swal({
+                    title: "Cannot create application",
+                    text: "Please add your address",
+                    type: "error",
+                    confirmButtonText: 'Ok'
+                }).then(() => {
+                    vm.$router.push({
+                        name:"account",
+                    });
+                });
+            }
 		});
     },
     isDisabled: function() {
