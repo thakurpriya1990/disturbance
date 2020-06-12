@@ -770,7 +770,9 @@ class ApiaryReferralViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             serializer = SendApiaryReferralSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
-            instance.send_referral(request,serializer.validated_data['email'],serializer.validated_data['text'])
+            #instance.send_referral(request,serializer.validated_data['email'],serializer.validated_data['text'])
+            #instance.send_referral(request,serializer.validated_data['group_id'], serializer.validated_data['text'])
+            instance.referral.proposal.proposal_apiary.send_referral(request,serializer.validated_data['group_id'], serializer.validated_data['text'])
             serializer = self.get_serializer(instance, context={'request':request})
             return Response(serializer.data)
         except serializers.ValidationError:
@@ -1544,6 +1546,11 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 applicant = None
                 proxy_applicant = None
                 if request.data.get('behalf_of') == 'individual':
+                    # Validate User for Individual applications
+                    request_user = EmailUser.objects.get(id=request.user.id)
+                    if not request_user.residential_address:
+                        raise ValidationError('null_applicant_address')
+                    # Assign request.user as applicant
                     proxy_applicant = request.user.id
                 else:
                     applicant = request.data.get('behalf_of')
