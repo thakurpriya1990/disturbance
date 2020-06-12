@@ -5,7 +5,6 @@
                 <div class="row">
 
                     <FormSection :formCollapse="false" label="Period and Site(s)" Index="period_and_sites">
-
                         <template v-if="apiary_temporary_use">
                             <PeriodAndSites 
                                 :is_external=is_external 
@@ -40,7 +39,13 @@
                     </FormSection>
 
                     <FormSection :formCollapse="false" label="Deed Poll" Index="deed_poll">
-                        Deed Poll ffu here
+                        <template v-if="apiary_temporary_use && documentActionUrl">
+                            <DeedPoll
+                                :isRepeatable="true"
+                                :isReadonly="is_internal"
+                                :documentActionUrl="documentActionUrl"
+                            />
+                        </template>
                     </FormSection>
 
                 </div>
@@ -74,17 +79,22 @@
     import FormSection from "@/components/forms/section_toggle.vue"
     import PeriodAndSites from "@/components/common/apiary/section_period_and_sites.vue"
     import TemporaryOccupier from "@/components/common/apiary/section_temporary_occupier.vue"
+    import DeedPoll from "@/components/common/apiary/section_deed_poll.vue"
 
     export default {
         props:{
-            is_external:{
-              type: Boolean,
-              default: false
+            is_external: {
+                type: Boolean,
+                default: false
             },
-            is_internal:{
-              type: Boolean,
-              default: false
+            is_internal: {
+                type: Boolean,
+                default: false
             },
+            proposalId: {
+                type: Number,
+                default: null,
+            }
         },
         data:function () {
             let vm=this;
@@ -113,13 +123,23 @@
             }
         },
         components: {
+            DeedPoll,
             FormSection,
             datatable,
             PeriodAndSites,
             TemporaryOccupier,
         },
         computed:{
-
+            documentActionUrl: function() {
+                let url = '';
+                if (this.apiary_temporary_use) {
+                    url = helpers.add_endpoint_join(
+                        '/api/proposal/',
+                        this.proposalId + '/process_deed_poll_document/'
+                        )
+                }
+                return url;
+            },
         },
         watch:{
 
