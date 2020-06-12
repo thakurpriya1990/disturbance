@@ -2403,7 +2403,8 @@ class ProposalApiaryDocument(DefaultDocument):
             return super(ProposalApiaryDocument, self).delete()
 
 class DeedPollDocument(Document):
-    proposal = models.ForeignKey(ProposalApiary, related_name='deed_poll_documents')
+    proposal = models.ForeignKey(ProposalApiary, related_name='deed_poll_documents', blank=True, null=True)
+    base_proposal = models.ForeignKey(Proposal, related_name='deed_poll_documents', blank=True, null=True)
     _file = models.FileField(max_length=255)
     input_name = models.CharField(max_length=255, blank=True, null=True)
     # after initial submit prevent document from being deleted
