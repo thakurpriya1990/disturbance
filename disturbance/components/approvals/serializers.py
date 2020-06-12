@@ -20,10 +20,14 @@ class EmailUserSerializer(serializers.ModelSerializer):
         model = EmailUser
         fields = ('id','email','first_name','last_name','title','organisation')
 
+
 from disturbance.components.proposals.serializers import ProposalSerializer
 class ApprovalSerializer(serializers.ModelSerializer):
-    applicant = serializers.CharField(source='applicant.name')
-    applicant_id = serializers.ReadOnlyField(source='applicant.id')
+    #applicant = serializers.CharField(source='applicant.name')
+    #applicant_id = serializers.ReadOnlyField(source='applicant.id')
+    applicant = serializers.SerializerMethodField(read_only=True)
+    applicant_type = serializers.SerializerMethodField(read_only=True)
+    applicant_id = serializers.SerializerMethodField(read_only=True)
     licence_document = serializers.CharField(source='licence_document._file.url')
     #renewal_document = serializers.CharField(source='renewal_document._file.url')
     renewal_document = serializers.SerializerMethodField(read_only=True)
@@ -36,6 +40,7 @@ class ApprovalSerializer(serializers.ModelSerializer):
     title = serializers.CharField(source='current_proposal.title')
     #current_proposal = InternalProposalSerializer(many=False)
     can_approver_reissue = serializers.SerializerMethodField(read_only=True)
+    application_type = serializers.SerializerMethodField(read_only=True)
 
     # apiary_site_location = serializers.SerializerMethodField()
     current_proposal = ProposalSerializer()
@@ -63,6 +68,8 @@ class ApprovalSerializer(serializers.ModelSerializer):
             'surrender_details',
             'suspension_details',
             'applicant',
+            'applicant_type',
+            'applicant_id',
             'extracted_fields',
             'status',
             'reference',
@@ -80,6 +87,7 @@ class ApprovalSerializer(serializers.ModelSerializer):
             'can_reinstate', 
             'can_approver_reissue',
             # 'apiary_site_location',
+            'application_type',
             'current_proposal',
             'apiary_site_approval_set',
         )
@@ -111,6 +119,29 @@ class ApprovalSerializer(serializers.ModelSerializer):
             'allowed_assessors',
             'can_approver_reissue',
         )
+
+    def get_application_type(self,obj):
+        if obj.current_proposal.application_type:
+            return obj.current_proposal.application_type.name
+        return None
+
+    def get_applicant(self,obj):
+        try:
+            return obj.applicant.name if isinstance(obj.applicant, Organisation) else obj.applicant
+        except:
+            return None
+
+    def get_applicant_type(self,obj):
+        try:
+            return obj.applicant_type
+        except:
+            return None
+
+    def get_applicant_id(self,obj):
+        try:
+            return obj.relevant_applicant_id
+        except:
+            return None
 
     def get_renewal_document(self,obj):
         if obj.renewal_document and obj.renewal_document._file:
