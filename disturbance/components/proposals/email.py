@@ -358,8 +358,12 @@ def send_proposal_approval_email_notification(proposal,request):
     all_ccs = []
     if cc_list:
         all_ccs = cc_list.split(',')
-    if proposal.applicant.email:
-        all_ccs.append(proposal.applicant.email)
+    if proposal.applicant:
+        if proposal.applicant.email:
+            all_ccs.append(proposal.applicant.email)
+    else:
+        if proposal.proxy_applicant.email:
+            all_ccs.append(proposal.proxy_applicant.email)
 
     licence_document= proposal.approval.licence_document._file
     if licence_document is not None:

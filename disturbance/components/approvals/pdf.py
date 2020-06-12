@@ -177,11 +177,13 @@ def _create_approval(approval_buffer, approval, proposal, copied_to_permit, user
 
     #Organization details
 
-    address = proposal.applicant.organisation.postal_address
+    #address = proposal.applicant.organisation.postal_address
+    address = proposal.relevant_applicant_address
     #email = proposal.applicant.organisation.organisation_set.all().first().contacts.all().first().email
     #elements.append(Paragraph(email,styles['BoldLeft']))
     elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
-    elements.append(Paragraph(_format_name(approval.applicant),styles['BoldLeft']))
+    #elements.append(Paragraph(_format_name(approval.applicant),styles['BoldLeft']))
+    elements.append(Paragraph(approval.relevant_applicant_name,styles['BoldLeft']))
     elements.append(Paragraph(address.line1, styles['BoldLeft']))
     elements.append(Paragraph(address.line2, styles['BoldLeft']))
     elements.append(Paragraph(address.line3, styles['BoldLeft']))
@@ -203,7 +205,8 @@ def _create_approval(approval_buffer, approval, proposal, copied_to_permit, user
 
     list_of_bullets= []
     list_of_bullets.append('The potential impacts of the proposal on values the department manages have been removed or minimised to a level \'As Low As Reasonably Practicable\' (ALARP) and the proposal is consistent with departmental objectives, associated management plans and the land use category/s in the activity area.')
-    list_of_bullets.append('Approval is granted for the period {} to {}.  This approval is not valid if {} makes changes to what has been proposed or the proposal has expired.  To change the proposal or seek an extension, the proponent must re-submit the proposal for assessment.'.format(approval.start_date.strftime(DATE_FORMAT), approval.expiry_date.strftime(DATE_FORMAT),_format_name(approval.applicant)))
+    #list_of_bullets.append('Approval is granted for the period {} to {}.  This approval is not valid if {} makes changes to what has been proposed or the proposal has expired.  To change the proposal or seek an extension, the proponent must re-submit the proposal for assessment.'.format(approval.start_date.strftime(DATE_FORMAT), approval.expiry_date.strftime(DATE_FORMAT),_format_name(approval.applicant)))
+    list_of_bullets.append('Approval is granted for the period {} to {}.  This approval is not valid if {} makes changes to what has been proposed or the proposal has expired.  To change the proposal or seek an extension, the proponent must re-submit the proposal for assessment.'.format(approval.start_date.strftime(DATE_FORMAT), approval.expiry_date.strftime(DATE_FORMAT),approval.relevant_applicant_name))
     list_of_bullets.append('The proponent accepts responsibility for advising {} of new information or unforeseen threats that may affect the risk of the proposed activity.'.format(settings.DEP_NAME_SHORT))
     list_of_bullets.append('Information provided by {0} for the purposes of this proposal will not be provided to third parties without permission from {0}.'.format(settings.DEP_NAME_SHORT))
     list_of_bullets.append('The proponent accepts responsibility for supervising and monitoring implementation of activity/ies to ensure compliance with this proposal. {} reserves the right to request documents and records demonstrating compliance for departmental monitoring and auditing.'.format(settings.DEP_NAME_SHORT))
@@ -489,7 +492,8 @@ def _create_renewal(renewal_buffer, approval, proposal):
                           Paragraph('%s %s %s' % (address.locality, address.state, address.postcode), styles['Left']),
                           Paragraph(address.country.name, styles['Left'])]
     delegation.append(Table([[[Paragraph('Licensee:', styles['BoldLeft']), Paragraph('Address', styles['BoldLeft'])],
-                              [Paragraph(_format_name(approval.applicant),
+                              #[Paragraph(_format_name(approval.applicant),
+                              [Paragraph(approval.relevant_applicant_name,
                                          styles['Left'])] + address_paragraphs]],
                             colWidths=(120, PAGE_WIDTH - (2 * PAGE_MARGIN) - 120),
                             style=approval_table_style))
