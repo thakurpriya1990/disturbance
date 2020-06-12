@@ -2780,13 +2780,20 @@ class ApiaryReferral(RevisionedMixin):
             except:
                 raise
 
+    # calling ProposalApiary send_referral instead
     def send_referral(self,request,referral_email,referral_text):
+        #import ipdb; ipdb.set_trace()
         with transaction.atomic():
             try:
                 if self.referral.proposal.processing_status == 'with_referral':
-                    if request.user != self.referral.referral:
+                    group =  ApiaryReferralGroup.objects.filter(id=self.referral_group.id)
+                    #print u.referralrecipientgroup_set.all()
+                    user=request.user
+                    if group and group[0] not in user.apiaryreferralgroup_set.all():
                         raise exceptions.ReferralNotAuthorized()
-                    if self.sent_from != 1:
+                    #if request.user != self.referral.referral:
+                     #   raise exceptions.ReferralNotAuthorized()
+                    if self.referral.sent_from != 1:
                         raise exceptions.ReferralCanNotSend()
                     self.referral.proposal.processing_status = 'with_referral'
                     self.referral.proposal.save()

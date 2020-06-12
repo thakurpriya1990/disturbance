@@ -222,9 +222,14 @@ export default {
                         },
                         name: "submitter__email",
                     },
+                    /*
                     {
                         data: "applicant",
                         name: "applicant__organisation__name",
+                    },
+                    */
+                    {
+                        data: "relevant_applicant_name",
                     },
                     {
                         data: "customer_status",
@@ -406,9 +411,14 @@ export default {
                         name: "submitter__email",
                     },
                     {
+                        data: "relevant_applicant_name",
+                    },
+                    /*
+                    {
                         data: "applicant",
                         name: "applicant__organisation__name",
                     },
+                    */
                     {
                         data: "processing_status",
                         //mRender:function(data,type,full){
