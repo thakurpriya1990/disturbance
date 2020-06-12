@@ -1127,8 +1127,8 @@ class Proposal(RevisionedMixin):
                     raise ValidationError('Licence preview only available when processing status is with_approver. Current status {}'.format(self.processing_status))
                 if not self.can_assess(request.user):
                     raise exceptions.ProposalNotAuthorized()
-                if not self.applicant.organisation.postal_address:
-                #if not self.applicant_address:
+                #if not self.applicant.organisation.postal_address:
+                if not self.relevant_applicant_address:
                     raise ValidationError('The applicant needs to have set their postal address before approving this proposal.')
 
                 lodgement_number = self.previous_application.approval.lodgement_number if self.proposal_type in ['renewal', 'amendment'] else '' # renewals/amendments keep same licence number
@@ -1141,7 +1141,7 @@ class Proposal(RevisionedMixin):
                     #org_applicant = self.applicant if isinstance(self.applicant, Organisation) else None,
                     #proxy_applicant = self.applicant if isinstance(self.applicant, EmailUser) else None,
                     applicant = self.applicant,
-                    #proxy_applicant = self.proxy_applicant,
+                    proxy_applicant = self.proxy_applicant,
                     lodgement_number = lodgement_number,
                 )
 

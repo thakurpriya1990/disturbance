@@ -106,19 +106,15 @@ class Approval(RevisionedMixin):
     def relevant_applicant(self):
         if self.applicant:
             return self.applicant
-        elif self.proxy_applicant:
-            return self.proxy_applicant
         else:
-            return self.submitter
+            return self.proxy_applicant
 
     @property
     def relevant_applicant_name(self):
         if self.applicant:
             return self.applicant.name
-        elif self.proxy_applicant:
-            return self.proxy_applicant.get_full_name()
         else:
-            return self.submitter.get_full_name()
+            return self.proxy_applicant.get_full_name()
 
     @property
     def region(self):
