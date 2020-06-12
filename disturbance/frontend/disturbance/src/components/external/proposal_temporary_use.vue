@@ -40,11 +40,7 @@
                     </FormSection>
 
                     <FormSection :formCollapse="false" label="Deed Poll" Index="deed_poll">
-                        <DeedPoll
-                        :is_external=is_external
-                            :is_internal=is_internal
-                            @contents_changed="occupierDataChanged"
-                        />
+                        Deed Poll ffu here
                     </FormSection>
 
                 </div>
@@ -78,7 +74,6 @@
     import FormSection from "@/components/forms/section_toggle.vue"
     import PeriodAndSites from "@/components/common/apiary/section_period_and_sites.vue"
     import TemporaryOccupier from "@/components/common/apiary/section_temporary_occupier.vue"
-    import DeedPoll from "@/components/common/apiary/section_deed_poll.vue"
 
     export default {
         props:{
@@ -131,20 +126,20 @@
         },
         methods:{
             save: function(){
-                console.log('in save()');
-                // Proposal must be already created just after the user clicks on the 'Create' button on the modal
                 this.proposal_update();
             },
-            save_exit: function() {
-                console.log('in save_exit()');
-                this.save();
+            save_exit: async function() {
+                await this.proposal_update();
                 this.exit();
             },
-            submit: function() {
-                console.log('in submit');
+            submit: async function() {
+                await this.proposal_submit();
+                this.exit();
             },
             exit: function() {
                 console.log('in exit()');
+                //this.$router.push({ name: 'external-proposals-dash' });
+                this.$router.push({ name: 'external-approval', params: {approval_id: this.apiary_temporary_use.loaning_approval_id }})
             },
             _get_basic_data: function(){
                 let data = {
@@ -164,21 +159,43 @@
                 }
                 return data
             },
-            proposal_update: function(){
-                console.log('in proposal_update');
+            proposal_submit: function() {
+                console.log('in proposal_submit')
 
                 let vm = this;
                 let data = vm._get_basic_data();
+                let proposal_id = this.$route.params.proposal_id
 
-                this.$http.put('/api/proposal/' + this.apiary_temporary_use.id + '/', data).then(
+                this.$http.post('/api/proposal/' + proposal_id + '/submit/', data).then(
                     res=>{
                         swal(
                             'Saved',
                             'Your proposal has been updated',
                             'success'
                         );
-                    },err=>{
+                    },
+                    err=>{
+                        this.processError(err)
+                    }
+                );
+            },
+            proposal_update: async function(){
+                console.log('in proposal_update');
 
+                let vm = this;
+                let data = vm._get_basic_data();
+                let proposal_id = this.$route.params.proposal_id
+
+                await this.$http.put('/api/proposal/' + proposal_id + '/', data).then(
+                    res=>{
+                        swal(
+                            'Saved',
+                            'Your proposal has been updated',
+                            'success'
+                        );
+                    },
+                    err=>{
+                        this.processError(err)
                     }
                 );
             },

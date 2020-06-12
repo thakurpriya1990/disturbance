@@ -31,13 +31,14 @@ from ledger.accounts.models import EmailUser, Address
 from ledger.address.models import Country
 from datetime import datetime, timedelta, date
 from disturbance.components.proposals.utils import (
-        save_proponent_data,
-        save_assessor_data, 
-        save_apiary_assessor_data, 
-        )
+    save_proponent_data,
+    save_assessor_data,
+    save_apiary_assessor_data, update_proposal_apiary_temporary_use,
+)
 from disturbance.components.proposals.models import searchKeyWords, search_reference, ProposalUserAction, \
-    ProposalApiary, OnSiteInformation, ApiarySite, ApiaryApplicantChecklistQuestion, ApiaryApplicantChecklistAnswer
-from disturbance.utils import missing_required_fields, search_tenure
+    ProposalApiary, OnSiteInformation, ApiarySite, ApiaryApplicantChecklistQuestion, ApiaryApplicantChecklistAnswer, \
+    ProposalApiaryTemporaryUse, TemporaryUseApiarySite
+from disturbance.utils import missing_required_fields, search_tenure, convert_moment_str_to_python_datetime_obj
 from disturbance.components.main.utils import check_db_connection, convert_utc_time_to_local
 
 from django.urls import reverse
@@ -352,7 +353,7 @@ class OnSiteInformationViewSet(viewsets.ModelViewSet):
     serializer_class = OnSiteInformationSerializer
 
     @staticmethod
-    def _sanitize_date(data_dict, property_name):
+    def sanitize_date(data_dict, property_name):
         if property_name not in data_dict or not data_dict[property_name] or 'invalid' in data_dict[property_name].lower():
             # There isn't 'property_name' in the data received, or
             # the value in it is False, or
@@ -408,8 +409,8 @@ class OnSiteInformationViewSet(viewsets.ModelViewSet):
                 instance = self.get_object()
                 request_data = request.data
 
-                self._sanitize_date(request_data, 'period_from')
-                self._sanitize_date(request_data, 'period_to')
+                self.sanitize_date(request_data, 'period_from')
+                self.sanitize_date(request_data, 'period_to')
 
                 serializer = OnSiteInformationSerializer(instance, data=request_data)
                 serializer.is_valid(raise_exception=True)
@@ -431,8 +432,8 @@ class OnSiteInformationViewSet(viewsets.ModelViewSet):
             with transaction.atomic():
                 request_data = request.data
 
-                self._sanitize_date(request_data, 'period_from')
-                self._sanitize_date(request_data, 'period_to')
+                self.sanitize_date(request_data, 'period_from')
+                self.sanitize_date(request_data, 'period_to')
 
                 serializer = OnSiteInformationSerializer(data=request_data)
                 serializer.is_valid(raise_exception=True)
@@ -769,7 +770,9 @@ class ApiaryReferralViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             serializer = SendApiaryReferralSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
-            instance.send_referral(request,serializer.validated_data['email'],serializer.validated_data['text'])
+            #instance.send_referral(request,serializer.validated_data['email'],serializer.validated_data['text'])
+            #instance.send_referral(request,serializer.validated_data['group_id'], serializer.validated_data['text'])
+            instance.referral.proposal.proposal_apiary.send_referral(request,serializer.validated_data['group_id'], serializer.validated_data['text'])
             serializer = self.get_serializer(instance, context={'request':request})
             return Response(serializer.data)
         except serializers.ValidationError:
@@ -1123,12 +1126,12 @@ class ProposalViewSet(viewsets.ModelViewSet):
     def submit(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
-            if instance.application_type.name != ApplicationType.APIARY:
-                instance.submit(request,self)
-                instance.tenure = search_tenure(instance)
-            else:
+            if instance.apiary_group_application_type:
                 save_proponent_data(instance, request, self)
-                # proposal_submit_apiary(instance, request)
+            else:
+                instance.submit(request, self)
+                instance.tenure = search_tenure(instance)
+
             instance.save()
             serializer = self.get_serializer(instance)
             return Response(serializer.data)
@@ -1286,7 +1289,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(repr(e[0].encode('utf-8')))
-
 
     @detail_route(methods=['POST',])
     def proposed_approval(self, request, *args, **kwargs):
@@ -1544,6 +1546,11 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 applicant = None
                 proxy_applicant = None
                 if request.data.get('behalf_of') == 'individual':
+                    # Validate User for Individual applications
+                    request_user = EmailUser.objects.get(id=request.user.id)
+                    if not request_user.residential_address:
+                        raise ValidationError('null_applicant_address')
+                    # Assign request.user as applicant
                     proxy_applicant = request.user.id
                 else:
                     applicant = request.data.get('behalf_of')
@@ -1648,13 +1655,19 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 # TODO Update new apiary application
 
             elif application_type.name == ApplicationType.TEMPORARY_USE:
-                pass
-                # TODO Update temporary use application
+                # Proposal obj should not be changed
+                # Only ProposalApiaryTemporaryUse object needs to be updated
+                apiary_temporary_use_obj = ProposalApiaryTemporaryUse.objects.get(id=request.data.get('apiary_temporary_use')['id'])
+                apiary_temporary_use_data = request.data.get('apiary_temporary_use')
+                update_proposal_apiary_temporary_use(apiary_temporary_use_obj, apiary_temporary_use_data)
+
+                proposal_obj = self.get_object()
+                serializer = ProposalSerializer(proposal_obj)
+                return Response(serializer.data)
 
             elif application_type.name == ApplicationType.SITE_TRANSFER:
                 pass
                 # TODO update Site Transfer Application
-
 
             instance = self.get_object()
             serializer = SaveProposalSerializer(instance, data=request.data)
