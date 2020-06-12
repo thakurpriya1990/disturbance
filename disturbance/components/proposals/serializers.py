@@ -80,6 +80,7 @@ class ListProposalSerializer(BaseProposalSerializer):
 
     #tenure = serializers.CharField(source='tenure.name', read_only=True)
     assessor_process = serializers.SerializerMethodField(read_only=True)
+    relevant_applicant_name = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Proposal
@@ -115,6 +116,7 @@ class ListProposalSerializer(BaseProposalSerializer):
                 'proposal_type',
                 'fee_invoice_reference',
                 'fee_paid',
+                'relevant_applicant_name',
                 )
         # the serverSide functionality of datatables is such that only columns that have field 'data' defined are requested from the serializer. We
         # also require the following additional fields for some of the mRender functions
@@ -139,7 +141,10 @@ class ListProposalSerializer(BaseProposalSerializer):
                 'fee_invoice_reference',
                 'fee_paid',
                 'application_type',
+                'relevant_applicant_name',
                 )
+    def get_relevant_applicant_name(self,obj):
+        return obj.relevant_applicant_name
 
     def get_assigned_officer(self,obj):
         if obj.assigned_officer:
