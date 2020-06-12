@@ -770,7 +770,9 @@ class ApiaryReferralViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             serializer = SendApiaryReferralSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
-            instance.send_referral(request,serializer.validated_data['email'],serializer.validated_data['text'])
+            #instance.send_referral(request,serializer.validated_data['email'],serializer.validated_data['text'])
+            #instance.send_referral(request,serializer.validated_data['group_id'], serializer.validated_data['text'])
+            instance.referral.proposal.proposal_apiary.send_referral(request,serializer.validated_data['group_id'], serializer.validated_data['text'])
             serializer = self.get_serializer(instance, context={'request':request})
             return Response(serializer.data)
         except serializers.ValidationError:

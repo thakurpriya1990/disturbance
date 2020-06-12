@@ -85,7 +85,7 @@ def send_referral_email_notification(referral,request,reminder=False):
     msg = email.send(referral.referral.email, context=context)
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     _log_proposal_referral_email(msg, referral, sender=sender)
-    if proposal.applicant:
+    if referral.proposal.applicant:
         _log_org_email(msg, referral.proposal.applicant, referral.referral, sender=sender)
 
 def send_referral_recall_email_notification(referral,request):
@@ -100,7 +100,7 @@ def send_referral_recall_email_notification(referral,request):
     msg = email.send(referral.referral.email, context=context)
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     _log_proposal_referral_email(msg, referral, sender=sender)
-    if proposal.applicant:
+    if referral.proposal.applicant:
         _log_org_email(msg, referral.proposal.applicant, referral.referral, sender=sender)
 
 
@@ -117,7 +117,7 @@ def send_referral_complete_email_notification(referral,request):
     msg = email.send(referral.sent_by.email, context=context)
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     _log_proposal_referral_email(msg, referral, sender=sender)
-    if proposal.applicant:
+    if referral.proposal.applicant:
         _log_org_email(msg, referral.proposal.applicant, referral.referral, sender=sender)
 
 def send_apiary_referral_email_notification(referral,recipients,request,reminder=False):
