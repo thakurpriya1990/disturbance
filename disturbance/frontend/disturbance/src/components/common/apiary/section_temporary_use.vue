@@ -68,7 +68,7 @@
                     processing: true,
                     columns: [
                         {
-                            visible: false,
+                            visible: true,
                             mRender: function (data, type, full) {
                                 return full.id;
                             }
@@ -101,7 +101,7 @@
                         },
                         {
                             mRender: function (data, type, full) {
-                                return 'deed pole (TODO)';
+                                return full.deed_poll_documents;
                             }
                         },
                     ],

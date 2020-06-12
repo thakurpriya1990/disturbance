@@ -2,7 +2,11 @@
 <div class="container">
     <div v-if="proposalId">
         <div v-if="temporaryProposal">
-            <ProposalTemporaryUse :proposalId="proposalId"/>
+            <ProposalTemporaryUse 
+                :proposalId="proposalId"
+                :is_internal="false"
+                :is_external="true"
+            />
         </div>
         <div v-else>
             <Proposal :proposalId="proposalId"/>

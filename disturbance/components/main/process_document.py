@@ -5,6 +5,8 @@ import traceback
 from disturbance.components.main.models import TemporaryDocument
 from django.conf import settings
 
+from disturbance.components.proposals.models import ProposalApiary, Proposal
+
 
 def process_generic_document(request, instance, document_type=None, *args, **kwargs):
     print("process_generic_document")
@@ -146,12 +148,20 @@ def save_document(request, instance, comms_instance, document_type, input_name=N
 
             document = instance.deed_poll_documents.get_or_create(
                 input_name=input_name, name=filename)[0]
+
+            if isinstance(instance, ProposalApiary):
+                id_number = instance.proposal.id
+            elif isinstance(instance, Proposal):
+                id_number = instance.id
+            else:
+                raise('Object type is wrong')
+
             path = default_storage.save(
                 #'disturbance/{}/{}/deed_poll_documents/{}/{}'.format(
                 #'{}/{}/deed_poll_documents/{}'.format(
                 '{}/proposals/{}/deed_poll_documents/{}'.format(
                     #instance._meta.model_name, instance.id, input_name, filename), ContentFile(
-                    settings.MEDIA_APIARY_DIR, instance.proposal.id, filename), ContentFile(
+                    settings.MEDIA_APIARY_DIR, id_number, filename), ContentFile(
                     _file.read()))
 
             document._file = path
