@@ -316,9 +316,27 @@ class ProposalApiaryTemporaryUseSerializer(serializers.ModelSerializer):
     # loaning_approval_id = serializers.IntegerField(write_only=True, required=False)
     loaning_approval_id = serializers.IntegerField(required=False)
     temporary_use_apiary_sites = TemporaryUseApiarySiteSerializer(read_only=True, many=True)
+    deed_poll_documents = serializers.SerializerMethodField()
 
     def validate(self, attr):
         return attr
+
+    def get_deed_poll_documents(self, obj):
+        url_list = []
+
+        if obj.proposal.deed_poll_documents.all().count():
+            for doc in obj.proposal.deed_poll_documents.all():
+                #if self.context.get('internal', False):
+                #    # count_logs = doc.access_logs.count()
+                #    url = '<a href="{}" target="_blank">{}</a>'.format(doc._file.url, doc.name) + viewed_text
+                #else:
+                #    # To detect if the external user accessing the pdf file, we make Django serve the pdf file
+                #    url = '<a href="/api/sanction_outcome/{}/doc?name={}" target="_blank">{}</a>'.format(obj.id, doc.name, doc.name)
+                url = '<a href="{}" target="_blank">{}</a>'.format(doc._file.url, doc.name)
+                url_list.append(url)
+
+        urls = '<br />'.join(url_list)
+        return urls
 
     class Meta:
         model = ProposalApiaryTemporaryUse
@@ -333,6 +351,7 @@ class ProposalApiaryTemporaryUseSerializer(serializers.ModelSerializer):
             'proposal_id',
             'loaning_approval_id',
             'temporary_use_apiary_sites',
+            'deed_poll_documents',
         )
 
 
