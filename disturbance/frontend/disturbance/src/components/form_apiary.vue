@@ -28,11 +28,11 @@
             <div class="row">
                 <div class="col-sm-12">
                     <FileField
-                    ref="deed_poll_documents"
-                    name="deed-poll-documents"
-                    :isRepeatable="true"
-                    :documentActionUrl="deedPollDocumentUrl"
-                    :readonly="is_internal"
+                        ref="deed_poll_documents"
+                        name="deed-poll-documents"
+                        :isRepeatable="true"
+                        :documentActionUrl="deedPollDocumentUrl"
+                        :readonly="is_internal"
                     />
                 </div>
             </div>
