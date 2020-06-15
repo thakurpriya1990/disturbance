@@ -28,7 +28,7 @@ from disturbance.components.approvals.email import (
 )
 from disturbance.utils import search_keys, search_multiple_keys
 #from disturbance.components.approvals.email import send_referral_email_notification
-
+from disturbance.helpers import is_customer
 
 def update_approval_doc_filename(instance, filename):
     return 'approvals/{}/documents/{}'.format(instance.approval.id,filename)
@@ -80,7 +80,8 @@ class Approval(RevisionedMixin):
     expiry_date = models.DateField()
     surrender_details = JSONField(blank=True,null=True)
     suspension_details = JSONField(blank=True,null=True)
-    applicant = models.ForeignKey(Organisation,on_delete=models.PROTECT, related_name='disturbance_approvals')
+    applicant = models.ForeignKey(Organisation,on_delete=models.PROTECT, blank=True, null=True, related_name='disturbance_approvals')
+    proxy_applicant = models.ForeignKey(EmailUser,on_delete=models.PROTECT, blank=True, null=True, related_name='disturbance_proxy_approvals')
     extracted_fields = JSONField(blank=True, null=True)
     cancellation_details = models.TextField(blank=True)
     cancellation_date = models.DateField(blank=True, null=True)
@@ -92,6 +93,28 @@ class Approval(RevisionedMixin):
     class Meta:
         app_label = 'disturbance'
         unique_together= ('lodgement_number', 'issue_date')
+
+    @property
+    def relevantapplicant_id(self):
+        if self.applicant:
+            #return self.org_applicant.organisation.id
+            return self.applicant.id
+        elif self.proxy_applicant:
+            return self.proxy_applicant.id
+
+    @property
+    def relevant_applicant(self):
+        if self.applicant:
+            return self.applicant
+        else:
+            return self.proxy_applicant
+
+    @property
+    def relevant_applicant_name(self):
+        if self.applicant:
+            return self.applicant.name
+        else:
+            return self.proxy_applicant.get_full_name()
 
     @property
     def region(self):
@@ -343,8 +366,9 @@ class Approval(RevisionedMixin):
     def approval_surrender(self,request,details):
         with transaction.atomic():
             try:
-                if not request.user.disturbance_organisations.filter(organisation_id = self.applicant.id):
-                    if not request.user in self.allowed_assessors:
+                if self.applicant and not request.user.disturbance_organisations.filter(organisation_id = self.relevant_applicant_id):
+                    #if not request.user in self.allowed_assessors:
+                    if request.user not in self.allowed_assessors and not is_customer(request):
                         raise ValidationError('You do not have access to surrender this approval')
                 if not self.can_reissue and self.can_action:
                     raise ValidationError('You cannot surrender approval if it is not current or suspended')

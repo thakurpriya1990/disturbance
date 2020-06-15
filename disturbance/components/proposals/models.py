@@ -1127,8 +1127,8 @@ class Proposal(RevisionedMixin):
                     raise ValidationError('Licence preview only available when processing status is with_approver. Current status {}'.format(self.processing_status))
                 if not self.can_assess(request.user):
                     raise exceptions.ProposalNotAuthorized()
-                if not self.applicant.organisation.postal_address:
-                #if not self.applicant_address:
+                #if not self.applicant.organisation.postal_address:
+                if not self.relevant_applicant_address:
                     raise ValidationError('The applicant needs to have set their postal address before approving this proposal.')
 
                 lodgement_number = self.previous_application.approval.lodgement_number if self.proposal_type in ['renewal', 'amendment'] else '' # renewals/amendments keep same licence number
@@ -1141,7 +1141,7 @@ class Proposal(RevisionedMixin):
                     #org_applicant = self.applicant if isinstance(self.applicant, Organisation) else None,
                     #proxy_applicant = self.applicant if isinstance(self.applicant, EmailUser) else None,
                     applicant = self.applicant,
-                    #proxy_applicant = self.proxy_applicant,
+                    proxy_applicant = self.proxy_applicant,
                     lodgement_number = lodgement_number,
                 )
 
@@ -1191,7 +1191,8 @@ class Proposal(RevisionedMixin):
                     raise exceptions.ProposalNotAuthorized()
                 if self.processing_status != 'with_approver':
                     raise ValidationError('You cannot issue the approval if it is not with an approver')
-                if not self.applicant.organisation.postal_address:
+                #if not self.applicant.organisation.postal_address:
+                if not self.relevant_applicant_address:
                     raise ValidationError('The applicant needs to have set their postal address before approving this proposal.')
 
                 self.proposed_issuance_approval = {
@@ -1208,6 +1209,7 @@ class Proposal(RevisionedMixin):
                 # Log entry for organisation
                 if self.applicant:
                     self.applicant.log_user_action(ProposalUserAction.ACTION_ISSUE_APPROVAL_.format(self.id),request)
+                #import ipdb;ipdb.set_trace()
 
                 if self.processing_status == 'approved':
                     # TODO if it is an ammendment proposal then check appropriately
@@ -1227,6 +1229,7 @@ class Proposal(RevisionedMixin):
                                     'expiry_date' : details.get('expiry_date'),
                                     'start_date' : details.get('start_date'),
                                     'applicant' : self.applicant,
+                                    'proxy_applicant' : self.proxy_applicant,
                                     'lodgement_number': previous_approval.lodgement_number
                                     #'extracted_fields' = JSONField(blank=True, null=True)
                                 }
@@ -1249,6 +1252,7 @@ class Proposal(RevisionedMixin):
                                     'expiry_date' : details.get('expiry_date'),
                                     'start_date' : details.get('start_date'),
                                     'applicant' : self.applicant,
+                                    'proxy_applicant' : self.proxy_applicant,
                                     'lodgement_number': previous_approval.lodgement_number
                                     #'extracted_fields' = JSONField(blank=True, null=True)
                                 }
@@ -1267,7 +1271,8 @@ class Proposal(RevisionedMixin):
                                 'issue_date' : timezone.now(),
                                 'expiry_date' : details.get('expiry_date'),
                                 'start_date' : details.get('start_date'),
-                                'applicant' : self.applicant
+                                'applicant' : self.applicant,
+                                'proxy_applicant' : self.proxy_applicant,
                                 #'extracted_fields' = JSONField(blank=True, null=True)
                             }
                         )
