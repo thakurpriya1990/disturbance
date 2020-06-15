@@ -71,6 +71,33 @@ class ApprovalPaginatedViewSet(viewsets.ModelViewSet):
 #        #response.data['regions'] = self.get_queryset().filter(region__isnull=False).values_list('region__name', flat=True).distinct()
 #        return response
 
+    #@list_route(methods=['GET',])
+    #def approvals_external(self, request, *args, **kwargs):
+    #    """
+    #    Paginated serializer for datatables - used by the internal and external dashboard (filtered by the get_queryset method)
+
+    #    To test:
+    #        http://localhost:8000/api/approval_paginated/approvals_external/?format=datatables&draw=1&length=2
+    #    """
+
+    #    import ipdb; ipdb.set_trace()
+    #    #qs = self.queryset().order_by('lodgement_number', '-issue_date').distinct('lodgement_number')
+    #    #qs = ProposalFilterBackend().filter_queryset(self.request, qs, self)
+
+    #    ids = self.get_queryset().order_by('lodgement_number', '-issue_date').distinct('lodgement_number').values_list('id', flat=True)
+    #    qs = Approval.objects.filter(id__in=ids)
+    #    qs = self.filter_queryset(qs)
+
+    #    # on the internal organisations dashboard, filter the Proposal/Approval/Compliance datatables by applicant/organisation
+    #    applicant_id = request.GET.get('org_id')
+    #    if applicant_id:
+    #        qs = qs.filter(applicant_id=applicant_id)
+
+    #    self.paginator.page_size = qs.count()
+    #    result_page = self.paginator.paginate_queryset(qs, request)
+    #    serializer = ApprovalSerializer(result_page, context={'request':request}, many=True)
+    #    return self.paginator.get_paginated_response(serializer.data)
+
     @list_route(methods=['GET',])
     def approvals_external(self, request, *args, **kwargs):
         """
@@ -80,7 +107,6 @@ class ApprovalPaginatedViewSet(viewsets.ModelViewSet):
             http://localhost:8000/api/approval_paginated/approvals_external/?format=datatables&draw=1&length=2
         """
 
-        #import ipdb; ipdb.set_trace()
         #qs = self.queryset().order_by('lodgement_number', '-issue_date').distinct('lodgement_number')
         #qs = ProposalFilterBackend().filter_queryset(self.request, qs, self)
 
@@ -91,7 +117,10 @@ class ApprovalPaginatedViewSet(viewsets.ModelViewSet):
         # on the internal organisations dashboard, filter the Proposal/Approval/Compliance datatables by applicant/organisation
         applicant_id = request.GET.get('org_id')
         if applicant_id:
-            qs = qs.filter(applicant_id=applicant_id)
+            qs = qs.filter(org_applicant_id=applicant_id)
+        submitter_id = request.GET.get('submitter_id', None)
+        if submitter_id:
+            qs = qs.filter(submitter_id=submitter_id)
 
         self.paginator.page_size = qs.count()
         result_page = self.paginator.paginate_queryset(qs, request)
