@@ -201,6 +201,7 @@
                     processing: true,
                     columns: [
                         {
+                            visible: false,
                             mRender: function (data, type, full) {
                                 if (full.id) {
                                     return full.id;
@@ -535,6 +536,14 @@
                 //app.$set(app.sites.items, feature.getId(), [feature.getId(), getDegrees(feature.getGeometry().getCoordinates()), feature.get("source")]);
                 console.log('in updateVueFeature')
                 console.log(feature)
+
+                this.site_locations.push({
+                    "id": '',
+                    "latitude": this.getDegrees(feature.getGeometry().getCoordinates()),
+                    "longitude": this.getDegrees(feature.getGeometry().getCoordinates()),
+                    "site_guid": feature.getId()
+                });
+                this.constructSiteLocationsTable()
             },
             deleteVueFeature: function(feature) {
                 //app.$delete(app.sites.items, feature.getId());
