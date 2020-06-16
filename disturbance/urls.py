@@ -7,6 +7,7 @@ from disturbance.admin import disturbance_admin_site
 from disturbance.components.proposals import views as proposal_views
 from disturbance.components.organisations import views as organisation_views
 from disturbance.components.das_payments import views as payment_views
+from disturbance.components.proposals.views import ExternalProposalTemporaryUseSubmitSuccessView
 
 from disturbance.components.users import api as users_api
 from disturbance.components.organisations import api as org_api
@@ -66,7 +67,10 @@ api_patterns = [
 ]
 
 # URL Patterns
+# You have to be careful about the order of the urls below.
+# Django checks matching url from the top of the list, and once found a matching url, it never goes through the urls below it.
 urlpatterns = [
+    url(r'^external/proposal/(?P<proposal_pk>\d+)/submit_temp_use_success/$', ExternalProposalTemporaryUseSubmitSuccessView.as_view(),),
     url(r'^admin/', disturbance_admin_site.urls),
     url(r'', include(api_patterns)),
     url(r'^$', views.DisturbanceRoutingView.as_view(), name='ds_home'),
@@ -106,6 +110,7 @@ urlpatterns = [
     url(r'^history/helppage/(?P<pk>\d+)/$', proposal_views.HelpPageHistoryCompareView.as_view(), name='helppage_history'),
     url(r'^history/organisation/(?P<pk>\d+)/$', organisation_views.OrganisationHistoryCompareView.as_view(), name='organisation_history'),
 
+    # url(r'^external/proposal/(?P<proposal_pk>\d+)/submit_temp_use_success/$', success_view, name='external-proposal-temporary-use-submit-success'),
 ] + ledger_patterns
 
 if not are_migrations_running():

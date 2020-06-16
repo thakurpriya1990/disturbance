@@ -1,6 +1,8 @@
 import re
 
 from django.core.exceptions import ValidationError
+from django.shortcuts import redirect
+from django.urls import reverse
 from django.utils import timezone
 from django.db import transaction
 from django.contrib.gis.geos import Point
@@ -428,6 +430,8 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                 proposal_obj.documents.all().update(can_delete=False)
                 #proposal.required_documents.all().update(can_delete=False)
                 proposal_obj.save()
+
+                # return redirect(reverse('external-proposal-temporary-use-submit-success', kwargs={'proposal_pk': proposal_obj.id}))
 
             #save Site Transfer data
             site_transfer_data = request.data.get('apiary_site_transfer', None)
