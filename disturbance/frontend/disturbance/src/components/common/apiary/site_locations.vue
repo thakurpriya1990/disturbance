@@ -199,6 +199,10 @@
                     },
                     responsive: true,
                     processing: true,
+                //    "id": '',
+                //    "latitude": this.getDegrees(feature.getGeometry().getCoordinates()),
+                //    "longitude": this.getDegrees(feature.getGeometry().getCoordinates()),
+                //    "site_guid": feature.getId()
                     columns: [
                         {
                             visible: false,
@@ -212,8 +216,9 @@
                         },
                         {
                             mRender: function (data, type, full) {
-                                if (full.site_guid) {
-                                    return full.site_guid;
+                                if (full.getId()) {
+                                    //return full.site_guid;
+                                    return full.getId();
                                 } else {
                                     return '';
                                 }
@@ -221,17 +226,19 @@
                         },
                         {
                             mRender: function (data, type, full) {
-                                return full.latitude;
+                                //return full.latitude;
+                                return vm.getDegrees(full.getGeometry().getCoordinates())
                             }
                         },
                         {
                             mRender: function (data, type, full) {
-                                return full.longitude;
+                                //return full.longitude;
+                                return vm.getDegrees(full.getGeometry().getCoordinates())
                             }
                         },
                         {
                             mRender: function (data, type, full) {
-                                let ret_str = '<span class="delete_button" style="color:#347ab7; cursor: pointer;" data-site-location-guid="' + full.site_guid + '">Delete</span>';
+                                let ret_str = '<span class="delete_button" style="color:#347ab7; cursor: pointer;" data-site-location-guid="' + full.getId() + '">Delete</span>';
                                 return ret_str;
                             }
                         },
@@ -330,10 +337,10 @@
                     }
                 }
             },
-            addSiteLocationToTable: function(site_location){
+            addSiteLocationToTable: function(feature){
                 console.log('*** addSiteLocationToTable ***');
-                console.log(site_location);
-                this.$refs.site_locations_table.vmDataTable.row.add(site_location).draw();
+                console.log(feature);
+                this.$refs.site_locations_table.vmDataTable.row.add(feature).draw();
             },
             addProposedSite: function(){
                 console.log('addProposedSite');
@@ -359,11 +366,17 @@
             },
             removeSiteLocation: function(e){
                 let site_location_guid = e.target.getAttribute("data-site-location-guid");
-                console.log('guid');
+                console.log('guid to delete');
                 console.log(site_location_guid);
 
+                let myFeature = this.drawingLayerSource.getFeatureById(site_location_guid)
+                console.log('myFeature')
+                console.log(myFeature)
+
+                this.drawingLayerSource.removeFeature(myFeature);
+
                 for (let i=0; i<this.site_locations.length; i++){
-                    if (this.site_locations[i].site_guid == site_location_guid){
+                    if (this.site_locations[i] == myFeature){
                         this.site_locations.splice(i, 1);
                     }
                 }
@@ -537,12 +550,13 @@
                 console.log('in updateVueFeature')
                 console.log(feature)
 
-                this.site_locations.push({
-                    "id": '',
-                    "latitude": this.getDegrees(feature.getGeometry().getCoordinates()),
-                    "longitude": this.getDegrees(feature.getGeometry().getCoordinates()),
-                    "site_guid": feature.getId()
-                });
+                this.site_locations.push(feature);
+                //this.site_locations.push({
+                //    "id": '',
+                //    "latitude": this.getDegrees(feature.getGeometry().getCoordinates()),
+                //    "longitude": this.getDegrees(feature.getGeometry().getCoordinates()),
+                //    "site_guid": feature.getId()
+                //});
                 this.constructSiteLocationsTable()
             },
             deleteVueFeature: function(feature) {
