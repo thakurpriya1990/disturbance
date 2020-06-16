@@ -109,6 +109,8 @@
     import { circular} from 'ol/geom/Polygon';
     import GeoJSON from 'ol/format/GeoJSON';
 
+    import geo_data from "../../../assets/apiary_data.json"
+
     import TextField from '@/components/forms/text.vue'
     //import FileField from '@/components/forms/filefield.vue'
     import datatable from '@vue-utils/datatable.vue'
@@ -314,7 +316,12 @@
                 this.constructSiteLocationsTable();
             },
             initMap: function() {
-                this.map = new Map({
+                console.log('aho')
+                console.log(geo_data)
+
+                let vm = this;
+
+                vm.map = new Map({
                     layers: [
                         new TileLayer({
                             source: new OSM(),
@@ -328,18 +335,23 @@
                         projection: 'EPSG:4326'
                     })
                 });
+                //let apiarySitesQuerySource = new VectorSource({
+                //    format: new GeoJSON(),
+                //    url: require("../../../assets/apiary_data.json")
+                //});
                 let apiarySitesQuerySource = new VectorSource({
-                    format: new GeoJSON(),
-                    url: "./apiary_data.txt"
+                    features: (new GeoJSON()).readFeatures(geo_data)
                 });
+                console.log(apiarySitesQuerySource);
                 let apiarySitesQueryLayer = new VectorLayer({
                     source: apiarySitesQuerySource,
                 });
-                this.map.addLayer(apiarySitesQueryLayer);
+                console.log(apiarySitesQueryLayer);
+                vm.map.addLayer(apiarySitesQueryLayer);
 
                 let bufferedSites = [];
-                this.map.on("moveend", function(attributes){
-                    let zoom = this.map.getView().getZoom();
+                vm.map.on("moveend", function(attributes){
+                    let zoom = vm.map.getView().getZoom();
                     console.log(zoom);
                     if (zoom < 11) {
                         return;
@@ -348,7 +360,7 @@
                     let fresh = 0;
                     let cached = 0;
 
-                    apiarySitesQuerySource.forEachFeatureInExtent(this.map.getView().calculateExtent(), function(feature) {
+                    apiarySitesQuerySource.forEachFeatureInExtent(vm.map.getView().calculateExtent(), function(feature) {
                         let id = feature.getId();
                         if (bufferedSites.indexOf(id) == -1) {
                             createBufferForSite(feature);
@@ -383,7 +395,7 @@
                         })
                     })
                 });
-                this.map.addLayer(drawingLayer);
+                vm.map.addLayer(drawingLayer);
 
             },  // End: initMap()
         },

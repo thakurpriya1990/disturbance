@@ -1,8 +1,0 @@
-{"type":"FeatureCollection","totalFeatures":2,"features":[
-
-{"type":"Feature","id":"apiary_sites.fid--7f48d93a_172b6856cda_-2e20","geometry":{"type":"MultiPoint","coordinates":[[116.1990231,-33.42998933]]},"geometry_name":"wkb_geometry","properties":{"ogc_fid":0,"permit_no":4614,"surname":"Not to be reissued","first_name":null,"address":null,"telephone":null,"mobile":null,"district":"Wellington","reg_brand":null,"near_road":"ABC Rd","status":"Not to be re-issued","md5_rowhash":"11c760a79bf72d16180b3835513c382d"}},
-
-{"type":"Feature","id":"apiary_sites.fid--7f48d93a_172b6856cda_-2e1f","geometry":{"type":"MultiPoint","coordinates":[[120.0517614,-33.42959075]]},"geometry_name":"wkb_geometry","properties":{"ogc_fid":1,"permit_no":316,"surname":"Shibata","first_name":"Katsufumi","address":"17 Dick Perry, Kensington  WA  6501","telephone":null,"mobile":"01234567","district":"Albany","reg_brand":"X18","near_road":"unnamed track","status":"Current","md5_rowhash":"32d081a98f9ccf312f2a2c50ab9674b6"}}
-
-]}
-
