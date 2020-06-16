@@ -38,7 +38,8 @@ from disturbance.components.approvals.serializers import (
     ApprovalSuspensionSerializer,
     ApprovalSurrenderSerializer,
     ApprovalUserActionSerializer,
-    ApprovalLogEntrySerializer
+    ApprovalLogEntrySerializer,
+    ApprovalWrapperSerializer,
 )
 from disturbance.components.proposals.models import ApiarySite, ApiarySiteApproval, OnSiteInformation
 from disturbance.components.proposals.serializers_apiary import ApiarySiteSerializer, OnSiteInformationSerializer, \
@@ -223,6 +224,15 @@ class ApprovalViewSet(viewsets.ModelViewSet):
 #        serializer = self.get_serializer(result_page, context={'request':request}, many=True)
 #        return paginator.get_paginated_response(serializer.data)
 
+    @detail_route(methods=['GET',])
+    def approval_wrapper(self, request, *args, **kwargs):
+        instance = self.get_object()
+        #instance.internal_view_log(request)
+        #serializer = InternalProposalSerializer(instance,context={'request':request})
+        serializer_class = ApprovalWrapperSerializer #self.internal_serializer_class()
+        #serializer = serializer_class(instance,context={'request':request})
+        serializer = serializer_class(instance)
+        return Response(serializer.data)
 
     @detail_route(methods=['GET',])
     def on_site_information(self, request, *args, **kwargs):
