@@ -127,7 +127,10 @@ class ApprovalSerializer(serializers.ModelSerializer):
 
     def get_applicant(self,obj):
         try:
-            return obj.applicant.name if isinstance(obj.applicant, Organisation) else obj.applicant
+            if obj.proxy_applicant and obj.proxy_applicant.get_full_name():
+                return obj.proxy_applicant.get_full_name()
+            else:
+                return obj.applicant.name if isinstance(obj.applicant, Organisation) else obj.applicant
         except:
             return None
 
