@@ -127,7 +127,7 @@
                         </a>
                     </h3>
                   </div>
-                  <div v-if="loading.length == 0" class="panel-body collapse" :id="adBody">
+                  <div v-if="loading.length == 0 && approval && approval.applicant_address" class="panel-body collapse" :id="adBody">
                       <form class="form-horizontal" action="index.html" method="post">
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label">Street</label>
