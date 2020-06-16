@@ -481,7 +481,85 @@
                     target: document.getElementById('mouse-position'),
                 }));
 
+                // Draw and modify tools
+                let modifyInProgressList = [];
+                let drawTool = new Draw({
+                    source: vm.drawingLayerSource,
+                    type: "Point"
+                });
+                drawTool.on("drawstart", function(attributes){
+                    if (!vm.isNewPositionValid(attributes.feature.getGeometry().getCoordinates())) {
+                        drawTool.abortDrawing();
+                    }
+                });
+                drawTool.on('drawend', function(attributes){
+                    let feature = attributes.feature;
+                    feature.setId(vm.uuidv4());
+                    feature.set("source", "draw");
+                    feature.getGeometry().on("change", function() {
+                        console.log("Start Modify feature: " + feature.getId());
+                        if (modifyInProgressList.indexOf(feature) < 0) {
+                            modifyInProgressList.push(feature);
+                        }
+                    });
+                    console.log("New Feature: " + feature.getId());
+                    // update for individual feature, it is not in the layer collection yet. 
+                    vm.updateVueFeature(feature);
+                    vm.createBufferForSite(feature);
+                });
+                vm.map.addInteraction(drawTool);
+
+                let modifyTool = new Modify({
+                    source: vm.drawingLayerSource,
+                });
+                modifyTool.on("modifyend", function(attributes){
+                    // this will list all features in layer, not so useful without cross referencing
+                    attributes.features.forEach(function(feature){
+                        let index = modifyInProgressList.indexOf(feature);
+                        if (index > -1) {
+                            console.log("End Modify Feature: " + index + "/" + modifyInProgressList.length + " " + feature.getId());
+                            modifyInProgressList.splice(index, 1);
+                            vm.updateVueFeature(feature);
+                            vm.removeBufferForSite(feature);
+                            vm.createBufferForSite(feature);
+                        }
+                    });
+                });
+                vm.map.addInteraction(modifyTool);
+
+
+
             },  // End: initMap()
+
+            updateVueFeature: function(feature) {
+                //app.$set(app.sites.items, feature.getId(), [feature.getId(), getDegrees(feature.getGeometry().getCoordinates()), feature.get("source")]);
+                console.log('in updateVueFeature')
+                console.log(feature)
+            },
+            deleteVueFeature: function(feature) {
+                //app.$delete(app.sites.items, feature.getId());
+                console.log('in deleteVueFeature')
+                console.log(feature)
+            },
+            tryCreateNewSiteFromForm: function(lon, lat)
+            {
+                // rough bounding box for preliminary check
+                if (isNaN(lon) || lon < 112 || lon > 130 ||
+                    isNaN(lat) || lat < -35 || lat > -11) {
+                    return false;
+                }
+                if(!this.isNewPositionValid([lon,lat]))
+                {
+                    return false;
+                }
+                var feature = new Feature(new Point([lon,lat]));
+                feature.setId(this.uuidv4());
+                feature.set("source", "form");
+                this.drawingLayerSource.addFeature(feature);
+                this.createBufferForSite(feature);
+                this.updateVueFeature(feature);
+                return true;
+            },
         },
         mounted: function() {
             let vm = this;
