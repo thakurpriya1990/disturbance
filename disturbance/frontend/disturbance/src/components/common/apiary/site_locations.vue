@@ -171,6 +171,13 @@
                 
                 // variables for the GIS
                 map: null,
+                apiarySitesQuerySource: null,
+                apiarySitesQueryLayer: null,
+                bufferedSites: null,
+                drawingLayerSource: null,
+                drawingLayer: null,
+                bufferLayerSource: null,
+                bufferLayer: null,
                 //
 
                 dtHeaders: [
@@ -246,6 +253,61 @@
 
         },
         methods:{
+            uuidv4: function () {
+                return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, 
+                    function(c) {
+                        return (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16);
+                    }
+                );
+            },
+            getDegrees: function(coords){
+                return coords[0].toFixed(6) + ', ' + coords[1].toFixed(6);
+            },
+            metersToNearest: function(coords, filter) {
+                let candidates = [Number.POSITIVE_INFINITY];
+
+                let nearestDrawnSite = this.drawingLayerSource.getClosestFeatureToCoordinate(coords, filter);
+                if (nearestDrawnSite != null) {
+                    candidates.push(getDistance(coords, nearestDrawnSite.getGeometry().getCoordinates()));
+                }
+
+                let nearestQuerySite = this.apiarySitesQuerySource.getClosestFeatureToCoordinate(coords, filter);
+                if (nearestQuerySite != null) {
+                    candidates.push(getDistance(coords, nearestQuerySite.getGeometry().getCoordinates()[0]));
+                }
+
+                let min = candidates[0];
+                for (let i = 1; i < candidates.length; i++) {
+                    min = Math.min(min, candidates[i]);
+                }
+                return min;
+            },
+            isNewPositionValid: function(coords){
+                let distance = this.metersToNearest(coords, null);
+                console.log(distance);
+                if (distance < 3000) {
+                    return false;
+                }
+                return true;
+            },
+            createBufferForSite: function(site){
+                let id = site.getId() + "_buffer";
+                let coords = site.getGeometry().getCoordinates();
+
+                // apiary from json had 2d coords packed in an inner array.
+                if (coords.length == 1){
+                    coords = coords[0];
+                }
+
+                let buffer = new Feature(circular(coords, 3000, 16));
+                this.bufferLayerSource.addFeature(buffer);
+            },
+            removeBufferForSite: function(site){
+                let buffer = this.bufferLayerSource.getFeatureById(site.getId() + "_buffer");
+                this.bufferLayerSource.removeFeature(buffer);
+            },
+
+
             enlargeMapClicked: function() {
                 console.log('enlargeMapClicked');
                 this.$nextTick(() => {
@@ -335,21 +397,17 @@
                         projection: 'EPSG:4326'
                     })
                 });
-                //let apiarySitesQuerySource = new VectorSource({
-                //    format: new GeoJSON(),
-                //    url: require("../../../assets/apiary_data.json")
-                //});
-                let apiarySitesQuerySource = new VectorSource({
+                vm.apiarySitesQuerySource = new VectorSource({
                     features: (new GeoJSON()).readFeatures(geo_data)
                 });
-                console.log(apiarySitesQuerySource);
-                let apiarySitesQueryLayer = new VectorLayer({
-                    source: apiarySitesQuerySource,
+                console.log(vm.apiarySitesQuerySource);
+                vm.apiarySitesQueryLayer = new VectorLayer({
+                    source: vm.apiarySitesQuerySource,
                 });
-                console.log(apiarySitesQueryLayer);
-                vm.map.addLayer(apiarySitesQueryLayer);
+                console.log(vm.apiarySitesQueryLayer);
+                vm.map.addLayer(vm.apiarySitesQueryLayer);
 
-                let bufferedSites = [];
+                vm.bufferedSites = [];
                 vm.map.on("moveend", function(attributes){
                     let zoom = vm.map.getView().getZoom();
                     console.log(zoom);
@@ -360,11 +418,11 @@
                     let fresh = 0;
                     let cached = 0;
 
-                    apiarySitesQuerySource.forEachFeatureInExtent(vm.map.getView().calculateExtent(), function(feature) {
+                    vm.apiarySitesQuerySource.forEachFeatureInExtent(vm.map.getView().calculateExtent(), function(feature) {
                         let id = feature.getId();
-                        if (bufferedSites.indexOf(id) == -1) {
-                            createBufferForSite(feature);
-                            bufferedSites.push(id);
+                        if (vm.bufferedSites.indexOf(id) == -1) {
+                            vm.createBufferForSite(feature);
+                            vm.bufferedSites.push(id);
                             fresh++;
                         }
                         else {
@@ -376,9 +434,9 @@
                 });
 
                 // In memory vector layer for digitization
-                let drawingLayerSource = new VectorSource();
-                let drawingLayer = new VectorLayer({
-                    source: drawingLayerSource,
+                vm.drawingLayerSource = new VectorSource();
+                vm.drawingLayer = new VectorLayer({
+                    source: vm.drawingLayerSource,
                     style: new Style({
                         fill: new Fill({
                             color: 'rgba(255, 255, 255, 0.2)'
@@ -395,7 +453,33 @@
                         })
                     })
                 });
-                vm.map.addLayer(drawingLayer);
+                vm.map.addLayer(vm.drawingLayer);
+
+                // In memory vector layer for buffer
+
+                vm.bufferLayerSource = new VectorSource();
+                vm.bufferLayer = new VectorLayer({
+                    source: vm.bufferLayerSource,
+                    minZoom: 11,
+
+                });
+                vm.map.addLayer(vm.bufferLayer);
+
+                // Full screen toggle
+                vm.map.addControl(new FullScreenControl());
+
+                // Show mouse coordinates
+                vm.map.addControl(new MousePositionControl({
+                    coordinateFormat: function(coords){
+                        let message = vm.getDegrees(coords) + "\n";
+                        let distance = vm.metersToNearest(coords, null);
+                        if (distance < Number.POSITIVE_INFINITY) {
+                            message += "<br>Nearest: "  + (distance / 1000).toFixed(2) + " km";
+                        }
+                        return  message;
+                    },
+                    target: document.getElementById('mouse-position'),
+                }));
 
             },  // End: initMap()
         },
