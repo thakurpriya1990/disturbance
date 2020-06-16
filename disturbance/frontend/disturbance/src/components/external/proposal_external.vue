@@ -419,8 +419,7 @@ export default {
             postFormStr += "</form>";
             var formElement = $(postFormStr);
             $('body').append(formElement);
-            //$(formElement).submit();
-            location.href="www.google.com"
+            $(formElement).submit();
         },
     },
     mounted: function() {

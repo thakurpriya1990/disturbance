@@ -66,8 +66,9 @@
                 <datatable ref="site_locations_table" id="site-locations-table" :dtOptions="dtOptions" :dtHeaders="dtHeaders" />
             </div>
 
-            <iframe width="500" height="500" :src="webmap_src"></iframe>
+            <div id="map" class="map"></div>
 
+            <!--
             <div class="row col-sm-12">
                 <label>
                     Click <a @click="enlargeMapClicked">here</a> to enlarge map
@@ -78,6 +79,7 @@
                     Click <a @click="existingSiteAvailableClicked">here</a> if you are interested in existing sites that are available by the site licence holder.
                 </label>
             </div>
+            -->
 
         <SiteLocationsModal ref="site_locations_modal" />
 
@@ -85,6 +87,27 @@
 </template>
 
 <script>
+    import 'ol/ol.css';
+    //import 'index.css';  // copy-and-pasted the contents of this file at the <style> section below in this file
+
+    import Map from 'ol/Map';
+    import View from 'ol/View';
+    import WMTSCapabilities from 'ol/format/WMTSCapabilities';
+    import TileLayer from 'ol/layer/Tile';
+    import OSM from 'ol/source/OSM';
+    import WMTS, {optionsFromCapabilities} from 'ol/source/WMTS';
+    import Collection from 'ol/Collection';
+    import {Draw, Modify, Snap} from 'ol/interaction';
+    import VectorLayer from 'ol/layer/Vector';
+    import VectorSource from 'ol/source/Vector'; 
+    import {Circle as CircleStyle, Fill, Stroke, Style} from 'ol/style';
+    //import {FullScreen as FullScreenControl, MousePosition as MousePositionControl} from 'ol/Control';
+    import Vue from 'vue/dist/vue';
+    import { Feature } from 'ol';
+    import { Point } from 'ol/geom';
+    import { getDistance } from 'ol/sphere';
+    import { circular} from 'ol/geom/Polygon';
+    import GeoJSON from 'ol/format/GeoJSON';
 
     import TextField from '@/components/forms/text.vue'
     //import FileField from '@/components/forms/filefield.vue'
@@ -286,9 +309,27 @@
 
                 this.constructSiteLocationsTable();
             },
+            initMap: function() {
+                let map = new Map({
+                    layers: [
+                        new TileLayer({
+                            source: new OSM(),
+                            opacity:0.5
+                        })
+                    ],
+                    target: 'map',
+                    view: new View({
+                        center: [115.95, -31.95],
+                        zoom: 7,
+                        projection: 'EPSG:4326'
+                    })
+                });
+            },
         },
         mounted: function() {
             let vm = this;
+
+            vm.initMap();
             this.$nextTick(() => {
                 vm.addEventListeners();
             });
@@ -328,5 +369,22 @@
     }
     .debug-remainders {
         padding: 0 0 0 1em
+    }
+    .map {
+        width: 100%;
+        height: 500px;
+    }
+    .ol-mouse-position {
+        position: absolute;
+        bottom: 16px;
+        left: 16px;
+        top: auto;
+        right: auto;
+        text-align: left;
+        font-size: 0.8rem;
+        border: 0;
+        padding: 8px;
+        color: white;
+        background-color: rgba(37, 45, 51, 0.7);
     }
 </style>
