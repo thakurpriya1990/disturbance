@@ -101,7 +101,7 @@
     import VectorLayer from 'ol/layer/Vector';
     import VectorSource from 'ol/source/Vector'; 
     import {Circle as CircleStyle, Fill, Stroke, Style} from 'ol/style';
-    //import {FullScreen as FullScreenControl, MousePosition as MousePositionControl} from 'ol/Control';
+    import {FullScreen as FullScreenControl, MousePosition as MousePositionControl} from 'ol/control';
     import Vue from 'vue/dist/vue';
     import { Feature } from 'ol';
     import { Point } from 'ol/geom';
@@ -160,13 +160,17 @@
                 q: null,
                 values:null,
                 pBody: 'pBody'+vm._uid,
-                webmap_src: 'https://dpaw.maps.arcgis.com/apps/Embed/index.html?webmap=1d956bc5513e40568a4f01950906b64b&extent=95.5777,-38.2527,149.5425,-12.3581&home=true&zoom=true&scale=true&search=true&searchextent=true&details=true&disable_scroll=true&theme=light',
                 showingHelpText: false,
                 help_text: 'My Help text ...',
                 marker_lng: null,
                 marker_lat: null,
                 site_locations: [],
                 deed_poll_url: '',
+                
+                // variables for the GIS
+                map: null,
+                //
+
                 dtHeaders: [
                     'id',
                     'guid',
@@ -310,7 +314,7 @@
                 this.constructSiteLocationsTable();
             },
             initMap: function() {
-                let map = new Map({
+                this.map = new Map({
                     layers: [
                         new TileLayer({
                             source: new OSM(),
@@ -324,7 +328,64 @@
                         projection: 'EPSG:4326'
                     })
                 });
-            },
+                let apiarySitesQuerySource = new VectorSource({
+                    format: new GeoJSON(),
+                    url: "./apiary_data.txt"
+                });
+                let apiarySitesQueryLayer = new VectorLayer({
+                    source: apiarySitesQuerySource,
+                });
+                this.map.addLayer(apiarySitesQueryLayer);
+
+                let bufferedSites = [];
+                this.map.on("moveend", function(attributes){
+                    let zoom = this.map.getView().getZoom();
+                    console.log(zoom);
+                    if (zoom < 11) {
+                        return;
+                    }
+
+                    let fresh = 0;
+                    let cached = 0;
+
+                    apiarySitesQuerySource.forEachFeatureInExtent(this.map.getView().calculateExtent(), function(feature) {
+                        let id = feature.getId();
+                        if (bufferedSites.indexOf(id) == -1) {
+                            createBufferForSite(feature);
+                            bufferedSites.push(id);
+                            fresh++;
+                        }
+                        else {
+                            cached++;
+                        }
+                    });
+
+                    console.log("zoom: " + zoom + ", fresh: " + fresh + ", cached: " + cached);
+                });
+
+                // In memory vector layer for digitization
+                let drawingLayerSource = new VectorSource();
+                let drawingLayer = new VectorLayer({
+                    source: drawingLayerSource,
+                    style: new Style({
+                        fill: new Fill({
+                            color: 'rgba(255, 255, 255, 0.2)'
+                        }),
+                        stroke: new Stroke({
+                            color: '#ffcc33',
+                            width: 2
+                        }),
+                        image: new CircleStyle({
+                            radius: 7,
+                            fill: new Fill({
+                                color: '#ffcc33'
+                            })
+                        })
+                    })
+                });
+                this.map.addLayer(drawingLayer);
+
+            },  // End: initMap()
         },
         mounted: function() {
             let vm = this;
@@ -371,6 +432,7 @@
         padding: 0 0 0 1em
     }
     .map {
+        display: inline-block;
         width: 100%;
         height: 500px;
     }

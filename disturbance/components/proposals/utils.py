@@ -363,6 +363,8 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
     with transaction.atomic():
         #import ipdb; ipdb.set_trace()
         try:
+            raise ValidationError("AHO error")
+
             data = {
             }
 
