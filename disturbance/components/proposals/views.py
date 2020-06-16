@@ -36,12 +36,28 @@ class ProposalHistoryCompareView(HistoryCompareDetailView):
     model = Proposal
     template_name = 'disturbance/reversion_history.html'
 
+
 class ReferralHistoryCompareView(HistoryCompareDetailView):
     """
     View for reversion_compare
     """
     model = Referral
     template_name = 'disturbance/reversion_history.html'
+
+
+class ExternalProposalTemporaryUseSubmitSuccessView(TemplateView):
+    model = Proposal
+    template_name = 'disturbance/temporary_use_submit_success.html'
+
+    def get(self, request, *args, **kwargs):
+        return render(request, self.template_name, context={})
+
+    def post(self, request, *args, **kwargs):
+        return render(request, self.template_name, context={})
+
+
+# def success_view(request):
+#     pass
 
 
 class ApprovalHistoryCompareView(HistoryCompareDetailView):
