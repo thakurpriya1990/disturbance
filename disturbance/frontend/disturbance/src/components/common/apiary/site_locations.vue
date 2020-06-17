@@ -74,12 +74,12 @@
                     Click <a @click="enlargeMapClicked">here</a> to enlarge map
                 </label>
             </div>
+            -->
             <div class="row col-sm-12">
                 <label>
                     Click <a @click="existingSiteAvailableClicked">here</a> if you are interested in existing sites that are available by the site licence holder.
                 </label>
             </div>
-            -->
 
         <SiteLocationsModal ref="site_locations_modal" />
 
@@ -166,7 +166,7 @@
                 help_text: 'My Help text ...',
                 marker_lng: null,
                 marker_lat: null,
-                site_locations: [],
+                //site_locations: [],
                 deed_poll_url: '',
                 
                 // variables for the GIS
@@ -226,13 +226,11 @@
                         },
                         {
                             mRender: function (data, type, full) {
-                                //return full.latitude;
                                 return vm.getDegrees(full.getGeometry().getCoordinates())
                             }
                         },
                         {
                             mRender: function (data, type, full) {
-                                //return full.longitude;
                                 return vm.getDegrees(full.getGeometry().getCoordinates())
                             }
                         },
@@ -316,32 +314,45 @@
             },
 
 
-            enlargeMapClicked: function() {
-                console.log('enlargeMapClicked');
-                this.$nextTick(() => {
-                    this.$refs.site_locations_modal.isModalOpen = true;
-                });
-            },
+            //enlargeMapClicked: function() {
+            //    console.log('enlargeMapClicked');
+            //    this.$nextTick(() => {
+            //        this.$refs.site_locations_modal.isModalOpen = true;
+            //    });
+            //},
             existingSiteAvailableClicked: function() {
                 console.log('existingSiteAvailableClicked');
                 alert("TODO: open screen 45: External - Contact Holder of Available Site in a different tab page.");
             },
             constructSiteLocationsTable: function(){
+                console.log('constructSiteLocationsTable')
+
                 // Clear table
                 this.$refs.site_locations_table.vmDataTable.clear().draw();
 
-                // Construct table
-                if (this.site_locations.length > 0){
-                    for(let i=0; i<this.site_locations.length; i++){
-                        this.addSiteLocationToTable(this.site_locations[i]);
-                    }
+                let features = this.drawingLayerSource.getFeatures()
+                
+                console.log('features')
+                console.log(features)
+
+                for(let i=0; i<features.length; i++){
+                   // this.addSiteLocationToTable(this.site_locations[i]);
+                    this.$refs.site_locations_table.vmDataTable.row.add(features[i]).draw();
                 }
+
+                // Construct table
+                //if (this.site_locations.length > 0){
+                //    for(let i=0; i<this.site_locations.length; i++){
+                //       // this.addSiteLocationToTable(this.site_locations[i]);
+                //        this.$refs.site_locations_table.vmDataTable.row.add(this.site_locations[i]).draw();
+                //    }
+                //}
             },
-            addSiteLocationToTable: function(feature){
-                console.log('*** addSiteLocationToTable ***');
-                console.log(feature);
-                this.$refs.site_locations_table.vmDataTable.row.add(feature).draw();
-            },
+            //addSiteLocationToTable: function(feature){
+            //    console.log('*** addSiteLocationToTable ***');
+            //    console.log(feature);
+            //    this.$refs.site_locations_table.vmDataTable.row.add(feature).draw();
+            //},
            // addProposedSite: function(){
            //     console.log('in addProposedSite');
            //     this.site_locations.push({
@@ -365,6 +376,8 @@
                 $("#site-locations-table").on("click", ".delete_button", this.removeSiteLocation);
             },
             removeSiteLocation: function(e){
+                console.log('removeSiteLocation')
+
                 let site_location_guid = e.target.getAttribute("data-site-location-guid");
                 console.log('guid to delete');
                 console.log(site_location_guid);
@@ -375,11 +388,11 @@
 
                 this.drawingLayerSource.removeFeature(myFeature);
 
-                for (let i=0; i<this.site_locations.length; i++){
-                    if (this.site_locations[i] == myFeature){
-                        this.site_locations.splice(i, 1);
-                    }
-                }
+                //for (let i=0; i<this.site_locations.length; i++){
+                //    if (this.site_locations[i] == myFeature){
+                //        this.site_locations.splice(i, 1);
+                //    }
+                //}
 
                 ///// test /////
                 for (let i=0; i<this.proposal.proposal_apiary.apiary_sites.length; i++){
@@ -423,6 +436,8 @@
 
                 vm.bufferedSites = [];
                 vm.map.on("moveend", function(attributes){
+                    console.log('moveend')
+
                     let zoom = vm.map.getView().getZoom();
                     console.log(zoom);
                     if (zoom < 11) {
@@ -502,23 +517,29 @@
                     type: "Point"
                 });
                 drawTool.on("drawstart", function(attributes){
+                    console.log('drawstart')
+
                     if (!vm.isNewPositionValid(attributes.feature.getGeometry().getCoordinates())) {
                         drawTool.abortDrawing();
                     }
                 });
                 drawTool.on('drawend', function(attributes){
+                    console.log('drawend')
+
                     let feature = attributes.feature;
                     feature.setId(vm.uuidv4());
                     feature.set("source", "draw");
                     feature.getGeometry().on("change", function() {
                         console.log("Start Modify feature: " + feature.getId());
+
                         if (modifyInProgressList.indexOf(feature) < 0) {
                             modifyInProgressList.push(feature);
                         }
                     });
                     console.log("New Feature: " + feature.getId());
                     // update for individual feature, it is not in the layer collection yet. 
-                    vm.updateVueFeature(feature);
+                    //vm.updateVueFeature(feature);
+                    vm.constructSiteLocationsTable()
                     vm.createBufferForSite(feature);
                 });
                 vm.map.addInteraction(drawTool);
@@ -527,38 +548,36 @@
                     source: vm.drawingLayerSource,
                 });
                 modifyTool.on("modifyend", function(attributes){
+                    console.log('modifyend')
                     // this will list all features in layer, not so useful without cross referencing
                     attributes.features.forEach(function(feature){
                         let index = modifyInProgressList.indexOf(feature);
                         if (index > -1) {
                             console.log("End Modify Feature: " + index + "/" + modifyInProgressList.length + " " + feature.getId());
                             modifyInProgressList.splice(index, 1);
-                            vm.updateVueFeature(feature);
+                            //vm.updateVueFeature(feature);
+                            vm.constructSiteLocationsTable()
                             vm.removeBufferForSite(feature);
                             vm.createBufferForSite(feature);
                         }
                     });
                 });
                 vm.map.addInteraction(modifyTool);
-
-
-
             },  // End: initMap()
 
-            updateVueFeature: function(feature) {
-                //app.$set(app.sites.items, feature.getId(), [feature.getId(), getDegrees(feature.getGeometry().getCoordinates()), feature.get("source")]);
-                console.log('in updateVueFeature')
-                console.log(feature)
+            //updateVueFeature: function(feature) {
+            //    //app.$set(app.sites.items, feature.getId(), [feature.getId(), getDegrees(feature.getGeometry().getCoordinates()), feature.get("source")]);
+            //    console.log('in updateVueFeature')
 
-                this.site_locations.push(feature);
-                //this.site_locations.push({
-                //    "id": '',
-                //    "latitude": this.getDegrees(feature.getGeometry().getCoordinates()),
-                //    "longitude": this.getDegrees(feature.getGeometry().getCoordinates()),
-                //    "site_guid": feature.getId()
-                //});
-                this.constructSiteLocationsTable()
-            },
+            //    //this.site_locations.push(feature);
+            //    //this.site_locations.push({
+            //    //    "id": '',
+            //    //    "latitude": this.getDegrees(feature.getGeometry().getCoordinates()),
+            //    //    "longitude": this.getDegrees(feature.getGeometry().getCoordinates()),
+            //    //    "site_guid": feature.getId()
+            //    //});
+            //    this.constructSiteLocationsTable()
+            //},
             //deleteVueFeature: function(feature) {
             //    //app.$delete(app.sites.items, feature.getId());
             //    console.log('in deleteVueFeature')
@@ -582,8 +601,12 @@
                 feature.setId(this.uuidv4());
                 feature.set("source", "form");
                 this.drawingLayerSource.addFeature(feature);
+
+                console.log('new feature added to the layer')
+
                 this.createBufferForSite(feature);
-                this.updateVueFeature(feature);
+                this.constructSiteLocationsTable()
+                //this.updateVueFeature(feature);
                 return true;
             },
         },
@@ -598,7 +621,9 @@
                 let a_site = this.proposal.proposal_apiary.apiary_sites[i];
                 a_site.longitude = 'retrieve from GIS server'
                 a_site.latitude = 'retrieve from GIS server'
-                this.site_locations.push(a_site);
+
+                // TODO: create feature and add it to the map, then reconstruct table
+                //this.site_locations.push(a_site);
             }
             this.constructSiteLocationsTable();
         }
