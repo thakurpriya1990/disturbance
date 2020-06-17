@@ -5,6 +5,8 @@ import os
 import datetime
 
 import pytz
+from django.contrib.gis.db.models.fields import PointField
+from django.contrib.gis.db.models.manager import GeoManager
 from django.db import models,transaction
 from django.contrib.gis.db import models as gis_models
 from django.db.models import Q
@@ -2296,6 +2298,9 @@ class ApiarySite(models.Model):
     # Region and District may be included in the api response from the GIS server
     region = models.ForeignKey(Region, null=True, blank=True)
     district = models.ForeignKey(District, null=True, blank=True)
+
+    wkb_geometry = PointField(srid=4326, blank=True, null=True)
+    objects = GeoManager()
 
     def __str__(self):
         return '{} - {}'.format(self.site_guid, self.proposal_apiary.proposal.title)
