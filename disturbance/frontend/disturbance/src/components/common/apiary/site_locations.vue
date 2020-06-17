@@ -226,12 +226,14 @@
                         },
                         {
                             mRender: function (data, type, full) {
-                                return vm.getDegrees(full.getGeometry().getCoordinates())
+                                let coords = full.getGeometry().getCoordinates()
+                                return coords[1].toFixed(6)
                             }
                         },
                         {
                             mRender: function (data, type, full) {
-                                return vm.getDegrees(full.getGeometry().getCoordinates())
+                                let coords = full.getGeometry().getCoordinates()
+                                return coords[0].toFixed(6)
                             }
                         },
                         {
@@ -427,11 +429,9 @@
                 vm.apiarySitesQuerySource = new VectorSource({
                     features: (new GeoJSON()).readFeatures(geo_data)
                 });
-                console.log(vm.apiarySitesQuerySource);
                 vm.apiarySitesQueryLayer = new VectorLayer({
                     source: vm.apiarySitesQuerySource,
                 });
-                console.log(vm.apiarySitesQueryLayer);
                 vm.map.addLayer(vm.apiarySitesQueryLayer);
 
                 vm.bufferedSites = [];
@@ -464,6 +464,9 @@
 
                 // In memory vector layer for digitization
                 vm.drawingLayerSource = new VectorSource();
+                vm.drawingLayerSource.on('addfeature', function(e){
+                    vm.constructSiteLocationsTable()
+                });
                 vm.drawingLayer = new VectorLayer({
                     source: vm.drawingLayerSource,
                     style: new Style({
@@ -537,10 +540,8 @@
                         }
                     });
                     console.log("New Feature: " + feature.getId());
-                    // update for individual feature, it is not in the layer collection yet. 
-                    //vm.updateVueFeature(feature);
-                    vm.constructSiteLocationsTable()
                     vm.createBufferForSite(feature);
+                    // Vue table is updated by the event 'addfeature' issued from the Source
                 });
                 vm.map.addInteraction(drawTool);
 
@@ -556,9 +557,10 @@
                             console.log("End Modify Feature: " + index + "/" + modifyInProgressList.length + " " + feature.getId());
                             modifyInProgressList.splice(index, 1);
                             //vm.updateVueFeature(feature);
-                            vm.constructSiteLocationsTable()
                             vm.removeBufferForSite(feature);
                             vm.createBufferForSite(feature);
+
+                            vm.constructSiteLocationsTable()
                         }
                     });
                 });
@@ -605,7 +607,7 @@
                 console.log('new feature added to the layer')
 
                 this.createBufferForSite(feature);
-                this.constructSiteLocationsTable()
+                //this.constructSiteLocationsTable()
                 //this.updateVueFeature(feature);
                 return true;
             },
