@@ -33,6 +33,60 @@ from disturbance.components.proposals.models import (
 
 from rest_framework import serializers
 from ledger.accounts.models import Address
+from reversion.models import Version
+from django.utils import timezone
+
+
+class VersionSerializer(serializers.ModelSerializer):
+    #serializable_value = serializers.JSONField()
+    proposal_fields = serializers.SerializerMethodField()
+    date_modified = serializers.SerializerMethodField()
+    class Meta:
+        model = Version
+        #fields = '__all__'
+        fields = (
+                'id',
+                'revision',
+                'proposal_fields',
+                'date_modified',
+                )
+        read_only_fields = (
+                'id',
+                'revision',
+                'proposal_fields',
+                'date_modified',
+                )
+
+    def get_date_modified(self, obj):
+        date_modified = None
+        if obj.revision and obj.revision.date_created:
+            date_modified = timezone.localtime(obj.revision.date_created)
+        return date_modified
+
+    def get_proposal_fields(self, obj):
+        proposal_data = []
+        if obj.revision:
+            for record in obj.revision.version_set.all():
+                proposal_data.append({record.object._meta.model_name: record.field_dict})
+        return proposal_data
+
+
+class ProposalHistorySerializer(serializers.ModelSerializer):
+    versions = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Proposal
+        fields = (
+                'id',
+                'versions',
+                )
+
+    def get_versions(self, obj):
+        entry_versions = VersionSerializer(
+                Version.objects.get_for_object(obj),
+                many=True)
+        return entry_versions.data
+
 
 class ApiaryApplicantChecklistQuestionSerializer(serializers.ModelSerializer):
 
