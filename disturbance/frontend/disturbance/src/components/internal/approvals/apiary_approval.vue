@@ -56,7 +56,45 @@
                         </a>
                         </h3> 
                     </div>
-                    <div class="panel-body panel-collapse" :id="pBody">
+                    <div v-if="organisationApplicant">
+                        <!--div class="panel-body panel-collapse collapse in" :id="detailsBody"-->
+                        <div class="panel-body panel-collapse collapse in">
+                              <form class="form-horizontal">
+                                  <div class="form-group">
+                                    <label for="" class="col-sm-3 control-label">Name</label>
+                                    <div class="col-sm-6">
+                                        <input disabled type="text" class="form-control" name="applicantName" placeholder="" v-model="approval.organisation_name">
+                                    </div>
+                                  </div>
+                                  <div class="form-group">
+                                    <label for="" class="col-sm-3 control-label" >ABN/ACN</label>
+                                    <div class="col-sm-6">
+                                        <input disabled type="text" class="form-control" name="applicantABN" placeholder="" v-model="approval.organisation_abn">
+                                    </div>
+                                  </div>
+                              </form>
+                        </div>
+                    </div>
+                    <div v-else>
+                        <div class="panel-body panel-collapse collapse in">
+                              <form class="form-horizontal">
+                                  <div class="form-group">
+                                    <label for="" class="col-sm-3 control-label">Given Name(s)</label>
+                                    <div class="col-sm-6">
+                                        <input disabled type="text" class="form-control" name="applicantFirstName" placeholder="" v-model="approval.applicant_first_name">
+                                    </div>
+                                  </div>
+                                  <div class="form-group">
+                                    <label for="" class="col-sm-3 control-label" >Last Name</label>
+                                    <div class="col-sm-6">
+                                        <input disabled type="text" class="form-control" name="applicantLastName" placeholder="" v-model="approval.applicant_last_name">
+                                    </div>
+                                  </div>
+                              </form>
+                        </div>
+                    </div>
+
+                    <!--div class="panel-body panel-collapse" :id="pBody">
                         <div class="row">
                             <div class="col-sm-12">
                                 <form class="form-horizontal" name="approval_form">
@@ -75,7 +113,7 @@
                                 </form>
                             </div>
                         </div>
-                    </div>
+                    </div-->
                 </div>
             </div>
 
@@ -89,34 +127,34 @@
                         </a>
                     </h3>
                   </div>
-                  <div v-if="loading.length == 0" class="panel-body collapse" :id="adBody">
+                  <div v-if="loading.length == 0 && approval && approval.applicant_address" class="panel-body collapse" :id="adBody">
                       <form class="form-horizontal" action="index.html" method="post">
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label">Street</label>
                             <div class="col-sm-6">
-                                <input type="text" disabled class="form-control" name="street" placeholder="" v-model="org.address.line1">
+                                <input type="text" disabled class="form-control" name="street" placeholder="" v-model="approval.applicant_address.line1">
                             </div>
                           </div>
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label" >Town/Suburb</label>
                             <div class="col-sm-6">
-                                <input type="text" disabled class="form-control" name="surburb" placeholder="" v-model="org.address.locality">
+                                <input type="text" disabled class="form-control" name="surburb" placeholder="" v-model="approval.applicant_address.locality">
                             </div>
                           </div>
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label">State</label>
                             <div class="col-sm-3">
-                                <input type="text" disabled class="form-control" name="country" placeholder="" v-model="org.address.state">
+                                <input type="text" disabled class="form-control" name="country" placeholder="" v-model="approval.applicant_address.state">
                             </div>
                             <label for="" class="col-sm-1 control-label">Postcode</label>
                             <div class="col-sm-2">
-                                <input type="text" disabled class="form-control" name="postcode" placeholder="" v-model="org.address.postcode">
+                                <input type="text" disabled class="form-control" name="postcode" placeholder="" v-model="approval.applicant_address.postcode">
                             </div>
                           </div>
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label" >Country</label>
                             <div class="col-sm-4">
-                                <input type="text" disabled class="form-control" name="country" v-model="org.address.country">
+                                <input type="text" disabled class="form-control" name="country" v-model="approval.applicant_address.country">
                                 </input>
                             </div>
                           </div>
@@ -187,7 +225,7 @@ import {
 }
 from '@/utils/hooks'
 export default {
-  name: 'Approval',
+  name: 'ApiaryApproval',
   data() {
     let vm = this;
     return {
@@ -226,12 +264,14 @@ export default {
     Vue.http.get(helpers.add_endpoint_json(api_endpoints.approvals,this.approvalId)).then((response) => {
         this.approval = response.body;
         this.approval.applicant_id = response.body.applicant_id;
-        this.fetchOrganisation(this.approval.applicant_id)
+        if (this.approval.organisation_abn) {
+            this.fetchOrganisation(this.approval.applicant_id)
+        }
     },(error) => {
         console.log(error);
     }) 
   },
-/*
+    /*
   beforeRouteEnter: function(to, from, next){
     Vue.http.get(helpers.add_endpoint_json(api_endpoints.approvals,to.params.approval_id)).then((response) => {
         next(vm => {
@@ -252,6 +292,13 @@ export default {
   computed: {
     isLoading: function () {
       return this.loading.length > 0;
+    },
+    organisationApplicant: function() {
+        let oApplicant = false;
+        if (this.approval && this.approval.organisation_abn) {
+            oApplicant = true;
+        }
+        return oApplicant;
     },
     
   },

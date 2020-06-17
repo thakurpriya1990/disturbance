@@ -44,9 +44,9 @@
                                 <strong>Status</strong><br/>
                                 {{ proposal.processing_status }}
                             </div>
-                            <div class="col-sm-12">
+                            <!--div class="col-sm-12">
                                 <div class="separator"></div>
-                            </div>
+                            </div-->
                             <template v-if="proposal.processing_status == 'With Assessor' || proposal.processing_status == 'With Referral'">
                                 <div class="col-sm-12 top-buffer-s">
                                     <strong>Referrals</strong><br/>
@@ -93,7 +93,7 @@
                                     <template>
 
                                     </template>
-                                    <ApiaryReferralsForProposal @refreshFromResponse="refreshFromResponse" :proposal="proposal" :canAction="!isFinalised" :isFinalised="isFinalised" :referral_url="referralListURL"/>
+                                    <!--ApiaryReferralsForProposal @refreshFromResponse="refreshFromResponse" :proposal="proposal" :canAction="!isFinalised" :isFinalised="isFinalised" :referral_url="referralListURL"/-->
                                 </div>
                             </template>
 
@@ -142,9 +142,9 @@
                                 </table>
                                 <MoreReferrals @refreshFromResponse="refreshFromResponse" :proposal="proposal" :canAction="!isFinalised && referral.referral == proposal.current_assessor.id" :isFinalised="isFinalised" :referral_url="referralListURL"/>
                             </div-->
-                            <div class="col-sm-12">
+                            <!--div class="col-sm-12">
                                 <div class="separator"></div>
-                            </div>
+                            </div-->
                             <div class="col-sm-12 top-buffer-s" v-if="canAction">
                                 <div class="row">
                                     <div class="col-sm-12">

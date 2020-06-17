@@ -218,7 +218,7 @@ export default {
                     },
                     {
                         data: "applicant",
-                        name: "applicant__organisation__name" // will be use like: Approval.objects.all().order_by('applicant__organisation__nane')
+                        //name: "applicant__organisation__name" // will be use like: Approval.objects.all().order_by('applicant__organisation__nane')
                     },
                     {data: "status"},
                     {

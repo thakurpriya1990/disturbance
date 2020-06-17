@@ -105,7 +105,7 @@
                                         </tr>
                                         <tr v-for="r in proposal.latest_referrals">
                                             <td>
-                                                <small><strong>{{r.referral}}</strong></small><br/>
+                                                <small><strong>{{r.apiary_referral.referral_group.name}}</strong></small><br/>
                                                 <small><strong>{{r.lodged_on | formatDate}}</strong></small>
                                             </td>
                                             <td>

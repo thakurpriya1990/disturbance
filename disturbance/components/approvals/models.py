@@ -89,6 +89,7 @@ class Approval(RevisionedMixin):
     set_to_suspend = models.BooleanField(default=False)
     set_to_surrender = models.BooleanField(default=False)
     reissued= models.BooleanField(default=False)
+    apiary_approval = models.BooleanField(default=False)
 
     class Meta:
         app_label = 'disturbance'
@@ -115,6 +116,14 @@ class Approval(RevisionedMixin):
             return self.applicant.name
         else:
             return self.proxy_applicant.get_full_name()
+
+    @property
+    def relevant_applicant_address(self):
+        if self.applicant:
+            return self.applicant.address
+        elif self.proxy_applicant:
+            #return self.proxy_applicant.addresses.all().first()
+            return self.proxy_applicant.residential_address
 
     @property
     def region(self):
