@@ -381,11 +381,12 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
 
-                site_locations_received = site_location_data['apiary_sites']
+                # site_locations_received = site_location_data['apiary_sites']
+                site_locations_received = json.loads(request.data.get('all_the_features'))
 
                 # Feature object doesn't have a field named 'id' originally unless manually added
                 # The field 'id_' is used in the frontend, though
-                site_ids_received = [feature['id'] for feature in site_locations_received if hasattr(feature, 'id')]
+                site_ids_received = [feature['id'] if 'id' in feature else '' for feature in site_locations_received]  # if hasattr(feature, 'id')]
                 site_ids_existing = [site.id for site in ApiarySite.objects.filter(proposal_apiary_id=site_location_data['id'])]
                 site_ids_delete = [id for id in site_ids_existing if id not in site_ids_received]
 

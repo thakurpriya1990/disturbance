@@ -342,12 +342,16 @@
                 //this.proposal.proposal_apiary.apiary_sites = features
                 //this.updateApiarySitesData()
             },
-            updateApiarySitesData: function() {
-                console.log('in getFeatures')
+            //updateApiarySitesData: function() {
+            //    console.log('in getFeatures')
+            //    let allFeatures = this.drawingLayerSource.getFeatures()
+            //    console.log(allFeatures)
+            //    this.proposal.proposal_apiary.apiary_sites = allFeatures
+            //    //this.proposal.sites_edited = allFeatures
+            //},
+            getFeatures: function() {
                 let allFeatures = this.drawingLayerSource.getFeatures()
-                console.log(allFeatures)
-                this.proposal.proposal_apiary.apiary_sites = allFeatures
-                //this.proposal.sites_edited = allFeatures
+                return allFeatures
             },
             addEventListeners: function(){
                 $("#site-locations-table").on("click", ".delete_button", this.removeSiteLocation);
@@ -361,10 +365,9 @@
 
                 let myFeature = this.drawingLayerSource.getFeatureById(site_location_guid)
 
-                // Remove 
-                let buffer = this.bufferLayerSource.getFeatureById(site_location_guid + "_buffer");
-                this.bufferLayerSource.removeFeature(buffer);
+                // Remove buffer
                 //this.removeBufferForSite(myFeature)
+
                 this.drawingLayerSource.removeFeature(myFeature);
 
                 this.constructSiteLocationsTable();

@@ -145,19 +145,32 @@ export default {
         },
     },
     methods: {
-        updateApiarySitesData: function() {
-            if (this.proposal && this.proposal.proposal_apiary){
-                this.$refs.proposal_apiary.$refs.apiary_site_locations.updateApiarySitesData()
-            }
-        },
+        //updateApiarySitesData: function() {
+        //    if (this.proposal && this.proposal.proposal_apiary){
+        //        this.$refs.proposal_apiary.$refs.apiary_site_locations.updateApiarySitesData()
+        //    }
+        //},
+        //getFeatures: function() {
+        //    let ret_obj = null
+        //    if (this.proposal && this.proposal.proposal_apiary){
+        //        ret_obj = this.$refs.proposal_apiary.$refs.apiary_site_locations.getFeatures()
+        //    }
+        //    return ret_obj
+        //},
+
         save: function(confirmation_required) {
-            console.log('***save');
-            this.updateApiarySitesData()
+            console.log('in save');
 
             let vm = this;
             vm.form=document.forms.new_proposal;
 
             let formData = new FormData(vm.form);
+
+            // Append apiary_sites edited data
+            if (this.proposal && this.proposal.proposal_apiary){
+                let allFeatures = this.$refs.proposal_apiary.$refs.apiary_site_locations.getFeatures()
+                formData.append('all_the_features', JSON.stringify(allFeatures)) 
+            }
 
             if (confirmation_required){
                 vm.$http.post(vm.proposal_form_url, formData).then(res=>{
