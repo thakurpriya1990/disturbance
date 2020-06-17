@@ -206,6 +206,11 @@
             proposal_submit: function() {
                 console.log('in proposal_submit')
 
+                // TEST
+                this.$http.post('/external/fdsafkdls;ajkl;/', data)
+                // END: TEST
+
+
                 let vm = this;
                 let data = vm._get_basic_data();
                 let proposal_id = this.$route.params.proposal_id

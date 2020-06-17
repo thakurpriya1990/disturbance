@@ -41,7 +41,7 @@
                             v-model.number="proposal.proposal_apiary.longitude"
                             :readonly="is_internal || !proposal.can_user_edit"
                         />
-                        <input type="button" @click="addProposedSite" value="Add proposed site" class="btn btn-primary">
+                        <input type="button" @click="tryCreateNewSiteFromForm" value="Add proposed site" class="btn btn-primary">
                     </div>
                 </div>
             </div>
@@ -66,13 +66,15 @@
                 <datatable ref="site_locations_table" id="site-locations-table" :dtOptions="dtOptions" :dtHeaders="dtHeaders" />
             </div>
 
-            <iframe width="500" height="500" :src="webmap_src"></iframe>
+            <div id="map" class="map"></div>
 
+            <!--
             <div class="row col-sm-12">
                 <label>
                     Click <a @click="enlargeMapClicked">here</a> to enlarge map
                 </label>
             </div>
+            -->
             <div class="row col-sm-12">
                 <label>
                     Click <a @click="existingSiteAvailableClicked">here</a> if you are interested in existing sites that are available by the site licence holder.
@@ -85,6 +87,29 @@
 </template>
 
 <script>
+    import 'ol/ol.css';
+    //import 'index.css';  // copy-and-pasted the contents of this file at the <style> section below in this file
+
+    import Map from 'ol/Map';
+    import View from 'ol/View';
+    import WMTSCapabilities from 'ol/format/WMTSCapabilities';
+    import TileLayer from 'ol/layer/Tile';
+    import OSM from 'ol/source/OSM';
+    import WMTS, {optionsFromCapabilities} from 'ol/source/WMTS';
+    import Collection from 'ol/Collection';
+    import {Draw, Modify, Snap} from 'ol/interaction';
+    import VectorLayer from 'ol/layer/Vector';
+    import VectorSource from 'ol/source/Vector'; 
+    import {Circle as CircleStyle, Fill, Stroke, Style} from 'ol/style';
+    import {FullScreen as FullScreenControl, MousePosition as MousePositionControl} from 'ol/control';
+    import Vue from 'vue/dist/vue';
+    import { Feature } from 'ol';
+    import { Point } from 'ol/geom';
+    import { getDistance } from 'ol/sphere';
+    import { circular} from 'ol/geom/Polygon';
+    import GeoJSON from 'ol/format/GeoJSON';
+
+    import geo_data from "../../../assets/apiary_data.json"
 
     import TextField from '@/components/forms/text.vue'
     //import FileField from '@/components/forms/filefield.vue'
@@ -137,13 +162,24 @@
                 q: null,
                 values:null,
                 pBody: 'pBody'+vm._uid,
-                webmap_src: 'https://dpaw.maps.arcgis.com/apps/Embed/index.html?webmap=1d956bc5513e40568a4f01950906b64b&extent=95.5777,-38.2527,149.5425,-12.3581&home=true&zoom=true&scale=true&search=true&searchextent=true&details=true&disable_scroll=true&theme=light',
                 showingHelpText: false,
                 help_text: 'My Help text ...',
                 marker_lng: null,
                 marker_lat: null,
-                site_locations: [],
+                //site_locations: [],
                 deed_poll_url: '',
+                
+                // variables for the GIS
+                map: null,
+                apiarySitesQuerySource: null,
+                apiarySitesQueryLayer: null,
+                bufferedSites: null,
+                drawingLayerSource: null,
+                drawingLayer: null,
+                bufferLayerSource: null,
+                bufferLayer: null,
+                //
+
                 dtHeaders: [
                     'id',
                     'guid',
@@ -163,8 +199,13 @@
                     },
                     responsive: true,
                     processing: true,
+                //    "id": '',
+                //    "latitude": this.getDegrees(feature.getGeometry().getCoordinates()),
+                //    "longitude": this.getDegrees(feature.getGeometry().getCoordinates()),
+                //    "site_guid": feature.getId()
                     columns: [
                         {
+                            visible: true,
                             mRender: function (data, type, full) {
                                 if (full.id) {
                                     return full.id;
@@ -175,8 +216,9 @@
                         },
                         {
                             mRender: function (data, type, full) {
-                                if (full.site_guid) {
-                                    return full.site_guid;
+                                if (full.getId()) {
+                                    //return full.site_guid;
+                                    return full.getId();
                                 } else {
                                     return '';
                                 }
@@ -184,17 +226,20 @@
                         },
                         {
                             mRender: function (data, type, full) {
-                                return full.latitude;
+                                let coords = full.getGeometry().getCoordinates()
+                                console.log(coords)
+                                return Number.parseFloat(coords[1]).toFixed(6)
                             }
                         },
                         {
                             mRender: function (data, type, full) {
-                                return full.longitude;
+                                let coords = full.getGeometry().getCoordinates()
+                                return Number.parseFloat(coords[0]).toFixed(6)
                             }
                         },
                         {
                             mRender: function (data, type, full) {
-                                let ret_str = '<span class="delete_button" style="color:#347ab7; cursor: pointer;" data-site-location-guid="' + full.site_guid + '">Delete</span>';
+                                let ret_str = '<span class="delete_button" style="color:#347ab7; cursor: pointer;" data-site-location-guid="' + full.getId() + '">Delete</span>';
                                 return ret_str;
                             }
                         },
@@ -217,93 +262,345 @@
 
         },
         methods:{
-            enlargeMapClicked: function() {
-                console.log('enlargeMapClicked');
-                this.$nextTick(() => {
-                    this.$refs.site_locations_modal.isModalOpen = true;
-                });
+            uuidv4: function () {
+                return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, 
+                    function(c) {
+                        return (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16);
+                    }
+                );
             },
+            getDegrees: function(coords){
+                return coords[0].toFixed(6) + ', ' + coords[1].toFixed(6);
+            },
+            metersToNearest: function(coords, filter) {
+                let candidates = [Number.POSITIVE_INFINITY];
+
+                let nearestDrawnSite = this.drawingLayerSource.getClosestFeatureToCoordinate(coords, filter);
+                if (nearestDrawnSite != null) {
+                    candidates.push(getDistance(coords, nearestDrawnSite.getGeometry().getCoordinates()));
+                }
+
+                let nearestQuerySite = this.apiarySitesQuerySource.getClosestFeatureToCoordinate(coords, filter);
+                if (nearestQuerySite != null) {
+                    candidates.push(getDistance(coords, nearestQuerySite.getGeometry().getCoordinates()[0]));
+                }
+
+                let min = candidates[0];
+                for (let i = 1; i < candidates.length; i++) {
+                    min = Math.min(min, candidates[i]);
+                }
+                return min;
+            },
+            isNewPositionValid: function(coords){
+                let distance = this.metersToNearest(coords, null);
+                if (distance < 3000) {
+                    console.log('distance: ' + distance + ' NG');
+                    return false;
+                }
+                console.log('distance: ' + distance + ' OK');
+                return true;
+            },
+            createBufferForSite: function(site){
+                let id = site.getId() + "_buffer";
+                let coords = site.getGeometry().getCoordinates();
+
+                // apiary from json had 2d coords packed in an inner array.
+                if (coords.length == 1){
+                    coords = coords[0];
+                }
+
+                let buffer = new Feature(circular(coords, 3000, 16));
+                this.bufferLayerSource.addFeature(buffer);
+            },
+            removeBufferForSite: function(site){
+                console.log('in removeBufferForSite')
+                console.log(site)
+                let buffer = this.bufferLayerSource.getFeatureById(site.getId() + "_buffer");
+                this.bufferLayerSource.removeFeature(buffer);
+            },
+
             existingSiteAvailableClicked: function() {
                 console.log('existingSiteAvailableClicked');
                 alert("TODO: open screen 45: External - Contact Holder of Available Site in a different tab page.");
             },
             constructSiteLocationsTable: function(){
+                console.log('in constructSiteLocationTable')
                 // Clear table
                 this.$refs.site_locations_table.vmDataTable.clear().draw();
 
-                // Construct table
-                if (this.site_locations.length > 0){
-                    for(let i=0; i<this.site_locations.length; i++){
-                        this.addSiteLocationToTable(this.site_locations[i]);
-                    }
-                }
-            },
-            addSiteLocationToTable: function(site_location){
-                console.log('*** addSiteLocationToTable ***');
-                console.log(site_location);
-                this.$refs.site_locations_table.vmDataTable.row.add(site_location).draw();
-            },
-            addProposedSite: function(){
-                console.log('addProposedSite');
-                this.site_locations.push({
-                    "id": '',
-                    "latitude": this.proposal.proposal_apiary.latitude,
-                    "longitude": this.proposal.proposal_apiary.longitude,
-                    "site_guid": uuid()
-                });
-                this.constructSiteLocationsTable();
+                // Get all the features drawn
+                let features = this.drawingLayerSource.getFeatures()
+                console.log('features.length')
+                console.log(features.length)
 
-                ///// test /////
-                this.proposal.proposal_apiary.apiary_sites.push({
-                    "id": '',
-                    "latitude": this.proposal.proposal_apiary.latitude,
-                    "longitude": this.proposal.proposal_apiary.longitude,
-                    "site_guid": uuid()
-                })
-                ///// test /////
+                // Insert data into the table
+                for(let i=0; i<features.length; i++){
+                    this.$refs.site_locations_table.vmDataTable.row.add(features[i]).draw();
+                }
+
+                // Update proposal obj, which is sent to the server when save/submit.
+                //this.proposal.proposal_apiary.apiary_sites = features
+                //this.updateApiarySitesData()
+            },
+            //updateApiarySitesData: function() {
+            //    console.log('in getFeatures')
+            //    let allFeatures = this.drawingLayerSource.getFeatures()
+            //    console.log(allFeatures)
+            //    this.proposal.proposal_apiary.apiary_sites = allFeatures
+            //    //this.proposal.sites_edited = allFeatures
+            //},
+            getFeatures: function() {
+                let allFeatures = this.drawingLayerSource.getFeatures()
+                return allFeatures
             },
             addEventListeners: function(){
                 $("#site-locations-table").on("click", ".delete_button", this.removeSiteLocation);
             },
             removeSiteLocation: function(e){
+                console.log('removeSiteLocation')
+
                 let site_location_guid = e.target.getAttribute("data-site-location-guid");
-                console.log('guid');
+                console.log('guid to delete');
                 console.log(site_location_guid);
 
-                for (let i=0; i<this.site_locations.length; i++){
-                    if (this.site_locations[i].site_guid == site_location_guid){
-                        this.site_locations.splice(i, 1);
-                    }
-                }
+                let myFeature = this.drawingLayerSource.getFeatureById(site_location_guid)
 
-                ///// test /////
-                for (let i=0; i<this.proposal.proposal_apiary.apiary_sites.length; i++){
-                    if (this.proposal.proposal_apiary.apiary_sites[i].site_guid == site_location_guid){
-                        this.proposal.proposal_apiary.apiary_sites.splice(i, 1);
-                    }
-                }
-                ///// test /////
+                // Remove buffer
+                //this.removeBufferForSite(myFeature)
+
+                this.drawingLayerSource.removeFeature(myFeature);
 
                 this.constructSiteLocationsTable();
             },
+            initMap: function() {
+                console.log('default data from the file')
+                console.log(geo_data)
+
+                let vm = this;
+
+                vm.map = new Map({
+                    layers: [
+                        new TileLayer({
+                            source: new OSM(),
+                            opacity:0.5
+                        })
+                    ],
+                    target: 'map',
+                    view: new View({
+                        center: [115.95, -31.95],
+                        zoom: 7,
+                        projection: 'EPSG:4326'
+                    })
+                });
+                vm.apiarySitesQuerySource = new VectorSource({
+                    features: (new GeoJSON()).readFeatures(geo_data)
+                });
+                vm.apiarySitesQueryLayer = new VectorLayer({
+                    source: vm.apiarySitesQuerySource,
+                });
+                vm.map.addLayer(vm.apiarySitesQueryLayer);
+
+                vm.bufferedSites = [];
+                vm.map.on("moveend", function(attributes){
+                    console.log('moveend')
+
+                    let zoom = vm.map.getView().getZoom();
+                    console.log(zoom);
+                    if (zoom < 11) {
+                        return;
+                    }
+
+                    let fresh = 0;
+                    let cached = 0;
+
+                    vm.apiarySitesQuerySource.forEachFeatureInExtent(vm.map.getView().calculateExtent(), function(feature) {
+                        let id = feature.getId();
+                        if (vm.bufferedSites.indexOf(id) == -1) {
+                            vm.createBufferForSite(feature);
+                            vm.bufferedSites.push(id);
+                            fresh++;
+                        }
+                        else {
+                            cached++;
+                        }
+                    });
+
+                    console.log("zoom: " + zoom + ", fresh: " + fresh + ", cached: " + cached);
+                });
+
+                // In memory vector layer for digitization
+                vm.drawingLayerSource = new VectorSource();
+                vm.drawingLayerSource.on('addfeature', function(e){
+                    console.log('in addfeature')
+                    console.log(e.feature)
+                    //vm.proposal.proposal_apiary.apiary_sites.push(e.feature)
+                    vm.constructSiteLocationsTable()
+                });
+                vm.drawingLayer = new VectorLayer({
+                    source: vm.drawingLayerSource,
+                    style: new Style({
+                        fill: new Fill({
+                            color: 'rgba(255, 255, 255, 0.2)'
+                        }),
+                        stroke: new Stroke({
+                            color: '#ffcc33',
+                            width: 2
+                        }),
+                        image: new CircleStyle({
+                            radius: 7,
+                            fill: new Fill({
+                                color: '#ffcc33'
+                            })
+                        })
+                    })
+                });
+                vm.map.addLayer(vm.drawingLayer);
+
+                // In memory vector layer for buffer
+
+                vm.bufferLayerSource = new VectorSource();
+                vm.bufferLayer = new VectorLayer({
+                    source: vm.bufferLayerSource,
+                    minZoom: 11,
+
+                });
+                vm.map.addLayer(vm.bufferLayer);
+
+                // Full screen toggle
+                vm.map.addControl(new FullScreenControl());
+
+                // Show mouse coordinates
+                vm.map.addControl(new MousePositionControl({
+                    coordinateFormat: function(coords){
+                        let message = vm.getDegrees(coords) + "\n";
+                        let distance = vm.metersToNearest(coords, null);
+                        if (distance < Number.POSITIVE_INFINITY) {
+                            message += "<br>Nearest: "  + (distance / 1000).toFixed(2) + " km";
+                        }
+                        return  message;
+                    },
+                    target: document.getElementById('mouse-position'),
+                    className: 'custom-mouse-position',
+                }));
+
+                // Draw and modify tools
+                let modifyInProgressList = [];
+                let drawTool = new Draw({
+                    source: vm.drawingLayerSource,
+                    type: "Point"
+                });
+                drawTool.on("drawstart", function(attributes){
+                    console.log('drawstart')
+
+                    if (!vm.isNewPositionValid(attributes.feature.getGeometry().getCoordinates())) {
+                        drawTool.abortDrawing();
+                    }
+                });
+                drawTool.on('drawend', function(attributes){
+                    console.log('drawend')
+
+                    let feature = attributes.feature;
+                    feature.setId(vm.uuidv4());
+                    feature.set("source", "draw");
+                    feature.getGeometry().on("change", function() {
+                        console.log("Start Modify feature: " + feature.getId());
+
+                        if (modifyInProgressList.indexOf(feature) < 0) {
+                            modifyInProgressList.push(feature);
+                        }
+                    });
+                    console.log("New Feature: " + feature.getId());
+                    vm.createBufferForSite(feature);
+                    // Vue table is updated by the event 'addfeature' issued from the Source
+                });
+                vm.map.addInteraction(drawTool);
+
+                let modifyTool = new Modify({
+                    source: vm.drawingLayerSource,
+                });
+                modifyTool.on("modifyend", function(attributes){
+                    console.log('modifyend')
+                    // this will list all features in layer, not so useful without cross referencing
+                    attributes.features.forEach(function(feature){
+                        let index = modifyInProgressList.indexOf(feature);
+                        if (index > -1) {
+                            console.log("End Modify Feature: " + index + "/" + modifyInProgressList.length + " " + feature.getId());
+                            modifyInProgressList.splice(index, 1);
+                            //vm.updateVueFeature(feature);
+                            vm.removeBufferForSite(feature);
+                            vm.createBufferForSite(feature);
+
+                            vm.constructSiteLocationsTable()
+                        }
+                    });
+                });
+                vm.map.addInteraction(modifyTool);
+            },  // End: initMap()
+            tryCreateNewSiteFromForm: function()
+            {
+                console.log('in tryCreateNewSiteFromForm')
+
+                let lat = this.proposal.proposal_apiary.latitude
+                let lon = this.proposal.proposal_apiary.longitude
+                // rough bounding box for preliminary check
+                if (isNaN(lon) || lon < 112 || lon > 130 ||
+                    isNaN(lat) || lat < -35 || lat > -11) {
+                    return false;
+                }
+                if(!this.isNewPositionValid([lon,lat]))
+                {
+                    return false;
+                }
+                let feature = new Feature(new Point([lon,lat]));
+                feature.setId(this.uuidv4());
+                feature.set("source", "form");
+                this.drawingLayerSource.addFeature(feature);
+
+                console.log('new feature added to the layer')
+
+                this.createBufferForSite(feature);
+                return true;
+            },
         },
         mounted: function() {
+            console.log('mounted')
             let vm = this;
+
+            vm.initMap();
             this.$nextTick(() => {
                 vm.addEventListeners();
             });
-            for(let i=0; i<this.proposal.proposal_apiary.apiary_sites.length; i++){
-                let a_site = this.proposal.proposal_apiary.apiary_sites[i];
-                a_site.longitude = 'retrieve from GIS server'
-                a_site.latitude = 'retrieve from GIS server'
-                this.site_locations.push(a_site);
+
+            // Create feature and add it to the map, then reconstruct table
+            // Don't forget add 'id' field to the feature which is used to determine if it is new feature or not
+            console.log('apiary_sites.length: ')
+            console.log(vm.proposal.proposal_apiary.apiary_sites.length)
+
+            for (let i=0; i<vm.proposal.proposal_apiary.apiary_sites.length; i++){
+                 let apiary_site = vm.proposal.proposal_apiary.apiary_sites[i]
+
+                 console.log('apiary_site')
+                 console.log(apiary_site)
+
+                 let feature = new Feature(new Point([apiary_site.coordinates.lng, apiary_site.coordinates.lat]));
+                 feature.setId(apiary_site.site_guid);
+                 feature.id = apiary_site.id
+                 feature.set("source", "form");
+            //     apiary_site = feature
+                 this.drawingLayerSource.addFeature(feature);
+
+                 console.log('new feature added to the layer')
+
+                 this.createBufferForSite(feature);
             }
+
             this.constructSiteLocationsTable();
+            //this.updateApiarySitesData()
         }
     }
 </script>
 
-<style lang="css" scoped>
+<style lang="css">
     .delete_button {
         color: #337ab7 !important;
     }
@@ -328,5 +625,23 @@
     }
     .debug-remainders {
         padding: 0 0 0 1em
+    }
+    .map {
+        display: inline-block;
+        width: 100%;
+        height: 500px;
+    }
+    .custom-mouse-position {
+        position: absolute;
+        bottom: 16px;
+        left: 16px;
+        top: auto;
+        right: auto;
+        text-align: left;
+        font-size: 0.8rem;
+        border: 0;
+        padding: 8px;
+        color: white;
+        background-color: rgba(37, 45, 51, 0.7);
     }
 </style>
