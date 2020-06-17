@@ -147,10 +147,7 @@ export default {
     methods: {
         updateApiarySitesData: function() {
             if (this.proposal && this.proposal.proposal_apiary){
-                let all_features = this.$refs.proposal_apiary.$refs.apiary_site_locations.getFeatures()
-                console.log('in updateApiarySitesData')
-                console.log(all_features)
-                this.proposal.proposal_apiary.apiary_sites = all_features
+                this.$refs.proposal_apiary.$refs.apiary_site_locations.updateApiarySitesData()
             }
         },
         save: function(confirmation_required) {
@@ -159,6 +156,7 @@ export default {
 
             let vm = this;
             vm.form=document.forms.new_proposal;
+
             let formData = new FormData(vm.form);
 
             if (confirmation_required){

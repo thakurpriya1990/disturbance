@@ -340,13 +340,14 @@
 
                 // Update proposal obj, which is sent to the server when save/submit.
                 //this.proposal.proposal_apiary.apiary_sites = features
+                //this.updateApiarySitesData()
             },
-            getFeatures: function() {
+            updateApiarySitesData: function() {
                 console.log('in getFeatures')
-                let all = this.drawingLayerSource.getFeatures()
-                console.log('features: ')
-                console.log(all)
-                return all
+                let allFeatures = this.drawingLayerSource.getFeatures()
+                console.log(allFeatures)
+                this.proposal.proposal_apiary.apiary_sites = allFeatures
+                //this.proposal.sites_edited = allFeatures
             },
             addEventListeners: function(){
                 $("#site-locations-table").on("click", ".delete_button", this.removeSiteLocation);
@@ -591,6 +592,7 @@
             }
 
             this.constructSiteLocationsTable();
+            //this.updateApiarySitesData()
         }
     }
 </script>
