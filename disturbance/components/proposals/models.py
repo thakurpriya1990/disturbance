@@ -1232,7 +1232,8 @@ class Proposal(RevisionedMixin):
                                     'start_date' : details.get('start_date'),
                                     'applicant' : self.applicant,
                                     'proxy_applicant' : self.proxy_applicant,
-                                    'lodgement_number': previous_approval.lodgement_number
+                                    'lodgement_number': previous_approval.lodgement_number,
+                                    'apiary_approval': self.apiary_group_application_type,
                                     #'extracted_fields' = JSONField(blank=True, null=True)
                                 }
                             )
@@ -1255,7 +1256,8 @@ class Proposal(RevisionedMixin):
                                     'start_date' : details.get('start_date'),
                                     'applicant' : self.applicant,
                                     'proxy_applicant' : self.proxy_applicant,
-                                    'lodgement_number': previous_approval.lodgement_number
+                                    'lodgement_number': previous_approval.lodgement_number,
+                                    'apiary_approval': self.apiary_group_application_type,
                                     #'extracted_fields' = JSONField(blank=True, null=True)
                                 }
                             )
@@ -1275,6 +1277,7 @@ class Proposal(RevisionedMixin):
                                 'start_date' : details.get('start_date'),
                                 'applicant' : self.applicant,
                                 'proxy_applicant' : self.proxy_applicant,
+                                'apiary_approval': self.apiary_group_application_type,
                                 #'extracted_fields' = JSONField(blank=True, null=True)
                             }
                         )
@@ -2921,7 +2924,7 @@ class ApiaryReferral(RevisionedMixin):
 
 
 import reversion
-reversion.register(Proposal, follow=['requirements', 'documents', 'compliances', 'referrals', 'approvals',])
+reversion.register(Proposal, follow=['requirements', 'documents', 'compliances', 'referrals', 'approvals', 'proposal_apiary'])
 reversion.register(ProposalType)
 reversion.register(ProposalRequirement)            # related_name=requirements
 reversion.register(ProposalStandardRequirement)    # related_name=proposal_requirements
@@ -2934,5 +2937,6 @@ reversion.register(Assessment)
 reversion.register(Referral)
 reversion.register(HelpPage)
 reversion.register(ApplicationType)
+reversion.register(ProposalApiary)
 
 

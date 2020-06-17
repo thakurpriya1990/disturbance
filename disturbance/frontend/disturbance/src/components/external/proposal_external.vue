@@ -38,7 +38,14 @@
             </div>
 
             <div v-if="proposal && proposal.application_type=='Apiary'">
-                <ProposalApiary v-if="proposal" :proposal="proposal" id="proposalStart" :showSections="sectionShow" ref="proposal_apiary" :is_external="true"></ProposalApiary>
+                <ProposalApiary 
+                v-if="proposal" 
+                :proposal="proposal" 
+                id="proposalStart" 
+                :showSections="sectionShow" 
+                ref="proposal_apiary" 
+                :is_external="true">
+                </ProposalApiary>
             </div>
             <div v-else>
                 <ProposalDisturbance v-if="proposal" :proposal="proposal" id="proposalStart" :showSections="sectionShow"></ProposalDisturbance>
@@ -55,7 +62,15 @@
                   <div class="navbar-inner">
                     <div v-if="proposal && !proposal.readonly" class="container">
                       <p class="pull-right" style="margin-top:5px;">
-                        <button id="sectionHide" @click.prevent="sectionHide" class="btn btn-primary">Show/Hide sections</button>
+                        <!--div v-if="proposal && !proposal.apiary_group_application_type"-->
+                        <input 
+                        id="sectionHide"
+                        v-if="proposal && !proposal.apiary_group_application_type" 
+                        type="button" 
+                        @click.prevent="sectionHide" 
+                        class="btn btn-primary" 
+                        value="Show/Hide Sections"/>
+                        <!--button id="sectionHide" @click.prevent="sectionHide" class="btn btn-primary">Show/Hide sections</button-->
                         <!--
                         <input type="button" @click.prevent="save_exit" class="btn btn-primary" value="Save and Exit"/>
                         <input type="button" @click.prevent="save" class="btn btn-primary" value="Save and Continue"/>
@@ -76,7 +91,14 @@
                     </div>
                     <div v-else class="container">
                       <p class="pull-right" style="margin-top:5px;">
-                        <button id="sectionHide" @click.prevent="sectionHide" class="btn btn-primary">Show/Hide sections</button>
+                        <!--button id="sectionHide" @click.prevent="sectionHide" class="btn btn-primary">Show/Hide sections</button-->
+                        <input 
+                        id="sectionHide"
+                        v-if="proposal && !proposal.apiary_group_application_type" 
+                        type="button" 
+                        @click.prevent="sectionHide" 
+                        class="btn btn-primary" 
+                        value="Show/Hide Sections"/>
 
                         <router-link class="btn btn-primary" :to="{name: 'external-proposals-dash'}">Back to Dashboard</router-link>
                       </p>

@@ -402,6 +402,7 @@ class ProposalApiaryTypeSerializer(serializers.ModelSerializer):
     proposal_apiary = ProposalApiarySerializer()
     apiary_temporary_use = ProposalApiaryTemporaryUseSerializer()
     apiary_site_transfer = ProposalApiarySiteTransferSerializer()
+    apiary_group_application_type = serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
@@ -446,6 +447,7 @@ class ProposalApiaryTypeSerializer(serializers.ModelSerializer):
                 'proposal_apiary',
                 'apiary_temporary_use',
                 'apiary_site_transfer',
+                'apiary_group_application_type',
 
                 )
         read_only_fields=('documents',)
@@ -454,7 +456,8 @@ class ProposalApiaryTypeSerializer(serializers.ModelSerializer):
         return '/media/{}/proposals/{}/documents/'.format(settings.MEDIA_APP_DIR, obj.id)
 
     def get_readonly(self,obj):
-        return False
+        return obj.can_user_view
+        #return False
 
     def get_processing_status(self,obj):
         return obj.get_processing_status_display()
@@ -470,6 +473,9 @@ class ProposalApiaryTypeSerializer(serializers.ModelSerializer):
 
     def get_fee_invoice_url(self,obj):
         return '/payments/invoice-pdf/{}'.format(obj.fee_invoice_reference) if obj.fee_paid else None
+
+    def get_apiary_group_application_type(self, obj):
+        return obj.apiary_group_application_type
 
 
 class ApiaryReferralGroupSerializer(serializers.ModelSerializer):
