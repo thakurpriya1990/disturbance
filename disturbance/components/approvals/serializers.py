@@ -12,13 +12,27 @@ from disturbance.components.organisations.models import (
 from disturbance.components.main.serializers import CommunicationLogEntrySerializer
 from rest_framework import serializers
 
-from disturbance.components.proposals.serializers_apiary import ProposalApiarySerializer, ApiarySiteApprovalSerializer
+from disturbance.components.proposals.serializers_apiary import (
+        ProposalApiarySerializer, 
+        ApiarySiteApprovalSerializer,
+        ApplicantAddressSerializer,
+        )
 
 
 class EmailUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = EmailUser
         fields = ('id','email','first_name','last_name','title','organisation')
+
+
+class ApprovalWrapperSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Approval
+        fields = (
+            'id',
+            'apiary_approval',
+            )
 
 
 from disturbance.components.proposals.serializers import ProposalSerializer
@@ -45,6 +59,11 @@ class ApprovalSerializer(serializers.ModelSerializer):
     # apiary_site_location = serializers.SerializerMethodField()
     current_proposal = ProposalSerializer()
     apiary_site_approval_set = ApiarySiteApprovalSerializer(read_only=True, many=True)
+    organisation_name = serializers.SerializerMethodField()
+    organisation_abn =serializers.SerializerMethodField()
+    applicant_first_name =serializers.SerializerMethodField()
+    applicant_last_name = serializers.SerializerMethodField()
+    applicant_address = serializers.SerializerMethodField()
 
     class Meta:
         model = Approval
@@ -90,6 +109,12 @@ class ApprovalSerializer(serializers.ModelSerializer):
             'application_type',
             'current_proposal',
             'apiary_site_approval_set',
+            'apiary_approval',
+            'organisation_name',
+            'organisation_abn',
+            'applicant_first_name',
+            'applicant_last_name',
+            'applicant_address',
         )
         # the serverSide functionality of datatables is such that only columns that have field 'data' defined are requested from the serializer. We
         # also require the following additional fields for some of the mRender functions
@@ -127,7 +152,10 @@ class ApprovalSerializer(serializers.ModelSerializer):
 
     def get_applicant(self,obj):
         try:
-            return obj.applicant.name if isinstance(obj.applicant, Organisation) else obj.applicant
+            if obj.proxy_applicant and obj.proxy_applicant.get_full_name():
+                return obj.proxy_applicant.get_full_name()
+            else:
+                return obj.applicant.name if isinstance(obj.applicant, Organisation) else obj.applicant
         except:
             return None
 
@@ -142,6 +170,32 @@ class ApprovalSerializer(serializers.ModelSerializer):
             return obj.relevant_applicant_id
         except:
             return None
+
+    def get_organisation_name(self,obj):
+        if obj.applicant:
+            return obj.applicant.name
+
+    def get_organisation_abn(self,obj):
+        if obj.applicant:
+            return obj.applicant.abn
+
+    def get_applicant_first_name(self,obj):
+        if obj.proxy_applicant:
+            return obj.proxy_applicant.first_name
+
+    def get_applicant_last_name(self,obj):
+        if obj.proxy_applicant:
+            return obj.proxy_applicant.last_name
+
+    #def get_relevant_applicant_address(self,obj):
+     #   return obj.relevant_applicant_address
+
+    def get_applicant_address(self, obj):
+        address_serializer = None
+        if obj.relevant_applicant_address:
+            address_serializer = ApplicantAddressSerializer(obj.relevant_applicant_address)
+            return address_serializer.data
+        return address_serializer
 
     def get_renewal_document(self,obj):
         if obj.renewal_document and obj.renewal_document._file:
