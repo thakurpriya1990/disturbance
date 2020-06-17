@@ -41,7 +41,7 @@
                             v-model.number="proposal.proposal_apiary.longitude"
                             :readonly="is_internal || !proposal.can_user_edit"
                         />
-                        <input type="button" @click="addProposedSite" value="Add proposed site" class="btn btn-primary">
+                        <input type="button" @click="tryCreateNewSiteFromForm" value="Add proposed site" class="btn btn-primary">
                     </div>
                 </div>
             </div>
@@ -342,25 +342,25 @@
                 console.log(feature);
                 this.$refs.site_locations_table.vmDataTable.row.add(feature).draw();
             },
-            addProposedSite: function(){
-                console.log('addProposedSite');
-                this.site_locations.push({
-                    "id": '',
-                    "latitude": this.proposal.proposal_apiary.latitude,
-                    "longitude": this.proposal.proposal_apiary.longitude,
-                    "site_guid": uuid()
-                });
-                this.constructSiteLocationsTable();
+           // addProposedSite: function(){
+           //     console.log('in addProposedSite');
+           //     this.site_locations.push({
+           //         "id": '',
+           //         "latitude": this.proposal.proposal_apiary.latitude,
+           //         "longitude": this.proposal.proposal_apiary.longitude,
+           //         "site_guid": uuid()
+           //     });
+           //     this.constructSiteLocationsTable();
 
-                ///// test /////
-                this.proposal.proposal_apiary.apiary_sites.push({
-                    "id": '',
-                    "latitude": this.proposal.proposal_apiary.latitude,
-                    "longitude": this.proposal.proposal_apiary.longitude,
-                    "site_guid": uuid()
-                })
-                ///// test /////
-            },
+           //     ///// test /////
+           //     this.proposal.proposal_apiary.apiary_sites.push({
+           //         "id": '',
+           //         "latitude": this.proposal.proposal_apiary.latitude,
+           //         "longitude": this.proposal.proposal_apiary.longitude,
+           //         "site_guid": uuid()
+           //     })
+           //     ///// test /////
+           // },
             addEventListeners: function(){
                 $("#site-locations-table").on("click", ".delete_button", this.removeSiteLocation);
             },
@@ -559,13 +559,16 @@
                 //});
                 this.constructSiteLocationsTable()
             },
-            deleteVueFeature: function(feature) {
-                //app.$delete(app.sites.items, feature.getId());
-                console.log('in deleteVueFeature')
-                console.log(feature)
-            },
-            tryCreateNewSiteFromForm: function(lon, lat)
+            //deleteVueFeature: function(feature) {
+            //    //app.$delete(app.sites.items, feature.getId());
+            //    console.log('in deleteVueFeature')
+            //    console.log(feature)
+            //},
+            tryCreateNewSiteFromForm: function()
             {
+                console.log('in tryCreateNewSiteFromForm')
+                let lat = this.proposal.proposal_apiary.latitude
+                let lon = this.proposal.proposal_apiary.longitude
                 // rough bounding box for preliminary check
                 if (isNaN(lon) || lon < 112 || lon > 130 ||
                     isNaN(lat) || lat < -35 || lat > -11) {
