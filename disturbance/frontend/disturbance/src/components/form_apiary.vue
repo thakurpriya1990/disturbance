@@ -30,9 +30,9 @@
                     <FileField
                         ref="deed_poll_documents"
                         name="deed-poll-documents"
-                        :isRepeatable="true"
+                        :isRepeatable="false"
                         :documentActionUrl="deedPollDocumentUrl"
-                        :readonly="is_internal"
+                        :readonly="readonly"
                     />
                 </div>
             </div>
@@ -48,10 +48,10 @@
 
                         <ul  class="list-inline col-sm-6">
                             <li class="list-inline-item">
-                                <input  class="form-check-input" v-model="q.answer" ref="Checkbox" type="radio" :name="'option'+q.id" :id="'answer_one'+q.id":value="true" data-parsley-required :disabled="is_internal"/> Yes
+                                <input  class="form-check-input" v-model="q.answer" ref="Checkbox" type="radio" :name="'option'+q.id" :id="'answer_one'+q.id":value="true" data-parsley-required :disabled="readonly"/> Yes
                             </li>
                             <li class="list-inline-item">
-                                <input  class="form-check-input" v-model="q.answer" ref="Checkbox" type="radio" :name="'option'+q.id" :id="'answer_two'+q.id" :value="false" data-parsley-required :disabled="is_internal"/> No
+                                <input  class="form-check-input" v-model="q.answer" ref="Checkbox" type="radio" :name="'option'+q.id" :id="'answer_two'+q.id" :value="false" data-parsley-required :disabled="readonly"/> No
                             </li>
                         </ul>
                     </div>
@@ -138,6 +138,13 @@
             },
             deedPollUrl: function() {
                 return '';
+            },
+            readonly: function() {
+                let readonlyStatus = true;
+                if (this.proposal.customer_status === 'Draft' && !this.is_internal) {
+                    readonlyStatus = false;
+                }
+                return readonlyStatus;
             },
           //applicantType: function(){
           //  return this.proposal.applicant_type;
