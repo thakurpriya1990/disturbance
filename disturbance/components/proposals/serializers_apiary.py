@@ -73,6 +73,10 @@ class ApplicantAddressSerializer(serializers.ModelSerializer):
 class ApiarySiteOptimisedSerializer(serializers.ModelSerializer):
     proposal_apiary_id = serializers.IntegerField(write_only=True,)
     site_category_id = serializers.IntegerField(write_only=True,)
+    coordinates = serializers.SerializerMethodField()
+
+    def get_coordinates(self, apiary_site):
+        return {'lng': apiary_site.wkb_geometry.x, 'lat': apiary_site.wkb_geometry.y}
 
     class Meta:
         model = ApiarySite
@@ -82,6 +86,7 @@ class ApiarySiteOptimisedSerializer(serializers.ModelSerializer):
             'site_guid',
             'proposal_apiary_id',
             'site_category_id',
+            'coordinates',
         )
 
 
@@ -138,6 +143,12 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
     proposal_apiary_id = serializers.IntegerField(write_only=True, required=False)
     site_category_id = serializers.IntegerField(write_only=True, required=False)
     onsiteinformation_set = OnSiteInformationSerializer(read_only=True, many=True,)
+    coordinates = serializers.SerializerMethodField()
+
+    def get_coordinates(self, apiary_site):
+        ret_obj = {'lng': apiary_site.wkb_geometry.x, 'lat': apiary_site.wkb_geometry.y}
+        return ret_obj
+
 
     class Meta:
         model = ApiarySite
@@ -149,6 +160,7 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
             'proposal_apiary_id',
             'site_category_id',
             'onsiteinformation_set',
+            'coordinates',
         )
 
 
@@ -162,13 +174,10 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ProposalApiary
-        # geo_field = 'location'
-
         fields = (
             'id',
             'title',
             'proposal',
-            # 'location',
             'apiary_sites',
             'longitude',
             'latitude',
@@ -180,6 +189,9 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
 
     def get_site_remainders(self, proposal_apiary):
         today_local = datetime.now(pytz.timezone(TIME_ZONE)).date()
+
+        for site in proposal_apiary.apiary_sites.all():
+            print(site)
 
         ret_list = []
         for category in SiteCategory.CATEGORY_CHOICES:

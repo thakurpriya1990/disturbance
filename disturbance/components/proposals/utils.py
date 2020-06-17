@@ -5,7 +5,7 @@ from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils import timezone
 from django.db import transaction
-from django.contrib.gis.geos import Point
+from django.contrib.gis.geos import Point, GEOSGeometry
 from preserialize.serialize import serialize
 from ledger.accounts.models import EmailUser, Document
 # <<<<<<< HEAD
@@ -383,31 +383,44 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
 
                 site_locations_received = site_location_data['apiary_sites']
 
-                site_ids_received = [item['id'] for item in site_locations_received]
+                # Feature object doesn't have a field named 'id' originally unless manually added
+                # The field 'id_' is used in the frontend, though
+                site_ids_received = [feature['id'] for feature in site_locations_received if hasattr(feature, 'id')]
                 site_ids_existing = [site.id for site in ApiarySite.objects.filter(proposal_apiary_id=site_location_data['id'])]
                 site_ids_delete = [id for id in site_ids_existing if id not in site_ids_received]
 
-                for index, apiary_site in enumerate(site_locations_received):
-                    apiary_site['proposal_apiary_id'] = proposal_obj.proposal_apiary.id
+                for index, feature in enumerate(site_locations_received):
+                    feature['proposal_apiary_id'] = proposal_obj.proposal_apiary.id
 
                     try:
                         # Update existing
-                        a_site = ApiarySite.objects.get(site_guid=apiary_site['site_guid'])
-                        serializer = ApiarySiteSerializer(a_site, data=apiary_site)
+                        a_site = ApiarySite.objects.get(site_guid=feature['id_'])
+                        serializer = ApiarySiteSerializer(a_site, data=feature)
                     except ApiarySite.DoesNotExist:
                         # Create new
                         # TODO: retrieve category (south-west / remote) from GIS server
-                        if int(float(apiary_site['latitude'])) >= 0:
+                        if int(float(feature['values_']['geometry']['flatCoordinates'][1])) >= -31:
                             category_obj = SiteCategory.objects.get(name='south_west')
                         else:
                             category_obj = SiteCategory.objects.get(name='remote')
-                        apiary_site['site_category_id'] = category_obj.id
+                        feature['site_category_id'] = category_obj.id
+                        feature['site_guid'] = feature['id_']
 
-                        serializer = ApiarySiteSerializer(data=apiary_site)
-
+                        serializer = ApiarySiteSerializer(data=feature)
 
                     serializer.is_valid(raise_exception=True)
-                    serializer.save()
+                    apiary_site_obj = serializer.save()
+
+                    # Save coordinate
+                    geom_str = GEOSGeometry(
+                        'POINT(' +
+                            str(feature['values_']['geometry']['flatCoordinates'][0]) + ' ' +
+                            str(feature['values_']['geometry']['flatCoordinates'][1]) +
+                        ')',
+                        srid=4326
+                    )
+                    apiary_site_obj.wkb_geometry = geom_str
+                    apiary_site_obj.save()
 
                 for new_answer in site_location_data['checklist_answers']:
                     ans = ApiaryApplicantChecklistAnswer.objects.get(id=new_answer['id'])

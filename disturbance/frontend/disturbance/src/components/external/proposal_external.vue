@@ -145,8 +145,17 @@ export default {
         },
     },
     methods: {
+        updateApiarySitesData: function() {
+            if (this.proposal && this.proposal.proposal_apiary){
+                let all_features = this.$refs.proposal_apiary.$refs.apiary_site_locations.getFeatures()
+                console.log('in updateApiarySitesData')
+                console.log(all_features)
+                this.proposal.proposal_apiary.apiary_sites = all_features
+            }
+        },
         save: function(confirmation_required) {
             console.log('***save');
+            this.updateApiarySitesData()
 
             let vm = this;
             vm.form=document.forms.new_proposal;
@@ -457,6 +466,8 @@ export default {
             res => {
                 vm.loading.push('fetching proposal')
                 vm.proposal = res.body;
+                console.log('vm.proposal')
+                console.log(vm.proposal)
                 vm.loading.splice('fetching proposal', 1);
                 vm.setdata(vm.proposal.readonly);
 
