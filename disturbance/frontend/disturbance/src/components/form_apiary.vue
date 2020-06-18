@@ -1,63 +1,65 @@
 <template lang="html">
     <div>
 
-        <div>
-            <div v-if="is_external">
+        <div v-if="is_external" class="col-md-3">
+            <div>
                 <h3>Application: {{ proposal.lodgement_number }}</h3>
                 <h4>Application Type: {{proposal.proposal_type }}</h4>
                 <h4>Status: {{proposal.customer_status }}</h4>
             </div>
         </div>
 
-        <FormSection :formCollapse="false" label="Site Locations" Index="site_locations">
-            <SiteLocations
-                :proposal="proposal"
-                id="site_locations"
-                ref="apiary_site_locations"
-                :is_external="is_external"
-                :is_internal="is_internal">
-            </SiteLocations>
-        </FormSection>
+        <div :class="apiary_sections_classname">
+            <FormSection :formCollapse="false" label="Site Locations" Index="site_locations">
+                <SiteLocations
+                    :proposal="proposal"
+                    id="site_locations"
+                    ref="apiary_site_locations"
+                    :is_external="is_external"
+                    :is_internal="is_internal">
+                </SiteLocations>
+            </FormSection>
 
-        <FormSection :formCollapse="false" label="Deed Poll" Index="deed_poll">
-            <div class="row">
-                <div class="col-sm-12">
-                    <label>Print <a :href="deedPollUrl" target="_blank">the deed poll</a>, sign it, have it witnessed and attach it to this application.</label>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-sm-12">
-                    <FileField
-                        ref="deed_poll_documents"
-                        name="deed-poll-documents"
-                        :isRepeatable="false"
-                        :documentActionUrl="deedPollDocumentUrl"
-                        :readonly="readonly"
-                    />
-                </div>
-            </div>
-        </FormSection>
-
-        <FormSection :formCollapse="false" label="Checklist" Index="checklist">
-            <ul class="list-unstyled col-sm-12" v-for="q in proposal.proposal_apiary.checklist_answers">
+            <FormSection :formCollapse="false" label="Deed Poll" Index="deed_poll">
                 <div class="row">
                     <div class="col-sm-12">
-                        <li class="col-sm-6">
-                            <label class="control-label">{{q.question.text}}</label>
-                        </li>
-
-                        <ul  class="list-inline col-sm-6">
-                            <li class="list-inline-item">
-                                <input  class="form-check-input" v-model="q.answer" ref="Checkbox" type="radio" :name="'option'+q.id" :id="'answer_one'+q.id":value="true" data-parsley-required :disabled="readonly"/> Yes
-                            </li>
-                            <li class="list-inline-item">
-                                <input  class="form-check-input" v-model="q.answer" ref="Checkbox" type="radio" :name="'option'+q.id" :id="'answer_two'+q.id" :value="false" data-parsley-required :disabled="readonly"/> No
-                            </li>
-                        </ul>
+                        <label>Print <a :href="deedPollUrl" target="_blank">the deed poll</a>, sign it, have it witnessed and attach it to this application.</label>
                     </div>
                 </div>
-            </ul>
-        </FormSection>
+                <div class="row">
+                    <div class="col-sm-12">
+                        <FileField
+                            ref="deed_poll_documents"
+                            name="deed-poll-documents"
+                            :isRepeatable="false"
+                            :documentActionUrl="deedPollDocumentUrl"
+                            :readonly="readonly"
+                        />
+                    </div>
+                </div>
+            </FormSection>
+
+            <FormSection :formCollapse="false" label="Checklist" Index="checklist">
+                <ul class="list-unstyled col-sm-12" v-for="q in proposal.proposal_apiary.checklist_answers">
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <li class="col-sm-6">
+                                <label class="control-label">{{q.question.text}}</label>
+                            </li>
+
+                            <ul  class="list-inline col-sm-6">
+                                <li class="list-inline-item">
+                                    <input  class="form-check-input" v-model="q.answer" ref="Checkbox" type="radio" :name="'option'+q.id" :id="'answer_one'+q.id":value="true" data-parsley-required :disabled="readonly"/> Yes
+                                </li>
+                                <li class="list-inline-item">
+                                    <input  class="form-check-input" v-model="q.answer" ref="Checkbox" type="radio" :name="'option'+q.id" :id="'answer_two'+q.id" :value="false" data-parsley-required :disabled="readonly"/> No
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </ul>
+            </FormSection>
+        </div>
 
     </div>
 </template>
@@ -125,6 +127,16 @@
             FormSection,
         },
         computed:{
+            apiary_sections_classname: function() {
+                // For external page, we need 'col-md-9' classname
+                // but not for the internal.
+                // This is a hacky way, though...
+                if(this.is_internal){
+                    return ''
+                } else {
+                    return 'col-md-9'
+                }
+            },
             deedPollDocumentUrl: function() {
                 let url = '';
                 if (this.proposal && this.proposal.proposal_apiary) {

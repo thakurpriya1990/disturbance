@@ -1,7 +1,9 @@
 <template lang="html">
     <div>
         <div class="row col-sm-12">
-            <button v-if="!creatingProposal" class="btn btn-primary pull-right" @click="openNewTemporaryUse">New Temporary Use</button>
+            <template v-if="is_external">
+                <button v-if="!creatingProposal" class="btn btn-primary pull-right" @click="openNewTemporaryUse">New Temporary Use</button>
+            </template>
         </div>
 
         <div class="row col-sm-12">
@@ -47,7 +49,7 @@
                 creatingProposal: false,
                 temporary_uses: [],
                 dtHeaders: [
-                    'id',
+                    'number',
                     'From',
                     'To',
                     'Site(s)',
@@ -70,7 +72,7 @@
                         {
                             visible: true,
                             mRender: function (data, type, full) {
-                                return full.id;
+                                return full.lodgement_number;
                             }
                         },
                         {

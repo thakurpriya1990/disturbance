@@ -130,6 +130,9 @@
             TemporaryOccupier,
         },
         computed:{
+            csrf_token: function() {
+              return helpers.getCookie('csrftoken')
+            },
             documentActionUrl: function() {
                 let url = '';
                 if (this.apiary_temporary_use) {
@@ -153,6 +156,7 @@
                 this.exit();
             },
             submit: async function() {
+                console.log('in submit()')
                 await this.proposal_submit();
                 this.exit();
             },
@@ -179,8 +183,33 @@
                 }
                 return data
             },
+            perform_redirect: function(url, postData) {
+                /* http.post and ajax do not allow redirect from Django View (post method),
+                   this function allows redirect by mimicking a form submit.
+
+                   usage:  vm.post_and_redirect(vm.application_fee_url, {'csrfmiddlewaretoken' : vm.csrf_token});
+                */
+                console.log('in perform_redirect');
+                var postFormStr = "<form method='POST' action='" + url + "'>";
+
+                for (var key in postData) {
+                    if (postData.hasOwnProperty(key)) {
+                        postFormStr += "<input type='hidden' name='" + key + "' value='" + postData[key] + "'>";
+                    }
+                }
+                postFormStr += "</form>";
+                console.log(postFormStr);
+                var formElement = $(postFormStr);
+                $('body').append(formElement);
+                $(formElement).submit();
+            },
             proposal_submit: function() {
                 console.log('in proposal_submit')
+
+                // TEST
+                this.$http.post('/external/fdsafkdls;ajkl;/', data)
+                // END: TEST
+
 
                 let vm = this;
                 let data = vm._get_basic_data();
@@ -188,11 +217,11 @@
 
                 this.$http.post('/api/proposal/' + proposal_id + '/submit/', data).then(
                     res=>{
-                        swal(
-                            'Saved',
-                            'Your proposal has been updated',
-                            'success'
-                        );
+                        console.log('success')
+                        vm.perform_redirect('/external/proposal/' + proposal_id + '/submit_temp_use_success/', {
+                            'csrfmiddlewaretoken': vm.csrf_token,
+                            'proposal_id': proposal_id,
+                        })
                     },
                     err=>{
                         this.processError(err)
