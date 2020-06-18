@@ -76,13 +76,23 @@
                             mRender: function (data, type, full) {
                                 let action_list = ['View on map (TODO)',]
                                 let display_text = ''
-                                if (full.available){
-                                    display_text = 'Mark as unavailable';
-                                } else {
-                                    display_text = 'Mark as available';
+                                if (vm.is_external){
+                                    if (full.available){
+                                        display_text = 'Mark as unavailable';
+                                    } else {
+                                        display_text = 'Mark as available';
+                                    }
+                                    let ret = '<a><span class="toggle_availability" data-apiary-site-id="' + full.id + 
+                                        '" data-apiary-site-available="' + full.available + '"/>' + display_text + '</span></a>';
+                                    action_list.push(ret);
+                                } else if (vm.is_internal){
+                                    if (full.available){
+                                        display_text = 'Available';
+                                    } else {
+                                        display_text = 'Unavailable';
+                                    }
+                                    action_list.push(display_text);
                                 }
-                                let ret = '<a><span class="toggle_availability" data-apiary-site-id="' + full.id + '" data-apiary-site-available="' + full.available + '"/>' + display_text + '</span></a>';
-                                action_list.push(ret);
                                 return action_list.join('<br />');
                             }
                         },

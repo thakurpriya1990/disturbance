@@ -2,11 +2,15 @@
     <div>
 
             <span class="row col-sm-12">
-                <input
-                    type="text"
-                    v-model="proposal.proposal_apiary.title"
-                    :readonly="is_internal || !proposal.can_user_edit"
-                />
+                <div class="col-sm-4 form-group">
+                    <label class="inline">Title:</label>
+                    <input
+                        type="text"
+                        class="form-control"
+                        v-model="proposal.proposal_apiary.title"
+                        :readonly="readonly"
+                    />
+                </div>
             </span>
 
             <span class="row col-sm-12">
@@ -16,33 +20,29 @@
             <div class="row col-sm-12">
                 <div class="col-sm-4 form-group">
                     <label class="inline">Latitude:</label>
-                    <div v-if="true">
-                        <input
-                            type="number"
-                            min="-90"
-                            max="90"
-                            class="form-control"
-                            v-model.number="proposal.proposal_apiary.latitude"
-                            :readonly="is_internal || !proposal.can_user_edit"
-                        />
-                    </div>
+                    <input
+                        type="number"
+                        min="-90"
+                        max="90"
+                        class="form-control"
+                        v-model.number="proposal.proposal_apiary.latitude"
+                        :readonly="readonly"
+                    />
                 </div>
             </div>
 
             <div class="row col-sm-12">
                 <div class="col-sm-4 form-group">
                     <label class="inline">Longitude:</label>
-                    <div v-if="true">
-                        <input
-                            type="number"
-                            min="-180"
-                            max="180"
-                            class="form-control"
-                            v-model.number="proposal.proposal_apiary.longitude"
-                            :readonly="is_internal || !proposal.can_user_edit"
-                        />
-                        <input type="button" @click="tryCreateNewSiteFromForm" value="Add proposed site" class="btn btn-primary">
-                    </div>
+                    <input
+                        type="number"
+                        min="-180"
+                        max="180"
+                        class="form-control"
+                        v-model.number="proposal.proposal_apiary.longitude"
+                        :readonly="readonly"
+                    />
+                    <input type="button" @click="tryCreateNewSiteFromForm" value="Add proposed site" class="btn btn-primary">
                 </div>
             </div>
 
@@ -50,7 +50,7 @@
                 <div class="row col-sm-12 debug-info">
                     How to set a site 'SouthWest'/'Remote':
                     <div class="debug-message">
-                        <div>when latitude is more than or equal to 0, then the proposed site is regarded as 'SouthWest'</div>
+                        <div>when latitude is more than or equal to -31, then the proposed site is regarded as 'SouthWest'</div>
                         <div>when latitude is less than 0, then the proposed site is regarded as 'Remote'</div>
                     </div>
                     Remainders:
@@ -255,7 +255,11 @@
         },
         computed:{
             readonly: function() {
-                return false;
+                let readonlyStatus = true;
+                if (this.proposal.customer_status === 'Draft' && !this.is_internal) {
+                    readonlyStatus = false;
+                }
+                return readonlyStatus;
             },
         },
         watch:{

@@ -39,12 +39,12 @@
 
             <div v-if="proposal && proposal.application_type=='Apiary'">
                 <ProposalApiary 
-                v-if="proposal" 
-                :proposal="proposal" 
-                id="proposalStart" 
-                :showSections="sectionShow" 
-                ref="proposal_apiary" 
-                :is_external="true">
+                    v-if="proposal" 
+                    :proposal="proposal" 
+                    id="proposalStart" 
+                    :showSections="sectionShow" 
+                    ref="proposal_apiary" 
+                    :is_external="true">
                 </ProposalApiary>
             </div>
             <div v-else>
@@ -179,7 +179,18 @@ export default {
         //    }
         //    return ret_obj
         //},
-
+        attach_apiary_sites_data: function(formData){
+            try {
+                // Append apiary_sites edited data
+                if (this.proposal && this.proposal.proposal_apiary){
+                    let allFeatures = this.$refs.proposal_apiary.$refs.apiary_site_locations.getFeatures()
+                    formData.append('all_the_features', JSON.stringify(allFeatures)) 
+                }
+                return formData
+            } catch (err) {
+                return formData
+            }
+        },
         save: function(confirmation_required) {
             console.log('in save');
 
@@ -187,26 +198,23 @@ export default {
             vm.form=document.forms.new_proposal;
 
             let formData = new FormData(vm.form);
+            // Add apiary_sites data if needed
+            formData = this.attach_apiary_sites_data(formData)
 
-            // Append apiary_sites edited data
-            if (this.proposal && this.proposal.proposal_apiary){
-                let allFeatures = this.$refs.proposal_apiary.$refs.apiary_site_locations.getFeatures()
-                formData.append('all_the_features', JSON.stringify(allFeatures)) 
-            }
+            vm.$http.post(vm.proposal_form_url, formData).then(
+                res=>{
+                    if (confirmation_required){
+                        swal(
+                            'Saved',
+                            'Your proposal has been saved',
+                            'success'
+                        );
+                    }
+                },
+                err=>{
 
-            if (confirmation_required){
-                vm.$http.post(vm.proposal_form_url, formData).then(res=>{
-                    swal(
-                        'Saved',
-                        'Your proposal has been saved',
-                        'success'
-                    );
-                },err=>{
-          
-                });
-            } else {
-                vm.$http.post(vm.proposal_form_url, formData)
-            }
+                }
+            );
         },
         save_exit: function(e) {
             let vm = this;
@@ -382,6 +390,8 @@ export default {
             let vm = this;
             vm.form=document.forms.new_proposal;
             let formData = new FormData(vm.form);
+            // Add apiary_sites data if needed
+            formData = this.attach_apiary_sites_data(formData)
 
             var num_missing_fields = vm.validate()
             if (num_missing_fields > 0) {
@@ -408,7 +418,6 @@ export default {
                 // Only Apiary has an application fee
                 if (!vm.proposal.fee_paid && vm.proposal.application_type=='Apiary') {
                     vm.save_and_redirect();
-
                 } else {
                     /* just save and submit - no payment required (probably application was pushed back by assessor for amendment */
                     //vm.save_wo_confirm()
@@ -438,6 +447,8 @@ export default {
             let vm = this;
             vm.form=document.forms.new_proposal;
             let formData = new FormData(vm.form);
+            // Add apiary_sites data if needed
+            formData = this.attach_apiary_sites_data(formData)
 
             vm.$http.post(vm.proposal_submit_url,formData).then(res=>{
                 /* after the above save, redirect to the Django post() method in ApplicationFeeView */
