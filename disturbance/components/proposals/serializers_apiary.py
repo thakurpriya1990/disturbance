@@ -76,7 +76,10 @@ class ApiarySiteOptimisedSerializer(serializers.ModelSerializer):
     coordinates = serializers.SerializerMethodField()
 
     def get_coordinates(self, apiary_site):
-        return {'lng': apiary_site.wkb_geometry.x, 'lat': apiary_site.wkb_geometry.y}
+        try:
+            return {'lng': apiary_site.wkb_geometry.x, 'lat': apiary_site.wkb_geometry.y}
+        except:
+            return {'lng': '', 'lat': ''}
 
     class Meta:
         model = ApiarySite
@@ -146,9 +149,10 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
     coordinates = serializers.SerializerMethodField()
 
     def get_coordinates(self, apiary_site):
-        ret_obj = {'lng': apiary_site.wkb_geometry.x, 'lat': apiary_site.wkb_geometry.y}
-        return ret_obj
-
+        try:
+            return {'lng': apiary_site.wkb_geometry.x, 'lat': apiary_site.wkb_geometry.y}
+        except:
+            return {'lng': '', 'lat': ''}
 
     class Meta:
         model = ApiarySite

@@ -218,7 +218,10 @@
                 this.$http.post('/api/proposal/' + proposal_id + '/submit/', data).then(
                     res=>{
                         console.log('success')
-                        vm.perform_redirect('/external/proposal/' + proposal_id + '/submit_temp_use_success/', {'csrfmiddlewaretoken': vm.csrf_token})
+                        vm.perform_redirect('/external/proposal/' + proposal_id + '/submit_temp_use_success/', {
+                            'csrfmiddlewaretoken': vm.csrf_token,
+                            'proposal_id': proposal_id,
+                        })
                     },
                     err=>{
                         this.processError(err)

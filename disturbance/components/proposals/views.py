@@ -1,4 +1,4 @@
-from django.http import HttpResponse,JsonResponse
+from django.http import HttpResponse, JsonResponse, Http404
 from django.urls import reverse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import View, TemplateView
@@ -49,11 +49,10 @@ class ExternalProposalTemporaryUseSubmitSuccessView(TemplateView):
     model = Proposal
     template_name = 'disturbance/temporary_use_submit_success.html'
 
-    def get(self, request, *args, **kwargs):
-        return render(request, self.template_name, context={})
-
     def post(self, request, *args, **kwargs):
-        return render(request, self.template_name, context={})
+        proposal_id = kwargs['proposal_pk']
+        p = Proposal.objects.get(id=proposal_id)
+        return render(request, self.template_name, context={'modified_date': p.modified_date})
 
 
 # def success_view(request):
