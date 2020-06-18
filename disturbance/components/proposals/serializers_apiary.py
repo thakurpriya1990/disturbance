@@ -333,6 +333,7 @@ class ProposalApiaryTemporaryUseSerializer(serializers.ModelSerializer):
     loaning_approval_id = serializers.IntegerField(required=False)
     temporary_use_apiary_sites = TemporaryUseApiarySiteSerializer(read_only=True, many=True)
     deed_poll_documents = serializers.SerializerMethodField()
+    lodgement_number = serializers.CharField(source='proposal.lodgement_number')
 
     def validate(self, attr):
         return attr
@@ -368,6 +369,7 @@ class ProposalApiaryTemporaryUseSerializer(serializers.ModelSerializer):
             'loaning_approval_id',
             'temporary_use_apiary_sites',
             'deed_poll_documents',
+            'lodgement_number',
         )
 
 

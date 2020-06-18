@@ -114,7 +114,6 @@
 <script>
 import ProposalDisturbance from '../form.vue'
 import ProposalApiary from '../form_apiary.vue'
-//import ProposalApiary from '../form.vue'
 import NewApply from './proposal_apply_new.vue'
 import Vue from 'vue'
 import {
