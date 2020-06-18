@@ -35,6 +35,7 @@ from rest_framework import serializers
 from ledger.accounts.models import Address
 from reversion.models import Version
 from django.utils import timezone
+from django.contrib.contenttypes.models import ContentType
 
 
 class VersionSerializer(serializers.ModelSerializer):
@@ -66,8 +67,14 @@ class VersionSerializer(serializers.ModelSerializer):
     def get_proposal_fields(self, obj):
         proposal_data = []
         if obj.revision:
+            apiary_sites = []
             for record in obj.revision.version_set.all():
-                proposal_data.append({record.object._meta.model_name: record.field_dict})
+                if record.object:
+                    if ContentType.objects.get(id=record.content_type_id).model == 'apiarysite':
+                        apiary_sites.append({record.object._meta.model_name: record.field_dict})
+                    else:
+                        proposal_data.append({record.object._meta.model_name: record.field_dict})
+            proposal_data.append({'apiary_sites': apiary_sites})
         return proposal_data
 
 

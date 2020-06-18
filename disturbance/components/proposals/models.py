@@ -2932,6 +2932,8 @@ reversion.register(Assessment)
 reversion.register(Referral)
 reversion.register(HelpPage)
 reversion.register(ApplicationType)
+#reversion.register(ProposalApiary, follow=['apiary_sites'])
 reversion.register(ProposalApiary)
+reversion.register(ApiarySite)
 
 
