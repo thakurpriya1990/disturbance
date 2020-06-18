@@ -99,6 +99,7 @@ from disturbance.components.proposals.serializers_apiary import (
     TemporaryUseApiarySiteSerializer,
     DTApiaryReferralSerializer,
     FullApiaryReferralSerializer,
+    ProposalHistorySerializer,
 )
 from disturbance.components.approvals.models import Approval
 from disturbance.components.approvals.serializers import ApprovalSerializer
@@ -588,6 +589,32 @@ class ProposalApiaryViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise
         except ValidationError as e:
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['GET', ])
+    @renderer_classes((JSONRenderer,))
+    def proposal_history(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            proposal_instance = instance.proposal
+            #entry_number = request.data.get("running_sheet_entry_number")
+            #row_num = entry_number.split('-')[1]
+            #entry_instance = instance.running_sheet_entries.get(row_num=row_num)
+
+
+            serializer = ProposalHistorySerializer(proposal_instance)
+            return Response(
+                    serializer.data, 
+                    status=status.HTTP_200_OK,
+                    )
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
             raise serializers.ValidationError(repr(e.error_dict))
         except Exception as e:
             print(traceback.print_exc())
