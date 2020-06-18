@@ -39,12 +39,12 @@
 
             <div v-if="proposal && proposal.application_type=='Apiary'">
                 <ProposalApiary 
-                v-if="proposal" 
-                :proposal="proposal" 
-                id="proposalStart" 
-                :showSections="sectionShow" 
-                ref="proposal_apiary" 
-                :is_external="true">
+                    v-if="proposal" 
+                    :proposal="proposal" 
+                    id="proposalStart" 
+                    :showSections="sectionShow" 
+                    ref="proposal_apiary" 
+                    :is_external="true">
                 </ProposalApiary>
             </div>
             <div v-else>
@@ -114,7 +114,6 @@
 <script>
 import ProposalDisturbance from '../form.vue'
 import ProposalApiary from '../form_apiary.vue'
-//import ProposalApiary from '../form.vue'
 import NewApply from './proposal_apply_new.vue'
 import Vue from 'vue'
 import {
@@ -167,26 +166,54 @@ export default {
         },
     },
     methods: {
+        //updateApiarySitesData: function() {
+        //    if (this.proposal && this.proposal.proposal_apiary){
+        //        this.$refs.proposal_apiary.$refs.apiary_site_locations.updateApiarySitesData()
+        //    }
+        //},
+        //getFeatures: function() {
+        //    let ret_obj = null
+        //    if (this.proposal && this.proposal.proposal_apiary){
+        //        ret_obj = this.$refs.proposal_apiary.$refs.apiary_site_locations.getFeatures()
+        //    }
+        //    return ret_obj
+        //},
+        attach_apiary_sites_data: function(formData){
+            try {
+                // Append apiary_sites edited data
+                if (this.proposal && this.proposal.proposal_apiary){
+                    let allFeatures = this.$refs.proposal_apiary.$refs.apiary_site_locations.getFeatures()
+                    formData.append('all_the_features', JSON.stringify(allFeatures)) 
+                }
+                return formData
+            } catch (err) {
+                return formData
+            }
+        },
         save: function(confirmation_required) {
-            console.log('***save');
+            console.log('in save');
 
             let vm = this;
             vm.form=document.forms.new_proposal;
-            let formData = new FormData(vm.form);
 
-            if (confirmation_required){
-                vm.$http.post(vm.proposal_form_url, formData).then(res=>{
-                    swal(
-                        'Saved',
-                        'Your proposal has been saved',
-                        'success'
-                    );
-                },err=>{
-          
-                });
-            } else {
-                vm.$http.post(vm.proposal_form_url, formData)
-            }
+            let formData = new FormData(vm.form);
+            // Add apiary_sites data if needed
+            formData = this.attach_apiary_sites_data(formData)
+
+            vm.$http.post(vm.proposal_form_url, formData).then(
+                res=>{
+                    if (confirmation_required){
+                        swal(
+                            'Saved',
+                            'Your proposal has been saved',
+                            'success'
+                        );
+                    }
+                },
+                err=>{
+
+                }
+            );
         },
         save_exit: function(e) {
             let vm = this;
@@ -362,6 +389,8 @@ export default {
             let vm = this;
             vm.form=document.forms.new_proposal;
             let formData = new FormData(vm.form);
+            // Add apiary_sites data if needed
+            formData = this.attach_apiary_sites_data(formData)
 
             var num_missing_fields = vm.validate()
             if (num_missing_fields > 0) {
@@ -388,7 +417,6 @@ export default {
                 // Only Apiary has an application fee
                 if (!vm.proposal.fee_paid && vm.proposal.application_type=='Apiary') {
                     vm.save_and_redirect();
-
                 } else {
                     /* just save and submit - no payment required (probably application was pushed back by assessor for amendment */
                     //vm.save_wo_confirm()
@@ -418,6 +446,8 @@ export default {
             let vm = this;
             vm.form=document.forms.new_proposal;
             let formData = new FormData(vm.form);
+            // Add apiary_sites data if needed
+            formData = this.attach_apiary_sites_data(formData)
 
             vm.$http.post(vm.proposal_submit_url,formData).then(res=>{
                 /* after the above save, redirect to the Django post() method in ApplicationFeeView */
@@ -479,6 +509,8 @@ export default {
             res => {
                 vm.loading.push('fetching proposal')
                 vm.proposal = res.body;
+                console.log('vm.proposal')
+                console.log(vm.proposal)
                 vm.loading.splice('fetching proposal', 1);
                 vm.setdata(vm.proposal.readonly);
 
