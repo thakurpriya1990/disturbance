@@ -49,7 +49,7 @@
                 creatingProposal: false,
                 temporary_uses: [],
                 dtHeaders: [
-                    'id',
+                    'number',
                     'From',
                     'To',
                     'Site(s)',
@@ -72,7 +72,7 @@
                         {
                             visible: true,
                             mRender: function (data, type, full) {
-                                return full.id;
+                                return full.lodgement_number;
                             }
                         },
                         {
