@@ -119,6 +119,8 @@
                     <template v-if="approval && approval.id">
                         <SiteAvailability 
                             :approval_id="approval.id"
+                            :is_internal="false"
+                            :is_external="true"
                             ref="site_availability" 
                         />
                     </template>
@@ -130,6 +132,8 @@
                     <template v-if="approval && approval.id">
                         <TemporaryUse 
                             :approval_id="approval.id"
+                            :is_internal="false"
+                            :is_external="true"
                             ref="tempoary_use" 
                         />
                     </template>
@@ -141,6 +145,8 @@
                     <template v-if="approval && approval.id">
                         <OnSiteInformation 
                             :approval_id="approval.id"
+                            :is_internal="false"
+                            :is_external="true"
                             ref="on_site_information" 
                         />
                     </template>
