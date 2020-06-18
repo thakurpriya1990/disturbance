@@ -1,8 +1,8 @@
 <template lang="html">
     <div v-if="proposal" class="container" id="internalProposal">
       <div class="row">
-        <h3>Proposal: {{ proposal.lodgement_number }}</h3>
-        <h4>Proposal Type: {{proposal.proposal_type }}</h4>
+        <h3>Application: {{ proposal.lodgement_number }}</h3>
+        <h4>Application Type: {{proposal.proposal_type }}</h4>
         <div v-if="proposal.application_type!='Apiary'">
             <h4>Approval Level: {{proposal.approval_level }}</h4>
         </div>
