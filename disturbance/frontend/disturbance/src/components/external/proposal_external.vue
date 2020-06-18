@@ -83,7 +83,7 @@
                         <input type="button" @click.prevent="save_exit" class="btn btn-primary" value="Save and Exit"/>
                         <input type="button" @click.prevent="save(true)" class="btn btn-primary" value="Save and Continue"/>
 
-                        <input v-if="!isSubmitting" type="button" @click.prevent="submit" class="btn btn-primary" value="Submit"/>
+                        <input v-if="!isSubmitting" type="button" @click.prevent="submit" class="btn btn-primary" :value="submit_button_text"/>
                         <button v-else disabled class="btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Submitting</button>
 
                         <input id="save_and_continue_btn" type="hidden" @click.prevent="save(false)" class="btn btn-primary" value="Save Without Confirmation"/>
@@ -164,6 +164,13 @@ export default {
           return (this.proposal) ? `/api/proposal/${this.proposal.id}/submit.json` : '';
           //return this.submit();
         },
+        submit_button_text: function() {
+            if (!this.proposal.fee_paid && this.proposal.application_type=='Apiary') {
+                return 'Pay and submit'
+            } else {
+                return 'Submit'
+            }
+        }
     },
     methods: {
         //updateApiarySitesData: function() {
