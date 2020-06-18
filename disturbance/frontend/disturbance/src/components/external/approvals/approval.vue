@@ -95,6 +95,7 @@
 
             </div>
 
+<!--
             <div class="row">
                 <FormSection :formCollapse="false" label="Site(s)" Index="site_avaiability">
                     <template v-if="approval && approval.id">
@@ -127,6 +128,7 @@
                     </template>
                 </FormSection>
             </div>
+-->
         </div>
     </div>
 </div>
@@ -145,6 +147,20 @@ import SiteAvailability from '@/components/common/apiary/section_site_availabili
 
 export default {
     name: 'Approval',
+    props:{
+        is_external: {
+            type: Boolean,
+            default: false
+        },
+        is_internal: {
+            type: Boolean,
+            default: false
+        },
+        approvalId: {
+            type: Number,
+            default: null,
+        }
+    },
     data() {
         let vm = this;
         return {
@@ -201,20 +217,25 @@ export default {
             return moment(data).format('DD/MM/YYYY');
         }
     },
-    beforeRouteEnter: function(to, from, next){
-        Vue.http.get(helpers.add_endpoint_json(api_endpoints.approvals,to.params.approval_id)).then((response) => {
-            next(vm => {
-                console.log('in next');
-                console.log('response.body: ');
-                console.log(response.body);
-                vm.approval = response.body;
-                vm.approval.applicant_id = response.body.applicant_id;
-                vm.fetchOrganisation(vm.approval.applicant_id)
-            })
-        },(error) => {
-            console.log(error);
-        })
+    created: function() {
+        if (this.approvalId) {
+            this.loadApproval(this.approvalId)
+        }
     },
+    //beforeRouteEnter: function(to, from, next){
+    //    Vue.http.get(helpers.add_endpoint_json(api_endpoints.approvals,to.params.approval_id)).then((response) => {
+    //        next(vm => {
+    //            console.log('in next');
+    //            console.log('response.body: ');
+    //            console.log(response.body);
+    //            vm.approval = response.body;
+    //            vm.approval.applicant_id = response.body.applicant_id;
+    //            vm.fetchOrganisation(vm.approval.applicant_id)
+    //        })
+    //    },(error) => {
+    //        console.log(error);
+    //    })
+    //},
     components: {
         datatable,
         CommsLogs,
@@ -236,6 +257,19 @@ export default {
         },
     },
     methods: {
+        loadApproval: function(approval_id){
+            let vm = this
+            Vue.http.get(helpers.add_endpoint_json(api_endpoints.approvals,approval_id)).then(
+                res => {
+                    vm.approval = res.body;
+                    vm.approval.applicant_id = res.body.applicant_id;
+                    vm.fetchOrganisation(vm.approval.applicant_id)
+                },
+                error => {
+                    console.log(error);
+                }
+            )
+        },
         commaToNewline(s){
             return s.replace(/[,;]/g, '\n');
         },
