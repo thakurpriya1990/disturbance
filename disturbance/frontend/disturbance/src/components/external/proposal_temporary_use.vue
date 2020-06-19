@@ -41,7 +41,7 @@
                     <FormSection :formCollapse="false" label="Deed Poll" Index="deed_poll">
                         <template v-if="apiary_temporary_use && documentActionUrl">
                             <DeedPoll
-                                :isRepeatable="true"
+                                :isRepeatable="false"
                                 :isReadonly="is_internal"
                                 :documentActionUrl="documentActionUrl"
                             />
