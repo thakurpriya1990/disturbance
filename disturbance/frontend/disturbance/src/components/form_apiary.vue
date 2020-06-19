@@ -158,6 +158,22 @@
                 }
                 return readonlyStatus;
             },
+            getUnansweredChecklistQuestions: function() {
+                let UnansweredChecklistQuestions = false;
+
+                if(this.proposal && this.proposal.proposal_apiary.checklist_answers){
+                    let numOfAnswers = this.proposal.proposal_apiary.checklist_answers.length;
+                    for( let i=0; i< numOfAnswers ; i ++){
+                        //console.log('ans [ '+i+'] '+this.proposal.proposal_apiary.checklist_answers[i].answer)
+                        if(this.proposal.proposal_apiary.checklist_answers[i].answer == null){
+                            UnansweredChecklistQuestions = true;
+                        }
+                    }
+                }
+
+                return UnansweredChecklistQuestions;
+
+            }
           //applicantType: function(){
           //  return this.proposal.applicant_type;
           //},
@@ -171,12 +187,13 @@
                  })
              return checklist_answers;
             },
+
         },
         mounted: function() {
             let vm = this;
             //vm.form = document.forms.new_proposal;
             //window.addEventListener('beforeunload', vm.leaving);
-            //indow.addEventListener('onblur', vm.leaving);
+            //window.addEventListener('onblur', vm.leaving);
         }
 
     }
