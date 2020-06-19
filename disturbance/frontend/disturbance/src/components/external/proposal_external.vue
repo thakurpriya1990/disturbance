@@ -369,7 +369,7 @@ export default {
 
             //console.log('can_submit checklistq check' +vm.$refs.proposal_apiary.getUnansweredChecklistQuestions());
 
-            if(vm.$refs.proposal_apiary.getUnansweredChecklistQuestions() > 0){
+            if(vm.$refs.proposal_apiary.getUnansweredChecklistQuestions ){
                 blank_fields.push(' You have unanswered checklist questions');
             }
 
