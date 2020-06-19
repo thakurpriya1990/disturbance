@@ -29,7 +29,14 @@
 
     export default {
         props:{
-
+            is_external:{
+              type: Boolean,
+              default: false
+            },
+            is_internal:{
+              type: Boolean,
+              default: false
+            },
         },
         watch: {
 
