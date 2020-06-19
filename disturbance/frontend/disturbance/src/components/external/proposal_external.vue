@@ -38,6 +38,7 @@
             </div>
 
             <div v-if="proposal && proposal.application_type=='Apiary'">
+
                 <ProposalApiary 
                     v-if="proposal" 
                     :proposal="proposal" 
@@ -47,6 +48,7 @@
                     :is_external="true"
                     @button_text="button_text"
                 />
+
             </div>
             <div v-else>
                 <ProposalDisturbance v-if="proposal" :proposal="proposal" id="proposalStart" :showSections="sectionShow"></ProposalDisturbance>
@@ -64,12 +66,12 @@
                     <div v-if="proposal && !proposal.readonly" class="container">
                       <p class="pull-right" style="margin-top:5px;">
                         <!--div v-if="proposal && !proposal.apiary_group_application_type"-->
-                        <input 
+                        <input
                         id="sectionHide"
-                        v-if="proposal && !proposal.apiary_group_application_type" 
-                        type="button" 
-                        @click.prevent="sectionHide" 
-                        class="btn btn-primary" 
+                        v-if="proposal && !proposal.apiary_group_application_type"
+                        type="button"
+                        @click.prevent="sectionHide"
+                        class="btn btn-primary"
                         value="Show/Hide Sections"/>
                         <!--button id="sectionHide" @click.prevent="sectionHide" class="btn btn-primary">Show/Hide sections</button-->
                         <!--
@@ -93,12 +95,12 @@
                     <div v-else class="container">
                       <p class="pull-right" style="margin-top:5px;">
                         <!--button id="sectionHide" @click.prevent="sectionHide" class="btn btn-primary">Show/Hide sections</button-->
-                        <input 
+                        <input
                         id="sectionHide"
-                        v-if="proposal && !proposal.apiary_group_application_type" 
-                        type="button" 
-                        @click.prevent="sectionHide" 
-                        class="btn btn-primary" 
+                        v-if="proposal && !proposal.apiary_group_application_type"
+                        type="button"
+                        @click.prevent="sectionHide"
+                        class="btn btn-primary"
                         value="Show/Hide Sections"/>
 
                         <router-link class="btn btn-primary" :to="{name: 'external-proposals-dash'}">Back to Dashboard</router-link>
@@ -196,7 +198,7 @@ export default {
                 // Append apiary_sites edited data
                 if (this.proposal && this.proposal.proposal_apiary){
                     let allFeatures = this.$refs.proposal_apiary.$refs.apiary_site_locations.getFeatures()
-                    formData.append('all_the_features', JSON.stringify(allFeatures)) 
+                    formData.append('all_the_features', JSON.stringify(allFeatures))
                 }
                 return formData
             } catch (err) {
@@ -233,7 +235,7 @@ export default {
             vm.form=document.forms.new_proposal;
             this.submitting = true;
             this.save(true);
-            
+
             // redirect back to dashboard
             vm.$router.push({
                 name: 'external-proposals-dash'
@@ -375,12 +377,35 @@ export default {
             }
             */
         },
+
+        can_submit: function() {
+            let vm=this;
+            let blank_fields = []
+
+            //console.log('can_submit checklistq check' +vm.$refs.proposal_apiary.getUnansweredChecklistQuestions());
+
+            if(vm.$refs.proposal_apiary.getUnansweredChecklistQuestions ){
+                blank_fields.push(' You have unanswered checklist questions');
+            }
+
+            if(vm.$refs.proposal_apiary.$refs.deed_poll_documents.documents.length==0){
+                blank_fields.push(' Deed poll document is missing')
+            }
+            if(blank_fields.length==0){
+                return true;
+            }
+            else {
+                return blank_fields;
+            }
+        },
+
         highlight_deficient_fields: function(deficient_fields){
             let vm = this;
             for (var deficient_field of deficient_fields) {
                 $("#" + "id_"+deficient_field).css("color", 'red');
             }
         },
+
         deficientFields(){
             let vm=this;
             //console.log("I am here");
@@ -404,6 +429,17 @@ export default {
             let formData = new FormData(vm.form);
             // Add apiary_sites data if needed
             formData = this.attach_apiary_sites_data(formData)
+
+            let missing_data = vm.can_submit();
+            if(missing_data!=true){
+              swal({
+                title: "Please fix following errors before submitting",
+                text: missing_data,
+                type:'error'
+              })
+            //vm.paySubmitting=false;
+            return false;
+            }
 
             var num_missing_fields = vm.validate()
             if (num_missing_fields > 0) {
