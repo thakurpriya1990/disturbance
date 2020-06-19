@@ -6,7 +6,8 @@ import ProposalSubmit from '../proposal_submit.vue'
 import Organisation from '../organisations/manage.vue'
 import Compliance from '../compliances/access.vue'
 import ComplianceSubmit from '../compliances/submit.vue'
-import Approval from '../approvals/approval.vue'
+//import Approval from '../approvals/approval.vue'
+import Approval from '../approvals/approval_wrapper.vue'
 export default
 {
     path: '/external',

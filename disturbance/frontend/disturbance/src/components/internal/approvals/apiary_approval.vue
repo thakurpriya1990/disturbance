@@ -209,6 +209,45 @@
                   </div>
                 </div>         
             </div>
+
+            <div class="row">
+                <FormSection :formCollapse="false" label="Site(s)" Index="site_avaiability">
+                    <template v-if="approval && approval.id">
+                        <SiteAvailability 
+                            :approval_id="approval.id"
+                            :is_internal="true"
+                            :is_external="false"
+                            ref="site_availability" 
+                        />
+                    </template>
+                </FormSection>
+            </div>
+
+            <div class="row">
+                <FormSection :formCollapse="false" label="Temporary Use" Index="temporary_use">
+                    <template v-if="approval && approval.id">
+                        <TemporaryUse 
+                            :approval_id="approval.id"
+                            :is_internal="true"
+                            :is_external="false"
+                            ref="tempoary_use" 
+                        />
+                    </template>
+                </FormSection>
+            </div>
+
+            <div class="row">
+                <FormSection :formCollapse="false" label="On Site" Index="on_site">
+                    <template v-if="approval && approval.id">
+                        <OnSiteInformation 
+                            :approval_id="approval.id"
+                            :is_internal="true"
+                            :is_external="false"
+                            ref="on_site_information" 
+                        />
+                    </template>
+                </FormSection>
+            </div>
         </div>
     </div>
 </div>
@@ -219,11 +258,11 @@ import Vue from 'vue'
 import datatable from '@vue-utils/datatable.vue'
 import CommsLogs from '@common-utils/comms_logs.vue'
 import ResponsiveDatatablesHelper from "@/utils/responsive_datatable_helper.js"
-import {
-  api_endpoints,
-  helpers
-}
-from '@/utils/hooks'
+import FormSection from "@/components/forms/section_toggle.vue"
+import { api_endpoints, helpers } from '@/utils/hooks'
+import OnSiteInformation from '@/components/common/apiary/section_on_site_information.vue'
+import TemporaryUse from '@/components/common/apiary/section_temporary_use.vue'
+import SiteAvailability from '@/components/common/apiary/section_site_availability.vue'
 export default {
   name: 'ApiaryApproval',
   data() {
@@ -271,23 +310,13 @@ export default {
         console.log(error);
     }) 
   },
-    /*
-  beforeRouteEnter: function(to, from, next){
-    Vue.http.get(helpers.add_endpoint_json(api_endpoints.approvals,to.params.approval_id)).then((response) => {
-        next(vm => {
-            vm.approval = response.body;
-            vm.approval.applicant_id = response.body.applicant_id;
-            vm.fetchOrganisation(vm.approval.applicant_id)
-
-        })
-    },(error) => {
-        console.log(error);
-    }) 
-  },
-  */
   components: {
     datatable,
-    CommsLogs
+    CommsLogs,
+    FormSection,
+    OnSiteInformation,
+    TemporaryUse,
+    SiteAvailability,
   },
   computed: {
     isLoading: function () {

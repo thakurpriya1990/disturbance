@@ -1,7 +1,9 @@
 <template lang="html">
     <div>
         <div class="row col-sm-12">
-            <button :disabled="!addButtonEnabled" class="btn btn-primary pull-right" @click="openOnSiteInformationModalToAdd">Add</button>
+            <template v-if="is_external">
+                <button :disabled="!addButtonEnabled" class="btn btn-primary pull-right" @click="openOnSiteInformationModalToAdd">Add</button>
+            </template>
         </div>
 
         <div class="row col-sm-12">
@@ -144,13 +146,17 @@
                         },
                         {
                             mRender: function (data, type, full) {
-                                if (full.action) {
-                                    return full.action;
-                                } else {
-                                    let ret = '<a><span class="delete_on_site_information" data-on-site-information-id="' + full.id + '"/>Delete</span></a>';
-                                    ret += '<br />'
-                                    ret += '<a><span class="edit_on_site_information" data-on-site-information-id="' + full.id + '"/>Edit</span></a>';
-                                    return ret;
+                                if (vm.is_external){
+                                    if (full.action) {
+                                        return full.action;
+                                    } else {
+                                        let ret = '<a><span class="delete_on_site_information" data-on-site-information-id="' + full.id + '"/>Delete</span></a>';
+                                        ret += '<br />'
+                                        ret += '<a><span class="edit_on_site_information" data-on-site-information-id="' + full.id + '"/>Edit</span></a>';
+                                        return ret;
+                                    }
+                                } else if (vm.is_internal) {
+                                    return ''
                                 }
                             }
                         },
