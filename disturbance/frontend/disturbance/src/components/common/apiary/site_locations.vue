@@ -71,13 +71,6 @@
 
             <div id="map" class="map"></div>
 
-            <!--
-            <div class="row col-sm-12">
-                <label>
-                    Click <a @click="enlargeMapClicked">here</a> to enlarge map
-                </label>
-            </div>
-            -->
             <div class="row col-sm-12">
                 <label>
                     Click <a @click="existingSiteAvailableClicked">here</a> if you are interested in existing sites that are available by the site licence holder.
@@ -252,7 +245,6 @@
         },
         components: {
             TextField,
-            //FileField,
             datatable,
             SiteLocationsModal,
         },
