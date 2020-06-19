@@ -30,6 +30,8 @@ from django.core.cache import cache
 from ledger.accounts.models import EmailUser, Address
 from ledger.address.models import Country
 from datetime import datetime, timedelta, date
+
+from disturbance.components.main.decorators import basic_exception_handler
 from disturbance.components.proposals.utils import (
     save_proponent_data,
     save_assessor_data,
@@ -381,74 +383,44 @@ class OnSiteInformationViewSet(viewsets.ModelViewSet):
 
         return data_dict
 
+    @basic_exception_handler
     def destroy(self, request, *args, **kwargs):
-        try:
-            with transaction.atomic():
-                instance = self.get_object()
+        with transaction.atomic():
+            instance = self.get_object()
 
-                now = datetime.now(pytz.timezone(TIME_ZONE))
-                serializer = OnSiteInformationSerializer(instance, {'datetime_deleted': now}, partial=True)
-                serializer.is_valid(raise_exception=True)
-                serializer.save()
+            now = datetime.now(pytz.timezone(TIME_ZONE))
+            serializer = OnSiteInformationSerializer(instance, {'datetime_deleted': now}, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
 
-                return Response({})
+            return Response({})
 
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e.error_dict))
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
-
+    @basic_exception_handler
     def update(self, request, *args, **kwargs):
-        try:
-            with transaction.atomic():
-                instance = self.get_object()
-                request_data = request.data
+        with transaction.atomic():
+            instance = self.get_object()
+            request_data = request.data
 
-                self.sanitize_date(request_data, 'period_from')
-                self.sanitize_date(request_data, 'period_to')
+            self.sanitize_date(request_data, 'period_from')
+            self.sanitize_date(request_data, 'period_to')
 
-                serializer = OnSiteInformationSerializer(instance, data=request_data)
-                serializer.is_valid(raise_exception=True)
-                serializer.save()
-                return Response(serializer.data)
+            serializer = OnSiteInformationSerializer(instance, data=request_data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data)
 
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e.error_dict))
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
-
+    @basic_exception_handler
     def create(self, request, *args, **kwargs):
-        try:
-            with transaction.atomic():
-                request_data = request.data
+        with transaction.atomic():
+            request_data = request.data
 
-                self.sanitize_date(request_data, 'period_from')
-                self.sanitize_date(request_data, 'period_to')
+            self.sanitize_date(request_data, 'period_from')
+            self.sanitize_date(request_data, 'period_to')
 
-                serializer = OnSiteInformationSerializer(data=request_data)
-                serializer.is_valid(raise_exception=True)
-                serializer.save()
-                return Response(serializer.data)
-
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e.error_dict))
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+            serializer = OnSiteInformationSerializer(data=request_data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data)
 
 
 class ApiarySiteViewSet(viewsets.ModelViewSet):
