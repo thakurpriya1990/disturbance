@@ -175,8 +175,6 @@
             getUnansweredChecklistQuestions: function() {
                 let numUnansweredQuestions = 0;
 
-                console.log('aho1');
-
                 if(this.proposal && this.proposal.proposal_apiary.checklist_answers){
                     let numOfAnswers = this.proposal.proposal_apiary.checklist_answers.length;
                     for( let i=0; i< numOfAnswers ; i ++){

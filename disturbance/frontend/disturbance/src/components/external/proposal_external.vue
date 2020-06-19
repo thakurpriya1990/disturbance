@@ -367,7 +367,7 @@ export default {
             let vm=this;
             let blank_fields = []
 
-            console.log('can_submit checklistq check' +vm.$refs.proposal_apiary.getUnansweredChecklistQuestions());
+            //console.log('can_submit checklistq check' +vm.$refs.proposal_apiary.getUnansweredChecklistQuestions());
 
             if(vm.$refs.proposal_apiary.getUnansweredChecklistQuestions() > 0){
                 blank_fields.push(' You have unanswered checklist questions');
