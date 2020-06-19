@@ -33,6 +33,67 @@ from disturbance.components.proposals.models import (
 
 from rest_framework import serializers
 from ledger.accounts.models import Address
+from reversion.models import Version
+from django.utils import timezone
+from django.contrib.contenttypes.models import ContentType
+
+
+class VersionSerializer(serializers.ModelSerializer):
+    #serializable_value = serializers.JSONField()
+    proposal_fields = serializers.SerializerMethodField()
+    date_modified = serializers.SerializerMethodField()
+    class Meta:
+        model = Version
+        #fields = '__all__'
+        fields = (
+                'id',
+                'revision',
+                'proposal_fields',
+                'date_modified',
+                )
+        read_only_fields = (
+                'id',
+                'revision',
+                'proposal_fields',
+                'date_modified',
+                )
+
+    def get_date_modified(self, obj):
+        date_modified = None
+        if obj.revision and obj.revision.date_created:
+            date_modified = timezone.localtime(obj.revision.date_created)
+        return date_modified
+
+    def get_proposal_fields(self, obj):
+        proposal_data = []
+        if obj.revision:
+            apiary_sites = []
+            for record in obj.revision.version_set.all():
+                if record.object:
+                    if ContentType.objects.get(id=record.content_type_id).model == 'apiarysite':
+                        apiary_sites.append({record.object._meta.model_name: record.field_dict})
+                    else:
+                        proposal_data.append({record.object._meta.model_name: record.field_dict})
+            proposal_data.append({'apiary_sites': apiary_sites})
+        return proposal_data
+
+
+class ProposalHistorySerializer(serializers.ModelSerializer):
+    versions = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Proposal
+        fields = (
+                'id',
+                'versions',
+                )
+
+    def get_versions(self, obj):
+        entry_versions = VersionSerializer(
+                Version.objects.get_for_object(obj),
+                many=True)
+        return entry_versions.data
+
 
 class ApiaryApplicantChecklistQuestionSerializer(serializers.ModelSerializer):
 
@@ -73,6 +134,13 @@ class ApplicantAddressSerializer(serializers.ModelSerializer):
 class ApiarySiteOptimisedSerializer(serializers.ModelSerializer):
     proposal_apiary_id = serializers.IntegerField(write_only=True,)
     site_category_id = serializers.IntegerField(write_only=True,)
+    coordinates = serializers.SerializerMethodField()
+
+    def get_coordinates(self, apiary_site):
+        try:
+            return {'lng': apiary_site.wkb_geometry.x, 'lat': apiary_site.wkb_geometry.y}
+        except:
+            return {'lng': '', 'lat': ''}
 
     class Meta:
         model = ApiarySite
@@ -82,6 +150,7 @@ class ApiarySiteOptimisedSerializer(serializers.ModelSerializer):
             'site_guid',
             'proposal_apiary_id',
             'site_category_id',
+            'coordinates',
         )
 
 
@@ -138,6 +207,13 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
     proposal_apiary_id = serializers.IntegerField(write_only=True, required=False)
     site_category_id = serializers.IntegerField(write_only=True, required=False)
     onsiteinformation_set = OnSiteInformationSerializer(read_only=True, many=True,)
+    coordinates = serializers.SerializerMethodField()
+
+    def get_coordinates(self, apiary_site):
+        try:
+            return {'lng': apiary_site.wkb_geometry.x, 'lat': apiary_site.wkb_geometry.y}
+        except:
+            return {'lng': '', 'lat': ''}
 
     class Meta:
         model = ApiarySite
@@ -149,6 +225,7 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
             'proposal_apiary_id',
             'site_category_id',
             'onsiteinformation_set',
+            'coordinates',
         )
 
 
@@ -162,13 +239,10 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ProposalApiary
-        # geo_field = 'location'
-
         fields = (
             'id',
             'title',
             'proposal',
-            # 'location',
             'apiary_sites',
             'longitude',
             'latitude',
@@ -180,6 +254,9 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
 
     def get_site_remainders(self, proposal_apiary):
         today_local = datetime.now(pytz.timezone(TIME_ZONE)).date()
+
+        for site in proposal_apiary.apiary_sites.all():
+            print(site)
 
         ret_list = []
         for category in SiteCategory.CATEGORY_CHOICES:
@@ -317,6 +394,7 @@ class ProposalApiaryTemporaryUseSerializer(serializers.ModelSerializer):
     loaning_approval_id = serializers.IntegerField(required=False)
     temporary_use_apiary_sites = TemporaryUseApiarySiteSerializer(read_only=True, many=True)
     deed_poll_documents = serializers.SerializerMethodField()
+    lodgement_number = serializers.CharField(source='proposal.lodgement_number')
 
     def validate(self, attr):
         return attr
@@ -352,6 +430,7 @@ class ProposalApiaryTemporaryUseSerializer(serializers.ModelSerializer):
             'loaning_approval_id',
             'temporary_use_apiary_sites',
             'deed_poll_documents',
+            'lodgement_number',
         )
 
 

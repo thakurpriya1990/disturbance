@@ -37,7 +37,6 @@ export default {
             return "section_"+this.Index
         },
         panel_collapse_class: function() {
-            console.log('*panel_collapse_class');
             if (this.formCollapse) {
                 this.panel_chevron_class = "glyphicon glyphicon-chevron-down pull-right";
                 return "panel-body collapse";
@@ -55,7 +54,6 @@ export default {
     mounted: function() {
         $('#' + this.custom_id).on('click',function () {
             var chev = $(this).children()[0];
-            console.log(chev);
             window.setTimeout(function () {
                 $(chev).toggleClass("glyphicon-chevron-up glyphicon-chevron-down");
             }, 100);
