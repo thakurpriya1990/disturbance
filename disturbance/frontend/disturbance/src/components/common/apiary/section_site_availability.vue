@@ -44,9 +44,9 @@
                 modalBindId: null,
                 apiary_sites: [],
                 dtHeaders: [
-                    'id',
-                    'site',
-                    'action',
+                    'Id',
+                    'Site',
+                    'Action',
                 ],
                 dtOptions: {
                     serverSide: false,

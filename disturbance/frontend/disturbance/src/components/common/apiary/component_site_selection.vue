@@ -53,7 +53,7 @@
         data: function(){
             return{
                 dtHeaders: [
-                    'id',
+                    'Id',
                     '',
                     'Site',
                     'Action',
