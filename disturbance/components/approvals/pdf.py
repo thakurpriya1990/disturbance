@@ -172,8 +172,9 @@ def _create_approval(approval_buffer, approval, proposal, copied_to_permit, user
 
     elements = []
 
-
-    title = approval.title.encode('UTF-8')
+    title = ''
+    if approval.title:
+        title = approval.title.encode('UTF-8')
 
     #Organization details
 
