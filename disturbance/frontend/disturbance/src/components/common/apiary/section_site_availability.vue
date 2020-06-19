@@ -1,12 +1,15 @@
 <template lang="html">
-    <div>
-        <div class="row col-sm-12">
+    <div class="row">
+        <div class="row col-sm-6">
             <datatable
                 ref="site_availability_table"
                 id="site-availability-table"
                 :dtOptions="dtOptions"
                 :dtHeaders="dtHeaders"
             />
+        </div>
+        <div class="row col-sm-6">
+            <ComponentMap />
         </div>
     </div>
 </template>
@@ -16,7 +19,7 @@
     import datatable from '@vue-utils/datatable.vue'
     import uuid from 'uuid'
     import { api_endpoints, helpers, } from '@/utils/hooks'
-    //import uuid from 'uuid'
+    import ComponentMap from '@/components/common/apiary/component_map.vue'
 
     export default {
         props:{
@@ -102,6 +105,7 @@
         },
         components: {
             datatable,
+            ComponentMap,
         },
         computed:{
             addButtonEnabled: function() {
