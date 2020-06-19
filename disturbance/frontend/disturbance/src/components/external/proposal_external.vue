@@ -44,8 +44,9 @@
                     id="proposalStart" 
                     :showSections="sectionShow" 
                     ref="proposal_apiary" 
-                    :is_external="true">
-                </ProposalApiary>
+                    :is_external="true"
+                    @button_text="button_text"
+                />
             </div>
             <div v-else>
                 <ProposalDisturbance v-if="proposal" :proposal="proposal" id="proposalStart" :showSections="sectionShow"></ProposalDisturbance>
@@ -137,6 +138,7 @@ export default {
             pBody: 'pBody',
             missing_fields: [],
             sectionShow: true,
+            submit_button_text: 'Pay and submit',
         }
     },
     components: {
@@ -164,15 +166,19 @@ export default {
           return (this.proposal) ? `/api/proposal/${this.proposal.id}/submit.json` : '';
           //return this.submit();
         },
-        submit_button_text: function() {
-            if (!this.proposal.fee_paid && this.proposal.application_type=='Apiary') {
-                return 'Pay and submit'
-            } else {
-                return 'Submit'
-            }
-        }
+        //submit_button_text: function() {
+        //    if (!this.proposal.fee_paid && this.proposal.application_type=='Apiary') {
+        //        return 'Pay and submit'
+        //    } else {
+        //        return 'Submit'
+        //    }
+        //}
     },
     methods: {
+        button_text: function(button_text){
+            console.log('button text updated: ' + button_text)
+            this.submit_button_text = button_text
+        },
         //updateApiarySitesData: function() {
         //    if (this.proposal && this.proposal.proposal_apiary){
         //        this.$refs.proposal_apiary.$refs.apiary_site_locations.updateApiarySitesData()
