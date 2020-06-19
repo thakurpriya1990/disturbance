@@ -159,19 +159,19 @@
                 return readonlyStatus;
             },
             getUnansweredChecklistQuestions: function() {
-                let numUnansweredQuestions = false;
+                let UnansweredChecklistQuestions = false;
 
                 if(this.proposal && this.proposal.proposal_apiary.checklist_answers){
                     let numOfAnswers = this.proposal.proposal_apiary.checklist_answers.length;
                     for( let i=0; i< numOfAnswers ; i ++){
                         //console.log('ans [ '+i+'] '+this.proposal.proposal_apiary.checklist_answers[i].answer)
                         if(this.proposal.proposal_apiary.checklist_answers[i].answer == null){
-                            numUnansweredQuestions = true;
+                            UnansweredChecklistQuestions = true;
                         }
                     }
                 }
 
-                return numUnansweredQuestions;
+                return UnansweredChecklistQuestions;
 
             }
           //applicantType: function(){
