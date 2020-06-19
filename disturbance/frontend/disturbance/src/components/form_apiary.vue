@@ -171,12 +171,32 @@
                  })
              return checklist_answers;
             },
+
+            getUnansweredChecklistQuestions: function() {
+                let numUnansweredQuestions = 0;
+
+                console.log('aho1');
+
+                if(this.proposal && this.proposal.proposal_apiary.checklist_answers){
+                    let numOfAnswers = this.proposal.proposal_apiary.checklist_answers.length;
+                    for( let i=0; i< numOfAnswers ; i ++){
+                      //console.log('ans [ '+i+'] '+this.proposal.proposal_apiary.checklist_answers[i].answer)
+                      if(this.proposal.proposal_apiary.checklist_answers[i].answer == null){
+                          numUnansweredQuestions++;
+                      }
+                    }
+                }
+
+                return numUnansweredQuestions;
+
+            }
+
         },
         mounted: function() {
             let vm = this;
             //vm.form = document.forms.new_proposal;
             //window.addEventListener('beforeunload', vm.leaving);
-            //indow.addEventListener('onblur', vm.leaving);
+            //window.addEventListener('onblur', vm.leaving);
         }
 
     }
