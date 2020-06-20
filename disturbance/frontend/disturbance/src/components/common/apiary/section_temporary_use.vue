@@ -49,7 +49,7 @@
                 creatingProposal: false,
                 temporary_uses: [],
                 dtHeaders: [
-                    'number',
+                    'Number',
                     'From',
                     'To',
                     'Site(s)',

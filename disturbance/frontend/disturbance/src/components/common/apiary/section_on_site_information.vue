@@ -79,12 +79,12 @@
                 },
                 modalBindId: null,
                 dtHeaders: [
-                    'id',
-                    'from',
-                    'to',
-                    'site',
-                    'comments',
-                    'action',
+                    'Id',
+                    'From',
+                    'To',
+                    'Site',
+                    'Comments',
+                    'Action',
                 ],
                 dtOptions: {
                     serverSide: false,
