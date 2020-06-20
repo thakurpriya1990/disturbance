@@ -1,6 +1,6 @@
 <template lang="html">
-    <div class="row">
-        <div class="row col-sm-6">
+    <div class="row col-sm-12">
+        <div class="col-sm-6">
             <datatable
                 ref="site_availability_table"
                 id="site-availability-table"
@@ -8,7 +8,7 @@
                 :dtHeaders="dtHeaders"
             />
         </div>
-        <div class="row col-sm-6">
+        <div class="col-sm-6">
             <ComponentMap />
         </div>
     </div>
