@@ -38,14 +38,17 @@
             </div>
 
             <div v-if="proposal && proposal.application_type=='Apiary'">
-                <ProposalApiary
-                    v-if="proposal"
-                    :proposal="proposal"
-                    id="proposalStart"
-                    :showSections="sectionShow"
-                    ref="proposal_apiary"
-                    :is_external="true">
-                </ProposalApiary>
+
+                <ProposalApiary 
+                    v-if="proposal" 
+                    :proposal="proposal" 
+                    id="proposalStart" 
+                    :showSections="sectionShow" 
+                    ref="proposal_apiary" 
+                    :is_external="true"
+                    @button_text="button_text"
+                />
+
             </div>
             <div v-else>
                 <ProposalDisturbance v-if="proposal" :proposal="proposal" id="proposalStart" :showSections="sectionShow"></ProposalDisturbance>
@@ -83,7 +86,7 @@
                         <input type="button" @click.prevent="save_exit" class="btn btn-primary" value="Save and Exit"/>
                         <input type="button" @click.prevent="save(true)" class="btn btn-primary" value="Save and Continue"/>
 
-                        <input v-if="!isSubmitting" type="button" @click.prevent="submit" class="btn btn-primary" value="Submit"/>
+                        <input v-if="!isSubmitting" type="button" @click.prevent="submit" class="btn btn-primary" :value="submit_button_text"/>
                         <button v-else disabled class="btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Submitting</button>
 
                         <input id="save_and_continue_btn" type="hidden" @click.prevent="save(false)" class="btn btn-primary" value="Save Without Confirmation"/>
@@ -137,6 +140,7 @@ export default {
             pBody: 'pBody',
             missing_fields: [],
             sectionShow: true,
+            submit_button_text: 'Pay and submit',
         }
     },
     components: {
@@ -164,8 +168,19 @@ export default {
           return (this.proposal) ? `/api/proposal/${this.proposal.id}/submit.json` : '';
           //return this.submit();
         },
+        //submit_button_text: function() {
+        //    if (!this.proposal.fee_paid && this.proposal.application_type=='Apiary') {
+        //        return 'Pay and submit'
+        //    } else {
+        //        return 'Submit'
+        //    }
+        //}
     },
     methods: {
+        button_text: function(button_text){
+            console.log('button text updated: ' + button_text)
+            this.submit_button_text = button_text
+        },
         //updateApiarySitesData: function() {
         //    if (this.proposal && this.proposal.proposal_apiary){
         //        this.$refs.proposal_apiary.$refs.apiary_site_locations.updateApiarySitesData()
