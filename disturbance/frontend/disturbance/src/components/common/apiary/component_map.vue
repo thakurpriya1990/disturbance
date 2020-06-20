@@ -30,20 +30,31 @@
     export default {
         props:{
             is_external:{
-              type: Boolean,
-              default: false
+                type: Boolean,
+                default: false
             },
             is_internal:{
-              type: Boolean,
-              default: false
+                type: Boolean,
+                default: false
             },
+            features_geojson: {
+                type: Object,
+                default: function(){
+                    return {
+                        'type':'FeatureCollection',
+                        'features':{},
+                    }
+                }
+            }
         },
         watch: {
 
         },
         data: function(){
             return{
-
+                map: null,
+                apiarySitesQuerySource: null,
+                apiarySitesQueryLayer: null,
             }
         },
         created: function(){
@@ -80,6 +91,17 @@
                         projection: 'EPSG:4326'
                     })
                 });
+                vm.apiarySitesQuerySource = new VectorSource({
+                    features: (new GeoJSON()).readFeatures(vm.features_geojson)
+                });
+                vm.apiarySitesQueryLayer = new VectorLayer({
+                    source: vm.apiarySitesQuerySource,
+                });
+                vm.map.addLayer(vm.apiarySitesQueryLayer);
+            },
+            addApiarySite: function(apiary_site_geojson) {
+                console.log('in addApiarySite')
+                this.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(apiary_site_geojson))
             },
             addEventListeners: function () {
 
@@ -89,10 +111,4 @@
 </script>
 
 <style lang="css" scoped>
-.placeholder-for-map {
-    background: #BBB;
-}
-.component-site-selection {
-    border: solid 2px #5BB;
-}
 </style>
