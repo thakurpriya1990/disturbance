@@ -102,7 +102,7 @@
             let vm=this;
             return{
                 dtHeaders: [
-                    'id',
+                    'Id',
                     '',
                     'Site',
                     'Action',

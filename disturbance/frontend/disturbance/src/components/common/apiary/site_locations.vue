@@ -178,8 +178,8 @@
                 //
 
                 dtHeaders: [
-                    'id',
-                    'guid',
+                    'Id',
+                    'Guid',
                     'Latitude',
                     'Longitude',
                     'Action',
