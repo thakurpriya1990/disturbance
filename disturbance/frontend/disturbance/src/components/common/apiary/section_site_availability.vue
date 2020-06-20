@@ -9,7 +9,9 @@
             />
         </div>
         <div class="col-sm-6">
-            <ComponentMap />
+            <ComponentMap 
+                ref="component_map"
+            />
         </div>
     </div>
 </template>
@@ -134,15 +136,22 @@
 
                 await this.$http.get('/api/approvals/' + this.approval_id + '/apiary_site/').then(
                     (accept)=>{
-                        console.log('accept')
                         console.log(accept.body)
                         this.apiary_sites = accept.body
                         this.constructSitesTable()
                     },
                     (reject)=>{
-                        console.log('reject')
                     },
                 )
+                this.addApiarySitesToMap()
+            },
+            addApiarySitesToMap: function() {
+                console.log('in addApiarySiteToMap')
+                for (let i=0; i<this.apiary_sites.length; i++){
+                    console.log('in addApiarySiteToMap' + i)
+                    this.$refs.component_map.addApiarySite(this.apiary_sites[i].geojson)
+                    console.log(this.apiary_sites[i].geojson)
+                }
             },
             constructSitesTable: function(){
                 console.log('constructSitesTable');
