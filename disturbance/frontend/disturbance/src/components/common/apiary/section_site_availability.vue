@@ -9,9 +9,11 @@
             />
         </div>
         <div class="col-sm-6">
-            <ComponentMap 
-                ref="component_map"
-            />
+                <ComponentMap 
+                    ref="component_map"
+                    :apiary_site_geojson_array="apiary_site_geojson_array"
+                    :key="component_map_key"
+                />
         </div>
     </div>
 </template>
@@ -45,6 +47,8 @@
                 proposal_apiary: null,
                 modalBindId: null,
                 apiary_sites: [],
+                component_map_key: '',
+                apiary_site_geojson_array: [],
                 dtHeaders: [
                     'Id',
                     'Site',
@@ -121,14 +125,7 @@
             }
         },
         watch:{
-           // initial_apiary_sites: {
-           //     deep: true,
-           //     handler(){
-           //         console.log('in watch: initial_apiary_site');
-           //         this.apiary_sites = this.initial_apiary_sites;
-           //         this.constructSitesTable();
-           //     },
-           // },
+
         },
         methods:{
             loadApiarySites: async function(){
@@ -146,12 +143,12 @@
                 this.addApiarySitesToMap()
             },
             addApiarySitesToMap: function() {
-                console.log('in addApiarySiteToMap')
                 for (let i=0; i<this.apiary_sites.length; i++){
                     console.log('in addApiarySiteToMap' + i)
-                    this.$refs.component_map.addApiarySite(this.apiary_sites[i].geojson)
-                    console.log(this.apiary_sites[i].geojson)
+                    //this.$refs.component_map.addApiarySite(this.apiary_sites[i].as_geojson)
+                    this.apiary_site_geojson_array.push(this.apiary_sites[i].as_geojson)
                 }
+                this.component_map_key = uuid()
             },
             constructSitesTable: function(){
                 console.log('constructSitesTable');

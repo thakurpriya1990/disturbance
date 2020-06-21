@@ -37,15 +37,12 @@
                 type: Boolean,
                 default: false
             },
-            features_geojson: {
-                type: Object,
+            apiary_site_geojson_array: {
+                type: Array,
                 default: function(){
-                    return {
-                        'type':'FeatureCollection',
-                        'features':{},
-                    }
+                    return []
                 }
-            }
+            },
         },
         watch: {
 
@@ -92,15 +89,19 @@
                     })
                 });
                 vm.apiarySitesQuerySource = new VectorSource({
-                    features: (new GeoJSON()).readFeatures(vm.features_geojson)
+
                 });
                 vm.apiarySitesQueryLayer = new VectorLayer({
                     source: vm.apiarySitesQuerySource,
                 });
                 vm.map.addLayer(vm.apiarySitesQueryLayer);
+
+                // Add apiary_sites passed as a props
+                for (let i=0; i<vm.apiary_site_geojson_array.length; i++){
+                    this.addApiarySite(vm.apiary_site_geojson_array[i])
+                }
             },
             addApiarySite: function(apiary_site_geojson) {
-                console.log('in addApiarySite')
                 this.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(apiary_site_geojson))
             },
             addEventListeners: function () {

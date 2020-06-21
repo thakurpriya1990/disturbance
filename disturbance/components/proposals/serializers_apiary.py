@@ -209,9 +209,9 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
     site_category_id = serializers.IntegerField(write_only=True, required=False)
     onsiteinformation_set = OnSiteInformationSerializer(read_only=True, many=True,)
     coordinates = serializers.SerializerMethodField()
-    geojson = serializers.SerializerMethodField()
+    as_geojson = serializers.SerializerMethodField()
 
-    def get_geojson(self, apiary_site):
+    def get_as_geojson(self, apiary_site):
         return ApiarySiteGeojsonSerializer(apiary_site).data
 
     def get_coordinates(self, apiary_site):
@@ -231,7 +231,7 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
             'site_category_id',
             'onsiteinformation_set',
             'coordinates',
-            'geojson',
+            'as_geojson',
         )
 
 
