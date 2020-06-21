@@ -30,12 +30,18 @@
     export default {
         props:{
             is_external:{
-              type: Boolean,
-              default: false
+                type: Boolean,
+                default: false
             },
             is_internal:{
-              type: Boolean,
-              default: false
+                type: Boolean,
+                default: false
+            },
+            apiary_site_geojson_array: {
+                type: Array,
+                default: function(){
+                    return []
+                }
             },
         },
         watch: {
@@ -43,7 +49,9 @@
         },
         data: function(){
             return{
-
+                map: null,
+                apiarySitesQuerySource: null,
+                apiarySitesQueryLayer: null,
             }
         },
         created: function(){
@@ -80,6 +88,27 @@
                         projection: 'EPSG:4326'
                     })
                 });
+                vm.apiarySitesQuerySource = new VectorSource({
+
+                });
+                vm.apiarySitesQueryLayer = new VectorLayer({
+                    source: vm.apiarySitesQuerySource,
+                });
+                vm.map.addLayer(vm.apiarySitesQueryLayer);
+
+                // Add apiary_sites passed as a props
+                for (let i=0; i<vm.apiary_site_geojson_array.length; i++){
+                    this.addApiarySite(vm.apiary_site_geojson_array[i])
+                }
+            },
+            addApiarySite: function(apiary_site_geojson) {
+                let feature = (new GeoJSON()).readFeatures(apiary_site_geojson)
+                this.apiarySitesQuerySource.addFeatures(feature)
+            },
+            zoomToApiarySiteById: function(apiary_site_id){
+                let feature = this.apiarySitesQuerySource.getFeatureById(apiary_site_id)
+                console.log(feature)
+                this.map.getView().animate({zoom: 10, center: feature['values_']['geometry']['flatCoordinates']})
             },
             addEventListeners: function () {
 
@@ -89,10 +118,4 @@
 </script>
 
 <style lang="css" scoped>
-.placeholder-for-map {
-    background: #BBB;
-}
-.component-site-selection {
-    border: solid 2px #5BB;
-}
 </style>

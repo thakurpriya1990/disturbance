@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, date
 from django.db.models import Q
 
 from ledger.settings_base import TIME_ZONE
+from rest_framework_gis.serializers import GeoFeatureModelSerializer
 
 from disturbance.components.organisations.serializers import OrganisationSerializer
 from disturbance.components.proposals.serializers_base import (
@@ -208,6 +209,10 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
     site_category_id = serializers.IntegerField(write_only=True, required=False)
     onsiteinformation_set = OnSiteInformationSerializer(read_only=True, many=True,)
     coordinates = serializers.SerializerMethodField()
+    as_geojson = serializers.SerializerMethodField()
+
+    def get_as_geojson(self, apiary_site):
+        return ApiarySiteGeojsonSerializer(apiary_site).data
 
     def get_coordinates(self, apiary_site):
         try:
@@ -226,6 +231,23 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
             'site_category_id',
             'onsiteinformation_set',
             'coordinates',
+            'as_geojson',
+        )
+
+
+class ApiarySiteGeojsonSerializer(GeoFeatureModelSerializer):
+    site_category_name = serializers.CharField(source='site_category.name')
+
+    class Meta:
+        model = ApiarySite
+        geo_field = 'wkb_geometry'
+
+        fields = (
+            'id',
+            'site_guid',
+            'available',
+            'wkb_geometry',
+            'site_category_name',
         )
 
 

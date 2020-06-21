@@ -1,6 +1,6 @@
 <template lang="html">
-    <div class="row">
-        <div class="row col-sm-6">
+    <div class="row col-sm-12">
+        <div class="col-sm-6">
             <datatable
                 ref="site_availability_table"
                 id="site-availability-table"
@@ -8,8 +8,12 @@
                 :dtHeaders="dtHeaders"
             />
         </div>
-        <div class="row col-sm-6">
-            <ComponentMap />
+        <div class="col-sm-6">
+            <ComponentMap 
+                ref="component_map"
+                :apiary_site_geojson_array="apiary_site_geojson_array"
+                :key="component_map_key"
+            />
         </div>
     </div>
 </template>
@@ -43,6 +47,8 @@
                 proposal_apiary: null,
                 modalBindId: null,
                 apiary_sites: [],
+                component_map_key: '',
+                apiary_site_geojson_array: [],
                 dtHeaders: [
                     'Id',
                     'Site',
@@ -76,20 +82,26 @@
                             }
                         },
                         {
-                            mRender: function (data, type, full) {
-                                let action_list = ['View on map (TODO)',]
+                            mRender: function (data, type, apiary_site) {
+                                let action_list = []
+
+                                // View on map
+                                let view_on_map_html = '<a><span class="view_on_map" data-apiary-site-id="' + apiary_site.id + '"/>View on map</span></a>';
+                                action_list.push(view_on_map_html);
+
+                                // Mark as Available/Unavailable
                                 let display_text = ''
                                 if (vm.is_external){
-                                    if (full.available){
+                                    if (apiary_site.available){
                                         display_text = 'Mark as unavailable';
                                     } else {
                                         display_text = 'Mark as available';
                                     }
-                                    let ret = '<a><span class="toggle_availability" data-apiary-site-id="' + full.id + 
-                                        '" data-apiary-site-available="' + full.available + '"/>' + display_text + '</span></a>';
+                                    let ret = '<a><span class="toggle_availability" data-apiary-site-id="' + apiary_site.id + 
+                                        '" data-apiary-site-available="' + apiary_site.available + '"/>' + display_text + '</span></a>';
                                     action_list.push(ret);
                                 } else if (vm.is_internal){
-                                    if (full.available){
+                                    if (apiary_site.available){
                                         display_text = 'Available';
                                     } else {
                                         display_text = 'Unavailable';
@@ -119,14 +131,7 @@
             }
         },
         watch:{
-           // initial_apiary_sites: {
-           //     deep: true,
-           //     handler(){
-           //         console.log('in watch: initial_apiary_site');
-           //         this.apiary_sites = this.initial_apiary_sites;
-           //         this.constructSitesTable();
-           //     },
-           // },
+
         },
         methods:{
             loadApiarySites: async function(){
@@ -134,15 +139,20 @@
 
                 await this.$http.get('/api/approvals/' + this.approval_id + '/apiary_site/').then(
                     (accept)=>{
-                        console.log('accept')
                         console.log(accept.body)
                         this.apiary_sites = accept.body
                         this.constructSitesTable()
                     },
                     (reject)=>{
-                        console.log('reject')
                     },
                 )
+                this.addApiarySitesToMap()
+            },
+            addApiarySitesToMap: function() {
+                for (let i=0; i<this.apiary_sites.length; i++){
+                    this.apiary_site_geojson_array.push(this.apiary_sites[i].as_geojson)
+                }
+                this.component_map_key = uuid()
             },
             constructSitesTable: function(){
                 console.log('constructSitesTable');
@@ -161,6 +171,7 @@
             },
             addEventListeners: function() {
                 $("#site-availability-table").on("click", ".toggle_availability", this.toggleAvailability);
+                $("#site-availability-table").on("click", ".view_on_map", this.zoomOnApiarySite);
             },
             updateApiarySite: function(site_updated) {
                 // Update internal apiary_site data
@@ -169,6 +180,10 @@
                         this.apiary_sites[i].available = site_updated.available
                     }
                 }
+            },
+            zoomOnApiarySite: function(e) {
+                let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
+                this.$refs.component_map.zoomToApiarySiteById(apiary_site_id)
             },
             toggleAvailability: function(e) {
                 let vm = this;
