@@ -9,11 +9,11 @@
             />
         </div>
         <div class="col-sm-6">
-                <ComponentMap 
-                    ref="component_map"
-                    :apiary_site_geojson_array="apiary_site_geojson_array"
-                    :key="component_map_key"
-                />
+            <ComponentMap 
+                ref="component_map"
+                :apiary_site_geojson_array="apiary_site_geojson_array"
+                :key="component_map_key"
+            />
         </div>
     </div>
 </template>
@@ -83,7 +83,13 @@
                         },
                         {
                             mRender: function (data, type, full) {
-                                let action_list = ['View on map (TODO)',]
+                                let action_list = []
+
+                                // View on map
+                                let view_on_map_html = '<a><span class="view_on_map" data-apiary-site-id="' + full.id + '"/>View on map</span></a>';
+                                action_list.push(view_on_map_html);
+
+                                // Mark as Available/Unavailable
                                 let display_text = ''
                                 if (vm.is_external){
                                     if (full.available){
@@ -144,8 +150,6 @@
             },
             addApiarySitesToMap: function() {
                 for (let i=0; i<this.apiary_sites.length; i++){
-                    console.log('in addApiarySiteToMap' + i)
-                    //this.$refs.component_map.addApiarySite(this.apiary_sites[i].as_geojson)
                     this.apiary_site_geojson_array.push(this.apiary_sites[i].as_geojson)
                 }
                 this.component_map_key = uuid()
@@ -167,6 +171,7 @@
             },
             addEventListeners: function() {
                 $("#site-availability-table").on("click", ".toggle_availability", this.toggleAvailability);
+                $("#site-availability-table").on("click", ".view_on_map", this.zoomOnApiarySite);
             },
             updateApiarySite: function(site_updated) {
                 // Update internal apiary_site data
@@ -175,6 +180,10 @@
                         this.apiary_sites[i].available = site_updated.available
                     }
                 }
+            },
+            zoomOnApiarySite: function(e) {
+                let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
+                this.$refs.component_map.zoomToApiarySiteById(apiary_site_id)
             },
             toggleAvailability: function(e) {
                 let vm = this;

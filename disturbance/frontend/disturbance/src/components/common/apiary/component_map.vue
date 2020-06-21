@@ -102,7 +102,13 @@
                 }
             },
             addApiarySite: function(apiary_site_geojson) {
-                this.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(apiary_site_geojson))
+                let feature = (new GeoJSON()).readFeatures(apiary_site_geojson)
+                this.apiarySitesQuerySource.addFeatures(feature)
+            },
+            zoomToApiarySiteById: function(apiary_site_id){
+                let feature = this.apiarySitesQuerySource.getFeatureById(apiary_site_id)
+                const extent = feature.getGeometry().getExtent()
+                this.map.getView().fit(extent);
             },
             addEventListeners: function () {
 
