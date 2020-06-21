@@ -107,8 +107,8 @@
             },
             zoomToApiarySiteById: function(apiary_site_id){
                 let feature = this.apiarySitesQuerySource.getFeatureById(apiary_site_id)
-                const extent = feature.getGeometry().getExtent()
-                this.map.getView().fit(extent);
+                console.log(feature)
+                this.map.getView().animate({zoom: 10, center: feature['values_']['geometry']['flatCoordinates']})
             },
             addEventListeners: function () {
 

@@ -82,26 +82,26 @@
                             }
                         },
                         {
-                            mRender: function (data, type, full) {
+                            mRender: function (data, type, apiary_site) {
                                 let action_list = []
 
                                 // View on map
-                                let view_on_map_html = '<a><span class="view_on_map" data-apiary-site-id="' + full.id + '"/>View on map</span></a>';
+                                let view_on_map_html = '<a><span class="view_on_map" data-apiary-site-id="' + apiary_site.id + '"/>View on map</span></a>';
                                 action_list.push(view_on_map_html);
 
                                 // Mark as Available/Unavailable
                                 let display_text = ''
                                 if (vm.is_external){
-                                    if (full.available){
+                                    if (apiary_site.available){
                                         display_text = 'Mark as unavailable';
                                     } else {
                                         display_text = 'Mark as available';
                                     }
-                                    let ret = '<a><span class="toggle_availability" data-apiary-site-id="' + full.id + 
-                                        '" data-apiary-site-available="' + full.available + '"/>' + display_text + '</span></a>';
+                                    let ret = '<a><span class="toggle_availability" data-apiary-site-id="' + apiary_site.id + 
+                                        '" data-apiary-site-available="' + apiary_site.available + '"/>' + display_text + '</span></a>';
                                     action_list.push(ret);
                                 } else if (vm.is_internal){
-                                    if (full.available){
+                                    if (apiary_site.available){
                                         display_text = 'Available';
                                     } else {
                                         display_text = 'Unavailable';
