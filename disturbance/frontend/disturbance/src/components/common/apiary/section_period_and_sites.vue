@@ -34,7 +34,7 @@
                     :dtHeaders="dtHeaders"
                 />
             </div>
-            <div class="col-sm-6 placeholder-for-map">
+            <div class="col-sm-6">
                 <ComponentMap />
             </div>
         </div>
@@ -346,7 +346,5 @@
 </script>
 
 <style lang="css" scoped>
-.placeholder-for-map {
-    background: #BBB;
-}
+
 </style>
