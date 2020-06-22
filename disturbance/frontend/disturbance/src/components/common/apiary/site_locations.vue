@@ -158,7 +158,6 @@
                 current_category: 'south_west',
                 q: null,
                 values:null,
-                pBody: 'pBody'+vm._uid,
                 showingHelpText: false,
                 help_text: 'My Help text ...',
                 marker_lng: null,

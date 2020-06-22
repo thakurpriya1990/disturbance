@@ -1,5 +1,7 @@
 from django.conf import settings
 from ledger.accounts.models import EmailUser,Address
+
+from disturbance.components.proposals.models import ApiarySite, ApiarySiteApproval
 from disturbance.components.proposals.serializers import ProposalSerializer, InternalProposalSerializer
 from disturbance.components.approvals.models import (
     Approval,
@@ -13,10 +15,10 @@ from disturbance.components.main.serializers import CommunicationLogEntrySeriali
 from rest_framework import serializers
 
 from disturbance.components.proposals.serializers_apiary import (
-        ProposalApiarySerializer, 
-        ApiarySiteApprovalSerializer,
-        ApplicantAddressSerializer,
-        )
+    ProposalApiarySerializer,
+    ApiarySiteApprovalSerializer,
+    ApplicantAddressSerializer, ApiarySiteGeojsonSerializer, ApiarySiteSerializer,
+)
 
 
 class EmailUserSerializer(serializers.ModelSerializer):
@@ -59,6 +61,7 @@ class ApprovalSerializer(serializers.ModelSerializer):
     # apiary_site_location = serializers.SerializerMethodField()
     current_proposal = ProposalSerializer()
     apiary_site_approval_set = ApiarySiteApprovalSerializer(read_only=True, many=True)
+    # apiary_sites = serializers.SerializerMethodField()
     organisation_name = serializers.SerializerMethodField()
     organisation_abn =serializers.SerializerMethodField()
     applicant_first_name =serializers.SerializerMethodField()
@@ -115,6 +118,7 @@ class ApprovalSerializer(serializers.ModelSerializer):
             'applicant_first_name',
             'applicant_last_name',
             'applicant_address',
+            # 'apiary_sites',
         )
         # the serverSide functionality of datatables is such that only columns that have field 'data' defined are requested from the serializer. We
         # also require the following additional fields for some of the mRender functions
@@ -144,6 +148,12 @@ class ApprovalSerializer(serializers.ModelSerializer):
             'allowed_assessors',
             'can_approver_reissue',
         )
+
+    # def get_apiary_sites(self, approval_obj):
+    #     apiary_sites_qs = ApiarySite.objects.filter(apiary_site_approval_set__in=ApiarySiteApproval.objects.filter(approval=approval_obj))
+    #     serializer = ApiarySiteSerializer(apiary_sites_qs, many=True)
+    #     return serializer.data
+
 
     def get_application_type(self,obj):
         if obj.current_proposal.application_type:
