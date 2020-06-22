@@ -146,12 +146,14 @@
                     (reject)=>{
                     },
                 )
-                this.addApiarySitesToMap()
+                this.addApiarySitesToMap(this.apiary_sites)
             },
-            addApiarySitesToMap: function() {
-                for (let i=0; i<this.apiary_sites.length; i++){
-                    this.apiary_site_geojson_array.push(this.apiary_sites[i].as_geojson)
+            addApiarySitesToMap: function(apiary_sites) {
+                for (let i=0; i<apiary_sites.length; i++){
+                    this.apiary_site_geojson_array.push(apiary_sites[i].as_geojson)
                 }
+
+                // Reload ComponentMap by assigning a new key value
                 this.component_map_key = uuid()
             },
             constructSitesTable: function(){
