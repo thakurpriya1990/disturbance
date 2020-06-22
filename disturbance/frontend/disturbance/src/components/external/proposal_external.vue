@@ -39,12 +39,12 @@
 
             <div v-if="proposal && proposal.application_type=='Apiary'">
 
-                <ProposalApiary 
-                    v-if="proposal" 
-                    :proposal="proposal" 
-                    id="proposalStart" 
-                    :showSections="sectionShow" 
-                    ref="proposal_apiary" 
+                <ProposalApiary
+                    v-if="proposal"
+                    :proposal="proposal"
+                    id="proposalStart"
+                    :showSections="sectionShow"
+                    ref="proposal_apiary"
                     :is_external="true"
                     @button_text="button_text"
                 />
@@ -384,13 +384,16 @@ export default {
 
             //console.log('can_submit checklistq check' +vm.$refs.proposal_apiary.getUnansweredChecklistQuestions());
 
-            if(vm.$refs.proposal_apiary.getUnansweredChecklistQuestions ){
-                blank_fields.push(' You have unanswered checklist questions');
-            }
+             if(vm.proposal.application_type == 'Apiary'){
+                if( vm.$refs.proposal_apiary.getUnansweredChecklistQuestions ){
+                    blank_fields.push(' You have unanswered checklist questions');
+                }
 
-            if(vm.$refs.proposal_apiary.$refs.deed_poll_documents.documents.length==0){
-                blank_fields.push(' Deed poll document is missing')
-            }
+                if(vm.$refs.proposal_apiary.$refs.deed_poll_documents.documents.length==0){
+                    blank_fields.push(' Deed poll document is missing')
+                }
+             }
+
             if(blank_fields.length==0){
                 return true;
             }
