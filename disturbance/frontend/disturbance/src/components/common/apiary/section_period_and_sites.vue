@@ -34,8 +34,8 @@
                     :dtHeaders="dtHeaders"
                 />
             </div>
-            <div class="col-sm-6 placeholder-for-map">
-                Map here
+            <div class="col-sm-6">
+                <ComponentMap />
             </div>
         </div>
 
@@ -51,6 +51,7 @@
 <script>
     import datatable from '@vue-utils/datatable.vue'
     import SiteSelection from '@/components/common/apiary/component_site_selection.vue'
+    import ComponentMap from '@/components/common/apiary/component_map.vue'
 
     export default {
         props:{
@@ -101,7 +102,7 @@
             let vm=this;
             return{
                 dtHeaders: [
-                    'id',
+                    'Id',
                     '',
                     'Site',
                     'Action',
@@ -184,6 +185,7 @@
         components: {
             datatable,
             SiteSelection,
+            ComponentMap,
         },
         computed:{
 
@@ -344,7 +346,5 @@
 </script>
 
 <style lang="css" scoped>
-.placeholder-for-map {
-    background: #BBB;
-}
+
 </style>

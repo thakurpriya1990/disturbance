@@ -399,8 +399,7 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                         serializer = ApiarySiteSerializer(a_site, data=feature)
                     except ApiarySite.DoesNotExist:
                         # Create new
-                        # TODO: retrieve category (south-west / remote) from GIS server
-                        if int(float(feature['values_']['geometry']['flatCoordinates'][1])) >= -31:
+                        if feature['values_']['category'] == 'south_west':
                             category_obj = SiteCategory.objects.get(name='south_west')
                         else:
                             category_obj = SiteCategory.objects.get(name='remote')

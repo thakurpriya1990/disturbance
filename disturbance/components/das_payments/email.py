@@ -81,7 +81,7 @@ def send_application_fee_confirmation_apiary_email_notification(request, applica
 
 
 def _log_proposal_email(email_message, proposal, sender=None):
-    from commercialoperator.components.proposals.models import ProposalLogEntry
+    from disturbance.components.proposals.models import ProposalLogEntry
     if isinstance(email_message, (EmailMultiAlternatives, EmailMessage,)):
         # TODO this will log the plain text body, should we log the html instead
         text = email_message.body
@@ -128,7 +128,7 @@ def _log_proposal_email(email_message, proposal, sender=None):
 
 
 def _log_org_email(email_message, organisation, customer ,sender=None):
-    from commercialoperator.components.organisations.models import OrganisationLogEntry
+    from disturbance.components.organisations.models import OrganisationLogEntry
     if isinstance(email_message, (EmailMultiAlternatives, EmailMessage,)):
         # TODO this will log the plain text body, should we log the html instead
         text = email_message.body
