@@ -16,8 +16,9 @@
                     id="site_locations"
                     ref="apiary_site_locations"
                     :is_external="is_external"
-                    :is_internal="is_internal">
-                </SiteLocations>
+                    :is_internal="is_internal"
+                    @button_text="button_text"
+                />
             </FormSection>
 
             <FormSection :formCollapse="false" label="Deed Poll" Index="deed_poll">
@@ -179,6 +180,9 @@
           //},
         },
         methods:{
+            button_text: function(button_text) {
+                this.$emit('button_text', button_text)
+            },
             getChecklistAnswers: function() {
                 let vm = this;
                 this.checklist_answers.push({

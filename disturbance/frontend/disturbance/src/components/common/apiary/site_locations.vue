@@ -48,11 +48,14 @@
 
             <template v-if="proposal && proposal.proposal_apiary">
                 <div class="row col-sm-12 debug-info">
-                    How to set a site 'SouthWest'/'Remote':
-                    <div class="debug-message">
-                        <div>when latitude is more than or equal to -31, then the proposed site is regarded as 'SouthWest'</div>
-                        <div>when latitude is less than 0, then the proposed site is regarded as 'Remote'</div>
+                    <div>
+                        Category:
+                        <select v-model="current_category" class="form-group">
+                            <option value="south_west">South West</option>
+                            <option value="remote">Remote</option>
+                        </select>
                     </div>
+
                     Remainders:
                     <div v-for="remainder in proposal.proposal_apiary.site_remainders" class="debug-remainders">
                         <div>
@@ -68,13 +71,6 @@
 
             <div id="map" class="map"></div>
 
-            <!--
-            <div class="row col-sm-12">
-                <label>
-                    Click <a @click="enlargeMapClicked">here</a> to enlarge map
-                </label>
-            </div>
-            -->
             <div class="row col-sm-12">
                 <label>
                     Click <a @click="existingSiteAvailableClicked">here</a> if you are interested in existing sites that are available by the site licence holder.
@@ -159,9 +155,9 @@
         data:function () {
             let vm=this;
             return{
+                current_category: 'south_west',
                 q: null,
                 values:null,
-                pBody: 'pBody'+vm._uid,
                 showingHelpText: false,
                 help_text: 'My Help text ...',
                 marker_lng: null,
@@ -181,8 +177,8 @@
                 //
 
                 dtHeaders: [
-                    'id',
-                    'guid',
+                    'Id',
+                    'Guid',
                     'Latitude',
                     'Longitude',
                     'Action',
@@ -227,7 +223,6 @@
                         {
                             mRender: function (data, type, full) {
                                 let coords = full.getGeometry().getCoordinates()
-                                console.log(coords)
                                 return Number.parseFloat(coords[1]).toFixed(6)
                             }
                         },
@@ -249,7 +244,6 @@
         },
         components: {
             TextField,
-            //FileField,
             datatable,
             SiteLocationsModal,
         },
@@ -263,9 +257,9 @@
             },
         },
         watch:{
-
         },
         methods:{
+            
             uuidv4: function () {
                 return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, 
                     function(c) {
@@ -327,6 +321,40 @@
                 console.log('existingSiteAvailableClicked');
                 alert("TODO: open screen 45: External - Contact Holder of Available Site in a different tab page.");
             },
+            calculateRemainders: function(features){
+                let remainders = this.proposal.proposal_apiary.site_remainders
+                let num_remain_south_west = 0
+                let num_remain_remote = 0
+
+                for (let i=0; i<remainders.length; i++){
+                    if (remainders[i].category_name == 'South West'){
+                        num_remain_south_west = remainders[i].remainders
+                    } else if (remainders[i].category_name == 'Remote'){
+                        num_remain_remote = remainders[i].remainders
+                    } else {
+                        console.log('should not reach here')
+                    }
+                }
+
+                for (let i=0; i<features.length; i++){
+                    if (features[i].get('category') == 'south_west'){
+                        num_remain_south_west = num_remain_south_west - 1
+                    } else if (features[i].get('category') == 'remote'){
+                        num_remain_remote = num_remain_remote - 1
+                    }
+                }
+
+                console.log('South West: ' + num_remain_south_west)
+                console.log('Remote: ' + num_remain_remote)
+
+                let button_text = 'Pay and submit'
+                if (num_remain_south_west >= 0 && num_remain_remote >=0){
+                    button_text = 'Submit'
+                }
+
+                console.log('emit!!!')
+                this.$emit('button_text', button_text)
+            },
             constructSiteLocationsTable: function(){
                 console.log('in constructSiteLocationTable')
                 // Clear table
@@ -334,14 +362,13 @@
 
                 // Get all the features drawn
                 let features = this.drawingLayerSource.getFeatures()
-                console.log('features.length')
-                console.log(features.length)
+                this.calculateRemainders(features)
 
                 // Insert data into the table
                 for(let i=0; i<features.length; i++){
                     this.$refs.site_locations_table.vmDataTable.row.add(features[i]).draw();
+                    console.log(features[i].get('category'));
                 }
-
                 // Update proposal obj, which is sent to the server when save/submit.
                 //this.proposal.proposal_apiary.apiary_sites = features
                 //this.updateApiarySitesData()
@@ -506,6 +533,7 @@
                     let feature = attributes.feature;
                     feature.setId(vm.uuidv4());
                     feature.set("source", "draw");
+                    feature.set('category', vm.current_category) // For now, we add category, either south_west/remote to the feature according to the selection of the UI
                     feature.getGeometry().on("change", function() {
                         console.log("Start Modify feature: " + feature.getId());
 
@@ -558,6 +586,7 @@
                 let feature = new Feature(new Point([lon,lat]));
                 feature.setId(this.uuidv4());
                 feature.set("source", "form");
+                feature.set('category', this.current_category) // For now, we add category, either south_west/remote to the feature according to the selection of the UI
                 this.drawingLayerSource.addFeature(feature);
 
                 console.log('new feature added to the layer')

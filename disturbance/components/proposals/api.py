@@ -30,6 +30,8 @@ from django.core.cache import cache
 from ledger.accounts.models import EmailUser, Address
 from ledger.address.models import Country
 from datetime import datetime, timedelta, date
+
+from disturbance.components.main.decorators import basic_exception_handler
 from disturbance.components.proposals.utils import (
     save_proponent_data,
     save_assessor_data,
@@ -100,6 +102,7 @@ from disturbance.components.proposals.serializers_apiary import (
     DTApiaryReferralSerializer,
     FullApiaryReferralSerializer,
     ProposalHistorySerializer,
+
 )
 from disturbance.components.approvals.models import Approval
 from disturbance.components.approvals.serializers import ApprovalSerializer
@@ -382,101 +385,61 @@ class OnSiteInformationViewSet(viewsets.ModelViewSet):
 
         return data_dict
 
+    @basic_exception_handler
     def destroy(self, request, *args, **kwargs):
-        try:
-            with transaction.atomic():
-                instance = self.get_object()
+        with transaction.atomic():
+            instance = self.get_object()
 
-                now = datetime.now(pytz.timezone(TIME_ZONE))
-                serializer = OnSiteInformationSerializer(instance, {'datetime_deleted': now}, partial=True)
-                serializer.is_valid(raise_exception=True)
-                serializer.save()
+            now = datetime.now(pytz.timezone(TIME_ZONE))
+            serializer = OnSiteInformationSerializer(instance, {'datetime_deleted': now}, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
 
-                return Response({})
+            return Response({})
 
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e.error_dict))
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
-
+    @basic_exception_handler
     def update(self, request, *args, **kwargs):
-        try:
-            with transaction.atomic():
-                instance = self.get_object()
-                request_data = request.data
+        with transaction.atomic():
+            instance = self.get_object()
+            request_data = request.data
 
-                self.sanitize_date(request_data, 'period_from')
-                self.sanitize_date(request_data, 'period_to')
+            self.sanitize_date(request_data, 'period_from')
+            self.sanitize_date(request_data, 'period_to')
 
-                serializer = OnSiteInformationSerializer(instance, data=request_data)
-                serializer.is_valid(raise_exception=True)
-                serializer.save()
-                return Response(serializer.data)
+            serializer = OnSiteInformationSerializer(instance, data=request_data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data)
 
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e.error_dict))
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
-
+    @basic_exception_handler
     def create(self, request, *args, **kwargs):
-        try:
-            with transaction.atomic():
-                request_data = request.data
+        with transaction.atomic():
+            request_data = request.data
 
-                self.sanitize_date(request_data, 'period_from')
-                self.sanitize_date(request_data, 'period_to')
+            self.sanitize_date(request_data, 'period_from')
+            self.sanitize_date(request_data, 'period_to')
 
-                serializer = OnSiteInformationSerializer(data=request_data)
-                serializer.is_valid(raise_exception=True)
-                serializer.save()
-                return Response(serializer.data)
-
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e.error_dict))
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+            serializer = OnSiteInformationSerializer(data=request_data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data)
 
 
 class ApiarySiteViewSet(viewsets.ModelViewSet):
     queryset = ApiarySite.objects.all()
     serializer_class = ApiarySiteSerializer
 
+    @basic_exception_handler
     def partial_update(self, request, *args, **kwargs):
-        try:
-            with transaction.atomic():
-                instance = self.get_object()
-                request_data = request.data
+        with transaction.atomic():
+            instance = self.get_object()
+            request_data = request.data
 
-                serializer = ApiarySiteSerializer(instance, data=request_data, partial=True)
-                serializer.is_valid(raise_exception=True)
-                serializer.save()
+            serializer = ApiarySiteSerializer(instance, data=request_data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
 
-                return Response(serializer.data)
-
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e.error_dict))
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+            return Response(serializer.data)
 
 
 class ProposalApiaryViewSet(viewsets.ModelViewSet):
@@ -492,29 +455,18 @@ class ProposalApiaryViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return ProposalApiary.objects.all()
 
+    @basic_exception_handler
     def internal_apiary_serializer_class(self):
-        try:
-            #import ipdb; ipdb.set_trace()
-            #application_type = Proposal.objects.get(id=self.kwargs.get('pk')).application_type.name
-            instance = self.get_object()
-            application_type = instance.proposal.application_type.name
-            if application_type == ApplicationType.APIARY:
-                return ApiaryInternalProposalSerializer
-                #return InternalProposalSerializer
-            else:
-                pass
-                #return InternalProposalSerializer
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            if hasattr(e,'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+        #import ipdb; ipdb.set_trace()
+        #application_type = Proposal.objects.get(id=self.kwargs.get('pk')).application_type.name
+        instance = self.get_object()
+        application_type = instance.proposal.application_type.name
+        if application_type == ApplicationType.APIARY:
+            return ApiaryInternalProposalSerializer
+            #return InternalProposalSerializer
+        else:
+            pass
+            #return InternalProposalSerializer
 
     @detail_route(methods=['GET',])
     def internal_apiary_proposal(self, request, *args, **kwargs):
@@ -528,71 +480,40 @@ class ProposalApiaryViewSet(viewsets.ModelViewSet):
 
     @detail_route(methods=['POST'])
     @renderer_classes((JSONRenderer,))
+    @basic_exception_handler
     def process_deed_poll_document(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            returned_data = process_generic_document(request, instance, document_type='deed_poll_documents')
-            if returned_data:
-                return Response(returned_data)
-            else:
-                return Response()
-
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            if hasattr(e, 'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+        instance = self.get_object()
+        returned_data = process_generic_document(request, instance, document_type='deed_poll_documents')
+        if returned_data:
+            return Response(returned_data)
+        else:
+            return Response()
 
     @detail_route(methods=['post'])
+    @basic_exception_handler
     def apiary_assessor_send_referral(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            serializer = SendApiaryReferralSerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            #text=serializer.validated_data['text']
-            #instance.send_referral(request,serializer.validated_data['email'])
-            #import ipdb; ipdb.set_trace()
-            #instance.send_referral(request,serializer.validated_data['email_group'], serializer.validated_data['text'])
-            instance.send_referral(request,serializer.validated_data['group_id'], serializer.validated_data['text'])
-            serializer_class = self.internal_apiary_serializer_class()
-            serializer = serializer_class(instance.proposal,context={'request':request})
-            return Response(serializer.data)
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            if hasattr(e,'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+        instance = self.get_object()
+        serializer = SendApiaryReferralSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        #text=serializer.validated_data['text']
+        #instance.send_referral(request,serializer.validated_data['email'])
+        #import ipdb; ipdb.set_trace()
+        #instance.send_referral(request,serializer.validated_data['email_group'], serializer.validated_data['text'])
+        instance.send_referral(request,serializer.validated_data['group_id'], serializer.validated_data['text'])
+        serializer_class = self.internal_apiary_serializer_class()
+        serializer = serializer_class(instance.proposal,context={'request':request})
+        return Response(serializer.data)
 
     @detail_route(methods=['post'])
     @renderer_classes((JSONRenderer,))
+    @basic_exception_handler
     def assessor_save(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            save_apiary_assessor_data(
-                    instance.proposal,
-                    request,
-                    self)
-            return redirect(reverse('external'))
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            raise serializers.ValidationError(repr(e.error_dict))
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+        instance = self.get_object()
+        save_apiary_assessor_data(
+                instance.proposal,
+                request,
+                self)
+        return redirect(reverse('external'))
 
     @detail_route(methods=['GET', ])
     @renderer_classes((JSONRenderer,))
