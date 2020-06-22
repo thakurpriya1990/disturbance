@@ -2399,9 +2399,17 @@ class ApiarySiteApproval(models.Model):
 class ProposalApiarySiteTransfer(models.Model):
     email = models.EmailField('Email of Transferee', max_length=254, blank=True, null=True)
     proposal = models.OneToOneField(Proposal, related_name='apiary_site_transfer', null=True)
+    transferee = models.ForeignKey(EmailUser, blank=True, null=True, related_name='transferee')
 
     def __str__(self):
-        return '{}'.format(self.title)
+        if self.proposal.proposal_apiary:
+            return 'id:{} - {}'.format(self.id, self.proposal.proposal_apiary.title)
+        else:
+            # Should not reach here
+            return 'id:{}'.format(self.id)
+
+    #def __str__(self):
+     #   return '{}'.format(self.title)
 
     class Meta:
         app_label = 'disturbance'
