@@ -42,7 +42,9 @@
                         v-model.number="proposal.proposal_apiary.longitude"
                         :readonly="readonly"
                     />
-                    <input type="button" @click="tryCreateNewSiteFromForm" value="Add proposed site" class="btn btn-primary">
+                    <temporary v-if="!readonly">
+                        <input type="button" @click="tryCreateNewSiteFromForm" value="Add proposed site" class="btn btn-primary">
+                    </temporary>
                 </div>
             </div>
 
@@ -234,8 +236,11 @@
                         },
                         {
                             mRender: function (data, type, full) {
-                                let ret_str = '<span class="delete_button" style="color:#347ab7; cursor: pointer;" data-site-location-guid="' + full.getId() + '">Delete</span>';
-                                return ret_str;
+                                let ret_str = ''
+                                if (!vm.readonly){
+                                    ret_str = '<span class="delete_button" style="color:#347ab7; cursor: pointer;" data-site-location-guid="' + full.getId() + '">Delete</span>'
+                                }
+                                return ret_str
                             }
                         },
                     ],
@@ -533,20 +538,22 @@
                 drawTool.on('drawend', function(attributes){
                     console.log('drawend')
 
-                    let feature = attributes.feature;
-                    feature.setId(vm.uuidv4());
-                    feature.set("source", "draw");
-                    feature.set('site_category', vm.current_category) // For now, we add category, either south_west/remote to the feature according to the selection of the UI
-                    feature.getGeometry().on("change", function() {
-                        console.log("Start Modify feature: " + feature.getId());
+                    if (!this.readoly){
+                        let feature = attributes.feature;
+                        feature.setId(vm.uuidv4());
+                        feature.set("source", "draw");
+                        feature.set('site_category', vm.current_category) // For now, we add category, either south_west/remote to the feature according to the selection of the UI
+                        feature.getGeometry().on("change", function() {
+                            console.log("Start Modify feature: " + feature.getId());
 
-                        if (modifyInProgressList.indexOf(feature) < 0) {
-                            modifyInProgressList.push(feature);
-                        }
-                    });
-                    console.log("New Feature: " + feature.getId());
-                    vm.createBufferForSite(feature);
-                    // Vue table is updated by the event 'addfeature' issued from the Source
+                            if (modifyInProgressList.indexOf(feature) < 0) {
+                                modifyInProgressList.push(feature);
+                            }
+                        });
+                        console.log("New Feature: " + feature.getId());
+                        vm.createBufferForSite(feature);
+                        // Vue table is updated by the event 'addfeature' issued from the Source
+                    }
                 });
                 vm.map.addInteraction(drawTool);
 
