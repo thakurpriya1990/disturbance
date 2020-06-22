@@ -234,8 +234,11 @@
                         },
                         {
                             mRender: function (data, type, full) {
-                                let ret_str = '<span class="delete_button" style="color:#347ab7; cursor: pointer;" data-site-location-guid="' + full.getId() + '">Delete</span>';
-                                return ret_str;
+                                let ret_str = ''
+                                if (!vm.readonly){
+                                    ret_str = '<span class="delete_button" style="color:#347ab7; cursor: pointer;" data-site-location-guid="' + full.getId() + '">Delete</span>'
+                                }
+                                return ret_str
                             }
                         },
                     ],
