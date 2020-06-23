@@ -65,7 +65,6 @@
                         {
                             visible: false,
                             mRender: function (data, type, full) {
-                                console.log(full);
                                 return full.id;
                             }
                         },
@@ -85,7 +84,7 @@
                         },
                         {
                             mRender: function (data, type, full) {
-                                let ret = '<a><span class="view_on_map" data-apiary-site-id="' + full.id + '"/>View on Map (TODO)</span></a>';
+                                let ret = '<a><span class="view_on_map" data-apiary-site-id="' + full.id + '"/>View on Map</span></a>';
                                 return ret;
                             }
                         },

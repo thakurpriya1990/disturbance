@@ -2492,6 +2492,23 @@ class ApiarySiteFee(RevisionedMixin):
 
 
 class ApiarySite(models.Model):
+    STATUS_DRAFT = 'draft'
+    STATUS_PENDING = 'pending'
+    STATUS_CURRENT = 'current'
+    STATUS_SUSPENDED = 'suspended'
+    STATUS_NOT_TO_BE_REISSUED = 'not_to_be_reissued'
+    STATUS_DENIED = 'denied'
+    STATUS_VACANT = 'vacant'
+    STATUS_CHOICES = (
+        (STATUS_DRAFT, 'Draft'),
+        (STATUS_PENDING, 'Pending'),
+        (STATUS_CURRENT, 'current'),
+        (STATUS_SUSPENDED, 'Suspended'),
+        (STATUS_NOT_TO_BE_REISSUED, 'not_to_be_reissued'),
+        (STATUS_DENIED, 'denied'),
+        (STATUS_VACANT, 'vacant'),
+    )
+
     #TODO - this should link to Proposal, not ProposalApiary
     #proposal = models.ForeignKey(Proposal, null=True, blank=True, related_name='apiary_sites')
     proposal_apiary = models.ForeignKey(ProposalApiary, null=True, blank=True, related_name='apiary_sites')
@@ -2504,7 +2521,7 @@ class ApiarySite(models.Model):
     # Region and District may be included in the api response from the GIS server
     region = models.ForeignKey(Region, null=True, blank=True)
     district = models.ForeignKey(District, null=True, blank=True)
-
+    status = models.CharField(max_length=40, choices=STATUS_CHOICES, default=STATUS_CHOICES[0][0])
     wkb_geometry = PointField(srid=4326, blank=True, null=True)
     objects = GeoManager()
 
