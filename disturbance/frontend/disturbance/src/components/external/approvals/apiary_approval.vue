@@ -116,7 +116,6 @@
 
             <div class="row">
                 <FormSection :formCollapse="false" label="Site(s)" Index="site_avaiability">
-                        <!--
                     <template v-if="approval && approval.id">
                         <SiteAvailability
                             :approval_id="approval.id"
@@ -125,12 +124,15 @@
                             ref="site_availability"
                         />
                     </template>
-                        -->
+                    <!--
                     <template v-if="approval && approval.apiary_sites">
                         <ComponentSiteSelection
                             :apiary_sites_with_selection="approval.apiary_sites"
+                            :is_internal="false"
+                            :is_external="true"
                         />
                     </template>
+                    -->
                 </FormSection>
             </div>
 
@@ -173,8 +175,8 @@ import FormSection from "@/components/forms/section_toggle.vue"
 import { api_endpoints, helpers } from '@/utils/hooks'
 import OnSiteInformation from '@/components/common/apiary/section_on_site_information.vue'
 import TemporaryUse from '@/components/common/apiary/section_temporary_use.vue'
-//import SiteAvailability from '@/components/common/apiary/section_site_availability.vue'
 import ComponentSiteSelection from '@/components/common/apiary/component_site_selection.vue'
+import SiteAvailability from '@/components/common/apiary/section_site_availability.vue'
 
 export default {
     name: 'ApiaryApprovalExternal',
@@ -266,7 +268,7 @@ export default {
         CommsLogs,
         FormSection,
         OnSiteInformation,
-        //SiteAvailability,
+        SiteAvailability,
         TemporaryUse,
     },
     computed: {

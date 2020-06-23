@@ -35,11 +35,20 @@
                     return [];
                 }
             },
+            is_external:{
+              type: Boolean,
+              default: false
+            },
+            is_internal:{
+              type: Boolean,
+              default: false
+            },
         },
         watch: {
 
         },
         data: function(){
+            let vm = this;
             return{
                 component_map_key: '',
                 apiary_site_geojson_array: [],
@@ -83,9 +92,36 @@
                             }
                         },
                         {
-                            mRender: function (data, type, full) {
-                                let ret = '<a><span class="view_on_map" data-apiary-site-id="' + full.id + '"/>View on Map</span></a>';
-                                return ret;
+                            mRender: function (data, type, apiary_site) {
+                                //let ret = '<a><span class="view_on_map" data-apiary-site-id="' + full.id + '"/>View on Map</span></a>';
+                                //return ret;
+
+                                let action_list = []
+
+                                // View on map
+                                let view_on_map_html = '<a><span class="view_on_map" data-apiary-site-id="' + apiary_site.id + '"/>View on map</span></a>';
+                                action_list.push(view_on_map_html);
+
+                                // Mark as Available/Unavailable
+                                let display_text = ''
+                                if (vm.is_external){
+                                    if (apiary_site.available){
+                                        display_text = 'Mark as unavailable';
+                                    } else {
+                                        display_text = 'Mark as available';
+                                    }
+                                    let ret = '<a><span class="toggle_availability" data-apiary-site-id="' + apiary_site.id + 
+                                        '" data-apiary-site-available="' + apiary_site.available + '"/>' + display_text + '</span></a>';
+                                    action_list.push(ret);
+                                } else if (vm.is_internal){
+                                    if (apiary_site.available){
+                                        display_text = 'Available';
+                                    } else {
+                                        display_text = 'Unavailable';
+                                    }
+                                    action_list.push(display_text);
+                                }
+                                return action_list.join('<br />');
                             }
                         },
                     ],
@@ -135,6 +171,37 @@
             },
             addEventListeners: function () {
                 $("#table-apiary-site").on("click", ".view_on_map", this.zoomOnApiarySite);
+                $("#table-apiary-site").on("click", ".toggle_availability", this.toggleAvailability);
+            },
+            updateApiarySite: function(site_updated) {
+                // Update internal apiary_site data
+                for (let i=0; i<this.apiary_sites_with_selection.length; i++){
+                    if (this.apiary_sites_with_selection[i].id == site_updated.id){
+                        this.apiary_sites_with_selection[i].available = site_updated.available
+                    }
+                }
+            },
+            toggleAvailability: function(e) {
+                let vm = this;
+                let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
+                let current_availability = e.target.getAttribute("data-apiary-site-available");
+                let requested_availability = current_availability === 'true' ? false : true
+
+                vm.$http.patch('/api/apiary_site/' + apiary_site_id + '/', { 'available': requested_availability }).then(
+                    async function(accept){
+                        // Update the site in the table
+                        let site_updated = accept.body
+                        this.updateApiarySite(site_updated)
+                        vm.constructApiarySitesTable();
+                    },
+                    reject=>{
+                        swal(
+                            'Submit Error',
+                            helpers.apiVueResourceError(err),
+                            'error'
+                        )
+                    }
+                );
             },
             emitContentsChangedEvent: function () {
                 this.$emit('contents_changed', {
