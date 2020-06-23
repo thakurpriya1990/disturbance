@@ -24,6 +24,7 @@
 
 <script>
     import datatable from '@vue-utils/datatable.vue'
+    import uuid from 'uuid'
     import ComponentMap from '@/components/common/apiary/component_map.vue'
 
     export default {
@@ -65,26 +66,26 @@
                             visible: false,
                             mRender: function (data, type, full) {
                                 console.log(full);
-                                return full.apiary_site.id;
+                                return full.id;
                             }
                         },
                         {
                             mRender: function (data, type, full) {
                                 if (full.selected){
-                                    return '<input type="checkbox" class="site_checkbox" data-apiary-site-id="' + full.apiary_site.id + '" checked/>'
+                                    return '<input type="checkbox" class="site_checkbox" data-apiary-site-id="' + full.id + '" checked/>'
                                 } else {
-                                    return '<input type="checkbox" class="site_checkbox" data-apiary-site-id="' + full.apiary_site.id + '" />'
+                                    return '<input type="checkbox" class="site_checkbox" data-apiary-site-id="' + full.id + '" />'
                                 }
                             }
                         },
                         {
                             mRender: function (data, type, full) {
-                                return 'site:' + full.apiary_site.id
+                                return 'site:' + full.id
                             }
                         },
                         {
                             mRender: function (data, type, full) {
-                                let ret = '<a><span class="view_on_map" data-apiary-site-id="' + full.apiary_site.id + '"/>View on Map (TODO)</span></a>';
+                                let ret = '<a><span class="view_on_map" data-apiary-site-id="' + full.id + '"/>View on Map (TODO)</span></a>';
                                 return ret;
                             }
                         },
@@ -100,6 +101,7 @@
             this.$nextTick(() => {
                 vm.addEventListeners();
                 this.constructApiarySitesTable();
+                this.addApiarySitesToMap(this.apiary_sites_with_selection)
             });
         },
         components: {
@@ -110,6 +112,14 @@
 
         },
         methods: {
+            addApiarySitesToMap: function(apiary_sites) {
+                for (let i=0; i<apiary_sites.length; i++){
+                    this.apiary_site_geojson_array.push(apiary_sites[i].as_geojson)
+                }
+
+                // Reload ComponentMap by assigning a new key value
+                this.component_map_key = uuid()
+            },
             constructApiarySitesTable: function() {
                 // Clear table
                 this.$refs.table_apiary_site.vmDataTable.clear().draw();
@@ -125,12 +135,16 @@
                 this.$refs.table_apiary_site.vmDataTable.row.add(apiary_site_with_selection).draw();
             },
             addEventListeners: function () {
-
+                $("#table-apiary-site").on("click", ".view_on_map", this.zoomOnApiarySite);
             },
             emitContentsChangedEvent: function () {
                 this.$emit('contents_changed', {
 
                 });
+            },
+            zoomOnApiarySite: function(e) {
+                let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
+                this.$refs.component_map.zoomToApiarySiteById(apiary_site_id)
             },
         },
     }

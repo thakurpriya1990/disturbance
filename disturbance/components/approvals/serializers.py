@@ -15,9 +15,7 @@ from disturbance.components.main.serializers import CommunicationLogEntrySeriali
 from rest_framework import serializers
 
 from disturbance.components.proposals.serializers_apiary import (
-    ProposalApiarySerializer,
-    ApiarySiteApprovalSerializer,
-    ApplicantAddressSerializer, ApiarySiteGeojsonSerializer, ApiarySiteSerializer,
+    ApplicantAddressSerializer, ApiarySiteSerializer,
 )
 
 
@@ -60,13 +58,14 @@ class ApprovalSerializer(serializers.ModelSerializer):
 
     # apiary_site_location = serializers.SerializerMethodField()
     current_proposal = ProposalSerializer()
-    apiary_site_approval_set = ApiarySiteApprovalSerializer(read_only=True, many=True)
+    # apiary_site_approval_set = ApiarySiteApprovalSerializer(read_only=True, many=True)
     # apiary_sites = serializers.SerializerMethodField()
     organisation_name = serializers.SerializerMethodField()
     organisation_abn =serializers.SerializerMethodField()
     applicant_first_name =serializers.SerializerMethodField()
     applicant_last_name = serializers.SerializerMethodField()
     applicant_address = serializers.SerializerMethodField()
+    apiary_sites = ApiarySiteSerializer(many=True, read_only=True)
 
     class Meta:
         model = Approval
@@ -111,14 +110,14 @@ class ApprovalSerializer(serializers.ModelSerializer):
             # 'apiary_site_location',
             'application_type',
             'current_proposal',
-            'apiary_site_approval_set',
+            # 'apiary_site_approval_set',
             'apiary_approval',
             'organisation_name',
             'organisation_abn',
             'applicant_first_name',
             'applicant_last_name',
             'applicant_address',
-            # 'apiary_sites',
+            'apiary_sites',
         )
         # the serverSide functionality of datatables is such that only columns that have field 'data' defined are requested from the serializer. We
         # also require the following additional fields for some of the mRender functions
