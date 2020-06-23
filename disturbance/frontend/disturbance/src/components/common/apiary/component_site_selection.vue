@@ -36,12 +36,48 @@
                 }
             },
             is_external:{
-              type: Boolean,
-              default: false
+                type: Boolean,
+                default: false,
             },
             is_internal:{
-              type: Boolean,
-              default: false
+                type: Boolean,
+                default: false,
+            },
+            show_col_id: {
+                type: Boolean,
+                default: false,
+            },
+            show_col_checkbox: {
+                type: Boolean,
+                default: true,
+            },
+            show_col_site: {
+                type: Boolean,
+                default: true,
+            },
+            show_col_longitude: {
+                type: Boolean,
+                default: false,
+            },
+            show_col_latitude: {
+                type: Boolean,
+                default: false,
+            },
+            show_col_district: {
+                type: Boolean,
+                default: false,
+            },
+            show_col_status: {
+                type: Boolean,
+                default: true,
+            },
+            show_col_previous_site_holder: {
+                type: Boolean,
+                default: false,
+            },
+            show_col_action: {
+                type: Boolean,
+                default: true,
             },
         },
         watch: {
@@ -56,6 +92,11 @@
                     'Id',
                     '',
                     'Site',
+                    'Longitude',
+                    'Latitude',
+                    'District',
+                    'Status',
+                    'Previous Site Holder/Applicant',
                     'Action',
                 ],
                 dtOptions: {
@@ -72,12 +113,15 @@
                     processing: true,
                     columns: [
                         {
-                            visible: false,
+                            // Id (database id)
+                            visible: vm.show_col_id,
                             mRender: function (data, type, full) {
                                 return full.id;
                             }
                         },
                         {
+                            // Checkbox
+                            visible: vm.show_col_checkbox,
                             mRender: function (data, type, full) {
                                 if (full.selected){
                                     return '<input type="checkbox" class="site_checkbox" data-apiary-site-id="' + full.id + '" checked/>'
@@ -87,11 +131,49 @@
                             }
                         },
                         {
+                            // Site
+                            visible: vm.show_col_site,
                             mRender: function (data, type, full) {
                                 return 'site:' + full.id
                             }
                         },
                         {
+                            // Longitude
+                            visible: vm.show_col_longitude,
+                            mRender: function (data, type, apiary_site){
+                                return 'lng'
+                            }
+                        },
+                        {
+                            // Latitude
+                            visible: vm.show_col_latitude,
+                            mRender: function (data, type, apiary_site){
+                                return 'lat'
+                            }
+                        },
+                        {
+                            // District
+                            visible: vm.show_col_district,
+                            mRender: function (data, type, apiary_site){
+                                return 'dist'
+                            }
+                        },
+                        {
+                            // Status
+                            visible: vm.show_col_status,
+                            mRender: function (data, type, apiary_site){
+                                return 'status'
+                            }
+                        },
+                        {
+                            // Previous Site Holder/Applicant
+                            visible: vm.show_col_previous_site_holder,
+                            mRender: function (data, type, apiary_site){
+                                return 'holder'
+                            }
+                        },
+                        {
+                            // Action
                             mRender: function (data, type, apiary_site) {
                                 //let ret = '<a><span class="view_on_map" data-apiary-site-id="' + full.id + '"/>View on Map</span></a>';
                                 //return ret;
