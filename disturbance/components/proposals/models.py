@@ -2334,8 +2334,10 @@ class ProposalApiary(models.Model):
                         #elif self.proposal.application_type == ApplicationType.SITE_TRANSFER:
                         #    for site in self.apiary_site_transfer.apiary_sites.all():
                         #        site.approval = approval
+                        #import ipdb;ipdb.set_trace()
                         for site in self.apiary_sites.all():
-                                    site.approval = approval
+                            site.approval = approval
+                            site.save()
 
                         #print approval,approval.id, created
                     # Generate compliances
