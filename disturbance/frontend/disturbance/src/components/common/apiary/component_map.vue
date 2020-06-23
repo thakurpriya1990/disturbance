@@ -97,6 +97,21 @@
                 });
                 vm.apiarySitesQueryLayer = new VectorLayer({
                     source: vm.apiarySitesQuerySource,
+                    //style: new Style({
+                    //    fill: new Fill({
+                    //        color: 'rgba(255, 255, 255, 0.2)'
+                    //    }),
+                    //    stroke: new Stroke({
+                    //        color: '#ffcc33',
+                    //        width: 2
+                    //    }),
+                    //    image: new CircleStyle({
+                    //        radius: 7,
+                    //        fill: new Fill({
+                    //            color: '#ffcc33'
+                    //        })
+                    //    })
+                    //})
                 });
                 vm.map.addLayer(vm.apiarySitesQueryLayer);
 
@@ -121,9 +136,57 @@
             getDegrees: function(coords){
                 return coords[0].toFixed(6) + ', ' + coords[1].toFixed(6);
             },
+            getFillColour: function(status){
+                switch(status){
+                    case 'draft':
+                        return new Fill({color: '#e0e0e0'})
+                    case 'pending':
+                        return new Fill({color: '#e0e0e0'})
+                    case 'current':
+                        return new Fill({color: '#e0e0e0'})
+                    case 'suspended':
+                        return new Fill({color: '#e0e0e0'})
+                    case 'not_to_be_reissued':
+                        return new Fill({color: '#e0e0e0'})
+                    case 'denied':
+                        return new Fill({color: '#e0e0e0'})
+                    case 'vacant':
+                        return new Fill({color: '#e0e0e0'})
+                }
+            },
+            getStrokeColour: function(status){
+                switch(status){
+                    case 'draft':
+                        return new Stroke({color: '#616161', width: 2})
+                    case 'pending':
+                        return new Fill({color: '#e0e0e0'})
+                    case 'current':
+                        return new Fill({color: '#e0e0e0'})
+                    case 'suspended':
+                        return new Fill({color: '#e0e0e0'})
+                    case 'not_to_be_reissued':
+                        return new Fill({color: '#e0e0e0'})
+                    case 'denied':
+                        return new Fill({color: '#e0e0e0'})
+                    case 'vacant':
+                        return new Fill({color: '#e0e0e0'})
+                }
+            },
             addApiarySite: function(apiary_site_geojson) {
-                let feature = (new GeoJSON()).readFeatures(apiary_site_geojson)
-                this.apiarySitesQuerySource.addFeatures(feature)
+                let feature = (new GeoJSON()).readFeature(apiary_site_geojson)
+                let status = feature.get('status')
+                
+                feature.setStyle(
+                    new Style({
+                        image: new CircleStyle({
+                            radius: 7,
+                            fill: this.getFillColour(status),
+                            stroke: this.getStrokeColour(status),
+                        })
+                    })
+                )
+
+                this.apiarySitesQuerySource.addFeature(feature)
             },
             zoomToApiarySiteById: function(apiary_site_id){
                 let feature = this.apiarySitesQuerySource.getFeatureById(apiary_site_id)
