@@ -12,9 +12,11 @@
         </template>
 
         <template v-if="proposal.proposal_apiary">
-            <ComponentSiteSelection 
+            <FormSection :formCollapse="false" label="Site(s)" Index="sites">
+                <ComponentSiteSelection 
 
-            />
+                />
+            </FormSection>
         </template>
         <template v-else>
             <div class="col-md-12">
@@ -134,6 +136,7 @@ from '@/utils/hooks'
 import datatable from '@vue-utils/datatable.vue'
 import RequirementDetail from './proposal_add_requirement.vue'
 import ComponentSiteSelection from '@/components/common/apiary/component_site_selection.vue'
+import FormSection from "@/components/forms/section_toggle.vue"
 
 export default {
     name: 'InternalProposalRequirements',
@@ -151,6 +154,7 @@ export default {
     watch:{
     },
     components:{
+        FormSection,
         ComponentSiteSelection,
     },
     computed:{

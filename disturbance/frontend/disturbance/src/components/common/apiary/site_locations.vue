@@ -42,9 +42,9 @@
                         v-model.number="proposal.proposal_apiary.longitude"
                         :readonly="readonly"
                     />
-                    <temporary v-if="!readonly">
+                    <template v-if="!readonly">
                         <input type="button" @click="tryCreateNewSiteFromForm" value="Add proposed site" class="btn btn-primary">
-                    </temporary>
+                    </template>
                 </div>
             </div>
 
