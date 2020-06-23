@@ -1,10 +1,11 @@
 <template lang="html">
     <div>
-        <div id="map" class="map"></div>
+        <div :id="elem_id" class="map"></div>
     </div>
 </template>
 
 <script>
+    import uuid from 'uuid';
     import 'ol/ol.css';
     //import 'index.css';  // copy-and-pasted the contents of this file at the <style> section below in this file
 
@@ -52,6 +53,7 @@
                 map: null,
                 apiarySitesQuerySource: null,
                 apiarySitesQueryLayer: null,
+                elem_id: uuid(),
             }
         },
         created: function(){
@@ -82,7 +84,8 @@
                             opacity:0.5
                         })
                     ],
-                    target: 'map',
+                    //target: 'map',
+                    target: vm.elem_id,
                     view: new View({
                         center: [115.95, -31.95],
                         zoom: 7,
@@ -119,10 +122,12 @@
 
             },
             zoomToFeatures: function() {
-                let ext = this.apiarySitesQuerySource.getExtent()
-                let view = this.map.getView()
-                view.fit(ext)
-                view.setZoom(view.getZoom() - 1)  // Zoom out by 1 level
+                if (this.apiarySitesQuerySource.getFeatures().length>0){
+                    let ext = this.apiarySitesQuerySource.getExtent()
+                    let view = this.map.getView()
+                    view.fit(ext)
+                    view.setZoom(view.getZoom() - 1)  // Zoom out by 1 level
+                }
             },
         },
     }
