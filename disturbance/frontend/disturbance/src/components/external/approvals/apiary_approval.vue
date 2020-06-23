@@ -116,12 +116,19 @@
 
             <div class="row">
                 <FormSection :formCollapse="false" label="Site(s)" Index="site_avaiability">
+                        <!--
                     <template v-if="approval && approval.id">
                         <SiteAvailability
                             :approval_id="approval.id"
                             :is_internal="false"
                             :is_external="true"
                             ref="site_availability"
+                        />
+                    </template>
+                        -->
+                    <template v-if="approval && approval.apiary_sites">
+                        <ComponentSiteSelection
+                            :apiary_sites_with_selection="approval.apiary_sites"
                         />
                     </template>
                 </FormSection>
@@ -166,7 +173,8 @@ import FormSection from "@/components/forms/section_toggle.vue"
 import { api_endpoints, helpers } from '@/utils/hooks'
 import OnSiteInformation from '@/components/common/apiary/section_on_site_information.vue'
 import TemporaryUse from '@/components/common/apiary/section_temporary_use.vue'
-import SiteAvailability from '@/components/common/apiary/section_site_availability.vue'
+//import SiteAvailability from '@/components/common/apiary/section_site_availability.vue'
+import ComponentSiteSelection from '@/components/common/apiary/component_site_selection.vue'
 
 export default {
     name: 'ApiaryApprovalExternal',
@@ -202,7 +210,6 @@ export default {
             },
 
             // variables passed to the child component
-            test_apiary_sites: [],
             on_site_information_list: [],
             // Filters
 
@@ -216,14 +223,11 @@ export default {
 
                 // Construct the array, which is passed to the child component, SiteAvailability
                 // Construct the array, which is passed to the child component, OnSiteInformation
-                this.test_apiary_sites = []
                 this.on_site_information_list = []
 
                 for (let i=0; i<this.approval.apiary_sites.length; i++){
-                    console.log(this.approval.apiary_sites[i]);
-                    this.test_apiary_sites.push(this.approval.apiary_sites[i].apiary_site)
-                    for (let j=0; j<this.approval.apiary_sites[i].apiary_site.onsiteinformation_set.length; j++){
-                        this.on_site_information_list.push(this.approval.apiary_sites[i].apiary_site.onsiteinformation_set[j])
+                    for (let j=0; j<this.approval.apiary_sites[i].onsiteinformation_set.length; j++){
+                        this.on_site_information_list.push(this.approval.apiary_sites[i].onsiteinformation_set[j])
                     }
                 }
 
@@ -257,11 +261,12 @@ export default {
     //    })
     //},
     components: {
+        ComponentSiteSelection,
         datatable,
         CommsLogs,
         FormSection,
         OnSiteInformation,
-        SiteAvailability,
+        //SiteAvailability,
         TemporaryUse,
     },
     computed: {
