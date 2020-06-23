@@ -69,7 +69,7 @@
             },
             show_col_status: {
                 type: Boolean,
-                default: true,
+                default: false,
             },
             show_col_previous_site_holder: {
                 type: Boolean,
@@ -115,26 +115,26 @@
                         {
                             // Id (database id)
                             visible: vm.show_col_id,
-                            mRender: function (data, type, full) {
-                                return full.id;
+                            mRender: function (data, type, apiary_site) {
+                                return apiary_site.id;
                             }
                         },
                         {
                             // Checkbox
                             visible: vm.show_col_checkbox,
-                            mRender: function (data, type, full) {
-                                if (full.selected){
-                                    return '<input type="checkbox" class="site_checkbox" data-apiary-site-id="' + full.id + '" checked/>'
+                            mRender: function (data, type, apiary_site) {
+                                if (apiary_site.selected){
+                                    return '<input type="checkbox" class="site_checkbox" data-apiary-site-id="' + apiary_site.id + '" checked/>'
                                 } else {
-                                    return '<input type="checkbox" class="site_checkbox" data-apiary-site-id="' + full.id + '" />'
+                                    return '<input type="checkbox" class="site_checkbox" data-apiary-site-id="' + apiary_site.id + '" />'
                                 }
                             }
                         },
                         {
                             // Site
                             visible: vm.show_col_site,
-                            mRender: function (data, type, full) {
-                                return 'site:' + full.id
+                            mRender: function (data, type, apiary_site) {
+                                return 'site:' + apiary_site.id
                             }
                         },
                         {
@@ -175,7 +175,7 @@
                         {
                             // Action
                             mRender: function (data, type, apiary_site) {
-                                //let ret = '<a><span class="view_on_map" data-apiary-site-id="' + full.id + '"/>View on Map</span></a>';
+                                //let ret = '<a><span class="view_on_map" data-apiary-site-id="' + apiary_site.id + '"/>View on Map</span></a>';
                                 //return ret;
 
                                 let action_list = []
@@ -291,6 +291,7 @@
                 });
             },
             zoomOnApiarySite: function(e) {
+                console.log(e)
                 let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
                 this.$refs.component_map.zoomToApiarySiteById(apiary_site_id)
             },

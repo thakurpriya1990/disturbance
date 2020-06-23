@@ -100,14 +100,26 @@
                 });
                 vm.map.addLayer(vm.apiarySitesQueryLayer);
 
+                // Full screen toggle
+                vm.map.addControl(new FullScreenControl());
+
+                // Show mouse coordinates
+                vm.map.addControl(new MousePositionControl({
+                    coordinateFormat: function(coords){
+                        let message = vm.getDegrees(coords) + "\n";
+                        return  message;
+                    },
+                    target: document.getElementById('mouse-position'),
+                    className: 'custom-mouse-position',
+                }));
+
                 // Add apiary_sites passed as a props
                 for (let i=0; i<vm.apiary_site_geojson_array.length; i++){
                     this.addApiarySite(vm.apiary_site_geojson_array[i])
                 }
             },
-            viewAllTheFeatures: function() {
-                // Display all the features in the query source
-
+            getDegrees: function(coords){
+                return coords[0].toFixed(6) + ', ' + coords[1].toFixed(6);
             },
             addApiarySite: function(apiary_site_geojson) {
                 let feature = (new GeoJSON()).readFeatures(apiary_site_geojson)
