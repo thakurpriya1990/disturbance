@@ -2212,38 +2212,39 @@ class ProposalApiary(models.Model):
         with transaction.atomic():
             try:
                 approval = self.retrieve_approval if self.retrieve_approval else None
-                if not self.can_assess(request.user):
+                created = None
+                if not self.proposal.can_assess(request.user):
                     raise exceptions.ProposalNotAuthorized()
-                if self.processing_status != 'with_approver':
+                if self.proposal.processing_status != 'with_approver':
                     raise ValidationError('You cannot issue the approval if it is not with an approver')
                 #if not self.applicant.organisation.postal_address:
-                if not self.relevant_applicant_address:
+                if not self.proposal.relevant_applicant_address:
                     raise ValidationError('The applicant needs to have set their postal address before approving this proposal.')
 
-                self.proposed_issuance_approval = {
+                self.proposal.proposed_issuance_approval = {
                     'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
                     'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
                     'details': details.get('details'),
                     'cc_email':details.get('cc_email')
                 }
-                self.proposed_decline_status = False
-                self.processing_status = 'approved'
-                self.customer_status = 'approved'
+                self.proposal.proposed_decline_status = False
+                self.proposal.processing_status = 'approved'
+                self.proposal.customer_status = 'approved'
                 # Log proposal action
-                self.log_user_action(ProposalUserAction.ACTION_ISSUE_APPROVAL_.format(self.id),request)
+                self.proposal.log_user_action(ProposalUserAction.ACTION_ISSUE_APPROVAL_.format(self.id),request)
                 # Log entry for organisation
-                if self.applicant:
-                    self.applicant.log_user_action(ProposalUserAction.ACTION_ISSUE_APPROVAL_.format(self.id),request)
+                if self.proposal.applicant:
+                    self.proposal.applicant.log_user_action(ProposalUserAction.ACTION_ISSUE_APPROVAL_.format(self.proposal.id),request)
                 #import ipdb;ipdb.set_trace()
 
-                if self.processing_status == 'approved':
+                if self.proposal.processing_status == 'approved':
                     # TODO if it is an ammendment proposal then check appropriately
                     #import ipdb; ipdb.set_trace()
-                    checking_proposal = self
+                    checking_proposal = self.proposal
                     #TODO - fix for apiary approval
-                    if self.proposal_type == 'renewal':
-                        if self.previous_application:
-                            previous_approval = self.previous_application.approval
+                    if self.proposal.proposal_type == 'renewal':
+                        if self.proposal.previous_application:
+                            previous_approval = self.proposal.previous_application.approval
                             approval,created = Approval.objects.update_or_create(
                                 current_proposal = checking_proposal,
                                 defaults = {
@@ -2254,10 +2255,10 @@ class ProposalApiary(models.Model):
                                     'issue_date' : timezone.now(),
                                     'expiry_date' : details.get('expiry_date'),
                                     'start_date' : details.get('start_date'),
-                                    'applicant' : self.applicant,
-                                    'proxy_applicant' : self.proxy_applicant,
+                                    'applicant' : self.proposal.applicant,
+                                    'proxy_applicant' : self.proposal.proxy_applicant,
                                     'lodgement_number': previous_approval.lodgement_number,
-                                    'apiary_approval': self.apiary_group_application_type,
+                                    'apiary_approval': self.proposal.apiary_group_application_type,
                                     #'extracted_fields' = JSONField(blank=True, null=True)
                                 }
                             )
@@ -2266,9 +2267,9 @@ class ProposalApiary(models.Model):
                                 previous_approval.save()
 
                     #TODO - fix for apiary approval
-                    elif self.proposal_type == 'amendment':
-                        if self.previous_application:
-                            previous_approval = self.previous_application.approval
+                    elif self.proposal.proposal_type == 'amendment':
+                        if self.proposal.previous_application:
+                            previous_approval = self.proposal.previous_application.approval
                             approval,created = Approval.objects.update_or_create(
                                 current_proposal = checking_proposal,
                                 defaults = {
@@ -2279,10 +2280,10 @@ class ProposalApiary(models.Model):
                                     'issue_date' : timezone.now(),
                                     'expiry_date' : details.get('expiry_date'),
                                     'start_date' : details.get('start_date'),
-                                    'applicant' : self.applicant,
-                                    'proxy_applicant' : self.proxy_applicant,
+                                    'applicant' : self.proposal.applicant,
+                                    'proxy_applicant' : self.proposal.proxy_applicant,
                                     'lodgement_number': previous_approval.lodgement_number,
-                                    'apiary_approval': self.apiary_group_application_type,
+                                    'apiary_approval': self.proposal.apiary_group_application_type,
                                     #'extracted_fields' = JSONField(blank=True, null=True)
                                 }
                             )
@@ -2290,12 +2291,14 @@ class ProposalApiary(models.Model):
                                 previous_approval.replaced_by = approval
                                 previous_approval.save()
                                 # Get apiary sites from proposal
-                                if self.application_type == ApplicationType.APIARY:
-                                    for site in self.proposal_apiary.apiary_sites.all():
-                                        site.approval = approval
-                                elif self.application_type == ApplicationType.SITE_TRANSFER:
-                                    for site in self.apiary_site_transfer.apiary_sites.all():
-                                        site.approval = approval
+                                #if self.proposal.application_type == ApplicationType.APIARY:
+                                #    for site in self.apiary_sites.all():
+                                #        site.approval = approval
+                                #elif self.proposal.application_type == ApplicationType.SITE_TRANSFER:
+                                #    for site in self.apiary_site_transfer.apiary_sites.all():
+                                #        site.approval = approval
+                                for site in self.apiary_sites.all():
+                                    site.approval = approval
 
                     else:
                         #TODO - fix for apiary approval
@@ -2310,9 +2313,9 @@ class ProposalApiary(models.Model):
                                 'issue_date' : timezone.now(),
                                 'expiry_date' : details.get('expiry_date'),
                                 'start_date' : details.get('start_date'),
-                                'applicant' : self.applicant,
-                                'proxy_applicant' : self.proxy_applicant,
-                                'apiary_approval': self.apiary_group_application_type,
+                                'applicant' : self.proposal.applicant,
+                                'proxy_applicant' : self.proposal.proxy_applicant,
+                                'apiary_approval': self.proposal.apiary_group_application_type,
                                 #'extracted_fields' = JSONField(blank=True, null=True)
                                 }
                             )
@@ -2320,33 +2323,40 @@ class ProposalApiary(models.Model):
                             approval.issue_date = timezone.now()
                             approval.expiry_date = details.get('expiry_date')
                             approval.start_date = details.get('start_date')
-                            approval.applicant = self.applicant
-                            approval.proxy_applicant = self.proxy_applicant
-                            approval.apiary_approval = self.apiary_group_application_type
+                            approval.applicant = self.proposal.applicant
+                            approval.proxy_applicant = self.proposal.proxy_applicant
+                            approval.apiary_approval = self.proposal.apiary_group_application_type
 
-                        if created:
-                            # Get apiary sites from proposal
-                            if self.application_type == ApplicationType.APIARY:
-                                for site in self.proposal_apiary.apiary_sites.all():
-                                    site.approval = approval
-                            elif self.application_type == ApplicationType.SITE_TRANSFER:
-                                for site in self.apiary_site_transfer.apiary_sites.all():
-                                    site.approval = approval
+                        # Get apiary sites from proposal
+                        #if self.proposal.application_type == ApplicationType.APIARY:
+                        #    for site in self.proposal_apiary.apiary_sites.all():
+                        #        site.approval = approval
+                        #elif self.proposal.application_type == ApplicationType.SITE_TRANSFER:
+                        #    for site in self.apiary_site_transfer.apiary_sites.all():
+                        #        site.approval = approval
+                        #import ipdb;ipdb.set_trace()
+                        for site in self.apiary_sites.all():
+                            site.approval = approval
+                            site.save()
 
                         #print approval,approval.id, created
                     # Generate compliances
                     #self.generate_compliances(approval, request)
                     from disturbance.components.compliances.models import Compliance, ComplianceUserAction
                     if created:
-                        if self.proposal_type == 'amendment':
-                            approval_compliances = Compliance.objects.filter(approval= previous_approval, proposal = self.previous_application, processing_status='future')
+                        if self.proposal.proposal_type == 'amendment':
+                            approval_compliances = Compliance.objects.filter(
+                                    approval= previous_approval, 
+                                    proposal = self.proposal.previous_application, 
+                                    processing_status='future'
+                                    )
                             if approval_compliances:
                                 for c in approval_compliances:
                                     c.delete()
                         # Log creation
                         # Generate the document
                         approval.generate_doc(request.user)
-                        self.generate_compliances(approval, request)
+                        self.proposal.generate_compliances(approval, request)
                         # send the doc and log in approval and org
                     else:
                         #approval.replaced_by = request.user
@@ -2354,21 +2364,31 @@ class ProposalApiary(models.Model):
                         # Generate the document
                         approval.generate_doc(request.user)
                         #Delete the future compliances if Approval is reissued and generate the compliances again.
-                        approval_compliances = Compliance.objects.filter(approval= approval, proposal = self, processing_status='future')
+                        approval_compliances = Compliance.objects.filter(
+                                approval= approval, 
+                                proposal = self.proposal, 
+                                processing_status='future'
+                                )
                         if approval_compliances:
                             for c in approval_compliances:
                                 c.delete()
-                        self.generate_compliances(approval, request)
+                        self.proposal.generate_compliances(approval, request)
                         # Log proposal action
-                        self.log_user_action(ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.id),request)
+                        self.proposal.log_user_action(
+                                ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.proposal.id),
+                                request
+                                )
                         # Log entry for organisation
-                        if self.applicant:
-                            self.applicant.log_user_action(ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.id),request)
-                    self.approval = approval
+                        if self.proposal.applicant:
+                            self.proposal.applicant.log_user_action(
+                                    ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.proposal.id),
+                                    request
+                                    )
+                    self.proposal.approval = approval
                 #send Proposal approval email with attachment
-                send_proposal_approval_email_notification(self,request)
-                self.save(version_comment='Final Approval: {}'.format(self.approval.lodgement_number))
-                self.approval.documents.all().update(can_delete=False)
+                send_proposal_approval_email_notification(self.proposal,request)
+                self.proposal.save(version_comment='Final Approval: {}'.format(self.proposal.approval.lodgement_number))
+                self.proposal.approval.documents.all().update(can_delete=False)
 
             except:
                 raise
@@ -2472,6 +2492,8 @@ class ApiarySiteFee(RevisionedMixin):
 
 
 class ApiarySite(models.Model):
+    #TODO - this should link to Proposal, not ProposalApiary
+    #proposal = models.ForeignKey(Proposal, null=True, blank=True, related_name='apiary_sites')
     proposal_apiary = models.ForeignKey(ProposalApiary, null=True, blank=True, related_name='apiary_sites')
     approval = models.ForeignKey('disturbance.Approval', null=True, blank=True, related_name='apiary_sites')
     #approval = models.ForeignKey('disturbance.Approval', blank=True, null=True, related_name='apiary_site_approval_set')
