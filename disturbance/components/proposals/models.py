@@ -2514,10 +2514,8 @@ class ApiarySite(models.Model):
     #proposal = models.ForeignKey(Proposal, null=True, blank=True, related_name='apiary_sites')
     proposal_apiary = models.ForeignKey(ProposalApiary, null=True, blank=True, related_name='apiary_sites')
     approval = models.ForeignKey('disturbance.Approval', null=True, blank=True, related_name='apiary_sites')
-    #approval = models.ForeignKey('disturbance.Approval', blank=True, null=True, related_name='apiary_site_approval_set')
     site_guid = models.CharField(max_length=50, blank=True)
     available = models.BooleanField(default=False, )
-    # temporary_used = models.BooleanField(default=False, )
     site_category = models.ForeignKey(SiteCategory, null=True, blank=True)
     # Region and District may be included in the api response from the GIS server
     region = models.ForeignKey(Region, null=True, blank=True)
@@ -2604,6 +2602,7 @@ class TemporaryUseApiarySite(models.Model):
 
     class Meta:
         app_label = 'disturbance'
+
 
 # TODO: remove if no longer required
 class ApiarySiteApproval(models.Model):

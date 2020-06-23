@@ -117,11 +117,11 @@
             <div class="row">
                 <FormSection :formCollapse="false" label="Site(s)" Index="site_avaiability">
                     <template v-if="approval && approval.id">
-                        <SiteAvailability 
+                        <SiteAvailability
                             :approval_id="approval.id"
                             :is_internal="false"
                             :is_external="true"
-                            ref="site_availability" 
+                            ref="site_availability"
                         />
                     </template>
                 </FormSection>
@@ -130,11 +130,11 @@
             <div class="row">
                 <FormSection :formCollapse="false" label="Temporary Use" Index="temporary_use">
                     <template v-if="approval && approval.id">
-                        <TemporaryUse 
+                        <TemporaryUse
                             :approval_id="approval.id"
                             :is_internal="false"
                             :is_external="true"
-                            ref="tempoary_use" 
+                            ref="tempoary_use"
                         />
                     </template>
                 </FormSection>
@@ -143,11 +143,11 @@
             <div class="row">
                 <FormSection :formCollapse="false" label="On Site" Index="on_site">
                     <template v-if="approval && approval.id">
-                        <OnSiteInformation 
+                        <OnSiteInformation
                             :approval_id="approval.id"
                             :is_internal="false"
                             :is_external="true"
-                            ref="on_site_information" 
+                            ref="on_site_information"
                         />
                     </template>
                 </FormSection>
@@ -213,20 +213,17 @@ export default {
             deep: true,
             handler(){
                 console.log('approval in watch');
-                console.log('length of approval.apiary_site_approval_set')
-                console.log(this.approval.apiary_site_approval_set.length);
-                console.log(this.approval.apiary_site_approval_set);
 
                 // Construct the array, which is passed to the child component, SiteAvailability
                 // Construct the array, which is passed to the child component, OnSiteInformation
                 this.test_apiary_sites = []
                 this.on_site_information_list = []
 
-                for (let i=0; i<this.approval.apiary_site_approval_set.length; i++){
-                    console.log(this.approval.apiary_site_approval_set[i]);
-                    this.test_apiary_sites.push(this.approval.apiary_site_approval_set[i].apiary_site)
-                    for (let j=0; j<this.approval.apiary_site_approval_set[i].apiary_site.onsiteinformation_set.length; j++){
-                        this.on_site_information_list.push(this.approval.apiary_site_approval_set[i].apiary_site.onsiteinformation_set[j])
+                for (let i=0; i<this.approval.apiary_sites.length; i++){
+                    console.log(this.approval.apiary_sites[i]);
+                    this.test_apiary_sites.push(this.approval.apiary_sites[i].apiary_site)
+                    for (let j=0; j<this.approval.apiary_sites[i].apiary_site.onsiteinformation_set.length; j++){
+                        this.on_site_information_list.push(this.approval.apiary_sites[i].apiary_site.onsiteinformation_set[j])
                     }
                 }
 
