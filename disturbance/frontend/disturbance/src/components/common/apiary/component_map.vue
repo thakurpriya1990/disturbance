@@ -63,6 +63,7 @@
                 vm.addEventListeners()
             });
             this.initMap()
+            this.zoomToFeatures()
         },
         components: {
 
@@ -116,6 +117,12 @@
             },
             addEventListeners: function () {
 
+            },
+            zoomToFeatures: function() {
+                let ext = this.apiarySitesQuerySource.getExtent()
+                let view = this.map.getView()
+                view.fit(ext)
+                view.setZoom(view.getZoom() - 1)  // Zoom out by 1 level
             },
         },
     }
