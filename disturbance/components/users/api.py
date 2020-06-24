@@ -35,6 +35,7 @@ from disturbance.components.users.serializers import   (
                                                 PersonalSerializer,
                                                 ContactSerializer,
                                                 UserFilterSerializer,
+
                                             )
 from disturbance.components.main.utils import retrieve_department_users
 
@@ -174,5 +175,3 @@ class UserViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
-
-
