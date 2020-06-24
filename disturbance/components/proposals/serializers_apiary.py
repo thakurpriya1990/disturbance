@@ -7,6 +7,7 @@ from ledger.settings_base import TIME_ZONE
 from rest_framework_gis.serializers import GeoFeatureModelSerializer
 
 from disturbance.components.organisations.serializers import OrganisationSerializer
+from disturbance.components.organisations.models import UserDelegation
 from disturbance.components.proposals.serializers_base import (
         BaseProposalSerializer, 
         #ProposalReferralSerializer,
@@ -37,6 +38,7 @@ from ledger.accounts.models import Address
 from reversion.models import Version
 from django.utils import timezone
 from django.contrib.contenttypes.models import ContentType
+from ledger.accounts.models import EmailUser
 
 
 class VersionSerializer(serializers.ModelSerializer):
@@ -886,4 +888,48 @@ class DTApiaryReferralSerializer(serializers.ModelSerializer):
 
     def get_submitter(self,obj):
         return EmailUserSerializer(obj.proposal.submitter).data
+
+
+class UserApiaryApprovalSerializer(serializers.ModelSerializer):
+    apiary_approvals = serializers.SerializerMethodField(read_only=True)
+    class Meta:
+        model = EmailUser
+        fields = (
+                'id',
+                'apiary_approvals',
+                )
+
+    def get_apiary_approvals(self, obj):
+        #return 'apiary_approvals'
+        approvals = []
+        multiple_approvals = False
+        individual_approvals = False
+        organisation_approvals = False
+        #Individual applications
+        for individual_approval in obj.disturbance_proxy_approvals.all():
+            if individual_approval.apiary_approval:
+                approvals.append({'type': 'individual', 'id':individual_approval.lodgement_number})
+                individual_approvals = True
+        #Organisation applications
+        #import ipdb;ipdb.set_trace()
+        user_delegations = UserDelegation.objects.filter(user=obj)
+        #organisation_approvals = []
+        for user_delegation in user_delegations:
+            #organisation_approvals.append(user_delegation.organisation.disturbance_approvals.all())
+            for organisation_approval in user_delegation.organisation.disturbance_approvals.all():
+                if organisation_approval.apiary_approval:
+                    approvals.append({'type': 'organisation', 'id':organisation_approval.lodgement_number})
+                    organisation_approvals = True
+        #approvals.append(organisation_approvals)
+
+        if individual_approvals and organisation_approvals:
+            multiple_approvals = True
+
+        return {'approvals': approvals, 'multiple': multiple_approvals}
+
+
+
+
+
+
 
