@@ -9,7 +9,13 @@
                     :dtOptions="dtOptions"
                     :dtHeaders="dtHeaders"
                 />
+                <template v-if="show_view_all_features_button">
+                    <div class="button_row">
+                        <span class="view_all_button" @click="displayAllFeatures">View All On Map</span>
+                    </div>
+                </template>
             </div>
+
             <div class="col-sm-6">
                 <ComponentMap 
                     ref="component_map"
@@ -79,6 +85,10 @@
                 type: Boolean,
                 default: true,
             },
+            show_view_all_features_button: {
+                type: Boolean,
+                default: true,
+            }
         },
         watch: {
 
@@ -229,6 +239,9 @@
 
         },
         methods: {
+            displayAllFeatures: function(){
+                this.$refs.component_map.displayAllFeatures()
+            },
             addApiarySitesToMap: function(apiary_sites) {
                 for (let i=0; i<apiary_sites.length; i++){
                     this.apiary_site_geojson_array.push(apiary_sites[i].as_geojson)
@@ -302,5 +315,13 @@
 <style lang="css" scoped>
 .component-site-selection {
     border: solid 2px #5BB;
+}
+.button_row {
+    display: flex;
+    justify-content: flex-end;
+}
+.view_all_button {
+    color: #03a9f4;
+    cursor: pointer;
 }
 </style>

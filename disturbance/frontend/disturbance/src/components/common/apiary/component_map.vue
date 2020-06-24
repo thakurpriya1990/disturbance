@@ -65,7 +65,7 @@
                 vm.addEventListeners()
             });
             this.initMap()
-            this.zoomToFeatures()
+            this.displayAllFeatures()
         },
         components: {
 
@@ -196,12 +196,16 @@
             addEventListeners: function () {
 
             },
-            zoomToFeatures: function() {
+            displayAllFeatures: function() {
                 if (this.apiarySitesQuerySource.getFeatures().length>0){
-                    let ext = this.apiarySitesQuerySource.getExtent()
                     let view = this.map.getView()
-                    view.fit(ext)
-                    view.setZoom(view.getZoom() - 1)  // Zoom out by 1 level
+
+                    let ext = this.apiarySitesQuerySource.getExtent()
+                    let centre = [(ext[0] + ext[2])/2.0, (ext[1] + ext[3])/2.0]
+                    //view.fit(ext)
+                    let resolution = view.getResolutionForExtent(ext);
+                    let z = view.getZoomForResolution(resolution) - 1
+                    view.animate({zoom: z, center: centre})
                 }
             },
         },
