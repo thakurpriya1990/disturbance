@@ -30,7 +30,7 @@ from disturbance.components.proposals.models import (
     ApiaryReferralGroup,
     TemporaryUseApiarySite,
     ApiaryReferral,
-    Referral, ApiarySiteApproval, ApiarySiteFeeType, ApiarySiteFeeRemainder, SiteCategory,
+    Referral, ApiarySiteFeeType, ApiarySiteFeeRemainder, SiteCategory,
 )
 
 from rest_framework import serializers
@@ -154,6 +154,7 @@ class ApiarySiteOptimisedSerializer(serializers.ModelSerializer):
             'proposal_apiary_id',
             'site_category_id',
             'coordinates',
+            'status'
         )
 
 
@@ -236,6 +237,7 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
             'onsiteinformation_set',
             'coordinates',
             'as_geojson',
+            'status',
         )
 
 
@@ -252,6 +254,7 @@ class ApiarySiteGeojsonSerializer(GeoFeatureModelSerializer):
             'available',
             'wkb_geometry',
             'site_category_name',
+            'status',
         )
 
 
@@ -373,19 +376,6 @@ class SaveProposalApiarySerializer(serializers.ModelSerializer):
         read_only_fields = (
                 'id',
                 )
-
-
-class ApiarySiteApprovalSerializer(serializers.ModelSerializer):
-    apiary_site_id = serializers.IntegerField(write_only=True, required=False)
-    apiary_site = ApiarySiteSerializer(read_only=True)
-
-    class Meta:
-        model = ApiarySiteApproval
-        fields = (
-            'apiary_site_id',
-            'apiary_site',
-            # 'approval',
-        )
 
 
 class TemporaryUseApiarySiteSerializer(serializers.ModelSerializer):

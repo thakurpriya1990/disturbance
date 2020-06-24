@@ -1636,10 +1636,10 @@ class ProposalViewSet(viewsets.ModelViewSet):
                     new_temp_use = serializer.save()
 
                     # Save TemporaryUseApiarySite
-                    for site_approval in approval.apiary_site_approval_set.all():
+                    for site_approval in approval.apiary_sites.all():
                         data_to_save = {
                             'proposal_apiary_temporary_use_id': new_temp_use.id,
-                            'apiary_site_id': site_approval.apiary_site.id,
+                            'apiary_site_id': site_approval.id,
                         }
                         serializer = TemporaryUseApiarySiteSerializer(data=data_to_save)
                         serializer.is_valid(raise_exception=True)
