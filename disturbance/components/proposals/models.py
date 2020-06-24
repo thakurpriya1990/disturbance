@@ -2201,18 +2201,21 @@ class ProposalApiary(models.Model):
         from disturbance.components.approvals.models import Approval
         approval = None
         if self.proposal.applicant:
-            approval = Approval.objects.filter(applicant=self.proposal.applicant, status='current').first()
+            approval = Approval.objects.filter(applicant=self.proposal.applicant, status='current', apiary_approval=True).first()
         elif self.proposal.proxy_applicant:
-            approval = Approval.objects.filter(proxy_applicant=self.proposal.proxy_applicant, status='current').first()
+            approval = Approval.objects.filter(proxy_applicant=self.proposal.proxy_applicant, status='current', apiary_approval=True).first()
         return approval
 
 
     # ProposalApiary final approval
     def final_approval(self,request,details):
+        #import ipdb;ipdb.set_trace()
         from disturbance.components.approvals.models import Approval
         with transaction.atomic():
             try:
                 approval = self.retrieve_approval if self.retrieve_approval else None
+                #approval = None
+                #approval = self.retrieve_approval()
                 created = None
                 if not self.proposal.can_assess(request.user):
                     raise exceptions.ProposalNotAuthorized()
