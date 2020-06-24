@@ -10,6 +10,9 @@
         <div v-if="apiaryApplication">
             <ProposalApiary :proposalId="proposalId"/>
         </div>
+        <div v-if="temporaryUseApplication">
+            <ProposalTemporaryUse :proposalId="proposalId" />
+        </div>
         <div v-else>
             <Proposal :proposalId="proposalId"/>
         </div>
@@ -27,6 +30,7 @@ import ReturnDashTable from '@common-components/returns_dashboard.vue'
 //import Referral from './referral.vue';
 //import ApiaryReferral from './apiary_referral.vue';
 import ProposalApiary from './proposal_apiary.vue';
+import ProposalTemporaryUse from '@/components/internal/proposals/proposal_temporary_use.vue'
 import Proposal from './proposal.vue';
 import Vue from 'vue';
 import {
@@ -59,12 +63,20 @@ export default {
         */
         Proposal,
         ProposalApiary,
+        ProposalTemporaryUse,
     },
     watch: {},
     computed: {
         apiaryApplication: function() {
             let retVal = false;
-            if (this.applicationTypeName === 'Apiary') {
+            if (this.applicationTypeName === 'Apiary'){
+                retVal = true;
+            }
+            return retVal;
+        },
+        temporaryUseApplication: function() {
+            let retVal = false;
+            if (this.applicationTypeName === 'Temporary Use'){
                 retVal = true;
             }
             return retVal;

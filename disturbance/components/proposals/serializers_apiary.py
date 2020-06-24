@@ -409,9 +409,31 @@ class ProposalApiaryTemporaryUseSerializer(serializers.ModelSerializer):
     temporary_use_apiary_sites = TemporaryUseApiarySiteSerializer(read_only=True, many=True)
     deed_poll_documents = serializers.SerializerMethodField()
     lodgement_number = serializers.CharField(source='proposal.lodgement_number', required=False, read_only=True)
+    # customer_status = serializers.CharField(source='proposal.customer_status', required=False, read_only=True)
+    customer_status = serializers.SerializerMethodField()
+    processing_status = serializers.SerializerMethodField()
 
     def validate(self, attr):
         return attr
+
+    def get_processing_status(self, obj):
+        status = obj.proposal.processing_status
+        ret = ''
+        for id, value in Proposal.PROCESSING_STATUS_CHOICES:
+            if id == status:
+                ret = value
+                break
+        return ret
+
+    def get_customer_status(self, obj):
+        status = obj.proposal.customer_status
+        ret = ''
+        for id, value in Proposal.CUSTOMER_STATUS_CHOICES:
+            if id == status:
+                ret = value
+                break
+        return ret
+
 
     def get_deed_poll_documents(self, obj):
         url_list = []
@@ -445,6 +467,8 @@ class ProposalApiaryTemporaryUseSerializer(serializers.ModelSerializer):
             'temporary_use_apiary_sites',
             'deed_poll_documents',
             'lodgement_number',
+            'customer_status',
+            'processing_status',
         )
 
 
