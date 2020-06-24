@@ -50,7 +50,7 @@
                 type: Object, // Expect moment obj
                 default: null,
             }, 
-            // all the ApiarySite objects under this licence
+            // array of intermediate table, TemporaryUseApiarySite
             temporary_use_apiary_sites: {
                 type: Array,
                 default: function(){
@@ -116,7 +116,13 @@
             }
             if (this.temporary_use_apiary_sites.length > 0){
                 for (let i=0; i<this.temporary_use_apiary_sites.length; i++){
-                    this.apiary_sites.push(this.temporary_use_apiary_sites[i].apiary_site)
+                    let site = this.temporary_use_apiary_sites[i].apiary_site
+
+                    // Add the status of the checkbox for this apiary site if needed
+                    // otherwise the default status is unchecked
+                    site.checked = this.temporary_use_apiary_sites[i].selected
+
+                    this.apiary_sites.push(site)
                 }
             }
             this.period_from_enabled = this.from_date_enabled;
