@@ -48,14 +48,12 @@
                             <div class="col-sm-12">
                                 <div class="separator"></div>
                             </div>
+
+                            <!--
                             <template v-if="proposal.processing_status == 'With Assessor' || proposal.processing_status == 'With Referral'">
                                 <div class="col-sm-12 top-buffer-s">
-                                    <strong>Referrals</strong><br/>
+                                    <strong>Referrals</strong>
                                     <div class="form-group">
-                                        <!--select :disabled="!canLimitedAction" ref="department_users" class="form-control">
-                                            <option value="null"></option>
-                                            <option v-for="user in department_users" :value="user.email">{{user.name}}</option>
-                                        </select-->
                                         <select :disabled="!canLimitedAction" ref="apiary_referral_groups" class="form-control">
                                             <option value="null"></option>
                                             <option v-for="group in apiaryReferralGroups" :value="group.id">{{group.name}}</option>
@@ -104,8 +102,9 @@
                                     <div class="separator"></div>
                                 </div>
                             </template>
+                            -->
                             <div v-if="!isFinalised" class="col-sm-12 top-buffer-s">
-                                <strong>Currently assigned to</strong><br/>
+                                <strong>Currently assigned to</strong>
                                 <div class="form-group">
                                     <template v-if="proposal.processing_status == 'With Approver'">
                                         <select ref="assigned_officer" :disabled="!canAction" class="form-control" v-model="proposal.assigned_approver">
@@ -123,7 +122,7 @@
                             </div>
                             <template v-if="proposal.processing_status == 'With Assessor (Requirements)' || proposal.processing_status == 'With Approver' || isFinalised">
                                 <div class="col-sm-12">
-                                    <strong>Proposal</strong><br/>
+                                    <strong>Proposal</strong>
                                     <a class="actionBtn" v-if="!showingProposal" @click.prevent="toggleProposal()">Show Proposal</a>
                                     <a class="actionBtn" v-else @click.prevent="toggleProposal()">Hide Proposal</a>
                                 </div>
@@ -133,7 +132,7 @@
                             </template>
                             <template v-if="proposal.processing_status == 'With Approver' || isFinalised">
                                 <div class="col-sm-12">
-                                    <strong>Requirements</strong><br/>
+                                    <strong>Requirements</strong>
                                     <a class="actionBtn" v-if="!showingRequirements" @click.prevent="toggleRequirements()">Show Requirements</a>
                                     <a class="actionBtn" v-else @click.prevent="toggleRequirements()">Hide Requirements</a>
                                 </div>
@@ -142,74 +141,21 @@
                                 </div>
                             </template>
                             <div class="col-sm-12 top-buffer-s" v-if="!isFinalised && canAction">
-                                <template v-if="proposal.processing_status == 'With Assessor' || proposal.processing_status == 'With Referral'">
+                                <template v-if="proposal.processing_status == 'With Assessor'">
                                     <div class="row">
                                         <div class="col-sm-12">
-                                            <strong>Action</strong><br/>
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-sm-12">
-                                            <button style="width:80%;" class="btn btn-primary" :disabled="proposal.can_user_edit" @click.prevent="switchStatus('with_assessor_requirements')">Enter Requirements</button><br/>
+                                            <strong>Action</strong>
                                         </div>
                                     </div>
                                     <div class="row">
                                         <div class="col-sm-12">
-                                            <button style="width:80%;" class="btn btn-primary top-buffer-s" :disabled="proposal.can_user_edit" @click.prevent="amendmentRequest()">Request Amendment</button><br/>
+                                            <button style="width:80%;" class="btn btn-primary top-buffer-s" :disabled="proposal.can_user_edit" @click.prevent="amendmentRequest()">Request Amendment</button>
                                         </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-sm-12">
-                                            <button style="width:80%;" class="btn btn-primary top-buffer-s" :disabled="proposal.can_user_edit" @click.prevent="proposedDecline()">Propose to Decline</button>
-                                        </div>
-                                    </div>
-                                </template>
-                                <template v-else-if="proposal.processing_status == 'With Assessor (Requirements)'">
-                                    <div class="row">
-                                        <div class="col-sm-12">
-                                            <strong>Action</strong><br/>
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-sm-12">
-                                            <button style="width:80%;" class="btn btn-primary" :disabled="proposal.can_user_edit" @click.prevent="switchStatus('with_assessor')">Back To Processing</button><br/>
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-sm-12">
-                                            <button style="width:80%;" class="btn btn-primary top-buffer-s" :disabled="proposal.can_user_edit" @click.prevent="proposedApproval()">Propose to Approve</button><br/>
-                                        </div>
-                                    </div>
-                                </template>
-                                <template v-else-if="proposal.processing_status == 'With Approver'">
-                                    <div class="row">
-                                        <div class="col-sm-12">
-                                            <strong>Action</strong><br/>
-                                        </div>
-                                    </div>
-
-                                    <div class="row">
-                                        <div class="col-sm-12">
-                                            <label class="control-label pull-left"  for="Name">Approver Comments</label>
-                                            <textarea class="form-control" name="name" v-model="approver_comment"></textarea><br>
-                                        </div>
-                                    </div>
-
-                                    <div class="row">
-                                        <div class="col-sm-12" v-if="proposal.proposed_decline_status">
-                                            <button style="width:80%;" class="btn btn-primary" :disabled="proposal.can_user_edit" @click.prevent="switchStatus('with_assessor')"><!-- Back To Processing -->Back To Assessor</button><br/>
-                                        </div>
-                                        <div class="col-sm-12" v-else>
-                                            <button style="width:80%;" class="btn btn-primary" :disabled="proposal.can_user_edit" @click.prevent="switchStatus('with_assessor_requirements')"><!-- Back To Requirements -->Back To Assessor</button><br/>
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <!-- v-if="!proposal.proposed_decline_status" -->
                                         <div class="col-sm-12" >
-                                            <button style="width:80%;" class="btn btn-primary top-buffer-s" :disabled="proposal.can_user_edit" @click.prevent="issueProposal()">Approve</button><br/>
+                                            <button style="width:80%;" class="btn btn-primary top-buffer-s" :disabled="proposal.can_user_edit" @click.prevent="issueProposal()">Approve</button>
                                         </div>
                                         <div class="col-sm-12">
-                                            <button style="width:80%;" class="btn btn-primary top-buffer-s" :disabled="proposal.can_user_edit" @click.prevent="declineProposal()">Decline</button><br/>
+                                            <button style="width:80%;" class="btn btn-primary top-buffer-s" :disabled="proposal.can_user_edit" @click.prevent="declineProposal()">Decline</button>
                                         </div>
                                     </div>
                                 </template>
@@ -234,7 +180,6 @@
                     <div class="col-md-12">
                         <div class="row">
                             <FormSection :formCollapse="false" label="Applicant" Index="applicant">
-                            <!--
                                 <template v-if="organisationApplicant">
                                     <form class="form-horizontal">
                                         <div class="form-group">
@@ -267,77 +212,83 @@
                                         </div>
                                     </form>
                                 </template>
-                            -->
                             </FormSection>
 
                             <FormSection :formCollapse="false" label="Address Details" Index="address_details">
-                                      <form class="form-horizontal">
-                                          <div class="form-group">
-                                            <label for="" class="col-sm-3 control-label">Street</label>
-                                            <div class="col-sm-6">
-                                                <input disabled type="text" class="form-control" name="street" placeholder="" v-model="applicantAddress.line1">
-                                            </div>
-                                          </div>
-                                          <div class="form-group">
-                                            <label for="" class="col-sm-3 control-label" >Town/Suburb</label>
-                                            <div class="col-sm-6">
-                                                <input disabled type="text" class="form-control" name="surburb" placeholder="" v-model="applicantAddress.locality">
-                                            </div>
-                                          </div>
-                                          <div class="form-group">
-                                            <label for="" class="col-sm-3 control-label">State</label>
-                                            <div class="col-sm-2">
-                                                <input disabled type="text" class="form-control" name="country" placeholder="" v-model="applicantAddress.state">
-                                            </div>
-                                            <label for="" class="col-sm-2 control-label">Postcode</label>
-                                            <div class="col-sm-2">
-                                                <input disabled type="text" class="form-control" name="postcode" placeholder="" v-model="applicantAddress.postcode">
-                                            </div>
-                                          </div>
-                                          <div class="form-group">
-                                            <label for="" class="col-sm-3 control-label" >Country</label>
-                                            <div class="col-sm-4">
-                                                <input disabled type="text" class="form-control" name="country" v-model="applicantAddress.country"/>
-                                            </div>
-                                          </div>
-                                       </form>
-
+                                <form class="form-horizontal">
+                                     <div class="form-group">
+                                         <label for="" class="col-sm-3 control-label">Street</label>
+                                         <div class="col-sm-6">
+                                             <input disabled type="text" class="form-control" name="street" placeholder="" v-model="applicantAddress.line1">
+                                         </div>
+                                     </div>
+                                     <div class="form-group">
+                                         <label for="" class="col-sm-3 control-label" >Town/Suburb</label>
+                                         <div class="col-sm-6">
+                                             <input disabled type="text" class="form-control" name="surburb" placeholder="" v-model="applicantAddress.locality">
+                                         </div>
+                                     </div>
+                                     <div class="form-group">
+                                         <label for="" class="col-sm-3 control-label">State</label>
+                                         <div class="col-sm-2">
+                                             <input disabled type="text" class="form-control" name="country" placeholder="" v-model="applicantAddress.state">
+                                         </div>
+                                         <label for="" class="col-sm-2 control-label">Postcode</label>
+                                         <div class="col-sm-2">
+                                             <input disabled type="text" class="form-control" name="postcode" placeholder="" v-model="applicantAddress.postcode">
+                                         </div>
+                                     </div>
+                                     <div class="form-group">
+                                         <label for="" class="col-sm-3 control-label" >Country</label>
+                                         <div class="col-sm-4">
+                                             <input disabled type="text" class="form-control" name="country" v-model="applicantAddress.country"/>
+                                         </div>
+                                     </div>
+                                </form>
                             </FormSection>
 
                             <FormSection :formCollapse="false" label="Contact Details" Index="contact_details">
-                                    <div v-if="organisationApplicant">
-                                        <table ref="contacts_datatable" :id="contacts_table_id" class="hover table table-striped table-bordered dt-responsive" cellspacing="0" width="100%">
-                                        </table>
-                                    </div>
-                                    <div v-else>
-                                      <form class="form-horizontal">
-                                          <div class="form-group">
+                                <div v-if="organisationApplicant">
+                                    <table ref="contacts_datatable" :id="contacts_table_id" class="hover table table-striped table-bordered dt-responsive" cellspacing="0" width="100%">
+                                    </table>
+                                </div>
+                                <div v-else>
+                                    <form class="form-horizontal">
+                                        <div class="form-group">
                                             <label for="" class="col-sm-3 control-label">Phone (work)</label>
                                             <div class="col-md-8">
                                                 <input disabled type="text" class="form-control" name="applicantWorkPhone" placeholder="" v-model="proposal.applicant_phone_number">
                                             </div>
-                                          </div>
-                                          <div class="form-group">
+                                        </div>
+                                        <div class="form-group">
                                             <label for="" class="col-sm-3 control-label" >Mobile</label>
                                             <div class="col-md-8">
                                                 <input disabled type="text" class="form-control" name="applicantMobileNumber" placeholder="" v-model="proposal.applicant_mobile_number">
                                             </div>
-                                          </div>
-                                          <div class="form-group">
+                                        </div>
+                                        <div class="form-group">
                                             <label for="" class="col-sm-3 control-label" >Email</label>
                                             <div class="col-md-8">
                                                 <input disabled type="text" class="form-control" name="applicantEmail" placeholder="" v-model="proposal.applicant_email">
                                             </div>
-                                          </div>
-                                      </form>
-                                    </div>
-
+                                        </div>
+                                    </form>
+                                </div>
                             </FormSection>
-                        </div>
-                    </div>
 
-                    <div class="col-md-12">
-                        Temp Use sections
+                            <FormSection :formCollapse="false" label="Period and Site(s)" Index="period_and_sites">
+                                Component here
+                            </FormSection>
+
+                            <FormSection :formCollapse="false" label="Temporary Occupier" Index="temporary_occupier">
+                                Component here
+                            </FormSection>
+
+                            <FormSection :formCollapse="false" label="Deed Poll" Index="deed_poll">
+                                Component here
+                            </FormSection>
+
+                        </div>
                     </div>
                 </template>
             </div>
@@ -483,9 +434,9 @@ export default {
         contactsURL: function(){
             return this.proposal!= null ? helpers.add_endpoint_json(api_endpoints.organisations,this.proposal.applicant.id+'/contacts') : '';
         },
-        referralListURL: function(){
-            return this.proposal!= null ? helpers.add_endpoint_json(api_endpoints.apiary_referrals,'datatable_list')+'?proposal='+this.proposal.id : '';
-        },
+        //referralListURL: function(){
+        //    return this.proposal!= null ? helpers.add_endpoint_json(api_endpoints.apiary_referrals,'datatable_list')+'?proposal='+this.proposal.id : '';
+        //},
         isLoading: function() {
           return this.loading.length > 0
         },
@@ -599,69 +550,81 @@ export default {
         commaToNewline(s){
             return s.replace(/[,;]/g, '\n');
         },
-        proposedDecline: function(){
-            this.save_wo();
-            this.$refs.proposed_decline.decline = this.proposal.proposaldeclineddetails != null ? helpers.copyObject(this.proposal.proposaldeclineddetails): {};
-            this.$refs.proposed_decline.isModalOpen = true;
-        },
-        proposedApproval: function(){
-            this.$refs.proposed_approval.approval = this.proposal.proposed_issuance_approval != null ? helpers.copyObject(this.proposal.proposed_issuance_approval) : {};
-            if(this.proposal.proposed_issuance_approval == null){
-                var test_approval={
-                'cc_email': this.proposal.referral_email_list
-            };
-            this.$refs.proposed_approval.approval=helpers.copyObject(test_approval);
-                // this.$refs.proposed_approval.$refs.bcc_email=this.proposal.referral_email_list;
-            }
-            //this.$refs.proposed_approval.submitter_email=helpers.copyObject(this.proposal.submitter_email);
-            // if(this.proposal.applicant.email){
-            //     this.$refs.proposed_approval.applicant_email=helpers.copyObject(this.proposal.applicant.email);
-            // }
-            this.$refs.proposed_approval.isModalOpen = true;
-        },
+        //proposedDecline: function(){
+        //    this.save_wo();
+        //    this.$refs.proposed_decline.decline = this.proposal.proposaldeclineddetails != null ? helpers.copyObject(this.proposal.proposaldeclineddetails): {};
+        //    this.$refs.proposed_decline.isModalOpen = true;
+        //},
+        //proposedApproval: function(){
+        //    this.$refs.proposed_approval.approval = this.proposal.proposed_issuance_approval != null ? helpers.copyObject(this.proposal.proposed_issuance_approval) : {};
+        //    if(this.proposal.proposed_issuance_approval == null){
+        //        var test_approval={
+        //        'cc_email': this.proposal.referral_email_list
+        //    };
+        //    this.$refs.proposed_approval.approval=helpers.copyObject(test_approval);
+        //        // this.$refs.proposed_approval.$refs.bcc_email=this.proposal.referral_email_list;
+        //    }
+        //    //this.$refs.proposed_approval.submitter_email=helpers.copyObject(this.proposal.submitter_email);
+        //    // if(this.proposal.applicant.email){
+        //    //     this.$refs.proposed_approval.applicant_email=helpers.copyObject(this.proposal.applicant.email);
+        //    // }
+        //    this.$refs.proposed_approval.isModalOpen = true;
+        //},
         issueProposal:function(){
-            //this.$refs.proposed_approval.approval = helpers.copyObject(this.proposal.proposed_issuance_approval);
+            let vm = this
+            swal({
+                title: "Approve Proposal",
+                text: "Are you sure you want to approve this proposal?",
+                type: "question",
+                showCancelButton: true,
+                confirmButtonText: 'Approve'
+            }).then(
+                () => {
+                    let post_url = helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/final_approval_temp_use')
+                    console.log(post_url)
+                    vm.$http.post(post_url, {}).then(
+                        res=>{
+                            vm.$router.push({
+                                name: 'internal-dashboard',
+                            });
+                        },
+                        err => {
 
-            //save approval level comment before opening 'issue approval' modal
-            if(this.proposal && this.proposal.processing_status == 'With Approver' && this.proposal.approval_level != null && this.proposal.approval_level_document == null){
-                if (this.proposal.approval_level_comment!='')
-                {
-                    let vm = this;
-                    let data = new FormData();
-                    data.append('approval_level_comment', vm.proposal.approval_level_comment)
-                    vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/approval_level_comment'),data,{
-                        emulateJSON:true
-                        }).then(res=>{
-                    vm.proposal = res.body;
-                    vm.refreshFromResponse(res);
-                    },err=>{
-                    console.log(err);
-                    });
+                        }
+                    );
+                },
+                err => {
+                    console.log(err)
                 }
-            }
-            if(this.isApprovalLevelDocument && this.proposal.approval_level_comment=='')
-            {
-                swal(
-                    'Error',
-                    'Please add Approval document or comments before final approval',
-                    'error'
-                )
-            }
-            else{
-            this.$refs.proposed_approval.approval = this.proposal.proposed_issuance_approval != null ? helpers.copyObject(this.proposal.proposed_issuance_approval) : {};
-            this.$refs.proposed_approval.state = 'final_approval';
-            this.$refs.proposed_approval.isApprovalLevelDocument = this.isApprovalLevelDocument;
-            //this.$refs.proposed_approval.submitter_email=helpers.copyObject(this.proposal.submitter_email);
-            // if(this.proposal.applicant.email){
-            //     this.$refs.proposed_approval.applicant_email=helpers.copyObject(this.proposal.applicant.email);
-            // }
-            this.$refs.proposed_approval.isModalOpen = true;
-            }
-
+            );
         },
         declineProposal:function(){
-            this.$refs.proposed_decline.decline = this.proposal.proposaldeclineddetails != null ? helpers.copyObject(this.proposal.proposaldeclineddetails): {};
-            this.$refs.proposed_decline.isModalOpen = true;
+            let vm = this
+            swal({
+                title: "Decline Proposal",
+                text: "Are you sure you want to decline this proposal?",
+                type: "question",
+                showCancelButton: true,
+                confirmButtonText: 'Decline'
+            }).then(
+                () => {
+                    let post_url = helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/final_decline_temp_use')
+                    console.log(post_url)
+                    vm.$http.post(post_url, {}).then(
+                        res=>{
+                            vm.$router.push({
+                                name: 'internal-dashboard',
+                            });
+                        },
+                        err => {
+
+                        }
+                    );
+                },
+                err => {
+                    console.log(err)
+                }
+            );
         },
         amendmentRequest: function(){
             this.save_wo();
@@ -814,98 +777,98 @@ export default {
                 });
             }
         },
-        switchStatus: function(status){
-            let vm = this;
-            //vm.save_wo();
-            //let vm = this;
-            if(vm.proposal.processing_status == 'With Assessor' && status == 'with_assessor_requirements'){
-            vm.checkAssessorData();
-            let formData = new FormData(vm.form);
-            vm.$http.post(vm.proposal_form_url,formData).then(res=>{ //save Proposal before changing status so that unsaved assessor data is saved.
+        //switchStatus: function(status){
+        //    let vm = this;
+        //    //vm.save_wo();
+        //    //let vm = this;
+        //    if(vm.proposal.processing_status == 'With Assessor' && status == 'with_assessor_requirements'){
+        //    vm.checkAssessorData();
+        //    let formData = new FormData(vm.form);
+        //    vm.$http.post(vm.proposal_form_url,formData).then(res=>{ //save Proposal before changing status so that unsaved assessor data is saved.
 
-            let data = {'status': status, 'approver_comment': vm.approver_comment}
-            vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,(vm.proposal.id+'/switch_status')),JSON.stringify(data),{
-                emulateJSON:true,
-            })
-            .then((response) => {
-                vm.proposal = response.body;
-                vm.original_proposal = helpers.copyObject(response.body);
-                vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
-                vm.approver_comment='';
-                vm.$nextTick(() => {
-                    vm.initialiseAssignedOfficerSelect(true);
-                    vm.updateAssignedOfficerSelect();
-                });
+        //    let data = {'status': status, 'approver_comment': vm.approver_comment}
+        //    vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,(vm.proposal.id+'/switch_status')),JSON.stringify(data),{
+        //        emulateJSON:true,
+        //    })
+        //    .then((response) => {
+        //        vm.proposal = response.body;
+        //        vm.original_proposal = helpers.copyObject(response.body);
+        //        vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
+        //        vm.approver_comment='';
+        //        vm.$nextTick(() => {
+        //            vm.initialiseAssignedOfficerSelect(true);
+        //            vm.updateAssignedOfficerSelect();
+        //        });
 
-            }, (error) => {
-                vm.proposal = helpers.copyObject(vm.original_proposal)
-                vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
-                swal(
-                    'Proposal Error',
-                    helpers.apiVueResourceError(error),
-                    'error'
-                )
-            });
+        //    }, (error) => {
+        //        vm.proposal = helpers.copyObject(vm.original_proposal)
+        //        vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
+        //        swal(
+        //            'Proposal Error',
+        //            helpers.apiVueResourceError(error),
+        //            'error'
+        //        )
+        //    });
 
-          },err=>{
-          });
-        }
+        //  },err=>{
+        //  });
+        //}
 
-        //if approver is pushing back proposal to Assessor then navigate the approver back to dashboard page
-        if(vm.proposal.processing_status == 'With Approver' && (status == 'with_assessor_requirements' || status=='with_assessor')) {
-            let data = {'status': status, 'approver_comment': vm.approver_comment}
-            vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,(vm.proposal.id+'/switch_status')),JSON.stringify(data),{
-                emulateJSON:true,
-            })
-            .then((response) => {
-                vm.proposal = response.body;
-                vm.original_proposal = helpers.copyObject(response.body);
-                vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
-                vm.approver_comment='';
-                vm.$nextTick(() => {
-                    vm.initialiseAssignedOfficerSelect(true);
-                    vm.updateAssignedOfficerSelect();
-                });
-                vm.$router.push({ path: '/internal' });
-            }, (error) => {
-                vm.proposal = helpers.copyObject(vm.original_proposal)
-                vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
-                swal(
-                    'Proposal Error',
-                    helpers.apiVueResourceError(error),
-                    'error'
-                )
-            });
+        ////if approver is pushing back proposal to Assessor then navigate the approver back to dashboard page
+        //if(vm.proposal.processing_status == 'With Approver' && (status == 'with_assessor_requirements' || status=='with_assessor')) {
+        //    let data = {'status': status, 'approver_comment': vm.approver_comment}
+        //    vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,(vm.proposal.id+'/switch_status')),JSON.stringify(data),{
+        //        emulateJSON:true,
+        //    })
+        //    .then((response) => {
+        //        vm.proposal = response.body;
+        //        vm.original_proposal = helpers.copyObject(response.body);
+        //        vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
+        //        vm.approver_comment='';
+        //        vm.$nextTick(() => {
+        //            vm.initialiseAssignedOfficerSelect(true);
+        //            vm.updateAssignedOfficerSelect();
+        //        });
+        //        vm.$router.push({ path: '/internal' });
+        //    }, (error) => {
+        //        vm.proposal = helpers.copyObject(vm.original_proposal)
+        //        vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
+        //        swal(
+        //            'Proposal Error',
+        //            helpers.apiVueResourceError(error),
+        //            'error'
+        //        )
+        //    });
 
-        }
+        //}
 
-        else{
+        //else{
 
 
-         let data = {'status': status, 'approver_comment': vm.approver_comment}
-            vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,(vm.proposal.id+'/switch_status')),JSON.stringify(data),{
-                emulateJSON:true,
-            })
-            .then((response) => {
-                vm.proposal = response.body;
-                vm.original_proposal = helpers.copyObject(response.body);
-                vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
-                vm.approver_comment='';
-                vm.$nextTick(() => {
-                    vm.initialiseAssignedOfficerSelect(true);
-                    vm.updateAssignedOfficerSelect();
-                });
-            }, (error) => {
-                vm.proposal = helpers.copyObject(vm.original_proposal)
-                vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
-                swal(
-                    'Proposal Error',
-                    helpers.apiVueResourceError(error),
-                    'error'
-                )
-            });
-            }
-        },
+        // let data = {'status': status, 'approver_comment': vm.approver_comment}
+        //    vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,(vm.proposal.id+'/switch_status')),JSON.stringify(data),{
+        //        emulateJSON:true,
+        //    })
+        //    .then((response) => {
+        //        vm.proposal = response.body;
+        //        vm.original_proposal = helpers.copyObject(response.body);
+        //        vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
+        //        vm.approver_comment='';
+        //        vm.$nextTick(() => {
+        //            vm.initialiseAssignedOfficerSelect(true);
+        //            vm.updateAssignedOfficerSelect();
+        //        });
+        //    }, (error) => {
+        //        vm.proposal = helpers.copyObject(vm.original_proposal)
+        //        vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
+        //        swal(
+        //            'Proposal Error',
+        //            helpers.apiVueResourceError(error),
+        //            'error'
+        //        )
+        //    });
+        //    }
+        //},
         fetchApiaryReferralGroups: function() {
             this.loading.push('Loading Apiary Referral Groups');
             this.$http.get(api_endpoints.apiary_referral_groups).then((response) => {
@@ -988,147 +951,147 @@ export default {
                 vm.initialisedSelects = true;
             }
         },
-        sendReferral: function(){
-            console.log("sendReferral")
-            let vm = this;
-            //vm.save_wo();
-            vm.checkAssessorData();
-            let formData = new FormData(vm.form);
-            vm.sendingReferral = true;
-            vm.$http.post(vm.proposal_form_url,formData).then(res=>{
+        //sendReferral: function(){
+        //    console.log("sendReferral")
+        //    let vm = this;
+        //    //vm.save_wo();
+        //    vm.checkAssessorData();
+        //    let formData = new FormData(vm.form);
+        //    vm.sendingReferral = true;
+        //    vm.$http.post(vm.proposal_form_url,formData).then(res=>{
 
-            let data = {'group_id':vm.selected_referral, 'text': vm.referral_text};
-            //vm.sendingReferral = true;
-            // need to create Referral, ApiaryReferral at this point
-            console.log(api_endpoints.proposal_apiary)
-            let url = helpers.add_endpoint_json(api_endpoints.proposal_apiary,(vm.proposal.proposal_apiary.id+'/apiary_assessor_send_referral'))
-            console.log(url)
-            //vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,(vm.proposal.id+'/assesor_send_referral')),JSON.stringify(data),{
-            //vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal_apiary,(vm.proposal.id+'/apiary_assessor_send_referral')),JSON.stringify(data),{
-            vm.$http.post(url,JSON.stringify(data),{
-                emulateJSON:true
-            }).then((response) => {
-                vm.sendingReferral = false;
-                vm.original_proposal = helpers.copyObject(response.body);
-                vm.proposal = response.body;
-                //vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
-                vm.proposal.relevant_applicant_address = vm.proposal.relevant_applicant_address != null ? vm.proposal.relevant_applicant_address : {};
-                swal(
-                    'Referral Sent',
-                    'The referral has been sent to '+vm.apiaryReferralGroups.find(d => d.id == vm.selected_referral).name,
-                    'success'
-                )
-                $(vm.$refs.apiaryReferralGroups).val(null).trigger("change");
-                vm.selected_referral = '';
-                vm.referral_text = '';
-            }, (error) => {
-                console.log(error);
-                swal(
-                    'Referral Error',
-                    helpers.apiVueResourceError(error),
-                    'error'
-                )
-                vm.sendingReferral = false;
-            });
+        //    let data = {'group_id':vm.selected_referral, 'text': vm.referral_text};
+        //    //vm.sendingReferral = true;
+        //    // need to create Referral, ApiaryReferral at this point
+        //    console.log(api_endpoints.proposal_apiary)
+        //    let url = helpers.add_endpoint_json(api_endpoints.proposal_apiary,(vm.proposal.proposal_apiary.id+'/apiary_assessor_send_referral'))
+        //    console.log(url)
+        //    //vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,(vm.proposal.id+'/assesor_send_referral')),JSON.stringify(data),{
+        //    //vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal_apiary,(vm.proposal.id+'/apiary_assessor_send_referral')),JSON.stringify(data),{
+        //    vm.$http.post(url,JSON.stringify(data),{
+        //        emulateJSON:true
+        //    }).then((response) => {
+        //        vm.sendingReferral = false;
+        //        vm.original_proposal = helpers.copyObject(response.body);
+        //        vm.proposal = response.body;
+        //        //vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
+        //        vm.proposal.relevant_applicant_address = vm.proposal.relevant_applicant_address != null ? vm.proposal.relevant_applicant_address : {};
+        //        swal(
+        //            'Referral Sent',
+        //            'The referral has been sent to '+vm.apiaryReferralGroups.find(d => d.id == vm.selected_referral).name,
+        //            'success'
+        //        )
+        //        $(vm.$refs.apiaryReferralGroups).val(null).trigger("change");
+        //        vm.selected_referral = '';
+        //        vm.referral_text = '';
+        //    }, (error) => {
+        //        console.log(error);
+        //        swal(
+        //            'Referral Error',
+        //            helpers.apiVueResourceError(error),
+        //            'error'
+        //        )
+        //        vm.sendingReferral = false;
+        //    });
 
 
-          },err=>{
-          });
+        //  },err=>{
+        //  });
 
-        //this.$refs.referral_comment.selected_referral = vm.selected_referral;
-        //this.$refs.referral_comment.isModalOpen = true;
+        ////this.$refs.referral_comment.selected_referral = vm.selected_referral;
+        ////this.$refs.referral_comment.isModalOpen = true;
 
-          /*  let data = {'email':vm.selected_referral};
-            vm.sendingReferral = true;
-            vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,(vm.proposal.id+'/assesor_send_referral')),JSON.stringify(data),{
-                emulateJSON:true
-            }).then((response) => {
-                vm.sendingReferral = false;
-                vm.original_proposal = helpers.copyObject(response.body);
-                vm.proposal = response.body;
-                vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
-                swal(
-                    'Referral Sent',
-                    'The referral has been sent to '+vm.department_users.find(d => d.email == vm.selected_referral).name,
-                    'success'
-                )
-                $(vm.$refs.department_users).val(null).trigger("change");
-                vm.selected_referral = '';
-            }, (error) => {
-                console.log(error);
-                swal(
-                    'Referral Error',
-                    helpers.apiVueResourceError(error),
-                    'error'
-                )
-                vm.sendingReferral = false;
-            }); */
-        },
-        remindReferral:function(r){
-            console.log(r)
-            let vm = this;
+        //  /*  let data = {'email':vm.selected_referral};
+        //    vm.sendingReferral = true;
+        //    vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,(vm.proposal.id+'/assesor_send_referral')),JSON.stringify(data),{
+        //        emulateJSON:true
+        //    }).then((response) => {
+        //        vm.sendingReferral = false;
+        //        vm.original_proposal = helpers.copyObject(response.body);
+        //        vm.proposal = response.body;
+        //        vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
+        //        swal(
+        //            'Referral Sent',
+        //            'The referral has been sent to '+vm.department_users.find(d => d.email == vm.selected_referral).name,
+        //            'success'
+        //        )
+        //        $(vm.$refs.department_users).val(null).trigger("change");
+        //        vm.selected_referral = '';
+        //    }, (error) => {
+        //        console.log(error);
+        //        swal(
+        //            'Referral Error',
+        //            helpers.apiVueResourceError(error),
+        //            'error'
+        //        )
+        //        vm.sendingReferral = false;
+        //    }); */
+        //},
+        //remindReferral:function(r){
+        //    console.log(r)
+        //    let vm = this;
 
-            vm.$http.get(helpers.add_endpoint_json(api_endpoints.apiary_referrals,r.apiary_referral.id+'/remind')).then(response => {
-                vm.original_proposal = helpers.copyObject(response.body);
-                vm.proposal = response.body;
-                vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
-                swal(
-                    'Referral Reminder',
-                    'A reminder has been sent to '+r.apiary_referral.referral_group.name,
-                    'success'
-                )
-            },
-            error => {
-                swal(
-                    'Proposal Error',
-                    helpers.apiVueResourceError(error),
-                    'error'
-                )
-            });
-        },
-        resendReferral:function(r){
-            console.log(r)
-            let vm = this;
+        //    vm.$http.get(helpers.add_endpoint_json(api_endpoints.apiary_referrals,r.apiary_referral.id+'/remind')).then(response => {
+        //        vm.original_proposal = helpers.copyObject(response.body);
+        //        vm.proposal = response.body;
+        //        vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
+        //        swal(
+        //            'Referral Reminder',
+        //            'A reminder has been sent to '+r.apiary_referral.referral_group.name,
+        //            'success'
+        //        )
+        //    },
+        //    error => {
+        //        swal(
+        //            'Proposal Error',
+        //            helpers.apiVueResourceError(error),
+        //            'error'
+        //        )
+        //    });
+        //},
+        //resendReferral:function(r){
+        //    console.log(r)
+        //    let vm = this;
 
-            vm.$http.get(helpers.add_endpoint_json(api_endpoints.apiary_referrals,r.apiary_referral.id+'/resend')).then(response => {
-                vm.original_proposal = helpers.copyObject(response.body);
-                vm.proposal = response.body;
-                vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
-                swal(
-                    'Referral Resent',
-                    'The referral has been resent to '+r.apiary_referral.referral_group.name,
-                    'success'
-                )
-            },
-            error => {
-                swal(
-                    'Proposal Error',
-                    helpers.apiVueResourceError(error),
-                    'error'
-                )
-            });
-        },
-        recallReferral:function(r){
-            console.log(r)
-            let vm = this;
-            vm.$http.get(helpers.add_endpoint_json(api_endpoints.apiary_referrals,r.apiary_referral.id+'/recall')).then(response => {
-                vm.original_proposal = helpers.copyObject(response.body);
-                vm.proposal = response.body;
-                vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
-                swal(
-                    'Referral Recall',
-                    'The referall has been recalled from '+r.apiary_referral.referral_group.name,
-                    'success'
-                )
-            },
-            error => {
-                swal(
-                    'Proposal Error',
-                    helpers.apiVueResourceError(error),
-                    'error'
-                )
-            });
-        }
+        //    vm.$http.get(helpers.add_endpoint_json(api_endpoints.apiary_referrals,r.apiary_referral.id+'/resend')).then(response => {
+        //        vm.original_proposal = helpers.copyObject(response.body);
+        //        vm.proposal = response.body;
+        //        vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
+        //        swal(
+        //            'Referral Resent',
+        //            'The referral has been resent to '+r.apiary_referral.referral_group.name,
+        //            'success'
+        //        )
+        //    },
+        //    error => {
+        //        swal(
+        //            'Proposal Error',
+        //            helpers.apiVueResourceError(error),
+        //            'error'
+        //        )
+        //    });
+        //},
+        //recallReferral:function(r){
+        //    console.log(r)
+        //    let vm = this;
+        //    vm.$http.get(helpers.add_endpoint_json(api_endpoints.apiary_referrals,r.apiary_referral.id+'/recall')).then(response => {
+        //        vm.original_proposal = helpers.copyObject(response.body);
+        //        vm.proposal = response.body;
+        //        vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
+        //        swal(
+        //            'Referral Recall',
+        //            'The referall has been recalled from '+r.apiary_referral.referral_group.name,
+        //            'success'
+        //        )
+        //    },
+        //    error => {
+        //        swal(
+        //            'Proposal Error',
+        //            helpers.apiVueResourceError(error),
+        //            'error'
+        //        )
+        //    });
+        //}
 
     },
     mounted: function() {
