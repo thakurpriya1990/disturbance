@@ -13,7 +13,7 @@
                                 :to_date="apiary_temporary_use.to_date"
                                 :from_date_enabled="from_date_enabled"
                                 :to_date_enabled="to_date_enabled"
-                                :apiary_sites_available="apiary_temporary_use.temporary_use_apiary_sites"
+                                :temporary_use_apiary_sites="apiary_temporary_use.temporary_use_apiary_sites"
                                 :existing_temporary_uses="existing_temporary_uses"
                                 @from_date_changed="fromDateChanged"
                                 @to_date_changed="toDateChanged"
