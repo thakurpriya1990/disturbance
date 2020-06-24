@@ -211,7 +211,7 @@
 
         },
         mounted: function() {
-            let vm = this;
+            //let vm = this;
             this.component_site_selection_key = uuid()
             //vm.form = document.forms.new_proposal;
             //window.addEventListener('beforeunload', vm.leaving);
