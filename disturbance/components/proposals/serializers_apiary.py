@@ -152,6 +152,7 @@ class ApiarySiteOptimisedSerializer(serializers.ModelSerializer):
             'proposal_apiary_id',
             'site_category_id',
             'coordinates',
+            'status'
         )
 
 

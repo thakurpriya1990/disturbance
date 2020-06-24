@@ -9,7 +9,13 @@
                     :dtOptions="dtOptions"
                     :dtHeaders="dtHeaders"
                 />
+                <template v-if="show_view_all_features_button">
+                    <div class="button_row">
+                        <span class="view_all_button" @click="displayAllFeatures">View All On Map</span>
+                    </div>
+                </template>
             </div>
+
             <div class="col-sm-6">
                 <ComponentMap 
                     ref="component_map"
@@ -36,13 +42,53 @@
                 }
             },
             is_external:{
-              type: Boolean,
-              default: false
+                type: Boolean,
+                default: false,
             },
             is_internal:{
-              type: Boolean,
-              default: false
+                type: Boolean,
+                default: false,
             },
+            show_col_id: {
+                type: Boolean,
+                default: false,
+            },
+            show_col_checkbox: {
+                type: Boolean,
+                default: true,
+            },
+            show_col_site: {
+                type: Boolean,
+                default: true,
+            },
+            show_col_longitude: {
+                type: Boolean,
+                default: false,
+            },
+            show_col_latitude: {
+                type: Boolean,
+                default: false,
+            },
+            show_col_district: {
+                type: Boolean,
+                default: false,
+            },
+            show_col_status: {
+                type: Boolean,
+                default: false,
+            },
+            show_col_previous_site_holder: {
+                type: Boolean,
+                default: false,
+            },
+            show_col_action: {
+                type: Boolean,
+                default: true,
+            },
+            show_view_all_features_button: {
+                type: Boolean,
+                default: true,
+            }
         },
         watch: {
 
@@ -56,6 +102,11 @@
                     'Id',
                     '',
                     'Site',
+                    'Longitude',
+                    'Latitude',
+                    'District',
+                    'Status',
+                    'Previous Site Holder/Applicant',
                     'Action',
                 ],
                 dtOptions: {
@@ -72,28 +123,69 @@
                     processing: true,
                     columns: [
                         {
-                            visible: false,
-                            mRender: function (data, type, full) {
-                                return full.id;
+                            // Id (database id)
+                            visible: vm.show_col_id,
+                            mRender: function (data, type, apiary_site) {
+                                return apiary_site.id;
                             }
                         },
                         {
-                            mRender: function (data, type, full) {
-                                if (full.selected){
-                                    return '<input type="checkbox" class="site_checkbox" data-apiary-site-id="' + full.id + '" checked/>'
+                            // Checkbox
+                            visible: vm.show_col_checkbox,
+                            mRender: function (data, type, apiary_site) {
+                                if (apiary_site.selected){
+                                    return '<input type="checkbox" class="site_checkbox" data-apiary-site-id="' + apiary_site.id + '" checked/>'
                                 } else {
-                                    return '<input type="checkbox" class="site_checkbox" data-apiary-site-id="' + full.id + '" />'
+                                    return '<input type="checkbox" class="site_checkbox" data-apiary-site-id="' + apiary_site.id + '" />'
                                 }
                             }
                         },
                         {
-                            mRender: function (data, type, full) {
-                                return 'site:' + full.id
+                            // Site
+                            visible: vm.show_col_site,
+                            mRender: function (data, type, apiary_site) {
+                                return 'site:' + apiary_site.id
                             }
                         },
                         {
+                            // Longitude
+                            visible: vm.show_col_longitude,
+                            mRender: function (data, type, apiary_site){
+                                return 'lng'
+                            }
+                        },
+                        {
+                            // Latitude
+                            visible: vm.show_col_latitude,
+                            mRender: function (data, type, apiary_site){
+                                return 'lat'
+                            }
+                        },
+                        {
+                            // District
+                            visible: vm.show_col_district,
+                            mRender: function (data, type, apiary_site){
+                                return 'dist'
+                            }
+                        },
+                        {
+                            // Status
+                            visible: vm.show_col_status,
+                            mRender: function (data, type, apiary_site){
+                                return 'status'
+                            }
+                        },
+                        {
+                            // Previous Site Holder/Applicant
+                            visible: vm.show_col_previous_site_holder,
+                            mRender: function (data, type, apiary_site){
+                                return 'holder'
+                            }
+                        },
+                        {
+                            // Action
                             mRender: function (data, type, apiary_site) {
-                                //let ret = '<a><span class="view_on_map" data-apiary-site-id="' + full.id + '"/>View on Map</span></a>';
+                                //let ret = '<a><span class="view_on_map" data-apiary-site-id="' + apiary_site.id + '"/>View on Map</span></a>';
                                 //return ret;
 
                                 let action_list = []
@@ -147,6 +239,9 @@
 
         },
         methods: {
+            displayAllFeatures: function(){
+                this.$refs.component_map.displayAllFeatures()
+            },
             addApiarySitesToMap: function(apiary_sites) {
                 for (let i=0; i<apiary_sites.length; i++){
                     this.apiary_site_geojson_array.push(apiary_sites[i].as_geojson)
@@ -209,6 +304,7 @@
                 });
             },
             zoomOnApiarySite: function(e) {
+                console.log(e)
                 let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
                 this.$refs.component_map.zoomToApiarySiteById(apiary_site_id)
             },
@@ -219,5 +315,13 @@
 <style lang="css" scoped>
 .component-site-selection {
     border: solid 2px #5BB;
+}
+.button_row {
+    display: flex;
+    justify-content: flex-end;
+}
+.view_all_button {
+    color: #03a9f4;
+    cursor: pointer;
 }
 </style>
