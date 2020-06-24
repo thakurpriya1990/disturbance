@@ -1185,6 +1185,12 @@ class Proposal(RevisionedMixin):
             except:
                 raise
 
+    def final_approval_temp_use(self, request):
+        raise NotImplementedError
+
+    def final_decline_temp_use(self, request):
+        raise NotImplementedError
+
     def final_approval(self,request,details):
         from disturbance.components.approvals.models import Approval
         with transaction.atomic():
