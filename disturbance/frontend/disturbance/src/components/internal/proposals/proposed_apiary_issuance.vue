@@ -85,7 +85,7 @@
 
                 <template v-if="approval && approval.apiary_sites">
                     <ComponentSiteSelection
-                        :apiary_sites_with_selection="approval.apiary_sites"
+                        :apiary_sites="approval.apiary_sites"
                     />
                 </template>
 

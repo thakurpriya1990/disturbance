@@ -26,7 +26,7 @@
         </div></div>
 
         <ComponentSiteSelection
-            :apiary_sites_with_selection="apiary_sites"
+            :apiary_sites="apiary_sites"
             :is_internal="false"
             :is_external="true"
             :key="component_site_selection_key"

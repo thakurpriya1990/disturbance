@@ -214,7 +214,7 @@
                 <FormSection :formCollapse="false" label="Site(s)" Index="site_avaiability">
                     <template v-if="approval && approval.id">
                         <ComponentSiteSelection
-                            :apiary_sites_with_selection="approval.apiary_sites"
+                            :apiary_sites="approval.apiary_sites"
                         />
                     </template>
                 </FormSection>
