@@ -35,7 +35,7 @@
 
     export default {
         props:{
-            apiary_sites_with_selection: {
+            apiary_sites: {
                 type: Array,
                 default: function(){
                     return [];
@@ -97,7 +97,8 @@
             let vm = this;
             return{
                 component_map_key: '',
-                apiary_site_geojson_array: [],
+                apiary_site_geojson_array: [],  // This is passed to the ComponentMap as props
+                default_checkbox_checked: false,  // If checked property isn't set as a apiary_site's property, this default value is used
                 dtHeaders: [
                     'Id',
                     '',
@@ -133,7 +134,7 @@
                             // Checkbox
                             visible: vm.show_col_checkbox,
                             mRender: function (data, type, apiary_site) {
-                                if (apiary_site.selected){
+                                if (apiary_site.checked){
                                     return '<input type="checkbox" class="site_checkbox" data-apiary-site-id="' + apiary_site.id + '" checked/>'
                                 } else {
                                     return '<input type="checkbox" class="site_checkbox" data-apiary-site-id="' + apiary_site.id + '" />'
@@ -227,8 +228,9 @@
             let vm = this;
             this.$nextTick(() => {
                 vm.addEventListeners();
+                this.ensureCheckedStatus();
                 this.constructApiarySitesTable();
-                this.addApiarySitesToMap(this.apiary_sites_with_selection)
+                this.addApiarySitesToMap(this.apiary_sites)
             });
         },
         components: {
@@ -239,6 +241,19 @@
 
         },
         methods: {
+            ensureCheckedStatus: function() {
+                if (this.apiary_sites.length > 0){
+                    for(let i=0; i<this.apiary_sites.length; i++){
+                        if (!this.apiary_sites[i].hasOwnProperty('checked')){
+                            this.apiary_sites[i].checked = this.default_checkbox_checked
+                        }
+                    }
+                }
+            },
+            checkboxClicked: function(e){
+                console.log('in checkboxClicked')
+                console.log(e)
+            },
             displayAllFeatures: function(){
                 this.$refs.component_map.displayAllFeatures()
             },
@@ -255,24 +270,36 @@
                 this.$refs.table_apiary_site.vmDataTable.clear().draw();
 
                 // Construct table
-                if (this.apiary_sites_with_selection.length > 0){
-                    for(let i=0; i<this.apiary_sites_with_selection.length; i++){
-                        this.addApiarySiteToTable(this.apiary_sites_with_selection[i]);
+                if (this.apiary_sites.length > 0){
+                    for(let i=0; i<this.apiary_sites.length; i++){
+                        this.addApiarySiteToTable(this.apiary_sites[i]);
                     }
                 }
             },
-            addApiarySiteToTable: function(apiary_site_with_selection) {
-                this.$refs.table_apiary_site.vmDataTable.row.add(apiary_site_with_selection).draw();
+            addApiarySiteToTable: function(apiary_site) {
+                this.$refs.table_apiary_site.vmDataTable.row.add(apiary_site).draw();
             },
             addEventListeners: function () {
-                $("#table-apiary-site").on("click", ".view_on_map", this.zoomOnApiarySite);
-                $("#table-apiary-site").on("click", ".toggle_availability", this.toggleAvailability);
+                $("#table-apiary-site").on("click", ".view_on_map", this.zoomOnApiarySite)
+                $("#table-apiary-site").on("click", ".toggle_availability", this.toggleAvailability)
+                $('#table-apiary-site').on('click', 'input[type="checkbox"]', this.checkboxClicked)
             },
             updateApiarySite: function(site_updated) {
                 // Update internal apiary_site data
-                for (let i=0; i<this.apiary_sites_with_selection.length; i++){
-                    if (this.apiary_sites_with_selection[i].id == site_updated.id){
-                        this.apiary_sites_with_selection[i].available = site_updated.available
+                for (let i=0; i<this.apiary_sites.length; i++){
+                    if (this.apiary_sites[i].id == site_updated.id){
+                        this.apiary_sites[i].available = site_updated.available
+                    }
+                }
+            },
+            checkboxClicked: function(e) {
+                let vm = this;
+                let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
+                let checked_status = e.target.checked
+                console.log(apiary_site_id)
+                for (let i=0; i<this.apiary_sites.length; i++){
+                    if (this.apiary_sites[i].id == apiary_site_id){
+                        this.apiary_sites[i].checked = checked_status
                     }
                 }
             },
@@ -297,11 +324,6 @@
                         )
                     }
                 );
-            },
-            emitContentsChangedEvent: function () {
-                this.$emit('contents_changed', {
-
-                });
             },
             zoomOnApiarySite: function(e) {
                 console.log(e)
