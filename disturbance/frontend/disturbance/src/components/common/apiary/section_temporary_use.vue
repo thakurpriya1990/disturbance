@@ -53,6 +53,7 @@
                     'From',
                     'To',
                     'Site(s)',
+                    'Status',
                     'Temporary Occupier',
                     'Deed Poll',
                 ],
@@ -94,6 +95,11 @@
                                     }
                                 }
                                 return ret_str
+                            }
+                        },
+                        {
+                            mRender: function (data, type, full) {
+                                return full.customer_status;
                             }
                         },
                         {

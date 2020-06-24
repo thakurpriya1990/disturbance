@@ -107,6 +107,7 @@
                 from_date_enabled: true,
                 to_date_enabled: true,
                 isSubmitting: false,
+                proposal: null,
                 apiary_temporary_use: {
                     id: null,
                     from_date: null,
@@ -302,6 +303,8 @@
                 Vue.http.get(`/api/proposal/${proposal_id}.json`).then(re => {
                     console.log('in loadProposal');
                     console.log(re.body)
+
+                    vm.proposal = re.body
 
                     //let temp_use = re.body.apiary_temporary_use
                     vm.apiary_temporary_use = re.body.apiary_temporary_use

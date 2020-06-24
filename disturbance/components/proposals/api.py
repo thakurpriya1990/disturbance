@@ -1368,6 +1368,20 @@ class ProposalViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(str(e))
 
     @detail_route(methods=['POST',])
+    @basic_exception_handler
+    def final_approval_temp_use(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.final_approval_temp_use(request,)
+        return Response({})
+
+    @detail_route(methods=['POST',])
+    @basic_exception_handler
+    def final_decline_temp_use(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.final_decline_temp_use(request,)
+        return Response({})
+
+    @detail_route(methods=['POST',])
     def final_approval(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
