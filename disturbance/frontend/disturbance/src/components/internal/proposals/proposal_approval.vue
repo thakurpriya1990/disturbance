@@ -14,6 +14,10 @@
         <template v-if="proposal.proposal_apiary">
             <FormSection :formCollapse="false" label="Site(s)" Index="sites">
                 <ComponentSiteSelection 
+                    :apiary_sites="apiary_sites"
+                    :is_internal="true"
+                    :is_external="false"
+                    :key="component_site_selection_key"
 
                 />
             </FormSection>
@@ -137,6 +141,7 @@ import datatable from '@vue-utils/datatable.vue'
 import RequirementDetail from './proposal_add_requirement.vue'
 import ComponentSiteSelection from '@/components/common/apiary/component_site_selection.vue'
 import FormSection from "@/components/forms/section_toggle.vue"
+import uuid from 'uuid'
 
 export default {
     name: 'InternalProposalRequirements',
@@ -149,6 +154,7 @@ export default {
             proposedDecision: "proposal-decision-"+vm._uid,
             proposedLevel: "proposal-level-"+vm._uid,
             uploadedFile: null,
+            component_site_selection_key: '',
         }
     },
     watch:{
@@ -166,6 +172,11 @@ export default {
         },
         isApprovalLevel:function(){
             return this.proposal.approval_level != null ? true : false;
+        },
+        apiary_sites: function() {
+            if (this.proposal && this.proposal.proposal_apiary) {
+                return this.proposal.proposal_apiary.apiary_sites;
+            }
         },
     },
     methods:{
@@ -240,6 +251,7 @@ export default {
     },
     mounted: function(){
         let vm = this;
+        this.component_site_selection_key = uuid()
     }
 }
 </script>

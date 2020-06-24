@@ -102,7 +102,7 @@ from disturbance.components.proposals.serializers_apiary import (
     DTApiaryReferralSerializer,
     FullApiaryReferralSerializer,
     ProposalHistorySerializer,
-
+    UserApiaryApprovalSerializer,
 )
 from disturbance.components.approvals.models import Approval
 from disturbance.components.approvals.serializers import ApprovalSerializer
@@ -553,6 +553,34 @@ class ProposalApiaryViewSet(viewsets.ModelViewSet):
         serializer_class = self.internal_apiary_serializer_class()
         serializer = serializer_class(instance.proposal,context={'request':request})
         return Response(serializer.data)
+
+    @detail_route(methods=['POST', ])
+    def get_apiary_approvals(self, request, *args, **kwargs):
+        try:
+            #instance = self.get_object()
+            user = None
+            user_qs = []
+            if request.data.get('user_email'):
+                user_qs = EmailUser.objects.filter(email=request.data.get('user_email'))
+                if user_qs:
+                    user = user_qs[0]
+                    serializer = UserApiaryApprovalSerializer(
+                            user,
+                            context={'request': request})
+                    return Response(serializer.data)
+            # Fallback if no email address found
+            #return Response({'error': 'Email address not known'})
+            return Response('Email address not known')
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
 
 
 class ApiaryReferralViewSet(viewsets.ModelViewSet):
@@ -1585,7 +1613,8 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 details_data = {
                     'proposal_id': proposal_obj.id
                 }
-                if application_type.name == ApplicationType.APIARY:
+                #if application_type.name == ApplicationType.APIARY:
+                if application_type.name in (ApplicationType.APIARY, ApplicationType.SITE_TRANSFER):
                     serializer = SaveProposalApiarySerializer(data=details_data)
                     serializer.is_valid(raise_exception=True)
                     proposal_apiary = serializer.save()
@@ -1630,10 +1659,10 @@ class ProposalViewSet(viewsets.ModelViewSet):
                         serializer.is_valid(raise_exception=True)
                         serializer.save()
 
-                elif application_type.name == ApplicationType.SITE_TRANSFER:
-                    serializer = ProposalApiarySiteTransferSerializer(data=details_data)
-                    serializer.is_valid(raise_exception=True)
-                    serializer.save()
+                #elif application_type.name == ApplicationType.SITE_TRANSFER:
+                #    serializer = ProposalApiarySiteTransferSerializer(data=details_data)
+                #    serializer.is_valid(raise_exception=True)
+                #    serializer.save()
                 else:
                     pass
 
