@@ -1,83 +1,83 @@
 <template lang="html">
     <div>
 
-            <span class="row col-sm-12">
-                <div class="col-sm-4 form-group">
-                    <label class="inline">Title:</label>
-                    <input
-                        type="text"
-                        class="form-control"
-                        v-model="proposal.proposal_apiary.title"
-                        :readonly="readonly"
-                    />
-                </div>
-            </span>
-
-            <span class="row col-sm-12">
-                Mark the location of the new proposed site either by entering the latitude and longitude or by clicking the location in the map.
-            </span>
-
-            <div class="row col-sm-12">
-                <div class="col-sm-4 form-group">
-                    <label class="inline">Latitude:</label>
-                    <input
-                        type="number"
-                        min="-90"
-                        max="90"
-                        class="form-control"
-                        v-model.number="proposal.proposal_apiary.latitude"
-                        :readonly="readonly"
-                    />
-                </div>
+        <span class="row col-sm-12">
+            <div class="col-sm-4 form-group">
+                <label class="inline">Title:</label>
+                <input
+                    type="text"
+                    class="form-control"
+                    v-model="proposal.proposal_apiary.title"
+                    :readonly="readonly"
+                />
             </div>
+        </span>
 
-            <div class="row col-sm-12">
-                <div class="col-sm-4 form-group">
-                    <label class="inline">Longitude:</label>
-                    <input
-                        type="number"
-                        min="-180"
-                        max="180"
-                        class="form-control"
-                        v-model.number="proposal.proposal_apiary.longitude"
-                        :readonly="readonly"
-                    />
-                    <template v-if="!readonly">
-                        <input type="button" @click="tryCreateNewSiteFromForm" value="Add proposed site" class="btn btn-primary">
-                    </template>
-                </div>
+        <span class="row col-sm-12">
+            Mark the location of the new proposed site either by entering the latitude and longitude or by clicking the location in the map.
+        </span>
+
+        <div class="row col-sm-12">
+            <div class="col-sm-4 form-group">
+                <label class="inline">Latitude:</label>
+                <input
+                    type="number"
+                    min="-90"
+                    max="90"
+                    class="form-control"
+                    v-model.number="proposal.proposal_apiary.latitude"
+                    :readonly="readonly"
+                />
             </div>
+        </div>
 
-            <template v-if="proposal && proposal.proposal_apiary">
-                <div class="row col-sm-12 debug-info">
+        <div class="row col-sm-12">
+            <div class="col-sm-4 form-group">
+                <label class="inline">Longitude:</label>
+                <input
+                    type="number"
+                    min="-180"
+                    max="180"
+                    class="form-control"
+                    v-model.number="proposal.proposal_apiary.longitude"
+                    :readonly="readonly"
+                />
+                <template v-if="!readonly">
+                    <input type="button" @click="tryCreateNewSiteFromForm" value="Add proposed site" class="btn btn-primary">
+                </template>
+            </div>
+        </div>
+
+        <template v-if="proposal && proposal.proposal_apiary">
+            <div class="row col-sm-12 debug-info">
+                <div>
+                    Category:
+                    <select v-model="current_category" class="form-group">
+                        <option value="south_west">South West</option>
+                        <option value="remote">Remote</option>
+                    </select>
+                </div>
+
+                Remainders:
+                <div v-for="remainder in proposal.proposal_apiary.site_remainders" class="debug-remainders">
                     <div>
-                        Category:
-                        <select v-model="current_category" class="form-group">
-                            <option value="south_west">South West</option>
-                            <option value="remote">Remote</option>
-                        </select>
-                    </div>
-
-                    Remainders:
-                    <div v-for="remainder in proposal.proposal_apiary.site_remainders" class="debug-remainders">
-                        <div>
-                            {{ remainder.category_name }}: {{ remainder.remainders }} left (${{ remainder.fee }}/site)
-                        </div>
+                        {{ remainder.category_name }}: {{ remainder.remainders }} left (${{ remainder.fee }}/site)
                     </div>
                 </div>
-            </template>
-
-            <div class="row col-sm-12">
-                <datatable ref="site_locations_table" id="site-locations-table" :dtOptions="dtOptions" :dtHeaders="dtHeaders" />
             </div>
+        </template>
 
-            <div id="map" class="map"></div>
+        <div class="row col-sm-12">
+            <datatable ref="site_locations_table" id="site-locations-table" :dtOptions="dtOptions" :dtHeaders="dtHeaders" />
+        </div>
 
-            <div class="row col-sm-12">
-                <label>
-                    Click <a @click="existingSiteAvailableClicked">here</a> if you are interested in existing sites that are available by the site licence holder.
-                </label>
-            </div>
+        <div id="map" class="map"></div>
+
+        <div class="row col-sm-12">
+            <label>
+                Click <a @click="existingSiteAvailableClicked">here</a> if you are interested in existing sites that are available by the site licence holder.
+            </label>
+        </div>
 
         <SiteLocationsModal ref="site_locations_modal" />
 
@@ -362,20 +362,23 @@
             },
             constructSiteLocationsTable: function(){
                 console.log('in constructSiteLocationTable')
-                // Clear table
-                this.$refs.site_locations_table.vmDataTable.clear().draw();
 
-                // Get all the features drawn
-                let features = this.drawingLayerSource.getFeatures()
-                console.log('features.length: ' + features.length)
+                if (this.drawingLayerSource){
+                    // Clear table
+                    this.$refs.site_locations_table.vmDataTable.clear().draw();
 
-                // Insert data into the table
-                for(let i=0; i<features.length; i++){
-                    this.$refs.site_locations_table.vmDataTable.row.add(features[i]).draw();
-                    console.log('site_category: ' + features[i].get('site_category'));
+                    // Get all the features drawn
+                    let features = this.drawingLayerSource.getFeatures()
+                    console.log('features.length: ' + features.length)
+
+                    // Insert data into the table
+                    for(let i=0; i<features.length; i++){
+                        this.$refs.site_locations_table.vmDataTable.row.add(features[i]).draw();
+                        console.log('site_category: ' + features[i].get('site_category'));
+                    }
+
+                    this.calculateRemainders(features)
                 }
-
-                this.calculateRemainders(features)
                 // Update proposal obj, which is sent to the server when save/submit.
                 //this.proposal.proposal_apiary.apiary_sites = features
                 //this.updateApiarySitesData()
@@ -606,12 +609,24 @@
                 return true;
             },
         },
+        created: function() {
+            this.$http.get('/api/apiary_site/list_existing/?proposal_id=' + this.proposal.id + '/')
+            .then(
+                res => {
+                    console.log('existing: ')
+                    console.log(res.body)
+                },
+                err => {
+
+                }
+            )
+        },
         mounted: function() {
             console.log('mounted')
             let vm = this;
 
-            vm.initMap();
             this.$nextTick(() => {
+                vm.initMap();
                 vm.addEventListeners();
             });
 
