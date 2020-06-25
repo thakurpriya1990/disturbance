@@ -377,6 +377,7 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
             site_location_data = sc.get('proposal_apiary', None)
 
             if site_location_data:
+                # New apairy site application
                 serializer = ProposalApiarySerializer(proposal_obj.proposal_apiary, data=site_location_data)
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
@@ -440,6 +441,7 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
             #save Temporary Use data
             temporary_use_data = request.data.get('apiary_temporary_use', None)
             if temporary_use_data:
+                # Temporary Use Application
                 apiary_temporary_use_obj = ProposalApiaryTemporaryUse.objects.get(id=request.data.get('apiary_temporary_use')['id'])
                 apiary_temporary_use_data = request.data.get('apiary_temporary_use')
                 update_proposal_apiary_temporary_use(apiary_temporary_use_obj, apiary_temporary_use_data)
