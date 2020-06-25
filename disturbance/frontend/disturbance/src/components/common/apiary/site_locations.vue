@@ -362,20 +362,23 @@
             },
             constructSiteLocationsTable: function(){
                 console.log('in constructSiteLocationTable')
-                // Clear table
-                this.$refs.site_locations_table.vmDataTable.clear().draw();
 
-                // Get all the features drawn
-                let features = this.drawingLayerSource.getFeatures()
-                console.log('features.length: ' + features.length)
+                if (this.drawingLayerSource){
+                    // Clear table
+                    this.$refs.site_locations_table.vmDataTable.clear().draw();
 
-                // Insert data into the table
-                for(let i=0; i<features.length; i++){
-                    this.$refs.site_locations_table.vmDataTable.row.add(features[i]).draw();
-                    console.log('site_category: ' + features[i].get('site_category'));
+                    // Get all the features drawn
+                    let features = this.drawingLayerSource.getFeatures()
+                    console.log('features.length: ' + features.length)
+
+                    // Insert data into the table
+                    for(let i=0; i<features.length; i++){
+                        this.$refs.site_locations_table.vmDataTable.row.add(features[i]).draw();
+                        console.log('site_category: ' + features[i].get('site_category'));
+                    }
+
+                    this.calculateRemainders(features)
                 }
-
-                this.calculateRemainders(features)
                 // Update proposal obj, which is sent to the server when save/submit.
                 //this.proposal.proposal_apiary.apiary_sites = features
                 //this.updateApiarySitesData()
@@ -607,7 +610,7 @@
             },
         },
         created: function() {
-            vm.$http.get('/api/apiary_site/list_existing/?proposal_id=' + vm.proposal.id + '/')
+            this.$http.get('/api/apiary_site/list_existing/?proposal_id=' + this.proposal.id + '/')
             .then(
                 res => {
                     console.log('existing: ')
