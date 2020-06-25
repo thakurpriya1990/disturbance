@@ -1,13 +1,21 @@
 <template>
-    <div>
+    <div class="row">
+        <div class="col-md-3">
+            <h3>Application: {{ proposal.lodgement_number }}</h3>
+            <h4>Temporary Use</h4>
+        </div>
 
-        <div>
-            <SectionsProposalTemporaryUse
-                :proposalId="proposalId"
-                :is_internal="false"
-                :is_external="true"
-                :proposal="proposal"
-            />
+        <div class="col-md-1">
+        </div>
+
+        <div class="col-md-8 sections-proposal-temporary-use">
+            <div>
+                <SectionsProposalTemporaryUse
+                    :is_internal="false"
+                    :is_external="true"
+                    :proposal="proposal"
+                />
+            </div>
         </div>
 
         <div style="margin-bottom: 50px">
@@ -35,7 +43,7 @@
     import SectionsProposalTemporaryUse from '@/components/common/apiary/sections_proposal_temporary_use.vue'
     
     export default {
-        name: 'InternalProposalTemporaryUse',
+        name: 'ExternalProposalTemporaryUse',
         props: {
             is_external: {
                 type: Boolean,
@@ -233,3 +241,8 @@
         }
     }
 </script>
+<style>
+.sections-proposal-temporary-use {
+    margin: 0 0 4em 0;
+}
+</style>
