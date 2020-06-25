@@ -316,17 +316,14 @@
                 }
 
                 let buffer = new Feature(circular(coords, 3000, 16));
+                buffer.setId(id)
                 this.bufferLayerSource.addFeature(buffer);
             },
             removeBufferForSite: function(site){
-                console.log('in removeBufferForSite')
-                console.log(site)
                 let buffer = this.bufferLayerSource.getFeatureById(site.getId() + "_buffer");
                 this.bufferLayerSource.removeFeature(buffer);
             },
-
             existingSiteAvailableClicked: function() {
-                console.log('existingSiteAvailableClicked');
                 alert("TODO: open screen 45: External - Contact Holder of Available Site in a different tab page.");
             },
             calculateRemainders: function(features){
@@ -404,7 +401,7 @@
                 let myFeature = this.drawingLayerSource.getFeatureById(site_location_guid)
 
                 // Remove buffer
-                //this.removeBufferForSite(myFeature)
+                this.removeBufferForSite(myFeature)
 
                 this.drawingLayerSource.removeFeature(myFeature);
 
