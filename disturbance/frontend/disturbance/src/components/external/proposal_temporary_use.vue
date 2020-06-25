@@ -8,7 +8,7 @@
         <div class="col-md-1">
         </div>
 
-        <div class="col-md-8">
+        <div class="col-md-8 sections-proposal-temporary-use">
             <div>
                 <SectionsProposalTemporaryUse
                     :is_internal="false"
@@ -241,3 +241,8 @@
         }
     }
 </script>
+<style>
+.sections-proposal-temporary-use {
+    margin: 0 0 4em 0;
+}
+</style>
