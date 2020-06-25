@@ -11,21 +11,24 @@
 
         <div :class="apiary_sections_classname">
             <FormSection :formCollapse="false" label="Site Locations" Index="site_locations">
-                <ComponentSiteSelection
-                    :apiary_sites="apiary_sites"
-                    :is_internal="is_internal"
-                    :is_external="is_external"
-                    :key="component_site_selection_key"
-                  />
-
-                <!--SiteLocations
-                    :proposal="proposal"
-                    id="site_locations"
-                    ref="apiary_site_locations"
-                    :is_external="is_external"
-                    :is_internal="is_internal"
-                    @button_text="button_text"
-                /-->
+                <template v-if="is_internal">
+                    <ComponentSiteSelection
+                        :apiary_sites="apiary_sites"
+                        :is_internal="is_internal"
+                        :is_external="is_external"
+                        :key="component_site_selection_key"
+                      />
+                </template>
+                <template v-if="is_external">
+                    <SiteLocations
+                        :proposal="proposal"
+                        id="site_locations"
+                        ref="apiary_site_locations"
+                        :is_external="is_external"
+                        :is_internal="is_internal"
+                        @button_text="button_text"
+                    />
+                </template>
             </FormSection>
 
             <FormSection :formCollapse="false" label="Deed Poll" Index="deed_poll">
@@ -78,6 +81,7 @@
     import ComponentSiteSelection from '@/components/common/apiary/component_site_selection.vue'
     import FileField from '@/components/forms/filefield_immediate.vue'
     import FormSection from "@/components/forms/section_toggle.vue"
+    import SiteLocations from '@/components/common/apiary/site_locations.vue'
     import uuid from 'uuid'
     import {
         api_endpoints,
@@ -133,7 +137,7 @@
             }
         },
         components: {
-            //SiteLocations,
+            SiteLocations,
             ComponentSiteSelection,
             FileField,
             FormSection,

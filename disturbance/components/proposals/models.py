@@ -2518,6 +2518,7 @@ class ApiarySite(models.Model):
         (STATUS_DENIED, 'denied'),
         (STATUS_VACANT, 'vacant'),
     )
+    NON_RESTRICTIVE_STATUSES = (STATUS_DRAFT, STATUS_VACANT,)
 
     #TODO - this should link to Proposal, not ProposalApiary
     #proposal = models.ForeignKey(Proposal, null=True, blank=True, related_name='apiary_sites')

@@ -39,7 +39,7 @@ import {
 }
 from '@/utils/hooks'
 export default {
-    name: 'ProposalWrapper',
+    name: 'InternalProposalWrapper',
     data() {
         let vm = this;
         return {

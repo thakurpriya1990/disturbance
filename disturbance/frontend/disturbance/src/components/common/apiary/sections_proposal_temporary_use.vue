@@ -1,73 +1,65 @@
 <template>
-    <div class="container" id="externalApproval">
-        <div class="row">
-            <div class="col-sm-12">
-                <div class="row">
+    <div>
 
-                    <FormSection :formCollapse="false" label="Period and Site(s)" Index="period_and_sites">
-                        <template v-if="apiary_temporary_use">
-                            <PeriodAndSites 
-                                :is_external=is_external 
-                                :is_internal=is_internal 
-                                :from_date="apiary_temporary_use.from_date"
-                                :to_date="apiary_temporary_use.to_date"
-                                :from_date_enabled="from_date_enabled"
-                                :to_date_enabled="to_date_enabled"
-                                :temporary_use_apiary_sites="apiary_temporary_use.temporary_use_apiary_sites"
-                                :existing_temporary_uses="existing_temporary_uses"
-                                @from_date_changed="fromDateChanged"
-                                @to_date_changed="toDateChanged"
-                                @site_checkbox_clicked="siteCheckboxClicked"
-                                :key="period_and_sites_key"
-                            />
-                        </template>
-                    </FormSection>
+        <FormSection :formCollapse="false" label="Period and Site(s)" Index="period_and_sites">
+            <template v-if="apiary_temporary_use">
+                <PeriodAndSites 
+                    :is_external=is_external 
+                    :is_internal=is_internal 
+                    :from_date="apiary_temporary_use.from_date"
+                    :to_date="apiary_temporary_use.to_date"
+                    :from_date_enabled="from_date_enabled"
+                    :to_date_enabled="to_date_enabled"
+                    :temporary_use_apiary_sites="apiary_temporary_use.temporary_use_apiary_sites"
+                    :existing_temporary_uses="existing_temporary_uses"
+                    @from_date_changed="fromDateChanged"
+                    @to_date_changed="toDateChanged"
+                    @site_checkbox_clicked="siteCheckboxClicked"
+                    :key="period_and_sites_key"
+                />
+            </template>
+        </FormSection>
 
-                    <FormSection :formCollapse="false" label="Temporary Occupier" Index="temporary_occupier">
-                        <template v-if="apiary_temporary_use">
-                            <TemporaryOccupier 
-                                :is_external=is_external 
-                                :is_internal=is_internal 
-                                :name=apiary_temporary_use.temporary_occupier_name
-                                :phone=apiary_temporary_use.temporary_occupier_phone
-                                :mobile=apiary_temporary_use.temporary_occupier_mobile
-                                :email=apiary_temporary_use.temporary_occupier_email
-                                @contents_changed="occupierDataChanged"
-                                :key="temporary_occupier_key"
-                            />
-                        </template>
-                    </FormSection>
+        <FormSection :formCollapse="false" label="Temporary Occupier" Index="temporary_occupier">
+            <template v-if="apiary_temporary_use">
+                <TemporaryOccupier 
+                    :is_external=is_external 
+                    :is_internal=is_internal 
+                    :name=apiary_temporary_use.temporary_occupier_name
+                    :phone=apiary_temporary_use.temporary_occupier_phone
+                    :mobile=apiary_temporary_use.temporary_occupier_mobile
+                    :email=apiary_temporary_use.temporary_occupier_email
+                    @contents_changed="occupierDataChanged"
+                    :key="temporary_occupier_key"
+                />
+            </template>
+        </FormSection>
 
-                    <FormSection :formCollapse="false" label="Deed Poll" Index="deed_poll">
-                        <template v-if="apiary_temporary_use && documentActionUrl">
-                            <DeedPoll
-                                :isRepeatable="false"
-                                :isReadonly="is_internal"
-                                :documentActionUrl="documentActionUrl"
-                            />
-                        </template>
-                    </FormSection>
+        <FormSection :formCollapse="false" label="Deed Poll" Index="deed_poll">
+            <template v-if="apiary_temporary_use && documentActionUrl">
+                <DeedPoll
+                    :isRepeatable="false"
+                    :isReadonly="is_internal"
+                    :documentActionUrl="documentActionUrl"
+                />
+            </template>
+        </FormSection>
 
-                </div>
-            </div>
-        </div>
-
-        <div>
-            <div class="row" style="margin-bottom: 50px">
-                <div class="navbar navbar-fixed-bottom" style="background-color: #f5f5f5 ">
-                    <div class="navbar-inner">
-                        <div class="container">
-                            <p class="pull-right" style="margin-top:5px;">
-                                <input type="button" @click.prevent="save_exit" class="btn btn-primary" value="Save and Exit"/>
-                                <input type="button" @click.prevent="save" class="btn btn-primary" value="Save and Continue"/>
-                                <input v-if="!isSubmitting" type="button" @click.prevent="submit" class="btn btn-primary" value="Submit"/>
-                                <button v-else disabled class="btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Submitting</button>
-                            </p>
-                        </div>
+        <div style="margin-bottom: 50px">
+            <div class="navbar navbar-fixed-bottom" style="background-color: #f5f5f5 ">
+                <div class="navbar-inner">
+                    <div class="container">
+                        <p class="pull-right" style="margin-top:5px;">
+                            <input type="button" @click.prevent="save_exit" class="btn btn-primary" value="Save and Exit"/>
+                            <input type="button" @click.prevent="save" class="btn btn-primary" value="Save and Continue"/>
+                            <input v-if="!isSubmitting" type="button" @click.prevent="submit" class="btn btn-primary" value="Submit"/>
+                            <button v-else disabled class="btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Submitting</button>
+                        </p>
                     </div>
                 </div>
             </div>
         </div>
+
     </div>
 </template>
 
@@ -318,12 +310,6 @@
                         vm.apiary_temporary_use.to_date = moment(vm.apiary_temporary_use.to_date, 'YYYY-MM-DD');
                         console.log(vm.apiary_temporary_use.to_date);
                     }
-                    //vm.apiary_temporary_use.to_date = moment('06/05/2020', 'DD/MM/YYYY');
-                   // vm.apiary_temporary_use.id = temp_use.id
-                   // vm.apiary_temporary_use.temporary_occupier_name = temp_use.temporary_occupier_name
-                   // vm.apiary_temporary_use.temporary_occupier_phone = temp_use.temporary_occupier_phone
-                   // vm.apiary_temporary_use.temporary_occupier_mobile = temp_use.temporary_occupier_mobile
-                   // vm.apiary_temporary_use.temporary_occupier_email = temp_use.temporary_occupier_email
 
                     // Update PeriodAndSites component
                     vm.period_and_sites_key = uuid();
