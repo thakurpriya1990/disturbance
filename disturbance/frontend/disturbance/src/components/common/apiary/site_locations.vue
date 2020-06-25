@@ -164,17 +164,16 @@
                 help_text: 'My Help text ...',
                 marker_lng: null,
                 marker_lat: null,
-                //site_locations: [],
                 deed_poll_url: '',
-                
+
                 // variables for the GIS
                 map: null,
                 apiarySitesQuerySource: null,
                 apiarySitesQueryLayer: null,
                 bufferedSites: null,
-                drawingLayerSource: null,
+                drawingLayerSource:  new VectorSource(),
                 drawingLayer: null,
-                bufferLayerSource: null,
+                bufferLayerSource: new VectorSource(),
                 bufferLayer: null,
                 //
 
@@ -383,13 +382,6 @@
                 //this.proposal.proposal_apiary.apiary_sites = features
                 //this.updateApiarySitesData()
             },
-            //updateApiarySitesData: function() {
-            //    console.log('in getFeatures')
-            //    let allFeatures = this.drawingLayerSource.getFeatures()
-            //    console.log(allFeatures)
-            //    this.proposal.proposal_apiary.apiary_sites = allFeatures
-            //    //this.proposal.sites_edited = allFeatures
-            //},
             getFeatures: function() {
                 let allFeatures = this.drawingLayerSource.getFeatures()
                 return allFeatures
@@ -470,7 +462,7 @@
                 });
 
                 // In memory vector layer for digitization
-                vm.drawingLayerSource = new VectorSource();
+                //vm.drawingLayerSource = new VectorSource();
                 vm.drawingLayerSource.on('addfeature', function(e){
                     console.log('in addfeature')
                     console.log(e.feature)
@@ -499,7 +491,7 @@
 
                 // In memory vector layer for buffer
 
-                vm.bufferLayerSource = new VectorSource();
+                //vm.bufferLayerSource = new VectorSource();
                 vm.bufferLayer = new VectorLayer({
                     source: vm.bufferLayerSource,
                     minZoom: 11,
@@ -610,7 +602,7 @@
             },
         },
         created: function() {
-            this.$http.get('/api/apiary_site/list_existing/?proposal_id=' + this.proposal.id + '/')
+            this.$http.get('/api/apiary_site/list_existing/?proposal_id=' + this.proposal.id)
             .then(
                 res => {
                     console.log('existing: ')
@@ -654,7 +646,6 @@
             }
 
             this.constructSiteLocationsTable();
-            //this.updateApiarySitesData()
         }
     }
 </script>
