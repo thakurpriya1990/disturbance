@@ -106,11 +106,8 @@
     import { getDistance } from 'ol/sphere';
     import { circular} from 'ol/geom/Polygon';
     import GeoJSON from 'ol/format/GeoJSON';
-
-    import geo_data from "../../../assets/apiary_data.json"
-
+    //import geo_data from "../../../assets/apiary_data.json"
     import TextField from '@/components/forms/text.vue'
-    //import FileField from '@/components/forms/filefield.vue'
     import datatable from '@vue-utils/datatable.vue'
     import uuid from 'uuid';
     import SiteLocationsModal from './site_locations_modal';
@@ -168,13 +165,14 @@
 
                 // variables for the GIS
                 map: null,
-                apiarySitesQuerySource: null,
+                apiarySitesQuerySource: new VectorSource(),
                 apiarySitesQueryLayer: null,
                 bufferedSites: null,
                 drawingLayerSource:  new VectorSource(),
                 drawingLayer: null,
                 bufferLayerSource: new VectorSource(),
                 bufferLayer: null,
+                existing_sites_feature_collection: null,
                 //
 
                 dtHeaders: [
@@ -274,21 +272,28 @@
                 return coords[0].toFixed(6) + ', ' + coords[1].toFixed(6);
             },
             metersToNearest: function(coords, filter) {
+                // Infinity is the distance to the nearest apiary_site as default
+                // Which means we it is fine to put apiary_site at the coords
                 let candidates = [Number.POSITIVE_INFINITY];
 
+                // Retrieve the nearest apiary site from the drawingLayerSource
                 let nearestDrawnSite = this.drawingLayerSource.getClosestFeatureToCoordinate(coords, filter);
                 if (nearestDrawnSite != null) {
                     candidates.push(getDistance(coords, nearestDrawnSite.getGeometry().getCoordinates()));
                 }
 
+                // Retrieve the nearest apiary site from the existing apiary_sites
                 let nearestQuerySite = this.apiarySitesQuerySource.getClosestFeatureToCoordinate(coords, filter);
                 if (nearestQuerySite != null) {
-                    candidates.push(getDistance(coords, nearestQuerySite.getGeometry().getCoordinates()[0]));
+                    candidates.push(getDistance(coords, nearestQuerySite.getGeometry().getCoordinates()));
                 }
 
                 let min = candidates[0];
                 for (let i = 1; i < candidates.length; i++) {
-                    min = Math.min(min, candidates[i]);
+                    // Ignore NaN
+                    if (!isNaN(candidates[i])){
+                        min = Math.min(min, candidates[i]);
+                    }
                 }
                 return min;
             },
@@ -406,9 +411,7 @@
                 this.constructSiteLocationsTable();
             },
             initMap: function() {
-                console.log('default data from the file')
-                console.log(geo_data)
-
+                console.log('initMap start')
                 let vm = this;
 
                 vm.map = new Map({
@@ -424,9 +427,6 @@
                         zoom: 7,
                         projection: 'EPSG:4326'
                     })
-                });
-                vm.apiarySitesQuerySource = new VectorSource({
-                    features: (new GeoJSON()).readFeatures(geo_data)
                 });
                 vm.apiarySitesQueryLayer = new VectorLayer({
                     source: vm.apiarySitesQuerySource,
@@ -537,7 +537,8 @@
                             let feature = attributes.feature;
                             feature.setId(vm.uuidv4());
                             feature.set("source", "draw");
-                            feature.set('site_category', vm.current_category) // For now, we add category, either south_west/remote to the feature according to the selection of the UI
+                            feature.set('site_category', vm.current_category) // For now, we add category, either south_west/remote to the feature 
+                                                                              //according to the selection of the UI
                             feature.getGeometry().on("change", function() {
                                 console.log("Start Modify feature: " + feature.getId());
 
@@ -545,7 +546,6 @@
                                     modifyInProgressList.push(feature);
                                 }
                             });
-                            console.log("New Feature: " + feature.getId());
                             vm.createBufferForSite(feature);
                             // Vue table is updated by the event 'addfeature' issued from the Source
                         }
@@ -573,6 +573,7 @@
                     });
                     vm.map.addInteraction(modifyTool);
                 }
+                console.log('initMap end')
             },  // End: initMap()
             tryCreateNewSiteFromForm: function()
             {
@@ -602,19 +603,24 @@
             },
         },
         created: function() {
+            console.log('created start')
+            let vm = this
             this.$http.get('/api/apiary_site/list_existing/?proposal_id=' + this.proposal.id)
             .then(
                 res => {
                     console.log('existing: ')
                     console.log(res.body)
+                    vm.existing_sites_feature_collection = res.body
+                    vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(vm.existing_sites_feature_collection))
                 },
                 err => {
 
                 }
             )
+            console.log('created end')
         },
         mounted: function() {
-            console.log('mounted')
+            console.log('mounted start')
             let vm = this;
 
             this.$nextTick(() => {
@@ -646,6 +652,7 @@
             }
 
             this.constructSiteLocationsTable();
+            console.log('mounted end')
         }
     }
 </script>
