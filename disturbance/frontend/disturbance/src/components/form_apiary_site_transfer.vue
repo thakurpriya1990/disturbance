@@ -141,6 +141,7 @@
     }from '@/utils/hooks'
 
     export default {
+        name: 'ApiarySiteTransferForm',
         props:{
             proposal:{
                 type: Object,

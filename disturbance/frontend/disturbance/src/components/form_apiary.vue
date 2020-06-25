@@ -92,6 +92,7 @@
     }from '@/utils/hooks'
 
     export default {
+        name: 'ApiaryForm',
         props:{
             proposal:{
                 type: Object,
