@@ -392,16 +392,29 @@
                     <div class="col-md-12">
                         <div class="row">
                             <form :action="proposal_form_url" method="post" name="new_proposal" enctype="multipart/form-data">
+                                <div v-if="proposal && proposal.application_type=='Apiary'">
 
-                                <ApiaryForm
-                                v-if="proposal" 
-                                :proposal="proposal" 
-                                id="proposalStart" 
-                                ref="proposal_apiary" 
-                                :is_external="false" 
-                                :is_internal="true" 
-                                :hasAssessorMode="hasAssessorMode"
-                                />
+                                    <ApiaryForm
+                                        v-if="proposal"
+                                        :proposal="proposal"
+                                        id="proposalStart"
+                                        ref="apiary_form"
+                                        :hasAssessorMode="hasAssessorMode"
+                                        :is_external="false" 
+                                        :is_internal="true" 
+                                    />
+                                </div>
+                                <div v-else-if="proposal && proposal.application_type=='Site Transfer'">
+                                    <ApiarySiteTransfer
+                                        v-if="proposal"
+                                        :proposal="proposal"
+                                        id="proposalStart"
+                                        ref="site_transfer"
+                                        :hasAssessorMode="hasAssessorMode"
+                                        :is_external="false" 
+                                        :is_internal="true" 
+                                    />
+                                </div>
 
                                 <div>
                                     <input type="hidden" name="csrfmiddlewaretoken" :value="csrf_token"/>
@@ -460,6 +473,7 @@ import ApiaryReferralsForProposal from '@common-utils/apiary/apiary_referrals_fo
 import ResponsiveDatatablesHelper from "@/utils/responsive_datatable_helper.js"
 import { api_endpoints, helpers } from '@/utils/hooks'
 import MapLocations from '@common-utils/map_locations.vue'
+import ApiarySiteTransfer from '@/components/form_apiary_site_transfer.vue'
 
 import FileField from '@/components/forms/filefield.vue'
 
@@ -549,9 +563,8 @@ export default {
         ApiaryReferralsForProposal,
         NewApply,
         MapLocations,
-
         FileField,
-
+        ApiarySiteTransfer,
     },
     filters: {
         formatDate: function(data){

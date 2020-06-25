@@ -105,6 +105,7 @@ class ApiaryApplicantChecklistQuestionSerializer(serializers.ModelSerializer):
         fields=('id',
                 'text',
                 'answer_type',
+                'checklist_type',
                 'order'
                 )
 

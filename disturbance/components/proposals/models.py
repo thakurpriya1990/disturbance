@@ -2117,7 +2117,7 @@ class ProposalApiary(models.Model):
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     # required for Site Transfer applications
     transferee = models.ForeignKey(EmailUser, blank=True, null=True, related_name='apiary_transferee')
-    loaning_approval = models.ForeignKey('disturbance.Approval', blank=True, null=True)
+    sending_approval = models.ForeignKey('disturbance.Approval', blank=True, null=True)
     ###
 
     # @property
@@ -2222,7 +2222,12 @@ class ProposalApiary(models.Model):
         from disturbance.components.approvals.models import Approval
         with transaction.atomic():
             try:
-                approval = self.retrieve_approval if self.retrieve_approval else None
+                approval = None
+                if self.proposal.approval_type == 'Apiary':
+                    approval = self.retrieve_approval
+                elif self.proposal.approval_type == 'Site Transfer':
+                    approval = self.proposal.approval
+
                 #approval = None
                 #approval = self.retrieve_approval()
                 created = None
@@ -2687,11 +2692,20 @@ class ApiaryApplicantChecklistQuestion(models.Model):
     ANSWER_TYPE_CHOICES = (
         ('yes_no', 'Yes/No type'),
     )
+    CHECKLIST_TYPE_CHOICES = (
+        ('apiary', 'Apiary'),
+        ('site_transfer', 'Site Transfer'),
+    )
     text = models.TextField()
     answer_type = models.CharField('Answer Type',
                                    max_length=30,
                                    choices=ANSWER_TYPE_CHOICES,
                                    default=ANSWER_TYPE_CHOICES[0][0])
+    checklist_type = models.CharField('Checklist Type',
+                                   max_length=30,
+                                   choices=CHECKLIST_TYPE_CHOICES,
+                                   #default=ANSWER_TYPE_CHOICES[0][0]
+                                   )
     order = models.PositiveIntegerField(default=1)
 
     def __str__(self):
