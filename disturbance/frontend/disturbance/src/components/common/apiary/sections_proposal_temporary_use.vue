@@ -139,7 +139,6 @@
         },
         methods:{
             occupierDataChanged: function(value){
-                console.log('ahoahoaho')
                 this.proposal.apiary_temporary_use.temporary_occupier_name = value.occupier_name
                 this.proposal.apiary_temporary_use.temporary_occupier_phone = value.occupier_phone
                 this.proposal.apiary_temporary_use.temporary_occupier_mobile = value.occupier_mobile

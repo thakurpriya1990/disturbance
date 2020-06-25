@@ -10,7 +10,7 @@
         <div v-if="apiaryApplication">
             <ProposalApiary :proposalId="proposalId"/>
         </div>
-        <div v-if="temporaryUseApplication">
+        <div v-else-if="temporaryUseApplication">
             <ProposalTemporaryUse :proposalId="proposalId" />
         </div>
         <div v-else>
