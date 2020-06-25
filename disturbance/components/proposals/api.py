@@ -853,7 +853,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             #import ipdb; ipdb.set_trace()
             #application_type = Proposal.objects.get(id=self.kwargs.get('pk')).application_type.name
             application_type = self.get_object().application_type.name
-            if application_type == ApplicationType.APIARY:
+            if application_type in (ApplicationType.APIARY, ApplicationType.SITE_TRANSFER):
                 return ApiaryInternalProposalSerializer
                 #return InternalProposalSerializer
             else:
@@ -1636,7 +1636,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                     serializer = SaveProposalApiarySerializer(data=details_data)
                     serializer.is_valid(raise_exception=True)
                     proposal_apiary = serializer.save()
-                    for question in ApiaryApplicantChecklistQuestion.objects.all():
+                    for question in ApiaryApplicantChecklistQuestion.objects.filter(checklist_type='apiary'):
                         new_answer = ApiaryApplicantChecklistAnswer.objects.create(proposal = proposal_apiary,
                                                                                    question = question)
                 elif application_type.name == ApplicationType.SITE_TRANSFER:
@@ -1647,7 +1647,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                     serializer = SaveProposalApiarySerializer(data=details_data)
                     serializer.is_valid(raise_exception=True)
                     proposal_apiary = serializer.save()
-                    for question in ApiaryApplicantChecklistQuestion.objects.all():
+                    for question in ApiaryApplicantChecklistQuestion.objects.filter(checklist_type='site_transfer'):
                         new_answer = ApiaryApplicantChecklistAnswer.objects.create(proposal = proposal_apiary,
                                                                                    question = question)
                     # Save ApiarySites
