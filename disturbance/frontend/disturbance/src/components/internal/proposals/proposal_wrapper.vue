@@ -7,10 +7,10 @@
         <ReturnDashTable level='external' :url='returns_url'/>
     </div-->
     <div v-if="proposalId">
-        <div v-if="apiaryApplication">
+        <div v-if="apiaryGroupApplication">
             <ProposalApiary :proposalId="proposalId"/>
         </div>
-        <div v-if="temporaryUseApplication">
+        <div v-else-if="temporaryUseApplication">
             <ProposalTemporaryUse :proposalId="proposalId" />
         </div>
         <div v-else>
@@ -67,9 +67,10 @@ export default {
     },
     watch: {},
     computed: {
-        apiaryApplication: function() {
+        apiaryGroupApplication: function() {
             let retVal = false;
-            if (this.applicationTypeName === 'Apiary'){
+            //if (this.applicationTypeName === 'Apiary'){
+            if (['Apiary', 'Site Transfer'].includes(this.applicationTypeName)) {
                 retVal = true;
             }
             return retVal;
