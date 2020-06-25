@@ -377,6 +377,7 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
             site_location_data = sc.get('proposal_apiary', None)
 
             if site_location_data:
+                # New apairy site application
                 serializer = ProposalApiarySerializer(proposal_obj.proposal_apiary, data=site_location_data)
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
@@ -390,8 +391,13 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                 site_ids_existing = [site.id for site in ApiarySite.objects.filter(proposal_apiary_id=site_location_data['id'])]
                 site_ids_delete = [id for id in site_ids_existing if id not in site_ids_received]
 
+                # Handle ApiarySites here
                 for index, feature in enumerate(site_locations_received):
                     feature['proposal_apiary_id'] = proposal_obj.proposal_apiary.id
+
+                    if viewset.action == 'submit':
+                        # When this function is called for the 'submit', we want to the apiary_sites' status 'suspended'
+                        feature['status'] = ApiarySite.STATUS_SUSPENDED
 
                     try:
                         # Update existing
@@ -421,6 +427,7 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                     )
                     apiary_site_obj.wkb_geometry = geom_str
                     apiary_site_obj.save()
+                # END: Handle ApiarySites
 
                 for new_answer in site_location_data['checklist_answers']:
                     ans = ApiaryApplicantChecklistAnswer.objects.get(id=new_answer['id'])
@@ -434,6 +441,7 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
             #save Temporary Use data
             temporary_use_data = request.data.get('apiary_temporary_use', None)
             if temporary_use_data:
+                # Temporary Use Application
                 apiary_temporary_use_obj = ProposalApiaryTemporaryUse.objects.get(id=request.data.get('apiary_temporary_use')['id'])
                 apiary_temporary_use_data = request.data.get('apiary_temporary_use')
                 update_proposal_apiary_temporary_use(apiary_temporary_use_obj, apiary_temporary_use_data)

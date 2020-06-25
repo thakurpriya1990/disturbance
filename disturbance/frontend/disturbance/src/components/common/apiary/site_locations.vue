@@ -106,11 +106,8 @@
     import { getDistance } from 'ol/sphere';
     import { circular} from 'ol/geom/Polygon';
     import GeoJSON from 'ol/format/GeoJSON';
-
-    import geo_data from "../../../assets/apiary_data.json"
-
+    //import geo_data from "../../../assets/apiary_data.json"
     import TextField from '@/components/forms/text.vue'
-    //import FileField from '@/components/forms/filefield.vue'
     import datatable from '@vue-utils/datatable.vue'
     import uuid from 'uuid';
     import SiteLocationsModal from './site_locations_modal';
@@ -164,18 +161,18 @@
                 help_text: 'My Help text ...',
                 marker_lng: null,
                 marker_lat: null,
-                //site_locations: [],
                 deed_poll_url: '',
-                
+
                 // variables for the GIS
                 map: null,
-                apiarySitesQuerySource: null,
+                apiarySitesQuerySource: new VectorSource(),
                 apiarySitesQueryLayer: null,
                 bufferedSites: null,
-                drawingLayerSource: null,
+                drawingLayerSource:  new VectorSource(),
                 drawingLayer: null,
-                bufferLayerSource: null,
+                bufferLayerSource: new VectorSource(),
                 bufferLayer: null,
+                existing_sites_feature_collection: null,
                 //
 
                 dtHeaders: [
@@ -275,21 +272,28 @@
                 return coords[0].toFixed(6) + ', ' + coords[1].toFixed(6);
             },
             metersToNearest: function(coords, filter) {
+                // Infinity is the distance to the nearest apiary_site as default
+                // Which means we it is fine to put apiary_site at the coords
                 let candidates = [Number.POSITIVE_INFINITY];
 
+                // Retrieve the nearest apiary site from the drawingLayerSource
                 let nearestDrawnSite = this.drawingLayerSource.getClosestFeatureToCoordinate(coords, filter);
                 if (nearestDrawnSite != null) {
                     candidates.push(getDistance(coords, nearestDrawnSite.getGeometry().getCoordinates()));
                 }
 
+                // Retrieve the nearest apiary site from the existing apiary_sites
                 let nearestQuerySite = this.apiarySitesQuerySource.getClosestFeatureToCoordinate(coords, filter);
                 if (nearestQuerySite != null) {
-                    candidates.push(getDistance(coords, nearestQuerySite.getGeometry().getCoordinates()[0]));
+                    candidates.push(getDistance(coords, nearestQuerySite.getGeometry().getCoordinates()));
                 }
 
                 let min = candidates[0];
                 for (let i = 1; i < candidates.length; i++) {
-                    min = Math.min(min, candidates[i]);
+                    // Ignore NaN
+                    if (!isNaN(candidates[i])){
+                        min = Math.min(min, candidates[i]);
+                    }
                 }
                 return min;
             },
@@ -312,17 +316,14 @@
                 }
 
                 let buffer = new Feature(circular(coords, 3000, 16));
+                buffer.setId(id)
                 this.bufferLayerSource.addFeature(buffer);
             },
             removeBufferForSite: function(site){
-                console.log('in removeBufferForSite')
-                console.log(site)
                 let buffer = this.bufferLayerSource.getFeatureById(site.getId() + "_buffer");
                 this.bufferLayerSource.removeFeature(buffer);
             },
-
             existingSiteAvailableClicked: function() {
-                console.log('existingSiteAvailableClicked');
                 alert("TODO: open screen 45: External - Contact Holder of Available Site in a different tab page.");
             },
             calculateRemainders: function(features){
@@ -383,13 +384,6 @@
                 //this.proposal.proposal_apiary.apiary_sites = features
                 //this.updateApiarySitesData()
             },
-            //updateApiarySitesData: function() {
-            //    console.log('in getFeatures')
-            //    let allFeatures = this.drawingLayerSource.getFeatures()
-            //    console.log(allFeatures)
-            //    this.proposal.proposal_apiary.apiary_sites = allFeatures
-            //    //this.proposal.sites_edited = allFeatures
-            //},
             getFeatures: function() {
                 let allFeatures = this.drawingLayerSource.getFeatures()
                 return allFeatures
@@ -407,16 +401,14 @@
                 let myFeature = this.drawingLayerSource.getFeatureById(site_location_guid)
 
                 // Remove buffer
-                //this.removeBufferForSite(myFeature)
+                this.removeBufferForSite(myFeature)
 
                 this.drawingLayerSource.removeFeature(myFeature);
 
                 this.constructSiteLocationsTable();
             },
             initMap: function() {
-                console.log('default data from the file')
-                console.log(geo_data)
-
+                console.log('initMap start')
                 let vm = this;
 
                 vm.map = new Map({
@@ -432,9 +424,6 @@
                         zoom: 7,
                         projection: 'EPSG:4326'
                     })
-                });
-                vm.apiarySitesQuerySource = new VectorSource({
-                    features: (new GeoJSON()).readFeatures(geo_data)
                 });
                 vm.apiarySitesQueryLayer = new VectorLayer({
                     source: vm.apiarySitesQuerySource,
@@ -470,7 +459,7 @@
                 });
 
                 // In memory vector layer for digitization
-                vm.drawingLayerSource = new VectorSource();
+                //vm.drawingLayerSource = new VectorSource();
                 vm.drawingLayerSource.on('addfeature', function(e){
                     console.log('in addfeature')
                     console.log(e.feature)
@@ -499,7 +488,7 @@
 
                 // In memory vector layer for buffer
 
-                vm.bufferLayerSource = new VectorSource();
+                //vm.bufferLayerSource = new VectorSource();
                 vm.bufferLayer = new VectorLayer({
                     source: vm.bufferLayerSource,
                     minZoom: 11,
@@ -545,7 +534,8 @@
                             let feature = attributes.feature;
                             feature.setId(vm.uuidv4());
                             feature.set("source", "draw");
-                            feature.set('site_category', vm.current_category) // For now, we add category, either south_west/remote to the feature according to the selection of the UI
+                            feature.set('site_category', vm.current_category) // For now, we add category, either south_west/remote to the feature 
+                                                                              //according to the selection of the UI
                             feature.getGeometry().on("change", function() {
                                 console.log("Start Modify feature: " + feature.getId());
 
@@ -553,7 +543,6 @@
                                     modifyInProgressList.push(feature);
                                 }
                             });
-                            console.log("New Feature: " + feature.getId());
                             vm.createBufferForSite(feature);
                             // Vue table is updated by the event 'addfeature' issued from the Source
                         }
@@ -581,6 +570,7 @@
                     });
                     vm.map.addInteraction(modifyTool);
                 }
+                console.log('initMap end')
             },  // End: initMap()
             tryCreateNewSiteFromForm: function()
             {
@@ -610,19 +600,24 @@
             },
         },
         created: function() {
-            this.$http.get('/api/apiary_site/list_existing/?proposal_id=' + this.proposal.id + '/')
+            console.log('created start')
+            let vm = this
+            this.$http.get('/api/apiary_site/list_existing/?proposal_id=' + this.proposal.id)
             .then(
                 res => {
                     console.log('existing: ')
                     console.log(res.body)
+                    vm.existing_sites_feature_collection = res.body
+                    vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(vm.existing_sites_feature_collection))
                 },
                 err => {
 
                 }
             )
+            console.log('created end')
         },
         mounted: function() {
-            console.log('mounted')
+            console.log('mounted start')
             let vm = this;
 
             this.$nextTick(() => {
@@ -654,7 +649,7 @@
             }
 
             this.constructSiteLocationsTable();
-            //this.updateApiarySitesData()
+            console.log('mounted end')
         }
     }
 </script>
