@@ -102,7 +102,7 @@ from disturbance.components.proposals.serializers_apiary import (
     DTApiaryReferralSerializer,
     FullApiaryReferralSerializer,
     ProposalHistorySerializer,
-    UserApiaryApprovalSerializer,
+    UserApiaryApprovalSerializer, ApiarySiteGeojsonSerializer,
 )
 from disturbance.components.approvals.models import Approval
 from disturbance.components.approvals.serializers import ApprovalSerializer
@@ -428,6 +428,25 @@ class OnSiteInformationViewSet(viewsets.ModelViewSet):
 class ApiarySiteViewSet(viewsets.ModelViewSet):
     queryset = ApiarySite.objects.all()
     serializer_class = ApiarySiteSerializer
+
+    @list_route(methods=['GET',])
+    @basic_exception_handler
+    def list_existing(self, request):
+        q_objects = Q()
+
+        proposal_id = request.query_params.get('proposal_id', 0)
+        if proposal_id:
+            # WHen proposal_id is passed as a query_params, which is the one in the URL after the ?
+            # Exculde the apiary_sites under the proposal
+            proposal = Proposal.objects.get(id=proposal_id)
+            q_objects |= Q(proposal_apiary=proposal.proposal_apiary)
+        q_objects |= Q(status__in=ApiarySite.NON_RESTRICTIVE_STATUSES)
+        q_objects |= Q(wkb_geometry=None)
+        q_objects |= Q(proposal_apiary=None)
+
+        qs = ApiarySite.objects.all().exclude(q_objects)
+        serializer = ApiarySiteGeojsonSerializer(qs, many=True)
+        return Response(serializer.data)
 
     @basic_exception_handler
     def partial_update(self, request, *args, **kwargs):
