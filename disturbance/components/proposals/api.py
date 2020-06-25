@@ -813,7 +813,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         try:
             application_type = self.get_object().application_type.name
-            if application_type == ApplicationType.APIARY:
+            if application_type in (ApplicationType.APIARY, ApplicationType.SITE_TRANSFER):
                 return ProposalApiaryTypeSerializer
             else:
                 return ProposalSerializer
