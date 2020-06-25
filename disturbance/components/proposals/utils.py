@@ -470,7 +470,9 @@ def update_proposal_apiary_temporary_use(temp_use_obj, temp_use_data):
 
     # Update TemporaryUseApiarySite
     for item in temp_use_data['temporary_use_apiary_sites']:
+        item['selected'] = item['apiary_site']['checked']
         tuas_obj = TemporaryUseApiarySite.objects.get(id=item['id'])
+
         serializer = TemporaryUseApiarySiteSerializer(tuas_obj, data=item)
         serializer.is_valid(raise_exception=True)
         serializer.save()
