@@ -59,6 +59,7 @@ from disturbance.components.proposals.models import (
     ApiaryReferralGroup,
     ProposalApiary,
     ApiaryReferral,
+    SiteTransferApiarySite,
 )
 from disturbance.components.proposals.serializers import (
     SendReferralSerializer,
@@ -1651,12 +1652,18 @@ class ProposalViewSet(viewsets.ModelViewSet):
                         new_answer = ApiaryApplicantChecklistAnswer.objects.create(proposal = proposal_apiary,
                                                                                    question = question)
                     # Save ApiarySites
-                    for apiary_site in approval.apiary_sites.all():
-                        new_apiary_site = deepcopy(apiary_site)
-                        new_apiary_site.id = None
-                        new_apiary_site.approval = None
-                        new_apiary_site.proposal_apiary = proposal_apiary
-                        new_apiary_site.save()
+                    checked_apiary_sites = request.data.get('apiary_sites_minimal')
+                    for apiary_site in approval.apiary_sites.filter(id__in=checked_apiary_sites):
+                        SiteTransferApiarySite.objects.create(
+                                proposal_apiary=proposal_apiary,
+                                apiary_site=apiary_site
+                                )
+                    #for apiary_site in approval.apiary_sites.all():
+                    #    new_apiary_site = deepcopy(apiary_site)
+                    #    new_apiary_site.id = None
+                    #    new_apiary_site.approval = None
+                    #    new_apiary_site.proposal_apiary = proposal_apiary
+                    #    new_apiary_site.save()
 
                 elif application_type.name == ApplicationType.TEMPORARY_USE:
                     approval_id = request.data.get('approval_id')

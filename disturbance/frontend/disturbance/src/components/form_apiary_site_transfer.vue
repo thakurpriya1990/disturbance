@@ -46,8 +46,8 @@
                         </div>
                         <div v-else-if="apiaryApprovals">
                             <div v-for="approval in apiaryApprovals">
-                                <input type="radio" name="approval_choice" :value="approval.id" v-model="selectedLicence"/>
-                                Licence: {{approval.id}}
+                                <input type="radio" name="approval_choice" :value="approval.id" v-model="proposal.proposal_apiary.selected_licence"/>
+                                Licence: {{approval.lodgement_number}}
                             </div>
                             <!--ul class="list-unstyled col-sm-12" v-for="approval in apiaryApprovals">
                                 <div class="row">
@@ -190,7 +190,7 @@
                 //apiaryApprovals: {},
                 apiaryApprovals: null,
                 lookupErrorText: '',
-                selectedLicence: null,
+                //selectedLicence: null,
                 component_site_selection_key: '',
             }
         },
@@ -249,10 +249,32 @@
 
             },
             apiary_sites: function() {
+                let sites = []
+                if (this.proposal && this.proposal.proposal_apiary) {
+                    for (let site of this.proposal.proposal_apiary.site_transfer_apiary_sites) {
+                        sites.push(site.apiary_site)
+                    }
+                }
+                return sites;
+            },
+
+            /*
+            apiary_sites: function() {
                 if (this.proposal && this.proposal.proposal_apiary) {
                     return this.proposal.proposal_apiary.apiary_sites;
                 }
             },
+            apiary_sites_minimal: function() {
+                let apiary_sites = [];
+                for (let site of this.apiary_sites) {
+                    apiary_sites.push({
+                        'id': site.id,
+                        'checked': site.checked,
+                    })
+                }
+                return apiary_sites;
+            },
+            */
           //applicantType: function(){
           //  return this.proposal.applicant_type;
           //},
@@ -280,6 +302,9 @@
                         console.log(res.body);
                         if (res.body && res.body.apiary_approvals) {
                             this.apiaryApprovals = res.body.apiary_approvals.approvals;
+                            if (this.apiaryApprovals.length < 1) {
+                                this.lookupErrorText = 'No current licence for the transferee';
+                            }
                         } else {
                             this.lookupErrorText = res.body;
                         }

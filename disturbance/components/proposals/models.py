@@ -2274,9 +2274,11 @@ class ProposalApiary(models.Model):
         with transaction.atomic():
             try:
                 approval = None
-                if self.proposal.approval_type == 'Apiary':
+                if self.proposal.application_type.name == 'Apiary':
+                #if self.proposal.application_type.name == ApplicationType.APIARY:
                     approval = self.retrieve_approval
-                elif self.proposal.approval_type == 'Site Transfer':
+                elif self.proposal.application_type.name == 'Site Transfer':
+                #elif self.proposal.application_type.name == ApplicationType.SITE_TRANSFER:
                     approval = self.proposal.approval
 
                 #approval = None
@@ -2671,6 +2673,16 @@ class TemporaryUseApiarySite(models.Model):
 
     class Meta:
         app_label = 'disturbance'
+
+
+class SiteTransferApiarySite(models.Model):
+    proposal_apiary = models.ForeignKey(ProposalApiary, blank=True, null=True, related_name='site_transfer_apiary_sites')
+    apiary_site = models.ForeignKey(ApiarySite, blank=True, null=True)
+    selected = models.BooleanField(default=False)
+
+    class Meta:
+        app_label = 'disturbance'
+
 
 
 # TODO: remove if no longer required
