@@ -46,7 +46,7 @@
                         </div>
                         <div v-else-if="apiaryApprovals">
                             <div v-for="approval in apiaryApprovals">
-                                <input type="radio" name="approval_choice" :value="approval.id" v-model="selectedLicence"/>
+                                <input type="radio" name="approval_choice" :value="approval.id" v-model="proposal.proposal_apiary.selected_licence"/>
                                 Licence: {{approval.id}}
                             </div>
                             <!--ul class="list-unstyled col-sm-12" v-for="approval in apiaryApprovals">
@@ -190,7 +190,7 @@
                 //apiaryApprovals: {},
                 apiaryApprovals: null,
                 lookupErrorText: '',
-                selectedLicence: null,
+                //selectedLicence: null,
                 component_site_selection_key: '',
             }
         },
@@ -302,6 +302,9 @@
                         console.log(res.body);
                         if (res.body && res.body.apiary_approvals) {
                             this.apiaryApprovals = res.body.apiary_approvals.approvals;
+                            if (this.apiaryApprovals.length < 1) {
+                                this.lookupErrorText = 'No current licence for the transferee';
+                            }
                         } else {
                             this.lookupErrorText = res.body;
                         }
