@@ -1,6 +1,7 @@
 <template lang="html">
     <div id="proposedIssuanceApproval">
         <modal transition="modal fade" @ok="ok()" @cancel="cancel()" :title="title" large>
+        AHO
             <div class="container-fluid">
                 <div class="row">
                     <form class="form-horizontal" name="approvalForm">
@@ -88,6 +89,7 @@
                         :apiary_sites="proposal.proposal_apiary.apiary_sites"
                         :is_internal="true"
                         :is_external="false"
+                        :key="component_site_selection_key"
                     />
                 </template>
 
@@ -104,6 +106,7 @@
 
 <script>
 //import $ from 'jquery'
+import uuid from 'uuid'
 import modal from '@vue-utils/bootstrap-modal.vue'
 import alert from '@vue-utils/alert.vue'
 import {helpers,api_endpoints} from "@/utils/hooks.js"
@@ -170,6 +173,7 @@ export default {
                 allowInputToggle:true
             },
             warningString: 'Please attach Level of Approval document before issuing Approval',
+            component_site_selection_key: '',
         }
     },
     computed: {
@@ -375,6 +379,7 @@ export default {
         this.$nextTick(()=>{
             vm.eventListeners();
         });
+        this.component_site_selection_key = uuid()
    }
 }
 </script>
