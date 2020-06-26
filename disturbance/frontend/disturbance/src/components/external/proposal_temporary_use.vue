@@ -5,10 +5,7 @@
             <h4>Temporary Use</h4>
         </div>
 
-        <div class="col-md-1">
-        </div>
-
-        <div class="col-md-8 sections-proposal-temporary-use">
+        <div class="col-md-9 sections-proposal-temporary-use">
             <div>
                 <SectionsProposalTemporaryUse
                     :is_internal="false"

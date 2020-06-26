@@ -1186,10 +1186,61 @@ class Proposal(RevisionedMixin):
                 raise
 
     def final_approval_temp_use(self, request):
-        raise NotImplementedError
+        with transaction.atomic():
+            try:
+                if not self.can_assess(request.user):
+                    raise exceptions.ProposalNotAuthorized()
+                if self.processing_status != 'with_assessor':
+                    # For temporary Use Application, assessor approves it
+                    raise ValidationError('You cannot approve the proposal if it is not with an assessor')
+
+                self.proposed_decline_status = False
+                self.processing_status = 'approved'
+                self.customer_status = 'approved'
+
+                # Log proposal action
+                self.log_user_action(ProposalUserAction.ACTION_ISSUE_APPROVAL_.format(self.id),request)
+                # Log entry for organisation
+                if self.applicant:
+                    self.applicant.log_user_action(ProposalUserAction.ACTION_ISSUE_APPROVAL_.format(self.id),request)
+
+                # TODO: Email?
+
+                self.save()
+
+            except:
+                raise
 
     def final_decline_temp_use(self, request):
-        raise NotImplementedError
+        with transaction.atomic():
+            try:
+                if not self.can_assess(request.user):
+                    raise exceptions.ProposalNotAuthorized()
+                if self.processing_status != 'with_assessor':
+                    # For temporary Use Application, assessor approves it
+                    raise ValidationError('You cannot approve the proposal if it is not with an assessor')
+
+                # TODO: Is it required to show a modal and get the reason of the delinature or so?  If so, we need following 4 lines
+                # proposal_decline, success = ProposalDeclinedDetails.objects.update_or_create(
+                #     proposal = self,
+                #     defaults={'officer':request.user,'reason':details.get('reason'),'cc_email':details.get('cc_email',None)}
+                # )
+                self.proposed_decline_status = True
+                self.processing_status = 'declined'
+                self.customer_status = 'declined'
+                self.save()
+                # Log proposal action
+                self.log_user_action(ProposalUserAction.ACTION_DECLINE.format(self.id), request)
+                # Log entry for organisation
+                if self.applicant:
+                    self.applicant.log_user_action(ProposalUserAction.ACTION_DECLINE.format(self.id), request)
+
+                # TODO: Email?
+                # send_proposal_decline_email_notification(self,request, proposal_decline)
+
+            except:
+                raise
+
 
     def final_approval(self,request,details):
         from disturbance.components.approvals.models import Approval
