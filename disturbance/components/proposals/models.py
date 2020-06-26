@@ -2673,6 +2673,16 @@ class TemporaryUseApiarySite(models.Model):
         app_label = 'disturbance'
 
 
+class SiteTransferApiarySite(models.Model):
+    proposal_apiary = models.ForeignKey(ProposalApiary, blank=True, null=True, related_name='site_transfer_apiary_sites')
+    apiary_site = models.ForeignKey(ApiarySite, blank=True, null=True)
+    selected = models.BooleanField(default=False)
+
+    class Meta:
+        app_label = 'disturbance'
+
+
+
 # TODO: remove if no longer required
 class ApiarySiteApproval(models.Model):
     """

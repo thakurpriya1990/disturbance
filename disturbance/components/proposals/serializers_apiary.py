@@ -19,18 +19,19 @@ from disturbance.components.proposals.models import (
     ProposalApiary,
     ProposalApiaryTemporaryUse,
     ProposalApiarySiteTransfer,
-
     ApiaryApplicantChecklistQuestion,
     ApiaryApplicantChecklistAnswer,
-
     ProposalApiaryDocument,
     ApiarySite,
-
     OnSiteInformation,
     ApiaryReferralGroup,
     TemporaryUseApiarySite,
+    SiteTransferApiarySite,
     ApiaryReferral,
-    Referral, ApiarySiteFeeType, ApiarySiteFeeRemainder, SiteCategory,
+    Referral, 
+    ApiarySiteFeeType, 
+    ApiarySiteFeeRemainder, 
+    SiteCategory,
 )
 
 from rest_framework import serializers
@@ -259,8 +260,35 @@ class ApiarySiteGeojsonSerializer(GeoFeatureModelSerializer):
         )
 
 
+class SiteTransferApiarySiteSerializer(serializers.ModelSerializer):
+    proposal_apiary_id = serializers.IntegerField(write_only=True, required=False)
+    apiary_site_id = serializers.IntegerField(write_only=True, required=False)
+    apiary_site = ApiarySiteSerializer(read_only=True)
+    # apiary_site_approval = ApiarySiteApprovalSerializer(read_only=True)
+    # apiary_site_approval_id = serializers.IntegerField(write_only=True, required=False)
+    # apiary_site = serializers.SerializerMethodField()
+
+    def validate(self, attrs):
+        # TODO: check if the site is not temporary used to another person for the period
+        # TODO: check if the licence is valid, etc
+        return attrs
+
+    class Meta:
+        model = SiteTransferApiarySite
+        fields = (
+            'id',
+            'proposal_apiary_id',
+            # 'apiary_site_approval',
+            # 'apiary_site_approval_id',
+            'apiary_site_id',
+            'apiary_site',
+            'selected',
+        )
+
+
 class ProposalApiarySerializer(serializers.ModelSerializer):
     apiary_sites = ApiarySiteSerializer(read_only=True, many=True)
+    site_transfer_apiary_sites = SiteTransferApiarySiteSerializer(read_only=True, many=True)
     on_site_information_list = serializers.SerializerMethodField()  # This is used for displaying OnSite table at the frontend
 
     #checklist_questions = serializers.SerializerMethodField()
@@ -274,6 +302,7 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
             'title',
             'proposal',
             'apiary_sites',
+            'site_transfer_apiary_sites',
             'longitude',
             'latitude',
             'on_site_information_list',
@@ -403,6 +432,7 @@ class TemporaryUseApiarySiteSerializer(serializers.ModelSerializer):
             'apiary_site',
             'selected',
         )
+
 
 
 class ProposalApiaryTemporaryUseSerializer(serializers.ModelSerializer):
