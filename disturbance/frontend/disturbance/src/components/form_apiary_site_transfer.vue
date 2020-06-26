@@ -249,10 +249,32 @@
 
             },
             apiary_sites: function() {
+                let sites = []
+                if (this.proposal && this.proposal.proposal_apiary) {
+                    for (let site of this.proposal.proposal_apiary.site_transfer_apiary_sites) {
+                        sites.push(site.apiary_site)
+                    }
+                }
+                return sites;
+            },
+
+            /*
+            apiary_sites: function() {
                 if (this.proposal && this.proposal.proposal_apiary) {
                     return this.proposal.proposal_apiary.apiary_sites;
                 }
             },
+            apiary_sites_minimal: function() {
+                let apiary_sites = [];
+                for (let site of this.apiary_sites) {
+                    apiary_sites.push({
+                        'id': site.id,
+                        'checked': site.checked,
+                    })
+                }
+                return apiary_sites;
+            },
+            */
           //applicantType: function(){
           //  return this.proposal.applicant_type;
           //},
