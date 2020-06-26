@@ -446,11 +446,12 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                 apiary_temporary_use_data = request.data.get('apiary_temporary_use')
                 update_proposal_apiary_temporary_use(apiary_temporary_use_obj, apiary_temporary_use_data)
 
-                proposal_obj.processing_status = 'with_assessor'
-                proposal_obj.customer_status = 'with_assessor'
-                proposal_obj.documents.all().update(can_delete=False)
-                #proposal.required_documents.all().update(can_delete=False)
-                proposal_obj.save()
+                if viewset.action == 'submit':
+                    proposal_obj.processing_status = 'with_assessor'
+                    proposal_obj.customer_status = 'with_assessor'
+                    proposal_obj.documents.all().update(can_delete=False)
+                    #proposal.required_documents.all().update(can_delete=False)
+                    proposal_obj.save()
 
                 # return redirect(reverse('external-proposal-temporary-use-submit-success', kwargs={'proposal_pk': proposal_obj.id}))
 
