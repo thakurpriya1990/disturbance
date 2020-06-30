@@ -370,10 +370,6 @@ def save_proponent_data_apiary_site_transfer(proposal_obj, request, viewset):
                 schema = request.POST.get('schema')
 
             sc = json.loads(schema) if schema else {}
-            #print("sc")
-            #print(sc)
-            #print(sc.keys())
-            #print(sc.get('apiary_site_transfer'))
 
             proposal_apiary_data = sc.get('proposal_apiary', None)
             if proposal_apiary_data:
@@ -400,7 +396,6 @@ def save_proponent_data_apiary_site_transfer(proposal_obj, request, viewset):
 
             # save/update any additonal special propoerties here
             #proposal_obj.title = proposal_obj.proposal_apiary.title if hasattr(proposal_obj, 'proposal_apiary') else proposal_obj.title
-            proposal_obj.activity = proposal_obj.application_type.name
             proposal_obj.save()
 
         except Exception as e:
@@ -512,7 +507,6 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
 
             # save/update any additonal special propoerties here
             proposal_obj.title = proposal_obj.proposal_apiary.title if hasattr(proposal_obj, 'proposal_apiary') else proposal_obj.title
-            proposal_obj.activity = proposal_obj.application_type.name
             proposal_obj.save()
         except Exception as e:
             raise
