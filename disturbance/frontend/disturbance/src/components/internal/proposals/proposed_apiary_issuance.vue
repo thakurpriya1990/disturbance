@@ -83,9 +83,12 @@
                     </form>
                 </div>
 
-                <template v-if="approval && approval.apiary_sites">
+                <template v-if="proposal && proposal.proposal_apiary.apiary_sites">
                     <ComponentSiteSelection
-                        :apiary_sites="approval.apiary_sites"
+                        :apiary_sites="proposal.proposal_apiary.apiary_sites"
+                        :is_internal="true"
+                        :is_external="false"
+                        :key="component_site_selection_key"
                     />
                 </template>
 
@@ -102,12 +105,13 @@
 
 <script>
 //import $ from 'jquery'
+import uuid from 'uuid'
 import modal from '@vue-utils/bootstrap-modal.vue'
 import alert from '@vue-utils/alert.vue'
 import {helpers,api_endpoints} from "@/utils/hooks.js"
 import ComponentSiteSelection from '@/components/common/apiary/component_site_selection.vue'
 export default {
-    name:'Proposed-Approval',
+    name:'ProposedApiaryIssuance',
     components:{
         modal,
         alert,
@@ -118,9 +122,9 @@ export default {
             type: Number,
             required: true
         },
-        proposal_id: {
-            type: Number,
-            required: true
+        proposal: {
+            type: Object,
+            default: null,
         },
         processing_status: {
             type: String,
@@ -168,6 +172,7 @@ export default {
                 allowInputToggle:true
             },
             warningString: 'Please attach Level of Approval document before issuing Approval',
+            component_site_selection_key: '',
         }
     },
     computed: {
@@ -262,7 +267,7 @@ export default {
             let approval = JSON.parse(JSON.stringify(vm.approval));
             vm.issuingApproval = true;
             if (vm.state == 'proposed_approval'){
-                vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal_id+'/proposed_approval'),JSON.stringify(approval),{
+                vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals, vm.proposal.id+'/proposed_approval'),JSON.stringify(approval),{
                         emulateJSON:true,
                     }).then((response)=>{
                         vm.issuingApproval = false;
@@ -373,6 +378,7 @@ export default {
         this.$nextTick(()=>{
             vm.eventListeners();
         });
+        this.component_site_selection_key = uuid()
    }
 }
 </script>
