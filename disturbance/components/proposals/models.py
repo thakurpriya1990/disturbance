@@ -1174,6 +1174,15 @@ class Proposal(RevisionedMixin):
                 approver_comment = ''
                 self.move_to_status(request,'with_approver', approver_comment)
                 self.assigned_officer = None
+
+                apiary_sites = request.data.get('apiary_sites', None)
+                if apiary_sites:
+                    # When new apiary proposal
+                    for apiary_site in apiary_sites:
+                        my_site = ApiarySite.objects.get(id=apiary_site['id'])
+                        my_site.workflow_selected_status = apiary_site['checked']
+                        my_site.save()
+
                 self.save()
                 # Log proposal action
                 self.log_user_action(ProposalUserAction.ACTION_PROPOSED_APPROVAL.format(self.id),request)
@@ -1240,7 +1249,6 @@ class Proposal(RevisionedMixin):
 
             except:
                 raise
-
 
     def final_approval(self,request,details):
         from disturbance.components.approvals.models import Approval
@@ -1486,8 +1494,6 @@ class Proposal(RevisionedMixin):
                                     compliance.log_user_action(ComplianceUserAction.ACTION_CREATE.format(compliance.id),request)
             except:
                 raise
-
-
 
     def renew_approval(self,request):
         with transaction.atomic():
@@ -2406,9 +2412,13 @@ class ProposalApiary(models.Model):
                         #    for site in self.apiary_site_transfer.apiary_sites.all():
                         #        site.approval = approval
                         #import ipdb;ipdb.set_trace()
-                        for site in self.apiary_sites.all():
-                            site.approval = approval
-                            site.save()
+                        # for site in self.apiary_sites.all():
+                        sites_approved = request.data.get('apiary_sites', [])
+                        for my_site in sites_approved:
+                            if my_site['checked']:
+                                a_site = ApiarySite.objects.get(id=my_site['id'])
+                                a_site.approval = approval
+                                a_site.save()
 
                         #print approval,approval.id, created
                     # Generate compliances
