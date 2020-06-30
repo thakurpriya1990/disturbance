@@ -215,6 +215,7 @@
                     <template v-if="approval && approval.id">
                         <ComponentSiteSelection
                             :apiary_sites="approval.apiary_sites"
+                            :show_col_checkbox="false"
                         />
                     </template>
                 </FormSection>
