@@ -5,7 +5,7 @@
             <div class="col-sm-6">
                 <datatable
                     ref="table_apiary_site"
-                    id="table-apiary-site"
+                    :id="table_id"
                     :dtOptions="dtOptions"
                     :dtHeaders="dtHeaders"
                 />
@@ -97,6 +97,7 @@
             let vm = this;
             return{
                 component_map_key: '',
+                table_id: uuid(), 
                 apiary_site_geojson_array: [],  // This is passed to the ComponentMap as props
                 default_checkbox_checked: false,  // If checked property isn't set as a apiary_site's property, this default value is used
                 dtHeaders: [
@@ -282,9 +283,9 @@
                 this.$refs.table_apiary_site.vmDataTable.row.add(apiary_site).draw();
             },
             addEventListeners: function () {
-                $("#table-apiary-site").on("click", ".view_on_map", this.zoomOnApiarySite)
-                $("#table-apiary-site").on("click", ".toggle_availability", this.toggleAvailability)
-                $('#table-apiary-site').on('click', 'input[type="checkbox"]', this.checkboxClicked)
+                $("#" + this.table_id).on("click", ".view_on_map", this.zoomOnApiarySite)
+                $("#" + this.table_id).on("click", ".toggle_availability", this.toggleAvailability)
+                $("#" + this.table_id).on('click', 'input[type="checkbox"]', this.checkboxClicked)
             },
             updateApiarySite: function(site_updated) {
                 // Update internal apiary_site data
