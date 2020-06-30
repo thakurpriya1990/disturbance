@@ -1652,8 +1652,9 @@ class ProposalViewSet(viewsets.ModelViewSet):
                         new_answer = ApiaryApplicantChecklistAnswer.objects.create(proposal = proposal_apiary,
                                                                                    question = question)
                     # Save ApiarySites
-                    checked_apiary_sites = request.data.get('apiary_sites_minimal')
-                    for apiary_site in approval.apiary_sites.filter(id__in=checked_apiary_sites):
+                    #checked_apiary_sites = request.data.get('apiary_sites_minimal')
+                    #for apiary_site in approval.apiary_sites.filter(id__in=checked_apiary_sites):
+                    for apiary_site in approval.apiary_sites.all():
                         SiteTransferApiarySite.objects.create(
                                 proposal_apiary=proposal_apiary,
                                 apiary_site=apiary_site
