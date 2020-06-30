@@ -240,6 +240,7 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
             'coordinates',
             'as_geojson',
             'status',
+            'workflow_selected_status',
         )
 
 
@@ -257,6 +258,7 @@ class ApiarySiteGeojsonSerializer(GeoFeatureModelSerializer):
             'wkb_geometry',
             'site_category_name',
             'status',
+            'workflow_selected_status',
         )
 
 
