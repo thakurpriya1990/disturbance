@@ -18,7 +18,8 @@
                     :is_internal="true"
                     :is_external="false"
                     :key="component_site_selection_key"
-
+                    :show_col_checkbox="true"
+                    :enable_col_checkbox="false"
                 />
             </FormSection>
         </template>

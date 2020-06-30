@@ -713,10 +713,13 @@ export default {
             //     this.$refs.proposed_approval.applicant_email=helpers.copyObject(this.proposal.applicant.email);
             // }
             this.$refs.proposed_approval.isModalOpen = true;
+            // Force to refresh the map to display it in case it is not shown.  
+            // When the map is in modal, it is often not shown unless the map is resized
+            this.$refs.proposed_approval.forceToRefreshMap()
         },
         issueProposal:function(){
             //this.$refs.proposed_approval.approval = helpers.copyObject(this.proposal.proposed_issuance_approval);
-
+            console.log('in issueProposal')
             //save approval level comment before opening 'issue approval' modal
             if(this.proposal && this.proposal.processing_status == 'With Approver' && this.proposal.approval_level != null && this.proposal.approval_level_document == null){
                 if (this.proposal.approval_level_comment!='')
@@ -727,7 +730,7 @@ export default {
                     vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/approval_level_comment'),data,{
                         emulateJSON:true
                         }).then(res=>{
-                    vm.proposal = res.body;
+                        vm.proposal = res.body;
                     vm.refreshFromResponse(res);
                     },err=>{
                     console.log(err);
@@ -743,16 +746,19 @@ export default {
                 )
             }
             else{
-            this.$refs.proposed_approval.approval = this.proposal.proposed_issuance_approval != null ? helpers.copyObject(this.proposal.proposed_issuance_approval) : {};
-            this.$refs.proposed_approval.state = 'final_approval';
-            this.$refs.proposed_approval.isApprovalLevelDocument = this.isApprovalLevelDocument;
-            //this.$refs.proposed_approval.submitter_email=helpers.copyObject(this.proposal.submitter_email);
-            // if(this.proposal.applicant.email){
-            //     this.$refs.proposed_approval.applicant_email=helpers.copyObject(this.proposal.applicant.email);
-            // }
-            this.$refs.proposed_approval.isModalOpen = true;
-            }
+                this.$refs.proposed_approval.approval = this.proposal.proposed_issuance_approval != null ? helpers.copyObject(this.proposal.proposed_issuance_approval) : {};
+                this.$refs.proposed_approval.state = 'final_approval';
+                this.$refs.proposed_approval.isApprovalLevelDocument = this.isApprovalLevelDocument;
+                //this.$refs.proposed_approval.submitter_email=helpers.copyObject(this.proposal.submitter_email);
+                // if(this.proposal.applicant.email){
+                //     this.$refs.proposed_approval.applicant_email=helpers.copyObject(this.proposal.applicant.email);
+                // }
+                this.$refs.proposed_approval.isModalOpen = true;
 
+                // Force to refresh the map to display it in case it is not shown.  
+                // When the map is in modal, it is often not shown unless the map is resized
+                this.$refs.proposed_approval.forceToRefreshMap()
+            }
         },
         declineProposal:function(){
             this.$refs.proposed_decline.decline = this.proposal.proposaldeclineddetails != null ? helpers.copyObject(this.proposal.proposaldeclineddetails): {};
