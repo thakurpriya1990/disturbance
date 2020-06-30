@@ -380,13 +380,25 @@ def save_proponent_data_apiary_site_transfer(proposal_obj, request, viewset):
 
             #save Site Transfer Apiary Sites
             #site_transfer_apiary_sites = json.loads(request.data.get('site_transfer_apiary_sites'))
-            site_transfer_apiary_sites = request.data.get('site_transfer_apiary_sites')
-            if site_transfer_apiary_sites:
-                for site in site_transfer_apiary_sites:
-                    print(site.get('id'))
-                    print(site.get('checked'))
+            #site_transfer_apiary_sites = request.data.get('site_transfer_apiary_sites')
+            #if site_transfer_apiary_sites:
+            #    for site in site_transfer_apiary_sites:
+            #        #print(site.get('id'))
+            #        #print(site.get('checked'))
+            #        checked_value = bool(site.get('checked'))
+            #        site_transfer_apiary_site = SiteTransferApiarySite.objects.get(id=site.get('id'))
+            #        site_transfer_apiary_site.selected = checked_value
+            #        site_transfer_apiary_site.save()
+            apiary_sites_local = request.data.get('apiary_sites_local')
+            if apiary_sites_local:
+                for site in json.loads(apiary_sites_local):
+                    #print(site.get('id'))
+                    #print(site.get('checked'))
                     checked_value = bool(site.get('checked'))
-                    site_transfer_apiary_site = SiteTransferApiarySite.objects.get(id=site.get('id'))
+                    site_transfer_apiary_site = SiteTransferApiarySite.objects.get(
+                            proposal_apiary=proposal_obj.proposal_apiary, 
+                            apiary_site_id=site.get('id')
+                            )
                     site_transfer_apiary_site.selected = checked_value
                     site_transfer_apiary_site.save()
 
