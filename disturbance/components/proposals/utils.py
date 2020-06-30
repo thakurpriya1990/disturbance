@@ -379,15 +379,16 @@ def save_proponent_data_apiary_site_transfer(proposal_obj, request, viewset):
                     ans.save()
 
             #save Site Transfer Apiary Sites
-            site_transfer_apiary_sites = json.loads(request.data.get('site_transfer_apiary_sites'))
-            print(site_transfer_apiary_sites)
-            for site in site_transfer_apiary_sites:
-                print(site.get('id'))
-                print(site.get('checked'))
-                checked_value = bool(site.get('checked'))
-                site_transfer_apiary_site = SiteTransferApiarySite.objects.get(id=site.get('id'))
-                site_transfer_apiary_site.selected = checked_value
-                site_transfer_apiary_site.save()
+            #site_transfer_apiary_sites = json.loads(request.data.get('site_transfer_apiary_sites'))
+            site_transfer_apiary_sites = request.data.get('site_transfer_apiary_sites')
+            if site_transfer_apiary_sites:
+                for site in site_transfer_apiary_sites:
+                    print(site.get('id'))
+                    print(site.get('checked'))
+                    checked_value = bool(site.get('checked'))
+                    site_transfer_apiary_site = SiteTransferApiarySite.objects.get(id=site.get('id'))
+                    site_transfer_apiary_site.selected = checked_value
+                    site_transfer_apiary_site.save()
 
             selected_licence = proposal_apiary_data.get('selected_licence')
             if selected_licence:
