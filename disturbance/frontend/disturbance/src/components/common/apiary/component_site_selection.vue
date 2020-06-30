@@ -29,6 +29,7 @@
 </template>
 
 <script>
+    import Vue from 'vue'
     import datatable from '@vue-utils/datatable.vue'
     import uuid from 'uuid'
     import ComponentMap from '@/components/common/apiary/component_map.vue'
@@ -100,7 +101,7 @@
         data: function(){
             let vm = this;
             return{
-                apiary_sites_local: null,
+                apiary_sites_local: Vue.util.extend({}, this.apiary_sites), // Copy the value passed as a props so that original value is not changed.
                 component_map_key: '',
                 table_id: uuid(), 
                 apiary_site_geojson_array: [],  // This is passed to the ComponentMap as props
@@ -242,7 +243,7 @@
                 this.constructApiarySitesTable();
                 this.addApiarySitesToMap(this.apiary_sites)
             });
-            this.apiary_sites_local = this.apiary_sites
+            //this.apiary_sites_local = this.apiary_sites
         },
         components: {
             ComponentMap,
