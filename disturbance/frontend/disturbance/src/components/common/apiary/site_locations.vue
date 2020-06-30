@@ -72,6 +72,10 @@
         </div>
 
         <div id="map" class="map"></div>
+        <div id="popup" class="ol-popup">
+            <a href="#" id="popup-closer" class="ol-popup-closer"></a>
+            <div id="popup-content"></div>
+        </div>
 
         <div class="row col-sm-12">
             <label>
@@ -552,6 +556,10 @@
                     let modifyTool = new Modify({
                         source: vm.drawingLayerSource,
                     });
+                    modifyTool.on("modifystart", function(attributes){
+                        console.log('modifystart')
+                        console.log(attributes)
+                    });
                     modifyTool.on("modifyend", function(attributes){
                         console.log('modifyend')
                         // this will list all features in layer, not so useful without cross referencing
@@ -559,6 +567,11 @@
                             let index = modifyInProgressList.indexOf(feature);
                             if (index > -1) {
                                 console.log("End Modify Feature: " + index + "/" + modifyInProgressList.length + " " + feature.getId());
+
+                                let coords = feature.getGeometry().getCoordinates()
+                                let valid = vm.isNewPositionValid(coords)
+                                console.log(valid)
+
                                 modifyInProgressList.splice(index, 1);
                                 //vm.updateVueFeature(feature);
                                 vm.removeBufferForSite(feature);
