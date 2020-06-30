@@ -89,6 +89,8 @@
                         :is_internal="true"
                         :is_external="false"
                         :key="component_site_selection_key"
+                        ref="component_site_selection"
+                        @apiary_sites_updated="apiarySitesUpdated"
                     />
                 </template>
 
@@ -206,6 +208,22 @@ export default {
 
     },
     methods:{
+        apiarySitesUpdated: function(apiary_sites) {
+            this.proposal.proposal_apiary.apiary_sites = apiary_sites
+        },
+        setApiarySiteCheckedStatuses: function() {
+            if(this.proposal && this.proposal.proposal_apiary){
+                for (let i=0; i<this.proposal.proposal_apiary.apiary_sites.length; i++){
+                    console.log('checked status' + this.proposal.proposal_apiary.apiary_sites[i].workflow_selected_status)
+                    this.proposal.proposal_apiary.apiary_sites[i].checked = this.proposal.proposal_apiary.apiary_sites[i].workflow_selected_status
+                }
+            }
+        },
+        forceToRefreshMap: function() {
+            if (this.$refs.component_site_selection){
+                this.$refs.component_site_selection.forceToRefreshMap()
+            }
+        },
         preview:function () {
             let vm =this;
             let formData = new FormData(vm.form)
@@ -262,9 +280,13 @@ export default {
             } );
         },
         sendData:function(){
+            console.log('sendData')
+
             let vm = this;
             vm.errors = false;
+            vm.approval.apiary_sites = vm.proposal.proposal_apiary.apiary_sites
             let approval = JSON.parse(JSON.stringify(vm.approval));
+
             vm.issuingApproval = true;
             if (vm.state == 'proposed_approval'){
                 vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals, vm.proposal.id+'/proposed_approval'),JSON.stringify(approval),{
@@ -371,15 +393,17 @@ export default {
              });
        }
    },
-   mounted:function () {
+    mounted:function () {
         let vm =this;
         vm.form = document.forms.approvalForm;
         vm.addFormValidations();
         this.$nextTick(()=>{
             vm.eventListeners();
         });
+        this.setApiarySiteCheckedStatuses()         
         this.component_site_selection_key = uuid()
-   }
+
+    }
 }
 </script>
 

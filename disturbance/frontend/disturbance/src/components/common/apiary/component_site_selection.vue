@@ -57,6 +57,10 @@
                 type: Boolean,
                 default: true,
             },
+            enable_col_checkbox: {
+                type: Boolean,
+                default: true,
+            },
             show_col_site: {
                 type: Boolean,
                 default: true,
@@ -96,6 +100,7 @@
         data: function(){
             let vm = this;
             return{
+                apiary_sites_local: null,
                 component_map_key: '',
                 table_id: uuid(), 
                 apiary_site_geojson_array: [],  // This is passed to the ComponentMap as props
@@ -135,10 +140,14 @@
                             // Checkbox
                             visible: vm.show_col_checkbox,
                             mRender: function (data, type, apiary_site) {
+                                let disabled_str = ''
+                                if (!vm.enable_col_checkbox){
+                                    disabled_str = ' disabled '
+                                }
                                 if (apiary_site.checked){
-                                    return '<input type="checkbox" class="site_checkbox" data-apiary-site-id="' + apiary_site.id + '" checked/>'
+                                    return '<input type="checkbox" class="site_checkbox" data-apiary-site-id="' + apiary_site.id + '"' + disabled_str + ' checked/>'
                                 } else {
-                                    return '<input type="checkbox" class="site_checkbox" data-apiary-site-id="' + apiary_site.id + '" />'
+                                    return '<input type="checkbox" class="site_checkbox" data-apiary-site-id="' + apiary_site.id + '"' + disabled_str + '/>'
                                 }
                             }
                         },
@@ -233,6 +242,7 @@
                 this.constructApiarySitesTable();
                 this.addApiarySitesToMap(this.apiary_sites)
             });
+            this.apiary_sites_local = this.apiary_sites
         },
         components: {
             ComponentMap,
@@ -251,12 +261,16 @@
                     }
                 }
             },
-            checkboxClicked: function(e){
-                console.log('in checkboxClicked')
-                console.log(e)
+            forceToRefreshMap: function() {
+                console.log('forceToRefreshMap in component_site_selection.vue')
+                if (this.$refs.component_map){
+                    this.$refs.component_map.forceToRefreshMap()
+                }
             },
             displayAllFeatures: function(){
-                this.$refs.component_map.displayAllFeatures()
+                if (this.$refs.component_map){
+                    this.$refs.component_map.displayAllFeatures()
+                }
             },
             addApiarySitesToMap: function(apiary_sites) {
                 for (let i=0; i<apiary_sites.length; i++){
@@ -299,12 +313,12 @@
                 let vm = this;
                 let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
                 let checked_status = e.target.checked
-                console.log(apiary_site_id)
-                for (let i=0; i<this.apiary_sites.length; i++){
-                    if (this.apiary_sites[i].id == apiary_site_id){
-                        this.apiary_sites[i].checked = checked_status
+                for (let i=0; i<this.apiary_sites_local.length; i++){
+                    if (this.apiary_sites_local[i].id == apiary_site_id){
+                        this.apiary_sites_local[i].checked = checked_status
                     }
                 }
+                this.$emit('apiary_sites_updated', this.apiary_sites_local)
             },
             toggleAvailability: function(e) {
                 let vm = this;

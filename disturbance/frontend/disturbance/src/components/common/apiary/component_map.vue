@@ -74,6 +74,13 @@
 
         },
         methods: {
+            forceToRefreshMap: function() {
+                let vm = this
+                setTimeout(function(){
+                    console.log('updateResize()')
+                    vm.map.updateSize();
+                }, 50)
+            },
             initMap: function() {
                 let vm = this;
 
