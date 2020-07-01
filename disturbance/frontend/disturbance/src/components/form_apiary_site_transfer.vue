@@ -80,6 +80,8 @@
                     :is_internal="is_internal"
                     :is_external="is_external"
                     :key="component_site_selection_key"
+                    ref="component_site_selection"
+                    @apiary_sites_updated="apiarySitesUpdated"
                   />
             </FormSection>
 
@@ -192,6 +194,7 @@
                 lookupErrorText: '',
                 //selectedLicence: null,
                 component_site_selection_key: '',
+                apiary_sites_local: [],
             }
         },
         components: {
@@ -257,6 +260,7 @@
                 }
                 return sites;
             },
+            /*
             site_transfer_apiary_sites: function(){
                 let sites = []
                 if (this.proposal && this.proposal.proposal_apiary) {
@@ -266,11 +270,15 @@
                 }
                 return sites;
             },
+            */
           //applicantType: function(){
           //  return this.proposal.applicant_type;
           //},
         },
         methods:{
+            apiarySitesUpdated: function(apiarySitesLocal) {
+                this.apiary_sites_local = apiarySitesLocal;
+            },
             button_text: function(button_text) {
                 this.$emit('button_text', button_text)
             },

@@ -1630,6 +1630,10 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 proposal_obj = serializer.save()
 
                 # TODO any APIARY specific settings go here - eg renewal, amendment
+
+                if proposal_obj.apiary_group_application_type:
+                    proposal_obj.activity = proposal_obj.application_type.name
+                    proposal_obj.save()
                 details_data = {
                     'proposal_id': proposal_obj.id
                 }

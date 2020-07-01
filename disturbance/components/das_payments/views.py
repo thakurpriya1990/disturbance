@@ -18,6 +18,7 @@ from ledger.accounts.models import EmailUser
 
 from disturbance.components.proposals.models import Proposal, ApiarySiteFeeRemainder, ApiarySiteFeeType, SiteCategory
 from disturbance.components.compliances.models import Compliance
+from disturbance.components.main.models import ApplicationType
 from disturbance.components.organisations.models import Organisation
 from disturbance.components.das_payments.context_processors import disturbance_url, template_context
 from disturbance.components.das_payments.invoice_pdf import create_invoice_pdf_bytes
@@ -33,6 +34,9 @@ from disturbance.components.das_payments.utils import (
     get_session_application_invoice,
     set_session_application_invoice,
     delete_session_application_invoice,
+    get_session_site_transfer_application_invoice,
+    set_session_site_transfer_application_invoice,
+    delete_session_site_transfer_application_invoice,
     #create_bpay_invoice,
     #create_other_invoice,
 )
@@ -72,7 +76,10 @@ class ApplicationFeeView(TemplateView):
         #import ipdb; ipdb.set_trace()
         try:
             with transaction.atomic():
-                set_session_application_invoice(request.session, application_fee)
+                if proposal.application_type.name == ApplicationType.SITE_TRANSFER:
+                    set_session_site_transfer_application_invoice(request.session, application_fee)
+                else:
+                    set_session_application_invoice(request.session, application_fee)
                 lines, db_processes_after_success = create_fee_lines(proposal)
 
                 # Store site remainders data in this session, which is retrieved once payment success (ref: ApplicationFeeSuccessView below)
