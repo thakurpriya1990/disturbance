@@ -277,8 +277,12 @@
             },
             addApiarySitesToMap: function(apiary_sites) {
                 console.log('in addApiarySitesToMap')
-                console.log(apiary_sites)
                 for (let i=0; i<apiary_sites.length; i++){
+                    console.log(apiary_sites[i])
+                    if (apiary_sites[i].hasOwnProperty('checked')){
+                        //apiary_sites[i].as_geojson['properties']['checked'] = apiary_sites[i].checked
+                        apiary_sites[i].as_geojson.properties.checked = apiary_sites[i].checked
+                    }
                     this.apiary_site_geojson_array.push(apiary_sites[i].as_geojson)
                 }
 
@@ -324,7 +328,7 @@
                     }
                 }
                 this.$emit('apiary_sites_updated', this.apiary_sites_local)
-                //this.$refs.component_map.setApiarySiteSelectedStatus(apiary_site_id, checked_status)
+                this.$refs.component_map.setApiarySiteSelectedStatus(apiary_site_id, checked_status)
             },
             toggleAvailability: function(e) {
                 let vm = this;

@@ -178,6 +178,7 @@ import OnSiteInformation from '@/components/common/apiary/section_on_site_inform
 import TemporaryUse from '@/components/common/apiary/section_temporary_use.vue'
 import ComponentSiteSelection from '@/components/common/apiary/component_site_selection.vue'
 import SiteAvailability from '@/components/common/apiary/section_site_availability.vue'
+import SectionAnnualRentalFee from '@/components/common/apiary/section_annual_rental_fee.vue'
 
 export default {
     name: 'ApiaryApprovalExternal',
@@ -264,6 +265,7 @@ export default {
     //    })
     //},
     components: {
+        SectionAnnualRentalFee,
         ComponentSiteSelection,
         datatable,
         CommsLogs,

@@ -76,9 +76,6 @@
             },
             emitContentsChangedEvent: function () {
                 this.$emit('contents_changed', {
-                    'occupier_name': this.occupier_name,
-                    'occupier_phone': this.occupier_phone,
-                    'occupier_mobile': this.occupier_mobile,
                     'occupier_email': this.occupier_email,
                 });
             },
