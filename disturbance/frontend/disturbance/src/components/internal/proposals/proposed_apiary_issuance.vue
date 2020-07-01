@@ -1,5 +1,6 @@
 <template lang="html">
     <div id="proposedIssuanceApproval">
+        proposed_apiary_issuance.vue
         <modal transition="modal fade" @ok="ok()" @cancel="cancel()" :title="title" large>
             <div class="container-fluid">
                 <div class="row">
@@ -166,6 +167,7 @@ export default {
             startDateErrorString:'',
             successString: '',
             success:false,
+            apiary_sites_updated: null,
             datepickerOptions:{
                 format: 'DD/MM/YYYY',
                 showClear:true,
@@ -209,7 +211,11 @@ export default {
     },
     methods:{
         apiarySitesUpdated: function(apiary_sites) {
-            this.proposal.proposal_apiary.apiary_sites = apiary_sites
+            console.log('in proposed_apiary_issuance.vue')
+            console.log(apiary_sites)
+            this.apiary_sites_updated = apiary_sites
+            //this.proposal.proposal_apiary.apiary_sites = JSON.parse(JSON.stringify(apiary_sites))
+            //console.log(this.proposal.proposal_apiary.apiary_sites)
         },
         setApiarySiteCheckedStatuses: function() {
             if(this.proposal && this.proposal.proposal_apiary){
@@ -280,12 +286,15 @@ export default {
             } );
         },
         sendData:function(){
-            console.log('sendData')
+            console.log('in sendData')
 
             let vm = this;
             vm.errors = false;
-            vm.approval.apiary_sites = vm.proposal.proposal_apiary.apiary_sites
-            let approval = JSON.parse(JSON.stringify(vm.approval));
+            //vm.approval.apiary_sites = vm.proposal.proposal_apiary.apiary_sites
+            vm.approval.apiary_sites = vm.apiary_sites_updated
+            let approval = JSON.parse(JSON.stringify(vm.approval)); // Deep copy
+            console.log('approval to post')
+            console.log(approval)
 
             vm.issuingApproval = true;
             if (vm.state == 'proposed_approval'){
