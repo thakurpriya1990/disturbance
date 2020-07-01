@@ -205,7 +205,7 @@ export default {
             return this.processing_status == 'With Approver' ? true : false;
         },
         preview_licence_url: function() {
-          return (this.proposal_id) ? `/preview/licence-pdf/${this.proposal_id}` : '';
+          return (this.proposal_apiary_id) ? `/preview/licence-pdf/${this.proposal_apiary_id}` : '';
         },
 
     },
@@ -286,7 +286,9 @@ export default {
             } );
         },
         sendData:function(){
+            console.log('**********')
             console.log('in sendData')
+            console.log('**********')
 
             let vm = this;
             vm.errors = false;

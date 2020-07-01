@@ -2511,10 +2511,10 @@ class SiteCategory(models.Model):
         for item in SiteCategory.CATEGORY_CHOICES:
             if item[0] == self.name:
                 fee_application = self.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_APPLICATION)
-                fee_amendment = self.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_AMENDMENT)
-                fee_renewal = self.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_RENEWAL)
-                fee_transfer = self.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_TRANSFER)
-                return '{} - application: {}, amendment: {}, renewal: {}, transfer: {}'.format(item[1], fee_application, fee_amendment, fee_renewal, fee_transfer)
+                # fee_amendment = self.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_AMENDMENT)
+                # fee_renewal = self.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_RENEWAL)
+                # fee_transfer = self.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_TRANSFER)
+                return '{} - application: {}'.format(item[1], fee_application)
         return '---'
 
     class Meta:
@@ -2523,14 +2523,14 @@ class SiteCategory(models.Model):
 
 class ApiarySiteFeeType(RevisionedMixin):
     FEE_TYPE_APPLICATION = 'new_application'
-    FEE_TYPE_AMENDMENT = 'amendment'
-    FEE_TYPE_RENEWAL = 'renewal'
-    FEE_TYPE_TRANSFER = 'transfer'
+    # FEE_TYPE_AMENDMENT = 'amendment'
+    # FEE_TYPE_RENEWAL = 'renewal'
+    # FEE_TYPE_TRANSFER = 'transfer'
     FEE_TYPE_CHOICES = (
         (FEE_TYPE_APPLICATION, 'New Application'),
-        (FEE_TYPE_AMENDMENT, 'Amendment'),
-        (FEE_TYPE_RENEWAL, 'Renewal'),
-        (FEE_TYPE_TRANSFER, 'Transfer'),
+        # (FEE_TYPE_AMENDMENT, 'Amendment'),
+        # (FEE_TYPE_RENEWAL, 'Renewal'),
+        # (FEE_TYPE_TRANSFER, 'Transfer'),
     )
     name = models.CharField(unique=True, max_length=50, choices=FEE_TYPE_CHOICES,)
     description = models.TextField(blank=True)
@@ -2559,48 +2559,31 @@ class ApiarySiteFee(RevisionedMixin):
         return '${} ({}:{})'.format(self.amount, self.date_of_enforcement, self.site_category)
 
 
-class ApiaryFee(RevisionedMixin):
-    #FEE_TYPE_APPLICATION = 'new_application'
-    #FEE_TYPE_AMENDMENT = 'amendment'
-    #FEE_TYPE_RENEWAL = 'renewal'
-    FEE_TYPE_TRANSFER = 'transfer'
-    FEE_TYPE_RENTAL = 'rental'
-    FEE_TYPE_CHOICES = (
-        #(FEE_TYPE_APPLICATION, 'New Application'),
-        #(FEE_TYPE_AMENDMENT, 'Amendment'),
-        #(FEE_TYPE_RENEWAL, 'Renewal'),
-        (FEE_TYPE_TRANSFER, 'Transfer'),
-        (FEE_TYPE_RENTAL, 'Rental'),
-    )
-    fee_type = models.CharField(unique=True, max_length=50, choices=FEE_TYPE_CHOICES,)
-
+class ApiaryAnnualRentFee(RevisionedMixin):
     amount = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
-
-    #date_of_enforcement = models.DateField(blank=True, null=True)
     date_from = models.DateField(blank=True, null=True)
-    #site_category = models.ForeignKey(SiteCategory, related_name='site_fees')
-    #apiary_site_fee_type = models.ForeignKey(ApiarySiteFeeType, null=True, blank=True)
 
     class Meta:
         app_label = 'disturbance'
         ordering = ('date_from', )  # oldest record first, latest record last
 
     def __str__(self):
-        #return '${} ({}:{})'.format(self.amount, self.date_of_enforcement, self.site_category)
-        return '${} ({}:{})'.format(self.id, self.amount, self.fee_type, self.date_from)
+        return 'id: {}, Amount: {}: From: {}'.format(self.id, self.amount, self.date_from)
 
 
-# class SiteApplicationFee(RevisionedMixin):
-#     amount = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
-#     date_of_enforcement = models.DateField(blank=True, null=True)
-#     site_category = models.ForeignKey(SiteCategory, related_name='site_application_fees')
-#
-#     class Meta:
-#         app_label = 'disturbance'
-#         ordering = ('date_of_enforcement', )  # oldest record first, latest record last
-#
-#     def __str__(self):
-#         return '${} ({}:{})'.format(self.amount, self.date_of_enforcement, self.site_category)
+class ApiaryAnnualRentFeeRunDate(RevisionedMixin):
+    NAME_CRON = 'date_to_run_cron_job'
+    NAME_CHOICES = (
+        (NAME_CRON, 'Date to run job'),
+    )
+    name = models.CharField(unique=True, max_length=50, choices=NAME_CHOICES, )
+    date_run_cron = models.DateField(blank=True, null=True)
+
+    class Meta:
+        app_label = 'disturbance'
+
+    def __str__(self):
+        return 'id: {}, {}'.format(self.id, self.date_run_cron)
 
 
 class ApiarySite(models.Model):
