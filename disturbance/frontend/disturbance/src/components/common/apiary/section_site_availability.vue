@@ -16,6 +16,7 @@
             :is_internal="false"
             :is_external="true"
             :key="component_site_selection_key"
+            :show_col_checkbox="false"
         />
     </div>
 </template>

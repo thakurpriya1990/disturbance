@@ -101,14 +101,14 @@
         data: function(){
             let vm = this;
             return{
-                apiary_sites_local: Vue.util.extend({}, this.apiary_sites), // Copy the value passed as a props so that original value is not changed.
+                apiary_sites_local: JSON.parse(JSON.stringify(this.apiary_sites)),  // Deep copy the array
                 component_map_key: '',
                 table_id: uuid(), 
                 apiary_site_geojson_array: [],  // This is passed to the ComponentMap as props
                 default_checkbox_checked: false,  // If checked property isn't set as a apiary_site's property, this default value is used
                 dtHeaders: [
                     'Id',
-                    '',
+                    'C',
                     'Site',
                     'Longitude',
                     'Latitude',
@@ -140,6 +140,7 @@
                         {
                             // Checkbox
                             visible: vm.show_col_checkbox,
+                            className: 'dt-body-center',
                             mRender: function (data, type, apiary_site) {
                                 let disabled_str = ''
                                 if (!vm.enable_col_checkbox){
@@ -363,5 +364,8 @@
 .view_all_button {
     color: #03a9f4;
     cursor: pointer;
+}
+.site_checkbox {
+    text-align: center;
 }
 </style>
