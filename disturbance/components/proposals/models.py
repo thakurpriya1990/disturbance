@@ -2571,6 +2571,21 @@ class ApiaryAnnualRentFee(RevisionedMixin):
         return '${} ({}:{})'.format(self.id, self.amount, self.date_from)
 
 
+class ApiaryAnnualRentFeeRunDate(RevisionedMixin):
+    NAME_CRON = 'date_to_run_cron_job'
+    NAME_CHOICES = (
+        (NAME_CRON, 'Date to run job'),
+    )
+    name = models.CharField(unique=True, max_length=50, choices=NAME_CHOICES, )
+    date_run_cron = models.DateField(blank=True, null=True)
+
+    class Meta:
+        app_label = 'disturbance'
+
+    def __str__(self):
+        return '${} ({}:{})'.format(self.id, self.name, self.date_run_cron)
+
+
 class ApiarySite(models.Model):
     STATUS_DRAFT = 'draft'
     STATUS_PENDING = 'pending'
