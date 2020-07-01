@@ -187,6 +187,9 @@
                 }
             },
             addApiarySite: function(apiary_site_geojson) {
+                console.log('in addApiarySite')
+                console.log(apiary_site_geojson)
+                
                 let feature = (new GeoJSON()).readFeature(apiary_site_geojson)
                 let status = feature.get('status')
                 
@@ -204,8 +207,22 @@
             },
             zoomToApiarySiteById: function(apiary_site_id){
                 let feature = this.apiarySitesQuerySource.getFeatureById(apiary_site_id)
-                console.log(feature)
                 this.map.getView().animate({zoom: 10, center: feature['values_']['geometry']['flatCoordinates']})
+            },
+            setApiarySiteSelectedStatus: function(apiary_site_id, selected) {
+                let feature = this.apiarySitesQuerySource.getFeatureById(apiary_site_id)
+                let stroke_width = selected ? 2 : 2
+                let stroke_colour = selected ? '#2e6da4' : '#616161'
+                let fill_colour = selected ? '#03a9f4' : '#e0e0e0'
+
+                let style_applied = new Style({
+                                            image: new CircleStyle({
+                                                radius: 7,
+                                                fill: new Fill({color: fill_colour}),
+                                                stroke: new Stroke({color: stroke_colour, width: stroke_width})
+                                            })
+                                        })
+                feature.setStyle(style_applied)
             },
             addEventListeners: function () {
 

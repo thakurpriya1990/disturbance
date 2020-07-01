@@ -240,9 +240,9 @@
             let vm = this;
             this.$nextTick(() => {
                 vm.addEventListeners();
-                vm.ensureCheckedStatus();
                 vm.constructApiarySitesTable();
                 vm.addApiarySitesToMap(vm.apiary_sites)
+                vm.ensureCheckedStatus();
             });
             this.$emit('apiary_sites_updated', this.apiary_sites_local)
         },
@@ -255,6 +255,7 @@
         },
         methods: {
             ensureCheckedStatus: function() {
+                console.log('in ensureCheckedStatus')
                 if (this.apiary_sites.length > 0){
                     for(let i=0; i<this.apiary_sites.length; i++){
                         if (!this.apiary_sites[i].hasOwnProperty('checked')){
@@ -275,6 +276,8 @@
                 }
             },
             addApiarySitesToMap: function(apiary_sites) {
+                console.log('in addApiarySitesToMap')
+                console.log(apiary_sites)
                 for (let i=0; i<apiary_sites.length; i++){
                     this.apiary_site_geojson_array.push(apiary_sites[i].as_geojson)
                 }
@@ -321,6 +324,7 @@
                     }
                 }
                 this.$emit('apiary_sites_updated', this.apiary_sites_local)
+                //this.$refs.component_map.setApiarySiteSelectedStatus(apiary_site_id, checked_status)
             },
             toggleAvailability: function(e) {
                 let vm = this;
