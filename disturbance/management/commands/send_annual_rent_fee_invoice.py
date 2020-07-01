@@ -11,6 +11,9 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         try:
             # TODO: Send annual rent fee once a year
+
+            # 1. pick up the apiary licences (id=323 for develop)
+            # 2. Create invoice
             # Rent fee can be retrieved from the ApiaryAnnualRentFee class
             # Run date can be retrieved from the ApiaryAnnualRentFeeRunDate class
             # TODO: Create invoices where payments is 0, therefore outstnding is equal to the annual rent fee
