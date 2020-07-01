@@ -2511,10 +2511,10 @@ class SiteCategory(models.Model):
         for item in SiteCategory.CATEGORY_CHOICES:
             if item[0] == self.name:
                 fee_application = self.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_APPLICATION)
-                fee_amendment = self.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_AMENDMENT)
-                fee_renewal = self.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_RENEWAL)
-                fee_transfer = self.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_TRANSFER)
-                return '{} - application: {}, amendment: {}, renewal: {}, transfer: {}'.format(item[1], fee_application, fee_amendment, fee_renewal, fee_transfer)
+                # fee_amendment = self.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_AMENDMENT)
+                # fee_renewal = self.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_RENEWAL)
+                # fee_transfer = self.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_TRANSFER)
+                return '{} - application: {}'.format(item[1], fee_application)
         return '---'
 
     class Meta:
@@ -2568,7 +2568,7 @@ class ApiaryAnnualRentFee(RevisionedMixin):
         ordering = ('date_from', )  # oldest record first, latest record last
 
     def __str__(self):
-        return '${} ({}:{})'.format(self.id, self.amount, self.date_from)
+        return 'id: {}, Amount: {}: From: {}'.format(self.id, self.amount, self.date_from)
 
 
 class ApiaryAnnualRentFeeRunDate(RevisionedMixin):
@@ -2583,7 +2583,7 @@ class ApiaryAnnualRentFeeRunDate(RevisionedMixin):
         app_label = 'disturbance'
 
     def __str__(self):
-        return '${} ({}:{})'.format(self.id, self.name, self.date_run_cron)
+        return 'id: {}, {}'.format(self.id, self.date_run_cron)
 
 
 class ApiarySite(models.Model):
