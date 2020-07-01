@@ -577,7 +577,7 @@ class ProposalApiaryViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['POST', ])
     def get_apiary_approvals(self, request, *args, **kwargs):
         try:
-            #instance = self.get_object()
+            instance = self.get_object()
             user = None
             user_qs = []
             if request.data.get('user_email'):
@@ -586,7 +586,10 @@ class ProposalApiaryViewSet(viewsets.ModelViewSet):
                     user = user_qs[0]
                     serializer = UserApiaryApprovalSerializer(
                             user,
-                            context={'request': request})
+                            context={
+                                'request': request,
+                                'sending_approval_id': instance.sending_approval.id,
+                                })
                     return Response(serializer.data)
             # Fallback if no email address found
             #return Response({'error': 'Email address not known'})
@@ -1646,9 +1649,9 @@ class ProposalViewSet(viewsets.ModelViewSet):
                                                                                    question = question)
                 elif application_type.name == ApplicationType.SITE_TRANSFER:
                     #import ipdb;ipdb.set_trace()
-                    approval_id = request.data.get('loaning_approval_id')
+                    approval_id = request.data.get('sending_approval_id')
                     approval = Approval.objects.get(id=approval_id)
-                    #details_data['loaning_approval_id'] = approval_id
+                    details_data['sending_approval_id'] = approval_id
                     serializer = SaveProposalApiarySerializer(data=details_data)
                     serializer.is_valid(raise_exception=True)
                     proposal_apiary = serializer.save()
