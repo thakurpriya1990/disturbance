@@ -240,11 +240,11 @@
             let vm = this;
             this.$nextTick(() => {
                 vm.addEventListeners();
-                this.ensureCheckedStatus();
-                this.constructApiarySitesTable();
-                this.addApiarySitesToMap(this.apiary_sites)
+                vm.ensureCheckedStatus();
+                vm.constructApiarySitesTable();
+                vm.addApiarySitesToMap(vm.apiary_sites)
             });
-            //this.apiary_sites_local = this.apiary_sites
+            this.$emit('apiary_sites_updated', this.apiary_sites_local)
         },
         components: {
             ComponentMap,
