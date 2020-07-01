@@ -1,6 +1,10 @@
 <template lang="html">
     <div>
         <div :id="elem_id" class="map"></div>
+        <div :id="popup_id" class="ol-popup">
+            <a href="#" :id="popup_closer_id" class="ol-popup-closer"></a>
+            <div :id="popup_content_id"></div>
+        </div>
     </div>
 </template>
 
@@ -54,6 +58,9 @@
                 apiarySitesQuerySource: null,
                 apiarySitesQueryLayer: null,
                 elem_id: uuid(),
+                popup_id: uuid(),
+                popup_closer_id: uuid(),
+                popup_content_id: uuid(),
             }
         },
         created: function(){

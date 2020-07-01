@@ -29,6 +29,7 @@
 </template>
 
 <script>
+    import Vue from 'vue'
     import datatable from '@vue-utils/datatable.vue'
     import uuid from 'uuid'
     import ComponentMap from '@/components/common/apiary/component_map.vue'
@@ -100,14 +101,14 @@
         data: function(){
             let vm = this;
             return{
-                apiary_sites_local: null,
+                apiary_sites_local: JSON.parse(JSON.stringify(this.apiary_sites)),  // Deep copy the array
                 component_map_key: '',
                 table_id: uuid(), 
                 apiary_site_geojson_array: [],  // This is passed to the ComponentMap as props
                 default_checkbox_checked: false,  // If checked property isn't set as a apiary_site's property, this default value is used
                 dtHeaders: [
                     'Id',
-                    '',
+                    'C',
                     'Site',
                     'Longitude',
                     'Latitude',
@@ -139,6 +140,7 @@
                         {
                             // Checkbox
                             visible: vm.show_col_checkbox,
+                            className: 'dt-body-center',
                             mRender: function (data, type, apiary_site) {
                                 let disabled_str = ''
                                 if (!vm.enable_col_checkbox){
@@ -242,7 +244,7 @@
                 this.constructApiarySitesTable();
                 this.addApiarySitesToMap(this.apiary_sites)
             });
-            this.apiary_sites_local = this.apiary_sites
+            //this.apiary_sites_local = this.apiary_sites
         },
         components: {
             ComponentMap,
@@ -362,5 +364,8 @@
 .view_all_button {
     color: #03a9f4;
     cursor: pointer;
+}
+.site_checkbox {
+    text-align: center;
 }
 </style>
