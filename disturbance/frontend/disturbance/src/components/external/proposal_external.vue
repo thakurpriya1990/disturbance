@@ -55,7 +55,7 @@
                     :proposal="proposal"
                     id="proposalStart"
                     :showSections="sectionShow"
-                    ref="proposal_apiary"
+                    ref="apiary_site_transfer"
                     :is_external="true"
                     @button_text="button_text"
                 />
@@ -227,6 +227,11 @@ export default {
             let formData = new FormData(vm.form);
             // Add apiary_sites data if needed
             formData = this.attach_apiary_sites_data(formData)
+            // Add site_transfer_apiary_sites data if needed
+            if (this.$refs.apiary_site_transfer && this.$refs.apiary_site_transfer.site_transfer_apiary_sites) {
+                console.log(this.$refs.apiary_site_transfer.site_transfer_apiary_sites)
+                formData.append('site_transfer_apiary_sites', JSON.stringify(this.$refs.apiary_site_transfer.site_transfer_apiary_sites));
+            }
 
             console.log('formData: ')
             console.log(formData)
