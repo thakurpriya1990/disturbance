@@ -247,8 +247,7 @@ class ApplicationFeeSuccessView(TemplateView):
 
             # Retrieve db processes stored when calculating the fee, and delete the session
             db_operations = request.session['db_processes']
-            if db_operations:
-                del request.session['db_processes']
+            del request.session['db_processes']
 
             application_fee = get_session_application_invoice(request.session)
             proposal = application_fee.proposal
@@ -303,8 +302,7 @@ class ApplicationFeeSuccessView(TemplateView):
                         proposal.fee_invoice_reference = invoice_ref
                         proposal.save()
                         proposal_submit_apiary(proposal, request)
-                        if proposal.application_type.name == ApplicationType.APIARY:
-                            self.adjust_db_operations(db_operations)
+                        self.adjust_db_operations(db_operations)
                     else:
                         logger.error('Invoice payment status is {}'.format(invoice.payment_status))
                         raise
