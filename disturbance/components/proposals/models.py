@@ -2569,7 +2569,7 @@ class ApiarySiteFee(RevisionedMixin):
         return '${} ({}:{})'.format(self.amount, self.date_of_enforcement, self.site_category)
 
 
-class ApiaryAnnualRentFee(RevisionedMixin):
+class ApiaryAnnualRentalFee(RevisionedMixin):
     amount = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     date_from = models.DateField(blank=True, null=True)
 
@@ -2581,7 +2581,7 @@ class ApiaryAnnualRentFee(RevisionedMixin):
         return 'id: {}, Amount: {}: From: {}'.format(self.id, self.amount, self.date_from)
 
 
-class ApiaryAnnualRentFeeRunDate(RevisionedMixin):
+class ApiaryAnnualRentalFeeRunDate(RevisionedMixin):
     NAME_CRON = 'date_to_run_cron_job'
     NAME_CHOICES = (
         (NAME_CRON, 'Date to run job'),
