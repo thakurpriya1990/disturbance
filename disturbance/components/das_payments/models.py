@@ -119,19 +119,7 @@ class ApplicationFee(Payment):
 
 
 class AnnualRentalFee(Payment):
-    PAYMENT_TYPE_INTERNET = 0
-    PAYMENT_TYPE_RECEPTION = 1
-    PAYMENT_TYPE_BLACK = 2
-    PAYMENT_TYPE_TEMPORARY = 3
-    PAYMENT_TYPE_CHOICES = (
-        (PAYMENT_TYPE_INTERNET, 'Internet booking'),
-        (PAYMENT_TYPE_RECEPTION, 'Reception booking'),
-        (PAYMENT_TYPE_BLACK, 'Black booking'),
-        (PAYMENT_TYPE_TEMPORARY, 'Temporary reservation'),
-    )
-
     approval = models.ForeignKey(Approval, on_delete=models.PROTECT, blank=True, null=True, related_name='annual_rent_fees')
-    payment_type = models.SmallIntegerField(choices=PAYMENT_TYPE_CHOICES, default=0)
     cost = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     created_by = models.ForeignKey(EmailUser, on_delete=models.PROTECT, blank=True, null=True, related_name='created_by_annual_rent_fee')
 
