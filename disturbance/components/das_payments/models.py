@@ -120,7 +120,6 @@ class ApplicationFee(Payment):
 
 class AnnualRentalFee(Payment):
     approval = models.ForeignKey(Approval, on_delete=models.PROTECT, blank=True, null=True, related_name='annual_rent_fees')
-    cost = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     created_by = models.ForeignKey(EmailUser, on_delete=models.PROTECT, blank=True, null=True, related_name='created_by_annual_rent_fee')
 
     def __str__(self):
