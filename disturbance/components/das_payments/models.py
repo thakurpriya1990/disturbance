@@ -151,7 +151,7 @@ class ApplicationFeeInvoice(RevisionedMixin):
 
 
 class AnnualRentalFeeInvoice(RevisionedMixin):
-    annual_rent_fee = models.ForeignKey(AnnualRentalFee, related_name='annual_rent_fee_invoices')
+    annual_rental_fee = models.ForeignKey(AnnualRentalFee, related_name='annual_rent_fee_invoices')
     invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
 
     def __str__(self):
