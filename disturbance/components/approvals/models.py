@@ -96,6 +96,26 @@ class Approval(RevisionedMixin):
         unique_together= ('lodgement_number', 'issue_date')
 
     @property
+    def as_line_items(self):
+        """ Create the ledger lines - line item for the annual rental fee sent to payment system """
+
+        now = datetime.datetime.now()
+        now_date = now.date()
+        penalty_amount = 123.45  # TODO: retrieve the fee per site and multiply by the number of sites
+
+        line_items = [
+            {'ledger_description': 'Annual Rental Fee: {}, Issued: {} {}'.format(
+                self.lodgement_number,
+                now.strftime("%d/%m/%Y"),  # TODO: is now fine?
+                now.strftime("%I:%M %p")), # TODO: is now fine?
+                'oracle_code': 'ABC123 GST',
+                'price_incl_tax': penalty_amount,
+                'price_excl_tax': penalty_amount,
+                'quantity': 1,
+            },
+        ]
+        return line_items
+    @property
     def relevant_applicant_id(self):
         if self.applicant:
             #return self.org_applicant.organisation.id

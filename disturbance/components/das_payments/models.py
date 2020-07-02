@@ -118,7 +118,7 @@ class ApplicationFee(Payment):
         app_label = 'disturbance'
 
 
-class AnnualRentFee(Payment):
+class AnnualRentalFee(Payment):
     PAYMENT_TYPE_INTERNET = 0
     PAYMENT_TYPE_RECEPTION = 1
     PAYMENT_TYPE_BLACK = 2
@@ -162,8 +162,8 @@ class ApplicationFeeInvoice(RevisionedMixin):
         return False
 
 
-class AnnualRentFeeInvoice(RevisionedMixin):
-    annual_rent_fee = models.ForeignKey(AnnualRentFee, related_name='annual_rent_fee_invoices')
+class AnnualRentalFeeInvoice(RevisionedMixin):
+    annual_rent_fee = models.ForeignKey(AnnualRentalFee, related_name='annual_rent_fee_invoices')
     invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
 
     def __str__(self):
@@ -185,7 +185,7 @@ class AnnualRentFeeInvoice(RevisionedMixin):
 import reversion
 reversion.register(ApplicationFee, follow=['application_fee_invoices'])
 reversion.register(ApplicationFeeInvoice)
-reversion.register(AnnualRentFee, follow=['annual_rent_fee_invoices'])
-reversion.register(AnnualRentFeeInvoice)
+reversion.register(AnnualRentalFee, follow=['annual_rent_fee_invoices'])
+reversion.register(AnnualRentalFeeInvoice)
 
 

@@ -25,6 +25,9 @@ import ast
 from decimal import Decimal
 
 import logging
+
+from disturbance.settings import PAYMENT_SYSTEM_ID
+
 logger = logging.getLogger('payment_checkout')
 
 def get_session_application_invoice(session):
@@ -263,6 +266,49 @@ def checkout(request, proposal, lines, return_url_ns='public_payment_success', r
 def oracle_integration(date,override):
     system = '0517'
     oracle_codes = oracle_parser(date, system, 'Disturbance Approval System', override=override)
+
+
+def create_other_invoice_for_annual_rental_fee(approval, request=None):
+    with transaction.atomic():
+        try:
+            logger.info('Creating OTHER invoice for the licence: {}'.format(approval.lodgement_number))
+            order = create_invoice(approval, payment_method='other')
+            invoice = Invoice.objects.get(order_number=order.number)
+
+
+
+
+            return invoice
+
+        except Exception, e:
+            logger.error('Failed to create OTHER invoice for sanction outcome: {}'.format(approval))
+            logger.error('{}'.format(e))
+
+
+def create_invoice(approval, payment_method='bpay'):
+    """
+    This will create and invoice and order from a basket bypassing the session
+    and payment bpoint code constraints.
+    """
+    from ledger.checkout.utils import createCustomBasket
+    from ledger.payments.invoice.utils import CreateInvoiceBasket
+
+    products = approval.as_line_items
+    user = approval.relevant_applicant
+    invoice_text = 'Annual Rental Fee Invoice'
+
+    basket = createCustomBasket(products, user, settings.WC_PAYMENT_SYSTEM_ID)
+    order = CreateInvoiceBasket(
+        payment_method=payment_method,
+        system=PAYMENT_SYSTEM_ID
+    ).create_invoice_and_order(basket, 0, None, None, user=user, invoice_text=invoice_text)
+
+    return order
+
+
+
+
+
 
 
 #def create_invoice(booking, payment_method='bpay'):
