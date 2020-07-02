@@ -61,6 +61,22 @@
                 popup_id: uuid(),
                 popup_closer_id: uuid(),
                 popup_content_id: uuid(),
+                style_not_checked: 
+                    new Style({
+                        image: new CircleStyle({
+                            radius: 7,
+                            fill: new Fill({color: '#e0e0e0'}),
+                            stroke: new Stroke({color: '#616161', width: 2})
+                        })
+                    }),
+                style_checked:
+                    new Style({
+                        image: new CircleStyle({
+                        radius: 7,
+                        fill: new Fill({color: '#03a9f4'}),
+                        stroke: new Stroke({color: '#2e6da4', width: 2})
+                        })
+                    }),
             }
         },
         created: function(){
@@ -150,6 +166,7 @@
             getDegrees: function(coords){
                 return coords[0].toFixed(6) + ', ' + coords[1].toFixed(6);
             },
+            // This function is not used
             getFillColour: function(status){
                 switch(status){
                     case 'draft':
@@ -168,6 +185,7 @@
                         return new Fill({color: '#e0e0e0'})
                 }
             },
+            // This function is not used
             getStrokeColour: function(status){
                 switch(status){
                     case 'draft':
@@ -187,25 +205,25 @@
                 }
             },
             addApiarySite: function(apiary_site_geojson) {
+                console.log('in addApiarySite')
+                console.log(apiary_site_geojson)
+                
                 let feature = (new GeoJSON()).readFeature(apiary_site_geojson)
                 let status = feature.get('status')
-                
-                feature.setStyle(
-                    new Style({
-                        image: new CircleStyle({
-                            radius: 7,
-                            fill: this.getFillColour(status),
-                            stroke: this.getStrokeColour(status),
-                        })
-                    })
-                )
-
+                let checked_status = apiary_site_geojson.properties.hasOwnProperty('checked') ? apiary_site_geojson.properties.checked : false
+                console.log(checked_status)
+                let style_applied = checked_status ? this.style_checked : this.style_not_checked
+                feature.setStyle(style_applied)
                 this.apiarySitesQuerySource.addFeature(feature)
             },
             zoomToApiarySiteById: function(apiary_site_id){
                 let feature = this.apiarySitesQuerySource.getFeatureById(apiary_site_id)
-                console.log(feature)
                 this.map.getView().animate({zoom: 10, center: feature['values_']['geometry']['flatCoordinates']})
+            },
+            setApiarySiteSelectedStatus: function(apiary_site_id, selected) {
+                let feature = this.apiarySitesQuerySource.getFeatureById(apiary_site_id)
+                let style_applied = selected ? this.style_checked : this.style_not_checked
+                feature.setStyle(style_applied)
             },
             addEventListeners: function () {
 
