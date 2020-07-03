@@ -90,6 +90,7 @@
                         :is_internal="true"
                         :is_external="false"
                         :show_col_checkbox="showColCheckbox"
+                        :show_action_available_unavailable="false"
                         :key="component_site_selection_key"
                         ref="component_site_selection"
                         @apiary_sites_updated="apiarySitesUpdated"
@@ -227,7 +228,7 @@ export default {
         },
         showColCheckbox: function() {
             let checked = true;
-            if (this.proposal.proposal_apiary.application_type !== 'Site Transfer') {
+            if (this.proposal.proposal_apiary.application_type === 'Site Transfer') {
                 checked = false;
             }
             return checked;
@@ -236,6 +237,7 @@ export default {
     methods:{
         apiarySitesUpdated: function(apiary_sites) {
             console.log('in proposed_apiary_issuance.vue')
+            console.log('apiarySitesUpdated')
             console.log(apiary_sites)
             this.apiary_sites_updated = apiary_sites
             //this.proposal.proposal_apiary.apiary_sites = JSON.parse(JSON.stringify(apiary_sites))
