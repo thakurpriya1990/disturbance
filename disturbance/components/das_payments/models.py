@@ -121,6 +121,8 @@ class ApplicationFee(Payment):
 class AnnualRentalFee(Payment):
     approval = models.ForeignKey(Approval, on_delete=models.PROTECT, blank=True, null=True, related_name='annual_rent_fees')
     created_by = models.ForeignKey(EmailUser, on_delete=models.PROTECT, blank=True, null=True, related_name='created_by_annual_rent_fee')
+    period_start_date = models.DateField(null=True, blank=True)
+    period_end_date = models.DateField(null=True, blank=True)
 
     def __str__(self):
         return 'Approval {} : Invoice {}'.format(self.approval, self.annual_rent_fee_invoices.last())
