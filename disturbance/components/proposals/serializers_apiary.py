@@ -395,7 +395,7 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
         return ApiaryApplicantChecklistAnswerSerializer(obj.apiary_applicant_checklist, many=True).data
 
 
-class SaveProposalApiarySerializer(serializers.ModelSerializer):
+class CreateProposalApiarySiteTransferSerializer(serializers.ModelSerializer):
     proposal_id = serializers.IntegerField(
             required=True, write_only=True, allow_null=False)
     sending_approval_id = serializers.IntegerField(
@@ -410,6 +410,30 @@ class SaveProposalApiarySerializer(serializers.ModelSerializer):
             'title',
             'proposal_id',
             'sending_approval_id',
+            # 'location',
+            #'apiary_sites',
+            'longitude',
+            'latitude',
+            #'on_site_information_list',
+            #'checklist_questions',
+        )
+        read_only_fields = (
+                'id',
+                )
+
+
+class SaveProposalApiarySerializer(serializers.ModelSerializer):
+    proposal_id = serializers.IntegerField(
+            required=True, write_only=True, allow_null=False)
+
+    class Meta:
+        model = ProposalApiary
+        # geo_field = 'location'
+
+        fields = (
+            'id',
+            'title',
+            'proposal_id',
             # 'location',
             #'apiary_sites',
             'longitude',

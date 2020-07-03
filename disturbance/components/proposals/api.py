@@ -92,6 +92,7 @@ from disturbance.components.proposals.serializers_apiary import (
     ApiaryInternalProposalSerializer,
     ProposalApiarySerializer,
     SaveProposalApiarySerializer,
+    CreateProposalApiarySiteTransferSerializer,
     ProposalApiaryTemporaryUseSerializer,
     ProposalApiarySiteTransferSerializer,
     OnSiteInformationSerializer,
@@ -1652,7 +1653,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                     approval_id = request.data.get('sending_approval_id')
                     approval = Approval.objects.get(id=approval_id)
                     details_data['sending_approval_id'] = approval_id
-                    serializer = SaveProposalApiarySerializer(data=details_data)
+                    serializer = CreateProposalApiarySiteTransferSerializer(data=details_data)
                     serializer.is_valid(raise_exception=True)
                     proposal_apiary = serializer.save()
                     # Set proposal applicant
