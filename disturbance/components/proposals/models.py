@@ -2574,6 +2574,9 @@ class ApiarySiteFee(RevisionedMixin):
 
 
 class ApiaryAnnualRentalFee(RevisionedMixin):
+    """
+    This amount is applied from the date_from
+    """
     amount = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     date_from = models.DateField(blank=True, null=True)
 
@@ -2585,7 +2588,26 @@ class ApiaryAnnualRentalFee(RevisionedMixin):
         return 'id: {}, Amount: {}: From: {}'.format(self.id, self.amount, self.date_from)
 
 
+class ApiaryAnnualRentalFeePeriodStartDate(RevisionedMixin):
+    """
+    Calculation of the annual rental fee starts from this date
+    """
+    NAME_CRON = 'period_start_date'
+    NAME_CHOICES = (
+        (NAME_CRON, 'Start date of the annual rental fee'),
+    )
+    name = models.CharField(unique=True, max_length=50, choices=NAME_CHOICES, )
+    period_start_date = models.DateField(blank=True, null=True)
+
+    class Meta:
+        app_label = 'disturbance'
+        ordering = ('period_start_date', )  # oldest record first, latest record last
+
+
 class ApiaryAnnualRentalFeeRunDate(RevisionedMixin):
+    """
+    This is the date to issue the annual rental fee invoices
+    """
     NAME_CRON = 'date_to_run_cron_job'
     NAME_CHOICES = (
         (NAME_CRON, 'Date to run job'),
