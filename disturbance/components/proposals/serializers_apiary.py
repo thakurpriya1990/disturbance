@@ -317,7 +317,10 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
         )
 
     def get_sending_approval_lodgement_number(self, obj):
-        return obj.sending_approval.lodgement_number
+        lodgement_number = None
+        if obj.sending_approval:
+            lodgement_number = obj.sending_approval.lodgement_number
+        return lodgement_number
 
     def get_site_remainders(self, proposal_apiary):
         today_local = datetime.now(pytz.timezone(TIME_ZONE)).date()

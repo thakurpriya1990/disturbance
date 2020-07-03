@@ -2413,12 +2413,22 @@ class ProposalApiary(models.Model):
                         #        site.approval = approval
                         #import ipdb;ipdb.set_trace()
                         # for site in self.apiary_sites.all():
-                        sites_approved = request.data.get('apiary_sites', [])
-                        for my_site in sites_approved:
-                            if my_site['checked']:
-                                a_site = ApiarySite.objects.get(id=my_site['id'])
-                                a_site.approval = approval
-                                a_site.save()
+                        if self.proposal.application_type.name == ApplicationType.SITE_TRANSFER:
+                            # update approval for all selected apiary sites
+                            transfer_sites = SiteTransferApiarySite.objects.filter(
+                                    proposal_apiary=self,
+                                    selected=True
+                                    )
+                            for site in transfer_sites:
+                                site.apiary_site.approval = approval
+                                site.apiary_site.save()
+                        else:
+                            sites_approved = request.data.get('apiary_sites', [])
+                            for my_site in sites_approved:
+                                if my_site['checked']:
+                                    a_site = ApiarySite.objects.get(id=my_site['id'])
+                                    a_site.approval = approval
+                                    a_site.save()
 
                         #print approval,approval.id, created
                     # Generate compliances
