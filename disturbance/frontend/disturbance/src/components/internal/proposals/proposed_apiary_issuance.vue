@@ -227,7 +227,7 @@ export default {
         },
         showColCheckbox: function() {
             let checked = true;
-            if (this.proposal.proposal_apiary.application_type !== 'Site Transfer') {
+            if (this.proposal.proposal_apiary.application_type === 'Site Transfer') {
                 checked = false;
             }
             return checked;
