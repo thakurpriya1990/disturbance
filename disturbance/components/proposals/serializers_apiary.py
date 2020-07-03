@@ -297,6 +297,7 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
     checklist_answers = serializers.SerializerMethodField()
     site_remainders = serializers.SerializerMethodField()
     sending_approval_lodgement_number = serializers.SerializerMethodField()
+    receiving_approval_lodgement_number = serializers.SerializerMethodField()
 
     class Meta:
         model = ProposalApiary
@@ -314,7 +315,14 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
             'site_remainders',
             'sending_approval_id',
             'sending_approval_lodgement_number',
+            'receiving_approval_lodgement_number',
         )
+
+    def get_receiving_approval_lodgement_number(self, obj):
+        lodgement_number = None
+        if obj.proposal.approval:
+            lodgement_number = obj.proposal.approval.lodgement_number
+        return lodgement_number
 
     def get_sending_approval_lodgement_number(self, obj):
         lodgement_number = None

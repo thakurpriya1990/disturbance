@@ -93,6 +93,10 @@
             show_view_all_features_button: {
                 type: Boolean,
                 default: true,
+            },
+            show_action_available_unavailable: {
+                type: Boolean,
+                default: true,
             }
         },
         watch: {
@@ -207,24 +211,26 @@
                                 let view_on_map_html = '<a><span class="view_on_map" data-apiary-site-id="' + apiary_site.id + '"/>View on map</span></a>';
                                 action_list.push(view_on_map_html);
 
-                                // Mark as Available/Unavailable
-                                let display_text = ''
-                                if (vm.is_external){
-                                    if (apiary_site.available){
-                                        display_text = 'Mark as unavailable';
-                                    } else {
-                                        display_text = 'Mark as available';
+                                if (vm.show_action_available_unavailable){
+                                    // Mark as Available/Unavailable
+                                    let display_text = ''
+                                    if (vm.is_external){
+                                        if (apiary_site.available){
+                                            display_text = 'Mark as unavailable';
+                                        } else {
+                                            display_text = 'Mark as available';
+                                        }
+                                        let ret = '<a><span class="toggle_availability" data-apiary-site-id="' + apiary_site.id + 
+                                            '" data-apiary-site-available="' + apiary_site.available + '"/>' + display_text + '</span></a>';
+                                        action_list.push(ret);
+                                    } else if (vm.is_internal){
+                                        if (apiary_site.available){
+                                            display_text = 'Available';
+                                        } else {
+                                            display_text = 'Unavailable';
+                                        }
+                                        action_list.push(display_text);
                                     }
-                                    let ret = '<a><span class="toggle_availability" data-apiary-site-id="' + apiary_site.id + 
-                                        '" data-apiary-site-available="' + apiary_site.available + '"/>' + display_text + '</span></a>';
-                                    action_list.push(ret);
-                                } else if (vm.is_internal){
-                                    if (apiary_site.available){
-                                        display_text = 'Available';
-                                    } else {
-                                        display_text = 'Unavailable';
-                                    }
-                                    action_list.push(display_text);
                                 }
                                 return action_list.join('<br />');
                             }
