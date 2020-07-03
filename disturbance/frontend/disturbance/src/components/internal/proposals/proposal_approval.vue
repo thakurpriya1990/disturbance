@@ -21,6 +21,7 @@
                     :key="component_site_selection_key"
                     :show_col_checkbox="showColCheckbox"
                     :enable_col_checkbox="false"
+                    :show_action_available_unavailable="false"
                 />
             </FormSection>
         </template>

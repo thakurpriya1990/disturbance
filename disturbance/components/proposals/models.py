@@ -2423,12 +2423,16 @@ class ProposalApiary(models.Model):
                                 site.apiary_site.approval = approval
                                 site.apiary_site.save()
                         else:
+                            count_approved_site = 0
                             sites_approved = request.data.get('apiary_sites', [])
                             for my_site in sites_approved:
                                 if my_site['checked']:
                                     a_site = ApiarySite.objects.get(id=my_site['id'])
                                     a_site.approval = approval
                                     a_site.save()
+                                    count_approved_site += 1
+                            if count_approved_site == 0:
+                                raise ValidationError("There must be at least one apiary site to approve")
 
                         #print approval,approval.id, created
                     # Generate compliances
