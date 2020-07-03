@@ -217,9 +217,12 @@ export default {
             let apiary_sites = [];
             if (this.proposal.application_type === 'Site Transfer') {
                 for (let site of this.proposal.proposal_apiary.site_transfer_apiary_sites) {
+                    /*
                     if (site.selected) {
                         apiary_sites.push(site.apiary_site);
                     }
+                    */
+                    apiary_sites.push(site.apiary_site);
                 }
             } else {
                 apiary_sites = this.proposal.proposal_apiary.apiary_sites;
@@ -251,6 +254,15 @@ export default {
                 }
             }
         },
+        setApiarySiteCheckedStatusesSiteTransfer: function() {
+            if(this.proposal && this.proposal.proposal_apiary){
+                for (let i=0; i<this.proposal.proposal_apiary.site_transfer_apiary_sites.length; i++){
+                    console.log('checked status' + this.proposal.proposal_apiary.site_transfer_apiary_sites[i].selected)
+                    this.proposal.proposal_apiary.site_transfer_apiary_sites[i].apiary_site.checked = this.proposal.proposal_apiary.site_transfer_apiary_sites[i].selected
+                }
+            }
+        },
+
         forceToRefreshMap: function() {
             if (this.$refs.component_site_selection){
                 this.$refs.component_site_selection.forceToRefreshMap()
@@ -437,8 +449,19 @@ export default {
         this.$nextTick(()=>{
             vm.eventListeners();
         });
-        this.setApiarySiteCheckedStatuses()         
+        if (this.proposal.application_type === 'Site Transfer') {
+            this.setApiarySiteCheckedStatusesSiteTransfer();
+        } else {
+            this.setApiarySiteCheckedStatuses();
+        }
         this.component_site_selection_key = uuid()
+        /*
+        if (this.proposal && this.proposal.proposal_apiary &&) {
+            for (let site of this.proposal.proposal_apiary.site_transfer_apiary_sites) {
+                site.apiary_site.checked = site.selected;
+            }
+        }
+        */
 
     }
 }
