@@ -1178,10 +1178,20 @@ class Proposal(RevisionedMixin):
                 apiary_sites = request.data.get('apiary_sites', None)
                 if apiary_sites:
                     # When new apiary proposal
-                    for apiary_site in apiary_sites:
-                        my_site = ApiarySite.objects.get(id=apiary_site['id'])
-                        my_site.workflow_selected_status = apiary_site['checked']
-                        my_site.save()
+                    if self.application_type.name == ApplicationType.APIARY:
+                        for apiary_site in apiary_sites:
+                            my_site = ApiarySite.objects.get(id=apiary_site['id'])
+                            my_site.workflow_selected_status = apiary_site['checked']
+                            my_site.save()
+                    # Site transfer
+                    elif self.application_type.name == ApplicationType.SITE_TRANSFER:
+                        for apiary_site in apiary_sites:
+                            transfer_site = SiteTransferApiarySite.objects.get(
+                                    proposal_apiary=self.proposal_apiary,
+                                    apiary_site_id=apiary_site.get('id')
+                                    )
+                            transfer_site.selected = apiary_site.get('checked')
+                            transfer_site.save()
 
                 self.save()
                 # Log proposal action
