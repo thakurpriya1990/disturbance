@@ -7,6 +7,7 @@ from django.db.models import Q, Min
 from ledger.settings_base import TIME_ZONE
 
 from disturbance.components.approvals.models import Approval
+from disturbance.components.das_payments.models import AnnualRentalFee
 from disturbance.components.das_payments.utils import create_other_invoice_for_annual_rental_fee
 from disturbance.components.proposals.models import ApiaryAnnualRentalFeeRunDate, ApiaryAnnualRentalFeePeriodStartDate
 
@@ -15,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 def get_annual_rental_fee_period(target_date):
     """
-    Retrieve the annual rental fee period, on the target_date the invoice for it should be issued
+    Retrieve the annual rental fee period, the invoice for this period should have been issued on the target_date passed as a parameter
     """
     target_date_year = target_date.year
 
@@ -47,25 +48,42 @@ def get_annual_rental_fee_period(target_date):
     return period_start_date, period_end_date
 
 
+def get_approvals_valid_in_range(start_date, end_date):
+    # Retrieve the licences which will be valid within the period passes as parameters
+    q_objects = Q()
+    q_objects &= Q(apiary_approval=True)
+    q_objects &= Q(expiry_date__gte=start_date)
+
+    approvals_issued = Approval.objects.filter(
+        annual_rental_fees__in=AnnualRentalFee.objects.filter(
+            period_start_date=start_date,
+            period_end_date=end_date
+        )
+    )
+
+
+    # q_objects &= Q(id=323)
+    approval_qs = Approval.objects.filter(q_objects)
+
+    return approval_qs
+
+
 class Command(BaseCommand):
     help = 'Send annual rent fee invoices for the apiary'
 
     def handle(self, *args, **options):
         try:
-            # TODO 1. Determine the start and end date of the annual rental fee, for which the invoices should be issued
+            # 1. Determine the start and end date of the annual rental fee, for which the invoices should be issued
             today_local = datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
             period_start_date, period_end_date = get_annual_rental_fee_period(today_local)
 
-            # TODO 2. Retrieve the licences which will be valid within the current annual rental fee period
+            # 2. Retrieve the licences which will be valid within the current annual rental fee period
+            approval_qs = get_approvals_valid_in_range(period_start_date, period_end_date)
 
 
             # TODO 3. Issue the invoices if not issued yet
-            #       Invoice.objects.exclude(payment_status__in=('paid', 'overpaid')
+            # Invoice.objects.exclude(payment_status__in=('paid', 'overpaid')
 
-            q_objects = Q()
-            q_objects &= Q(id=323)
-
-            approval_qs = Approval.objects.filter(q_objects)
 
             for approval in approval_qs:
                 invoice = create_other_invoice_for_annual_rental_fee(approval)
