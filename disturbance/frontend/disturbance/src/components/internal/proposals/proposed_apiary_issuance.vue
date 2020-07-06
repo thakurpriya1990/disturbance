@@ -90,6 +90,7 @@
                         :is_internal="true"
                         :is_external="false"
                         :show_col_checkbox="showColCheckbox"
+                        :show_action_available_unavailable="false"
                         :key="component_site_selection_key"
                         ref="component_site_selection"
                         @apiary_sites_updated="apiarySitesUpdated"
@@ -216,9 +217,12 @@ export default {
             let apiary_sites = [];
             if (this.proposal.application_type === 'Site Transfer') {
                 for (let site of this.proposal.proposal_apiary.site_transfer_apiary_sites) {
+                    /*
                     if (site.selected) {
                         apiary_sites.push(site.apiary_site);
                     }
+                    */
+                    apiary_sites.push(site.apiary_site);
                 }
             } else {
                 apiary_sites = this.proposal.proposal_apiary.apiary_sites;
@@ -227,7 +231,7 @@ export default {
         },
         showColCheckbox: function() {
             let checked = true;
-            if (this.proposal.proposal_apiary.application_type !== 'Site Transfer') {
+            if (this.proposal.proposal_apiary.application_type === 'Site Transfer') {
                 checked = false;
             }
             return checked;
@@ -236,6 +240,7 @@ export default {
     methods:{
         apiarySitesUpdated: function(apiary_sites) {
             console.log('in proposed_apiary_issuance.vue')
+            console.log('apiarySitesUpdated')
             console.log(apiary_sites)
             this.apiary_sites_updated = apiary_sites
             //this.proposal.proposal_apiary.apiary_sites = JSON.parse(JSON.stringify(apiary_sites))
@@ -249,6 +254,15 @@ export default {
                 }
             }
         },
+        setApiarySiteCheckedStatusesSiteTransfer: function() {
+            if(this.proposal && this.proposal.proposal_apiary){
+                for (let i=0; i<this.proposal.proposal_apiary.site_transfer_apiary_sites.length; i++){
+                    console.log('checked status' + this.proposal.proposal_apiary.site_transfer_apiary_sites[i].selected)
+                    this.proposal.proposal_apiary.site_transfer_apiary_sites[i].apiary_site.checked = this.proposal.proposal_apiary.site_transfer_apiary_sites[i].selected
+                }
+            }
+        },
+
         forceToRefreshMap: function() {
             if (this.$refs.component_site_selection){
                 this.$refs.component_site_selection.forceToRefreshMap()
@@ -435,8 +449,19 @@ export default {
         this.$nextTick(()=>{
             vm.eventListeners();
         });
-        this.setApiarySiteCheckedStatuses()         
+        if (this.proposal.application_type === 'Site Transfer') {
+            this.setApiarySiteCheckedStatusesSiteTransfer();
+        } else {
+            this.setApiarySiteCheckedStatuses();
+        }
         this.component_site_selection_key = uuid()
+        /*
+        if (this.proposal && this.proposal.proposal_apiary &&) {
+            for (let site of this.proposal.proposal_apiary.site_transfer_apiary_sites) {
+                site.apiary_site.checked = site.selected;
+            }
+        }
+        */
 
     }
 }

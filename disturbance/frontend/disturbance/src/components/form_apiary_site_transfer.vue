@@ -49,26 +49,9 @@
                                 <input type="radio" name="approval_choice" :value="approval.id" v-model="proposal.proposal_apiary.selected_licence"/>
                                 Licence: {{approval.lodgement_number}}
                             </div>
-                            <!--ul class="list-unstyled col-sm-12" v-for="approval in apiaryApprovals">
-                                <div class="row">
-                                    <div class="col-sm-12">
-                                        <ul  class="list-inline col-sm-6">
-                                            <li class="list-inline-item">
-                                                <input  
-                                                class="form-check-input" 
-                                                v-model="selectedLicence" 
-                                                ref="licenceSelection" 
-                                                type="radio" 
-                                                :name="approvalid" 
-                                                :id="approvalid"
-                                                :value="approval.id" 
-                                                data-parsley-required 
-                                                :disabled="readonly"/> Licence: {{approval.id}}
-                                            </li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </ul-->
+                        </div>
+                        <div v-else-if="receivingApprovalLodgementNumber">
+                            Licence: {{receivingApprovalLodgementNumber}}
                         </div>
                     </div>
                 </div>
@@ -268,6 +251,13 @@
                     show = true;
                 }
                 return show;
+            },
+            receivingApprovalLodgementNumber: function() {
+                let lodgement_number = '';
+                if (this.proposal && this.proposal.proposal_apiary && this.proposal.proposal_apiary.receiving_approval_lodgement_number) {
+                    lodgement_number = this.proposal.proposal_apiary.receiving_approval_lodgement_number;
+                }
+                return lodgement_number;
             },
             /*
             site_transfer_apiary_sites: function(){
