@@ -118,14 +118,27 @@ class ApplicationFee(Payment):
         app_label = 'disturbance'
 
 
-class AnnualRentalFee(Payment):
-    approval = models.ForeignKey(Approval, on_delete=models.PROTECT, blank=True, null=True, related_name='annual_rent_fees')
-    created_by = models.ForeignKey(EmailUser, on_delete=models.PROTECT, blank=True, null=True, related_name='created_by_annual_rent_fee')
+class AnnualRentalFeePeriod(RevisionedMixin):
     period_start_date = models.DateField(null=True, blank=True)
     period_end_date = models.DateField(null=True, blank=True)
 
     def __str__(self):
-        return 'Approval {} : Invoice {}'.format(self.approval, self.annual_rent_fee_invoices.last())
+        return 'AnnualRentalFeePeriod from {} to {}'.format(self.period_start_date, self.period_end_date)
+
+    class Meta:
+        app_label = 'disturbance'
+
+
+class AnnualRentalFee(Payment):
+    approval = models.ForeignKey(Approval, on_delete=models.PROTECT, blank=True, null=True, related_name='annual_rental_fees')
+    created_by = models.ForeignKey(EmailUser, on_delete=models.PROTECT, blank=True, null=True, related_name='created_by_annual_rental_fees')
+    annual_rental_fee_period = models.ForeignKey(AnnualRentalFeePeriod, on_delete=models.PROTECT, blank=True, null=True, related_name='annual_rental_fees')
+    invoice_period_start_date = models.DateField(null=True, blank=True)
+    invoice_period_end_date = models.DateField(null=True, blank=True)
+    invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
+
+    def __str__(self):
+        return 'Approval {} : Invoice {}'.format(self.approval, self.invoice_reference)
 
     class Meta:
         app_label = 'disturbance'
@@ -152,7 +165,7 @@ class ApplicationFeeInvoice(RevisionedMixin):
 
 
 class AnnualRentalFeeInvoice(RevisionedMixin):
-    annual_rental_fee = models.ForeignKey(AnnualRentalFee, related_name='annual_rent_fee_invoices')
+    annual_rental_fee = models.ForeignKey(AnnualRentalFee, related_name='annual_rental_fee_invoices')
     invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
 
     def __str__(self):
@@ -174,7 +187,7 @@ class AnnualRentalFeeInvoice(RevisionedMixin):
 import reversion
 reversion.register(ApplicationFee, follow=['application_fee_invoices'])
 reversion.register(ApplicationFeeInvoice)
-reversion.register(AnnualRentalFee, follow=['annual_rent_fee_invoices'])
+reversion.register(AnnualRentalFee, follow=['annual_rental_fee_invoices'])
 reversion.register(AnnualRentalFeeInvoice)
 
 

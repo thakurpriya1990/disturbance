@@ -41,7 +41,8 @@ from disturbance.components.das_payments.utils import (
     #create_other_invoice,
 )
 
-from disturbance.components.das_payments.models import ApplicationFee, ApplicationFeeInvoice, AnnualRentalFeeInvoice
+from disturbance.components.das_payments.models import ApplicationFee, ApplicationFeeInvoice, AnnualRentalFeeInvoice, \
+    AnnualRentalFee
 
 from ledger.checkout.utils import create_basket_session, create_checkout_session, place_order_submission, get_cookie_basket
 from ledger.payments.utils import oracle_parser_on_invoice,update_payments
@@ -401,8 +402,8 @@ class InvoicePDFView(View):
                 return response
         except Proposal.DoesNotExist:
             # The invoice might be issued for the annual rental fee
-            annual_rental_fee_invoice = AnnualRentalFeeInvoice.objects.get(invoice_reference=invoice.reference)
-            approval = annual_rental_fee_invoice.annual_rental_fee.approval
+            annual_rental_fee = AnnualRentalFee.objects.get(invoice_reference=invoice.reference)
+            approval = annual_rental_fee.approval
             response = HttpResponse(content_type='application/pdf')
             response.write(create_invoice_pdf_bytes('invoice.pdf', invoice, None))
             return response
