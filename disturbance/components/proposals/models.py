@@ -2602,9 +2602,9 @@ class ApiaryAnnualRentalFeePeriodStartDate(RevisionedMixin):
     """
     Calculation of the annual rental fee starts from this date
     """
-    NAME_CRON = 'period_start_date'
+    NAME_PERIOD_START = 'period_start_date'
     NAME_CHOICES = (
-        (NAME_CRON, 'Start date of the annual rental fee'),
+        (NAME_PERIOD_START, 'Start date of the annual rental fee'),
     )
     name = models.CharField(unique=True, max_length=50, choices=NAME_CHOICES, )
     period_start_date = models.DateField(blank=True, null=True)
