@@ -164,30 +164,30 @@ class ApplicationFeeInvoice(RevisionedMixin):
         return False
 
 
-class AnnualRentalFeeInvoice(RevisionedMixin):
-    annual_rental_fee = models.ForeignKey(AnnualRentalFee, related_name='annual_rental_fee_invoices')
-    invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
-
-    def __str__(self):
-        return 'Annual Rent Fee {} : Invoice #{}'.format(self.id, self.invoice_reference)
-
-    class Meta:
-        app_label = 'disturbance'
-
-    @property
-    def active(self):
-        try:
-            invoice = Invoice.objects.get(reference=self.invoice_reference)
-            return False if invoice.voided else True
-        except Invoice.DoesNotExist:
-            pass
-        return False
+# class AnnualRentalFeeInvoice(RevisionedMixin):
+#     annual_rental_fee = models.ForeignKey(AnnualRentalFee, related_name='annual_rental_fee_invoices')
+#     invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
+#
+#     def __str__(self):
+#         return 'Annual Rent Fee {} : Invoice #{}'.format(self.id, self.invoice_reference)
+#
+#     class Meta:
+#         app_label = 'disturbance'
+#
+#     @property
+#     def active(self):
+#         try:
+#             invoice = Invoice.objects.get(reference=self.invoice_reference)
+#             return False if invoice.voided else True
+#         except Invoice.DoesNotExist:
+#             pass
+#         return False
 
 
 import reversion
 reversion.register(ApplicationFee, follow=['application_fee_invoices'])
 reversion.register(ApplicationFeeInvoice)
 reversion.register(AnnualRentalFee, follow=['annual_rental_fee_invoices'])
-reversion.register(AnnualRentalFeeInvoice)
+# reversion.register(AnnualRentalFeeInvoice)
 
 

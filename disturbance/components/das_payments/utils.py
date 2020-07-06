@@ -16,7 +16,7 @@ from disturbance.components.main.models import ApplicationType
 from disturbance.components.proposals.models import Proposal, ProposalUserAction, SiteCategory, ApiarySiteFeeType, \
     ApiarySiteFeeRemainder
 from disturbance.components.organisations.models import Organisation
-from disturbance.components.das_payments.models import ApplicationFee, AnnualRentalFee, AnnualRentalFeeInvoice
+from disturbance.components.das_payments.models import ApplicationFee, AnnualRentalFee
 from ledger.checkout.utils import create_basket_session, create_checkout_session, calculate_excl_gst
 from ledger.payments.models import Invoice
 from ledger.payments.utils import oracle_parser

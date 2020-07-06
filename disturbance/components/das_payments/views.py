@@ -41,8 +41,7 @@ from disturbance.components.das_payments.utils import (
     #create_other_invoice,
 )
 
-from disturbance.components.das_payments.models import ApplicationFee, ApplicationFeeInvoice, AnnualRentalFeeInvoice, \
-    AnnualRentalFee
+from disturbance.components.das_payments.models import ApplicationFee, ApplicationFeeInvoice, AnnualRentalFee
 
 from ledger.checkout.utils import create_basket_session, create_checkout_session, place_order_submission, get_cookie_basket
 from ledger.payments.utils import oracle_parser_on_invoice,update_payments
