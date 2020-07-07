@@ -8,7 +8,7 @@ from ledger.accounts.models import EmailUser, RevisionedMixin
 from ledger.payments.models import Invoice
 
 from disturbance.components.approvals.models import Approval
-from disturbance.components.proposals.models import Proposal
+from disturbance.components.proposals.models import Proposal, ApiarySite
 from decimal import Decimal as D
 from ledger.checkout.utils import calculate_excl_gst
 
@@ -127,6 +127,7 @@ class AnnualRentalFeePeriod(RevisionedMixin):
 
     class Meta:
         app_label = 'disturbance'
+        ordering = ['-period_end_date', '-period_start_date',]
 
 
 class AnnualRentalFee(Payment):
@@ -139,6 +140,14 @@ class AnnualRentalFee(Payment):
 
     def __str__(self):
         return 'Approval {} : Invoice {}'.format(self.approval, self.invoice_reference)
+
+    class Meta:
+        app_label = 'disturbance'
+
+
+class AnnualRentalFeeApiarySite(RevisionedMixin):
+    apiary_site = models.ForeignKey(ApiarySite, blank=True, null=True)
+    annual_rental_fee = models.ForeignKey(AnnualRentalFee, blank=True, null=True)
 
     class Meta:
         app_label = 'disturbance'

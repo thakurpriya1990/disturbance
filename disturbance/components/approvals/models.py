@@ -53,12 +53,17 @@ class ApprovalDocument(Document):
 
 #class Approval(models.Model):
 class Approval(RevisionedMixin):
+    STATUS_CURRENT = 'current'
+    STATUS_EXPIRED = 'expired'
+    STATUS_CANCELLED = 'cancelled'
+    STATUS_SURRENDERED = 'surrendered'
+    STATUS_SUSPENDED = 'suspended'
     STATUS_CHOICES = (
-        ('current','Current'),
-        ('expired','Expired'),
-        ('cancelled','Cancelled'),
-        ('surrendered','Surrendered'),
-        ('suspended','Suspended')
+        (STATUS_CURRENT, 'Current'),
+        (STATUS_EXPIRED, 'Expired'),
+        (STATUS_CANCELLED, 'Cancelled'),
+        (STATUS_SURRENDERED, 'Surrendered'),
+        (STATUS_SUSPENDED, 'Suspended')
     )
     lodgement_number = models.CharField(max_length=9, blank=True, default='')
     status = models.CharField(max_length=40, choices=STATUS_CHOICES,
