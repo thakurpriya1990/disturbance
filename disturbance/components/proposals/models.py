@@ -2595,7 +2595,7 @@ class ApiaryAnnualRentalFee(RevisionedMixin):
         ordering = ('date_from', )  # oldest record first, latest record last
 
     def __str__(self):
-        return 'id: {}, Amount: {}: From: {}'.format(self.id, self.amount, self.date_from)
+        return 'Amount: ${}: From: {}'.format(self.amount, self.date_from)
 
 
 class ApiaryAnnualRentalFeePeriodStartDate(RevisionedMixin):
@@ -2608,6 +2608,9 @@ class ApiaryAnnualRentalFeePeriodStartDate(RevisionedMixin):
     )
     name = models.CharField(unique=True, max_length=50, choices=NAME_CHOICES, )
     period_start_date = models.DateField(blank=True, null=True)
+
+    def __str__(self):
+        return '{}: {} {}'.format(self.name, self.period_start_date.strftime('%B'), self.period_start_date.day)
 
     class Meta:
         app_label = 'disturbance'
@@ -2629,7 +2632,7 @@ class ApiaryAnnualRentalFeeRunDate(RevisionedMixin):
         app_label = 'disturbance'
 
     def __str__(self):
-        return 'id: {}, {}'.format(self.id, self.date_run_cron)
+        return '{}: {} {}'.format(self.name, self.date_run_cron.strftime('%B'), self.date_run_cron.day)
 
 
 class ApiarySite(models.Model):

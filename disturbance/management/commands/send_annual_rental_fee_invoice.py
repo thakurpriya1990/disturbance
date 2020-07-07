@@ -8,7 +8,7 @@ from django.db.models import Q, Min
 from ledger.settings_base import TIME_ZONE
 
 from disturbance.components.approvals.models import Approval
-from disturbance.components.das_payments.models import AnnualRentalFee, AnnualRentalFeePeriod
+from disturbance.components.das_payments.models import AnnualRentalFee, AnnualRentalFeePeriod, AnnualRentalFeeApiarySite
 from disturbance.components.das_payments.utils import create_other_invoice_for_annual_rental_fee
 from disturbance.components.proposals.models import ApiaryAnnualRentalFeeRunDate, ApiaryAnnualRentalFeePeriodStartDate
 
@@ -49,14 +49,13 @@ def get_annual_rental_fee_period(target_date):
     return period_start_date, period_end_date
 
 
-def get_approvals_valid_in_range(period_start_date, period_end_date):
-    # Retrieve the licences which will be valid within this period
+def get_approvals(annual_rental_fee_period):
+    # Retrieve the licences which will be valid within this period, but no invoices have been issued
     q_objects = Q()
     q_objects &= Q(apiary_approval=True)
-    q_objects &= Q(expiry_date__gte=period_start_date)
+    q_objects &= Q(expiry_date__gte=annual_rental_fee_period.period_start_date)
     q_objects &= Q(status=Approval.STATUS_CURRENT)
-    # TODO: More conditions needed?
-    # q_objects = Q(id=323)
+
     approval_qs = Approval.objects.filter(q_objects)
 
     return approval_qs
@@ -75,14 +74,13 @@ class Command(BaseCommand):
             # This period should not overwrap the existings, otherwise you will need a refund
             annual_rental_fee_period, created = AnnualRentalFeePeriod.objects.get_or_create(period_start_date=period_start_date, period_end_date=period_end_date)
 
-
             # Retrieve the licences which will be valid within the current annual rental fee period
-            approval_qs = get_approvals_valid_in_range(period_start_date, period_end_date)
+            approval_qs = get_approvals(annual_rental_fee_period)
 
             # Issue the annual rental fee invoices per approval per annual_rental_fee_period
             for approval in approval_qs:
 
-                # TODO: check if it exists per apairy site under this approval
+                # TODO ???: check if it exists per apairy site under this approval
                 annual_rental_fee, created = AnnualRentalFee.objects.get_or_create(approval=approval, annual_rental_fee_period=annual_rental_fee_period)
 
                 if not annual_rental_fee.invoice_reference:
@@ -96,7 +94,10 @@ class Command(BaseCommand):
                     annual_rental_fee.invoice_period_end_date = annual_rental_fee_period.period_end_date
                     annual_rental_fee.save()
 
-                    # TODO: Store the apiary sites which the invoice has been issued for (create AnnualRentalFeeApiarySite)
+                    # Store the apiary sites which the invoice created above has been issued for
+                    for apiary_site in approval.apiary_sites.all():
+                        annual_rental_fee_apiary_site = AnnualRentalFeeApiarySite(apiary_site=apiary_site, annual_rental_fee=annual_rental_fee)
+                        annual_rental_fee_apiary_site.save()
 
                     # TODO: Attach the invoice and send emails
 

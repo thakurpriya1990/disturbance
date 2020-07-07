@@ -128,6 +128,7 @@ class AnnualRentalFeePeriod(RevisionedMixin):
     class Meta:
         app_label = 'disturbance'
         ordering = ['-period_end_date', '-period_start_date',]
+        unique_together = ('period_start_date', 'period_end_date',)
 
 
 class AnnualRentalFee(Payment):
