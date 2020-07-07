@@ -50,13 +50,14 @@ def get_annual_rental_fee_period(target_date):
 
 
 def get_approvals(annual_rental_fee_period):
-    # Retrieve the licences which will be valid within this period, but no invoices have been issued
+    # Retrieve the licences which will be valid within this period and no invoices have been issued for this period
     q_objects = Q()
     q_objects &= Q(apiary_approval=True)
     q_objects &= Q(expiry_date__gte=annual_rental_fee_period.period_start_date)
     q_objects &= Q(status=Approval.STATUS_CURRENT)
 
-    approval_qs = Approval.objects.filter(q_objects)
+    approval_qs = Approval.objects.filter(q_objects)\
+        .exclude(annual_rental_fees__in=AnnualRentalFee.objects.filter(annual_rental_fee_period=annual_rental_fee_period))
 
     return approval_qs
 
@@ -79,27 +80,29 @@ class Command(BaseCommand):
 
             # Issue the annual rental fee invoices per approval per annual_rental_fee_period
             for approval in approval_qs:
+                try:
+                    annual_rental_fee, created = AnnualRentalFee.objects.get_or_create(approval=approval, annual_rental_fee_period=annual_rental_fee_period)
 
-                # TODO ???: check if it exists per apairy site under this approval
-                annual_rental_fee, created = AnnualRentalFee.objects.get_or_create(approval=approval, annual_rental_fee_period=annual_rental_fee_period)
+                    if not annual_rental_fee.invoice_reference:
 
-                if not annual_rental_fee.invoice_reference:
+                        # Issue an invoice for the approval
+                        invoice = create_other_invoice_for_annual_rental_fee(approval)  # TODO: calculate the fee accounting for the number of sites
 
-                    # Issue an invoice for the approval
-                    invoice = create_other_invoice_for_annual_rental_fee(approval)  # TODO: calculate the fee accounting for the number of sites
+                        # Update annual_rental_fee obj
+                        annual_rental_fee.invoice_reference = invoice.reference
+                        annual_rental_fee.invoice_period_start_date = annual_rental_fee_period.period_start_date
+                        annual_rental_fee.invoice_period_end_date = annual_rental_fee_period.period_end_date
+                        annual_rental_fee.save()
 
-                    # Update annual_rental_fee obj
-                    annual_rental_fee.invoice_reference = invoice.reference
-                    annual_rental_fee.invoice_period_start_date = annual_rental_fee_period.period_start_date
-                    annual_rental_fee.invoice_period_end_date = annual_rental_fee_period.period_end_date
-                    annual_rental_fee.save()
+                        # Store the apiary sites which the invoice created above has been issued for
+                        for apiary_site in approval.apiary_sites.all():
+                            annual_rental_fee_apiary_site = AnnualRentalFeeApiarySite(apiary_site=apiary_site, annual_rental_fee=annual_rental_fee)
+                            annual_rental_fee_apiary_site.save()
 
-                    # Store the apiary sites which the invoice created above has been issued for
-                    for apiary_site in approval.apiary_sites.all():
-                        annual_rental_fee_apiary_site = AnnualRentalFeeApiarySite(apiary_site=apiary_site, annual_rental_fee=annual_rental_fee)
-                        annual_rental_fee_apiary_site.save()
+                        # TODO: Attach the invoice and send emails
 
-                    # TODO: Attach the invoice and send emails
+                except Exception as e:
+                    logger.error('Error command {}'.format(__name__))
 
         except Exception as e:
             logger.error('Error command {}'.format(__name__))

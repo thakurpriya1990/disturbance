@@ -197,7 +197,7 @@ class ApplicationFeeInvoice(RevisionedMixin):
 import reversion
 reversion.register(ApplicationFee, follow=['application_fee_invoices'])
 reversion.register(ApplicationFeeInvoice)
-reversion.register(AnnualRentalFee, follow=['annual_rental_fee_invoices'])
+reversion.register(AnnualRentalFee)
 # reversion.register(AnnualRentalFeeInvoice)
 
 
