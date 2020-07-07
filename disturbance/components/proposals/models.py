@@ -1174,6 +1174,25 @@ class Proposal(RevisionedMixin):
                 approver_comment = ''
                 self.move_to_status(request,'with_approver', approver_comment)
                 self.assigned_officer = None
+
+                apiary_sites = request.data.get('apiary_sites', None)
+                if apiary_sites:
+                    # When new apiary proposal
+                    if self.application_type.name == ApplicationType.APIARY:
+                        for apiary_site in apiary_sites:
+                            my_site = ApiarySite.objects.get(id=apiary_site['id'])
+                            my_site.workflow_selected_status = apiary_site['checked']
+                            my_site.save()
+                    # Site transfer
+                    elif self.application_type.name == ApplicationType.SITE_TRANSFER:
+                        for apiary_site in apiary_sites:
+                            transfer_site = SiteTransferApiarySite.objects.get(
+                                    proposal_apiary=self.proposal_apiary,
+                                    apiary_site_id=apiary_site.get('id')
+                                    )
+                            transfer_site.selected = apiary_site.get('checked')
+                            transfer_site.save()
+
                 self.save()
                 # Log proposal action
                 self.log_user_action(ProposalUserAction.ACTION_PROPOSED_APPROVAL.format(self.id),request)
@@ -1240,7 +1259,6 @@ class Proposal(RevisionedMixin):
 
             except:
                 raise
-
 
     def final_approval(self,request,details):
         from disturbance.components.approvals.models import Approval
@@ -1486,8 +1504,6 @@ class Proposal(RevisionedMixin):
                                     compliance.log_user_action(ComplianceUserAction.ACTION_CREATE.format(compliance.id),request)
             except:
                 raise
-
-
 
     def renew_approval(self,request):
         with transaction.atomic():
@@ -2406,9 +2422,27 @@ class ProposalApiary(models.Model):
                         #    for site in self.apiary_site_transfer.apiary_sites.all():
                         #        site.approval = approval
                         #import ipdb;ipdb.set_trace()
-                        for site in self.apiary_sites.all():
-                            site.approval = approval
-                            site.save()
+                        # for site in self.apiary_sites.all():
+                        if self.proposal.application_type.name == ApplicationType.SITE_TRANSFER:
+                            # update approval for all selected apiary sites
+                            transfer_sites = SiteTransferApiarySite.objects.filter(
+                                    proposal_apiary=self,
+                                    selected=True
+                                    )
+                            for site in transfer_sites:
+                                site.apiary_site.approval = approval
+                                site.apiary_site.save()
+                        else:
+                            count_approved_site = 0
+                            sites_approved = request.data.get('apiary_sites', [])
+                            for my_site in sites_approved:
+                                if my_site['checked']:
+                                    a_site = ApiarySite.objects.get(id=my_site['id'])
+                                    a_site.approval = approval
+                                    a_site.save()
+                                    count_approved_site += 1
+                            if count_approved_site == 0:
+                                raise ValidationError("There must be at least one apiary site to approve")
 
                         #print approval,approval.id, created
                     # Generate compliances
@@ -2501,10 +2535,10 @@ class SiteCategory(models.Model):
         for item in SiteCategory.CATEGORY_CHOICES:
             if item[0] == self.name:
                 fee_application = self.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_APPLICATION)
-                fee_amendment = self.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_AMENDMENT)
-                fee_renewal = self.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_RENEWAL)
-                fee_transfer = self.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_TRANSFER)
-                return '{} - application: {}, amendment: {}, renewal: {}, transfer: {}'.format(item[1], fee_application, fee_amendment, fee_renewal, fee_transfer)
+                # fee_amendment = self.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_AMENDMENT)
+                # fee_renewal = self.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_RENEWAL)
+                # fee_transfer = self.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_TRANSFER)
+                return '{} - application: {}'.format(item[1], fee_application)
         return '---'
 
     class Meta:
@@ -2513,14 +2547,14 @@ class SiteCategory(models.Model):
 
 class ApiarySiteFeeType(RevisionedMixin):
     FEE_TYPE_APPLICATION = 'new_application'
-    FEE_TYPE_AMENDMENT = 'amendment'
-    FEE_TYPE_RENEWAL = 'renewal'
-    FEE_TYPE_TRANSFER = 'transfer'
+    # FEE_TYPE_AMENDMENT = 'amendment'
+    # FEE_TYPE_RENEWAL = 'renewal'
+    # FEE_TYPE_TRANSFER = 'transfer'
     FEE_TYPE_CHOICES = (
         (FEE_TYPE_APPLICATION, 'New Application'),
-        (FEE_TYPE_AMENDMENT, 'Amendment'),
-        (FEE_TYPE_RENEWAL, 'Renewal'),
-        (FEE_TYPE_TRANSFER, 'Transfer'),
+        # (FEE_TYPE_AMENDMENT, 'Amendment'),
+        # (FEE_TYPE_RENEWAL, 'Renewal'),
+        # (FEE_TYPE_TRANSFER, 'Transfer'),
     )
     name = models.CharField(unique=True, max_length=50, choices=FEE_TYPE_CHOICES,)
     description = models.TextField(blank=True)
@@ -2549,17 +2583,31 @@ class ApiarySiteFee(RevisionedMixin):
         return '${} ({}:{})'.format(self.amount, self.date_of_enforcement, self.site_category)
 
 
-# class SiteApplicationFee(RevisionedMixin):
-#     amount = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
-#     date_of_enforcement = models.DateField(blank=True, null=True)
-#     site_category = models.ForeignKey(SiteCategory, related_name='site_application_fees')
-#
-#     class Meta:
-#         app_label = 'disturbance'
-#         ordering = ('date_of_enforcement', )  # oldest record first, latest record last
-#
-#     def __str__(self):
-#         return '${} ({}:{})'.format(self.amount, self.date_of_enforcement, self.site_category)
+class ApiaryAnnualRentalFee(RevisionedMixin):
+    amount = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+    date_from = models.DateField(blank=True, null=True)
+
+    class Meta:
+        app_label = 'disturbance'
+        ordering = ('date_from', )  # oldest record first, latest record last
+
+    def __str__(self):
+        return 'id: {}, Amount: {}: From: {}'.format(self.id, self.amount, self.date_from)
+
+
+class ApiaryAnnualRentalFeeRunDate(RevisionedMixin):
+    NAME_CRON = 'date_to_run_cron_job'
+    NAME_CHOICES = (
+        (NAME_CRON, 'Date to run job'),
+    )
+    name = models.CharField(unique=True, max_length=50, choices=NAME_CHOICES, )
+    date_run_cron = models.DateField(blank=True, null=True)
+
+    class Meta:
+        app_label = 'disturbance'
+
+    def __str__(self):
+        return 'id: {}, {}'.format(self.id, self.date_run_cron)
 
 
 class ApiarySite(models.Model):
@@ -2592,6 +2640,7 @@ class ApiarySite(models.Model):
     region = models.ForeignKey(Region, null=True, blank=True)
     district = models.ForeignKey(District, null=True, blank=True)
     status = models.CharField(max_length=40, choices=STATUS_CHOICES, default=STATUS_CHOICES[0][0])
+    workflow_selected_status = models.BooleanField(default=False)  # This field is used only during approval process to select/deselect the site to be approved
     wkb_geometry = PointField(srid=4326, blank=True, null=True)
     objects = GeoManager()
 

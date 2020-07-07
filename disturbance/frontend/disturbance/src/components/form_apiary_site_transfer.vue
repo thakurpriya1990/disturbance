@@ -49,26 +49,9 @@
                                 <input type="radio" name="approval_choice" :value="approval.id" v-model="proposal.proposal_apiary.selected_licence"/>
                                 Licence: {{approval.lodgement_number}}
                             </div>
-                            <!--ul class="list-unstyled col-sm-12" v-for="approval in apiaryApprovals">
-                                <div class="row">
-                                    <div class="col-sm-12">
-                                        <ul  class="list-inline col-sm-6">
-                                            <li class="list-inline-item">
-                                                <input  
-                                                class="form-check-input" 
-                                                v-model="selectedLicence" 
-                                                ref="licenceSelection" 
-                                                type="radio" 
-                                                :name="approvalid" 
-                                                :id="approvalid"
-                                                :value="approval.id" 
-                                                data-parsley-required 
-                                                :disabled="readonly"/> Licence: {{approval.id}}
-                                            </li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </ul-->
+                        </div>
+                        <div v-else-if="receivingApprovalLodgementNumber">
+                            Licence: {{receivingApprovalLodgementNumber}}
                         </div>
                     </div>
                 </div>
@@ -80,6 +63,9 @@
                     :is_internal="is_internal"
                     :is_external="is_external"
                     :key="component_site_selection_key"
+                    :show_col_checkbox="showColCheckbox"
+                    ref="component_site_selection"
+                    @apiary_sites_updated="apiarySitesUpdated"
                   />
             </FormSection>
 
@@ -192,6 +178,7 @@
                 lookupErrorText: '',
                 //selectedLicence: null,
                 component_site_selection_key: '',
+                apiary_sites_local: [],
             }
         },
         components: {
@@ -244,35 +231,43 @@
                         }
                     }
                 }
-
                 return UnansweredChecklistQuestions;
-
             },
             apiary_sites: function() {
                 let sites = []
                 if (this.proposal && this.proposal.proposal_apiary) {
                     for (let site of this.proposal.proposal_apiary.site_transfer_apiary_sites) {
-                        sites.push(site.apiary_site)
+                        // show all sites in Draft; only selected sites after customer submits
+                        if (this.proposal.customer_status === 'Draft' || site.selected) {
+                            sites.push(site.apiary_site);
+                        }
                     }
                 }
                 return sites;
             },
-
-            /*
-            apiary_sites: function() {
-                if (this.proposal && this.proposal.proposal_apiary) {
-                    return this.proposal.proposal_apiary.apiary_sites;
+            showColCheckbox: function() {
+                let show = false;
+                if (this.proposal && this.proposal.customer_status === 'Draft') {
+                    show = true;
                 }
+                return show;
             },
-            apiary_sites_minimal: function() {
-                let apiary_sites = [];
-                for (let site of this.apiary_sites) {
-                    apiary_sites.push({
-                        'id': site.id,
-                        'checked': site.checked,
-                    })
+            receivingApprovalLodgementNumber: function() {
+                let lodgement_number = '';
+                if (this.proposal && this.proposal.proposal_apiary && this.proposal.proposal_apiary.receiving_approval_lodgement_number) {
+                    lodgement_number = this.proposal.proposal_apiary.receiving_approval_lodgement_number;
                 }
-                return apiary_sites;
+                return lodgement_number;
+            },
+            /*
+            site_transfer_apiary_sites: function(){
+                let sites = []
+                if (this.proposal && this.proposal.proposal_apiary) {
+                    for (let site of this.proposal.proposal_apiary.site_transfer_apiary_sites) {
+                        sites.push({'id': site.id, 'checked': site.apiary_site.checked})
+                    }
+                }
+                return sites;
             },
             */
           //applicantType: function(){
@@ -280,6 +275,9 @@
           //},
         },
         methods:{
+            apiarySitesUpdated: function(apiarySitesLocal) {
+                this.apiary_sites_local = apiarySitesLocal;
+            },
             button_text: function(button_text) {
                 this.$emit('button_text', button_text)
             },
@@ -319,6 +317,13 @@
         mounted: function() {
             //let vm = this;
             this.component_site_selection_key = uuid()
+            // set initial checked status
+            if (this.proposal && this.proposal.proposal_apiary) {
+                for (let site of this.proposal.proposal_apiary.site_transfer_apiary_sites) {
+                    site.apiary_site.checked = site.selected;
+                }
+            }
+
             //vm.form = document.forms.new_proposal;
             //window.addEventListener('beforeunload', vm.leaving);
             //window.addEventListener('onblur', vm.leaving);

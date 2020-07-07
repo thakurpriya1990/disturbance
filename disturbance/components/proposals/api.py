@@ -92,6 +92,7 @@ from disturbance.components.proposals.serializers_apiary import (
     ApiaryInternalProposalSerializer,
     ProposalApiarySerializer,
     SaveProposalApiarySerializer,
+    CreateProposalApiarySiteTransferSerializer,
     ProposalApiaryTemporaryUseSerializer,
     ProposalApiarySiteTransferSerializer,
     OnSiteInformationSerializer,
@@ -481,7 +482,7 @@ class ProposalApiaryViewSet(viewsets.ModelViewSet):
         #application_type = Proposal.objects.get(id=self.kwargs.get('pk')).application_type.name
         instance = self.get_object()
         application_type = instance.proposal.application_type.name
-        if application_type == ApplicationType.APIARY:
+        if application_type in (ApplicationType.APIARY, ApplicationType.SITE_TRANSFER):
             return ApiaryInternalProposalSerializer
             #return InternalProposalSerializer
         else:
@@ -577,7 +578,7 @@ class ProposalApiaryViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['POST', ])
     def get_apiary_approvals(self, request, *args, **kwargs):
         try:
-            #instance = self.get_object()
+            instance = self.get_object()
             user = None
             user_qs = []
             if request.data.get('user_email'):
@@ -586,7 +587,10 @@ class ProposalApiaryViewSet(viewsets.ModelViewSet):
                     user = user_qs[0]
                     serializer = UserApiaryApprovalSerializer(
                             user,
-                            context={'request': request})
+                            context={
+                                'request': request,
+                                'sending_approval_id': instance.sending_approval.id,
+                                })
                     return Response(serializer.data)
             # Fallback if no email address found
             #return Response({'error': 'Email address not known'})
@@ -1630,6 +1634,10 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 proposal_obj = serializer.save()
 
                 # TODO any APIARY specific settings go here - eg renewal, amendment
+
+                if proposal_obj.apiary_group_application_type:
+                    proposal_obj.activity = proposal_obj.application_type.name
+                    proposal_obj.save()
                 details_data = {
                     'proposal_id': proposal_obj.id
                 }
@@ -1642,28 +1650,28 @@ class ProposalViewSet(viewsets.ModelViewSet):
                                                                                    question = question)
                 elif application_type.name == ApplicationType.SITE_TRANSFER:
                     #import ipdb;ipdb.set_trace()
-                    approval_id = request.data.get('loaning_approval_id')
+                    approval_id = request.data.get('sending_approval_id')
                     approval = Approval.objects.get(id=approval_id)
-                    #details_data['loaning_approval_id'] = approval_id
-                    serializer = SaveProposalApiarySerializer(data=details_data)
+                    details_data['sending_approval_id'] = approval_id
+                    serializer = CreateProposalApiarySiteTransferSerializer(data=details_data)
                     serializer.is_valid(raise_exception=True)
                     proposal_apiary = serializer.save()
+                    # Set proposal applicant
+                    if approval.applicant:
+                        proposal_obj.applicant = approval.applicant
+                    else:
+                        proposal_obj.proxy_applicant = approval.proxy_applicant
+                    proposal_obj.save()
+                    # Set up checklist questions
                     for question in ApiaryApplicantChecklistQuestion.objects.filter(checklist_type='site_transfer'):
                         new_answer = ApiaryApplicantChecklistAnswer.objects.create(proposal = proposal_apiary,
                                                                                    question = question)
-                    # Save ApiarySites
-                    checked_apiary_sites = request.data.get('apiary_sites_minimal')
-                    for apiary_site in approval.apiary_sites.filter(id__in=checked_apiary_sites):
+                    # Save approval apiary sites to site transfer proposal
+                    for apiary_site in approval.apiary_sites.all():
                         SiteTransferApiarySite.objects.create(
                                 proposal_apiary=proposal_apiary,
                                 apiary_site=apiary_site
                                 )
-                    #for apiary_site in approval.apiary_sites.all():
-                    #    new_apiary_site = deepcopy(apiary_site)
-                    #    new_apiary_site.id = None
-                    #    new_apiary_site.approval = None
-                    #    new_apiary_site.proposal_apiary = proposal_apiary
-                    #    new_apiary_site.save()
 
                 elif application_type.name == ApplicationType.TEMPORARY_USE:
                     approval_id = request.data.get('approval_id')

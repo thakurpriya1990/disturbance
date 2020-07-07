@@ -1,5 +1,6 @@
 <template id="proposal_requirements">
     <div>
+        proposal_approval.vue
         <template v-if="isFinalised">
             <div class="col-md-12 alert alert-success" v-if="proposal.processing_status == 'Approved'">
                 <p>The approval has been issued and has been emailed to {{proposal.applicant.name}}</p>
@@ -14,11 +15,13 @@
         <template v-if="proposal.proposal_apiary">
             <FormSection :formCollapse="false" label="Site(s)" Index="sites">
                 <ComponentSiteSelection 
-                    :apiary_sites="apiary_sites"
+                    :apiary_sites="apiary_sites_prop"
                     :is_internal="true"
                     :is_external="false"
                     :key="component_site_selection_key"
-
+                    :show_col_checkbox="showColCheckbox"
+                    :enable_col_checkbox="false"
+                    :show_action_available_unavailable="false"
                 />
             </FormSection>
         </template>
@@ -178,6 +181,27 @@ export default {
                 return this.proposal.proposal_apiary.apiary_sites;
             }
         },
+        apiary_sites_prop: function() {
+            let apiary_sites = [];
+            if (this.proposal.application_type === 'Site Transfer') {
+                for (let site of this.proposal.proposal_apiary.site_transfer_apiary_sites) {
+                    if (site.selected) {
+                        apiary_sites.push(site.apiary_site);
+                    }
+                }
+            } else {
+                apiary_sites = this.proposal.proposal_apiary.apiary_sites;
+            }
+            return apiary_sites;
+        },
+        showColCheckbox: function() {
+            let checked = true;
+            if (this.proposal.proposal_apiary.application_type !== 'Site Transfer') {
+                checked = false;
+            }
+            return checked;
+        },
+
     },
     methods:{
         readFile: function() {

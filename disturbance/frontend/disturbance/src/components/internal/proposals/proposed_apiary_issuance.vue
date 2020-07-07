@@ -1,5 +1,6 @@
 <template lang="html">
     <div id="proposedIssuanceApproval">
+        proposed_apiary_issuance.vue
         <modal transition="modal fade" @ok="ok()" @cancel="cancel()" :title="title" large>
             <div class="container-fluid">
                 <div class="row">
@@ -83,9 +84,16 @@
                     </form>
                 </div>
 
-                <template v-if="approval && approval.apiary_sites">
+                <template v-if="proposal && proposal.proposal_apiary.apiary_sites">
                     <ComponentSiteSelection
-                        :apiary_sites="approval.apiary_sites"
+                        :apiary_sites="apiary_sites_prop"
+                        :is_internal="true"
+                        :is_external="false"
+                        :show_col_checkbox="showColCheckbox"
+                        :show_action_available_unavailable="false"
+                        :key="component_site_selection_key"
+                        ref="component_site_selection"
+                        @apiary_sites_updated="apiarySitesUpdated"
                     />
                 </template>
 
@@ -102,12 +110,13 @@
 
 <script>
 //import $ from 'jquery'
+import uuid from 'uuid'
 import modal from '@vue-utils/bootstrap-modal.vue'
 import alert from '@vue-utils/alert.vue'
 import {helpers,api_endpoints} from "@/utils/hooks.js"
 import ComponentSiteSelection from '@/components/common/apiary/component_site_selection.vue'
 export default {
-    name:'Proposed-Approval',
+    name:'ProposedApiaryIssuance',
     components:{
         modal,
         alert,
@@ -121,6 +130,10 @@ export default {
         proposal_id: {
             type: Number,
             required: true
+        },
+        proposal: {
+            type: Object,
+            default: null,
         },
         processing_status: {
             type: String,
@@ -160,6 +173,7 @@ export default {
             startDateErrorString:'',
             successString: '',
             success:false,
+            apiary_sites_updated: null,
             datepickerOptions:{
                 format: 'DD/MM/YYYY',
                 showClear:true,
@@ -168,6 +182,7 @@ export default {
                 allowInputToggle:true
             },
             warningString: 'Please attach Level of Approval document before issuing Approval',
+            component_site_selection_key: '',
         }
     },
     computed: {
@@ -196,11 +211,63 @@ export default {
             return this.processing_status == 'With Approver' ? true : false;
         },
         preview_licence_url: function() {
-          return (this.proposal_apiary_id) ? `/preview/licence-pdf/${this.proposal_apiary_id}` : '';
+          return (this.proposal_id) ? `/preview/licence-pdf/${this.proposal_id}` : '';
         },
-
+        apiary_sites_prop: function() {
+            let apiary_sites = [];
+            if (this.proposal.application_type === 'Site Transfer') {
+                for (let site of this.proposal.proposal_apiary.site_transfer_apiary_sites) {
+                    /*
+                    if (site.selected) {
+                        apiary_sites.push(site.apiary_site);
+                    }
+                    */
+                    apiary_sites.push(site.apiary_site);
+                }
+            } else {
+                apiary_sites = this.proposal.proposal_apiary.apiary_sites;
+            }
+            return apiary_sites;
+        },
+        showColCheckbox: function() {
+            let checked = true;
+            if (this.proposal.proposal_apiary.application_type === 'Site Transfer') {
+                checked = false;
+            }
+            return checked;
+        },
     },
     methods:{
+        apiarySitesUpdated: function(apiary_sites) {
+            console.log('in proposed_apiary_issuance.vue')
+            console.log('apiarySitesUpdated')
+            console.log(apiary_sites)
+            this.apiary_sites_updated = apiary_sites
+            //this.proposal.proposal_apiary.apiary_sites = JSON.parse(JSON.stringify(apiary_sites))
+            //console.log(this.proposal.proposal_apiary.apiary_sites)
+        },
+        setApiarySiteCheckedStatuses: function() {
+            if(this.proposal && this.proposal.proposal_apiary){
+                for (let i=0; i<this.proposal.proposal_apiary.apiary_sites.length; i++){
+                    console.log('checked status' + this.proposal.proposal_apiary.apiary_sites[i].workflow_selected_status)
+                    this.proposal.proposal_apiary.apiary_sites[i].checked = this.proposal.proposal_apiary.apiary_sites[i].workflow_selected_status
+                }
+            }
+        },
+        setApiarySiteCheckedStatusesSiteTransfer: function() {
+            if(this.proposal && this.proposal.proposal_apiary){
+                for (let i=0; i<this.proposal.proposal_apiary.site_transfer_apiary_sites.length; i++){
+                    console.log('checked status' + this.proposal.proposal_apiary.site_transfer_apiary_sites[i].selected)
+                    this.proposal.proposal_apiary.site_transfer_apiary_sites[i].apiary_site.checked = this.proposal.proposal_apiary.site_transfer_apiary_sites[i].selected
+                }
+            }
+        },
+
+        forceToRefreshMap: function() {
+            if (this.$refs.component_site_selection){
+                this.$refs.component_site_selection.forceToRefreshMap()
+            }
+        },
         preview:function () {
             let vm =this;
             let formData = new FormData(vm.form)
@@ -257,12 +324,21 @@ export default {
             } );
         },
         sendData:function(){
+            console.log('**********')
+            console.log('in sendData')
+            console.log('**********')
+
             let vm = this;
             vm.errors = false;
-            let approval = JSON.parse(JSON.stringify(vm.approval));
+            //vm.approval.apiary_sites = vm.proposal.proposal_apiary.apiary_sites
+            vm.approval.apiary_sites = vm.apiary_sites_updated
+            let approval = JSON.parse(JSON.stringify(vm.approval)); // Deep copy
+            console.log('approval to post')
+            console.log(approval)
+
             vm.issuingApproval = true;
             if (vm.state == 'proposed_approval'){
-                vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal_id+'/proposed_approval'),JSON.stringify(approval),{
+                vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals, vm.proposal.id+'/proposed_approval'),JSON.stringify(approval),{
                         emulateJSON:true,
                     }).then((response)=>{
                         vm.issuingApproval = false;
@@ -366,14 +442,28 @@ export default {
              });
        }
    },
-   mounted:function () {
+    mounted:function () {
         let vm =this;
         vm.form = document.forms.approvalForm;
         vm.addFormValidations();
         this.$nextTick(()=>{
             vm.eventListeners();
         });
-   }
+        if (this.proposal.application_type === 'Site Transfer') {
+            this.setApiarySiteCheckedStatusesSiteTransfer();
+        } else {
+            this.setApiarySiteCheckedStatuses();
+        }
+        this.component_site_selection_key = uuid()
+        /*
+        if (this.proposal && this.proposal.proposal_apiary &&) {
+            for (let site of this.proposal.proposal_apiary.site_transfer_apiary_sites) {
+                site.apiary_site.checked = site.selected;
+            }
+        }
+        */
+
+    }
 }
 </script>
 
