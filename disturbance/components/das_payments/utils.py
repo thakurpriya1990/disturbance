@@ -308,7 +308,11 @@ def create_invoice(approval, payment_method='bpay'):
     from ledger.payments.invoice.utils import CreateInvoiceBasket
 
     products = generate_line_items_for_annual_rental_fee(approval)
-    user = approval.relevant_applicant
+    user = approval.relevant_applicant if isinstance(approval.relevant_applicant, EmailUser) else approval.current_proposal.submitter
+    # user = approval.relevant_applicant
+    # for contact in user.contacts.all():
+    #     temp = contact  # contact is the OrganisationContact obj
+
     invoice_text = 'Annual Rental Fee Invoice'
 
     basket = createCustomBasket(products, user, PAYMENT_SYSTEM_ID)

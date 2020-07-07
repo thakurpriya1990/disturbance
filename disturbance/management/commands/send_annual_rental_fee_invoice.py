@@ -4,6 +4,8 @@ import pytz
 from django.core.exceptions import ValidationError
 from django.core.management.base import BaseCommand
 import logging
+
+from django.db import transaction
 from django.db.models import Q, Min
 from ledger.settings_base import TIME_ZONE
 
@@ -81,25 +83,26 @@ class Command(BaseCommand):
             # Issue the annual rental fee invoices per approval per annual_rental_fee_period
             for approval in approval_qs:
                 try:
-                    annual_rental_fee, created = AnnualRentalFee.objects.get_or_create(approval=approval, annual_rental_fee_period=annual_rental_fee_period)
+                    with transaction.atomic():
+                        annual_rental_fee, created = AnnualRentalFee.objects.get_or_create(approval=approval, annual_rental_fee_period=annual_rental_fee_period)
 
-                    if not annual_rental_fee.invoice_reference:
+                        if not annual_rental_fee.invoice_reference:
 
-                        # Issue an invoice for the approval
-                        invoice = create_other_invoice_for_annual_rental_fee(approval)  # TODO: calculate the fee accounting for the number of sites
+                            # Issue an invoice for the approval
+                            invoice = create_other_invoice_for_annual_rental_fee(approval)  # TODO: calculate the fee according to the number of sites.  Check the status of site too.
 
-                        # Update annual_rental_fee obj
-                        annual_rental_fee.invoice_reference = invoice.reference
-                        annual_rental_fee.invoice_period_start_date = annual_rental_fee_period.period_start_date
-                        annual_rental_fee.invoice_period_end_date = annual_rental_fee_period.period_end_date
-                        annual_rental_fee.save()
+                            # Update annual_rental_fee obj
+                            annual_rental_fee.invoice_reference = invoice.reference
+                            annual_rental_fee.invoice_period_start_date = annual_rental_fee_period.period_start_date
+                            annual_rental_fee.invoice_period_end_date = annual_rental_fee_period.period_end_date
+                            annual_rental_fee.save()
 
-                        # Store the apiary sites which the invoice created above has been issued for
-                        for apiary_site in approval.apiary_sites.all():
-                            annual_rental_fee_apiary_site = AnnualRentalFeeApiarySite(apiary_site=apiary_site, annual_rental_fee=annual_rental_fee)
-                            annual_rental_fee_apiary_site.save()
+                            # Store the apiary sites which the invoice created above has been issued for
+                            for apiary_site in approval.apiary_sites.all():
+                                annual_rental_fee_apiary_site = AnnualRentalFeeApiarySite(apiary_site=apiary_site, annual_rental_fee=annual_rental_fee)
+                                annual_rental_fee_apiary_site.save()
 
-                        # TODO: Attach the invoice and send emails
+                            # TODO: Attach the invoice and send emails
 
                 except Exception as e:
                     logger.error('Error command {}'.format(__name__))
