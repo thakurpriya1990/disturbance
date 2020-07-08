@@ -25,7 +25,9 @@
         <div class="form-group row">
             <label class="col-sm-5">Invoice</label>
             <div class="col-sm-6">
-                invoices here
+                <template v-for="annual_rental_fee in annual_rental_fees">
+                    <a :href="'/payments/invoice-pdf/' + annual_rental_fee.invoice_reference + '.pdf'" target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> Invoice</a>
+                </template>
             </div>
         </div>
 
@@ -44,6 +46,12 @@
                 type: Boolean,
                 default: true,
             },
+            annual_rental_fees: {
+                type: Array,
+                default: function(){
+                    return []
+                }
+            }
         },
         watch: {
             occupier_email: function(){

@@ -132,7 +132,8 @@
             <div class="row">
                 <FormSection :formCollapse="false" label="Annual Rental Fee" Index="annual_rental_fee">
                     <SectionAnnualRentalFee
-                            :is_readonly="false"
+                        :is_readonly="false"
+                        :annual_rental_fees="approval.annual_rental_fees"
                     />
                 </FormSection>
             </div>

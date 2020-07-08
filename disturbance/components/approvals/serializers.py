@@ -6,6 +6,7 @@ from disturbance.components.approvals.models import (
     ApprovalLogEntry,
     ApprovalUserAction
 )
+from disturbance.components.das_payments.serializers import AnnualRentalFeeSerializer
 from disturbance.components.organisations.models import (
                                 Organisation
                             )
@@ -62,6 +63,7 @@ class ApprovalSerializer(serializers.ModelSerializer):
     applicant_last_name = serializers.SerializerMethodField()
     applicant_address = serializers.SerializerMethodField()
     apiary_sites = ApiarySiteSerializer(many=True, read_only=True)
+    annual_rental_fees = AnnualRentalFeeSerializer(many=True, read_only=True)
 
     class Meta:
         model = Approval
@@ -113,6 +115,7 @@ class ApprovalSerializer(serializers.ModelSerializer):
             'applicant_last_name',
             'applicant_address',
             'apiary_sites',
+            'annual_rental_fees',
         )
         # the serverSide functionality of datatables is such that only columns that have field 'data' defined are requested from the serializer. We
         # also require the following additional fields for some of the mRender functions
