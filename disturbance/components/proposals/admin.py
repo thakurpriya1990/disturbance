@@ -11,8 +11,9 @@ from django.conf.urls import url
 from django.template.response import TemplateResponse
 from django.http import HttpResponse, HttpResponseRedirect
 
-from disturbance.components.proposals.models import SiteCategory, ApiarySiteFee, ApiarySiteFeeType, ApiaryAnnualRentalFee, \
-    ApiaryAnnualRentalFeeRunDate
+from disturbance.components.proposals.models import SiteCategory, ApiarySiteFee, ApiarySiteFeeType, \
+    ApiaryAnnualRentalFee, \
+    ApiaryAnnualRentalFeeRunDate, ApiaryAnnualRentalFeePeriodStartDate
 from disturbance.utils import create_helppage_object
 # Register your models here.
 
@@ -152,6 +153,7 @@ class HelpPageAdmin(admin.ModelAdmin):
         create_helppage_object(application_type='Apiary', help_type=models.HelpPage.HELP_TEXT_INTERNAL)
         return HttpResponseRedirect("../")
 
+
 @admin.register(ActivityMatrix)
 class ActivityMatrixAdmin(admin.ModelAdmin):
     list_display = ['name', 'description', 'version']
@@ -165,22 +167,31 @@ class SystemMaintenanceAdmin(admin.ModelAdmin):
     readonly_fields = ('duration',)
     form = forms.SystemMaintenanceAdminForm
 
+
 @admin.register(ApplicationType)
 class ApplicationTypeAdmin(admin.ModelAdmin):
     list_display = ['name', 'order', 'visible']
     ordering = ('order',)
+
 
 @admin.register(GlobalSettings)
 class GlobalSettingsAdmin(admin.ModelAdmin):
     list_display = ['key', 'value']
     ordering = ('key',)
 
+
 @admin.register(ApiaryAnnualRentalFee)
 class ApiaryAnnualRentalFeeAdmin(admin.ModelAdmin):
     pass
 
+
 @admin.register(ApiaryAnnualRentalFeeRunDate)
 class ApiaryAnnualRentalFeeRunDateAdmin(admin.ModelAdmin):
+    pass
+
+
+@admin.register(ApiaryAnnualRentalFeePeriodStartDate)
+class ApiaryAnnualRentalFeePeriodStartDateAdmin(admin.ModelAdmin):
     pass
 
 # class SiteApplicationFeeInline(admin.TabularInline):
