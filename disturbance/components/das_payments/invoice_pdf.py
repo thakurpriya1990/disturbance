@@ -219,7 +219,7 @@ def _create_header(canvas, doc, draw_page_number=True):
 
     canvas.setFont(BOLD_FONTNAME, SMALL_FONTSIZE)
     current_x = PAGE_MARGIN + 5
-    if proposal.applicant and hasattr(proposal.applicant, 'name'):
+    if proposal and proposal.applicant and hasattr(proposal.applicant, 'name'):
         canvas.drawString(current_x, current_y - (SMALL_FONTSIZE + HEADER_SMALL_BUFFER),    proposal.applicant.name)
     canvas.drawString(current_x, current_y - (SMALL_FONTSIZE + HEADER_SMALL_BUFFER) * 2,invoice.owner.get_full_name())
     canvas.drawString(current_x, current_y - (SMALL_FONTSIZE + HEADER_SMALL_BUFFER) * 3,invoice.owner.email)
@@ -249,7 +249,7 @@ def _create_header(canvas, doc, draw_page_number=True):
 
 def _is_gst_exempt(proposal, invoice):
     # TODO need to fix, since individual parks can be exempt, Below calculation assumes NO PARK IS exempt
-    return proposal.application_type.is_gst_exempt if proposal.fee_invoice_reference == invoice.reference else False
+    return proposal.application_type.is_gst_exempt if proposal and proposal.fee_invoice_reference == invoice.reference else False
 
 def _create_invoice(invoice_buffer, invoice, proposal):
 

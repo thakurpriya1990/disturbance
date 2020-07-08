@@ -452,8 +452,8 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                     feature['proposal_apiary_id'] = proposal_obj.proposal_apiary.id
 
                     if viewset.action == 'submit':
-                        # When this function is called for the 'submit', we want to the apiary_sites' status 'suspended'
-                        feature['status'] = ApiarySite.STATUS_SUSPENDED
+                        # When this function is called for the 'submit', we want to the apiary_sites' status 'pending'
+                        feature['status'] = ApiarySite.STATUS_PENDING
 
                     try:
                         # Update existing
