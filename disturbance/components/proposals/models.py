@@ -1164,12 +1164,20 @@ class Proposal(RevisionedMixin):
                     raise exceptions.ProposalNotAuthorized()
                 if self.processing_status != 'with_assessor_requirements':
                     raise ValidationError('You cannot propose for approval if it is not with assessor for requirements')
-                self.proposed_issuance_approval = {
-                    'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
-                    'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
-                    'details': details.get('details'),
-                    'cc_email':details.get('cc_email')
-                }
+                if self.application_type.name == ApplicationType.SITE_TRANSFER:
+                    self.proposed_issuance_approval = {
+                        #'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
+                        #'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
+                        'details': details.get('details'),
+                        'cc_email':details.get('cc_email')
+                    }
+                else:
+                    self.proposed_issuance_approval = {
+                        'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
+                        'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
+                        'details': details.get('details'),
+                        'cc_email':details.get('cc_email')
+                    }
                 self.proposed_decline_status = False
                 approver_comment = ''
                 self.move_to_status(request,'with_approver', approver_comment)
@@ -1190,7 +1198,7 @@ class Proposal(RevisionedMixin):
                                     proposal_apiary=self.proposal_apiary,
                                     apiary_site_id=apiary_site.get('id')
                                     )
-                            transfer_site.selected = apiary_site.get('checked')
+                            transfer_site.internal_selected = apiary_site.get('checked') if transfer_site.customer_selected else false
                             transfer_site.save()
 
                 self.save()
@@ -2307,13 +2315,27 @@ class ProposalApiary(models.Model):
                 #if not self.applicant.organisation.postal_address:
                 if not self.proposal.relevant_applicant_address:
                     raise ValidationError('The applicant needs to have set their postal address before approving this proposal.')
+                if self.proposal.application_type.name == ApplicationType.SITE_TRANSFER:
+                    self.proposed_issuance_approval = {
+                        #'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
+                        #'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
+                        'details': details.get('details'),
+                        'cc_email':details.get('cc_email')
+                    }
+                else:
+                    self.proposed_issuance_approval = {
+                        'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
+                        'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
+                        'details': details.get('details'),
+                        'cc_email':details.get('cc_email')
+                    }
 
-                self.proposal.proposed_issuance_approval = {
-                    'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
-                    'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
-                    'details': details.get('details'),
-                    'cc_email':details.get('cc_email')
-                }
+                #self.proposal.proposed_issuance_approval = {
+                #    'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
+                #    'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
+                #    'details': details.get('details'),
+                #    'cc_email':details.get('cc_email')
+                #}
                 self.proposal.proposed_decline_status = False
                 self.proposal.processing_status = 'approved'
                 self.proposal.customer_status = 'approved'
@@ -2353,66 +2375,72 @@ class ProposalApiary(models.Model):
                                 previous_approval.replaced_by = approval
                                 previous_approval.save()
 
-                    #TODO - fix for apiary approval
-                    elif self.proposal.proposal_type == 'amendment':
-                        if self.proposal.previous_application:
-                            previous_approval = self.proposal.previous_application.approval
-                            approval,created = Approval.objects.update_or_create(
-                                current_proposal = checking_proposal,
-                                defaults = {
+                    ##TODO - fix for apiary approval
+                    #elif self.proposal.proposal_type == 'amendment':
+                    #    if self.proposal.previous_application:
+                    #        previous_approval = self.proposal.previous_application.approval
+                    #        approval,created = Approval.objects.update_or_create(
+                    #            current_proposal = checking_proposal,
+                    #            defaults = {
+                    #                #'activity' : self.activity,
+                    #                #'region' : self.region,
+                    #                #'tenure' : self.tenure,
+                    #                #'title' : self.title,
+                    #                'issue_date' : timezone.now(),
+                    #                'expiry_date' : details.get('expiry_date'),
+                    #                'start_date' : details.get('start_date'),
+                    #                'applicant' : self.proposal.applicant,
+                    #                'proxy_applicant' : self.proposal.proxy_applicant,
+                    #                'lodgement_number': previous_approval.lodgement_number,
+                    #                'apiary_approval': self.proposal.apiary_group_application_type,
+                    #                #'extracted_fields' = JSONField(blank=True, null=True)
+                    #            }
+                    #        )
+                    #        if created:
+                    #            previous_approval.replaced_by = approval
+                    #            previous_approval.save()
+                    #            # Get apiary sites from proposal
+                    #            #if self.proposal.application_type == ApplicationType.APIARY:
+                    #            #    for site in self.apiary_sites.all():
+                    #            #        site.approval = approval
+                    #            #elif self.proposal.application_type == ApplicationType.SITE_TRANSFER:
+                    #            #    for site in self.apiary_site_transfer.apiary_sites.all():
+                    #            #        site.approval = approval
+                    #            for site in self.apiary_sites.all():
+                    #                site.approval = approval
+
+                    else:
+                        if self.proposal.application_type.name == ApplicationType.SITE_TRANSFER:
+                            # approval must already exist - we reissue with same start and expiry dates
+                            #approval.issue_date = timezone.now()
+                            approval.applicant = self.proposal.applicant
+                            approval.proxy_applicant = self.proposal.proxy_applicant
+                            approval.apiary_approval = self.proposal.apiary_group_application_type
+                        else:
+                            if not approval:
+                                approval,created = Approval.objects.update_or_create(
+                                    current_proposal = checking_proposal,
+                                    defaults = {
                                     #'activity' : self.activity,
-                                    #'region' : self.region,
-                                    #'tenure' : self.tenure,
+                                    #'region' : self.region.name,
+                                    #'tenure' : self.tenure.name,
                                     #'title' : self.title,
                                     'issue_date' : timezone.now(),
                                     'expiry_date' : details.get('expiry_date'),
                                     'start_date' : details.get('start_date'),
                                     'applicant' : self.proposal.applicant,
                                     'proxy_applicant' : self.proposal.proxy_applicant,
-                                    'lodgement_number': previous_approval.lodgement_number,
                                     'apiary_approval': self.proposal.apiary_group_application_type,
                                     #'extracted_fields' = JSONField(blank=True, null=True)
-                                }
-                            )
-                            if created:
-                                previous_approval.replaced_by = approval
-                                previous_approval.save()
-                                # Get apiary sites from proposal
-                                #if self.proposal.application_type == ApplicationType.APIARY:
-                                #    for site in self.apiary_sites.all():
-                                #        site.approval = approval
-                                #elif self.proposal.application_type == ApplicationType.SITE_TRANSFER:
-                                #    for site in self.apiary_site_transfer.apiary_sites.all():
-                                #        site.approval = approval
-                                for site in self.apiary_sites.all():
-                                    site.approval = approval
-
-                    else:
-                        #TODO - fix for apiary approval
-                        if not approval:
-                            approval,created = Approval.objects.update_or_create(
-                                current_proposal = checking_proposal,
-                                defaults = {
-                                #'activity' : self.activity,
-                                #'region' : self.region.name,
-                                #'tenure' : self.tenure.name,
-                                #'title' : self.title,
-                                'issue_date' : timezone.now(),
-                                'expiry_date' : details.get('expiry_date'),
-                                'start_date' : details.get('start_date'),
-                                'applicant' : self.proposal.applicant,
-                                'proxy_applicant' : self.proposal.proxy_applicant,
-                                'apiary_approval': self.proposal.apiary_group_application_type,
-                                #'extracted_fields' = JSONField(blank=True, null=True)
-                                }
-                            )
-                        else:
-                            approval.issue_date = timezone.now()
-                            approval.expiry_date = details.get('expiry_date')
-                            approval.start_date = details.get('start_date')
-                            approval.applicant = self.proposal.applicant
-                            approval.proxy_applicant = self.proposal.proxy_applicant
-                            approval.apiary_approval = self.proposal.apiary_group_application_type
+                                    }
+                                )
+                            else:
+                                approval.issue_date = timezone.now()
+                                approval.expiry_date = details.get('expiry_date')
+                                approval.start_date = details.get('start_date')
+                                approval.applicant = self.proposal.applicant
+                                approval.proxy_applicant = self.proposal.proxy_applicant
+                                approval.apiary_approval = self.proposal.apiary_group_application_type
 
                         # Get apiary sites from proposal
                         #if self.proposal.application_type == ApplicationType.APIARY:
@@ -2427,7 +2455,8 @@ class ProposalApiary(models.Model):
                             # update approval for all selected apiary sites
                             transfer_sites = SiteTransferApiarySite.objects.filter(
                                     proposal_apiary=self,
-                                    selected=True
+                                    internal_selected=True,
+                                    customer_selected=True
                                     )
                             for site in transfer_sites:
                                 site.apiary_site.approval = approval
@@ -2758,7 +2787,8 @@ class TemporaryUseApiarySite(models.Model):
 class SiteTransferApiarySite(models.Model):
     proposal_apiary = models.ForeignKey(ProposalApiary, blank=True, null=True, related_name='site_transfer_apiary_sites')
     apiary_site = models.ForeignKey(ApiarySite, blank=True, null=True)
-    selected = models.BooleanField(default=False)
+    internal_selected = models.BooleanField(default=False)
+    customer_selected = models.BooleanField(default=False)
 
     class Meta:
         app_label = 'disturbance'
