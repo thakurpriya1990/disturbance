@@ -76,6 +76,7 @@ from disturbance.components.proposals.serializers import (
     ProposalRequirementSerializer,
     ProposalStandardRequirementSerializer,
     ProposedApprovalSerializer,
+    ProposedApprovalSiteTransferSerializer,
     PropedDeclineSerializer,
     AmendmentRequestSerializer,
     SearchReferenceSerializer,
@@ -567,8 +568,14 @@ class ProposalApiaryViewSet(viewsets.ModelViewSet):
     def final_approval(self, request, *args, **kwargs):
         #import ipdb;ipdb.set_trace()
         instance = self.get_object()
-        serializer = ProposedApprovalSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        if instance.proposal.application_type.name == ApplicationType.SITE_TRANSFER:
+            serializer = ProposedApprovalSiteTransferSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+        else:
+            serializer = ProposedApprovalSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+        #serializer = ProposedApprovalSerializer(data=request.data)
+        #serializer.is_valid(raise_exception=True)
         instance.final_approval(request,serializer.validated_data)
         #serializer = InternalProposalSerializer(instance,context={'request':request})
         serializer_class = self.internal_apiary_serializer_class()
@@ -1331,8 +1338,12 @@ class ProposalViewSet(viewsets.ModelViewSet):
     def proposed_approval(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
-            serializer = ProposedApprovalSerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
+            if instance.application_type.name == ApplicationType.SITE_TRANSFER:
+                serializer = ProposedApprovalSiteTransferSerializer(data=request.data)
+                serializer.is_valid(raise_exception=True)
+            else:
+                serializer = ProposedApprovalSerializer(data=request.data)
+                serializer.is_valid(raise_exception=True)
             instance.proposed_approval(request,serializer.validated_data)
             #serializer = InternalProposalSerializer(instance,context={'request':request})
             serializer_class = self.internal_serializer_class()
