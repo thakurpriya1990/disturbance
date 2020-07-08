@@ -2439,6 +2439,7 @@ class ProposalApiary(models.Model):
                                 if my_site['checked']:
                                     a_site = ApiarySite.objects.get(id=my_site['id'])
                                     a_site.approval = approval
+                                    a_site.status = ApiarySite.STATUS_CURRENT
                                     a_site.save()
                                     count_approved_site += 1
                             if count_approved_site == 0:
@@ -2597,6 +2598,11 @@ class ApiaryAnnualRentalFee(RevisionedMixin):
     def __str__(self):
         return 'Amount: ${}: From: {}'.format(self.amount, self.date_from)
 
+    @staticmethod
+    def get_fee_at_target_date(target_date):
+        fee_applied = ApiaryAnnualRentalFee.objects.filter(date_from__lte=target_date).order_by('-date_from').first()
+        return fee_applied
+
 
 class ApiaryAnnualRentalFeePeriodStartDate(RevisionedMixin):
     """
@@ -2670,7 +2676,7 @@ class ApiarySite(models.Model):
     objects = GeoManager()
 
     def __str__(self):
-        return '{} - {}'.format(self.site_guid, self.proposal_apiary.proposal.title)
+        return '{} - status: {}'.format(self.id, self.status)
 
     def get_current_application_fee_per_site(self):
         current_fee = self.site_category.current_application_fee_per_site

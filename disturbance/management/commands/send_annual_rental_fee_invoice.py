@@ -70,7 +70,8 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         try:
             # Determine the start and end date of the annual rental fee, for which the invoices should be issued
-            today_local = datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
+            today_now = datetime.datetime.now(pytz.timezone(TIME_ZONE))
+            today_local = today_now.date()
             period_start_date, period_end_date = get_annual_rental_fee_period(today_local)
 
             # Retrieve annual rental fee period object for the period calculated above
@@ -89,7 +90,7 @@ class Command(BaseCommand):
                         if not annual_rental_fee.invoice_reference:
 
                             # Issue an invoice for the approval
-                            invoice = create_other_invoice_for_annual_rental_fee(approval)  # TODO: calculate the fee according to the number of sites.  Check the status of site too.
+                            invoice = create_other_invoice_for_annual_rental_fee(approval, today_now, (period_start_date, period_end_date), )  # TODO: calculate the fee according to the number of sites.  Check the status of site too.
 
                             # Update annual_rental_fee obj
                             annual_rental_fee.invoice_reference = invoice.reference

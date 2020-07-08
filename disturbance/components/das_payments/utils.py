@@ -14,7 +14,7 @@ from ledger.settings_base import TIME_ZONE
 
 from disturbance.components.main.models import ApplicationType
 from disturbance.components.proposals.models import Proposal, ProposalUserAction, SiteCategory, ApiarySiteFeeType, \
-    ApiarySiteFeeRemainder
+    ApiarySiteFeeRemainder, ApiaryAnnualRentalFee, ApiarySite
 from disturbance.components.organisations.models import Organisation
 from disturbance.components.das_payments.models import ApplicationFee, AnnualRentalFee
 from ledger.checkout.utils import create_basket_session, create_checkout_session, calculate_excl_gst
@@ -268,14 +268,14 @@ def oracle_integration(date,override):
     oracle_codes = oracle_parser(date, system, 'Disturbance Approval System', override=override)
 
 
-def create_other_invoice_for_annual_rental_fee(approval, request=None):
+def create_other_invoice_for_annual_rental_fee(approval, today_now, period, request=None):
     """
     This function is called from the cron job to issue annual rental fee invoices
     """
     with transaction.atomic():
         try:
             logger.info('Creating OTHER invoice for the licence: {}'.format(approval.lodgement_number))
-            order = create_invoice(approval, payment_method='other')
+            order = create_invoice(approval, today_now, period, payment_method='other')
             invoice = Invoice.objects.get(order_number=order.number)
 
             # Create AnnualRentalFee object, which is linked from the approval
@@ -299,7 +299,7 @@ def create_other_invoice_for_annual_rental_fee(approval, request=None):
             logger.error('{}'.format(e))
 
 
-def create_invoice(approval, payment_method='bpay'):
+def create_invoice(approval, today_now, period, payment_method='bpay'):
     """
     This will create and invoice and order from a basket bypassing the session
     and payment bpoint code constraints.
@@ -307,7 +307,7 @@ def create_invoice(approval, payment_method='bpay'):
     from ledger.checkout.utils import createCustomBasket
     from ledger.payments.invoice.utils import CreateInvoiceBasket
 
-    products = generate_line_items_for_annual_rental_fee(approval)
+    products = generate_line_items_for_annual_rental_fee(approval, today_now, period)
     user = approval.relevant_applicant if isinstance(approval.relevant_applicant, EmailUser) else approval.current_proposal.submitter
     # user = approval.relevant_applicant
     # for contact in user.contacts.all():
@@ -324,27 +324,33 @@ def create_invoice(approval, payment_method='bpay'):
     return order
 
 
-def calculate_total_annual_rental_fee():
-    # TODO: implement
-    #       Calendar year
-    #       Rent fee can be retrieved from the ApiaryAnnualRentFee class
-    #       Run date can be retrieved from the ApiaryAnnualRentFeeRunDate class
-    return 123.45
+def calculate_total_annual_rental_fee(approval, period):
+    if approval.expiry_date < period[0]:
+        # Check if the approval is valid
+        raise ValidationError('This approval is/will be expired before the annual rental fee period starts')
+
+    fee_applied = ApiaryAnnualRentalFee.get_fee_at_target_date(period[0]) # TODO? when fee will be changed within the period, total amount may need to be calculated pro-rata
+    current_sites = approval.apiary_sites.filter(status=ApiarySite.STATUS_CURRENT)
+    period_days = period[1] - (period[0] - timedelta(days=1))  # period[0] is the start date.  We don't want to subtract the start date
+    licenced_days = period_days
+    if approval.expiry_date < period[1]:
+        licenced_days = approval.expiry_date - (period[0] - timedelta(days=1))
+
+    total_amount = fee_applied.amount * current_sites.count() * licenced_days.days / period_days.days
+
+    return total_amount
 
 
-def generate_line_items_for_annual_rental_fee(approval):
+def generate_line_items_for_annual_rental_fee(approval, today_now, period):
     """ Create the ledger lines - line item for the annual rental fee sent to payment system """
 
-    now = datetime.now()
-    now_date = now.date()
-
-    penalty_amount = calculate_total_annual_rental_fee()
+    penalty_amount = calculate_total_annual_rental_fee(approval, period)
 
     line_items = [
         {'ledger_description': 'Annual Rental Fee: {}, Issued: {} {}'.format(
             approval.lodgement_number,
-            now.strftime("%d/%m/%Y"),  # TODO: is now fine?
-            now.strftime("%I:%M %p")), # TODO: is now fine?
+            today_now.strftime("%d/%m/%Y"),
+            today_now.strftime("%I:%M %p")),
             'oracle_code': 'ABC123 GST',
             'price_incl_tax': penalty_amount,
             'price_excl_tax': penalty_amount,
