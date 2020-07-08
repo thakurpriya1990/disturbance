@@ -12,7 +12,7 @@ from ledger.accounts.models import EmailUser, EmailUserManager
 #from oscar.apps.order.models import Order
 import random
 import string
-
+import json
 from rest_framework.test import (
         APIRequestFactory, 
         force_authenticate, 
@@ -23,7 +23,11 @@ from rest_framework.test import (
         )
 from rest_framework import status
 from ledger.accounts.models import EmailUser, Address
+from ledger.address.models import UserAddress
 from requests.auth import HTTPBasicAuth
+from disturbance.components.proposals.models import (
+        ProposalType,
+        )
 
 class APITestSetup(APITestCase):
 #    client = Client()
@@ -61,8 +65,28 @@ class APITestSetup(APITestCase):
         self.customer = EmailUser.objects.create(email=self.nonAdminUN, password="pass", is_staff=False, is_superuser=False)
         self.customer.set_password('pass')
         self.customer.save()
-        #ria = MooringAreaGroup.objects.create(name='Rottnest')
-        #pvs = MooringAreaGroup.objects.create(name='PVS')
+        # customer UserAddress
+        user_address = UserAddress.objects.create(
+                country_id= 'AU',
+                #is_default_for_billing= True,
+                #is_default_for_shipping= True,
+                line1= '17 Dick Perry',
+                #line2: '',
+                #line3': u'',
+                #line4': u'BENTLEY DELIVERY CENTRE',
+                #notes': u'',
+                #num_orders': 0,
+                #phone_number': None,
+                postcode= '6151',
+                #'search_text': u'',
+                state= 'WA',
+                #title': u'',
+                user_id= self.customer.id
+                )
+
+        customer_address = Address.objects.create(user=self.customer, oscar_address=user_address)
+        self.customer.residential_address = customer_address
+        self.customer.save()
 
         settings.SESSION_ENGINE = 'django.contrib.sessions.backends.file'
         engine = import_module(settings.SESSION_ENGINE)
@@ -70,6 +94,31 @@ class APITestSetup(APITestCase):
         store.save()
         self.session = store
         self.client.cookies[settings.SESSION_COOKIE_NAME] = store.session_key
+
+        # Create ProposalTypes
+        ProposalType.objects.create(name='Apiary', schema='[{}]')
+        ProposalType.objects.create(name='Disturbance', schema='[{}]')
+        ProposalType.objects.create(name='Site Transfer', schema='[{}]')
+        ProposalType.objects.create(name='Temporary Use', schema='[{}]')
+        # create_proposal_data
+        proposal_type_id = ProposalType.objects.get(name='Apiary').id
+        self.create_proposal_data = {
+            u'profile': 132376, 
+            u'application': proposal_type_id, 
+            u'behalf_of': u'individual', 
+            }
+        # submit_proposal_data
+        with open('submit_schema.json', 'r') as submit_schema_file:
+            submit_schema = json.load(submit_schema_file)
+        with open('all_the_features.json', 'r') as features_file:
+            all_the_features = json.load(features_file)
+
+        self.submit_proposal_data = {
+                schema: submit_schema,
+                all_the_features: all_the_features,
+                }
+        print("self.submit_proposal_data")
+        print(self.submit_proposal_data)
 
     def random_email(self):
         """Return a random email address ending in dbca.wa.gov.au
