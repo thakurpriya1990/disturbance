@@ -2412,7 +2412,7 @@ class ProposalApiary(models.Model):
                     else:
                         if self.proposal.application_type.name == ApplicationType.SITE_TRANSFER:
                             # approval must already exist - we reissue with same start and expiry dates
-                            approval.issue_date = timezone.now()
+                            #approval.issue_date = timezone.now()
                             approval.applicant = self.proposal.applicant
                             approval.proxy_applicant = self.proposal.proxy_applicant
                             approval.apiary_approval = self.proposal.apiary_group_application_type
