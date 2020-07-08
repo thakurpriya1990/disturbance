@@ -2468,6 +2468,7 @@ class ProposalApiary(models.Model):
                                 if my_site['checked']:
                                     a_site = ApiarySite.objects.get(id=my_site['id'])
                                     a_site.approval = approval
+                                    a_site.status = ApiarySite.STATUS_CURRENT
                                     a_site.save()
                                     count_approved_site += 1
                             if count_approved_site == 0:
@@ -2613,6 +2614,9 @@ class ApiarySiteFee(RevisionedMixin):
 
 
 class ApiaryAnnualRentalFee(RevisionedMixin):
+    """
+    This amount is applied from the date_from
+    """
     amount = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     date_from = models.DateField(blank=True, null=True)
 
@@ -2621,10 +2625,37 @@ class ApiaryAnnualRentalFee(RevisionedMixin):
         ordering = ('date_from', )  # oldest record first, latest record last
 
     def __str__(self):
-        return 'id: {}, Amount: {}: From: {}'.format(self.id, self.amount, self.date_from)
+        return 'Amount: ${}: From: {}'.format(self.amount, self.date_from)
+
+    @staticmethod
+    def get_fee_at_target_date(target_date):
+        fee_applied = ApiaryAnnualRentalFee.objects.filter(date_from__lte=target_date).order_by('-date_from').first()
+        return fee_applied
+
+
+class ApiaryAnnualRentalFeePeriodStartDate(RevisionedMixin):
+    """
+    Calculation of the annual rental fee starts from this date
+    """
+    NAME_PERIOD_START = 'period_start_date'
+    NAME_CHOICES = (
+        (NAME_PERIOD_START, 'Start date of the annual rental fee'),
+    )
+    name = models.CharField(unique=True, max_length=50, choices=NAME_CHOICES, )
+    period_start_date = models.DateField(blank=True, null=True)
+
+    def __str__(self):
+        return '{}: {} {}'.format(self.name, self.period_start_date.strftime('%B'), self.period_start_date.day)
+
+    class Meta:
+        app_label = 'disturbance'
+        ordering = ('period_start_date', )  # oldest record first, latest record last
 
 
 class ApiaryAnnualRentalFeeRunDate(RevisionedMixin):
+    """
+    This is the date to issue the annual rental fee invoices
+    """
     NAME_CRON = 'date_to_run_cron_job'
     NAME_CHOICES = (
         (NAME_CRON, 'Date to run job'),
@@ -2636,7 +2667,7 @@ class ApiaryAnnualRentalFeeRunDate(RevisionedMixin):
         app_label = 'disturbance'
 
     def __str__(self):
-        return 'id: {}, {}'.format(self.id, self.date_run_cron)
+        return '{}: {} {}'.format(self.name, self.date_run_cron.strftime('%B'), self.date_run_cron.day)
 
 
 class ApiarySite(models.Model):
@@ -2674,7 +2705,7 @@ class ApiarySite(models.Model):
     objects = GeoManager()
 
     def __str__(self):
-        return '{} - {}'.format(self.site_guid, self.proposal_apiary.proposal.title)
+        return '{} - status: {}'.format(self.id, self.status)
 
     def get_current_application_fee_per_site(self):
         current_fee = self.site_category.current_application_fee_per_site

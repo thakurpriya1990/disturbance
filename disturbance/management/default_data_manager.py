@@ -5,7 +5,8 @@ import pytz
 from ledger.settings_base import TIME_ZONE
 
 from disturbance.components.main.models import ApplicationType
-from disturbance.components.proposals.models import ApiarySiteFeeType, SiteCategory, ApiarySiteFee, ProposalType
+from disturbance.components.proposals.models import ApiarySiteFeeType, SiteCategory, ApiarySiteFee, ProposalType, \
+    ApiaryAnnualRentalFeePeriodStartDate, ApiaryAnnualRentalFeeRunDate
 
 logger = logging.getLogger(__name__)
 
@@ -38,8 +39,23 @@ class DefaultDataManager(object):
                     new_fee.save()
                     logger.info("Created apiary site fee: %s" % new_fee)
 
-        # Store default
+        # Annual rental fee period start date
+        for item in ApiaryAnnualRentalFeePeriodStartDate.NAME_CHOICES:
+            obj, created = ApiaryAnnualRentalFeePeriodStartDate.objects.get_or_create(name=item[0])
+            if created:
+                obj.period_start_date = datetime.date(year=2020, month=7, day=1)
+                obj.save()
+                logger.info("Created the period start date for the annual rental fee: %s" % obj)
 
+        # Run cron job date for the annual rental fee
+        for item in ApiaryAnnualRentalFeeRunDate.NAME_CHOICES:
+            obj, created = ApiaryAnnualRentalFeeRunDate.objects.get_or_create(name=item[0])
+            if created:
+                obj.date_run_cron = datetime.date(year=2020, month=6, day=17)
+                obj.save()
+                logger.info("Created the cron job run date for the annual rental fee: %s" % obj)
+
+        # Store default
         for type_name in ApplicationType.APPLICATION_TYPES:
             q_set = ApplicationType.objects.filter(name=type_name[0])
             if not q_set:
