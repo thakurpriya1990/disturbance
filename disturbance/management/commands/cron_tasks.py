@@ -22,5 +22,5 @@ class Command(BaseCommand):
         subprocess.call('python manage_ds.py expire_approvals', shell=True) 
         subprocess.call('python manage_ds.py approval_renewal_notices', shell=True) 
         subprocess.call('python manage_ds.py send_assessment_reminder', shell=True)
-        subprocess.call('python manage_ds.py send_annual_rent_fee_invoice', shell=True)
+        subprocess.call('python manage_ds.py send_annual_rental_fee_invoice', shell=True)
         logger.info('Command {} completed'.format(__name__))
