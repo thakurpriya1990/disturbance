@@ -41,7 +41,7 @@ from disturbance.components.das_payments.utils import (
     #create_other_invoice,
 )
 
-from disturbance.components.das_payments.models import ApplicationFee, ApplicationFeeInvoice
+from disturbance.components.das_payments.models import ApplicationFee, ApplicationFeeInvoice, AnnualRentalFee
 
 from ledger.checkout.utils import create_basket_session, create_checkout_session, place_order_submission, get_cookie_basket
 from ledger.payments.utils import oracle_parser_on_invoice,update_payments
@@ -383,19 +383,31 @@ class ApplicationFeeSuccessView(TemplateView):
 class InvoicePDFView(View):
     def get(self, request, *args, **kwargs):
         invoice = get_object_or_404(Invoice, reference=self.kwargs['reference'])
-        proposal = Proposal.objects.get(fee_invoice_reference=invoice.reference)
 
-        if proposal.relevant_applicant_type == 'organisation':
-            organisation = proposal.applicant.organisation.organisation_set.all()[0]
-            if self.check_owner(organisation):
+        try:
+            # Assume the invoice has been issued for the application(proposal)
+            proposal = Proposal.objects.get(fee_invoice_reference=invoice.reference)
+
+            if proposal.relevant_applicant_type == 'organisation':
+                organisation = proposal.applicant.organisation.organisation_set.all()[0]
+                if self.check_owner(organisation):
+                    response = HttpResponse(content_type='application/pdf')
+                    response.write(create_invoice_pdf_bytes('invoice.pdf', invoice, proposal))
+                    return response
+                raise PermissionDenied
+            else:
                 response = HttpResponse(content_type='application/pdf')
                 response.write(create_invoice_pdf_bytes('invoice.pdf', invoice, proposal))
                 return response
-            raise PermissionDenied
-        else:
+        except Proposal.DoesNotExist:
+            # The invoice might be issued for the annual rental fee
+            annual_rental_fee = AnnualRentalFee.objects.get(invoice_reference=invoice.reference)
+            approval = annual_rental_fee.approval
             response = HttpResponse(content_type='application/pdf')
-            response.write(create_invoice_pdf_bytes('invoice.pdf', invoice, proposal))
+            response.write(create_invoice_pdf_bytes('invoice.pdf', invoice, None))
             return response
+        except:
+            raise
 
     def get_object(self):
         return  get_object_or_404(Invoice, reference=self.kwargs['reference'])

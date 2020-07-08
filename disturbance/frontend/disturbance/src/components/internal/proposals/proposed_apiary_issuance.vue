@@ -8,7 +8,7 @@
                         <!-- <alert v-if="isApprovalLevelDocument" type="warning"><strong>{{warningString}}</strong></alert> -->
                         <alert :show.sync="showError" type="danger"><strong>{{errorString}}</strong></alert>
                         <div class="col-sm-12">
-                            <div class="form-group">
+                            <div v-if="!siteTransferApplication" class="form-group">
                                 <div class="row">
                                     <div class="col-sm-3">
                                         <label v-if="processing_status == 'With Approver'" class="control-label pull-left"  for="Name">Start Date</label>
@@ -28,7 +28,7 @@
                     
                                 </div>
                             </div>
-                            <div class="form-group">
+                            <div v-if="!siteTransferApplication" class="form-group">
                                 <div class="row">
                                     <div class="col-sm-3">
                                         <label v-if="processing_status == 'With Approver'" class="control-label pull-left"  for="Name">Expiry Date</label>
@@ -89,7 +89,7 @@
                         :apiary_sites="apiary_sites_prop"
                         :is_internal="true"
                         :is_external="false"
-                        :show_col_checkbox="showColCheckbox"
+                        :show_col_checkbox="true"
                         :show_action_available_unavailable="false"
                         :key="component_site_selection_key"
                         ref="component_site_selection"
@@ -216,7 +216,7 @@ export default {
         apiary_sites_prop: function() {
             let apiary_sites = [];
             if (this.proposal.application_type === 'Site Transfer') {
-                for (let site of this.proposal.proposal_apiary.site_transfer_apiary_sites) {
+                for (let site of this.proposal.proposal_apiary.transfer_apiary_sites) {
                     /*
                     if (site.selected) {
                         apiary_sites.push(site.apiary_site);
@@ -229,12 +229,21 @@ export default {
             }
             return apiary_sites;
         },
+        /*
         showColCheckbox: function() {
             let checked = true;
-            if (this.proposal.proposal_apiary.application_type === 'Site Transfer') {
+            if (this.proposal.application_type === 'Site Transfer') {
                 checked = false;
             }
             return checked;
+        },
+        */
+        siteTransferApplication: function() {
+            let siteTransfer = false;
+            if (this.proposal.application_type === 'Site Transfer') {
+                siteTransfer = true;
+            }
+            return siteTransfer;
         },
     },
     methods:{
@@ -256,9 +265,9 @@ export default {
         },
         setApiarySiteCheckedStatusesSiteTransfer: function() {
             if(this.proposal && this.proposal.proposal_apiary){
-                for (let i=0; i<this.proposal.proposal_apiary.site_transfer_apiary_sites.length; i++){
-                    console.log('checked status' + this.proposal.proposal_apiary.site_transfer_apiary_sites[i].selected)
-                    this.proposal.proposal_apiary.site_transfer_apiary_sites[i].apiary_site.checked = this.proposal.proposal_apiary.site_transfer_apiary_sites[i].selected
+                for (let i=0; i<this.proposal.proposal_apiary.transfer_apiary_sites.length; i++){
+                    console.log('checked status' + this.proposal.proposal_apiary.transfer_apiary_sites[i].internal_selected)
+                    this.proposal.proposal_apiary.transfer_apiary_sites[i].apiary_site.checked = this.proposal.proposal_apiary.transfer_apiary_sites[i].internal_selected
                 }
             }
         },
@@ -311,8 +320,12 @@ export default {
             this.toDateError = false;
             this.startDateError = false;
             $('.has-error').removeClass('has-error');
-            $(this.$refs.due_date).data('DateTimePicker').clear();
-            $(this.$refs.start_date).data('DateTimePicker').clear();
+            if (this.$refs.due_date) {
+                $(this.$refs.due_date).data('DateTimePicker').clear();
+            }
+            if (this.$refs.start_date) {
+                $(this.$refs.start_date).data('DateTimePicker').clear();
+            }
             this.validation_form.resetForm();
         },
         fetchContact: function(id){
@@ -369,12 +382,21 @@ export default {
         },
         addFormValidations: function() {
             let vm = this;
-            vm.validation_form = $(vm.form).validate({
-                rules: {
+            let rulesVar = {}
+            if (this.siteTransferApplication) {
+                rulesVar = {
+                    approval_details:"required",
+                } 
+            } else {
+                rulesVar = {
                     start_date:"required",
                     due_date:"required",
                     approval_details:"required",
-                },
+                }
+            }
+
+            vm.validation_form = $(vm.form).validate({
+                rules: rulesVar,
                 messages: {
                 },
                 showErrors: function(errorMap, errorList) {
@@ -455,14 +477,6 @@ export default {
             this.setApiarySiteCheckedStatuses();
         }
         this.component_site_selection_key = uuid()
-        /*
-        if (this.proposal && this.proposal.proposal_apiary &&) {
-            for (let site of this.proposal.proposal_apiary.site_transfer_apiary_sites) {
-                site.apiary_site.checked = site.selected;
-            }
-        }
-        */
-
     }
 }
 </script>
