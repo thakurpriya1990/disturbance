@@ -12,7 +12,7 @@ from ledger.accounts.models import EmailUser, EmailUserManager
 #from oscar.apps.order.models import Order
 import random
 import string
-import json
+import json, io
 from rest_framework.test import (
         APIRequestFactory, 
         force_authenticate, 
@@ -27,6 +27,9 @@ from ledger.address.models import UserAddress
 from requests.auth import HTTPBasicAuth
 from disturbance.components.proposals.models import (
         ProposalType,
+        ApplicationType,
+        ApiaryApplicantChecklistQuestion,
+        ApiaryApplicantChecklistAnswer,
         )
 
 class APITestSetup(APITestCase):
@@ -95,27 +98,61 @@ class APITestSetup(APITestCase):
         self.session = store
         self.client.cookies[settings.SESSION_COOKIE_NAME] = store.session_key
 
+        # Checklist questions/answers
+        apiary_qu_1 = ApiaryApplicantChecklistQuestion.objects.create(answer_type='yes_no', checklist_type="apiary", text="first_question")
+        apiary_qu_2 = ApiaryApplicantChecklistQuestion.objects.create(answer_type='yes_no', checklist_type="apiary", text="second_question")
+        apiary_qu_3 = ApiaryApplicantChecklistQuestion.objects.create(answer_type='yes_no', checklist_type="apiary", text="third_question")
+        apiary_site_transfer_qu_1 = ApiaryApplicantChecklistQuestion.objects.create(answer_type='yes_no', checklist_type="site_transfer", text="first_question")
+        apiary_site_transfer_qu_2 = ApiaryApplicantChecklistQuestion.objects.create(answer_type='yes_no', checklist_type="site_transfer", text="second_question")
+        apiary_site_transfer_qu_3 = ApiaryApplicantChecklistQuestion.objects.create(answer_type='yes_no', checklist_type="site_transfer", text="third_question")
+
         # Create ProposalTypes
         ProposalType.objects.create(name='Apiary', schema='[{}]')
         ProposalType.objects.create(name='Disturbance', schema='[{}]')
         ProposalType.objects.create(name='Site Transfer', schema='[{}]')
         ProposalType.objects.create(name='Temporary Use', schema='[{}]')
         # create_proposal_data
-        proposal_type_id = ProposalType.objects.get(name='Apiary').id
+        #proposal_type_id = ProposalType.objects.get(name='Apiary').id
+
+        # Create ApplicationTypes
+        ApplicationType.objects.create(name='Apiary', application_fee=13)
+        ApplicationType.objects.create(name='Disturbance', application_fee=0)
+        ApplicationType.objects.create(name='Site Transfer', application_fee=0)
+        ApplicationType.objects.create(name='Temporary Use', application_fee=0)
+        # create_proposal_data
+        application_type_id = ApplicationType.objects.get(name='Apiary').id
         self.create_proposal_data = {
             u'profile': 132376, 
-            u'application': proposal_type_id, 
+            u'application': application_type_id, 
             u'behalf_of': u'individual', 
             }
         # submit_proposal_data
-        with open('submit_schema.json', 'r') as submit_schema_file:
-            submit_schema = json.load(submit_schema_file)
+        #with open('submit_schema.json', 'r') as submit_schema_file:
+         #   submit_schema = json.load(submit_schema_file)
         with open('all_the_features.json', 'r') as features_file:
             all_the_features = json.load(features_file)
 
         self.submit_proposal_data = {
-                schema: submit_schema,
-                all_the_features: all_the_features,
+                "schema": {
+                    "proposal_apiary": {
+                        "title": "test_title",
+                        "checklist_answers": [
+                                {
+                                "id": apiary_qu_1.id,
+                                "answer": True
+                                },
+                                {
+                                "id": apiary_qu_2.id,
+                                "answer": False
+                                },
+                                {
+                                "id": apiary_qu_3.id,
+                                "answer": True
+                                },
+                            ]
+                        }
+                    },
+                "all_the_features": all_the_features,
                 }
         print("self.submit_proposal_data")
         print(self.submit_proposal_data)
@@ -129,6 +166,11 @@ class APITestSetup(APITestCase):
         # systime.sleep(2)
         s = ''.join(random.choice(string.ascii_letters) for i in range(80))
         return '{}@dbca.wa.gov.au'.format(s)
+
+def json_filewriter_example():
+    with io.open('filename', 'w', encoding="utf8") as json_file:
+        data = json.dumps(d, ensure_ascii=False, encoding="utf8")
+        json_file.write(unicode(data))
 
         
 #def random_email():
