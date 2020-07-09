@@ -65,6 +65,8 @@ class ApprovalSerializer(serializers.ModelSerializer):
     applicant_address = serializers.SerializerMethodField()
     apiary_sites = ApiarySiteSerializer(many=True, read_only=True)
     annual_rental_fee_periods = serializers.SerializerMethodField()
+    latest_apiary_licence_document = serializers.SerializerMethodField()
+    apiary_licence_document_history = serializers.SerializerMethodField()
 
     class Meta:
         model = Approval
@@ -118,6 +120,9 @@ class ApprovalSerializer(serializers.ModelSerializer):
             'apiary_sites',
             'annual_rental_fee_periods',
             'no_annual_rental_fee_until',
+            'latest_apiary_licence_document',
+            'apiary_licence_document_history',
+
         )
         # the serverSide functionality of datatables is such that only columns that have field 'data' defined are requested from the serializer. We
         # also require the following additional fields for some of the mRender functions
@@ -146,6 +151,8 @@ class ApprovalSerializer(serializers.ModelSerializer):
             'renewal_sent',
             'allowed_assessors',
             'can_approver_reissue',
+            'apiary_approval',
+            'latest_apiary_licence_document',
         )
 
     def get_annual_rental_fee_periods(self, approval):
@@ -168,6 +175,17 @@ class ApprovalSerializer(serializers.ModelSerializer):
 
         return retrun_obj
 
+    def get_apiary_licence_document_history(self, obj):
+        history = []
+        for doc in obj.documents.all():
+            history.append({
+                "name": doc.name,
+                "url": doc._file.url
+                })
+        return history
+
+    def get_latest_apiary_licence_document(self, obj):
+        return obj.documents.order_by('-uploaded_date')[0]._file.url
 
     def get_application_type(self,obj):
         if obj.current_proposal.application_type:
