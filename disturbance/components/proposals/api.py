@@ -1735,6 +1735,10 @@ class ProposalViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(str(e))
 
     def update(self, request, *args, **kwargs):
+        """
+        This function might not be used anymore
+        The function 'draft()' is used rather than this update()
+        """
         try:
             http_status = status.HTTP_200_OK
             application_type = ApplicationType.objects.get(id=request.data.get('application'))
