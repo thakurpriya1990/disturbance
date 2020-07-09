@@ -21,7 +21,7 @@
             </FormSection-->
             <FormSection :formCollapse="false" label="Transferee" Index="transferee">
                 <!--span class="row col-sm-12"-->
-                <div class="row col-sm-12">
+                <div v-if="is_external" class="row col-sm-12">
                     <div class="form-group">
                         <!--div class="row form-control">
                             <label class="inline">Title:</label>
@@ -37,6 +37,9 @@
                         </div>
                         <input type="button" @click="lookupTransferee" value="Find existing licence" class="btn btn-primary">
                     </div>
+                </div>
+                <div v-else>
+                    {{ transfereeName }}
                 </div>
                 <!--/span-->
                 <div class="row col-sm-12">
@@ -188,6 +191,11 @@
             FormSection,
         },
         computed:{
+            transfereeName: function() {
+                if (this.proposal && this.proposal.proposal_apiary) {
+                    return this.proposal.proposal_apiary.transferee_name;
+                }
+            },
             apiary_sections_classname: function() {
                 // For external page, we need 'col-md-9' classname
                 // but not for the internal.
@@ -236,9 +244,9 @@
             apiary_sites: function() {
                 let sites = []
                 if (this.proposal && this.proposal.proposal_apiary) {
-                    for (let site of this.proposal.proposal_apiary.site_transfer_apiary_sites) {
+                    for (let site of this.proposal.proposal_apiary.transfer_apiary_sites) {
                         // show all sites in Draft; only selected sites after customer submits
-                        if (this.proposal.customer_status === 'Draft' || site.selected) {
+                        if (this.proposal.customer_status === 'Draft' || site.customer_selected) {
                             sites.push(site.apiary_site);
                         }
                     }
@@ -319,8 +327,12 @@
             this.component_site_selection_key = uuid()
             // set initial checked status
             if (this.proposal && this.proposal.proposal_apiary) {
-                for (let site of this.proposal.proposal_apiary.site_transfer_apiary_sites) {
-                    site.apiary_site.checked = site.selected;
+                for (let site of this.proposal.proposal_apiary.transfer_apiary_sites) {
+                    if (this.is_external) {
+                        site.apiary_site.checked = site.customer_selected;
+                    } else {
+                        site.apiary_site.checked = site.internal_selected;
+                    }
                 }
             }
 

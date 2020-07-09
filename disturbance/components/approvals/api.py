@@ -62,7 +62,8 @@ class ApprovalPaginatedViewSet(viewsets.ModelViewSet):
             return Approval.objects.all()
         elif is_customer(self.request):
             user_orgs = [org.id for org in self.request.user.disturbance_organisations.all()]
-            queryset =  Approval.objects.filter(applicant_id__in = user_orgs)
+            queryset =  Approval.objects.filter(Q(applicant_id__in = user_orgs)|Q(proxy_applicant_id=self.request.user.id))
+            #queryset =  Approval.objects.filter(applicant_id__in = user_orgs)
             return queryset
         return Approval.objects.none()
 
@@ -140,7 +141,8 @@ class ApprovalViewSet(viewsets.ModelViewSet):
             return Approval.objects.all()
         elif is_customer(self.request):
             user_orgs = [org.id for org in self.request.user.disturbance_organisations.all()]
-            queryset =  Approval.objects.filter(applicant_id__in = user_orgs)
+            #queryset =  Approval.objects.filter(applicant_id__in = user_orgs)
+            queryset =  Approval.objects.filter(Q(applicant_id__in = user_orgs)|Q(proxy_applicant_id=self.request.user.id))
             return queryset
         return Approval.objects.none()
 
