@@ -1579,7 +1579,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(str(e))
 
     def create(self, request, *args, **kwargs):
-        print(request.data)
+        #print(request.data)
         #import ipdb; ipdb.set_trace()
         try:
             with transaction.atomic():

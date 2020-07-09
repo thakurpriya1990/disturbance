@@ -30,6 +30,9 @@ from disturbance.components.proposals.models import (
         ApplicationType,
         ApiaryApplicantChecklistQuestion,
         ApiaryApplicantChecklistAnswer,
+        ProposalAssessorGroup,
+        ApiaryAssessorGroup,
+        ApiaryAssessorGroup,
         )
 
 class APITestSetup(APITestCase):
@@ -98,6 +101,18 @@ class APITestSetup(APITestCase):
         self.session = store
         self.client.cookies[settings.SESSION_COOKIE_NAME] = store.session_key
 
+        # ProposalAssessorGroup - add adminUser (internal assessment/approval)
+        #new_proposal_assessor_group = ProposalAssessorGroup.objects.create(name="Default Group", default=True)
+        #new_proposal_assessor_group.members.add(self.adminUser)
+
+        # ApiaryAssessorGroup - add adminUser (internal assessment/approval)
+        new_apiary_assessor_group = ApiaryAssessorGroup.objects.create()
+        new_apiary_assessor_group.members.add(self.adminUser)
+
+        # ApiaryApproverGroup - add adminUser (internal assessment/approval)
+        new_apiary_approver_group = ApiaryApproverGroup.objects.create()
+        new_apiary_approver_group.members.add(self.adminUser)
+
         # Checklist questions/answers
         apiary_qu_1 = ApiaryApplicantChecklistQuestion.objects.create(answer_type='yes_no', checklist_type="apiary", text="first_question")
         apiary_qu_2 = ApiaryApplicantChecklistQuestion.objects.create(answer_type='yes_no', checklist_type="apiary", text="second_question")
@@ -132,7 +147,8 @@ class APITestSetup(APITestCase):
         with open('all_the_features.json', 'r') as features_file:
             all_the_features = json.load(features_file)
 
-        self.submit_proposal_data = {
+        self.draft_proposal_data = {
+                "proposal_id": proposal_id,
                 "schema": {
                     "proposal_apiary": {
                         "title": "test_title",
@@ -154,8 +170,8 @@ class APITestSetup(APITestCase):
                     },
                 "all_the_features": all_the_features,
                 }
-        print("self.submit_proposal_data")
-        print(self.submit_proposal_data)
+        #print("self.draft_proposal_data")
+        #print(self.draft_proposal_data)
 
     def random_email(self):
         """Return a random email address ending in dbca.wa.gov.au
