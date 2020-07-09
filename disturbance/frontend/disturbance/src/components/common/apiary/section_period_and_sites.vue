@@ -30,6 +30,7 @@
             :is_internal="false"
             :is_external="true"
             :enable_col_checkbox="is_external"
+            :show_action_available_unavailable="is_external"
             :key="component_site_selection_key"
             @apiary_sites_updated="apiarySitesUpdated"
         />
