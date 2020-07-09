@@ -96,6 +96,7 @@ class Approval(RevisionedMixin):
     set_to_surrender = models.BooleanField(default=False)
     reissued= models.BooleanField(default=False)
     apiary_approval = models.BooleanField(default=False)
+    no_annual_rental_fee_until = models.DateField(blank=True, null=True)
 
     class Meta:
         app_label = 'disturbance'
