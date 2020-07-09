@@ -6,7 +6,8 @@ from disturbance.components.approvals.models import (
     ApprovalLogEntry,
     ApprovalUserAction
 )
-from disturbance.components.das_payments.serializers import AnnualRentalFeeSerializer
+from disturbance.components.das_payments.models import AnnualRentalFeePeriod, AnnualRentalFee
+from disturbance.components.das_payments.serializers import AnnualRentalFeeSerializer, AnnualRentalFeePeriodSerializer
 from disturbance.components.organisations.models import (
                                 Organisation
                             )
@@ -58,12 +59,12 @@ class ApprovalSerializer(serializers.ModelSerializer):
     # apiary_site_location = serializers.SerializerMethodField()
     current_proposal = ProposalSerializer()
     organisation_name = serializers.SerializerMethodField()
-    organisation_abn =serializers.SerializerMethodField()
-    applicant_first_name =serializers.SerializerMethodField()
+    organisation_abn = serializers.SerializerMethodField()
+    applicant_first_name = serializers.SerializerMethodField()
     applicant_last_name = serializers.SerializerMethodField()
     applicant_address = serializers.SerializerMethodField()
     apiary_sites = ApiarySiteSerializer(many=True, read_only=True)
-    annual_rental_fees = AnnualRentalFeeSerializer(many=True, read_only=True)
+    annual_rental_fee_periods = serializers.SerializerMethodField()
 
     class Meta:
         model = Approval
@@ -115,7 +116,8 @@ class ApprovalSerializer(serializers.ModelSerializer):
             'applicant_last_name',
             'applicant_address',
             'apiary_sites',
-            'annual_rental_fees',
+            'annual_rental_fee_periods',
+            'no_annual_rental_fee_until',
         )
         # the serverSide functionality of datatables is such that only columns that have field 'data' defined are requested from the serializer. We
         # also require the following additional fields for some of the mRender functions
@@ -145,6 +147,27 @@ class ApprovalSerializer(serializers.ModelSerializer):
             'allowed_assessors',
             'can_approver_reissue',
         )
+
+    def get_annual_rental_fee_periods(self, approval):
+        annual_rental_fee_periods_qs = AnnualRentalFeePeriod.objects.filter(
+            annual_rental_fees__in=AnnualRentalFee.objects.filter(approval=approval)
+        ).distinct().order_by('period_start_date')
+
+        retrun_obj = []
+        for annual_rental_fee_period in annual_rental_fee_periods_qs:
+            serializer1 = AnnualRentalFeePeriodSerializer(annual_rental_fee_period)
+            temp = serializer1.data
+            temp['annual_rental_fees'] = []
+
+            annual_rental_fee_qs = AnnualRentalFee.objects.filter(approval=approval, annual_rental_fee_period=annual_rental_fee_period)
+            for annual_rental_fee in annual_rental_fee_qs:
+                serializer2 = AnnualRentalFeeSerializer(annual_rental_fee)
+                temp['annual_rental_fees'].append(serializer2.data)
+
+            retrun_obj.append(temp)
+
+        return retrun_obj
+
 
     def get_application_type(self,obj):
         if obj.current_proposal.application_type:

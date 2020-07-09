@@ -134,6 +134,7 @@
                     <SectionAnnualRentalFee
                         :is_readonly="false"
                         :annual_rental_fees="approval.annual_rental_fees"
+                        :no_annual_rental_fee_until="approval.no_annual_rental_fee_until"
                     />
                 </FormSection>
             </div>

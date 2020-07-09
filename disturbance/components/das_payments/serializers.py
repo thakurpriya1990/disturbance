@@ -1,9 +1,11 @@
+from ledger.payments.invoice.models import Invoice
 from rest_framework import serializers
 
 from disturbance.components.das_payments.models import AnnualRentalFee, AnnualRentalFeePeriod
 
 
 class AnnualRentalFeePeriodSerializer(serializers.ModelSerializer):
+    year_name = serializers.SerializerMethodField()
 
     class Meta:
         model = AnnualRentalFeePeriod
@@ -11,12 +13,17 @@ class AnnualRentalFeePeriodSerializer(serializers.ModelSerializer):
             'id',
             'period_start_date',
             'period_end_date',
+            'year_name',
         )
+
+    def get_year_name(self, obj):
+        return obj.period_start_date.year
 
 
 class AnnualRentalFeeSerializer(serializers.ModelSerializer):
     annual_rental_fee_invoice_url = serializers.SerializerMethodField()
     annual_rental_fee_period = AnnualRentalFeePeriodSerializer()
+    payment_status = serializers.SerializerMethodField()
 
     class Meta:
         model = AnnualRentalFee
@@ -27,6 +34,7 @@ class AnnualRentalFeeSerializer(serializers.ModelSerializer):
             'invoice_period_end_date',
             'invoice_reference',
             'annual_rental_fee_invoice_url',
+            'payment_status',
         )
 
     def validate(self, attr):
@@ -34,3 +42,7 @@ class AnnualRentalFeeSerializer(serializers.ModelSerializer):
 
     def get_annual_rental_fee_invoice_url(self, obj):
         return '/payments/invoice-pdf/{}'.format(obj.invoice_reference) if obj.invoice_reference else None
+
+    def get_payment_status(self, obj):
+        invoice = Invoice.objects.get(reference=obj.invoice_reference)
+        return invoice.payment_status
