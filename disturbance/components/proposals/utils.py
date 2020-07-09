@@ -399,7 +399,8 @@ def save_proponent_data_apiary_site_transfer(proposal_obj, request, viewset):
                             proposal_apiary=proposal_obj.proposal_apiary, 
                             apiary_site_id=site.get('id')
                             )
-                    site_transfer_apiary_site.selected = checked_value
+                    site_transfer_apiary_site.customer_selected = checked_value
+                    site_transfer_apiary_site.internal_selected = checked_value
                     site_transfer_apiary_site.save()
 
             selected_licence = proposal_apiary_data.get('selected_licence')
