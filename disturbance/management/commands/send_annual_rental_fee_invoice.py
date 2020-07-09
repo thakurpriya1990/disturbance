@@ -58,8 +58,10 @@ def get_approvals(annual_rental_fee_period):
     q_objects &= Q(expiry_date__gte=annual_rental_fee_period.period_start_date)
     q_objects &= Q(status=Approval.STATUS_CURRENT)
 
-    approval_qs = Approval.objects.filter(q_objects)\
-        .exclude(annual_rental_fees__in=AnnualRentalFee.objects.filter(annual_rental_fee_period=annual_rental_fee_period))
+    approval_qs = Approval.objects.filter(q_objects).exclude(
+        # We don't want to send an invoice for the same period
+        annual_rental_fees__in=AnnualRentalFee.objects.filter(annual_rental_fee_period=annual_rental_fee_period)
+    )
 
     return approval_qs
 
@@ -95,7 +97,7 @@ class Command(BaseCommand):
                             # Update annual_rental_fee obj
                             annual_rental_fee.invoice_reference = invoice.reference
                             annual_rental_fee.invoice_period_start_date = annual_rental_fee_period.period_start_date
-                            annual_rental_fee.invoice_period_end_date = annual_rental_fee_period.period_end_date
+                            annual_rental_fee.invoice_period_end_date = min(annual_rental_fee_period.period_end_date, approval.expiry_date)
                             annual_rental_fee.save()
 
                             # Store the apiary sites which the invoice created above has been issued for
