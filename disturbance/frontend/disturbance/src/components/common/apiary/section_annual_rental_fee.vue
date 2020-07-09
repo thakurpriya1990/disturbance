@@ -14,9 +14,14 @@
         </div>
 
         <div class="form-group row">
-            <label class="col-sm-5">Calendar year</label>
-            <div class="col-sm-6">
+            <label class="col-sm-3">Calendar year</label>
+            <div class="col-sm-3">
                 <select class="form-control" v-model="year_name_selected">
+                    <template v-if="annual_rental_fee_periods">
+                        <option value="all">
+                            All
+                        </option>
+                    </template>
                     <template v-for="annual_rental_fee_period in annual_rental_fee_periods">
                         <option :value="annual_rental_fee_period.year_name" :key="annual_rental_fee_period.id">
                             {{ annual_rental_fee_period.year_name }}
@@ -27,12 +32,15 @@
         </div>
 
         <div class="form-group row">
-            <label class="col-sm-5">Invoice</label>
-            <div class="col-sm-6">
+            <label class="col-sm-3">Invoice</label>
+            <div class="col-sm-9">
                 <template v-for="annual_rental_fee_period in annual_rental_fee_periods">
-                    <template v-if="annual_rental_fee_period.year_name == year_name_selected">
+                    <template v-if="annual_rental_fee_period.year_name == year_name_selected || year_name_selected == 'all'">
                         <template v-for="annual_rental_fee in annual_rental_fee_period.annual_rental_fees">
-                            <a :href="'/payments/invoice-pdf/' + annual_rental_fee.invoice_reference + '.pdf'" target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> Invoice</a>
+                            <a :href="'/payments/invoice-pdf/' + annual_rental_fee.invoice_reference + '.pdf'" target='_blank'>
+                                <i style='color:red;' class='fa fa-file-pdf-o'></i> Invoice
+                            </a>
+                            <strong>Status: {{ annual_rental_fee.payment_status }}</strong>
                         </template>
                     </template>
                 </template>
