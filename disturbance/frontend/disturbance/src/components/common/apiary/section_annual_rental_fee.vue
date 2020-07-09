@@ -2,8 +2,8 @@
     <div>
 
         <div class="form-group row">
-            <label class="col-sm-5">Do not charge annual rental fee until</label>
-            <div class="col-sm-6">
+            <label class="col-sm-3">Do not charge annual rental fee until</label>
+            <div class="col-sm-3">
                 <div class="input-group date" ref="periodFromDatePicker">
                     <input type="text" class="form-control" placeholder="DD/MM/YYYY" id="no_charge_until" :readonly="is_readonly"/>
                     <span class="input-group-addon">
