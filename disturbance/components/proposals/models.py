@@ -2473,7 +2473,7 @@ class ProposalApiary(models.Model):
                                     count_approved_site += 1
                                 else:
                                     a_site.status = ApiarySite.STATUS_DENIED
-                                a_site.workflow_selected_status = False
+                                    a_site.workflow_selected_status = False
                                 a_site.save()
 
                             if count_approved_site == 0:
