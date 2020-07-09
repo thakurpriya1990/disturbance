@@ -2465,12 +2465,17 @@ class ProposalApiary(models.Model):
                             count_approved_site = 0
                             sites_approved = request.data.get('apiary_sites', [])
                             for my_site in sites_approved:
+                                a_site = ApiarySite.objects.get(id=my_site['id'])
                                 if my_site['checked']:
-                                    a_site = ApiarySite.objects.get(id=my_site['id'])
                                     a_site.approval = approval
                                     a_site.status = ApiarySite.STATUS_CURRENT
-                                    a_site.save()
+                                    a_site.workflow_selected_status = True
                                     count_approved_site += 1
+                                else:
+                                    a_site.status = ApiarySite.STATUS_DENIED
+                                a_site.workflow_selected_status = False
+                                a_site.save()
+
                             if count_approved_site == 0:
                                 raise ValidationError("There must be at least one apiary site to approve")
 
