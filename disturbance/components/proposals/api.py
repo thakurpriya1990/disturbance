@@ -76,6 +76,7 @@ from disturbance.components.proposals.serializers import (
     ProposalRequirementSerializer,
     ProposalStandardRequirementSerializer,
     ProposedApprovalSerializer,
+    ProposedApprovalSiteTransferSerializer,
     PropedDeclineSerializer,
     AmendmentRequestSerializer,
     SearchReferenceSerializer,
@@ -567,8 +568,14 @@ class ProposalApiaryViewSet(viewsets.ModelViewSet):
     def final_approval(self, request, *args, **kwargs):
         #import ipdb;ipdb.set_trace()
         instance = self.get_object()
-        serializer = ProposedApprovalSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        if instance.proposal.application_type.name == ApplicationType.SITE_TRANSFER:
+            serializer = ProposedApprovalSiteTransferSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+        else:
+            serializer = ProposedApprovalSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+        #serializer = ProposedApprovalSerializer(data=request.data)
+        #serializer.is_valid(raise_exception=True)
         instance.final_approval(request,serializer.validated_data)
         #serializer = InternalProposalSerializer(instance,context={'request':request})
         serializer_class = self.internal_apiary_serializer_class()
@@ -837,7 +844,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         try:
             application_type = self.get_object().application_type.name
-            if application_type in (ApplicationType.APIARY, ApplicationType.SITE_TRANSFER):
+            if application_type in (ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE):
                 return ProposalApiaryTypeSerializer
             else:
                 return ProposalSerializer
@@ -858,7 +865,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             #import ipdb; ipdb.set_trace()
             #application_type = Proposal.objects.get(id=self.kwargs.get('pk')).application_type.name
             application_type = self.get_object().application_type.name
-            if application_type in (ApplicationType.APIARY, ApplicationType.SITE_TRANSFER):
+            if application_type in (ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE):
                 return ApiaryInternalProposalSerializer
                 #return InternalProposalSerializer
             else:
@@ -1330,8 +1337,12 @@ class ProposalViewSet(viewsets.ModelViewSet):
     def proposed_approval(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
-            serializer = ProposedApprovalSerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
+            if instance.application_type.name == ApplicationType.SITE_TRANSFER:
+                serializer = ProposedApprovalSiteTransferSerializer(data=request.data)
+                serializer.is_valid(raise_exception=True)
+            else:
+                serializer = ProposedApprovalSerializer(data=request.data)
+                serializer.is_valid(raise_exception=True)
             instance.proposed_approval(request,serializer.validated_data)
             #serializer = InternalProposalSerializer(instance,context={'request':request})
             serializer_class = self.internal_serializer_class()
@@ -1724,6 +1735,10 @@ class ProposalViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(str(e))
 
     def update(self, request, *args, **kwargs):
+        """
+        This function might not be used anymore
+        The function 'draft()' is used rather than this update()
+        """
         try:
             http_status = status.HTTP_200_OK
             application_type = ApplicationType.objects.get(id=request.data.get('application'))

@@ -53,16 +53,22 @@ class ApprovalDocument(Document):
 
 #class Approval(models.Model):
 class Approval(RevisionedMixin):
+    STATUS_CURRENT = 'current'
+    STATUS_EXPIRED = 'expired'
+    STATUS_CANCELLED = 'cancelled'
+    STATUS_SURRENDERED = 'surrendered'
+    STATUS_SUSPENDED = 'suspended'
     STATUS_CHOICES = (
-        ('current','Current'),
-        ('expired','Expired'),
-        ('cancelled','Cancelled'),
-        ('surrendered','Surrendered'),
-        ('suspended','Suspended')
+        (STATUS_CURRENT, 'Current'),
+        (STATUS_EXPIRED, 'Expired'),
+        (STATUS_CANCELLED, 'Cancelled'),
+        (STATUS_SURRENDERED, 'Surrendered'),
+        (STATUS_SUSPENDED, 'Suspended')
     )
     lodgement_number = models.CharField(max_length=9, blank=True, default='')
     status = models.CharField(max_length=40, choices=STATUS_CHOICES,
                                        default=STATUS_CHOICES[0][0])
+    # NB: licence_document not used for Apiary applications
     licence_document = models.ForeignKey(ApprovalDocument, blank=True, null=True, related_name='licence_document')
     cover_letter_document = models.ForeignKey(ApprovalDocument, blank=True, null=True, related_name='cover_letter_document')
     replaced_by = models.ForeignKey('self', blank=True, null=True)
@@ -90,6 +96,7 @@ class Approval(RevisionedMixin):
     set_to_surrender = models.BooleanField(default=False)
     reissued= models.BooleanField(default=False)
     apiary_approval = models.BooleanField(default=False)
+    no_annual_rental_fee_until = models.DateField(blank=True, null=True)
 
     class Meta:
         app_label = 'disturbance'

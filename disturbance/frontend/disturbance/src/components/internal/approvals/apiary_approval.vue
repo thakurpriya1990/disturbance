@@ -202,7 +202,16 @@
                             <label for="" class="col-sm-3 control-label" >Document</label>
                             <div class="col-sm-4">
                                 <!-- <p><a target="_blank" :href="approval.licence_document" class="control-label pull-left">Approval.pdf</a></p> -->
-                                <p><a :href="'#'+approval.id" class="control-label pull-left" @click="viewApprovalPDF(approval.id, approval.licence_document)">Approval.pdf</a></p>
+                                <!--p><a :href="'#'+approval.id" class="control-label pull-left" @click="viewApprovalPDF(approval.id, approval.latest_apiary_licence_document)">Approval.pdf</a></p-->
+                                <p><a target="_blank" :href="approval.latest_apiary_licence_document" class="control-label pull-left">Approval.pdf</a></p>
+                            </div>
+                          </div>
+                          <div class="form-group">
+                            <label for="" class="col-sm-3 control-label" >Document History</label>
+                            <div class="col-sm-4">
+                                <div v-for="doc in approval.apiary_licence_document_history">
+                                    <p><a target="_blank" :href="doc.url" class="control-label pull-left">{{doc.name}}</a></p>
+                                </div>
                             </div>
                           </div>
                        </form>
@@ -225,6 +234,8 @@
                 <FormSection :formCollapse="false" label="Annual Rental Fee" Index="annual_rental_fee">
                     <SectionAnnualRentalFee
                         :is_readonly="false"
+                        :annual_rental_fee_periods="approval.annual_rental_fee_periods"
+                        :no_annual_rental_fee_until="approval.no_annual_rental_fee_until"
                     />
                 </FormSection>
             </div>

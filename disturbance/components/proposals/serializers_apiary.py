@@ -284,13 +284,15 @@ class SiteTransferApiarySiteSerializer(serializers.ModelSerializer):
             # 'apiary_site_approval_id',
             'apiary_site_id',
             'apiary_site',
-            'selected',
+            'customer_selected',
+            'internal_selected',
         )
 
 
 class ProposalApiarySerializer(serializers.ModelSerializer):
     apiary_sites = ApiarySiteSerializer(read_only=True, many=True)
-    site_transfer_apiary_sites = SiteTransferApiarySiteSerializer(read_only=True, many=True)
+    #site_transfer_apiary_sites = SiteTransferApiarySiteSerializer(read_only=True, many=True)
+    transfer_apiary_sites = serializers.SerializerMethodField()
     on_site_information_list = serializers.SerializerMethodField()  # This is used for displaying OnSite table at the frontend
 
     #checklist_questions = serializers.SerializerMethodField()
@@ -298,6 +300,7 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
     site_remainders = serializers.SerializerMethodField()
     sending_approval_lodgement_number = serializers.SerializerMethodField()
     receiving_approval_lodgement_number = serializers.SerializerMethodField()
+    transferee_name = serializers.SerializerMethodField()
 
     class Meta:
         model = ProposalApiary
@@ -306,7 +309,8 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
             'title',
             'proposal',
             'apiary_sites',
-            'site_transfer_apiary_sites',
+            #'site_transfer_apiary_sites',
+            'transfer_apiary_sites',
             'longitude',
             'latitude',
             'on_site_information_list',
@@ -316,7 +320,23 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
             'sending_approval_id',
             'sending_approval_lodgement_number',
             'receiving_approval_lodgement_number',
+            'transferee_name',
         )
+
+    def get_transfer_apiary_sites(self, obj):
+        #import ipdb;ipdb.set_trace()
+        sites = None
+        if obj.proposal.customer_status == 'draft':
+            sites = obj.site_transfer_apiary_sites.all()
+        else:
+            sites = obj.site_transfer_apiary_sites.filter(customer_selected=True)
+        return SiteTransferApiarySiteSerializer(sites, many=True).data
+
+    def get_transferee_name(self, obj):
+        name = None
+        if obj.proposal.approval:
+            name = obj.proposal.approval.relevant_applicant_name
+        return name
 
     def get_receiving_approval_lodgement_number(self, obj):
         lodgement_number = None
@@ -584,7 +604,7 @@ class ProposalApiaryTypeSerializer(serializers.ModelSerializer):
 
     application_type = serializers.CharField(source='application_type.name', read_only=True)
     proposal_apiary = ProposalApiarySerializer()
-    apiary_temporary_use = ProposalApiaryTemporaryUseSerializer()
+    apiary_temporary_use = ProposalApiaryTemporaryUseSerializer(many=False, read_only=True)
     apiary_site_transfer = ProposalApiarySiteTransferSerializer()
     apiary_group_application_type = serializers.SerializerMethodField()
 
@@ -724,7 +744,7 @@ class ApiaryInternalProposalSerializer(BaseProposalSerializer):
     applicant_email = serializers.SerializerMethodField()
 
     proposal_apiary = ProposalApiarySerializer()
-    apiary_temporary_use = ProposalApiaryTemporaryUseSerializer()
+    apiary_temporary_use = ProposalApiaryTemporaryUseSerializer(many=False, read_only=True)
     apiary_site_transfer = ProposalApiarySiteTransferSerializer()
 
     # apiary_applicant_checklist = ApiaryApplicantChecklistAnswerSerializer(many=True)
@@ -806,10 +826,11 @@ class ApiaryInternalProposalSerializer(BaseProposalSerializer):
 
     def get_applicant_checklist(self, obj):
         checklist = []
-        if obj.proposal_apiary and obj.proposal_apiary.apiary_applicant_checklist.all():
-            for answer in obj.proposal_apiary.apiary_applicant_checklist.all():
-                serialized_answer = ApiaryApplicantChecklistAnswerSerializer(answer)
-                checklist.append(serialized_answer.data)
+        if hasattr(obj, 'proposal_apiary'):
+            if obj.proposal_apiary and obj.proposal_apiary.apiary_applicant_checklist.all():
+                for answer in obj.proposal_apiary.apiary_applicant_checklist.all():
+                    serialized_answer = ApiaryApplicantChecklistAnswerSerializer(answer)
+                    checklist.append(serialized_answer.data)
         return checklist
 
     def get_applicant_address(self, obj):
