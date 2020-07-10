@@ -170,8 +170,16 @@
 
         <div class="col-md-8">
             <div class="row">
+
                 <template v-if="proposal.processing_status == 'With Approver' || isFinalised">
-                    <ApprovalScreen :proposal="proposal" @refreshFromResponse="refreshFromResponse"/>
+                    <div v-if="siteTransferTemporaryUse">
+                        <ApprovalScreenSiteTransferTemporaryUse :proposal="proposal" @refreshFromResponse="refreshFromResponse"/>
+                    </div>
+                    <div v-else>
+                        <ApprovalScreen :proposal="proposal" @refreshFromResponse="refreshFromResponse"/>
+                    </div>
+
+                    <!--ApprovalScreen :proposal="proposal" @refreshFromResponse="refreshFromResponse"/-->
                 </template>
                 <template v-if="proposal.processing_status == 'With Assessor (Requirements)' || ((proposal.processing_status == 'With Approver' || isFinalised) && showingRequirements)">
                     <Requirements :proposal="proposal"/>
@@ -326,6 +334,7 @@ import ResponsiveDatatablesHelper from "@/utils/responsive_datatable_helper.js"
 import { api_endpoints, helpers } from '@/utils/hooks'
 import SectionsProposalTemporaryUse from '@/components/common/apiary/sections_proposal_temporary_use.vue'
 import FormSection from "@/components/forms/section_toggle.vue"
+import ApprovalScreenSiteTransferTemporaryUse from './proposal_approval_site_transfer_temporary_use.vue'
 
 export default {
     name: 'InternalProposalTemporaryUse',
@@ -407,6 +416,7 @@ export default {
         Requirements,
         ProposedApproval,
         ApprovalScreen,
+        ApprovalScreenSiteTransferTemporaryUse,
         CommsLogs,
         //MoreReferrals,
         ApiaryReferralsForProposal,
@@ -508,6 +518,14 @@ export default {
                 return {}
             }
         },
+        siteTransferTemporaryUse: function() {
+            let returnVal = false;
+            if (this.proposal && ['Site Transfer', 'Temporary Use'].includes(this.proposal.application_type)) {
+                returnVal = true;
+            }
+            return returnVal;
+        },
+
     },
     methods: {
         locationUpdated: function(){
