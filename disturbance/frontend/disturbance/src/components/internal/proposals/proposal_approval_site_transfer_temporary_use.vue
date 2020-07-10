@@ -1,4 +1,7 @@
 <template id="proposal_requirements">
+<!--
+    Edited in the Github
+-->
     <div>
         This file is proposal_approval_site_transfer_temporary_use.vue
         <template v-if="isFinalised">
