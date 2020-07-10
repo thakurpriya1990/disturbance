@@ -777,6 +777,7 @@ class ApiaryInternalProposalSerializer(BaseProposalSerializer):
 
     # apiary_applicant_checklist = ApiaryApplicantChecklistAnswerSerializer(many=True)
     applicant_checklist = serializers.SerializerMethodField()
+    apiary_group_application_type = serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
@@ -849,8 +850,12 @@ class ApiaryInternalProposalSerializer(BaseProposalSerializer):
                 'applicant_phone_number',
                 'applicant_mobile_number',
                 'applicant_email',
+                'apiary_group_application_type',
                 )
         read_only_fields=('documents','requirements')
+
+    def get_apiary_group_application_type(self, obj):
+        return obj.apiary_group_application_type
 
     def get_applicant_checklist(self, obj):
         checklist = []
