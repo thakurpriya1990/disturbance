@@ -1,6 +1,7 @@
 from .test_setup import APITestSetup
 from disturbance.components.proposals.models import (
         Proposal,
+        ApiarySite,
         )
 
 
@@ -23,7 +24,12 @@ class ProposalTests(APITestSetup):
         #self.client.login(email=self.adminUN, password='pass')
         self.client.login(email=self.customer, password='pass')
         self.client.enforce_csrf_checks=True
-        create_response = self.client.post('/api/proposal/', self.create_proposal_data)
+        create_response = self.client.post(
+                '/api/proposal/', 
+                self.create_proposal_data,
+                format='json'
+                #content_type='application/json'
+                )
 
         #print(create_response.status_code)
         #print(create_response.data)
@@ -40,7 +46,12 @@ class IntegrationTests(APITestSetup):
         self.client.login(email=self.customer, password='pass')
         self.client.enforce_csrf_checks=True
         # create proposal
-        create_response = self.client.post('/api/proposal/', self.create_proposal_data)
+        create_response = self.client.post(
+                '/api/proposal/', 
+                self.create_proposal_data,
+                format='json'
+                #content_type='application/json'
+                )
         proposal_id = create_response.data.get('id')
         # get proposal
         url = 'http://localhost:8071/api/proposal_apiary/{}.json'.format(proposal_id)
@@ -54,10 +65,14 @@ class IntegrationTests(APITestSetup):
         self.assertEqual(get_response.status_code, 200)
 
         import ipdb; ipdb.set_trace()
+        #self.draft_proposal_data["proposal_id"] = proposal_id
+        #created_proposal = Proposal.objects.get(id=proposal_id)
+        #self.draft_proposal_data["schema"]["proposal_apiary"]["id"] = created_proposal.proposal_apiary.id
         draft_response = self.client.post(
-                '/api/proposal/{}/draft/'.format(proposal_id), 
+                '/api/proposal/{}/draft/'.format(proposal_id),
                 self.draft_proposal_data, 
-                content_type='application/json'
+                format='json'
+                #content_type='application/json'
                 )
         #print(submit_response.status_code)
         #print(submit_response.data)
@@ -99,6 +114,7 @@ class IntegrationTests(APITestSetup):
         propose_to_approve_response = self.client.post(
                 '/api/proposal/{}/proposed_approval/'.format(proposal_id), 
                 propose_to_approve_data, 
+                format='json'
                 #content_type='application/json'
                 )
 

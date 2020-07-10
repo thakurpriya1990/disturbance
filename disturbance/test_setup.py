@@ -32,7 +32,7 @@ from disturbance.components.proposals.models import (
         ApiaryApplicantChecklistAnswer,
         ProposalAssessorGroup,
         ApiaryAssessorGroup,
-        ApiaryAssessorGroup,
+        ApiaryApproverGroup,
         )
 
 class APITestSetup(APITestCase):
@@ -146,30 +146,34 @@ class APITestSetup(APITestCase):
          #   submit_schema = json.load(submit_schema_file)
         with open('all_the_features.json', 'r') as features_file:
             all_the_features = json.load(features_file)
+        #all_the_features_list = []
+        #all_the_features_list.append(json.dumps(all_the_features))
 
+        #self.draft_proposal_data = {}
+        #"proposal_id": null,
+        #self.draft_proposal_data["schema"]["proposal_apiary"] = {
         self.draft_proposal_data = {
-                "proposal_id": proposal_id,
-                "schema": {
-                    "proposal_apiary": {
-                        "title": "test_title",
-                        "checklist_answers": [
-                                {
-                                "id": apiary_qu_1.id,
-                                "answer": True
-                                },
-                                {
-                                "id": apiary_qu_2.id,
-                                "answer": False
-                                },
-                                {
-                                "id": apiary_qu_3.id,
-                                "answer": True
-                                },
-                            ]
-                        }
-                    },
-                "all_the_features": all_the_features,
-                }
+            "schema": str({
+                "proposal_apiary": {
+                    "title": "test_title",
+                    "checklist_answers": [
+                            {
+                            "id": apiary_qu_1.id,
+                            "answer": True
+                            },
+                            {
+                            "id": apiary_qu_2.id,
+                            "answer": False
+                            },
+                            {
+                            "id": apiary_qu_3.id,
+                            "answer": True
+                            },
+                        ]
+                    }
+                }),
+            "all_the_features": [all_the_features,],
+            }
         #print("self.draft_proposal_data")
         #print(self.draft_proposal_data)
 
