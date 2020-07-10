@@ -2598,12 +2598,12 @@ class ApiarySiteFeeType(RevisionedMixin):
     FEE_TYPE_APPLICATION = 'new_application'
     # FEE_TYPE_AMENDMENT = 'amendment'
     # FEE_TYPE_RENEWAL = 'renewal'
-    # FEE_TYPE_TRANSFER = 'transfer'
+    FEE_TYPE_TRANSFER = 'transfer'
     FEE_TYPE_CHOICES = (
         (FEE_TYPE_APPLICATION, 'New Application'),
         # (FEE_TYPE_AMENDMENT, 'Amendment'),
         # (FEE_TYPE_RENEWAL, 'Renewal'),
-        # (FEE_TYPE_TRANSFER, 'Transfer'),
+        (FEE_TYPE_TRANSFER, 'Transfer'),
     )
     name = models.CharField(unique=True, max_length=50, choices=FEE_TYPE_CHOICES,)
     description = models.TextField(blank=True)
