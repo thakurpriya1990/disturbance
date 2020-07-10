@@ -247,8 +247,8 @@
         <div class="col-md-8">
             <div class="row">
                 <template v-if="proposal.processing_status == 'With Approver' || isFinalised">
-                    <div v-if="proposal && proposal.application_type==='Site Transfer'">
-                        <ApprovalScreenSiteTransfer :proposal="proposal" @refreshFromResponse="refreshFromResponse"/>
+                    <div v-if="siteTransferTemporaryUse">
+                        <ApprovalScreenSiteTransferTemporaryUse :proposal="proposal" @refreshFromResponse="refreshFromResponse"/>
                     </div>
                     <div v-else>
                         <ApprovalScreen :proposal="proposal" @refreshFromResponse="refreshFromResponse"/>
@@ -473,7 +473,7 @@ import datatable from '@vue-utils/datatable.vue'
 import Requirements from './proposal_requirements.vue'
 import ProposedApiaryIssuance from './proposed_apiary_issuance.vue'
 import ApprovalScreen from './proposal_approval.vue'
-import ApprovalScreenSiteTransfer from './proposal_approval_site_transfer.vue'
+import ApprovalScreenSiteTransferTemporaryUse from './proposal_approval_site_transfer_temporary_use.vue'
 import CommsLogs from '@common-utils/comms_logs.vue'
 //import MoreReferrals from '@common-utils/more_referrals.vue'
 import ApiaryReferralsForProposal from '@common-utils/apiary/apiary_referrals_for_proposal.vue'
@@ -565,7 +565,7 @@ export default {
         Requirements,
         ProposedApiaryIssuance,
         ApprovalScreen,
-        ApprovalScreenSiteTransfer,
+        ApprovalScreenSiteTransferTemporaryUse,
         CommsLogs,
         //MoreReferrals,
         ApiaryReferralsForProposal,
@@ -664,6 +664,14 @@ export default {
                 return this.proposal.proposal_apiary;
             }
         },
+        siteTransferTemporaryUse: function() {
+            let returnVal = false;
+            if (this.proposal && ['Site Transfer', 'Temporary Use'].includes(this.proposal.application_type)) {
+                returnVal = true;
+            }
+            return returnVal;
+        },
+
     },
     methods: {
         locationUpdated: function(){

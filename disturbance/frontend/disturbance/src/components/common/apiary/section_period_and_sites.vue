@@ -29,7 +29,7 @@
             :apiary_sites="apiary_sites"
             :is_internal="false"
             :is_external="true"
-            :enable_col_checkbox="is_external"
+            :enable_col_checkbox="is_checkbox_enabled"
             :show_action_available_unavailable="is_external"
             :key="component_site_selection_key"
             @apiary_sites_updated="apiarySitesUpdated"
@@ -70,14 +70,6 @@
                     return [];
                 }
             },
-            //from_date_enabled: {
-            //    type: Boolean,
-            //    default: false,
-            //},
-            //to_date_enabled: {
-            //    type: Boolean,
-            //    default: false,
-            //},
             is_external:{
               type: Boolean,
               default: false
@@ -89,6 +81,14 @@
             is_readonly: {
               type: Boolean,
               default: true
+            },
+            customer_status: {
+                type: String,
+                default: ''
+            },
+            processing_status: {
+                type: String,
+                default: ''
             }
         },
         data:function () {
@@ -142,7 +142,13 @@
             ComponentSiteSelection,
         },
         computed:{
-
+            is_checkbox_enabled: function() {
+                let enabled = false
+                if(this.is_internal && (this.customer_status == 'Draft' || this.customer_status == 'draft')){
+                    enabled = true
+                }
+                return enabled
+            }
         },
         methods:{
             apiarySitesUpdated: function(apiary_sites){
