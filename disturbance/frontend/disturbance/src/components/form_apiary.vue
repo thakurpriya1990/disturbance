@@ -4,7 +4,7 @@
         <div v-if="is_external" class="col-md-3">
             <div>
                 <h3>Application: {{ proposal.lodgement_number }}</h3>
-                <h4>Application Type: {{proposal.proposal_type }}</h4>
+                <h4>Application Type: {{proposal.application_type }}</h4>
                 <h4>Status: {{proposal.customer_status }}</h4>
             </div>
         </div>
@@ -30,6 +30,7 @@
                         :is_internal="is_internal"
                         :is_external="is_external"
                         :show_col_checkbox="false"
+                        :show_action_available_unavailable="showActionAvailableUnavailable"
                         :key="component_site_selection_key"
                       />
                 </div>
@@ -148,6 +149,15 @@
             FormSection,
         },
         computed:{
+            showActionAvailableUnavailable: function() {
+                let ret_val = false
+                if(this.is_external){
+                    if(this.proposal && ['approved', 'Approved'].includes(this.proposal.customer_status)){
+                        ret_val = true
+                    }
+                }
+                return ret_val
+            },
             apiary_sections_classname: function() {
                 // For external page, we need 'col-md-9' classname
                 // but not for the internal.
