@@ -31,6 +31,7 @@
                         :is_external="is_external"
                         :show_col_checkbox="false"
                         :show_action_available_unavailable="showActionAvailableUnavailable"
+                        :show_col_status="showColStatus"
                         :key="component_site_selection_key"
                       />
                 </div>
@@ -150,13 +151,20 @@
         },
         computed:{
             showActionAvailableUnavailable: function() {
-                let ret_val = false
+                let show = false
                 if(this.is_external){
                     if(this.proposal && ['approved', 'Approved'].includes(this.proposal.customer_status)){
-                        ret_val = true
+                        show = true
                     }
                 }
-                return ret_val
+                return show
+            },
+            showColStatus: function() {
+                let show = false
+                
+                show = true
+
+                return show
             },
             apiary_sections_classname: function() {
                 // For external page, we need 'col-md-9' classname

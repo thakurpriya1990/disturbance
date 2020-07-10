@@ -189,7 +189,7 @@
                             // Status
                             visible: vm.show_col_status,
                             mRender: function (data, type, apiary_site){
-                                return 'status'
+                                return apiary_site.status
                             }
                         },
                         {
@@ -214,7 +214,7 @@
                                 if (vm.show_action_available_unavailable){
                                     // Mark as Available/Unavailable
                                     let display_text = ''
-                                    if (vm.is_external){
+                                    if (vm.is_external && ['Current', 'current'].includes(apiary_site.status)){
                                         if (apiary_site.available){
                                             display_text = 'Mark as unavailable';
                                         } else {
@@ -223,7 +223,7 @@
                                         let ret = '<a><span class="toggle_availability" data-apiary-site-id="' + apiary_site.id + 
                                             '" data-apiary-site-available="' + apiary_site.available + '"/>' + display_text + '</span></a>';
                                         action_list.push(ret);
-                                    } else if (vm.is_internal){
+                                    } else if (vm.is_internal && ['Current', 'current'].includes(apiary_site.status)){
                                         if (apiary_site.available){
                                             display_text = 'Available';
                                         } else {
