@@ -27,8 +27,8 @@
 
         <template v-else-if="proposal.apiary_temporary_use">
             <SectionsProposalTemporaryUse
-                :is_internal="false"
-                :is_external="true"
+                :is_internal="true"
+                :is_external="false"
                 :proposal="proposal"
             />
         </template>
