@@ -278,20 +278,6 @@ def create_other_invoice_for_annual_rental_fee(approval, today_now, period, requ
             order = create_invoice(approval, today_now, period, payment_method='other')
             invoice = Invoice.objects.get(order_number=order.number)
 
-            # Create AnnualRentalFee object, which is linked from the approval
-            # TODO:
-            #  add 'annual_rental_fee_period' foreign key field?
-            #  add 'invoice_period_start_date' field?
-            #  add 'invoice_period_end_date' field?
-            #  add 'apiary_sites' field?
-            annual_rental_fee = AnnualRentalFee.objects.create(approval=approval, invoice_reference=invoice.reference)
-
-            # Create AnnualRentalFeeInvoice object, which is linked form the annual_rental_fee object created above
-            # annual_rental_fee_invoice, created = AnnualRentalFeeInvoice.objects.get_or_create(
-            #     annual_rental_fee=annual_rental_fee,
-            #     invoice_reference=invoice.reference
-            # )
-
             return invoice
 
         except Exception, e:

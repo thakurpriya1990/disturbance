@@ -149,7 +149,7 @@
             submit: async function() {
                 console.log('in submit()')
                 await this.proposal_submit();
-                this.exit();
+                //this.exit();
             },
             exit: function() {
                 console.log('in exit()');
@@ -221,7 +221,7 @@
                 let data = vm._get_basic_data();
                 let proposal_id = this.$route.params.proposal_id
 
-                await this.$http.put('/api/proposal/' + proposal_id + '/', data).then(
+                await this.$http.post('/api/proposal/' + proposal_id + '/draft/', data).then(
                     res=>{
                         swal(
                             'Saved',

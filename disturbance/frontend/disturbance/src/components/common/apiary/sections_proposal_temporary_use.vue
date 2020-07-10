@@ -7,6 +7,8 @@
                     :is_external="is_external" 
                     :is_internal="is_internal" 
                     :is_readonly="is_readonly"
+                    :customer_status="proposal.customer_status"
+                    :processing_status="proposal.processing_status"
                     :from_date="proposal.apiary_temporary_use.from_date"
                     :to_date="proposal.apiary_temporary_use.to_date"
                     :temporary_use_apiary_sites="proposal.apiary_temporary_use.temporary_use_apiary_sites"

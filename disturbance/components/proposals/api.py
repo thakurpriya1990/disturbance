@@ -844,7 +844,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         try:
             application_type = self.get_object().application_type.name
-            if application_type in (ApplicationType.APIARY, ApplicationType.SITE_TRANSFER):
+            if application_type in (ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE):
                 return ProposalApiaryTypeSerializer
             else:
                 return ProposalSerializer
@@ -865,7 +865,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             #import ipdb; ipdb.set_trace()
             #application_type = Proposal.objects.get(id=self.kwargs.get('pk')).application_type.name
             application_type = self.get_object().application_type.name
-            if application_type in (ApplicationType.APIARY, ApplicationType.SITE_TRANSFER):
+            if application_type in (ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE):
                 return ApiaryInternalProposalSerializer
                 #return InternalProposalSerializer
             else:
@@ -1735,6 +1735,10 @@ class ProposalViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(str(e))
 
     def update(self, request, *args, **kwargs):
+        """
+        This function might not be used anymore
+        The function 'draft()' is used rather than this update()
+        """
         try:
             http_status = status.HTTP_200_OK
             application_type = ApplicationType.objects.get(id=request.data.get('application'))

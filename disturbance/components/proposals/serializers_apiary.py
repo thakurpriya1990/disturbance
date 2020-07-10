@@ -500,7 +500,6 @@ class TemporaryUseApiarySiteSerializer(serializers.ModelSerializer):
         )
 
 
-
 class ProposalApiaryTemporaryUseSerializer(serializers.ModelSerializer):
     proposal_id = serializers.IntegerField(write_only=True, required=False)
     # loaning_approval_id = serializers.IntegerField(write_only=True, required=False)
@@ -512,8 +511,38 @@ class ProposalApiaryTemporaryUseSerializer(serializers.ModelSerializer):
     customer_status = serializers.SerializerMethodField()
     processing_status = serializers.SerializerMethodField()
 
-    def validate(self, attr):
-        return attr
+    def validate(self, data):
+        if hasattr(self, 'context') and self.context and self.context['action'] == 'submit':
+            # When this proposal is submitted, it should be validated
+            field_errors = {}
+            non_field_errors = []
+
+            if not data['from_date']:
+                field_errors['Period From'] = 'This field is required'
+            if not data['to_date']:
+                field_errors['Period To'] = 'This field is required'
+            if not data['temporary_occupier_name']:
+                field_errors['Temporary Occupier Name'] = 'This field is required'
+
+            # if data['issued_on_paper']:
+            #     if not data['paper_id']:
+            #         non_field_errors.append('Paper ID is required')
+            #     if not data['date_of_issue']:
+            #         non_field_errors.append('Date of Issue is required')
+            #     if not data['time_of_issue']:
+            #         non_field_errors.append('Time of Issue is required')
+            #     if not self.context['num_of_documents_attached']:
+            #         non_field_errors.append('Paper notice is required')
+            #     if not data['offender_id']:
+                    # non_field_errors.append('Offender is required')
+
+            if field_errors:
+                raise serializers.ValidationError(field_errors)
+
+            if non_field_errors:
+                raise serializers.ValidationError(non_field_errors)
+
+        return data
 
     def get_processing_status(self, obj):
         status = obj.proposal.processing_status
@@ -532,7 +561,6 @@ class ProposalApiaryTemporaryUseSerializer(serializers.ModelSerializer):
                 ret = value
                 break
         return ret
-
 
     def get_deed_poll_documents(self, obj):
         url_list = []
@@ -604,7 +632,7 @@ class ProposalApiaryTypeSerializer(serializers.ModelSerializer):
 
     application_type = serializers.CharField(source='application_type.name', read_only=True)
     proposal_apiary = ProposalApiarySerializer()
-    apiary_temporary_use = ProposalApiaryTemporaryUseSerializer()
+    apiary_temporary_use = ProposalApiaryTemporaryUseSerializer(many=False, read_only=True)
     apiary_site_transfer = ProposalApiarySiteTransferSerializer()
     apiary_group_application_type = serializers.SerializerMethodField()
 
@@ -744,11 +772,12 @@ class ApiaryInternalProposalSerializer(BaseProposalSerializer):
     applicant_email = serializers.SerializerMethodField()
 
     proposal_apiary = ProposalApiarySerializer()
-    apiary_temporary_use = ProposalApiaryTemporaryUseSerializer()
+    apiary_temporary_use = ProposalApiaryTemporaryUseSerializer(many=False, read_only=True)
     apiary_site_transfer = ProposalApiarySiteTransferSerializer()
 
     # apiary_applicant_checklist = ApiaryApplicantChecklistAnswerSerializer(many=True)
     applicant_checklist = serializers.SerializerMethodField()
+    apiary_group_application_type = serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
@@ -821,15 +850,20 @@ class ApiaryInternalProposalSerializer(BaseProposalSerializer):
                 'applicant_phone_number',
                 'applicant_mobile_number',
                 'applicant_email',
+                'apiary_group_application_type',
                 )
         read_only_fields=('documents','requirements')
 
+    def get_apiary_group_application_type(self, obj):
+        return obj.apiary_group_application_type
+
     def get_applicant_checklist(self, obj):
         checklist = []
-        if obj.proposal_apiary and obj.proposal_apiary.apiary_applicant_checklist.all():
-            for answer in obj.proposal_apiary.apiary_applicant_checklist.all():
-                serialized_answer = ApiaryApplicantChecklistAnswerSerializer(answer)
-                checklist.append(serialized_answer.data)
+        if hasattr(obj, 'proposal_apiary'):
+            if obj.proposal_apiary and obj.proposal_apiary.apiary_applicant_checklist.all():
+                for answer in obj.proposal_apiary.apiary_applicant_checklist.all():
+                    serialized_answer = ApiaryApplicantChecklistAnswerSerializer(answer)
+                    checklist.append(serialized_answer.data)
         return checklist
 
     def get_applicant_address(self, obj):
