@@ -149,7 +149,7 @@
             submit: async function() {
                 console.log('in submit()')
                 await this.proposal_submit();
-                this.exit();
+                //this.exit();
             },
             exit: function() {
                 console.log('in exit()');
