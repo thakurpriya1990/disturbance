@@ -1,6 +1,6 @@
 <template id="proposal_requirements">
     <div>
-        proposal_approval.vue
+        proposal_approval_site_transfer_temporary_use.vue
         <template v-if="isFinalised">
             <div class="col-md-12 alert alert-success" v-if="proposal.processing_status == 'Approved'">
                 <p>The approval has been issued and has been emailed to {{proposal.applicant.name}}</p>
@@ -11,7 +11,7 @@
             </div>
         </template>
 
-        <template v-if="proposal.proposal_apiary">
+        <template v-if="proposal.proposal_apiary || proposal.apiary_temporary_use">
             <FormSection :formCollapse="false" label="Site(s)" Index="sites">
                 <ComponentSiteSelection 
                     :apiary_sites="apiary_sites_prop"
@@ -110,11 +110,15 @@
                                 <template v-if="!proposal.proposed_decline_status">
                                     <template v-if="isFinalised">
                                         <p><strong>Decision: Issue</strong></p>
-                                        <p><strong>CC emails: {{proposal.proposed_issuance_approval.cc_email}}</strong></p>
+                                        <div v-if="proposal.proposed_issuance_approval">
+                                            <p><strong>CC emails: {{proposal.proposed_issuance_approval.cc_email}}</strong></p>
+                                        </div>
                                     </template>
                                     <template v-else>
                                         <p><strong>Proposed decision: Issue</strong></p>
-                                        <p><strong>Proposed cc emails: {{proposal.proposed_issuance_approval.cc_email}}</strong></p>
+                                        <div v-if="proposal.proposed_issuance_approval">
+                                            <p><strong>Proposed cc emails: {{proposal.proposed_issuance_approval.cc_email}}</strong></p>
+                                        </div>
                                     </template>
                                 </template>
                                 <template v-else>
@@ -142,7 +146,7 @@ import FormSection from "@/components/forms/section_toggle.vue"
 import uuid from 'uuid'
 
 export default {
-    name: 'ApprovalScreenSiteTransfer',
+    name: 'ApprovalScreenSiteTransferTemporaryUse',
     props: {
         proposal: Object
     },
@@ -188,13 +192,13 @@ export default {
                     */
                 }
             } else {
-                apiary_sites = this.proposal.proposal_apiary.apiary_sites;
+                apiary_sites = this.proposal.apiary_temporary_use.apiary_sites;
             }
             return apiary_sites;
         },
         showColCheckbox: function() {
             let checked = true;
-            if (this.proposal.proposal_apiary.application_type !== 'Site Transfer') {
+            if (this.proposal.application_type !== 'Site Transfer') {
                 checked = false;
             }
             return checked;

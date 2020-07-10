@@ -8,6 +8,8 @@ from django.db import transaction
 from django.contrib.gis.geos import Point, GEOSGeometry
 from preserialize.serialize import serialize
 from ledger.accounts.models import EmailUser, Document
+from rest_framework import serializers
+
 from disturbance.components.proposals.models import ProposalDocument, ProposalUserAction, ApiarySite, SiteCategory, \
     ProposalApiaryTemporaryUse, TemporaryUseApiarySite, ApiaryApplicantChecklistAnswer
 from disturbance.components.proposals.serializers import SaveProposalSerializer
@@ -501,7 +503,7 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                 # Temporary Use Application
                 apiary_temporary_use_obj = ProposalApiaryTemporaryUse.objects.get(id=request.data.get('apiary_temporary_use')['id'])
                 apiary_temporary_use_data = request.data.get('apiary_temporary_use')
-                update_proposal_apiary_temporary_use(apiary_temporary_use_obj, apiary_temporary_use_data)
+                update_proposal_apiary_temporary_use(apiary_temporary_use_obj, apiary_temporary_use_data, viewset.action)
 
                 if viewset.action == 'submit':
                     proposal_obj.processing_status = 'with_assessor'
@@ -526,14 +528,16 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
             raise
 
 
-def update_proposal_apiary_temporary_use(temp_use_obj, temp_use_data):
+def update_proposal_apiary_temporary_use(temp_use_obj, temp_use_data, action):
     temp_use_data['from_date'] = convert_moment_str_to_python_datetime_obj(temp_use_data['from_date']).date() if temp_use_data['from_date'] else None
     temp_use_data['to_date'] = convert_moment_str_to_python_datetime_obj(temp_use_data['to_date']).date() if temp_use_data['to_date'] else None
-    serializer = ProposalApiaryTemporaryUseSerializer(temp_use_obj, data=temp_use_data)
+
+    serializer = ProposalApiaryTemporaryUseSerializer(temp_use_obj, data=temp_use_data, context={'action': action})
     serializer.is_valid(raise_exception=True)
     patu = serializer.save()
 
     # Update TemporaryUseApiarySite
+    num_of_sites = 0
     for item in temp_use_data['temporary_use_apiary_sites']:
         item['selected'] = item['apiary_site']['checked']
         tuas_obj = TemporaryUseApiarySite.objects.get(id=item['id'])
@@ -541,6 +545,29 @@ def update_proposal_apiary_temporary_use(temp_use_obj, temp_use_data):
         serializer = TemporaryUseApiarySiteSerializer(tuas_obj, data=item)
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        if item['selected']:
+            num_of_sites += 1
+
+    if action == 'submit':
+        field_errors = {}
+        non_field_errors = []
+
+        if not num_of_sites > 0:
+            non_field_errors.append('At least one apiary site must be selected.')
+        if not temp_use_obj.proposal.deed_poll_documents.all().count() > 0:
+            non_field_errors.append('Deed poll document is required.')
+
+        if field_errors:
+            raise serializers.ValidationError(field_errors)
+        if non_field_errors:
+            raise serializers.ValidationError(non_field_errors)
+
+
+    # if not temp_use_data['from_date']:
+        #     non_field_errors.append('From date must be entered')
+        # if not temp_use_data['to_date']:
+        #     non_field_errors.append('To date must be entered')
+
 
 
 def save_proponent_data_disturbance(instance,request,viewset):
