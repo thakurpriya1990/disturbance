@@ -1117,14 +1117,24 @@ export default {
         });
     },
     created: function() {
+        let vm = this
         Vue.http.get(`/api/proposal/${this.proposalId}/internal_proposal.json`).then(res => {
-              this.proposal = res.body;
-              //console.log(res.body)
-              this.original_proposal = helpers.copyObject(res.body);
-              if (this.proposal.applicant) {
-                  this.proposal.applicant.address = this.proposal.applicant.address != null ? this.proposal.applicant.address : {};
-              }
-              this.hasAmendmentRequest = this.proposal.hasAmendmentRequest;
+            this.proposal = res.body;
+            //console.log(res.body)
+            this.original_proposal = helpers.copyObject(res.body);
+            if (this.proposal.applicant) {
+                this.proposal.applicant.address = this.proposal.applicant.address != null ? this.proposal.applicant.address : {};
+            }
+
+            // Convert from_date and to_date to moment obj
+            if (vm.proposal.apiary_temporary_use && vm.proposal.apiary_temporary_use.from_date){
+                vm.proposal.apiary_temporary_use.from_date = moment(vm.proposal.apiary_temporary_use.from_date, 'YYYY-MM-DD');
+            }
+            if (vm.proposal.apiary_temporary_use && vm.proposal.apiary_temporary_use.to_date){
+                vm.proposal.apiary_temporary_use.to_date = moment(vm.proposal.apiary_temporary_use.to_date, 'YYYY-MM-DD');
+            }
+
+            this.hasAmendmentRequest = this.proposal.hasAmendmentRequest;
         },
         err => {
           console.log(err);
