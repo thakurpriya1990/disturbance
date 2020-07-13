@@ -115,6 +115,7 @@ import modal from '@vue-utils/bootstrap-modal.vue'
 import alert from '@vue-utils/alert.vue'
 import {helpers,api_endpoints} from "@/utils/hooks.js"
 import ComponentSiteSelection from '@/components/common/apiary/component_site_selection.vue'
+import moment from 'moment'
 export default {
     name:'ProposedApiaryIssuance',
     components:{
@@ -280,6 +281,10 @@ export default {
         preview:function () {
             let vm =this;
             let formData = new FormData(vm.form)
+            if (this.siteTransferApplication && this.proposal.approval) {
+                formData.append('start_date', moment(this.proposal.approval.start_date, 'YYYY-MM-DD').format('DD/MM/YYYY'));
+                formData.append('due_date', moment(this.proposal.approval.expiry_date, 'YYYY-MM-DD').format('DD/MM/YYYY'));
+            }
             // convert formData to json
             let jsonObject = {};
             for (const [key, value] of formData.entries()) {
