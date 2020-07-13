@@ -267,6 +267,13 @@
                 }
                 return lodgement_number;
             },
+            selectedLicence: function() {
+                let licence = null;
+                if (this.proposal && this.proposal.proposal_apiary) {
+                    licence = this.proposal.proposal_apiary.selected_licence;
+                }
+                return licence;
+            },
             /*
             site_transfer_apiary_sites: function(){
                 let sites = []
