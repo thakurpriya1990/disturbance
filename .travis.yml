@@ -12,6 +12,8 @@ branches:
     only:
         - master
         - disturbance_v3
+        - apiary
+        - apiary_dev
         
 env:
     global:
