@@ -232,13 +232,16 @@
 
             <div class="row">
                 <FormSection :formCollapse="false" label="Annual Rental Fee" Index="annual_rental_fee">
-                    <SectionAnnualRentalFee
-                        :is_readonly="false"
-                        :is_internal="true"
-                        :is_external="false"
-                        :annual_rental_fee_periods="approval.annual_rental_fee_periods"
-                        :no_annual_rental_fee_until="approval.no_annual_rental_fee_until"
-                    />
+                    <template v-if="approval && approval.id">
+                        <SectionAnnualRentalFee
+                            :is_readonly="false"
+                            :is_internal="true"
+                            :is_external="false"
+                            :approval_id="approval.id"
+                            :annual_rental_fee_periods="approval.annual_rental_fee_periods"
+                            :no_annual_rental_fee_until="approval.no_annual_rental_fee_until"
+                        />
+                    </template>
                 </FormSection>
             </div>
 
