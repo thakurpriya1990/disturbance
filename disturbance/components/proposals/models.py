@@ -1198,7 +1198,7 @@ class Proposal(RevisionedMixin):
                                     proposal_apiary=self.proposal_apiary,
                                     apiary_site_id=apiary_site.get('id')
                                     )
-                            transfer_site.internal_selected = apiary_site.get('checked') if transfer_site.customer_selected else false
+                            transfer_site.internal_selected = apiary_site.get('checked') if transfer_site.customer_selected else False
                             transfer_site.save()
 
                 self.save()
@@ -2459,7 +2459,7 @@ class ProposalApiary(models.Model):
                                         proposal_apiary=self,
                                         apiary_site_id=apiary_site.get('id')
                                         )
-                                transfer_site.internal_selected = apiary_site.get('checked') if transfer_site.customer_selected else false
+                                transfer_site.internal_selected = apiary_site.get('checked') if transfer_site.customer_selected else False
                                 transfer_site.save()
                             # update approval for all selected apiary sites
                             transfer_sites = SiteTransferApiarySite.objects.filter(

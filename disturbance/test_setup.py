@@ -25,11 +25,17 @@ from disturbance.components.proposals.models import (
         ProposalAssessorGroup,
         ApiaryAssessorGroup,
         ApiaryApproverGroup,
+        SiteCategory,
         )
+from disturbance.components.approvals.models import (
+        Approval,
+        )
+
 
 class APITestSetup(APITestCase):
 
     def setUp(self):
+        print("setup method")
         self.superAdminUN = 'test.superadmin@dbcatest.com'
         self.adminUN = 'test.admin@dbcatest.com'
         self.nonAdminUN = 'test.customer@dbcatest.com'
@@ -41,8 +47,8 @@ class APITestSetup(APITestCase):
         self.superadminUser.set_password('pass')
         self.superadminUser.save()
         self.adminUser  = EmailUser.objects.create(email=self.adminUN,password="pass",is_staff=True, is_superuser=False)
-        self.adminUser.set_password('pass')       
-        self.adminUser.save() 
+        self.adminUser.set_password('pass')
+        self.adminUser.save()
 
         self.customer = EmailUser.objects.create(email=self.nonAdminUN, password="pass", is_staff=False, is_superuser=False)
         self.customer.set_password('pass')
@@ -70,6 +76,60 @@ class APITestSetup(APITestCase):
         self.customer.residential_address = customer_address
         self.customer.save()
 
+        self.externalUser1 = 'test.customer1@dbcatest.com'
+        self.customer1 = EmailUser.objects.create(email=self.externalUser1, password="pass", is_staff=False, is_superuser=False)
+        self.customer1.set_password('pass')
+        self.customer1.save()
+        # customer1 UserAddress
+        user1_address = UserAddress.objects.create(
+                country_id= 'AU',
+                #is_default_for_billing= True,
+                #is_default_for_shipping= True,
+                line1= '17 Dick Perry',
+                #line2: '',
+                #line3': u'',
+                #line4': u'BENTLEY DELIVERY CENTRE',
+                #notes': u'',
+                #num_orders': 0,
+                #phone_number': None,
+                postcode= '6151',
+                #'search_text': u'',
+                state= 'WA',
+                #title': u'',
+                user_id= self.customer1.id
+                )
+
+        customer1_address = Address.objects.create(user=self.customer1, oscar_address=user1_address)
+        self.customer1.residential_address = customer1_address
+        self.customer1.save()
+
+        self.externalUser2 = 'test.customer2@dbcatest.com'
+        self.customer2 = EmailUser.objects.create(email=self.externalUser2, password="pass", is_staff=False, is_superuser=False)
+        self.customer2.set_password('pass')
+        self.customer2.save()
+        # customer2 UserAddress
+        user2_address = UserAddress.objects.create(
+                country_id= 'AU',
+                #is_default_for_billing= True,
+                #is_default_for_shipping= True,
+                line1= '17 Dick Perry',
+                #line2: '',
+                #line3': u'',
+                #line4': u'BENTLEY DELIVERY CENTRE',
+                #notes': u'',
+                #num_orders': 0,
+                #phone_number': None,
+                postcode= '6151',
+                #'search_text': u'',
+                state= 'WA',
+                #title': u'',
+                user_id= self.customer2.id
+                )
+
+        customer2_address = Address.objects.create(user=self.customer2, oscar_address=user2_address)
+        self.customer2.residential_address = customer2_address
+        self.customer2.save()
+
         settings.SESSION_ENGINE = 'django.contrib.sessions.backends.file'
         engine = import_module(settings.SESSION_ENGINE)
         store = engine.SessionStore()
@@ -82,20 +142,21 @@ class APITestSetup(APITestCase):
         #new_proposal_assessor_group.members.add(self.adminUser)
 
         # ApiaryAssessorGroup - add adminUser (internal assessment/approval)
-        new_apiary_assessor_group = ApiaryAssessorGroup.objects.create()
-        new_apiary_assessor_group.members.add(self.adminUser)
+        self.new_apiary_assessor_group = ApiaryAssessorGroup.objects.create()
+        self.new_apiary_assessor_group.members.add(self.adminUser)
 
         # ApiaryApproverGroup - add adminUser (internal assessment/approval)
-        new_apiary_approver_group = ApiaryApproverGroup.objects.create()
-        new_apiary_approver_group.members.add(self.adminUser)
+        self.new_apiary_approver_group = ApiaryApproverGroup.objects.create()
+        self.new_apiary_approver_group.members.add(self.adminUser)
 
         # Checklist questions/answers
-        apiary_qu_1 = ApiaryApplicantChecklistQuestion.objects.create(answer_type='yes_no', checklist_type="apiary", text="first_question")
-        apiary_qu_2 = ApiaryApplicantChecklistQuestion.objects.create(answer_type='yes_no', checklist_type="apiary", text="second_question")
-        apiary_qu_3 = ApiaryApplicantChecklistQuestion.objects.create(answer_type='yes_no', checklist_type="apiary", text="third_question")
-        apiary_site_transfer_qu_1 = ApiaryApplicantChecklistQuestion.objects.create(answer_type='yes_no', checklist_type="site_transfer", text="first_question")
-        apiary_site_transfer_qu_2 = ApiaryApplicantChecklistQuestion.objects.create(answer_type='yes_no', checklist_type="site_transfer", text="second_question")
-        apiary_site_transfer_qu_3 = ApiaryApplicantChecklistQuestion.objects.create(answer_type='yes_no', checklist_type="site_transfer", text="third_question")
+        #import ipdb; ipdb.set_trace()
+        self.apiary_qu_1 = ApiaryApplicantChecklistQuestion.objects.create(answer_type='yes_no', checklist_type="apiary", text="first_question")
+        self.apiary_qu_2 = ApiaryApplicantChecklistQuestion.objects.create(answer_type='yes_no', checklist_type="apiary", text="second_question")
+        self.apiary_qu_3 = ApiaryApplicantChecklistQuestion.objects.create(answer_type='yes_no', checklist_type="apiary", text="third_question")
+        self.apiary_site_transfer_qu_1 = ApiaryApplicantChecklistQuestion.objects.create(answer_type='yes_no', checklist_type="site_transfer", text="first_question")
+        self.apiary_site_transfer_qu_2 = ApiaryApplicantChecklistQuestion.objects.create(answer_type='yes_no', checklist_type="site_transfer", text="second_question")
+        self.apiary_site_transfer_qu_3 = ApiaryApplicantChecklistQuestion.objects.create(answer_type='yes_no', checklist_type="site_transfer", text="third_question")
 
         # Create ProposalTypes
         ProposalType.objects.create(name='Apiary', schema='[{}]')
@@ -110,45 +171,43 @@ class APITestSetup(APITestCase):
         ApplicationType.objects.create(name='Disturbance', application_fee=0)
         ApplicationType.objects.create(name='Site Transfer', application_fee=0)
         ApplicationType.objects.create(name='Temporary Use', application_fee=0)
-        # create_proposal_data
-        application_type_id = ApplicationType.objects.get(name='Apiary').id
+        # Create SiteCategories
+        SiteCategory.objects.create(name='south_west')
+        SiteCategory.objects.create(name='remote')
+        ## create_proposal_data
+        # Apiary applications
+        self.apiary_application_type_id = ApplicationType.objects.get(name='Apiary').id
         self.create_proposal_data = {
             u'profile': 132376, 
-            u'application': application_type_id, 
+            u'application': self.apiary_application_type_id, 
             u'behalf_of': u'individual', 
+            }
+        self.create_proposal_data_customer1 = {
+            u'profile': 132377, 
+            u'application': self.apiary_application_type_id, 
+            u'behalf_of': u'individual', 
+            }
+        self.create_proposal_data_customer2 = {
+            u'profile': 132378, 
+            u'application': self.apiary_application_type_id, 
+            u'behalf_of': u'individual', 
+            }
+        # Site transfer applications
+        self.site_transfer_application_type_id = ApplicationType.objects.get(name='Site Transfer').id
+        self.create_site_transfer_proposal_data = {
+            u'profile': 132377, 
+            u'application': self.site_transfer_application_type_id, 
+            u'behalf_of': u'individual',
             }
         # submit_proposal_data
         #with open('submit_schema.json', 'r') as submit_schema_file:
          #   submit_schema = json.load(submit_schema_file)
         with open('all_the_features.json', 'r') as features_file:
             self.all_the_features = json.load(features_file)
-        #all_the_features_list = []
-        #all_the_features_list.append(json.dumps(all_the_features))
-
-        #self.draft_proposal_data = {}
-        #"proposal_id": null,
-        #self.draft_proposal_data["schema"]["proposal_apiary"] = {
-        self.draft_schema = {
-            "proposal_apiary": {
-                "title": "test_title",
-                "checklist_answers": [
-                        {
-                        "id": apiary_qu_1.id,
-                        "answer": True
-                        },
-                        {
-                        "id": apiary_qu_2.id,
-                        "answer": False
-                        },
-                        {
-                        "id": apiary_qu_3.id,
-                        "answer": True
-                        },
-                    ]
-                }
-            #"all_the_features": [json.dumps(all_the_features),],
-            #"all_the_features": json.dumps(all_the_features),
-            }
+        with open('all_the_features_1.json', 'r') as features_file_1:
+            self.all_the_features_1 = json.load(features_file_1)
+        with open('all_the_features_2.json', 'r') as features_file_2:
+            self.all_the_features_2 = json.load(features_file_2)
 
     def random_email(self):
         """Return a random email address ending in dbca.wa.gov.au
@@ -160,6 +219,8 @@ class APITestSetup(APITestCase):
         s = ''.join(random.choice(string.ascii_letters) for i in range(80))
         return '{}@dbca.wa.gov.au'.format(s)
 
+
+# write apiary_sites data to file
 def json_filewriter_example():
     with io.open('filename', 'w', encoding="utf8") as json_file:
         data = json.dumps(d, ensure_ascii=False, encoding="utf8")
