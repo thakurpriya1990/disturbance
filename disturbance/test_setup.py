@@ -208,51 +208,6 @@ class APITestSetup(APITestCase):
             self.all_the_features_1 = json.load(features_file_1)
         with open('all_the_features_2.json', 'r') as features_file_2:
             self.all_the_features_2 = json.load(features_file_2)
-        #all_the_features_list = []
-        #all_the_features_list.append(json.dumps(all_the_features))
-
-        #self.draft_proposal_data = {}
-        #"proposal_id": null,
-        #self.draft_proposal_data["schema"]["proposal_apiary"] = {
-        #self.draft_schema = {
-        #    "proposal_apiary": {
-        #        "title": "test_title",
-        #        "checklist_answers": [
-        #                {
-        #                "id": self.apiary_qu_1.id,
-        #                "answer": True
-        #                },
-        #                {
-        #                "id": self.apiary_qu_2.id,
-        #                "answer": False
-        #                },
-        #                {
-        #                "id": self.apiary_qu_3.id,
-        #                "answer": True
-        #                },
-        #            ]
-        #        }
-        #    #"all_the_features": [json.dumps(all_the_features),],
-        #    #"all_the_features": json.dumps(all_the_features),
-        #    }
-        #self.draft_schema_site_transfer = {
-        #    "proposal_apiary": {
-        #        "checklist_answers": [
-        #                {
-        #                "id": self.apiary_site_transfer_qu_1.id,
-        #                "answer": True
-        #                },
-        #                {
-        #                "id": self.apiary_site_transfer_qu_2.id,
-        #                "answer": False
-        #                },
-        #                {
-        #                "id": self.apiary_site_transfer_qu_3.id,
-        #                "answer": True
-        #                },
-        #            ]
-        #        }
-        #    }
 
     def random_email(self):
         """Return a random email address ending in dbca.wa.gov.au
