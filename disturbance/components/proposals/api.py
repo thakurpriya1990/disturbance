@@ -1167,6 +1167,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['post'])
     @renderer_classes((JSONRenderer,))
     def submit(self, request, *args, **kwargs):
+        #import ipdb; ipdb.set_trace()
         try:
             instance = self.get_object()
             if instance.apiary_group_application_type:
@@ -1578,8 +1579,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(str(e))
 
     def create(self, request, *args, **kwargs):
-        print(request.data)
-        #import ipdb; ipdb.set_trace()
         try:
             with transaction.atomic():
                 http_status = status.HTTP_200_OK
