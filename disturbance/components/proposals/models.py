@@ -2452,6 +2452,15 @@ class ProposalApiary(models.Model):
                         #import ipdb;ipdb.set_trace()
                         # for site in self.apiary_sites.all():
                         if self.proposal.application_type.name == ApplicationType.SITE_TRANSFER:
+                            # updated apiary_site.selected with 'checked' flag status
+                            apiary_sites = request.data.get('apiary_sites', [])
+                            for apiary_site in apiary_sites:
+                                transfer_site = SiteTransferApiarySite.objects.get(
+                                        proposal_apiary=self,
+                                        apiary_site_id=apiary_site.get('id')
+                                        )
+                                transfer_site.internal_selected = apiary_site.get('checked') if transfer_site.customer_selected else false
+                                transfer_site.save()
                             # update approval for all selected apiary sites
                             transfer_sites = SiteTransferApiarySite.objects.filter(
                                     proposal_apiary=self,
@@ -2482,49 +2491,54 @@ class ProposalApiary(models.Model):
                         #print approval,approval.id, created
                     # Generate compliances
                     #self.generate_compliances(approval, request)
-                    from disturbance.components.compliances.models import Compliance, ComplianceUserAction
-                    if created:
-                        if self.proposal.proposal_type == 'amendment':
+                    if self.proposal.application_type.name == ApplicationType.APIARY:
+                        from disturbance.components.compliances.models import Compliance, ComplianceUserAction
+                        if created:
+                            if self.proposal.proposal_type == 'amendment':
+                                approval_compliances = Compliance.objects.filter(
+                                        approval= previous_approval, 
+                                        proposal = self.proposal.previous_application, 
+                                        processing_status='future'
+                                        )
+                                if approval_compliances:
+                                    for c in approval_compliances:
+                                        c.delete()
+                            # Log creation
+                            # Generate the document
+                            approval.generate_doc(request.user)
+                            self.proposal.generate_compliances(approval, request)
+                            # send the doc and log in approval and org
+                        else:
+                            #approval.replaced_by = request.user
+                            #approval.replaced_by = self.approval
+                            # Generate the document
+                            approval.generate_doc(request.user)
+                            #Delete the future compliances if Approval is reissued and generate the compliances again.
                             approval_compliances = Compliance.objects.filter(
-                                    approval= previous_approval, 
-                                    proposal = self.proposal.previous_application, 
+                                    approval= approval, 
+                                    proposal = self.proposal, 
                                     processing_status='future'
                                     )
                             if approval_compliances:
                                 for c in approval_compliances:
                                     c.delete()
-                        # Log creation
-                        # Generate the document
-                        approval.generate_doc(request.user)
-                        self.proposal.generate_compliances(approval, request)
-                        # send the doc and log in approval and org
-                    else:
-                        #approval.replaced_by = request.user
-                        #approval.replaced_by = self.approval
-                        # Generate the document
-                        approval.generate_doc(request.user)
-                        #Delete the future compliances if Approval is reissued and generate the compliances again.
-                        approval_compliances = Compliance.objects.filter(
-                                approval= approval, 
-                                proposal = self.proposal, 
-                                processing_status='future'
-                                )
-                        if approval_compliances:
-                            for c in approval_compliances:
-                                c.delete()
-                        self.proposal.generate_compliances(approval, request)
-                        # Log proposal action
-                        self.proposal.log_user_action(
-                                ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.proposal.id),
-                                request
-                                )
-                        # Log entry for organisation
-                        if self.proposal.applicant:
-                            self.proposal.applicant.log_user_action(
+                            self.proposal.generate_compliances(approval, request)
+                            # Log proposal action
+                            self.proposal.log_user_action(
                                     ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.proposal.id),
                                     request
                                     )
-                    self.proposal.approval = approval
+                            # Log entry for organisation
+                            if self.proposal.applicant:
+                                self.proposal.applicant.log_user_action(
+                                        ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.proposal.id),
+                                        request
+                                        )
+                        self.proposal.approval = approval
+                    else:
+                        # add Site Transfer Compliance/Requirements logic here
+                        pass
+
                 #send Proposal approval email with attachment
                 send_proposal_approval_email_notification(self.proposal,request)
                 self.proposal.save(version_comment='Final Approval: {}'.format(self.proposal.approval.lodgement_number))
@@ -2584,12 +2598,12 @@ class ApiarySiteFeeType(RevisionedMixin):
     FEE_TYPE_APPLICATION = 'new_application'
     # FEE_TYPE_AMENDMENT = 'amendment'
     # FEE_TYPE_RENEWAL = 'renewal'
-    # FEE_TYPE_TRANSFER = 'transfer'
+    FEE_TYPE_TRANSFER = 'transfer'
     FEE_TYPE_CHOICES = (
         (FEE_TYPE_APPLICATION, 'New Application'),
         # (FEE_TYPE_AMENDMENT, 'Amendment'),
         # (FEE_TYPE_RENEWAL, 'Renewal'),
-        # (FEE_TYPE_TRANSFER, 'Transfer'),
+        (FEE_TYPE_TRANSFER, 'Transfer'),
     )
     name = models.CharField(unique=True, max_length=50, choices=FEE_TYPE_CHOICES,)
     description = models.TextField(blank=True)
