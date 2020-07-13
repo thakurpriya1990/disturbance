@@ -420,8 +420,8 @@ def save_proponent_data_apiary_site_transfer(proposal_obj, request, viewset):
 
 def save_proponent_data_apiary(proposal_obj, request, viewset):
     with transaction.atomic():
-        #import ipdb; ipdb.set_trace()
         try:
+            #import ipdb; ipdb.set_trace()
             data = {
             }
 
