@@ -57,32 +57,76 @@ def delete_session_application_invoice(session):
         del session['das_app_invoice']
         session.modified = True
 
-def get_session_site_transfer_application_invoice(session):
-    """ Application Fee session ID """
-    if 'site_transfer_app_invoice' in session:
-        application_fee_id = session['site_transfer_app_invoice']
-    else:
-        raise Exception('Application not in Session')
+#def get_session_site_transfer_application_invoice(session):
+#    """ Application Fee session ID """
+#    if 'site_transfer_app_invoice' in session:
+#        application_fee_id = session['site_transfer_app_invoice']
+#    else:
+#        raise Exception('Application not in Session')
+#
+#    try:
+#        #return Invoice.objects.get(id=application_invoice_id)
+#        #return Proposal.objects.get(id=proposal_id)
+#        return ApplicationFee.objects.get(id=application_fee_id)
+#    except Invoice.DoesNotExist:
+#        raise Exception('Application not found for application {}'.format(application_fee_id))
+#
+#
+#def set_session_site_transfer_application_invoice(session, application_fee):
+#    """ Application Fee session ID """
+#    session['site_transfer_app_invoice'] = application_fee.id
+#    session.modified = True
+#
+#
+#def delete_session_site_transfer_application_invoice(session):
+#    """ Application Fee session ID """
+#    if 'site_transfer_app_invoice' in session:
+#        del session['site_transfer_app_invoice']
+#        session.modified = True
 
-    try:
-        #return Invoice.objects.get(id=application_invoice_id)
-        #return Proposal.objects.get(id=proposal_id)
-        return ApplicationFee.objects.get(id=application_fee_id)
-    except Invoice.DoesNotExist:
-        raise Exception('Application not found for application {}'.format(application_fee_id))
+def create_fee_lines_site_transfer(proposal):
+    now = datetime.now().strftime('%Y-%m-%d %H:%M')
+    today_local = datetime.now(pytz.timezone(TIME_ZONE)).date()
+    #MIN_NUMBER_OF_SITES_TO_APPLY = 5
+    line_items = []
 
+    # applicant = EmailUser.objects.get(email='katsufumi.shibata@dbca.wa.gov.au')  # TODO: Get proper applicant
 
-def set_session_site_transfer_application_invoice(session, application_fee):
-    """ Application Fee session ID """
-    session['site_transfer_app_invoice'] = application_fee.id
-    session.modified = True
+    # Calculate total number of sites applied per category
+    summary = {}
+    for apiary_site in proposal.proposal_apiary.site_transfer_apiary_sites.all():
+        if apiary_site.site_category.id in summary:
+            summary[apiary_site.site_category.id] += 1
+        else:
+            summary[apiary_site.site_category.id] = 1
 
+    # Once payment success, data is updated based on this variable
+    # This variable is stored in the session
+    #db_process_after_success = {'site_remainder_used': [], 'site_remainder_to_be_added': []}
 
-def delete_session_site_transfer_application_invoice(session):
-    """ Application Fee session ID """
-    if 'site_transfer_app_invoice' in session:
-        del session['site_transfer_app_invoice']
-        session.modified = True
+    # Calculate number of sites to calculate the fee
+    for site_category_id, number_of_sites_applied in summary.items():
+
+        site_category = SiteCategory.objects.get(id=site_category_id)
+
+        application_price = site_category.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_APPLICATION)
+
+        # Avoid ledger error
+        # ledger doesn't accept quantity=0). Alternatively, set quantity=1 and price=0
+        if number_of_sites_calculate == 0:
+            number_of_sites_calculate = 1
+            application_price = 0
+
+        line_item = {
+            'ledger_description': 'Application Fee - {} - {} - {}'.format(now, proposal.lodgement_number, site_category.name),
+            'oracle_code': proposal.application_type.oracle_code_application,
+            'price_incl_tax': application_price,
+            'price_excl_tax': application_price if proposal.application_type.is_gst_exempt else calculate_excl_gst(application_price),
+            'quantity': number_of_sites_calculate,
+        }
+        line_items.append(line_item)
+
+    return line_items, db_process_after_success
 
 def create_fee_lines_apiary(proposal):
     now = datetime.now().strftime('%Y-%m-%d %H:%M')
@@ -179,6 +223,8 @@ def create_fee_lines(proposal, invoice_text=None, vouchers=[], internal=False):
 
     if proposal.application_type.name == ApplicationType.APIARY:
         line_items, db_processes_after_success = create_fee_lines_apiary(proposal)  # This function returns line items and db_processes as a tuple
+    elif proposal.application_type.name == ApplicationType.SITE_TRANSFER:
+        line_items, db_processes_after_success = create_fee_lines_site_transfer(proposal)  # This function returns line items and db_processes as a tuple
     else:
         now = datetime.now().strftime('%Y-%m-%d %H:%M')
 
