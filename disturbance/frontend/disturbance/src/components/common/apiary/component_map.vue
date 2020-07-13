@@ -218,7 +218,8 @@
             },
             zoomToApiarySiteById: function(apiary_site_id){
                 let feature = this.apiarySitesQuerySource.getFeatureById(apiary_site_id)
-                this.map.getView().animate({zoom: 10, center: feature['values_']['geometry']['flatCoordinates']})
+                let view = this.map.getView()
+                this.map.getView().animate({zoom: view.getMaxZoom(), center: feature['values_']['geometry']['flatCoordinates']})
             },
             setApiarySiteSelectedStatus: function(apiary_site_id, selected) {
                 let feature = this.apiarySitesQuerySource.getFeatureById(apiary_site_id)
