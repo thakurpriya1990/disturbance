@@ -421,6 +421,18 @@ export default {
                     blank_fields.push(' Deed poll document is missing')
                 }
              }
+             if(vm.proposal.application_type == 'Site Transfer'){
+                if( vm.$refs.apiary_site_transfer.getUnansweredChecklistQuestions ){
+                    blank_fields.push(' You have unanswered checklist questions');
+                }
+
+                if(vm.$refs.apiary_site_transfer.$refs.deed_poll_documents.documents.length==0){
+                    blank_fields.push(' Deed poll document is missing')
+                }
+                if(!vm.$refs.apiary_site_transfer.selectedLicence){
+                    blank_fields.push(' Transferee licence cannot be blank')
+                }
+             }
 
             if(blank_fields.length==0){
                 return true;
