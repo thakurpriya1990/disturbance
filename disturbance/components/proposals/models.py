@@ -2489,6 +2489,10 @@ class ProposalApiary(models.Model):
                                 raise ValidationError("There must be at least one apiary site to approve")
 
                             # TODO: Generate an invoice for the annual rental fee for the sites added newly
+                            #   check the current annual rental fee period
+                            #   check the non-charge-date too
+                            #   check if the site is already invoiced
+                            #   issue the invoice and store the records into the AnnualRentalFeeApiarySite too
 
                         #print approval,approval.id, created
                     # Generate compliances
