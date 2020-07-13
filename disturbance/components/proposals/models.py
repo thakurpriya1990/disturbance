@@ -2488,6 +2488,8 @@ class ProposalApiary(models.Model):
                             if count_approved_site == 0:
                                 raise ValidationError("There must be at least one apiary site to approve")
 
+                            # TODO: Generate an invoice for the annual rental fee for the sites added newly
+
                         #print approval,approval.id, created
                     # Generate compliances
                     #self.generate_compliances(approval, request)

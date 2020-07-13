@@ -311,18 +311,32 @@ def create_invoice(approval, today_now, period, payment_method='bpay'):
 
 
 def calculate_total_annual_rental_fee(approval, period):
+    if period[0] > period[1]:
+        # Charge start date is after the charge end date
+        raise ValidationError('Something wrong with the period to charge. Charge start date is after the charge end date')
+
     if approval.expiry_date < period[0]:
         # Check if the approval is valid
         raise ValidationError('This approval is/will be expired before the annual rental fee period starts')
 
-    fee_applied = ApiaryAnnualRentalFee.get_fee_at_target_date(period[0]) # TODO? when fee will be changed within the period, total amount may need to be calculated pro-rata
-    current_sites = approval.apiary_sites.filter(status=ApiarySite.STATUS_CURRENT)
-    period_days = period[1] - (period[0] - timedelta(days=1))  # period[0] is the start date.  We don't want to subtract the start date
-    licenced_days = period_days
-    if approval.expiry_date < period[1]:
-        licenced_days = approval.expiry_date - (period[0] - timedelta(days=1))
+    if approval.no_annual_rental_fee_until >= period[1]:
+        # No fee charged
+        return 0
 
-    total_amount = fee_applied.amount * current_sites.count() * licenced_days.days / period_days.days
+    fee_applied = ApiaryAnnualRentalFee.get_fee_at_target_date(period[0])
+    num_of_sites_charged = approval.apiary_sites.filter(status=ApiarySite.STATUS_CURRENT).count()
+    num_of_days_in_period = period[1] - (period[0] - timedelta(days=1))  # period[0] is the start date.  (period[0] - timedelta(days=1)) means the previous date of the start date
+
+    # Calculate the number of days charged
+    charge_start_date = period[0] if period[0] >= (approval.no_annual_rental_fee_until + timedelta(days=1)) else (approval.no_annual_rental_fee_until + timedelta(days=1))
+    charge_end_date = period[1] if period[1] <= approval.expiry_date else approval.expiry_date
+    num_of_days_charged = charge_end_date - (charge_start_date - timedelta(days=1))
+
+    # Calculate the total amount
+    total_amount = fee_applied.amount * num_of_sites_charged.count() * num_of_days_charged.days / num_of_days_in_period.days
+
+    # Make sure total amount cannot be negative
+    total_amount = total_amount if total_amount >= 0 else 0
 
     return total_amount
 
