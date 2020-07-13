@@ -1,17 +1,19 @@
 <template lang="html">
     <div>
 
-        <div class="form-group row">
-            <label class="col-sm-3">Do not charge annual rental fee until</label>
-            <div class="col-sm-3">
-                <div class="input-group date" ref="periodFromDatePicker">
-                    <input type="text" class="form-control" placeholder="DD/MM/YYYY" id="no_charge_until" :readonly="is_readonly"/>
-                    <span class="input-group-addon">
-                        <span class="glyphicon glyphicon-calendar"></span>
-                    </span>
+        <template v-if="is_internal">
+            <div class="form-group row">
+                <label class="col-sm-3">Do not charge annual rental fee until</label>
+                <div class="col-sm-3">
+                    <div class="input-group date" ref="periodFromDatePicker">
+                        <input type="text" class="form-control" placeholder="DD/MM/YYYY" id="no_charge_until" :readonly="is_readonly"/>
+                        <span class="input-group-addon">
+                            <span class="glyphicon glyphicon-calendar"></span>
+                        </span>
+                    </div>
                 </div>
             </div>
-        </div>
+        </template>
 
         <div class="form-group row">
             <label class="col-sm-3">Calendar year</label>
@@ -61,6 +63,14 @@
             is_readonly: {
                 type: Boolean,
                 default: true,
+            },
+            is_internal: {
+                type: Boolean,
+                default: false,
+            },
+            is_external: {
+                type: Boolean,
+                default: false,
             },
             no_annual_rental_fee_until: {
                 type: String,  // Expect YYYY-MM-DD format
