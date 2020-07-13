@@ -104,6 +104,21 @@
                     vm.map.updateSize();
                 }, 50)
             },
+            drawStyle: function(feature, resolution){
+                console.log('in drawStyle')
+                console.log(feature.get('status'))
+                let fillObj = this.getFillColour(feature.get('status'))
+                console.log(fillObj)
+                let strokeObj = this.getStrokeColour(feature.get('status'))
+                console.log(strokeObj)
+                return new Style({
+                            image: new CircleStyle({
+                                radius: 7,
+                                fill: fillObj,
+                                stroke: strokeObj,
+                            })
+                        })
+            },
             initMap: function() {
                 let vm = this;
 
@@ -127,6 +142,7 @@
                 });
                 vm.apiarySitesQueryLayer = new VectorLayer({
                     source: vm.apiarySitesQuerySource,
+                    style: this.drawStyle
                     //style: new Style({
                     //    fill: new Fill({
                     //        color: 'rgba(255, 255, 255, 0.2)'
@@ -174,7 +190,7 @@
                     case 'pending':
                         return new Fill({color: '#e0e0e0'})
                     case 'current':
-                        return new Fill({color: '#e0e0e0'})
+                        return new Fill({color: '#bbdefb'})
                     case 'suspended':
                         return new Fill({color: '#e0e0e0'})
                     case 'not_to_be_reissued':
@@ -193,7 +209,7 @@
                     case 'pending':
                         return new Stroke({color: '#616161', width: 2})
                     case 'current':
-                        return new Stroke({color: '#616161', width: 2})
+                        return new Stroke({color: '#1a76d2', width: 2})
                     case 'suspended':
                         return new Stroke({color: '#616161', width: 2})
                     case 'not_to_be_reissued':
@@ -213,7 +229,7 @@
                 let checked_status = apiary_site_geojson.properties.hasOwnProperty('checked') ? apiary_site_geojson.properties.checked : false
                 console.log(checked_status)
                 let style_applied = checked_status ? this.style_checked : this.style_not_checked
-                feature.setStyle(style_applied)
+                //feature.setStyle(style_applied)
                 this.apiarySitesQuerySource.addFeature(feature)
             },
             zoomToApiarySiteById: function(apiary_site_id){
