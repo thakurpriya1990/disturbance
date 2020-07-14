@@ -115,16 +115,16 @@ def create_fee_lines_apiary(proposal):
         filter_site_fee_type = Q(apiary_site_fee_type=ApiarySiteFeeType.objects.get(name=ApiarySiteFeeType.FEE_TYPE_APPLICATION))
         filter_applicant = Q(applicant=proposal.applicant)
         filter_proxy_applicant = Q(proxy_applicant=proposal.proxy_applicant)
-        filter_expiry = Q(date_expiry__gte=today_local)
+        # filter_expiry = Q(date_expiry__gte=today_local)
         filter_used = Q(date_used__isnull=True)
         site_fee_remainders = ApiarySiteFeeRemainder.objects.filter(
             filter_site_category &
             filter_site_fee_type &
             filter_applicant &
             filter_proxy_applicant &
-            filter_expiry &
+            # filter_expiry &
             filter_used
-        ).order_by('date_expiry')  # Older comes earlier
+        ).order_by('datetime_created')  # Older comes earlier
 
         # Calculate deduction and set date_used field
         number_of_sites_after_deduction = number_of_sites_applied
@@ -165,7 +165,7 @@ def create_fee_lines_apiary(proposal):
                 'apiary_site_fee_type_name': ApiarySiteFeeType.FEE_TYPE_APPLICATION,
                 'applicant_id': proposal.applicant.id if proposal.applicant else None,
                 'proxy_applicant_id': proposal.proxy_applicant.id if proposal.proxy_applicant else None,
-                'date_expiry': (today_local + timedelta(days=7)).strftime('%Y-%m-%d')
+                # 'date_expiry': (today_local + timedelta(days=7)).strftime('%Y-%m-%d')
             }
             db_process_after_success['site_remainder_to_be_added'].append(site_to_be_added)
 
