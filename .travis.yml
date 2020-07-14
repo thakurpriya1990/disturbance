@@ -12,6 +12,8 @@ branches:
     only:
         - master
         - disturbance_v3
+        - apiary
+        - apiary_dev
         
 env:
     global:
@@ -22,6 +24,12 @@ env:
         - NON_PROD_EMAIL="travis@dpaw.wa.gov.au"
         - BPAY_ALLOWED=True
         - EMAIL_FROM="no-reply@dbca.wa.gov.au"
+        - SUPPORT_EMAIL="test@example.com"
+        - SYSTEM_NAME_SHORT="apiary"
+        - SITE_DOMAIN="localhost"
+        - SITE_PREFIX="das"
+        - SITE_DOMAIN="dbca.wa.gov.au"
+        - TENURE_SECTION="Section1-0"
 sudo: true
 install:
     - sudo apt-get install postgresql-9.6-postgis-2.4 -y -q
