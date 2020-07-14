@@ -255,7 +255,12 @@
                     </div>
                 </template>
                 <template v-if="proposal.processing_status == 'With Assessor (Requirements)' || ((proposal.processing_status == 'With Approver' || isFinalised) && showingRequirements)">
-                    <Requirements :proposal="proposal"/>
+                    <div v-if="siteTransfer">
+                        <SiteTransferRequirements :proposal="proposal"/>
+                    </div>
+                    <div v-else>
+                        <Requirements :proposal="proposal"/>
+                    </div>
                 </template>
                 <template v-if="canSeeSubmission || (!canSeeSubmission && showingProposal)">
                     <div class="col-md-12">
@@ -471,6 +476,7 @@ import ProposedDecline from './proposal_proposed_decline.vue'
 import AmendmentRequest from './amendment_request.vue'
 import datatable from '@vue-utils/datatable.vue'
 import Requirements from './proposal_requirements.vue'
+import SiteTransferRequirements from './site_transfer_proposal_requirements.vue'
 import ProposedApiaryIssuance from './proposed_apiary_issuance.vue'
 import ApprovalScreen from './proposal_approval.vue'
 import ApprovalScreenSiteTransferTemporaryUse from './proposal_approval_site_transfer_temporary_use.vue'
@@ -563,6 +569,7 @@ export default {
         ProposedDecline,
         AmendmentRequest,
         Requirements,
+        SiteTransferRequirements,
         ProposedApiaryIssuance,
         ApprovalScreen,
         ApprovalScreenSiteTransferTemporaryUse,
@@ -671,7 +678,13 @@ export default {
             }
             return returnVal;
         },
-
+        siteTransfer: function() {
+            let returnVal = false;
+            if (this.proposal.application_type === 'Site Transfer') {
+                returnVal = true;
+            }
+            return returnVal;
+        },
     },
     methods: {
         locationUpdated: function(){

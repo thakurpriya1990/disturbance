@@ -122,6 +122,7 @@ class SiteTransferApplicationFeeSuccessView(TemplateView):
     def get(self, request, *args, **kwargs):
         #import ipdb; ipdb.set_trace()
         print (" SITE TRANSFER APPLICATION FEE SUCCESS ")
+        #print(request.session.__dict__)
 
         proposal = None
         submitter = None
