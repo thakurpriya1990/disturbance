@@ -267,6 +267,15 @@
                 }
                 return lodgement_number;
             },
+            selectedLicence: function() {
+                let licence = null;
+                if (this.proposal && this.proposal.proposal_apiary && this.proposal.proposal_apiary.receiving_approval_lodgement_number) {
+                    licence = this.proposal.proposal_apiary.receiving_approval_lodgement_number;
+                } else if (this.proposal && this.proposal.proposal_apiary && this.proposal.proposal_apiary.selected_licence) {
+                    licence = this.proposal.proposal_apiary.selected_licence;
+                }
+                return licence;
+            },
             /*
             site_transfer_apiary_sites: function(){
                 let sites = []

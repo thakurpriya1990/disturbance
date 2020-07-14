@@ -350,7 +350,6 @@ class SpecialFieldsSearch(object):
 # -------------------------------------------------------------------------------------------------------------
 
 def save_proponent_data(instance, request, viewset):
-    #import ipdb;ipdb.set_trace()
     if instance.application_type.name == 'Site Transfer':
     #if instance.application_type.name == ApplicationType.SITE_TRANSFER:
         save_proponent_data_apiary_site_transfer(instance, request, viewset)
@@ -362,7 +361,6 @@ def save_proponent_data(instance, request, viewset):
 def save_proponent_data_apiary_site_transfer(proposal_obj, request, viewset):
     with transaction.atomic():
         try:
-            #import ipdb; ipdb.set_trace()
             data = {
             }
 
@@ -421,7 +419,6 @@ def save_proponent_data_apiary_site_transfer(proposal_obj, request, viewset):
 def save_proponent_data_apiary(proposal_obj, request, viewset):
     with transaction.atomic():
         try:
-            #import ipdb; ipdb.set_trace()
             data = {
             }
 
