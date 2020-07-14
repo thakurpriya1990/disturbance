@@ -268,24 +268,24 @@ def oracle_integration(date,override):
     oracle_codes = oracle_parser(date, system, 'Disturbance Approval System', override=override)
 
 
-def create_other_invoice_for_annual_rental_fee(approval, today_now, period, request=None):
+def create_other_invoice_for_annual_rental_fee(approval, today_now, period, apiary_sites, request=None):
     """
     This function is called from the cron job to issue annual rental fee invoices
     """
     with transaction.atomic():
         try:
             logger.info('Creating OTHER invoice for the licence: {}'.format(approval.lodgement_number))
-            order = create_invoice(approval, today_now, period, payment_method='other')
+            order, details_dict = create_invoice(approval, today_now, period, apiary_sites, payment_method='other')
             invoice = Invoice.objects.get(order_number=order.number)
 
-            return invoice
+            return invoice, details_dict
 
         except Exception, e:
             logger.error('Failed to create OTHER invoice for sanction outcome: {}'.format(approval))
             logger.error('{}'.format(e))
 
 
-def create_invoice(approval, today_now, period, payment_method='bpay'):
+def create_invoice(approval, today_now, period, apiary_sites, payment_method='bpay'):
     """
     This will create and invoice and order from a basket bypassing the session
     and payment bpoint code constraints.
@@ -293,7 +293,7 @@ def create_invoice(approval, today_now, period, payment_method='bpay'):
     from ledger.checkout.utils import createCustomBasket
     from ledger.payments.invoice.utils import CreateInvoiceBasket
 
-    products = generate_line_items_for_annual_rental_fee(approval, today_now, period)
+    products, details_dict = generate_line_items_for_annual_rental_fee(approval, today_now, period, apiary_sites)
     user = approval.relevant_applicant if isinstance(approval.relevant_applicant, EmailUser) else approval.current_proposal.submitter
     # user = approval.relevant_applicant
     # for contact in user.contacts.all():
@@ -307,10 +307,10 @@ def create_invoice(approval, today_now, period, payment_method='bpay'):
         system=PAYMENT_SYSTEM_ID
     ).create_invoice_and_order(basket, 0, None, None, user=user, invoice_text=invoice_text)
 
-    return order
+    return order, details_dict
 
 
-def calculate_total_annual_rental_fee(approval, period):
+def calculate_total_annual_rental_fee(approval, period, sites_charged):
     if period[0] > period[1]:
         # Charge start date is after the charge end date
         raise ValidationError('Something wrong with the period to charge. Charge start date is after the charge end date')
@@ -319,42 +319,53 @@ def calculate_total_annual_rental_fee(approval, period):
         # Check if the approval is valid
         raise ValidationError('This approval is/will be expired before the annual rental fee period starts')
 
-    if approval.no_annual_rental_fee_until >= period[1]:
-        # No fee charged
-        return 0
+    if approval.no_annual_rental_fee_until:
+        if approval.no_annual_rental_fee_until >= period[1]:
+            # No fee charged
+            return 0
 
     fee_applied = ApiaryAnnualRentalFee.get_fee_at_target_date(period[0])
-    num_of_sites_charged = approval.apiary_sites.filter(status=ApiarySite.STATUS_CURRENT).count()
+    # sites_charged = approval.apiary_sites.filter(status=ApiarySite.STATUS_CURRENT)
     num_of_days_in_period = period[1] - (period[0] - timedelta(days=1))  # period[0] is the start date.  (period[0] - timedelta(days=1)) means the previous date of the start date
 
     # Calculate the number of days charged
-    charge_start_date = period[0] if period[0] >= (approval.no_annual_rental_fee_until + timedelta(days=1)) else (approval.no_annual_rental_fee_until + timedelta(days=1))
+    charge_start_date = approval.no_annual_rental_fee_until + timedelta(days=1) \
+        if approval.no_annual_rental_fee_until and period[0] < (approval.no_annual_rental_fee_until + timedelta(days=1)) \
+        else period[0]
     charge_end_date = period[1] if period[1] <= approval.expiry_date else approval.expiry_date
     num_of_days_charged = charge_end_date - (charge_start_date - timedelta(days=1))
 
     # Calculate the total amount
-    total_amount = fee_applied.amount * num_of_sites_charged.count() * num_of_days_charged.days / num_of_days_in_period.days
+    total_amount = fee_applied.amount * sites_charged.count() * num_of_days_charged.days / num_of_days_in_period.days
 
     # Make sure total amount cannot be negative
     total_amount = total_amount if total_amount >= 0 else 0
 
-    return total_amount
+    return {
+        'total_amount': total_amount,
+        'charge_start_date': charge_start_date,
+        'charge_end_date': charge_end_date,
+    }
 
 
-def generate_line_items_for_annual_rental_fee(approval, today_now, period):
+def generate_line_items_for_annual_rental_fee(approval, today_now, period, apiary_sites):
     """ Create the ledger lines - line item for the annual rental fee sent to payment system """
 
-    penalty_amount = calculate_total_annual_rental_fee(approval, period)
+    details_dict = calculate_total_annual_rental_fee(approval, period, apiary_sites)
 
     line_items = [
-        {'ledger_description': 'Annual Rental Fee: {}, Issued: {} {}'.format(
+        {'ledger_description': 'Annual Rental Fee: {}, Issued: {} {}, Period: {} to {}, Site(s): {}'.format(
             approval.lodgement_number,
             today_now.strftime("%d/%m/%Y"),
-            today_now.strftime("%I:%M %p")),
+            today_now.strftime("%I:%M %p"),
+            details_dict['charge_start_date'].strftime('%d/%m/%Y'),
+            details_dict['charge_end_date'].strftime('%d/%m/%Y'),
+            ', '.join(['site: ' + str(site.id) for site in apiary_sites])
+        ),
             'oracle_code': 'ABC123 GST',
-            'price_incl_tax': penalty_amount,
-            'price_excl_tax': penalty_amount,
+            'price_incl_tax': details_dict['total_amount'],
+            'price_excl_tax': details_dict['total_amount'],
             'quantity': 1,
         },
     ]
-    return line_items
+    return line_items, details_dict
