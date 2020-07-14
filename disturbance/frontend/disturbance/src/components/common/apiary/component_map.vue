@@ -105,12 +105,8 @@
                 }, 50)
             },
             drawStyle: function(feature, resolution){
-                console.log('in drawStyle')
-                console.log(feature.get('status'))
                 let fillObj = this.getFillColour(feature.get('status'))
-                console.log(fillObj)
                 let strokeObj = this.getStrokeColour(feature.get('status'))
-                console.log(strokeObj)
                 return new Style({
                             image: new CircleStyle({
                                 radius: 7,
@@ -143,21 +139,6 @@
                 vm.apiarySitesQueryLayer = new VectorLayer({
                     source: vm.apiarySitesQuerySource,
                     style: this.drawStyle
-                    //style: new Style({
-                    //    fill: new Fill({
-                    //        color: 'rgba(255, 255, 255, 0.2)'
-                    //    }),
-                    //    stroke: new Stroke({
-                    //        color: '#ffcc33',
-                    //        width: 2
-                    //    }),
-                    //    image: new CircleStyle({
-                    //        radius: 7,
-                    //        fill: new Fill({
-                    //            color: '#ffcc33'
-                    //        })
-                    //    })
-                    //})
                 });
                 vm.map.addLayer(vm.apiarySitesQueryLayer);
 
@@ -188,17 +169,17 @@
                     case 'draft':
                         return new Fill({color: '#e0e0e0'})
                     case 'pending':
-                        return new Fill({color: '#e0e0e0'})
+                        return new Fill({color: '#fff59d'})
                     case 'current':
                         return new Fill({color: '#bbdefb'})
                     case 'suspended':
-                        return new Fill({color: '#e0e0e0'})
+                        return new Fill({color: '#ffcc80'})
                     case 'not_to_be_reissued':
-                        return new Fill({color: '#e0e0e0'})
+                        return new Fill({color: '#d1c4e9'})
                     case 'denied':
-                        return new Fill({color: '#e0e0e0'})
+                        return new Fill({color: '#ffcdd2'})
                     case 'vacant':
-                        return new Fill({color: '#e0e0e0'})
+                        return new Fill({color: '#7fcac3'})
                 }
             },
             // This function is not used
@@ -207,17 +188,17 @@
                     case 'draft':
                         return new Stroke({color: '#616161', width: 2})
                     case 'pending':
-                        return new Stroke({color: '#616161', width: 2})
+                        return new Stroke({color: '#ffeb3b', width: 2})
                     case 'current':
                         return new Stroke({color: '#1a76d2', width: 2})
                     case 'suspended':
-                        return new Stroke({color: '#616161', width: 2})
+                        return new Stroke({color: '#f57c01', width: 2})
                     case 'not_to_be_reissued':
-                        return new Stroke({color: '#616161', width: 2})
+                        return new Stroke({color: '#512da8', width: 2})
                     case 'denied':
-                        return new Stroke({color: '#616161', width: 2})
+                        return new Stroke({color: '#d2302f', width: 2})
                     case 'vacant':
-                        return new Stroke({color: '#616161', width: 2})
+                        return new Stroke({color: '#00796b', width: 2})
                 }
             },
             addApiarySite: function(apiary_site_geojson) {
