@@ -32,7 +32,10 @@ from disturbance.components.proposals.models import (
     ApiarySiteFeeType, 
     ApiarySiteFeeRemainder, 
     SiteCategory,
-)
+    )
+from disturbance.components.approvals.models import (
+        Approval,
+        )
 
 from rest_framework import serializers
 from ledger.accounts.models import Address
@@ -736,7 +739,17 @@ class ApiaryProposalReferralSerializer(serializers.ModelSerializer):
     def get_apiary_referral(self, obj):
         return ApiaryReferralSerializer(obj.apiary_referral).data
 
+class ApiaryInternalApprovalSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Approval
+        fields = (
+                'id',
+                'lodgement_number',
+                'start_date',
+                'expiry_date',
+                )
 
+# matches InternalProposalSerializer for apiary group proposals
 class ApiaryInternalProposalSerializer(BaseProposalSerializer):
     # TODO next 3 commented lines - related to 'apply as an Org or as an individual'
     #applicant = ApplicantSerializer()
@@ -778,6 +791,7 @@ class ApiaryInternalProposalSerializer(BaseProposalSerializer):
     # apiary_applicant_checklist = ApiaryApplicantChecklistAnswerSerializer(many=True)
     applicant_checklist = serializers.SerializerMethodField()
     apiary_group_application_type = serializers.SerializerMethodField()
+    approval = ApiaryInternalApprovalSerializer()
 
     class Meta:
         model = Proposal
@@ -851,6 +865,7 @@ class ApiaryInternalProposalSerializer(BaseProposalSerializer):
                 'applicant_mobile_number',
                 'applicant_email',
                 'apiary_group_application_type',
+                'approval',
                 )
         read_only_fields=('documents','requirements')
 
