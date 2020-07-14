@@ -225,6 +225,7 @@
                         <ComponentSiteSelection
                             :apiary_sites="approval.apiary_sites"
                             :show_col_checkbox="false"
+                            :show_col_status="true"
                         />
                     </template>
                 </FormSection>

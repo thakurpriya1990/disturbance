@@ -161,7 +161,11 @@
                             // Site
                             visible: vm.show_col_site,
                             mRender: function (data, type, apiary_site) {
-                                return 'site:' + apiary_site.id
+                                let fillColour = vm.getFillColour(apiary_site.status)
+                                let strokeColour = vm.getStrokeColour(apiary_site.status)
+                                return '<svg height="20" width="20">' + 
+                                            '<circle cx="10" cy="10" r="6" stroke="' + strokeColour + '" stroke-width="2" fill="' + fillColour + '" />' + 
+                                       '</svg> site: ' + apiary_site.id
                             }
                         },
                         {
@@ -189,11 +193,7 @@
                             // Status
                             visible: vm.show_col_status,
                             mRender: function (data, type, apiary_site){
-                                let fillColour = vm.getFillColour(apiary_site.status)
-                                let strokeColour = vm.getStrokeColour(apiary_site.status)
-                                return '<svg height="20" width="20">' + 
-                                            '<circle cx="10" cy="10" r="6" stroke="' + strokeColour + '" stroke-width="2" fill="' + fillColour + '" />' + 
-                                       '</svg>' + apiary_site.status
+                                return apiary_site.status
                             }
                         },
                         {
