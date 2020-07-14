@@ -25,6 +25,7 @@ from ledger.accounts.models import EmailUser, RevisionedMixin
 from ledger.licence.models import  Licence
 from ledger.payments.models import Invoice
 from disturbance import exceptions
+# from disturbance.components.das_payments.models import AnnualRentalFeePeriod
 from disturbance.components.organisations.models import Organisation
 from disturbance.components.main.models import CommunicationsLogEntry, UserAction, Document, Region, District, Tenure, ApplicationType
 from disturbance.components.main.utils import get_department_user
@@ -43,6 +44,7 @@ from disturbance.components.proposals.email import (
         send_proposal_approver_sendback_email_notification, 
         send_referral_recall_email_notification
         )
+# from disturbance.management.commands.send_annual_rental_fee_invoice import get_annual_rental_fee_period
 from disturbance.ordered_model import OrderedModel
 import copy
 import subprocess
@@ -2473,26 +2475,29 @@ class ProposalApiary(models.Model):
                         else:
                             count_approved_site = 0
                             sites_approved = request.data.get('apiary_sites', [])
-                            for my_site in sites_approved:
-                                a_site = ApiarySite.objects.get(id=my_site['id'])
-                                if my_site['checked']:
-                                    a_site.approval = approval
-                                    a_site.status = ApiarySite.STATUS_CURRENT
-                                    a_site.workflow_selected_status = True
-                                    count_approved_site += 1
-                                else:
-                                    a_site.status = ApiarySite.STATUS_DENIED
-                                    a_site.workflow_selected_status = False
-                                a_site.save()
-
+                            count_approved_site = self.update_apiary_sites(approval, sites_approved)
                             if count_approved_site == 0:
                                 raise ValidationError("There must be at least one apiary site to approve")
 
                             # TODO: Generate an invoice for the annual rental fee for the sites added newly
-                            #   check the current annual rental fee period
-                            #   check the non-charge-date too
-                            #   check if the site is already invoiced
-                            #   issue the invoice and store the records into the AnnualRentalFeeApiarySite too
+
+                            # Check the current annual rental fee period
+                            # Determine the start and end date of the annual rental fee, for which the invoices should be issued
+                            today_now_local = datetime.datetime.now(pytz.timezone(TIME_ZONE))
+                            today_date_local = today_now_local.date()
+                            from disturbance.management.commands.send_annual_rental_fee_invoice import get_annual_rental_fee_period
+                            period_start_date, period_end_date = get_annual_rental_fee_period(today_date_local)
+
+                            # Retrieve annual rental fee period object for the period calculated above
+                            # This period should not overwrap the existings, otherwise you will need a refund
+                            from disturbance.components.das_payments.models import AnnualRentalFeePeriod
+                            annual_rental_fee_period, created = AnnualRentalFeePeriod.objects.get_or_create(period_start_date=period_start_date, period_end_date=period_end_date)
+
+                            # TODO: check the non-charge-date too
+
+                            # TODO: check if the site is already invoiced
+
+                            # TODO: issue the invoice and store the records into the AnnualRentalFeeApiarySite too
 
                         #print approval,approval.id, created
                     # Generate compliances
@@ -2553,6 +2558,20 @@ class ProposalApiary(models.Model):
             except:
                 raise
 
+    def update_apiary_sites(self, approval, sites_approved):
+        count_approved_site = 0
+        for my_site in sites_approved:
+            a_site = ApiarySite.objects.get(id=my_site['id'])
+            if my_site['checked']:
+                a_site.approval = approval
+                a_site.status = ApiarySite.STATUS_CURRENT
+                a_site.workflow_selected_status = True
+                count_approved_site += 1
+            else:
+                a_site.status = ApiarySite.STATUS_DENIED
+                a_site.workflow_selected_status = False
+            a_site.save()
+        return count_approved_site
 
 
 class SiteCategory(models.Model):

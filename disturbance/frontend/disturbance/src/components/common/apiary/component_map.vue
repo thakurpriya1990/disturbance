@@ -201,7 +201,7 @@
                     case 'draft':
                         return new Stroke({color: '#616161', width: stroke_width})
                     case 'pending':
-                        return new Stroke({color: '#ffeb3b', width: stroke_width})
+                        return new Stroke({color: '#f2cb29', width: stroke_width})
                     case 'current':
                         return new Stroke({color: '#1a76d2', width: stroke_width})
                     case 'suspended':
@@ -229,7 +229,7 @@
             zoomToApiarySiteById: function(apiary_site_id){
                 let feature = this.apiarySitesQuerySource.getFeatureById(apiary_site_id)
                 let view = this.map.getView()
-                this.map.getView().animate({zoom: view.getMaxZoom(), center: feature['values_']['geometry']['flatCoordinates']})
+                this.map.getView().animate({zoom: 16, center: feature['values_']['geometry']['flatCoordinates']})
             },
             setApiarySiteSelectedStatus: function(apiary_site_id, selected) {
                 console.log('setApiarySiteSelectedStatus')
