@@ -12,7 +12,8 @@ from ledger.settings_base import TIME_ZONE
 from disturbance.components.approvals.models import Approval
 from disturbance.components.das_payments.models import AnnualRentalFee, AnnualRentalFeePeriod, AnnualRentalFeeApiarySite
 from disturbance.components.das_payments.utils import create_other_invoice_for_annual_rental_fee
-from disturbance.components.proposals.models import ApiaryAnnualRentalFeeRunDate, ApiaryAnnualRentalFeePeriodStartDate
+from disturbance.components.proposals.models import ApiaryAnnualRentalFeeRunDate, ApiaryAnnualRentalFeePeriodStartDate, \
+    ApiarySite
 
 logger = logging.getLogger(__name__)
 
@@ -87,12 +88,20 @@ class Command(BaseCommand):
             for approval in approval_qs:
                 try:
                     with transaction.atomic():
+                        annual_rental_fees = AnnualRentalFee.objects.filter(approval=approval, annual_rental_fee_period=annual_rental_fee_period)
+                        sites_status_current = approval.apiary_sites.filter(status=ApiarySite.STATUS_CURRENT)
+
+                        annual_rental_fee_apiary_sites = AnnualRentalFeeApiarySite.objects.filter(apiary_site__in=sites_status_current, annual_rental_fee__in=annual_rental_fees)
+                        sites_exclude = ApiarySite.objects.filter(annualrentalfeeapiarysite_set__in=annual_rental_fee_apiary_sites)
+
+                        # TODO: Correct
+                        #  Following line is wrong.  annual_rental_fee obj can be created multiple times for an approval for the same annual_rental_fee_period
                         annual_rental_fee, created = AnnualRentalFee.objects.get_or_create(approval=approval, annual_rental_fee_period=annual_rental_fee_period)
 
                         if not annual_rental_fee.invoice_reference:
 
                             # Issue an invoice for the approval
-                            invoice = create_other_invoice_for_annual_rental_fee(approval, today_now, (period_start_date, period_end_date), )  # TODO: calculate the fee according to the number of sites.  Check the status of site too.
+                            invoice = create_other_invoice_for_annual_rental_fee(approval, today_now, (period_start_date, period_end_date), )
 
                             # Update annual_rental_fee obj
                             annual_rental_fee.invoice_reference = invoice.reference
@@ -101,7 +110,7 @@ class Command(BaseCommand):
                             annual_rental_fee.save()
 
                             # Store the apiary sites which the invoice created above has been issued for
-                            for apiary_site in approval.apiary_sites.all():
+                            for apiary_site in approval.apiary_sites.filter(status=ApiarySite.STATUS_CURRENT):
                                 annual_rental_fee_apiary_site = AnnualRentalFeeApiarySite(apiary_site=apiary_site, annual_rental_fee=annual_rental_fee)
                                 annual_rental_fee_apiary_site.save()
 
