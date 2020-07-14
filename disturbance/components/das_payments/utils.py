@@ -57,32 +57,32 @@ def delete_session_application_invoice(session):
         del session['das_app_invoice']
         session.modified = True
 
-#def get_session_site_transfer_application_invoice(session):
-#    """ Application Fee session ID """
-#    if 'site_transfer_app_invoice' in session:
-#        application_fee_id = session['site_transfer_app_invoice']
-#    else:
-#        raise Exception('Application not in Session')
-#
-#    try:
-#        #return Invoice.objects.get(id=application_invoice_id)
-#        #return Proposal.objects.get(id=proposal_id)
-#        return ApplicationFee.objects.get(id=application_fee_id)
-#    except Invoice.DoesNotExist:
-#        raise Exception('Application not found for application {}'.format(application_fee_id))
-#
-#
-#def set_session_site_transfer_application_invoice(session, application_fee):
-#    """ Application Fee session ID """
-#    session['site_transfer_app_invoice'] = application_fee.id
-#    session.modified = True
-#
-#
-#def delete_session_site_transfer_application_invoice(session):
-#    """ Application Fee session ID """
-#    if 'site_transfer_app_invoice' in session:
-#        del session['site_transfer_app_invoice']
-#        session.modified = True
+def get_session_site_transfer_application_invoice(session):
+    """ Application Fee session ID """
+    if 'site_transfer_app_invoice' in session:
+        application_fee_id = session['site_transfer_app_invoice']
+    else:
+        raise Exception('Application not in Session')
+
+    try:
+        #return Invoice.objects.get(id=application_invoice_id)
+        #return Proposal.objects.get(id=proposal_id)
+        return ApplicationFee.objects.get(id=application_fee_id)
+    except Invoice.DoesNotExist:
+        raise Exception('Application not found for application {}'.format(application_fee_id))
+
+
+def set_session_site_transfer_application_invoice(session, application_fee):
+    """ Application Fee session ID """
+    session['site_transfer_app_invoice'] = application_fee.id
+    session.modified = True
+
+
+def delete_session_site_transfer_application_invoice(session):
+    """ Application Fee session ID """
+    if 'site_transfer_app_invoice' in session:
+        del session['site_transfer_app_invoice']
+        session.modified = True
 
 def create_fee_lines_site_transfer(proposal):
     #import ipdb;ipdb.set_trace()
@@ -96,10 +96,11 @@ def create_fee_lines_site_transfer(proposal):
     # Calculate total number of sites applied per category
     summary = {}
     for site_transfer_site in proposal.proposal_apiary.site_transfer_apiary_sites.all():
-        if site_transfer_site.apiary_site.site_category.id in summary:
-            summary[site_transfer_site.apiary_site.site_category.id] += 1
-        else:
-            summary[site_transfer_site.apiary_site.site_category.id] = 1
+        if site_transfer_site.customer_selected:
+            if site_transfer_site.apiary_site.site_category.id in summary:
+                summary[site_transfer_site.apiary_site.site_category.id] += 1
+            else:
+                summary[site_transfer_site.apiary_site.site_category.id] = 1
 
     # Once payment success, data is updated based on this variable
     # This variable is stored in the session
