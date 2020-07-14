@@ -1659,7 +1659,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
                         new_answer = ApiaryApplicantChecklistAnswer.objects.create(proposal = proposal_apiary,
                                                                                    question = question)
                 elif application_type.name == ApplicationType.SITE_TRANSFER:
-                    #import ipdb;ipdb.set_trace()
                     approval_id = request.data.get('sending_approval_id')
                     approval = Approval.objects.get(id=approval_id)
                     details_data['sending_approval_id'] = approval_id

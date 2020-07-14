@@ -84,6 +84,53 @@ def delete_session_site_transfer_application_invoice(session):
         del session['site_transfer_app_invoice']
         session.modified = True
 
+def create_fee_lines_site_transfer(proposal):
+    #import ipdb;ipdb.set_trace()
+    now = datetime.now().strftime('%Y-%m-%d %H:%M')
+    today_local = datetime.now(pytz.timezone(TIME_ZONE)).date()
+    #MIN_NUMBER_OF_SITES_TO_APPLY = 5
+    line_items = []
+
+    # applicant = EmailUser.objects.get(email='katsufumi.shibata@dbca.wa.gov.au')  # TODO: Get proper applicant
+
+    # Calculate total number of sites applied per category
+    summary = {}
+    for site_transfer_site in proposal.proposal_apiary.site_transfer_apiary_sites.all():
+        if site_transfer_site.customer_selected:
+            if site_transfer_site.apiary_site.site_category.id in summary:
+                summary[site_transfer_site.apiary_site.site_category.id] += 1
+            else:
+                summary[site_transfer_site.apiary_site.site_category.id] = 1
+
+    # Once payment success, data is updated based on this variable
+    # This variable is stored in the session
+    #db_process_after_success = {'site_remainder_used': [], 'site_remainder_to_be_added': []}
+
+    # Calculate number of sites to calculate the fee
+    for site_category_id, number_of_sites_applied in summary.items():
+
+        site_category = SiteCategory.objects.get(id=site_category_id)
+
+        #number_of_sites_calculate = quotient * MIN_NUMBER_OF_SITES_TO_APPLY + MIN_NUMBER_OF_SITES_TO_APPLY if remainder else quotient * MIN_NUMBER_OF_SITES_TO_APPLY
+        application_price = site_category.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_TRANSFER)
+
+        ## Avoid ledger error
+        ## ledger doesn't accept quantity=0). Alternatively, set quantity=1 and price=0
+        #if number_of_sites_calculate == 0:
+        #    number_of_sites_calculate = 1
+        #    application_price = 0
+
+        line_item = {
+            'ledger_description': 'Application Fee - {} - {} - {}'.format(now, proposal.lodgement_number, site_category.name),
+            'oracle_code': proposal.application_type.oracle_code_application,
+            'price_incl_tax': application_price,
+            'price_excl_tax': application_price if proposal.application_type.is_gst_exempt else calculate_excl_gst(application_price),
+            'quantity': number_of_sites_applied,
+        }
+        line_items.append(line_item)
+
+    return line_items, None
+
 def create_fee_lines_apiary(proposal):
     now = datetime.now().strftime('%Y-%m-%d %H:%M')
     today_local = datetime.now(pytz.timezone(TIME_ZONE)).date()
@@ -179,6 +226,8 @@ def create_fee_lines(proposal, invoice_text=None, vouchers=[], internal=False):
 
     if proposal.application_type.name == ApplicationType.APIARY:
         line_items, db_processes_after_success = create_fee_lines_apiary(proposal)  # This function returns line items and db_processes as a tuple
+    elif proposal.application_type.name == ApplicationType.SITE_TRANSFER:
+        line_items, db_processes_after_success = create_fee_lines_site_transfer(proposal)  # This function returns line items and db_processes as a tuple
     else:
         now = datetime.now().strftime('%Y-%m-%d %H:%M')
 
