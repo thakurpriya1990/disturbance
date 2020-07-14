@@ -24,7 +24,7 @@ env:
         - NON_PROD_EMAIL="travis@dpaw.wa.gov.au"
         - BPAY_ALLOWED=True
         - EMAIL_FROM="no-reply@dbca.wa.gov.au"
-        - SUPPORT_EMAIL="brendan.blackford@dbca.wa.gov.au"
+        - SUPPORT_EMAIL="test@example.com"
         - SYSTEM_NAME_SHORT="apiary"
         - SITE_DOMAIN="localhost"
         - SITE_PREFIX="das"
