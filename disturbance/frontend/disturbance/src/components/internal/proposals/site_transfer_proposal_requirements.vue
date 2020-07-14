@@ -43,7 +43,6 @@ export default {
             panelBody: "proposal-requirements-"+vm._uid,
             requirements: [],
             requirement_headers:[
-                //originatingLicence,
                 "Requirement",
                 "Due Date",
                 "Recurrence",
@@ -67,7 +66,7 @@ export default {
                 columns: [
                     {
                         data: "requirement",
-                        title: originatingLicence,
+                        //title: originatingLicence,
                         //orderable: false,
                         'render': function (value) {
                             var ellipsis = '...',
@@ -168,7 +167,7 @@ export default {
                     // Bind clicks to functions
                     $('.dtMoveUp').click(vm.moveUp);
                     $('.dtMoveDown').click(vm.moveDown);
-                    $(this).show();
+                    //$(this).show();
                 }
             }
         }
@@ -187,11 +186,13 @@ export default {
         hasAssessorMode(){
             return this.proposal.assessor_mode.has_assessor_mode;
         },
+        /*
         originatingLicence() {
             if (this.proposal) {
                 return this.proposal.lodgement_number;
             }
         },
+        */
     },
     methods:{
         addRequirement(){
