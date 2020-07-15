@@ -9,6 +9,7 @@ from django.db import transaction
 from django.db.models import Q, Min
 from ledger.settings_base import TIME_ZONE
 
+# from disturbance.components.approvals.email import send_annual_rental_fee_invoice
 from disturbance.components.approvals.models import Approval
 from disturbance.components.das_payments.models import AnnualRentalFee, AnnualRentalFeePeriod, AnnualRentalFeeApiarySite
 from disturbance.components.das_payments.utils import create_other_invoice_for_annual_rental_fee
@@ -132,9 +133,12 @@ class Command(BaseCommand):
 
                             # TODO: Attach the invoice and send emails
                             #   update invoice_sent attribute of the annual_rental_fee obj?
+                            from disturbance.components.approvals.email import send_annual_rental_fee_invoice
+                            send_annual_rental_fee_invoice(approval, invoice)
 
                 except Exception as e:
                     logger.error('Error command {}'.format(__name__))
+                    logger.error('Failed to send an annual rental fee invoice for the approval {}'.format(approval.lodgement_number))
 
         except Exception as e:
             logger.error('Error command {}'.format(__name__))

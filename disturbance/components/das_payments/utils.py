@@ -13,7 +13,7 @@ from ledger.accounts.models import EmailUser
 from ledger.settings_base import TIME_ZONE
 
 from disturbance.components.main.models import ApplicationType
-from disturbance.components.proposals.models import Proposal, ProposalUserAction, SiteCategory, ApiarySiteFeeType, \
+from disturbance.components.proposals.models import SiteCategory, ApiarySiteFeeType, \
     ApiarySiteFeeRemainder, ApiaryAnnualRentalFee, ApiarySite
 from disturbance.components.organisations.models import Organisation
 from disturbance.components.das_payments.models import ApplicationFee, AnnualRentalFee
@@ -385,7 +385,12 @@ def calculate_total_annual_rental_fee(approval, period, sites_charged):
     num_of_days_charged = charge_end_date - (charge_start_date - timedelta(days=1))
 
     # Calculate the total amount
-    total_amount = fee_applied.amount * sites_charged.count() * num_of_days_charged.days / num_of_days_in_period.days
+    try:
+        num_of_sites = sites_charged.count()  # Expect queryset
+    except:
+        num_of_sites = len(sites_charged)  # Expect list
+
+    total_amount = fee_applied.amount * num_of_sites * num_of_days_charged.days / num_of_days_in_period.days
 
     # Make sure total amount cannot be negative
     total_amount = total_amount if total_amount >= 0 else 0
@@ -402,6 +407,11 @@ def generate_line_items_for_annual_rental_fee(approval, today_now, period, apiar
 
     details_dict = calculate_total_annual_rental_fee(approval, period, apiary_sites)
 
+    try:
+        sites_str = ', '.join(['site: ' + str(site.id) for site in apiary_sites])
+    except:
+        sites_str = ', '.join(['site: ' + str(site['id']) for site in apiary_sites])
+
     line_items = [
         {'ledger_description': 'Annual Rental Fee: {}, Issued: {} {}, Period: {} to {}, Site(s): {}'.format(
             approval.lodgement_number,
@@ -409,7 +419,7 @@ def generate_line_items_for_annual_rental_fee(approval, today_now, period, apiar
             today_now.strftime("%I:%M %p"),
             details_dict['charge_start_date'].strftime('%d/%m/%Y'),
             details_dict['charge_end_date'].strftime('%d/%m/%Y'),
-            ', '.join(['site: ' + str(site.id) for site in apiary_sites])
+            sites_str
         ),
             'oracle_code': 'ABC123 GST',
             'price_incl_tax': details_dict['total_amount'],

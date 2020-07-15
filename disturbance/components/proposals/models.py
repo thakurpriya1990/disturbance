@@ -26,8 +26,9 @@ from ledger.licence.models import  Licence
 from ledger.payments.models import Invoice
 from disturbance import exceptions
 # from disturbance.components.das_payments.models import AnnualRentalFeePeriod
-from disturbance.components.das_payments.models import AnnualRentalFee, AnnualRentalFeeApiarySite
-from disturbance.components.das_payments.utils import create_other_invoice_for_annual_rental_fee
+# from disturbance.components.approvals.email import send_annual_rental_fee_invoice
+# from disturbance.components.das_payments.models import AnnualRentalFee, AnnualRentalFeeApiarySite
+# from disturbance.components.das_payments.utils import create_other_invoice_for_annual_rental_fee
 from disturbance.components.organisations.models import Organisation
 from disturbance.components.main.models import CommunicationsLogEntry, UserAction, Document, Region, District, Tenure, ApplicationType
 from disturbance.components.main.utils import get_department_user
@@ -2495,8 +2496,11 @@ class ProposalApiary(models.Model):
                             from disturbance.components.das_payments.models import AnnualRentalFeePeriod
                             annual_rental_fee_period, created = AnnualRentalFeePeriod.objects.get_or_create(period_start_date=period_start_date, period_end_date=period_end_date)
 
+                            from disturbance.components.das_payments.utils import \
+                                create_other_invoice_for_annual_rental_fee
                             invoice, details_dict = create_other_invoice_for_annual_rental_fee(approval, today_now_local, (period_start_date, period_end_date), sites_approved)
 
+                            from disturbance.components.das_payments.models import AnnualRentalFee
                             annual_rental_fee = AnnualRentalFee.objects.create(
                                 approval=approval,
                                 annual_rental_fee_period=annual_rental_fee_period,
@@ -2506,12 +2510,23 @@ class ProposalApiary(models.Model):
                             )
 
                             # Store the apiary sites which the invoice created above has been issued for
-                            for apiary_site in sites_approved:
+                            for site in sites_approved:
+                                apiary_site = ApiarySite.objects.get(id=site['id'])
+                                from disturbance.components.das_payments.models import AnnualRentalFeeApiarySite
                                 annual_rental_fee_apiary_site = AnnualRentalFeeApiarySite(apiary_site=apiary_site, annual_rental_fee=annual_rental_fee)
                                 annual_rental_fee_apiary_site.save()
 
                             # TODO: Attach the invoice and send emails
                             #   update invoice_sent attribute of the annual_rental_fee obj?
+                            from disturbance.components.approvals.email import send_annual_rental_fee_invoice
+                            email_data = send_annual_rental_fee_invoice(approval, invoice)
+
+                            # TODO: communication log
+                            # if email_data:
+                            #     email_data['sanction_outcome'] = instance.id
+                            #     serializer = SanctionOutcomeCommsLogEntrySerializer(instance=workflow_entry, data=email_data, partial=True)
+                            #     serializer.is_valid(raise_exception=True)
+                            #     serializer.save()
 
                         #print approval,approval.id, created
                     # Generate compliances
