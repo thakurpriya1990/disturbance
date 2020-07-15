@@ -9,6 +9,7 @@ from django.db import transaction
 from django.db.models import Q, Min
 from ledger.settings_base import TIME_ZONE
 
+# from disturbance.components.approvals.email import send_annual_rental_fee_invoice
 from disturbance.components.approvals.models import Approval
 from disturbance.components.das_payments.models import AnnualRentalFee, AnnualRentalFeePeriod, AnnualRentalFeeApiarySite
 from disturbance.components.das_payments.utils import create_other_invoice_for_annual_rental_fee
@@ -98,9 +99,9 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         try:
             # Determine the start and end date of the annual rental fee, for which the invoices should be issued
-            today_now = datetime.datetime.now(pytz.timezone(TIME_ZONE))
-            today_local = today_now.date()
-            period_start_date, period_end_date = get_annual_rental_fee_period(today_local)
+            today_now_local = datetime.datetime.now(pytz.timezone(TIME_ZONE))
+            today_date_local = today_now_local.date()
+            period_start_date, period_end_date = get_annual_rental_fee_period(today_date_local)
 
             # Retrieve annual rental fee period object for the period calculated above
             # This period should not overwrap the existings, otherwise you will need a refund
@@ -116,7 +117,7 @@ class Command(BaseCommand):
                         apiary_sites_to_be_charged = get_apiary_sites_to_be_charged(approval, annual_rental_fee_period)
 
                         if apiary_sites_to_be_charged.count() > 0:
-                            invoice, details_dict = create_other_invoice_for_annual_rental_fee(approval, today_now, (period_start_date, period_end_date), apiary_sites_to_be_charged)
+                            invoice, details_dict = create_other_invoice_for_annual_rental_fee(approval, today_now_local, (period_start_date, period_end_date), apiary_sites_to_be_charged)
                             annual_rental_fee = AnnualRentalFee.objects.create(
                                 approval=approval,
                                 annual_rental_fee_period=annual_rental_fee_period,
@@ -132,9 +133,12 @@ class Command(BaseCommand):
 
                             # TODO: Attach the invoice and send emails
                             #   update invoice_sent attribute of the annual_rental_fee obj?
+                            from disturbance.components.approvals.email import send_annual_rental_fee_invoice
+                            send_annual_rental_fee_invoice(approval, invoice)
 
                 except Exception as e:
                     logger.error('Error command {}'.format(__name__))
+                    logger.error('Failed to send an annual rental fee invoice for the approval {}'.format(approval.lodgement_number))
 
         except Exception as e:
             logger.error('Error command {}'.format(__name__))
