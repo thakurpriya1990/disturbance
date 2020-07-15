@@ -33,13 +33,15 @@ import RequirementDetail from './proposal_add_requirement.vue'
 export default {
     name: 'OriginatingApprovalRequirements',
     props: {
-        proposal: Object
+        proposal: Object,
+        originatingApprovalId: Number,
+        originatingApprovalLodgementNumber: String,
     },
     data: function() {
         let vm = this;
         return {
             panelBody: "proposal-requirements-"+vm._uid,
-            originatingApproval: {},
+            //originatingApproval: {},
             requirements: [],
             requirement_headers:[
                 "Requirement",
@@ -55,7 +57,7 @@ export default {
                 },
                 responsive: true,
                 ajax: {
-                    "url": helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/requirements'),
+                    "url": helpers.add_endpoint_json(api_endpoints.approvals,vm.originatingApprovalId+'/requirements'),
                     "dataSrc": ''
                 },
                 order: [],
@@ -185,6 +187,7 @@ export default {
         hasAssessorMode(){
             return this.proposal.assessor_mode.has_assessor_mode;
         },
+        /*
         originatingApprovalId: function() {
             let returnVal = '';
             if (this.originatingApproval) {
@@ -207,6 +210,7 @@ export default {
             }
             return returnVal;
         },
+        */
     },
     methods:{
         addRequirement(){
@@ -322,6 +326,7 @@ export default {
         }
     },
     created: function() {
+        /*
         this.$http.get(helpers.add_endpoint_json(api_endpoints.approvals,this.proposal.proposal_apiary.originating_approval_id))
         .then((response) => {
             //vm.$refs.requirements_datatable.vmDataTable.ajax.reload();
@@ -330,6 +335,7 @@ export default {
         }, (error) => {
             console.log(error);
         });
+        */
     },
     mounted: function(){
         let vm = this;

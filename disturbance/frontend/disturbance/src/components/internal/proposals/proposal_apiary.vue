@@ -256,8 +256,16 @@
                 </template>
                 <template v-if="proposal.processing_status == 'With Assessor (Requirements)' || ((proposal.processing_status == 'With Approver' || isFinalised) && showingRequirements)">
                     <div v-if="siteTransfer">
-                        <OriginatingApprovalRequirements :proposal="proposal"/>
-                        <TargetApprovalRequirements :proposal="proposal"/>
+                        <OriginatingApprovalRequirements 
+                        :proposal="proposal" 
+                        :originatingApprovalId="originatingApprovalId"
+                        :originatingApprovalLodgementNumber="originatingApprovalLodgementNumber"
+                        />
+                        <TargetApprovalRequirements 
+                        :proposal="proposal" 
+                        :targetApprovalId="targetApprovalId"
+                        :targetApprovalLodgementNumber="targetApprovalLodgementNumber"
+                        />
                     </div>
                     <div v-else>
                         <Requirements :proposal="proposal"/>
@@ -685,6 +693,34 @@ export default {
             let returnVal = false;
             if (this.proposal.application_type === 'Site Transfer') {
                 returnVal = true;
+            }
+            return returnVal;
+        },
+        originatingApprovalId: function() {
+            let returnVal = null;
+            if (this.proposal.application_type === 'Site Transfer') {
+                returnVal = this.proposal.proposal_apiary.originating_approval_id;
+            }
+            return returnVal;
+        },
+        originatingApprovalLodgementNumber: function() {
+            let returnVal = null;
+            if (this.proposal.application_type === 'Site Transfer') {
+                returnVal = this.proposal.proposal_apiary.originating_approval_lodgement_number;
+            }
+            return returnVal;
+        },
+        targetApprovalId: function() {
+            let returnVal = null;
+            if (this.proposal.application_type === 'Site Transfer') {
+                returnVal = this.proposal.approval.id;
+            }
+            return returnVal;
+        },
+        targetApprovalLodgementNumber: function() {
+            let returnVal = '';
+            if (this.proposal.application_type === 'Site Transfer') {
+                returnVal = this.proposal.approval.lodgement_number;
             }
             return returnVal;
         },

@@ -32,6 +32,7 @@ from disturbance.components.proposals.models import (
     ApiarySiteFeeType, 
     ApiarySiteFeeRemainder, 
     SiteCategory,
+    ProposalRequirement,
     )
 from disturbance.components.approvals.models import (
         Approval,
@@ -1105,4 +1106,12 @@ class UserApiaryApprovalSerializer(serializers.ModelSerializer):
             multiple_approvals = True
 
         return {'approvals': approvals, 'multiple': multiple_approvals}
+
+
+class ApiaryProposalRequirementSerializer(serializers.ModelSerializer):
+    due_date = serializers.DateField(input_formats=['%d/%m/%Y'],required=False,allow_null=True)
+    class Meta:
+        model = ProposalRequirement
+        fields = ('id','due_date','free_requirement','standard_requirement','standard','order','proposal','recurrence','recurrence_schedule','recurrence_pattern','requirement','is_deleted','copied_from')
+        read_only_fields = ('order','requirement', 'copied_from')
 

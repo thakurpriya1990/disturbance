@@ -33,13 +33,15 @@ import RequirementDetail from './proposal_add_requirement.vue'
 export default {
     name: 'TargetApprovalRequirements',
     props: {
-        proposal: Object
+        proposal: Object,
+        targetApprovalId: Number,
+        targetApprovalLodgementNumber: String,
     },
     data: function() {
         let vm = this;
         return {
             panelBody: "proposal-requirements-"+vm._uid,
-            targetApproval: {},
+            //targetApproval: {},
             requirements: [],
             requirement_headers:[
                 "Requirement",
@@ -55,7 +57,8 @@ export default {
                 },
                 responsive: true,
                 ajax: {
-                    "url": helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/requirements'),
+                    //"url": helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/requirements'),
+                    "url": helpers.add_endpoint_json(api_endpoints.approvals,vm.targetApprovalId+'/requirements'),
                     "dataSrc": ''
                 },
                 order: [],
@@ -185,6 +188,7 @@ export default {
         hasAssessorMode(){
             return this.proposal.assessor_mode.has_assessor_mode;
         },
+        /*
         targetApprovalLodgementNumber: function() {
             let returnVal = '';
             if (this.targetApproval) {
@@ -192,7 +196,6 @@ export default {
             }
             return returnVal;
         },
-        /*
         originatingLicence() {
             if (this.proposal) {
                 return this.proposal.lodgement_number;
@@ -314,6 +317,7 @@ export default {
         }
     },
     created: function() {
+        /*
         // load targetApproval
         this.$http.get(helpers.add_endpoint_json(api_endpoints.approvals,this.proposal.approval.id))
         .then((response) => {
@@ -323,7 +327,7 @@ export default {
         }, (error) => {
             console.log(error);
         });
-
+        */
     },
     mounted: function(){
         let vm = this;
