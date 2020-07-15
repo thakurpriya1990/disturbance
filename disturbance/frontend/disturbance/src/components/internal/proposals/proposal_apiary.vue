@@ -256,7 +256,8 @@
                 </template>
                 <template v-if="proposal.processing_status == 'With Assessor (Requirements)' || ((proposal.processing_status == 'With Approver' || isFinalised) && showingRequirements)">
                     <div v-if="siteTransfer">
-                        <SiteTransferRequirements :proposal="proposal"/>
+                        <OriginatingApprovalRequirements :proposal="proposal"/>
+                        <TargetApprovalRequirements :proposal="proposal"/>
                     </div>
                     <div v-else>
                         <Requirements :proposal="proposal"/>
@@ -476,7 +477,8 @@ import ProposedDecline from './proposal_proposed_decline.vue'
 import AmendmentRequest from './amendment_request.vue'
 import datatable from '@vue-utils/datatable.vue'
 import Requirements from './proposal_requirements.vue'
-import SiteTransferRequirements from './site_transfer_proposal_requirements.vue'
+import OriginatingApprovalRequirements from './originating_approval_requirements.vue'
+import TargetApprovalRequirements from './target_approval_requirements.vue'
 import ProposedApiaryIssuance from './proposed_apiary_issuance.vue'
 import ApprovalScreen from './proposal_approval.vue'
 import ApprovalScreenSiteTransferTemporaryUse from './proposal_approval_site_transfer_temporary_use.vue'
@@ -569,7 +571,8 @@ export default {
         ProposedDecline,
         AmendmentRequest,
         Requirements,
-        SiteTransferRequirements,
+        OriginatingApprovalRequirements,
+        TargetApprovalRequirements,
         ProposedApiaryIssuance,
         ApprovalScreen,
         ApprovalScreenSiteTransferTemporaryUse,

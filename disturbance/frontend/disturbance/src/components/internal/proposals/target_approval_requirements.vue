@@ -3,7 +3,7 @@
         <div class="row">
             <div class="panel panel-default">
                 <div class="panel-heading">
-                    <h3 class="panel-title">Requirements
+                    <h3 class="panel-title">Requirements for {{targetApprovalLodgementNumber}}
                         <a class="panelClicker" :href="'#'+panelBody" data-toggle="collapse"  data-parent="#userInfo" expanded="false" :aria-controls="panelBody">
                             <span class="glyphicon glyphicon-chevron-down pull-right "></span>
                         </a>
@@ -14,9 +14,7 @@
                         <div class="col-sm-12">
                             <button v-if="hasAssessorMode" @click.prevent="addRequirement()" style="margin-bottom:10px;" class="btn btn-primary pull-right">Add Requirement</button>
                         </div>
-                        <div v-if="originatingLicence">
-                            <datatable ref="requirements_datatable" :id="'requirements-datatable-'+_uid" :dtOptions="requirement_options" :dtHeaders="requirement_headers"/>
-                        </div>
+                        <datatable ref="requirements_datatable" :id="'target-approval-requirements-datatable-'+_uid" :dtOptions="requirement_options" :dtHeaders="requirement_headers"/>
                     </form>
                 </div>
             </div>
@@ -33,7 +31,7 @@ from '@/utils/hooks'
 import datatable from '@vue-utils/datatable.vue'
 import RequirementDetail from './proposal_add_requirement.vue'
 export default {
-    name: 'SiteTransferProposalRequirements',
+    name: 'TargetApprovalRequirements',
     props: {
         proposal: Object
     },
@@ -41,6 +39,7 @@ export default {
         let vm = this;
         return {
             panelBody: "proposal-requirements-"+vm._uid,
+            targetApproval: {},
             requirements: [],
             requirement_headers:[
                 "Requirement",
@@ -186,6 +185,13 @@ export default {
         hasAssessorMode(){
             return this.proposal.assessor_mode.has_assessor_mode;
         },
+        targetApprovalLodgementNumber: function() {
+            let returnVal = '';
+            if (this.targetApproval) {
+                returnVal = this.targetApproval.lodgement_number;
+            }
+            return returnVal;
+        },
         /*
         originatingLicence() {
             if (this.proposal) {
@@ -307,11 +313,24 @@ export default {
             table.page(0).draw(false);
         }
     },
+    created: function() {
+        // load targetApproval
+        this.$http.get(helpers.add_endpoint_json(api_endpoints.approvals,this.proposal.approval.id))
+        .then((response) => {
+            //vm.$refs.requirements_datatable.vmDataTable.ajax.reload();
+            //Object.assign(this.targetApproval, response.body);
+            this.targetApproval = helpers.copyObject(response.body);
+        }, (error) => {
+            console.log(error);
+        });
+
+    },
     mounted: function(){
         let vm = this;
         this.fetchRequirements();
         vm.$nextTick(() => {
             this.eventListeners();
+
         });
     }
 }

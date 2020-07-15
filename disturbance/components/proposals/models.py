@@ -2192,7 +2192,7 @@ class ProposalApiary(models.Model):
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     # required for Site Transfer applications
     transferee = models.ForeignKey(EmailUser, blank=True, null=True, related_name='apiary_transferee')
-    sending_approval = models.ForeignKey('disturbance.Approval', blank=True, null=True)
+    originating_approval = models.ForeignKey('disturbance.Approval', blank=True, null=True)
     ###
 
     # @property

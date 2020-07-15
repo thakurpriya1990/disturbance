@@ -98,7 +98,7 @@
                     'activity': '',
                     'sub_activity1': '',
                     'application_type_str': 'site_transfer',
-                    'sending_approval_id': this.approval_id,
+                    'originating_approval_id': this.approval_id,
                     //'apiary_sites_minimal': this.apiary_sites_minimal,
                     //'approval_id': this.approval_id,
                 }
