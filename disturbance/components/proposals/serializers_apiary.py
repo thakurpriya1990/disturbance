@@ -504,7 +504,8 @@ class TemporaryUseApiarySiteSerializer(serializers.ModelSerializer):
 
 
 class ProposalApiaryTemporaryUseSerializer(serializers.ModelSerializer):
-    proposal_id = serializers.IntegerField(write_only=True, required=False)
+    # proposal_id = serializers.IntegerField(write_only=True, required=False)
+    proposal_id = serializers.IntegerField(required=False)
     # loaning_approval_id = serializers.IntegerField(write_only=True, required=False)
     loaning_approval_id = serializers.IntegerField(required=False)
     temporary_use_apiary_sites = TemporaryUseApiarySiteSerializer(read_only=True, many=True)
