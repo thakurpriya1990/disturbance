@@ -107,7 +107,7 @@ def activate_org_contacts():
             if contact.user_status=='draft':
                 contact.user_status='active'
                 contact.save()
-                print contact
+                print(contact)
     except:
         pass
 
@@ -130,7 +130,7 @@ def add_admin_user():
                     org_contact.user_role ='organisation_admin'
                     org_contact.is_admin = True
                     org_contact.save()
-                    print org_contact
+                    print(org_contact)
             except OrganisationContact.DoesNotExist:
                 pass    
 
@@ -141,7 +141,7 @@ def make_walter_admin_user():
     try:
         contact_email='walter.genuit@dbca.wa.gov.au'
         org_contact=OrganisationContact.objects.get(organisation_id=2, email=contact_email)
-        print org_contact
+        print(org_contact)
         if org_contact:
             org_contact.user_role ='organisation_admin'
             org_contact.is_admin = True
