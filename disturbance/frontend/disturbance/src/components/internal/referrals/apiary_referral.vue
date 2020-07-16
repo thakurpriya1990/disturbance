@@ -178,6 +178,18 @@
                         </div>
                     </div>
                 </div>
+                <!--div v-if="siteTransfer">
+                    <OriginatingApprovalRequirements 
+                    :proposal="proposal" 
+                    :originatingApprovalId="originatingApprovalId"
+                    :originatingApprovalLodgementNumber="originatingApprovalLodgementNumber"
+                    />
+                    <TargetApprovalRequirements 
+                    :proposal="proposal" 
+                    :targetApprovalId="targetApprovalId"
+                    :targetApprovalLodgementNumber="targetApprovalLodgementNumber"
+                    />
+                </div-->
                 <div class="col-md-12">
                     <div class="row">
                         <div class="panel panel-default">
@@ -359,6 +371,9 @@ import CommsLogs from '@common-utils/comms_logs.vue'
 //import MoreReferrals from '@common-utils/more_referrals.vue'
 import ApiaryReferralsForProposal from '@common-utils/apiary/apiary_referrals_for_proposal.vue'
 import ResponsiveDatatablesHelper from "@/utils/responsive_datatable_helper.js"
+//import OriginatingApprovalRequirements from '../proposals/originating_approval_requirements.vue'
+//import TargetApprovalRequirements from '../proposals/target_approval_requirements.vue'
+
 import {
     api_endpoints,
     helpers
@@ -437,6 +452,8 @@ export default {
         //MoreReferrals,
         NewApply,
         ApiaryReferralsForProposal,
+        //OriginatingApprovalRequirements,
+        //TargetApprovalRequirements,
     },
     filters: {
         formatDate: function(data){
@@ -498,6 +515,43 @@ export default {
         hasAssessorMode:function(){
             return this.proposal && this.proposal.assessor_mode.has_assessor_mode ? true : false;
         },
+        /*
+        siteTransfer: function() {
+            let returnVal = false;
+            if (this.proposal.application_type === 'Site Transfer') {
+                returnVal = true;
+            }
+            return returnVal;
+        },
+        originatingApprovalId: function() {
+            let returnVal = null;
+            if (this.proposal.application_type === 'Site Transfer') {
+                returnVal = this.proposal.proposal_apiary.originating_approval_id;
+            }
+            return returnVal;
+        },
+        originatingApprovalLodgementNumber: function() {
+            let returnVal = null;
+            if (this.proposal.application_type === 'Site Transfer') {
+                returnVal = this.proposal.proposal_apiary.originating_approval_lodgement_number;
+            }
+            return returnVal;
+        },
+        targetApprovalId: function() {
+            let returnVal = null;
+            if (this.proposal.application_type === 'Site Transfer') {
+                returnVal = this.proposal.approval.id;
+            }
+            return returnVal;
+        },
+        targetApprovalLodgementNumber: function() {
+            let returnVal = '';
+            if (this.proposal.application_type === 'Site Transfer') {
+                returnVal = this.proposal.approval.lodgement_number;
+            }
+            return returnVal;
+        },
+        */
     },
     methods: {
         refreshFromResponse:function(response){
