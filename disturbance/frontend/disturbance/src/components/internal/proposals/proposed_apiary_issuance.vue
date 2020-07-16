@@ -8,6 +8,7 @@
                         <!-- <alert v-if="isApprovalLevelDocument" type="warning"><strong>{{warningString}}</strong></alert> -->
                         <alert :show.sync="showError" type="danger"><strong>{{errorString}}</strong></alert>
                         <div class="col-sm-12">
+
                             <div v-if="!siteTransferApplication" class="form-group">
                                 <div class="row">
                                     <div class="col-sm-3">
@@ -25,9 +26,9 @@
                                 </div>
                                 <div class="row" v-show="showstartDateError">
                                     <alert  class="col-sm-12" type="danger"><strong>{{startDateErrorString}}</strong></alert>
-                    
                                 </div>
                             </div>
+
                             <div v-if="!siteTransferApplication" class="form-group">
                                 <div class="row">
                                     <div class="col-sm-3">
@@ -45,10 +46,9 @@
                                 </div>
                                 <div class="row" v-show="showtoDateError">
                                     <alert  class="col-sm-12" type="danger"><strong>{{toDateErrorString}}</strong></alert>
-                    
                                 </div>
-                                
                             </div>
+
                             <div class="form-group">
                                 <div class="row">
                                     <div class="col-sm-3">
