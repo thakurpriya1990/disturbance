@@ -30,7 +30,7 @@ from datetime import datetime, timedelta, date
 from django.urls import reverse
 from django.shortcuts import render, redirect, get_object_or_404
 from disturbance.components.approvals.models import (
-    Approval
+    Approval, ApprovalUserAction
 )
 from disturbance.components.approvals.serializers import (
     ApprovalSerializer,
@@ -255,6 +255,20 @@ class ApprovalViewSet(viewsets.ModelViewSet):
         qs = instance.proposalapiarytemporaryuse_set
         serializer = ProposalApiaryTemporaryUseSerializer(qs, many=True)
         return Response(serializer.data)
+
+    @detail_route(methods=['POST',])
+    @basic_exception_handler
+    def no_charge_until_date(self, request, *args, **kwargs):
+        instance = self.get_object()
+        until_date = request.data.get('until_date', None)
+        if until_date:
+            instance.no_annual_rental_fee_until = datetime.strptime(until_date, '%d/%m/%Y').date()
+        else:
+            instance.no_annual_rental_fee_until = ''
+        instance.save()
+        instance.log_user_action(ApprovalUserAction.ACTION_UPDATE_NO_CHARGE_DATE_UNTIL.format(instance.no_annual_rental_fee_until.strftime('%d/%m/%Y'), instance.id), request)
+
+        return Response({})
 
     @detail_route(methods=['GET',])
     @basic_exception_handler

@@ -118,6 +118,15 @@ class Approval(RevisionedMixin):
             return self.proxy_applicant
 
     @property
+    def relevant_applicant_email(self):
+        if self.applicant and hasattr(self.applicant.organisation, 'email') and self.applicant.organisation.email:
+            return self.applicant.organisation.email
+        elif self.proxy_applicant:
+            return self.proxy_applicant.email
+        else:
+            return self.current_proposal.submitter.email
+
+    @property
     def relevant_applicant_name(self):
         if self.applicant:
             return self.applicant.name
@@ -453,6 +462,7 @@ class ApprovalUserAction(UserAction):
     ACTION_RENEW_APPROVAL = "Create renewal Proposal for approval {}"
     ACTION_AMEND_APPROVAL = "Create amendment Proposal for approval {}"
     ACTION_APPROVAL_PDF_VIEW ="View approval PDF for approval {}"
+    ACTION_UPDATE_NO_CHARGE_DATE_UNTIL = "'Do not charge annual rental fee until' date updated to {} for approval {}"
 
     class Meta:
         app_label = 'disturbance'
