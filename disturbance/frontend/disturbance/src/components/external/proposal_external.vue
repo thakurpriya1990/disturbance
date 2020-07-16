@@ -209,9 +209,15 @@ export default {
         attach_apiary_sites_data: function(formData){
             try {
                 // Append apiary_sites edited data
+                console.log('in attach_apiary_sites_data')
                 if (this.proposal && this.proposal.proposal_apiary){
                     let allFeatures = this.$refs.proposal_apiary.$refs.apiary_site_locations.getFeatures()
-                    formData.append('all_the_features', JSON.stringify(allFeatures))
+                    console.log('allFeatures: ')
+                    console.log(allFeatures)
+                    let json_features = JSON.stringify(allFeatures)
+                    console.log('json_features: ')
+                    console.log(json_features)
+                    formData.append('all_the_features', json_features)
                 }
                 return formData
             } catch (err) {

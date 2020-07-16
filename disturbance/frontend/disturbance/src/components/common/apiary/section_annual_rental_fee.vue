@@ -50,10 +50,12 @@
                 <template v-for="annual_rental_fee_period in annual_rental_fee_periods">
                     <template v-if="annual_rental_fee_period.year_name == year_name_selected || year_name_selected == 'all'">
                         <template v-for="annual_rental_fee in annual_rental_fee_period.annual_rental_fees">
-                            <a :href="'/payments/invoice-pdf/' + annual_rental_fee.invoice_reference + '.pdf'" target='_blank'>
-                                <i style='color:red;' class='fa fa-file-pdf-o'></i> Invoice
-                            </a>
-                            <strong>Status: {{ annual_rental_fee.payment_status }}</strong>
+                            <div>
+                                <a :href="'/payments/invoice-pdf/' + annual_rental_fee.invoice_reference + '.pdf'" target='_blank'>
+                                    <i style='color:red;' class='fa fa-file-pdf-o'></i> Invoice
+                                </a>
+                                <strong>Status: {{ annual_rental_fee.payment_status }}</strong>
+                            </div>
                         </template>
                     </template>
                 </template>
