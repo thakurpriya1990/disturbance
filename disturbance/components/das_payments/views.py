@@ -73,7 +73,6 @@ class ApplicationFeeView(TemplateView):
         proposal = self.get_object()
         application_fee = ApplicationFee.objects.create(proposal=proposal, created_by=request.user, payment_type=ApplicationFee.PAYMENT_TYPE_TEMPORARY)
 
-        #import ipdb; ipdb.set_trace()
         try:
             with transaction.atomic():
                 if proposal.application_type.name == ApplicationType.SITE_TRANSFER:
@@ -82,10 +81,9 @@ class ApplicationFeeView(TemplateView):
                     set_session_application_invoice(request.session, application_fee)
                 lines, db_processes_after_success = create_fee_lines(proposal)
 
+                #import ipdb; ipdb.set_trace()
                 # Store site remainders data in this session, which is retrieved once payment success (ref: ApplicationFeeSuccessView below)
                 # then based on that, site remainders data is updated
-                if proposal.application_type.name != ApplicationType.SITE_TRANSFER:
-                    request.session['db_processes'] = db_processes_after_success
 
                 if proposal.application_type.name == ApplicationType.SITE_TRANSFER:
                     checkout_response = checkout(
@@ -97,6 +95,7 @@ class ApplicationFeeView(TemplateView):
                         invoice_text='Site Transfer Application Fee'
                     )
                 else:
+                    request.session['db_processes'] = db_processes_after_success
                     checkout_response = checkout(
                         request,
                         proposal,
@@ -120,8 +119,8 @@ class SiteTransferApplicationFeeSuccessView(TemplateView):
     template_name = 'disturbance/payment/success_fee.html'
 
     def get(self, request, *args, **kwargs):
-        #import ipdb; ipdb.set_trace()
         print (" SITE TRANSFER APPLICATION FEE SUCCESS ")
+        #print(request.session.__dict__)
 
         proposal = None
         submitter = None
@@ -188,7 +187,7 @@ class SiteTransferApplicationFeeSuccessView(TemplateView):
                         raise
 
                     application_fee.save()
-                    request.session['site_transfer_app_invoice'] = application_fee.id
+                    request.session['site_transfer_last_app_invoice'] = application_fee.id
                     delete_session_site_transfer_application_invoice(request.session)
 
                     send_application_fee_invoice_apiary_email_notification(request, proposal, invoice, recipients=[recipient])
@@ -202,8 +201,9 @@ class SiteTransferApplicationFeeSuccessView(TemplateView):
                     return render(request, self.template_name, context)
 
         except Exception as e:
-            if ('site_transfer_app_invoice' in request.session) and ApplicationFee.objects.filter(id=request.session['site_transfer_app_invoice']).exists():
-                application_fee = ApplicationFee.objects.get(id=request.session['site_transfer_app_invoice'])
+            #import ipdb; ipdb.set_trace()
+            if ('site_transfer_last_app_invoice' in request.session) and ApplicationFee.objects.filter(id=request.session['site_transfer_last_app_invoice']).exists():
+                application_fee = ApplicationFee.objects.get(id=request.session['site_transfer_last_app_invoice'])
                 proposal = application_fee.proposal
                 try:
                     if proposal.applicant:
@@ -224,7 +224,6 @@ class SiteTransferApplicationFeeSuccessView(TemplateView):
                     invoice = afi[0]
             else:
                 return redirect('home')
-
         context = {
             'proposal': proposal,
             'submitter': submitter,

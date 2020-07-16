@@ -3,7 +3,7 @@
       <div class="row">
         <h3>Application: {{ proposal.lodgement_number }}</h3>
         <h4>Application Type: {{proposal.application_type }}</h4>
-        <div v-if="proposal.application_type!='Apiary'">
+        <div v-if="!proposal.apiary_group_application_type">
             <h4>Approval Level: {{proposal.approval_level }}</h4>
         </div>
         <div class="col-md-3">
@@ -255,7 +255,21 @@
                     </div>
                 </template>
                 <template v-if="proposal.processing_status == 'With Assessor (Requirements)' || ((proposal.processing_status == 'With Approver' || isFinalised) && showingRequirements)">
-                    <Requirements :proposal="proposal"/>
+                    <div v-if="siteTransfer">
+                        <OriginatingApprovalRequirements 
+                        :proposal="proposal" 
+                        :originatingApprovalId="originatingApprovalId"
+                        :originatingApprovalLodgementNumber="originatingApprovalLodgementNumber"
+                        />
+                        <TargetApprovalRequirements 
+                        :proposal="proposal" 
+                        :targetApprovalId="targetApprovalId"
+                        :targetApprovalLodgementNumber="targetApprovalLodgementNumber"
+                        />
+                    </div>
+                    <div v-else>
+                        <Requirements :proposal="proposal"/>
+                    </div>
                 </template>
                 <template v-if="canSeeSubmission || (!canSeeSubmission && showingProposal)">
                     <div class="col-md-12">
@@ -470,7 +484,10 @@ import Vue from 'vue'
 import ProposedDecline from './proposal_proposed_decline.vue'
 import AmendmentRequest from './amendment_request.vue'
 import datatable from '@vue-utils/datatable.vue'
+//import Requirements from './apiary_proposal_requirements.vue'
 import Requirements from './proposal_requirements.vue'
+import OriginatingApprovalRequirements from './originating_approval_requirements.vue'
+import TargetApprovalRequirements from './target_approval_requirements.vue'
 import ProposedApiaryIssuance from './proposed_apiary_issuance.vue'
 import ApprovalScreen from './proposal_approval.vue'
 import ApprovalScreenSiteTransferTemporaryUse from './proposal_approval_site_transfer_temporary_use.vue'
@@ -563,6 +580,8 @@ export default {
         ProposedDecline,
         AmendmentRequest,
         Requirements,
+        OriginatingApprovalRequirements,
+        TargetApprovalRequirements,
         ProposedApiaryIssuance,
         ApprovalScreen,
         ApprovalScreenSiteTransferTemporaryUse,
@@ -671,7 +690,41 @@ export default {
             }
             return returnVal;
         },
-
+        siteTransfer: function() {
+            let returnVal = false;
+            if (this.proposal.application_type === 'Site Transfer') {
+                returnVal = true;
+            }
+            return returnVal;
+        },
+        originatingApprovalId: function() {
+            let returnVal = null;
+            if (this.proposal.application_type === 'Site Transfer') {
+                returnVal = this.proposal.proposal_apiary.originating_approval_id;
+            }
+            return returnVal;
+        },
+        originatingApprovalLodgementNumber: function() {
+            let returnVal = null;
+            if (this.proposal.application_type === 'Site Transfer') {
+                returnVal = this.proposal.proposal_apiary.originating_approval_lodgement_number;
+            }
+            return returnVal;
+        },
+        targetApprovalId: function() {
+            let returnVal = null;
+            if (this.proposal.application_type === 'Site Transfer') {
+                returnVal = this.proposal.approval.id;
+            }
+            return returnVal;
+        },
+        targetApprovalLodgementNumber: function() {
+            let returnVal = '';
+            if (this.proposal.application_type === 'Site Transfer') {
+                returnVal = this.proposal.approval.lodgement_number;
+            }
+            return returnVal;
+        },
     },
     methods: {
         locationUpdated: function(){
