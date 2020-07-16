@@ -120,7 +120,7 @@ class SiteTransferApplicationFeeSuccessView(TemplateView):
 
     def get(self, request, *args, **kwargs):
         print (" SITE TRANSFER APPLICATION FEE SUCCESS ")
-        print(request.session.__dict__)
+        #print(request.session.__dict__)
 
         proposal = None
         submitter = None

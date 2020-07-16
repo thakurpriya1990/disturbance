@@ -1758,6 +1758,44 @@ class ProposalStandardRequirement(RevisionedMixin):
     class Meta:
         app_label = 'disturbance'
 
+
+#class ReferralRecipientGroup(models.Model):
+class ApiaryReferralGroup(models.Model):
+    #site = models.OneToOneField(Site, default='1')
+    name = models.CharField(max_length=30, unique=True)
+    members = models.ManyToManyField(EmailUser)
+
+    def __str__(self):
+        #return 'Referral Recipient Group'
+        return self.name
+
+    @property
+    def all_members(self):
+        all_members = []
+        all_members.extend(self.members.all())
+        member_ids = [m.id for m in self.members.all()]
+        #all_members.extend(EmailUser.objects.filter(is_superuser=True,is_staff=True,is_active=True).exclude(id__in=member_ids))
+        return all_members
+
+    @property
+    def filtered_members(self):
+        return self.members.all()
+
+    @property
+    def members_list(self):
+            return list(self.members.all().values_list('email', flat=True))
+
+    @property
+    def members_email(self):
+        return [i.email for i in self.members.all()]
+
+
+    class Meta:
+        app_label = 'disturbance'
+        verbose_name = "Apiary Referral Group"
+        verbose_name_plural = "Apiary Referral groups"
+
+
 class ProposalRequirement(OrderedModel):
     RECURRENCE_PATTERNS = [(1, 'Weekly'), (2, 'Monthly'), (3, 'Yearly')]
     standard_requirement = models.ForeignKey(ProposalStandardRequirement,null=True,blank=True)
@@ -1771,6 +1809,8 @@ class ProposalRequirement(OrderedModel):
     copied_from = models.ForeignKey('self', on_delete=models.SET_NULL, blank=True, null=True)
     is_deleted = models.BooleanField(default=False)
     #order = models.IntegerField(default=1)
+    # referral_group is no longer required for Apiary
+    referral_group = models.ForeignKey(ApiaryReferralGroup,null=True,blank=True,related_name='apiary_requirement_referral_groups')
 
     class Meta:
         app_label = 'disturbance'
@@ -1779,6 +1819,24 @@ class ProposalRequirement(OrderedModel):
     @property
     def requirement(self):
         return self.standard_requirement.text if self.standard else self.free_requirement
+
+# no longer required for Apiary
+#class RequirementDocument(Document):
+#    #requirement = models.ForeignKey('ProposalRequirement',related_name='requirement_documents')
+#    requirement = models.ForeignKey('ProposalRequirement',related_name='documents')
+#    #_file = models.FileField(upload_to=update_requirement_doc_filename, max_length=512)
+#    _file = models.FileField(max_length=512)
+#    input_name = models.CharField(max_length=255,null=True,blank=True)
+#    can_delete = models.BooleanField(default=True) # after initial submit prevent document from being deleted
+#    visible = models.BooleanField(default=True) # to prevent deletion on file system, hidden and still be available in history
+#
+#    def delete(self):
+#        if self.can_delete:
+#            return super(RequirementDocument, self).delete()
+#
+#    class Meta:
+#        app_label = 'disturbance'
+
 
 class ProposalUserAction(UserAction):
     ACTION_CREATE_CUSTOMER_ = "Create customer {}"
@@ -2991,43 +3049,6 @@ class ApiaryApproverGroup(models.Model):
     @property
     def members_email(self):
         return [i.email for i in self.members.all()]
-
-
-#class ReferralRecipientGroup(models.Model):
-class ApiaryReferralGroup(models.Model):
-    #site = models.OneToOneField(Site, default='1')
-    name = models.CharField(max_length=30, unique=True)
-    members = models.ManyToManyField(EmailUser)
-
-    def __str__(self):
-        #return 'Referral Recipient Group'
-        return self.name
-
-    @property
-    def all_members(self):
-        all_members = []
-        all_members.extend(self.members.all())
-        member_ids = [m.id for m in self.members.all()]
-        #all_members.extend(EmailUser.objects.filter(is_superuser=True,is_staff=True,is_active=True).exclude(id__in=member_ids))
-        return all_members
-
-    @property
-    def filtered_members(self):
-        return self.members.all()
-
-    @property
-    def members_list(self):
-            return list(self.members.all().values_list('email', flat=True))
-
-    @property
-    def members_email(self):
-        return [i.email for i in self.members.all()]
-
-
-    class Meta:
-        app_label = 'disturbance'
-        verbose_name = "Apiary Referral Group"
-        verbose_name_plural = "Apiary Referral groups"
 
 
 
