@@ -1,12 +1,14 @@
 import logging
-
+from io import BytesIO
 from django.core.mail import EmailMultiAlternatives, EmailMessage
 from django.utils.encoding import smart_text
-from django.core.urlresolvers import reverse
 from django.conf import settings
 
+from disturbance.components.das_payments.invoice_pdf import create_annual_rental_fee_invoice
 from disturbance.components.emails.emails import TemplateEmailBase
 from ledger.accounts.models import EmailUser
+
+from disturbance.components.main.email import _extract_email_headers
 
 logger = logging.getLogger(__name__)
 
@@ -22,25 +24,73 @@ class ApprovalCancelNotificationEmail(TemplateEmailBase):
     html_template = 'disturbance/emails/approval_cancel_notification.html'
     txt_template = 'disturbance/emails/approval_cancel_notification.txt'
 
+
 class ApprovalSuspendNotificationEmail(TemplateEmailBase):
     subject = 'Your Approval has been suspended.'
     html_template = 'disturbance/emails/approval_suspend_notification.html'
     txt_template = 'disturbance/emails/approval_suspend_notification.txt'
+
 
 class ApprovalSurrenderNotificationEmail(TemplateEmailBase):
     subject = 'Your Approval has been surrendered.'
     html_template = 'disturbance/emails/approval_surrender_notification.html'
     txt_template = 'disturbance/emails/approval_surrender_notification.txt'
 
+
 class ApprovalReinstateNotificationEmail(TemplateEmailBase):
     subject = 'Your Approval has been reinstated.'
     html_template = 'disturbance/emails/approval_reinstate_notification.html'
     txt_template = 'disturbance/emails/approval_reinstate_notification.txt'
 
+
 class ApprovalRenewalNotificationEmail(TemplateEmailBase):
     subject = 'Your Approval is due for renewal.'
     html_template = 'disturbance/emails/approval_renewal_notification.html'
     txt_template = 'disturbance/emails/approval_renewal_notification.txt'
+
+
+class ApprovalAnnualRentalFeeInvoiceEmail(TemplateEmailBase):
+    subject = 'Annual rental fee invoice for your licence has been issued.'
+    html_template = 'disturbance/emails/approval_annual_rental_fee_invoice.html'
+    txt_template = 'disturbance/emails/approval_annual_rental_fee_invoice.txt'
+
+
+def get_value_of_annual_rental_fee_invoice(approval, invoice):
+    invoice_buffer = BytesIO()
+    create_annual_rental_fee_invoice(invoice_buffer, approval, invoice)
+    value = invoice_buffer.getvalue() # Get the value of the BytesIO buffer
+    invoice_buffer.close()
+    return value
+
+
+def send_annual_rental_fee_invoice(approval, invoice):
+    email = ApprovalAnnualRentalFeeInvoiceEmail()
+
+    context = {
+        'approval': approval,
+    }
+
+    attachments = []
+    contents = get_value_of_annual_rental_fee_invoice(approval, invoice)
+    attachments.append(('invoice.pdf', contents, 'application/pdf'))
+
+    to_address = [approval.relevant_applicant_email]
+    cc = []
+    bcc = []
+
+    msg = email.send(
+        to_address,
+        context=context,
+        attachments=attachments,
+        cc=cc,
+        bcc=bcc,
+    )
+
+    # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    sender = settings.DEFAULT_FROM_EMAIL
+    email_data = _extract_email_headers(msg, sender=sender)
+    return email_data
+
 
 def send_approval_expire_email_notification(approval):
     email = ApprovalExpireNotificationEmail()
@@ -65,6 +115,7 @@ def send_approval_expire_email_notification(approval):
         sender_user = EmailUser.objects.get(email__icontains=sender)
     _log_approval_email(msg, approval, sender=sender_user)
     _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender_user)
+
 
 def send_approval_cancel_email_notification(approval, future_cancel=False):
     email = ApprovalCancelNotificationEmail()
@@ -187,7 +238,6 @@ def send_approval_renewal_email_notification(approval):
     _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender_user)
 
 
-
 def send_approval_reinstate_email_notification(approval, request):
     email = ApprovalReinstateNotificationEmail()
     proposal = approval.current_proposal
@@ -206,7 +256,6 @@ def send_approval_reinstate_email_notification(approval, request):
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL    
     _log_approval_email(msg, approval, sender=sender)
     _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
-
 
 
 def _log_approval_email(email_message, approval, sender=None):
@@ -254,8 +303,6 @@ def _log_approval_email(email_message, approval, sender=None):
     email_entry = ApprovalLogEntry.objects.create(**kwargs)
 
     return email_entry
-
-
 
 
 def _log_org_email(email_message, organisation, customer ,sender=None):

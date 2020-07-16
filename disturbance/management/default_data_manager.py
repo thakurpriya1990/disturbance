@@ -6,7 +6,7 @@ from ledger.settings_base import TIME_ZONE
 
 from disturbance.components.main.models import ApplicationType
 from disturbance.components.proposals.models import ApiarySiteFeeType, SiteCategory, ApiarySiteFee, ProposalType, \
-    ApiaryAnnualRentalFeePeriodStartDate, ApiaryAnnualRentalFeeRunDate
+    ApiaryAnnualRentalFeePeriodStartDate, ApiaryAnnualRentalFeeRunDate, ApiaryAnnualRentalFee
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +54,13 @@ class DefaultDataManager(object):
                 obj.date_run_cron = datetime.date(year=2020, month=6, day=17)
                 obj.save()
                 logger.info("Created the cron job run date for the annual rental fee: %s" % obj)
+
+        # Annual Rental Fee
+        arfs = ApiaryAnnualRentalFee.objects.filter(date_from__lte=today_local)
+        if arfs.count() <= 0:
+            obj, created = ApiaryAnnualRentalFee.objects.get_or_create(amount=25.00, date_from=(today_local - datetime.timedelta(days=1000)))
+            if created:
+                logger.info("Created an apiary_annual_rental_fee: %s" % obj)
 
         # Store default
         for type_name in ApplicationType.APPLICATION_TYPES:

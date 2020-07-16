@@ -1,6 +1,6 @@
 <template id="proposal_requirements">
     <div>
-        proposal_approval_site_transfer_temporary_use.vue
+        This file is proposal_approval_site_transfer_temporary_use.vue
         <template v-if="isFinalised">
             <div class="col-md-12 alert alert-success" v-if="proposal.processing_status == 'Approved'">
                 <p>The approval has been issued and has been emailed to {{proposal.applicant.name}}</p>
@@ -11,9 +11,9 @@
             </div>
         </template>
 
-        <template v-if="proposal.proposal_apiary || proposal.apiary_temporary_use">
+        <template v-if="proposal.proposal_apiary">
             <FormSection :formCollapse="false" label="Site(s)" Index="sites">
-                <ComponentSiteSelection 
+                <ComponentSiteSelection
                     :apiary_sites="apiary_sites_prop"
                     :is_internal="true"
                     :is_external="false"
@@ -24,6 +24,15 @@
                 />
             </FormSection>
         </template>
+
+        <template v-else-if="proposal.apiary_temporary_use">
+            <SectionsProposalTemporaryUse
+                :is_internal="true"
+                :is_external="false"
+                :proposal="proposal"
+            />
+        </template>
+
         <template v-else>
             <div class="col-md-12">
                 <div class="row">
@@ -41,20 +50,20 @@
                                 <div class="col-sm-12">
                                         <template v-if="!isFinalised">
                                             <p><strong>Level of approval: {{proposal.approval_level}}</strong></p>
-                                            
-                                        <div v-if="isApprovalLevel">    
+
+                                        <div v-if="isApprovalLevel">
                                             <p v-if="proposal.approval_level_document"><strong>Attach documents:</strong> <a :href="proposal.approval_level_document[1]" target="_blank">{{proposal.approval_level_document[0]}}</a>
                                             <span>
                                             <a @click="removeFile()" class="fa fa-trash-o" title="Remove file" style="cursor: pointer; color:red;"></a>
                                             </span></p>
                                             <div v-else>
                                                 <p><strong>Attach documents:</strong></p>
-                                                <div class="col-sm-12">                                           
+                                                <div class="col-sm-12">
                                                 <span class="btn btn-info btn-file pull-left">
                                                 Attach File <input type="file" ref="uploadedFile" @change="readFile()"/>
                                                 </span>
                                                 <!--<span class="pull-left" style="margin-left:10px;margin-top:10px;">{{uploadedFileName()}}</span>-->
-                                                
+
                                                 </div>
                                                 <div class="row"><p></p></div>
                                                 <div class="row"><p></p></div>
@@ -69,20 +78,20 @@
                                             </div>
 
                                         </div>
-                                        </template> 
+                                        </template>
 
                                         <template v-if="isFinalised">
                                             <p><strong>Level of approval: {{proposal.approval_level}}</strong></p>
-                                            
-                                            <div v-if="isApprovalLevel">    
+
+                                            <div v-if="isApprovalLevel">
                                                 <p v-if="proposal.approval_level_document"><strong>Attach documents: </strong><a :href="proposal.approval_level_document[1]" target="_blank">{{proposal.approval_level_document[0]}}</a>
                                                 </p>
                                                 <p v-if="proposal.approval_level_comment"><strong>Comments: {{proposal.approval_level_comment}}</strong>
                                                 </p>
                                             </div>
-                                        </template>                                    
+                                        </template>
                                 </div>
-                            </div> 
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -126,7 +135,7 @@
                                     <strong v-else>Decision: Decline</strong>
                                 </template>
                             </div>
-                        </div> 
+                        </div>
                     </div>
                 </div>
             </div>
@@ -144,6 +153,7 @@ import RequirementDetail from './proposal_add_requirement.vue'
 import ComponentSiteSelection from '@/components/common/apiary/component_site_selection.vue'
 import FormSection from "@/components/forms/section_toggle.vue"
 import uuid from 'uuid'
+import SectionsProposalTemporaryUse from '@/components/common/apiary/sections_proposal_temporary_use.vue'
 
 export default {
     name: 'ApprovalScreenSiteTransferTemporaryUse',
@@ -163,6 +173,7 @@ export default {
     },
     components:{
         FormSection,
+        SectionsProposalTemporaryUse,
         ComponentSiteSelection,
     },
     computed:{
@@ -212,7 +223,7 @@ export default {
             var input = $(vm.$refs.uploadedFile)[0];
             if (input.files && input.files[0]) {
                 var reader = new FileReader();
-                reader.readAsDataURL(input.files[0]); 
+                reader.readAsDataURL(input.files[0]);
                 reader.onload = function(e) {
                     _file = e.target.result;
                 };
@@ -247,7 +258,7 @@ export default {
                 )
             });
 
-            
+
         },
         uploadedFileName: function() {
             return this.uploadedFile != null ? this.uploadedFile.name: '';

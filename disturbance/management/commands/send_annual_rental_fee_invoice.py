@@ -9,10 +9,12 @@ from django.db import transaction
 from django.db.models import Q, Min
 from ledger.settings_base import TIME_ZONE
 
+# from disturbance.components.approvals.email import send_annual_rental_fee_invoice
 from disturbance.components.approvals.models import Approval
 from disturbance.components.das_payments.models import AnnualRentalFee, AnnualRentalFeePeriod, AnnualRentalFeeApiarySite
 from disturbance.components.das_payments.utils import create_other_invoice_for_annual_rental_fee
-from disturbance.components.proposals.models import ApiaryAnnualRentalFeeRunDate, ApiaryAnnualRentalFeePeriodStartDate
+from disturbance.components.proposals.models import ApiaryAnnualRentalFeeRunDate, ApiaryAnnualRentalFeePeriodStartDate, \
+    ApiarySite
 
 logger = logging.getLogger(__name__)
 
@@ -66,15 +68,40 @@ def get_approvals(annual_rental_fee_period):
     return approval_qs
 
 
+def get_apiary_sites_to_be_charged(approval, annual_rental_fee_period):
+    # 1. Retrieve all the annual_rental_fees under this approval and this annual_rental_fee_period
+    #       annual_rental_fees = AnnualRentalFee.objects.filter(approval=approval, annual_rental_fee_period=annual_rental_fee_period)
+    # 2. Retrieve all the current apiary_sites under this approval
+    #       sites_status_current = approval.apiary_sites.filter(status=ApiarySite.STATUS_CURRENT)
+    # 3. Retrieve apiary_sites which invoices have been issued for already
+    #       annual_rental_fee_apiary_sites = AnnualRentalFeeApiarySite.objects.filter(apiary_site__in=sites_status_current, annual_rental_fee__in=annual_rental_fees)
+    #       sites_exclude = ApiarySite.objects.filter(annualrentalfeeapiarysite__in=annual_rental_fee_apiary_sites)
+
+    # Combine the queries above
+    apiary_sites = approval.apiary_sites.filter(
+        # ApiarySite must be the 'current' status
+        status=ApiarySite.STATUS_CURRENT
+    ).exclude(
+        # Exclude the apiaries for which the invoices have been issued for this period
+        annualrentalfeeapiarysite__in=AnnualRentalFeeApiarySite.objects.filter(
+            annual_rental_fee__in=AnnualRentalFee.objects.filter(
+                approval=approval,
+                annual_rental_fee_period=annual_rental_fee_period
+            )
+        )
+    )
+    return apiary_sites
+
+
 class Command(BaseCommand):
     help = 'Send annual rent fee invoices for the apiary'
 
     def handle(self, *args, **options):
         try:
             # Determine the start and end date of the annual rental fee, for which the invoices should be issued
-            today_now = datetime.datetime.now(pytz.timezone(TIME_ZONE))
-            today_local = today_now.date()
-            period_start_date, period_end_date = get_annual_rental_fee_period(today_local)
+            today_now_local = datetime.datetime.now(pytz.timezone(TIME_ZONE))
+            today_date_local = today_now_local.date()
+            period_start_date, period_end_date = get_annual_rental_fee_period(today_date_local)
 
             # Retrieve annual rental fee period object for the period calculated above
             # This period should not overwrap the existings, otherwise you will need a refund
@@ -87,28 +114,31 @@ class Command(BaseCommand):
             for approval in approval_qs:
                 try:
                     with transaction.atomic():
-                        annual_rental_fee, created = AnnualRentalFee.objects.get_or_create(approval=approval, annual_rental_fee_period=annual_rental_fee_period)
+                        apiary_sites_to_be_charged = get_apiary_sites_to_be_charged(approval, annual_rental_fee_period)
 
-                        if not annual_rental_fee.invoice_reference:
-
-                            # Issue an invoice for the approval
-                            invoice = create_other_invoice_for_annual_rental_fee(approval, today_now, (period_start_date, period_end_date), )  # TODO: calculate the fee according to the number of sites.  Check the status of site too.
-
-                            # Update annual_rental_fee obj
-                            annual_rental_fee.invoice_reference = invoice.reference
-                            annual_rental_fee.invoice_period_start_date = annual_rental_fee_period.period_start_date
-                            annual_rental_fee.invoice_period_end_date = min(annual_rental_fee_period.period_end_date, approval.expiry_date)
-                            annual_rental_fee.save()
+                        if apiary_sites_to_be_charged.count() > 0:
+                            invoice, details_dict = create_other_invoice_for_annual_rental_fee(approval, today_now_local, (period_start_date, period_end_date), apiary_sites_to_be_charged)
+                            annual_rental_fee = AnnualRentalFee.objects.create(
+                                approval=approval,
+                                annual_rental_fee_period=annual_rental_fee_period,
+                                invoice_reference=invoice.reference,
+                                invoice_period_start_date=details_dict['charge_start_date'],
+                                invoice_period_end_date=details_dict['charge_end_date'],
+                            )
 
                             # Store the apiary sites which the invoice created above has been issued for
-                            for apiary_site in approval.apiary_sites.all():
+                            for apiary_site in apiary_sites_to_be_charged:
                                 annual_rental_fee_apiary_site = AnnualRentalFeeApiarySite(apiary_site=apiary_site, annual_rental_fee=annual_rental_fee)
                                 annual_rental_fee_apiary_site.save()
 
                             # TODO: Attach the invoice and send emails
+                            #   update invoice_sent attribute of the annual_rental_fee obj?
+                            from disturbance.components.approvals.email import send_annual_rental_fee_invoice
+                            send_annual_rental_fee_invoice(approval, invoice)
 
                 except Exception as e:
                     logger.error('Error command {}'.format(__name__))
+                    logger.error('Failed to send an annual rental fee invoice for the approval {}'.format(approval.lodgement_number))
 
         except Exception as e:
             logger.error('Error command {}'.format(__name__))
