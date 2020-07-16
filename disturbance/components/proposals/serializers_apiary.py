@@ -792,7 +792,8 @@ class ApiaryInternalProposalSerializer(BaseProposalSerializer):
     # apiary_applicant_checklist = ApiaryApplicantChecklistAnswerSerializer(many=True)
     applicant_checklist = serializers.SerializerMethodField()
     apiary_group_application_type = serializers.SerializerMethodField()
-    approval = ApiaryInternalApprovalSerializer()
+    # approval = ApiaryInternalApprovalSerializer()
+    approval = serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
@@ -869,6 +870,14 @@ class ApiaryInternalProposalSerializer(BaseProposalSerializer):
                 'approval',
                 )
         read_only_fields=('documents','requirements')
+
+    def get_approval(self, proposal):
+        ret_appr = None
+        if hasattr(proposal, 'proposal_apiary') and proposal.proposal_apiary:
+            appr = proposal.proposal_apiary.retrieve_approval
+            if appr:
+                 ret_appr = ApiaryInternalApprovalSerializer(appr).data
+        return ret_appr
 
     def get_apiary_group_application_type(self, obj):
         return obj.apiary_group_application_type
