@@ -2480,6 +2480,7 @@ class ProposalApiary(models.Model):
                         else:
                             count_approved_site = 0
                             sites_approved = request.data.get('apiary_sites', [])
+                            sites_approved = [site for site in sites_approved if site['checked']]
                             count_approved_site = self.update_apiary_sites(approval, sites_approved)
                             if count_approved_site == 0:
                                 raise ValidationError("There must be at least one apiary site to approve")
