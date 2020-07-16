@@ -2423,7 +2423,8 @@ class ProposalApiary(models.Model):
                             approval.apiary_approval = self.proposal.apiary_group_application_type
                         else:
                             if not approval:
-                                approval,created = Approval.objects.update_or_create(
+                                # There are no existing approvals.  Create a new one.
+                                approval, created = Approval.objects.update_or_create(
                                     current_proposal = checking_proposal,
                                     defaults = {
                                     #'activity' : self.activity,
@@ -2440,9 +2441,10 @@ class ProposalApiary(models.Model):
                                     }
                                 )
                             else:
-                                approval.issue_date = timezone.now()
-                                approval.expiry_date = details.get('expiry_date')
-                                approval.start_date = details.get('start_date')
+                                # There is an existing approval already.  Attach new site(s) to the existing approval
+                                # approval.issue_date = timezone.now()
+                                # approval.expiry_date = details.get('expiry_date')
+                                # approval.start_date = details.get('start_date')
                                 approval.applicant = self.proposal.applicant
                                 approval.proxy_applicant = self.proposal.proxy_applicant
                                 approval.apiary_approval = self.proposal.apiary_group_application_type
