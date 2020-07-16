@@ -43,8 +43,14 @@ from disturbance.components.approvals.serializers import (
 )
 from disturbance.components.main.decorators import basic_exception_handler
 from disturbance.components.proposals.models import ApiarySite, OnSiteInformation
-from disturbance.components.proposals.serializers_apiary import ApiarySiteSerializer, OnSiteInformationSerializer, \
-    ApiarySiteOptimisedSerializer, ProposalApiaryTemporaryUseSerializer, ApiarySiteGeojsonSerializer
+from disturbance.components.proposals.serializers_apiary import (
+        ApiarySiteSerializer, 
+        OnSiteInformationSerializer,
+        ApiarySiteOptimisedSerializer, 
+        ProposalApiaryTemporaryUseSerializer, 
+        ApiarySiteGeojsonSerializer,
+        ApiaryProposalRequirementSerializer,
+        )
 from disturbance.helpers import is_customer, is_internal
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 from disturbance.components.proposals.api import ProposalFilterBackend, ProposalRenderer
@@ -464,3 +470,26 @@ class ApprovalViewSet(viewsets.ModelViewSet):
         #    qs = qs.filter(first_name__contains=search_term)
 
         return Response(list(data))
+
+    @detail_route(methods=['GET',])
+    def requirements(self, request, *args, **kwargs):
+        try:
+            approval = self.get_object()
+            requirements = []
+            for proposal in approval.proposal_set.all():
+                for requirement in proposal.requirements.all():
+                    requirements.append(ApiaryProposalRequirementSerializer(requirement).data)
+            #return requirements
+            #qs = instance.requirements.all().exclude(is_deleted=True)
+            #serializer = ApiaryProposalRequirementSerializer(qs,many=True)
+            return Response(requirements)
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+

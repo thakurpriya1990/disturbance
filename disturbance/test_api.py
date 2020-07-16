@@ -379,7 +379,7 @@ class IntegrationTests(APITestSetup):
         self.client.login(email=self.customer1, password='pass')
         self.client.enforce_csrf_checks=True
         # create proposal
-        self.create_site_transfer_proposal_data['sending_approval_id'] = proposal_1_obj.approval.id
+        self.create_site_transfer_proposal_data['originating_approval_id'] = proposal_1_obj.approval.id
         create_response_site_transfer = self.client.post(
                 '/api/proposal/',
                 self.create_site_transfer_proposal_data,
