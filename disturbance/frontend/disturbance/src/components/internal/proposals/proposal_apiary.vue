@@ -3,7 +3,7 @@
       <div class="row">
         <h3>Application: {{ proposal.lodgement_number }}</h3>
         <h4>Application Type: {{proposal.application_type }}</h4>
-        <div v-if="proposal.application_type!='Apiary'">
+        <div v-if="!proposal.apiary_group_application_type">
             <h4>Approval Level: {{proposal.approval_level }}</h4>
         </div>
         <div class="col-md-3">
