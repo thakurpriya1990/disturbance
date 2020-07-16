@@ -1,6 +1,8 @@
 from mixer.backend.django import mixer
 from django.conf import settings
 from importlib import import_module
+
+from .management.default_data_manager import DefaultDataManager
 from .models import *
 from ledger.accounts.models import EmailUser, EmailUserManager
 import random
@@ -208,6 +210,9 @@ class APITestSetup(APITestCase):
             self.all_the_features_1 = json.load(features_file_1)
         with open('all_the_features_2.json', 'r') as features_file_2:
             self.all_the_features_2 = json.load(features_file_2)
+
+        # Get data ready
+        temp = DefaultDataManager()
 
     def random_email(self):
         """Return a random email address ending in dbca.wa.gov.au
