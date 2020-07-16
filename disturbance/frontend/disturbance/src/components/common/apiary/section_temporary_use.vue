@@ -43,7 +43,7 @@
             },
         },
         data:function () {
-            let vm=this;
+            let vm = this;
             return{
                 proposal_apiary: null,
                 creatingProposal: false,
@@ -124,7 +124,11 @@
                             // Action
                             mRender: function (data, type, full) {
                                 if (full.customer_status == 'Draft'){
-                                    return 'Edit(TODO)'
+                                    if (vm.is_internal){
+                                        return '<a href="/internal/proposal/' + full.proposal_id + '/">Edit</a>'
+                                    } else if (vm.is_external){
+                                        return '<a href="/external/proposal/' + full.proposal_id + '/">Edit</a>'
+                                    }
                                 } else {
                                     return ''
                                 }

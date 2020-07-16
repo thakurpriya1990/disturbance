@@ -367,16 +367,16 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
                 filter_site_fee_type = Q(apiary_site_fee_type=ApiarySiteFeeType.objects.get(name=ApiarySiteFeeType.FEE_TYPE_APPLICATION))
                 filter_applicant = Q(applicant=proposal_apiary.proposal.applicant)
                 filter_proxy_applicant = Q(proxy_applicant=proposal_apiary.proposal.proxy_applicant)
-                filter_expiry = Q(date_expiry__gte=today_local)
+                # filter_expiry = Q(date_expiry__gte=today_local)
                 filter_used = Q(date_used__isnull=True)
                 site_fee_remainders = ApiarySiteFeeRemainder.objects.filter(
                     filter_site_category &
                     filter_site_fee_type &
                     filter_applicant &
                     filter_proxy_applicant &
-                    filter_expiry &
+                    # filter_expiry &
                     filter_used
-                ).order_by('date_expiry')  # Older comes earlier
+                ).order_by('datetime_created')  # Older comes earlier
 
                 # Retrieve current fee
                 site_category = SiteCategory.objects.get(name=category[0])
@@ -504,7 +504,8 @@ class TemporaryUseApiarySiteSerializer(serializers.ModelSerializer):
 
 
 class ProposalApiaryTemporaryUseSerializer(serializers.ModelSerializer):
-    proposal_id = serializers.IntegerField(write_only=True, required=False)
+    # proposal_id = serializers.IntegerField(write_only=True, required=False)
+    proposal_id = serializers.IntegerField(required=False)
     # loaning_approval_id = serializers.IntegerField(write_only=True, required=False)
     loaning_approval_id = serializers.IntegerField(required=False)
     temporary_use_apiary_sites = TemporaryUseApiarySiteSerializer(read_only=True, many=True)
@@ -791,7 +792,8 @@ class ApiaryInternalProposalSerializer(BaseProposalSerializer):
     # apiary_applicant_checklist = ApiaryApplicantChecklistAnswerSerializer(many=True)
     applicant_checklist = serializers.SerializerMethodField()
     apiary_group_application_type = serializers.SerializerMethodField()
-    approval = ApiaryInternalApprovalSerializer()
+    # approval = ApiaryInternalApprovalSerializer()
+    approval = serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
@@ -868,6 +870,14 @@ class ApiaryInternalProposalSerializer(BaseProposalSerializer):
                 'approval',
                 )
         read_only_fields=('documents','requirements')
+
+    def get_approval(self, proposal):
+        ret_appr = None
+        if hasattr(proposal, 'proposal_apiary') and proposal.proposal_apiary:
+            appr = proposal.proposal_apiary.retrieve_approval
+            if appr:
+                 ret_appr = ApiaryInternalApprovalSerializer(appr).data
+        return ret_appr
 
     def get_apiary_group_application_type(self, obj):
         return obj.apiary_group_application_type
