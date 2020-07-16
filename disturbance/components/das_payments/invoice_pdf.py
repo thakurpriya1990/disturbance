@@ -64,6 +64,7 @@ styles.add(ParagraphStyle(name='Left', alignment=enums.TA_LEFT))
 styles.add(ParagraphStyle(name='Right', alignment=enums.TA_RIGHT))
 styles.add(ParagraphStyle(name='LongString', alignment=enums.TA_LEFT,wordWrap='CJK'))
 
+
 class BrokenLine(Flowable):
 
     def __init__(self, width,height=0):
@@ -77,6 +78,7 @@ class BrokenLine(Flowable):
     def draw(self):
         self.canv.setDash(3,3)
         self.canv.line(0, self.height,self.width,self.height)
+
 
 class Remittance(Flowable):
     def __init__(self, current_x, current_y, proposal, invoice):
@@ -181,11 +183,11 @@ class Remittance(Flowable):
             self.__payment_line()
         self.__footer_line()
 
+
 #def _set_template_group(mooring_var):
 
 
 #def get_template_group(mooring_var):
-
 
 
 def _create_header(canvas, doc, draw_page_number=True):
@@ -210,7 +212,7 @@ def _create_header(canvas, doc, draw_page_number=True):
     current_y -= 10
 
     invoice = doc.invoice
-    proposal = doc.proposal
+    proposal = doc.proposal if hasattr(doc, 'proposal') else None
     #bi = proposal.bookings.filter(invoices__invoice_reference=invoice.reference)
     #licence_number = proposal.approval.lodgement_number if proposal.approval else None
 
@@ -247,9 +249,11 @@ def _create_header(canvas, doc, draw_page_number=True):
 
     canvas.restoreState()
 
+
 def _is_gst_exempt(proposal, invoice):
     # TODO need to fix, since individual parks can be exempt, Below calculation assumes NO PARK IS exempt
     return proposal.application_type.is_gst_exempt if proposal and proposal.fee_invoice_reference == invoice.reference else False
+
 
 def _create_invoice(invoice_buffer, invoice, proposal):
 
@@ -360,6 +364,7 @@ def _create_invoice(invoice_buffer, invoice, proposal):
 
     return invoice_buffer
 
+
 def create_invoice_pdf_bytes(filename, invoice, proposal):
     invoice_buffer = BytesIO()
     _create_invoice(invoice_buffer, invoice, proposal)
@@ -370,4 +375,102 @@ def create_invoice_pdf_bytes(filename, invoice, proposal):
 
     return value
 
+
+def create_annual_rental_fee_invoice(invoice_buffer, approval, invoice):
+    global DPAW_HEADER_LOGO
+    DPAW_HEADER_LOGO = os.path.join(settings.PROJECT_DIR, 'payments','static', 'payments', 'img','dbca_logo.jpg')
+    every_page_frame = Frame(PAGE_MARGIN, PAGE_MARGIN + 250, PAGE_WIDTH - 2 * PAGE_MARGIN, PAGE_HEIGHT -450 , id='EveryPagesFrame',showBoundary=0)
+    remit_frame = Frame(PAGE_MARGIN, PAGE_MARGIN, PAGE_WIDTH - 2 * PAGE_MARGIN, PAGE_HEIGHT - 600, id='RemitFrame',showBoundary=0)
+    every_page_template = PageTemplate(id='EveryPages', frames=[every_page_frame,remit_frame], onPage=_create_header)
+    doc = BaseDocTemplate(invoice_buffer, pageTemplates=[every_page_template], pagesize=A4)
+
+    # this is the only way to get data into the onPage callback function
+    doc.invoice = invoice
+    # doc.proposal = proposal
+    owner = invoice.owner
+
+    elements = []
+    #elements.append(Spacer(1, SECTION_BUFFER_HEIGHT * 5))
+
+    # Draw Products Table
+    invoice_table_style = TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('GRID',(0, 0), (-1, -1),1, colors.black),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT')
+    ])
+    items = invoice.order.lines.all()
+    discounts = invoice.order.basket_discounts
+    if invoice.text:
+        elements.append(Paragraph(invoice.text, styles['Left']))
+        elements.append(Spacer(1, SECTION_BUFFER_HEIGHT * 2))
+    data = [
+        ['Item','Product', 'Quantity','Unit Price', 'Total']
+    ]
+    val = 1
+    s = styles["BodyText"]
+    s.wordWrap = 'CJK'
+
+    for item in items:
+        data.append(
+            [
+                val,
+                Paragraph(item.description, s),
+                item.quantity,
+                currency(item.unit_price_incl_tax),
+                currency(item.line_price_before_discounts_incl_tax)
+            ]
+        )
+        val += 1
+    # Discounts
+    data.append(
+        [
+            '',
+            '',
+            '',
+            ''
+        ]
+    )
+    for discount in discounts:
+        data.append(
+            [
+                '',
+                discount.offer,
+                '',
+                '',
+                '-${}'.format(discount.amount)
+            ]
+        )
+        val += 1
+    t= Table(
+        data,
+        style=invoice_table_style,
+        hAlign='LEFT',
+        colWidths=(
+            0.7 * inch,
+            None,
+            0.7 * inch,
+            1.0 * inch,
+            1.0 * inch,
+        )
+    )
+    elements.append(t)
+    elements.append(Spacer(1, SECTION_BUFFER_HEIGHT * 2))
+    # /Products Table
+    if invoice.payment_status != 'paid' and invoice.payment_status != 'over_paid':
+        elements.append(Paragraph(settings.INVOICE_UNPAID_WARNING, styles['Left']))
+
+    elements.append(Spacer(1, SECTION_BUFFER_HEIGHT * 6))
+
+    # Remitttance Frame
+    elements.append(FrameBreak())
+    boundary = BrokenLine(PAGE_WIDTH - 2 * (PAGE_MARGIN *1.1))
+    elements.append(boundary)
+    elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+
+    # remittance = Remittance(HEADER_MARGIN,HEADER_MARGIN - 10, proposal, invoice)
+    # elements.append(remittance)
+    #_create_remittance(invoice_buffer,doc)
+    doc.build(elements)
+
+    return invoice_buffer
 

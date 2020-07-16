@@ -365,7 +365,7 @@ class ApplicationFeeSuccessView(TemplateView):
         for item in db_operations['site_remainder_to_be_added']:
             apiary_site_fee_type = ApiarySiteFeeType.objects.get(name=item['apiary_site_fee_type_name'])
             site_category = SiteCategory.objects.get(id=item['site_category_id'])
-            date_expiry = datetime.strptime(item['date_expiry'], '%Y-%m-%d')
+            # date_expiry = datetime.strptime(item['date_expiry'], '%Y-%m-%d')
             applicant = Organisation.objects.get(id=item['applicant_id']) if item['applicant_id'] else None
             proxy_applicant = EmailUser.objects.get(id=item['proxy_applicant_id']) if item[
                 'proxy_applicant_id'] else None
@@ -375,7 +375,7 @@ class ApplicationFeeSuccessView(TemplateView):
                 apiary_site_fee_type=apiary_site_fee_type,
                 applicant=applicant,
                 proxy_applicant=proxy_applicant,
-                date_expiry=date_expiry,
+                # date_expiry=date_expiry,
             )
 
 

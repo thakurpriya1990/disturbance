@@ -161,7 +161,11 @@
                             // Site
                             visible: vm.show_col_site,
                             mRender: function (data, type, apiary_site) {
-                                return 'site:' + apiary_site.id
+                                let fillColour = vm.getFillColour(apiary_site.status)
+                                let strokeColour = vm.getStrokeColour(apiary_site.status)
+                                return '<svg height="20" width="20">' + 
+                                            '<circle cx="10" cy="10" r="6" stroke="' + strokeColour + '" stroke-width="2" fill="' + fillColour + '" />' + 
+                                       '</svg> site: ' + apiary_site.id
                             }
                         },
                         {
@@ -189,7 +193,7 @@
                             // Status
                             visible: vm.show_col_status,
                             mRender: function (data, type, apiary_site){
-                                return 'status'
+                                return apiary_site.status
                             }
                         },
                         {
@@ -214,7 +218,7 @@
                                 if (vm.show_action_available_unavailable){
                                     // Mark as Available/Unavailable
                                     let display_text = ''
-                                    if (vm.is_external){
+                                    if (vm.is_external && ['Current', 'current'].includes(apiary_site.status)){
                                         if (apiary_site.available){
                                             display_text = 'Mark as unavailable';
                                         } else {
@@ -223,7 +227,7 @@
                                         let ret = '<a><span class="toggle_availability" data-apiary-site-id="' + apiary_site.id + 
                                             '" data-apiary-site-available="' + apiary_site.available + '"/>' + display_text + '</span></a>';
                                         action_list.push(ret);
-                                    } else if (vm.is_internal){
+                                    } else if (vm.is_internal && ['Current', 'current'].includes(apiary_site.status)){
                                         if (apiary_site.available){
                                             display_text = 'Available';
                                         } else {
@@ -260,6 +264,43 @@
 
         },
         methods: {
+            getFillColour: function(status){
+                switch(status){
+                    case 'draft':
+                        return '#e0e0e0'
+                    case 'pending':
+                        return '#fff59d'
+                    case 'current':
+                        return '#bbdefb'
+                    case 'suspended':
+                        return '#ffcc80'
+                    case 'not_to_be_reissued':
+                        return '#d1c4e9'
+                    case 'denied':
+                        return '#ffcdd2'
+                    case 'vacant':
+                        return '#7fcac3'
+                }
+            },
+            // This function is not used
+            getStrokeColour: function(status){
+                switch(status){
+                    case 'draft':
+                        return '#616161'
+                    case 'pending':
+                        return '#ffeb3b'
+                    case 'current':
+                        return '#1a76d2'
+                    case 'suspended':
+                        return '#f57c01'
+                    case 'not_to_be_reissued':
+                        return '#512da8'
+                    case 'denied':
+                        return '#d2302f'
+                    case 'vacant':
+                        return '#00796b'
+                }
+            },
             ensureCheckedStatus: function() {
                 console.log('in ensureCheckedStatus')
                 if (this.apiary_sites.length > 0){

@@ -144,8 +144,10 @@
         computed:{
             is_checkbox_enabled: function() {
                 let enabled = false
-                if(this.is_internal && (this.customer_status == 'Draft' || this.customer_status == 'draft')){
-                    enabled = true
+                if(this.is_external){
+                    if(['Draft', 'draft'].includes(this.customer_status)){
+                        enabled = true
+                    }
                 }
                 return enabled
             }
