@@ -55,6 +55,9 @@
                                     <i style='color:red;' class='fa fa-file-pdf-o'></i> Invoice
                                 </a>
                                 <strong>Status: {{ annual_rental_fee.payment_status }}</strong>
+                                <template v-if="annual_rental_fee.payment_status === 'unpaid'">
+                                    <a href="#">Pay (TODO: implement)</a>
+                                </template>
                             </div>
                         </template>
                     </template>
