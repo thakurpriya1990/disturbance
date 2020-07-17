@@ -284,7 +284,6 @@
                                 </div>
                             </FormSection>
 
-                            <!--
                             <div v-if="proposal">
                                 <SectionsProposalTemporaryUse 
                                     :proposal="proposal"
@@ -292,7 +291,6 @@
                                     :is_external="false"
                                 />
                             </div>
-                            -->
 
                         </div>
                     </div>
@@ -334,7 +332,7 @@ import CommsLogs from '@common-utils/comms_logs.vue'
 import ApiaryReferralsForProposal from '@common-utils/apiary/apiary_referrals_for_proposal.vue'
 import ResponsiveDatatablesHelper from "@/utils/responsive_datatable_helper.js"
 import { api_endpoints, helpers } from '@/utils/hooks'
-//import SectionsProposalTemporaryUse from '@/components/common/apiary/sections_proposal_temporary_use.vue'
+import SectionsProposalTemporaryUse from '@/components/common/apiary/sections_proposal_temporary_use.vue'
 import FormSection from "@/components/forms/section_toggle.vue"
 import ApprovalScreenSiteTransferTemporaryUse from './proposal_approval_site_transfer_temporary_use.vue'
 
@@ -424,7 +422,7 @@ export default {
         ApiaryReferralsForProposal,
         NewApply,
         FormSection,
-        //SectionsProposalTemporaryUse,
+        SectionsProposalTemporaryUse,
     },
     filters: {
         formatDate: function(data){
