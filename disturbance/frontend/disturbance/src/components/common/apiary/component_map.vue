@@ -104,18 +104,6 @@
                     vm.map.updateSize();
                 }, 50)
             },
-            drawStyle: function(feature, resolution){
-                return this.getStyle(feature.get('status'), feature.get('checked'))
-                //let fillObj = this.getFillColour(feature.get('status'))
-                //let strokeObj = this.getStrokeColour(feature.get('status'), feature.get('checked'))
-                //return new Style({
-                //            image: new CircleStyle({
-                //                radius: 7,
-                //                fill: fillObj,
-                //                stroke: strokeObj,
-                //            })
-                //        })
-            },
             getStyle: function(status, checked){
                 let fillObj = this.getFillColour(status)
                 let strokeObj = this.getStrokeColour(status, checked)
@@ -150,7 +138,10 @@
                 });
                 vm.apiarySitesQueryLayer = new VectorLayer({
                     source: vm.apiarySitesQuerySource,
-                    style: this.drawStyle
+                    //style: this.drawStyle
+                    style: function(feature, resolution){
+                        return vm.getStyle(feature.get('status'), feature.get('checked'))
+                    },
                 });
                 vm.map.addLayer(vm.apiarySitesQueryLayer);
 
@@ -215,15 +206,8 @@
                 }
             },
             addApiarySite: function(apiary_site_geojson) {
-                console.log('in addApiarySite')
-                console.log(apiary_site_geojson)
-                
                 let feature = (new GeoJSON()).readFeature(apiary_site_geojson)
                 let status = feature.get('status')
-                let checked_status = apiary_site_geojson.properties.hasOwnProperty('checked') ? apiary_site_geojson.properties.checked : false
-                console.log(checked_status)
-                //let style_applied = checked_status ? this.style_checked : this.style_not_checked
-                //feature.setStyle(style_applied)
                 this.apiarySitesQuerySource.addFeature(feature)
             },
             zoomToApiarySiteById: function(apiary_site_id){
