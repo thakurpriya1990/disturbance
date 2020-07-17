@@ -472,7 +472,7 @@ class IntegrationTests(APITestSetup):
         self.assertEqual(site_transfer_propose_to_approve_response.status_code, 200)
 
         # Final approval with unchanged data
-        #import ipdb; ipdb.set_trace()
+        import ipdb; ipdb.set_trace()
         site_transfer_final_approval_data = site_transfer_propose_to_approve_data
         site_transfer_final_approval_response = self.client.post(
                 '/api/proposal_apiary/{}/final_approval/'.format(site_transfer_proposal_id),
@@ -492,6 +492,8 @@ class IntegrationTests(APITestSetup):
         print("APPROVAL SITES customer 1")
         for approval_site in ApiarySite.objects.filter(approval=customer1_approval):
             print(approval_site)
+        print(customer1_approval.current_proposal)
+        print(customer1_approval.current_proposal.application_type.name)
 
         self.assertEqual(len(ApiarySite.objects.filter(approval=customer1_approval)), 2)
 
@@ -503,6 +505,8 @@ class IntegrationTests(APITestSetup):
         print("APPROVAL SITES customer 2")
         for approval_site in ApiarySite.objects.filter(approval=customer2_approval):
             print(approval_site)
+        print(customer2_approval.current_proposal)
+        print(customer2_approval.current_proposal.application_type.name)
 
         self.assertEqual(len(ApiarySite.objects.filter(approval=customer2_approval)), 4)
 
