@@ -2499,15 +2499,6 @@ class ProposalApiary(models.Model):
                                     }
                                 )
                             else:
-
-                                ## There is an existing approval already.  Attach new site(s) to the existing approval
-                                ## approval.issue_date = timezone.now()
-                                ## approval.expiry_date = details.get('expiry_date')
-                                ## approval.start_date = details.get('start_date')
-                                #approval.applicant = self.proposal.applicant
-                                #approval.proxy_applicant = self.proposal.proxy_applicant
-                                #approval.apiary_approval = self.proposal.apiary_group_application_type
-
                                 approval.issue_date = timezone.now()
                                 # retain original expiry and start dates
                                 #approval.expiry_date = details.get('expiry_date')
@@ -2516,7 +2507,9 @@ class ProposalApiary(models.Model):
                                 #approval.proxy_applicant = self.proposal.proxy_applicant
                                 #approval.apiary_approval = self.proposal.apiary_group_application_type
                                 # ensure current_proposal is updated with this proposal
-                                current_proposal = checking_proposal
+                                if self.proposal.application_type.name != ApplicationType.SITE_TRANSFER:
+                                    approval.current_proposal = checking_proposal
+                                approval.save()
 
 
                         # Get apiary sites from proposal
