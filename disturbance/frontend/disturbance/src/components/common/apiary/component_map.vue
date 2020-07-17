@@ -166,7 +166,6 @@
             getDegrees: function(coords){
                 return coords[0].toFixed(6) + ', ' + coords[1].toFixed(6);
             },
-            // This function is not used
             getFillColour: function(status){
                 switch(status){
                     case 'draft':
@@ -185,7 +184,6 @@
                         return new Fill({color: '#7fcac3'})
                 }
             },
-            // This function is not used
             getStrokeColour: function(status, selected=false){
                 let stroke_width = selected ? 4 : 2
                 switch(status){

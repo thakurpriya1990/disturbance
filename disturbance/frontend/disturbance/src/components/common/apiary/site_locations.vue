@@ -177,7 +177,7 @@
 
                 dtHeaders: [
                     'Id',
-                    'Guid',
+                    //'Guid',
                     'Latitude',
                     'Longitude',
                     'Action',
@@ -209,16 +209,16 @@
                                 }
                             }
                         },
-                        {
-                            mRender: function (data, type, full) {
-                                if (full.getId()) {
-                                    //return full.site_guid;
-                                    return full.getId();
-                                } else {
-                                    return '';
-                                }
-                            }
-                        },
+                        //{
+                        //    mRender: function (data, type, full) {
+                        //        if (full.getId()) {
+                        //            //return full.site_guid;
+                        //            return full.getId();
+                        //        } else {
+                        //            return '';
+                        //        }
+                        //    }
+                        //},
                         {
                             mRender: function (data, type, full) {
                                 let coords = full.getGeometry().getCoordinates()
