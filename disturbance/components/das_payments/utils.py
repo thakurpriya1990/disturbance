@@ -377,11 +377,16 @@ def calculate_total_annual_rental_fee(approval, period, sites_charged):
     # sites_charged = approval.apiary_sites.filter(status=ApiarySite.STATUS_CURRENT)
     num_of_days_in_period = period[1] - (period[0] - timedelta(days=1))  # period[0] is the start date.  (period[0] - timedelta(days=1)) means the previous date of the start date
 
-    # Calculate the number of days charged
+    # Calculate charge start date
     charge_start_date = approval.no_annual_rental_fee_until + timedelta(days=1) \
         if approval.no_annual_rental_fee_until and period[0] < (approval.no_annual_rental_fee_until + timedelta(days=1)) \
         else period[0]
+    charge_start_date = charge_start_date if approval.start_date < charge_start_date else approval.start_date
+
+    # Calculate charge end date
     charge_end_date = period[1] if period[1] <= approval.expiry_date else approval.expiry_date
+
+    # Calculate the number of days to be charged
     num_of_days_charged = charge_end_date - (charge_start_date - timedelta(days=1))
 
     # Calculate the total amount
