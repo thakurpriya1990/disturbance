@@ -38,7 +38,7 @@ def check_db_connection():
     try:
         if not connection.is_usable():
             connection.connect()
-    except Exception, e:
+    except Exception as e:
         connection.connect()
 
 

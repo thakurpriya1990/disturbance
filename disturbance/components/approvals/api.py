@@ -30,7 +30,7 @@ from datetime import datetime, timedelta, date
 from django.urls import reverse
 from django.shortcuts import render, redirect, get_object_or_404
 from disturbance.components.approvals.models import (
-    Approval
+    Approval, ApprovalUserAction
 )
 from disturbance.components.approvals.serializers import (
     ApprovalSerializer,
@@ -43,8 +43,14 @@ from disturbance.components.approvals.serializers import (
 )
 from disturbance.components.main.decorators import basic_exception_handler
 from disturbance.components.proposals.models import ApiarySite, OnSiteInformation
-from disturbance.components.proposals.serializers_apiary import ApiarySiteSerializer, OnSiteInformationSerializer, \
-    ApiarySiteOptimisedSerializer, ProposalApiaryTemporaryUseSerializer, ApiarySiteGeojsonSerializer
+from disturbance.components.proposals.serializers_apiary import (
+        ApiarySiteSerializer, 
+        OnSiteInformationSerializer,
+        ApiarySiteOptimisedSerializer, 
+        ProposalApiaryTemporaryUseSerializer, 
+        ApiarySiteGeojsonSerializer,
+        ApiaryProposalRequirementSerializer,
+        )
 from disturbance.helpers import is_customer, is_internal
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 from disturbance.components.proposals.api import ProposalFilterBackend, ProposalRenderer
@@ -256,6 +262,20 @@ class ApprovalViewSet(viewsets.ModelViewSet):
         serializer = ProposalApiaryTemporaryUseSerializer(qs, many=True)
         return Response(serializer.data)
 
+    @detail_route(methods=['POST',])
+    @basic_exception_handler
+    def no_charge_until_date(self, request, *args, **kwargs):
+        instance = self.get_object()
+        until_date = request.data.get('until_date', None)
+        if until_date:
+            instance.no_annual_rental_fee_until = datetime.strptime(until_date, '%d/%m/%Y').date()
+        else:
+            instance.no_annual_rental_fee_until = ''
+        instance.save()
+        instance.log_user_action(ApprovalUserAction.ACTION_UPDATE_NO_CHARGE_DATE_UNTIL.format(instance.no_annual_rental_fee_until.strftime('%d/%m/%Y'), instance.id), request)
+
+        return Response({})
+
     @detail_route(methods=['GET',])
     @basic_exception_handler
     def apiary_site(self, request, *args, **kwargs):
@@ -450,3 +470,26 @@ class ApprovalViewSet(viewsets.ModelViewSet):
         #    qs = qs.filter(first_name__contains=search_term)
 
         return Response(list(data))
+
+    @detail_route(methods=['GET',])
+    def requirements(self, request, *args, **kwargs):
+        try:
+            approval = self.get_object()
+            requirements = []
+            for proposal in approval.proposal_set.all():
+                for requirement in proposal.requirements.all():
+                    requirements.append(ApiaryProposalRequirementSerializer(requirement).data)
+            #return requirements
+            #qs = instance.requirements.all().exclude(is_deleted=True)
+            #serializer = ApiaryProposalRequirementSerializer(qs,many=True)
+            return Response(requirements)
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+

@@ -25,6 +25,10 @@ from ledger.accounts.models import EmailUser, RevisionedMixin
 from ledger.licence.models import  Licence
 from ledger.payments.models import Invoice
 from disturbance import exceptions
+# from disturbance.components.das_payments.models import AnnualRentalFeePeriod
+# from disturbance.components.approvals.email import send_annual_rental_fee_invoice
+# from disturbance.components.das_payments.models import AnnualRentalFee, AnnualRentalFeeApiarySite
+# from disturbance.components.das_payments.utils import create_other_invoice_for_annual_rental_fee
 from disturbance.components.organisations.models import Organisation
 from disturbance.components.main.models import CommunicationsLogEntry, UserAction, Document, Region, District, Tenure, ApplicationType
 from disturbance.components.main.utils import get_department_user
@@ -43,6 +47,7 @@ from disturbance.components.proposals.email import (
         send_proposal_approver_sendback_email_notification, 
         send_referral_recall_email_notification
         )
+# from disturbance.management.commands.send_annual_rental_fee_invoice import get_annual_rental_fee_period
 from disturbance.ordered_model import OrderedModel
 import copy
 import subprocess
@@ -1758,6 +1763,44 @@ class ProposalStandardRequirement(RevisionedMixin):
     class Meta:
         app_label = 'disturbance'
 
+
+#class ReferralRecipientGroup(models.Model):
+class ApiaryReferralGroup(models.Model):
+    #site = models.OneToOneField(Site, default='1')
+    name = models.CharField(max_length=30, unique=True)
+    members = models.ManyToManyField(EmailUser)
+
+    def __str__(self):
+        #return 'Referral Recipient Group'
+        return self.name
+
+    @property
+    def all_members(self):
+        all_members = []
+        all_members.extend(self.members.all())
+        member_ids = [m.id for m in self.members.all()]
+        #all_members.extend(EmailUser.objects.filter(is_superuser=True,is_staff=True,is_active=True).exclude(id__in=member_ids))
+        return all_members
+
+    @property
+    def filtered_members(self):
+        return self.members.all()
+
+    @property
+    def members_list(self):
+            return list(self.members.all().values_list('email', flat=True))
+
+    @property
+    def members_email(self):
+        return [i.email for i in self.members.all()]
+
+
+    class Meta:
+        app_label = 'disturbance'
+        verbose_name = "Apiary Referral Group"
+        verbose_name_plural = "Apiary Referral groups"
+
+
 class ProposalRequirement(OrderedModel):
     RECURRENCE_PATTERNS = [(1, 'Weekly'), (2, 'Monthly'), (3, 'Yearly')]
     standard_requirement = models.ForeignKey(ProposalStandardRequirement,null=True,blank=True)
@@ -1771,6 +1814,8 @@ class ProposalRequirement(OrderedModel):
     copied_from = models.ForeignKey('self', on_delete=models.SET_NULL, blank=True, null=True)
     is_deleted = models.BooleanField(default=False)
     #order = models.IntegerField(default=1)
+    # referral_group is no longer required for Apiary
+    referral_group = models.ForeignKey(ApiaryReferralGroup,null=True,blank=True,related_name='apiary_requirement_referral_groups')
 
     class Meta:
         app_label = 'disturbance'
@@ -1779,6 +1824,24 @@ class ProposalRequirement(OrderedModel):
     @property
     def requirement(self):
         return self.standard_requirement.text if self.standard else self.free_requirement
+
+# no longer required for Apiary
+#class RequirementDocument(Document):
+#    #requirement = models.ForeignKey('ProposalRequirement',related_name='requirement_documents')
+#    requirement = models.ForeignKey('ProposalRequirement',related_name='documents')
+#    #_file = models.FileField(upload_to=update_requirement_doc_filename, max_length=512)
+#    _file = models.FileField(max_length=512)
+#    input_name = models.CharField(max_length=255,null=True,blank=True)
+#    can_delete = models.BooleanField(default=True) # after initial submit prevent document from being deleted
+#    visible = models.BooleanField(default=True) # to prevent deletion on file system, hidden and still be available in history
+#
+#    def delete(self):
+#        if self.can_delete:
+#            return super(RequirementDocument, self).delete()
+#
+#    class Meta:
+#        app_label = 'disturbance'
+
 
 class ProposalUserAction(UserAction):
     ACTION_CREATE_CUSTOMER_ = "Create customer {}"
@@ -2192,7 +2255,7 @@ class ProposalApiary(models.Model):
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     # required for Site Transfer applications
     transferee = models.ForeignKey(EmailUser, blank=True, null=True, related_name='apiary_transferee')
-    sending_approval = models.ForeignKey('disturbance.Approval', blank=True, null=True)
+    originating_approval = models.ForeignKey('disturbance.Approval', blank=True, null=True)
     ###
 
     # @property
@@ -2418,7 +2481,8 @@ class ProposalApiary(models.Model):
                             approval.apiary_approval = self.proposal.apiary_group_application_type
                         else:
                             if not approval:
-                                approval,created = Approval.objects.update_or_create(
+                                # There are no existing approvals.  Create a new one.
+                                approval, created = Approval.objects.update_or_create(
                                     current_proposal = checking_proposal,
                                     defaults = {
                                     #'activity' : self.activity,
@@ -2435,12 +2499,25 @@ class ProposalApiary(models.Model):
                                     }
                                 )
                             else:
+
+                                ## There is an existing approval already.  Attach new site(s) to the existing approval
+                                ## approval.issue_date = timezone.now()
+                                ## approval.expiry_date = details.get('expiry_date')
+                                ## approval.start_date = details.get('start_date')
+                                #approval.applicant = self.proposal.applicant
+                                #approval.proxy_applicant = self.proposal.proxy_applicant
+                                #approval.apiary_approval = self.proposal.apiary_group_application_type
+
                                 approval.issue_date = timezone.now()
-                                approval.expiry_date = details.get('expiry_date')
-                                approval.start_date = details.get('start_date')
-                                approval.applicant = self.proposal.applicant
-                                approval.proxy_applicant = self.proposal.proxy_applicant
-                                approval.apiary_approval = self.proposal.apiary_group_application_type
+                                # retain original expiry and start dates
+                                #approval.expiry_date = details.get('expiry_date')
+                                #approval.start_date = details.get('start_date')
+                                #approval.applicant = self.proposal.applicant
+                                #approval.proxy_applicant = self.proposal.proxy_applicant
+                                #approval.apiary_approval = self.proposal.apiary_group_application_type
+                                # ensure current_proposal is updated with this proposal
+                                current_proposal = checking_proposal
+
 
                         # Get apiary sites from proposal
                         #if self.proposal.application_type == ApplicationType.APIARY:
@@ -2473,20 +2550,56 @@ class ProposalApiary(models.Model):
                         else:
                             count_approved_site = 0
                             sites_approved = request.data.get('apiary_sites', [])
-                            for my_site in sites_approved:
-                                a_site = ApiarySite.objects.get(id=my_site['id'])
-                                if my_site['checked']:
-                                    a_site.approval = approval
-                                    a_site.status = ApiarySite.STATUS_CURRENT
-                                    a_site.workflow_selected_status = True
-                                    count_approved_site += 1
-                                else:
-                                    a_site.status = ApiarySite.STATUS_DENIED
-                                    a_site.workflow_selected_status = False
-                                a_site.save()
-
+                            sites_approved = [site for site in sites_approved if site['checked']]
+                            count_approved_site = self.update_apiary_sites(approval, sites_approved)
                             if count_approved_site == 0:
                                 raise ValidationError("There must be at least one apiary site to approve")
+
+                            # TODO: Generate an invoice for the annual rental fee for the sites added newly
+
+                            # Check the current annual rental fee period
+                            # Determine the start and end date of the annual rental fee, for which the invoices should be issued
+                            today_now_local = datetime.datetime.now(pytz.timezone(TIME_ZONE))
+                            today_date_local = today_now_local.date()
+                            from disturbance.management.commands.send_annual_rental_fee_invoice import get_annual_rental_fee_period
+                            period_start_date, period_end_date = get_annual_rental_fee_period(today_date_local)
+
+                            # Retrieve annual rental fee period object for the period calculated above
+                            # This period should not overwrap the existings, otherwise you will need a refund
+                            from disturbance.components.das_payments.models import AnnualRentalFeePeriod
+                            annual_rental_fee_period, created = AnnualRentalFeePeriod.objects.get_or_create(period_start_date=period_start_date, period_end_date=period_end_date)
+
+                            from disturbance.components.das_payments.utils import \
+                                create_other_invoice_for_annual_rental_fee
+                            invoice, details_dict = create_other_invoice_for_annual_rental_fee(approval, today_now_local, (period_start_date, period_end_date), sites_approved)
+
+                            from disturbance.components.das_payments.models import AnnualRentalFee
+                            annual_rental_fee = AnnualRentalFee.objects.create(
+                                approval=approval,
+                                annual_rental_fee_period=annual_rental_fee_period,
+                                invoice_reference=invoice.reference,
+                                invoice_period_start_date=details_dict['charge_start_date'],
+                                invoice_period_end_date=details_dict['charge_end_date'],
+                            )
+
+                            # Store the apiary sites which the invoice created above has been issued for
+                            for site in sites_approved:
+                                apiary_site = ApiarySite.objects.get(id=site['id'])
+                                from disturbance.components.das_payments.models import AnnualRentalFeeApiarySite
+                                annual_rental_fee_apiary_site = AnnualRentalFeeApiarySite(apiary_site=apiary_site, annual_rental_fee=annual_rental_fee)
+                                annual_rental_fee_apiary_site.save()
+
+                            # TODO: Attach the invoice and send emails
+                            #   update invoice_sent attribute of the annual_rental_fee obj?
+                            from disturbance.components.approvals.email import send_annual_rental_fee_invoice
+                            email_data = send_annual_rental_fee_invoice(approval, invoice)
+
+                            # TODO: communication log
+                            # if email_data:
+                            #     email_data['sanction_outcome'] = instance.id
+                            #     serializer = SanctionOutcomeCommsLogEntrySerializer(instance=workflow_entry, data=email_data, partial=True)
+                            #     serializer.is_valid(raise_exception=True)
+                            #     serializer.save()
 
                         #print approval,approval.id, created
                     # Generate compliances
@@ -2547,6 +2660,20 @@ class ProposalApiary(models.Model):
             except:
                 raise
 
+    def update_apiary_sites(self, approval, sites_approved):
+        count_approved_site = 0
+        for my_site in sites_approved:
+            a_site = ApiarySite.objects.get(id=my_site['id'])
+            if my_site['checked']:
+                a_site.approval = approval
+                a_site.status = ApiarySite.STATUS_CURRENT
+                a_site.workflow_selected_status = True
+                count_approved_site += 1
+            else:
+                a_site.status = ApiarySite.STATUS_DENIED
+                a_site.workflow_selected_status = False
+            a_site.save()
+        return count_approved_site
 
 
 class SiteCategory(models.Model):
@@ -2991,43 +3118,6 @@ class ApiaryApproverGroup(models.Model):
     @property
     def members_email(self):
         return [i.email for i in self.members.all()]
-
-
-#class ReferralRecipientGroup(models.Model):
-class ApiaryReferralGroup(models.Model):
-    #site = models.OneToOneField(Site, default='1')
-    name = models.CharField(max_length=30, unique=True)
-    members = models.ManyToManyField(EmailUser)
-
-    def __str__(self):
-        #return 'Referral Recipient Group'
-        return self.name
-
-    @property
-    def all_members(self):
-        all_members = []
-        all_members.extend(self.members.all())
-        member_ids = [m.id for m in self.members.all()]
-        #all_members.extend(EmailUser.objects.filter(is_superuser=True,is_staff=True,is_active=True).exclude(id__in=member_ids))
-        return all_members
-
-    @property
-    def filtered_members(self):
-        return self.members.all()
-
-    @property
-    def members_list(self):
-            return list(self.members.all().values_list('email', flat=True))
-
-    @property
-    def members_email(self):
-        return [i.email for i in self.members.all()]
-
-
-    class Meta:
-        app_label = 'disturbance'
-        verbose_name = "Apiary Referral Group"
-        verbose_name_plural = "Apiary Referral groups"
 
 
 

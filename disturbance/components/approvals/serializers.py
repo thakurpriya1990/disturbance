@@ -15,7 +15,9 @@ from disturbance.components.main.serializers import CommunicationLogEntrySeriali
 from rest_framework import serializers
 
 from disturbance.components.proposals.serializers_apiary import (
-    ApplicantAddressSerializer, ApiarySiteSerializer,
+    ApplicantAddressSerializer, 
+    ApiarySiteSerializer,
+    ApiaryProposalRequirementSerializer,
 )
 
 
@@ -67,6 +69,7 @@ class ApprovalSerializer(serializers.ModelSerializer):
     annual_rental_fee_periods = serializers.SerializerMethodField()
     latest_apiary_licence_document = serializers.SerializerMethodField()
     apiary_licence_document_history = serializers.SerializerMethodField()
+    requirements = serializers.SerializerMethodField()
 
     class Meta:
         model = Approval
@@ -122,7 +125,8 @@ class ApprovalSerializer(serializers.ModelSerializer):
             'no_annual_rental_fee_until',
             'latest_apiary_licence_document',
             'apiary_licence_document_history',
-
+            'no_annual_rental_fee_until',
+            'requirements',
         )
         # the serverSide functionality of datatables is such that only columns that have field 'data' defined are requested from the serializer. We
         # also require the following additional fields for some of the mRender functions
@@ -154,6 +158,13 @@ class ApprovalSerializer(serializers.ModelSerializer):
             'apiary_approval',
             'latest_apiary_licence_document',
         )
+
+    def get_requirements(self, approval):
+        requirements = []
+        for proposal in approval.proposal_set.all():
+            for requirement in proposal.requirements.all():
+                requirements.append(ApiaryProposalRequirementSerializer(requirement).data)
+        return requirements
 
     def get_annual_rental_fee_periods(self, approval):
         annual_rental_fee_periods_qs = AnnualRentalFeePeriod.objects.filter(

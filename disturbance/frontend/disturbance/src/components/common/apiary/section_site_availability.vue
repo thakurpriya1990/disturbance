@@ -17,7 +17,7 @@
             :is_external="true"
             :key="component_site_selection_key"
             :show_col_checkbox="false"
-            :show_col_id="true"
+            :show_col_status="true"
         />
     </div>
 </template>
@@ -98,7 +98,7 @@
                     'activity': '',
                     'sub_activity1': '',
                     'application_type_str': 'site_transfer',
-                    'sending_approval_id': this.approval_id,
+                    'originating_approval_id': this.approval_id,
                     //'apiary_sites_minimal': this.apiary_sites_minimal,
                     //'approval_id': this.approval_id,
                 }

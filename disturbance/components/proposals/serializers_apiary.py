@@ -32,6 +32,7 @@ from disturbance.components.proposals.models import (
     ApiarySiteFeeType, 
     ApiarySiteFeeRemainder, 
     SiteCategory,
+    ProposalRequirement,
     )
 from disturbance.components.approvals.models import (
         Approval,
@@ -301,8 +302,8 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
     #checklist_questions = serializers.SerializerMethodField()
     checklist_answers = serializers.SerializerMethodField()
     site_remainders = serializers.SerializerMethodField()
-    sending_approval_lodgement_number = serializers.SerializerMethodField()
-    receiving_approval_lodgement_number = serializers.SerializerMethodField()
+    originating_approval_lodgement_number = serializers.SerializerMethodField()
+    target_approval_lodgement_number = serializers.SerializerMethodField()
     transferee_name = serializers.SerializerMethodField()
 
     class Meta:
@@ -320,9 +321,9 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
             #'checklist_questions',
             'checklist_answers',
             'site_remainders',
-            'sending_approval_id',
-            'sending_approval_lodgement_number',
-            'receiving_approval_lodgement_number',
+            'originating_approval_id',
+            'originating_approval_lodgement_number',
+            'target_approval_lodgement_number',
             'transferee_name',
         )
 
@@ -341,16 +342,16 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
             name = obj.proposal.approval.relevant_applicant_name
         return name
 
-    def get_receiving_approval_lodgement_number(self, obj):
+    def get_target_approval_lodgement_number(self, obj):
         lodgement_number = None
         if obj.proposal.approval:
             lodgement_number = obj.proposal.approval.lodgement_number
         return lodgement_number
 
-    def get_sending_approval_lodgement_number(self, obj):
+    def get_originating_approval_lodgement_number(self, obj):
         lodgement_number = None
-        if obj.sending_approval:
-            lodgement_number = obj.sending_approval.lodgement_number
+        if obj.originating_approval:
+            lodgement_number = obj.originating_approval.lodgement_number
         return lodgement_number
 
     def get_site_remainders(self, proposal_apiary):
@@ -367,16 +368,16 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
                 filter_site_fee_type = Q(apiary_site_fee_type=ApiarySiteFeeType.objects.get(name=ApiarySiteFeeType.FEE_TYPE_APPLICATION))
                 filter_applicant = Q(applicant=proposal_apiary.proposal.applicant)
                 filter_proxy_applicant = Q(proxy_applicant=proposal_apiary.proposal.proxy_applicant)
-                filter_expiry = Q(date_expiry__gte=today_local)
+                # filter_expiry = Q(date_expiry__gte=today_local)
                 filter_used = Q(date_used__isnull=True)
                 site_fee_remainders = ApiarySiteFeeRemainder.objects.filter(
                     filter_site_category &
                     filter_site_fee_type &
                     filter_applicant &
                     filter_proxy_applicant &
-                    filter_expiry &
+                    # filter_expiry &
                     filter_used
-                ).order_by('date_expiry')  # Older comes earlier
+                ).order_by('datetime_created')  # Older comes earlier
 
                 # Retrieve current fee
                 site_category = SiteCategory.objects.get(name=category[0])
@@ -429,7 +430,7 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
 class CreateProposalApiarySiteTransferSerializer(serializers.ModelSerializer):
     proposal_id = serializers.IntegerField(
             required=True, write_only=True, allow_null=False)
-    sending_approval_id = serializers.IntegerField(
+    originating_approval_id = serializers.IntegerField(
             required=True, write_only=True, allow_null=False)
 
     class Meta:
@@ -440,7 +441,7 @@ class CreateProposalApiarySiteTransferSerializer(serializers.ModelSerializer):
             'id',
             'title',
             'proposal_id',
-            'sending_approval_id',
+            'originating_approval_id',
             # 'location',
             #'apiary_sites',
             'longitude',
@@ -504,7 +505,8 @@ class TemporaryUseApiarySiteSerializer(serializers.ModelSerializer):
 
 
 class ProposalApiaryTemporaryUseSerializer(serializers.ModelSerializer):
-    proposal_id = serializers.IntegerField(write_only=True, required=False)
+    # proposal_id = serializers.IntegerField(write_only=True, required=False)
+    proposal_id = serializers.IntegerField(required=False)
     # loaning_approval_id = serializers.IntegerField(write_only=True, required=False)
     loaning_approval_id = serializers.IntegerField(required=False)
     temporary_use_apiary_sites = TemporaryUseApiarySiteSerializer(read_only=True, many=True)
@@ -791,7 +793,8 @@ class ApiaryInternalProposalSerializer(BaseProposalSerializer):
     # apiary_applicant_checklist = ApiaryApplicantChecklistAnswerSerializer(many=True)
     applicant_checklist = serializers.SerializerMethodField()
     apiary_group_application_type = serializers.SerializerMethodField()
-    approval = ApiaryInternalApprovalSerializer()
+    # approval = ApiaryInternalApprovalSerializer()
+    approval = serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
@@ -868,6 +871,14 @@ class ApiaryInternalProposalSerializer(BaseProposalSerializer):
                 'approval',
                 )
         read_only_fields=('documents','requirements')
+
+    def get_approval(self, proposal):
+        ret_appr = None
+        if hasattr(proposal, 'proposal_apiary') and proposal.proposal_apiary:
+            appr = proposal.proposal_apiary.retrieve_approval
+            if appr:
+                 ret_appr = ApiaryInternalApprovalSerializer(appr).data
+        return ret_appr
 
     def get_apiary_group_application_type(self, obj):
         return obj.apiary_group_application_type
@@ -1105,4 +1116,12 @@ class UserApiaryApprovalSerializer(serializers.ModelSerializer):
             multiple_approvals = True
 
         return {'approvals': approvals, 'multiple': multiple_approvals}
+
+
+class ApiaryProposalRequirementSerializer(serializers.ModelSerializer):
+    due_date = serializers.DateField(input_formats=['%d/%m/%Y'],required=False,allow_null=True)
+    class Meta:
+        model = ProposalRequirement
+        fields = ('id','due_date','free_requirement','standard_requirement','standard','order','proposal','recurrence','recurrence_schedule','recurrence_pattern','requirement','is_deleted','copied_from')
+        read_only_fields = ('order','requirement', 'copied_from')
 
