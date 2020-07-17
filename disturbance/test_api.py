@@ -472,7 +472,7 @@ class IntegrationTests(APITestSetup):
         self.assertEqual(site_transfer_propose_to_approve_response.status_code, 200)
 
         # Final approval with unchanged data
-        import ipdb; ipdb.set_trace()
+        #import ipdb; ipdb.set_trace()
         site_transfer_final_approval_data = site_transfer_propose_to_approve_data
         site_transfer_final_approval_response = self.client.post(
                 '/api/proposal_apiary/{}/final_approval/'.format(site_transfer_proposal_id),
