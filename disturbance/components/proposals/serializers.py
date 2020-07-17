@@ -81,6 +81,7 @@ class ListProposalSerializer(BaseProposalSerializer):
     #tenure = serializers.CharField(source='tenure.name', read_only=True)
     assessor_process = serializers.SerializerMethodField(read_only=True)
     relevant_applicant_name = serializers.SerializerMethodField(read_only=True)
+    apiary_group_application_type = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Proposal
@@ -117,6 +118,7 @@ class ListProposalSerializer(BaseProposalSerializer):
                 'fee_invoice_reference',
                 'fee_paid',
                 'relevant_applicant_name',
+                'apiary_group_application_type',
                 )
         # the serverSide functionality of datatables is such that only columns that have field 'data' defined are requested from the serializer. We
         # also require the following additional fields for some of the mRender functions
@@ -142,6 +144,7 @@ class ListProposalSerializer(BaseProposalSerializer):
                 'fee_paid',
                 'application_type',
                 'relevant_applicant_name',
+                'apiary_group_application_type',
                 )
     def get_relevant_applicant_name(self,obj):
         return obj.relevant_applicant_name
@@ -175,6 +178,9 @@ class ListProposalSerializer(BaseProposalSerializer):
                 return True
         return False
 
+    def get_apiary_group_application_type(self, obj):
+        return obj.apiary_group_application_type
+
 
 class ProposalSerializer(BaseProposalSerializer):
     submitter = serializers.CharField(source='submitter.get_full_name')
@@ -191,6 +197,7 @@ class ProposalSerializer(BaseProposalSerializer):
     proposal_apiary = serializers.SerializerMethodField()
     apiary_temporary_use = ProposalApiaryTemporaryUseSerializer(many=False, read_only=True)
     # apiary_temporary_use_set = ProposalApiaryTemporaryUseSerializer(many=True, read_only=True)
+    apiary_group_application_type = serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
@@ -198,6 +205,7 @@ class ProposalSerializer(BaseProposalSerializer):
             'comment_data',
             'proposal_apiary',
             'apiary_temporary_use',
+            'apiary_group_application_type',
             # 'apiary_temporary_use_set',
         )
 
@@ -213,6 +221,9 @@ class ProposalSerializer(BaseProposalSerializer):
             return ProposalApiarySerializer(pasl).data
         else:
             return ''
+
+    def get_apiary_group_application_type(self, obj):
+        return obj.apiary_group_application_type
 
 
 class SaveProposalSerializer(BaseProposalSerializer):
@@ -309,6 +320,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
     #region = serializers.CharField(source='region.name', read_only=True)
     #district = serializers.CharField(source='district.name', read_only=True)
     #tenure = serializers.CharField(source='tenure.name', read_only=True)
+    apiary_temporary_use = ProposalApiaryTemporaryUseSerializer(many=False, read_only=True)
 
     class Meta:
         model = Proposal
@@ -367,6 +379,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'management_area',
                 'fee_invoice_reference',
                 'fee_paid',
+                'apiary_temporary_use',
                 )
         read_only_fields=('documents','requirements')
 
@@ -521,11 +534,23 @@ class ProposalStandardRequirementSerializer(serializers.ModelSerializer):
         model = ProposalStandardRequirement
         fields = ('id','code','text')
 
+
 class ProposedApprovalSerializer(serializers.Serializer):
-    expiry_date = serializers.DateField(input_formats=['%d/%m/%Y'])
-    start_date = serializers.DateField(input_formats=['%d/%m/%Y'])
+    expiry_date = serializers.DateField(input_formats=['%d/%m/%Y'], required=False)
+    start_date = serializers.DateField(input_formats=['%d/%m/%Y'], required=False)
     details = serializers.CharField()
     cc_email = serializers.CharField(required=False,allow_null=True, allow_blank=True)
+
+    def validate(self, attrs):
+        return attrs
+
+
+class ProposedApprovalSiteTransferSerializer(serializers.Serializer):
+    #expiry_date = serializers.DateField(input_formats=['%d/%m/%Y'])
+    #start_date = serializers.DateField(input_formats=['%d/%m/%Y'])
+    details = serializers.CharField()
+    cc_email = serializers.CharField(required=False,allow_null=True, allow_blank=True)
+
 
 class PropedDeclineSerializer(serializers.Serializer):
     reason = serializers.CharField()

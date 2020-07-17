@@ -41,6 +41,18 @@ class BookingTimerMiddleware(object):
             if application_fee.payment_type != 3:
                 # booking in the session is not a temporary type, ditch it
                 del request.session['das_app_invoice']
+        if 'db_process' in request.session:
+            #print ("BOOKING SESSION : "+str(request.session['ps_booking']))
+            try:
+                application_fee = ApplicationFee.objects.get(pk=request.session['db_process'])
+            except:
+                # no idea what object is in self.request.session['ps_booking'], ditch it
+                del request.session['db_process']
+                return
+            if application_fee.payment_type != 3:
+                # booking in the session is not a temporary type, ditch it
+                del request.session['db_process']
+
         return
 
 class RevisionOverrideMiddleware(RevisionMiddleware):

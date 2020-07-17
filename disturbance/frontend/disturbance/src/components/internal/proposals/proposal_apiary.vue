@@ -1,9 +1,9 @@
 <template lang="html">
     <div v-if="proposal" class="container" id="internalProposal">
       <div class="row">
-        <h3>Proposal: {{ proposal.lodgement_number }}</h3>
-        <h4>Proposal Type: {{proposal.proposal_type }}</h4>
-        <div v-if="proposal.application_type!='Apiary'">
+        <h3>Application: {{ proposal.lodgement_number }}</h3>
+        <h4>Application Type: {{proposal.application_type }}</h4>
+        <div v-if="!proposal.apiary_group_application_type">
             <h4>Approval Level: {{proposal.approval_level }}</h4>
         </div>
         <div class="col-md-3">
@@ -105,7 +105,7 @@
                                         </tr>
                                         <tr v-for="r in proposal.latest_referrals">
                                             <td>
-                                                <small><strong>{{r.referral}}</strong></small><br/>
+                                                <small><strong>{{r.apiary_referral.referral_group.name}}</strong></small><br/>
                                                 <small><strong>{{r.lodged_on | formatDate}}</strong></small>
                                             </td>
                                             <td>
@@ -247,10 +247,29 @@
         <div class="col-md-8">
             <div class="row">
                 <template v-if="proposal.processing_status == 'With Approver' || isFinalised">
-                    <ApprovalScreen :proposal="proposal" @refreshFromResponse="refreshFromResponse"/>
+                    <div v-if="siteTransferTemporaryUse">
+                        <ApprovalScreenSiteTransferTemporaryUse :proposal="proposal" @refreshFromResponse="refreshFromResponse"/>
+                    </div>
+                    <div v-else>
+                        <ApprovalScreen :proposal="proposal" @refreshFromResponse="refreshFromResponse"/>
+                    </div>
                 </template>
                 <template v-if="proposal.processing_status == 'With Assessor (Requirements)' || ((proposal.processing_status == 'With Approver' || isFinalised) && showingRequirements)">
-                    <Requirements :proposal="proposal"/>
+                    <div v-if="siteTransfer">
+                        <OriginatingApprovalRequirements 
+                        :proposal="proposal" 
+                        :originatingApprovalId="originatingApprovalId"
+                        :originatingApprovalLodgementNumber="originatingApprovalLodgementNumber"
+                        />
+                        <TargetApprovalRequirements 
+                        :proposal="proposal" 
+                        :targetApprovalId="targetApprovalId"
+                        :targetApprovalLodgementNumber="targetApprovalLodgementNumber"
+                        />
+                    </div>
+                    <div v-else>
+                        <Requirements :proposal="proposal"/>
+                    </div>
                 </template>
                 <template v-if="canSeeSubmission || (!canSeeSubmission && showingProposal)">
                     <div class="col-md-12">
@@ -392,16 +411,29 @@
                     <div class="col-md-12">
                         <div class="row">
                             <form :action="proposal_form_url" method="post" name="new_proposal" enctype="multipart/form-data">
+                                <div v-if="proposal && proposal.application_type=='Apiary'">
 
-                                <ProposalApiary 
-                                v-if="proposal" 
-                                :proposal="proposal" 
-                                id="proposalStart" 
-                                ref="proposal_apiary" 
-                                :is_external="false" 
-                                :is_internal="true" 
-                                :hasAssessorMode="hasAssessorMode"
-                                />
+                                    <ApiaryForm
+                                        v-if="proposal"
+                                        :proposal="proposal"
+                                        id="proposalStart"
+                                        ref="apiary_form"
+                                        :hasAssessorMode="hasAssessorMode"
+                                        :is_external="false" 
+                                        :is_internal="true" 
+                                    />
+                                </div>
+                                <div v-else-if="proposal && proposal.application_type=='Site Transfer'">
+                                    <ApiarySiteTransfer
+                                        v-if="proposal"
+                                        :proposal="proposal"
+                                        id="proposalStart"
+                                        ref="site_transfer"
+                                        :hasAssessorMode="hasAssessorMode"
+                                        :is_external="false" 
+                                        :is_internal="true" 
+                                    />
+                                </div>
 
                                 <div>
                                     <input type="hidden" name="csrfmiddlewaretoken" :value="csrf_token"/>
@@ -429,27 +461,43 @@
         </div>
         <ProposedDecline ref="proposed_decline" :processing_status="proposal.processing_status" :proposal_id="proposal.id" @refreshFromResponse="refreshFromResponse"></ProposedDecline>
         <AmendmentRequest ref="amendment_request" :proposal_id="proposal.id" @refreshFromResponse="refreshFromResponse"></AmendmentRequest>
-        <ProposedApproval ref="proposed_approval" :processing_status="proposal.processing_status" :proposal_id="proposal.id" :proposal_type='proposal.proposal_type' :isApprovalLevelDocument="isApprovalLevelDocument" :submitter_email="proposal.submitter_email" :applicant_email="applicant_email" @refreshFromResponse="refreshFromResponse"/>
+        <ProposedApiaryIssuance 
+            ref="proposed_approval" 
+            :processing_status="proposal.processing_status" 
+            :proposal_apiary_id="apiaryProposal.id" 
+            :proposal_id="proposalId" 
+            :proposal="proposal"
+            :proposal_type='proposal.proposal_type' 
+            :isApprovalLevelDocument="isApprovalLevelDocument" 
+            :submitter_email="proposal.submitter_email" 
+            :applicant_email="applicant_email" 
+            @refreshFromResponse="refreshFromResponse"
+        />
     </div>
 </template>
 <script>
 import ProposalDisturbance from '../../form.vue'
 //import ProposalApiary from '../../form_apiary.vue'
-import ProposalApiary from '@/components/form_apiary.vue'
+import ApiaryForm from '@/components/form_apiary.vue'
 import NewApply from '../../external/proposal_apply_new.vue'
 import Vue from 'vue'
 import ProposedDecline from './proposal_proposed_decline.vue'
 import AmendmentRequest from './amendment_request.vue'
 import datatable from '@vue-utils/datatable.vue'
+//import Requirements from './apiary_proposal_requirements.vue'
 import Requirements from './proposal_requirements.vue'
-import ProposedApproval from './proposed_issuance.vue'
+import OriginatingApprovalRequirements from './originating_approval_requirements.vue'
+import TargetApprovalRequirements from './target_approval_requirements.vue'
+import ProposedApiaryIssuance from './proposed_apiary_issuance.vue'
 import ApprovalScreen from './proposal_approval.vue'
+import ApprovalScreenSiteTransferTemporaryUse from './proposal_approval_site_transfer_temporary_use.vue'
 import CommsLogs from '@common-utils/comms_logs.vue'
 //import MoreReferrals from '@common-utils/more_referrals.vue'
 import ApiaryReferralsForProposal from '@common-utils/apiary/apiary_referrals_for_proposal.vue'
 import ResponsiveDatatablesHelper from "@/utils/responsive_datatable_helper.js"
 import { api_endpoints, helpers } from '@/utils/hooks'
-import MapLocations from '@common-utils/map_locations.vue'
+//import MapLocations from '@common-utils/map_locations.vue'
+import ApiarySiteTransfer from '@/components/form_apiary_site_transfer.vue'
 
 import FileField from '@/components/forms/filefield.vue'
 
@@ -526,21 +574,24 @@ export default {
     },
     components: {
         ProposalDisturbance,
-        ProposalApiary,
+        //ProposalApiary,
+        ApiaryForm,
         datatable,
         ProposedDecline,
         AmendmentRequest,
         Requirements,
-        ProposedApproval,
+        OriginatingApprovalRequirements,
+        TargetApprovalRequirements,
+        ProposedApiaryIssuance,
         ApprovalScreen,
+        ApprovalScreenSiteTransferTemporaryUse,
         CommsLogs,
         //MoreReferrals,
         ApiaryReferralsForProposal,
         NewApply,
-        MapLocations,
-
+        //MapLocations,
         FileField,
-
+        ApiarySiteTransfer,
     },
     filters: {
         formatDate: function(data){
@@ -632,6 +683,48 @@ export default {
                 return this.proposal.proposal_apiary;
             }
         },
+        siteTransferTemporaryUse: function() {
+            let returnVal = false;
+            if (this.proposal && ['Site Transfer', 'Temporary Use'].includes(this.proposal.application_type)) {
+                returnVal = true;
+            }
+            return returnVal;
+        },
+        siteTransfer: function() {
+            let returnVal = false;
+            if (this.proposal.application_type === 'Site Transfer') {
+                returnVal = true;
+            }
+            return returnVal;
+        },
+        originatingApprovalId: function() {
+            let returnVal = null;
+            if (this.proposal.application_type === 'Site Transfer') {
+                returnVal = this.proposal.proposal_apiary.originating_approval_id;
+            }
+            return returnVal;
+        },
+        originatingApprovalLodgementNumber: function() {
+            let returnVal = null;
+            if (this.proposal.application_type === 'Site Transfer') {
+                returnVal = this.proposal.proposal_apiary.originating_approval_lodgement_number;
+            }
+            return returnVal;
+        },
+        targetApprovalId: function() {
+            let returnVal = null;
+            if (this.proposal.application_type === 'Site Transfer') {
+                returnVal = this.proposal.approval.id;
+            }
+            return returnVal;
+        },
+        targetApprovalLodgementNumber: function() {
+            let returnVal = '';
+            if (this.proposal.application_type === 'Site Transfer') {
+                returnVal = this.proposal.approval.lodgement_number;
+            }
+            return returnVal;
+        },
     },
     methods: {
         locationUpdated: function(){
@@ -689,10 +782,13 @@ export default {
             //     this.$refs.proposed_approval.applicant_email=helpers.copyObject(this.proposal.applicant.email);
             // }
             this.$refs.proposed_approval.isModalOpen = true;
+            // Force to refresh the map to display it in case it is not shown.  
+            // When the map is in modal, it is often not shown unless the map is resized
+            this.$refs.proposed_approval.forceToRefreshMap()
         },
         issueProposal:function(){
             //this.$refs.proposed_approval.approval = helpers.copyObject(this.proposal.proposed_issuance_approval);
-
+            console.log('in issueProposal')
             //save approval level comment before opening 'issue approval' modal
             if(this.proposal && this.proposal.processing_status == 'With Approver' && this.proposal.approval_level != null && this.proposal.approval_level_document == null){
                 if (this.proposal.approval_level_comment!='')
@@ -703,7 +799,7 @@ export default {
                     vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/approval_level_comment'),data,{
                         emulateJSON:true
                         }).then(res=>{
-                    vm.proposal = res.body;
+                        vm.proposal = res.body;
                     vm.refreshFromResponse(res);
                     },err=>{
                     console.log(err);
@@ -719,16 +815,19 @@ export default {
                 )
             }
             else{
-            this.$refs.proposed_approval.approval = this.proposal.proposed_issuance_approval != null ? helpers.copyObject(this.proposal.proposed_issuance_approval) : {};
-            this.$refs.proposed_approval.state = 'final_approval';
-            this.$refs.proposed_approval.isApprovalLevelDocument = this.isApprovalLevelDocument;
-            //this.$refs.proposed_approval.submitter_email=helpers.copyObject(this.proposal.submitter_email);
-            // if(this.proposal.applicant.email){
-            //     this.$refs.proposed_approval.applicant_email=helpers.copyObject(this.proposal.applicant.email);
-            // }
-            this.$refs.proposed_approval.isModalOpen = true;
-            }
+                this.$refs.proposed_approval.approval = this.proposal.proposed_issuance_approval != null ? helpers.copyObject(this.proposal.proposed_issuance_approval) : {};
+                this.$refs.proposed_approval.state = 'final_approval';
+                this.$refs.proposed_approval.isApprovalLevelDocument = this.isApprovalLevelDocument;
+                //this.$refs.proposed_approval.submitter_email=helpers.copyObject(this.proposal.submitter_email);
+                // if(this.proposal.applicant.email){
+                //     this.$refs.proposed_approval.applicant_email=helpers.copyObject(this.proposal.applicant.email);
+                // }
+                this.$refs.proposed_approval.isModalOpen = true;
 
+                // Force to refresh the map to display it in case it is not shown.  
+                // When the map is in modal, it is often not shown unless the map is resized
+                this.$refs.proposed_approval.forceToRefreshMap()
+            }
         },
         declineProposal:function(){
             this.$refs.proposed_decline.decline = this.proposal.proposaldeclineddetails != null ? helpers.copyObject(this.proposal.proposaldeclineddetails): {};

@@ -1,7 +1,9 @@
 <template lang="html">
     <div>
         <div class="row col-sm-12">
-            <button v-if="!creatingProposal" class="btn btn-primary pull-right" @click="openNewTemporaryUse">New Temporary Use</button>
+            <template v-if="is_external">
+                <button v-if="!creatingProposal" class="btn btn-primary pull-right" @click="openNewTemporaryUse">New Temporary Use</button>
+            </template>
         </div>
 
         <div class="row col-sm-12">
@@ -41,18 +43,20 @@
             },
         },
         data:function () {
-            let vm=this;
+            let vm = this;
             return{
                 proposal_apiary: null,
                 creatingProposal: false,
                 temporary_uses: [],
                 dtHeaders: [
-                    'id',
+                    'Number',
                     'From',
                     'To',
                     'Site(s)',
+                    'Status',
                     'Temporary Occupier',
                     'Deed Poll',
+                    'Action',
                 ],
                 dtOptions: {
                     serverSide: false,
@@ -68,22 +72,26 @@
                     processing: true,
                     columns: [
                         {
+                            // Number
                             visible: true,
                             mRender: function (data, type, full) {
-                                return full.id;
+                                return full.lodgement_number;
                             }
                         },
                         {
+                            // From date
                             mRender: function (data, type, full) {
                                 return full.from_date;
                             }
                         },
                         {
+                            // To date
                             mRender: function (data, type, full) {
                                 return full.to_date;
                             }
                         },
                         {
+                            // Site(s)
                             mRender: function (data, type, full) {
                                 let ret_str = ''
                                 for (let i=0; i<full.temporary_use_apiary_sites.length; i++){
@@ -95,13 +103,35 @@
                             }
                         },
                         {
+                            // Status (customer status)
+                            mRender: function (data, type, full) {
+                                return full.customer_status;
+                            }
+                        },
+                        {
+                            // Occupier name
                             mRender: function (data, type, full) {
                                 return full.temporary_occupier_name;
                             }
                         },
                         {
+                            // Deed poll
                             mRender: function (data, type, full) {
                                 return full.deed_poll_documents;
+                            }
+                        },
+                        {
+                            // Action
+                            mRender: function (data, type, full) {
+                                if (full.customer_status == 'Draft'){
+                                    if (vm.is_internal){
+                                        return '<a href="/internal/proposal/' + full.proposal_id + '/">Edit</a>'
+                                    } else if (vm.is_external){
+                                        return '<a href="/external/proposal/' + full.proposal_id + '/">Edit</a>'
+                                    }
+                                } else {
+                                    return ''
+                                }
                             }
                         },
                     ],

@@ -30,6 +30,8 @@ from django.core.cache import cache
 from ledger.accounts.models import EmailUser, Address
 from ledger.address.models import Country
 from datetime import datetime, timedelta, date
+
+from disturbance.components.main.decorators import basic_exception_handler
 from disturbance.components.proposals.utils import (
     save_proponent_data,
     save_assessor_data,
@@ -57,6 +59,7 @@ from disturbance.components.proposals.models import (
     ApiaryReferralGroup,
     ProposalApiary,
     ApiaryReferral,
+    SiteTransferApiarySite,
 )
 from disturbance.components.proposals.serializers import (
     SendReferralSerializer,
@@ -73,6 +76,7 @@ from disturbance.components.proposals.serializers import (
     ProposalRequirementSerializer,
     ProposalStandardRequirementSerializer,
     ProposedApprovalSerializer,
+    ProposedApprovalSiteTransferSerializer,
     PropedDeclineSerializer,
     AmendmentRequestSerializer,
     SearchReferenceSerializer,
@@ -89,6 +93,7 @@ from disturbance.components.proposals.serializers_apiary import (
     ApiaryInternalProposalSerializer,
     ProposalApiarySerializer,
     SaveProposalApiarySerializer,
+    CreateProposalApiarySiteTransferSerializer,
     ProposalApiaryTemporaryUseSerializer,
     ProposalApiarySiteTransferSerializer,
     OnSiteInformationSerializer,
@@ -99,6 +104,8 @@ from disturbance.components.proposals.serializers_apiary import (
     TemporaryUseApiarySiteSerializer,
     DTApiaryReferralSerializer,
     FullApiaryReferralSerializer,
+    ProposalHistorySerializer,
+    UserApiaryApprovalSerializer, ApiarySiteGeojsonSerializer,
 )
 from disturbance.components.approvals.models import Approval
 from disturbance.components.approvals.serializers import ApprovalSerializer
@@ -117,7 +124,7 @@ from disturbance.components.main.process_document import (
         process_generic_document, 
         #save_comms_log_document_obj
         )
-
+from copy import deepcopy
 import logging
 logger = logging.getLogger(__name__)
 
@@ -381,101 +388,80 @@ class OnSiteInformationViewSet(viewsets.ModelViewSet):
 
         return data_dict
 
+    @basic_exception_handler
     def destroy(self, request, *args, **kwargs):
-        try:
-            with transaction.atomic():
-                instance = self.get_object()
+        with transaction.atomic():
+            instance = self.get_object()
 
-                now = datetime.now(pytz.timezone(TIME_ZONE))
-                serializer = OnSiteInformationSerializer(instance, {'datetime_deleted': now}, partial=True)
-                serializer.is_valid(raise_exception=True)
-                serializer.save()
+            now = datetime.now(pytz.timezone(TIME_ZONE))
+            serializer = OnSiteInformationSerializer(instance, {'datetime_deleted': now}, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
 
-                return Response({})
+            return Response({})
 
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e.error_dict))
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
-
+    @basic_exception_handler
     def update(self, request, *args, **kwargs):
-        try:
-            with transaction.atomic():
-                instance = self.get_object()
-                request_data = request.data
+        with transaction.atomic():
+            instance = self.get_object()
+            request_data = request.data
 
-                self.sanitize_date(request_data, 'period_from')
-                self.sanitize_date(request_data, 'period_to')
+            self.sanitize_date(request_data, 'period_from')
+            self.sanitize_date(request_data, 'period_to')
 
-                serializer = OnSiteInformationSerializer(instance, data=request_data)
-                serializer.is_valid(raise_exception=True)
-                serializer.save()
-                return Response(serializer.data)
+            serializer = OnSiteInformationSerializer(instance, data=request_data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data)
 
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e.error_dict))
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
-
+    @basic_exception_handler
     def create(self, request, *args, **kwargs):
-        try:
-            with transaction.atomic():
-                request_data = request.data
+        with transaction.atomic():
+            request_data = request.data
 
-                self.sanitize_date(request_data, 'period_from')
-                self.sanitize_date(request_data, 'period_to')
+            self.sanitize_date(request_data, 'period_from')
+            self.sanitize_date(request_data, 'period_to')
 
-                serializer = OnSiteInformationSerializer(data=request_data)
-                serializer.is_valid(raise_exception=True)
-                serializer.save()
-                return Response(serializer.data)
-
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e.error_dict))
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+            serializer = OnSiteInformationSerializer(data=request_data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data)
 
 
 class ApiarySiteViewSet(viewsets.ModelViewSet):
     queryset = ApiarySite.objects.all()
     serializer_class = ApiarySiteSerializer
 
+    @list_route(methods=['GET',])
+    @basic_exception_handler
+    def list_existing(self, request):
+        q_objects = Q()
+
+        proposal_id = request.query_params.get('proposal_id', 0)
+        if proposal_id:
+            # WHen proposal_id is passed as a query_params, which is the one in the URL after the ?
+            # Exculde the apiary_sites under the proposal
+            proposal = Proposal.objects.get(id=proposal_id)
+            q_objects |= Q(proposal_apiary=proposal.proposal_apiary)
+        q_objects |= Q(status__in=ApiarySite.NON_RESTRICTIVE_STATUSES)
+        q_objects |= Q(wkb_geometry=None)
+        q_objects |= Q(proposal_apiary=None)
+
+        qs = ApiarySite.objects.all().exclude(q_objects)
+        serializer = ApiarySiteGeojsonSerializer(qs, many=True)
+        return Response(serializer.data)
+
+    @basic_exception_handler
     def partial_update(self, request, *args, **kwargs):
-        try:
-            with transaction.atomic():
-                instance = self.get_object()
-                request_data = request.data
+        with transaction.atomic():
+            instance = self.get_object()
+            request_data = request.data
 
-                serializer = ApiarySiteSerializer(instance, data=request_data, partial=True)
-                serializer.is_valid(raise_exception=True)
-                serializer.save()
+            serializer = ApiarySiteSerializer(instance, data=request_data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
 
-                return Response(serializer.data)
-
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e.error_dict))
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+            return Response(serializer.data)
 
 
 class ProposalApiaryViewSet(viewsets.ModelViewSet):
@@ -491,29 +477,18 @@ class ProposalApiaryViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return ProposalApiary.objects.all()
 
+    @basic_exception_handler
     def internal_apiary_serializer_class(self):
-        try:
-            #import ipdb; ipdb.set_trace()
-            #application_type = Proposal.objects.get(id=self.kwargs.get('pk')).application_type.name
-            instance = self.get_object()
-            application_type = instance.proposal.application_type.name
-            if application_type == ApplicationType.APIARY:
-                return ApiaryInternalProposalSerializer
-                #return InternalProposalSerializer
-            else:
-                pass
-                #return InternalProposalSerializer
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            if hasattr(e,'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+        #import ipdb; ipdb.set_trace()
+        #application_type = Proposal.objects.get(id=self.kwargs.get('pk')).application_type.name
+        instance = self.get_object()
+        application_type = instance.proposal.application_type.name
+        if application_type in (ApplicationType.APIARY, ApplicationType.SITE_TRANSFER):
+            return ApiaryInternalProposalSerializer
+            #return InternalProposalSerializer
+        else:
+            pass
+            #return InternalProposalSerializer
 
     @detail_route(methods=['GET',])
     def internal_apiary_proposal(self, request, *args, **kwargs):
@@ -527,67 +502,112 @@ class ProposalApiaryViewSet(viewsets.ModelViewSet):
 
     @detail_route(methods=['POST'])
     @renderer_classes((JSONRenderer,))
+    @basic_exception_handler
     def process_deed_poll_document(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            returned_data = process_generic_document(request, instance, document_type='deed_poll_documents')
-            if returned_data:
-                return Response(returned_data)
-            else:
-                return Response()
-
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            if hasattr(e, 'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+        instance = self.get_object()
+        returned_data = process_generic_document(request, instance, document_type='deed_poll_documents')
+        if returned_data:
+            return Response(returned_data)
+        else:
+            return Response()
 
     @detail_route(methods=['post'])
+    @basic_exception_handler
     def apiary_assessor_send_referral(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            serializer = SendApiaryReferralSerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            #text=serializer.validated_data['text']
-            #instance.send_referral(request,serializer.validated_data['email'])
-            #import ipdb; ipdb.set_trace()
-            #instance.send_referral(request,serializer.validated_data['email_group'], serializer.validated_data['text'])
-            instance.send_referral(request,serializer.validated_data['group_id'], serializer.validated_data['text'])
-            serializer_class = self.internal_apiary_serializer_class()
-            serializer = serializer_class(instance.proposal,context={'request':request})
-            return Response(serializer.data)
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            if hasattr(e,'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+        instance = self.get_object()
+        serializer = SendApiaryReferralSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        #text=serializer.validated_data['text']
+        #instance.send_referral(request,serializer.validated_data['email'])
+        #import ipdb; ipdb.set_trace()
+        #instance.send_referral(request,serializer.validated_data['email_group'], serializer.validated_data['text'])
+        instance.send_referral(request,serializer.validated_data['group_id'], serializer.validated_data['text'])
+        serializer_class = self.internal_apiary_serializer_class()
+        serializer = serializer_class(instance.proposal,context={'request':request})
+        return Response(serializer.data)
 
     @detail_route(methods=['post'])
     @renderer_classes((JSONRenderer,))
+    @basic_exception_handler
     def assessor_save(self, request, *args, **kwargs):
+        instance = self.get_object()
+        save_apiary_assessor_data(
+                instance.proposal,
+                request,
+                self)
+        return redirect(reverse('external'))
+
+    @detail_route(methods=['GET', ])
+    @renderer_classes((JSONRenderer,))
+    def proposal_history(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
-            save_apiary_assessor_data(
-                    instance.proposal,
-                    request,
-                    self)
-            return redirect(reverse('external'))
+            proposal_instance = instance.proposal
+            #entry_number = request.data.get("running_sheet_entry_number")
+            #row_num = entry_number.split('-')[1]
+            #entry_instance = instance.running_sheet_entries.get(row_num=row_num)
+
+
+            serializer = ProposalHistorySerializer(proposal_instance)
+            return Response(
+                    serializer.data, 
+                    status=status.HTTP_200_OK,
+                    )
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
         except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['POST',])
+    @basic_exception_handler
+    def final_approval(self, request, *args, **kwargs):
+        #import ipdb;ipdb.set_trace()
+        instance = self.get_object()
+        if instance.proposal.application_type.name == ApplicationType.SITE_TRANSFER:
+            serializer = ProposedApprovalSiteTransferSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+        else:
+            serializer = ProposedApprovalSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+        #serializer = ProposedApprovalSerializer(data=request.data)
+        #serializer.is_valid(raise_exception=True)
+        instance.final_approval(request,serializer.validated_data)
+        #serializer = InternalProposalSerializer(instance,context={'request':request})
+        serializer_class = self.internal_apiary_serializer_class()
+        serializer = serializer_class(instance.proposal,context={'request':request})
+        return Response(serializer.data)
+
+    @detail_route(methods=['POST', ])
+    def get_apiary_approvals(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            user = None
+            user_qs = []
+            if request.data.get('user_email'):
+                user_qs = EmailUser.objects.filter(email=request.data.get('user_email'))
+                if user_qs:
+                    user = user_qs[0]
+                    serializer = UserApiaryApprovalSerializer(
+                            user,
+                            context={
+                                'request': request,
+                                'originating_approval_id': instance.originating_approval.id,
+                                })
+                    return Response(serializer.data)
+            # Fallback if no email address found
+            #return Response({'error': 'Email address not known'})
+            return Response('Email address not known')
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
             raise serializers.ValidationError(repr(e.error_dict))
         except Exception as e:
             print(traceback.print_exc())
@@ -824,7 +844,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         try:
             application_type = self.get_object().application_type.name
-            if application_type == ApplicationType.APIARY:
+            if application_type in (ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE):
                 return ProposalApiaryTypeSerializer
             else:
                 return ProposalSerializer
@@ -845,7 +865,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             #import ipdb; ipdb.set_trace()
             #application_type = Proposal.objects.get(id=self.kwargs.get('pk')).application_type.name
             application_type = self.get_object().application_type.name
-            if application_type == ApplicationType.APIARY:
+            if application_type in (ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE):
                 return ApiaryInternalProposalSerializer
                 #return InternalProposalSerializer
             else:
@@ -1147,6 +1167,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['post'])
     @renderer_classes((JSONRenderer,))
     def submit(self, request, *args, **kwargs):
+        #import ipdb; ipdb.set_trace()
         try:
             instance = self.get_object()
             if instance.apiary_group_application_type:
@@ -1317,8 +1338,12 @@ class ProposalViewSet(viewsets.ModelViewSet):
     def proposed_approval(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
-            serializer = ProposedApprovalSerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
+            if instance.application_type.name == ApplicationType.SITE_TRANSFER:
+                serializer = ProposedApprovalSiteTransferSerializer(data=request.data)
+                serializer.is_valid(raise_exception=True)
+            else:
+                serializer = ProposedApprovalSerializer(data=request.data)
+                serializer.is_valid(raise_exception=True)
             instance.proposed_approval(request,serializer.validated_data)
             #serializer = InternalProposalSerializer(instance,context={'request':request})
             serializer_class = self.internal_serializer_class()
@@ -1377,6 +1402,20 @@ class ProposalViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['POST',])
+    @basic_exception_handler
+    def final_approval_temp_use(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.final_approval_temp_use(request,)
+        return Response({})
+
+    @detail_route(methods=['POST',])
+    @basic_exception_handler
+    def final_decline_temp_use(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.final_decline_temp_use(request,)
+        return Response({})
 
     @detail_route(methods=['POST',])
     def final_approval(self, request, *args, **kwargs):
@@ -1540,16 +1579,21 @@ class ProposalViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(str(e))
 
     def create(self, request, *args, **kwargs):
-        print(request.data)
-        #import ipdb; ipdb.set_trace()
         try:
             with transaction.atomic():
                 http_status = status.HTTP_200_OK
-                application_type = ApplicationType.objects.get(id=request.data.get('application'))
+                if request.data.get('application'):
+                    application_type = ApplicationType.objects.get(id=request.data.get('application'))
 
                 # When there is a parameter named 'application_type_str', we may need to update application_type
                 application_type_str = request.data.get('application_type_str', None)
-                if application_type_str == 'temporary_use':
+                #if application_type_str == 'disturbance':
+                #    application_type = ApplicationType.objects.get(name=ApplicationType.DISTURBANCE)
+                #if application_type_str == 'powerline_maintenance':
+                #    application_type = ApplicationType.objects.get(name=ApplicationType.POWERLINE_MAINTENANCE)
+                if application_type_str == 'apiary':
+                    application_type = ApplicationType.objects.get(name=ApplicationType.APIARY)
+                elif application_type_str == 'temporary_use':
                     application_type = ApplicationType.objects.get(name=ApplicationType.TEMPORARY_USE)
                 elif application_type_str == 'site_transfer':
                     application_type = ApplicationType.objects.get(name=ApplicationType.SITE_TRANSFER)
@@ -1600,6 +1644,10 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 proposal_obj = serializer.save()
 
                 # TODO any APIARY specific settings go here - eg renewal, amendment
+
+                if proposal_obj.apiary_group_application_type:
+                    proposal_obj.activity = proposal_obj.application_type.name
+                    proposal_obj.save()
                 details_data = {
                     'proposal_id': proposal_obj.id
                 }
@@ -1607,9 +1655,32 @@ class ProposalViewSet(viewsets.ModelViewSet):
                     serializer = SaveProposalApiarySerializer(data=details_data)
                     serializer.is_valid(raise_exception=True)
                     proposal_apiary = serializer.save()
-                    for question in ApiaryApplicantChecklistQuestion.objects.all():
+                    for question in ApiaryApplicantChecklistQuestion.objects.filter(checklist_type='apiary'):
                         new_answer = ApiaryApplicantChecklistAnswer.objects.create(proposal = proposal_apiary,
                                                                                    question = question)
+                elif application_type.name == ApplicationType.SITE_TRANSFER:
+                    approval_id = request.data.get('originating_approval_id')
+                    approval = Approval.objects.get(id=approval_id)
+                    details_data['originating_approval_id'] = approval_id
+                    serializer = CreateProposalApiarySiteTransferSerializer(data=details_data)
+                    serializer.is_valid(raise_exception=True)
+                    proposal_apiary = serializer.save()
+                    # Set proposal applicant
+                    if approval.applicant:
+                        proposal_obj.applicant = approval.applicant
+                    else:
+                        proposal_obj.proxy_applicant = approval.proxy_applicant
+                    proposal_obj.save()
+                    # Set up checklist questions
+                    for question in ApiaryApplicantChecklistQuestion.objects.filter(checklist_type='site_transfer'):
+                        new_answer = ApiaryApplicantChecklistAnswer.objects.create(proposal = proposal_apiary,
+                                                                                   question = question)
+                    # Save approval apiary sites to site transfer proposal
+                    for apiary_site in approval.apiary_sites.all():
+                        SiteTransferApiarySite.objects.create(
+                                proposal_apiary=proposal_apiary,
+                                apiary_site=apiary_site
+                                )
 
                 elif application_type.name == ApplicationType.TEMPORARY_USE:
                     approval_id = request.data.get('approval_id')
@@ -1639,19 +1710,19 @@ class ProposalViewSet(viewsets.ModelViewSet):
                     new_temp_use = serializer.save()
 
                     # Save TemporaryUseApiarySite
-                    for site_approval in approval.apiary_site_approval_set.all():
+                    for site_approval in approval.apiary_sites.all():
                         data_to_save = {
                             'proposal_apiary_temporary_use_id': new_temp_use.id,
-                            'apiary_site_id': site_approval.apiary_site.id,
+                            'apiary_site_id': site_approval.id,
                         }
                         serializer = TemporaryUseApiarySiteSerializer(data=data_to_save)
                         serializer.is_valid(raise_exception=True)
                         serializer.save()
 
-                elif application_type.name == ApplicationType.SITE_TRANSFER:
-                    serializer = ProposalApiarySiteTransferSerializer(data=details_data)
-                    serializer.is_valid(raise_exception=True)
-                    serializer.save()
+                #elif application_type.name == ApplicationType.SITE_TRANSFER:
+                #    serializer = ProposalApiarySiteTransferSerializer(data=details_data)
+                #    serializer.is_valid(raise_exception=True)
+                #    serializer.save()
                 else:
                     pass
 
@@ -1662,6 +1733,10 @@ class ProposalViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(str(e))
 
     def update(self, request, *args, **kwargs):
+        """
+        This function might not be used anymore
+        The function 'draft()' is used rather than this update()
+        """
         try:
             http_status = status.HTTP_200_OK
             application_type = ApplicationType.objects.get(id=request.data.get('application'))

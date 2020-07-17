@@ -1,24 +1,40 @@
 from django.conf import settings
 from ledger.accounts.models import EmailUser,Address
-from disturbance.components.proposals.serializers import ProposalSerializer, InternalProposalSerializer
+
 from disturbance.components.approvals.models import (
     Approval,
     ApprovalLogEntry,
     ApprovalUserAction
 )
+from disturbance.components.das_payments.models import AnnualRentalFeePeriod, AnnualRentalFee
+from disturbance.components.das_payments.serializers import AnnualRentalFeeSerializer, AnnualRentalFeePeriodSerializer
 from disturbance.components.organisations.models import (
                                 Organisation
                             )
 from disturbance.components.main.serializers import CommunicationLogEntrySerializer
 from rest_framework import serializers
 
-from disturbance.components.proposals.serializers_apiary import ProposalApiarySerializer, ApiarySiteApprovalSerializer
+from disturbance.components.proposals.serializers_apiary import (
+    ApplicantAddressSerializer, 
+    ApiarySiteSerializer,
+    ApiaryProposalRequirementSerializer,
+)
 
 
 class EmailUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = EmailUser
         fields = ('id','email','first_name','last_name','title','organisation')
+
+
+class ApprovalWrapperSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Approval
+        fields = (
+            'id',
+            'apiary_approval',
+            )
 
 
 from disturbance.components.proposals.serializers import ProposalSerializer
@@ -44,7 +60,16 @@ class ApprovalSerializer(serializers.ModelSerializer):
 
     # apiary_site_location = serializers.SerializerMethodField()
     current_proposal = ProposalSerializer()
-    apiary_site_approval_set = ApiarySiteApprovalSerializer(read_only=True, many=True)
+    organisation_name = serializers.SerializerMethodField()
+    organisation_abn = serializers.SerializerMethodField()
+    applicant_first_name = serializers.SerializerMethodField()
+    applicant_last_name = serializers.SerializerMethodField()
+    applicant_address = serializers.SerializerMethodField()
+    apiary_sites = ApiarySiteSerializer(many=True, read_only=True)
+    annual_rental_fee_periods = serializers.SerializerMethodField()
+    latest_apiary_licence_document = serializers.SerializerMethodField()
+    apiary_licence_document_history = serializers.SerializerMethodField()
+    requirements = serializers.SerializerMethodField()
 
     class Meta:
         model = Approval
@@ -89,7 +114,19 @@ class ApprovalSerializer(serializers.ModelSerializer):
             # 'apiary_site_location',
             'application_type',
             'current_proposal',
-            'apiary_site_approval_set',
+            'apiary_approval',
+            'organisation_name',
+            'organisation_abn',
+            'applicant_first_name',
+            'applicant_last_name',
+            'applicant_address',
+            'apiary_sites',
+            'annual_rental_fee_periods',
+            'no_annual_rental_fee_until',
+            'latest_apiary_licence_document',
+            'apiary_licence_document_history',
+            'no_annual_rental_fee_until',
+            'requirements',
         )
         # the serverSide functionality of datatables is such that only columns that have field 'data' defined are requested from the serializer. We
         # also require the following additional fields for some of the mRender functions
@@ -118,7 +155,48 @@ class ApprovalSerializer(serializers.ModelSerializer):
             'renewal_sent',
             'allowed_assessors',
             'can_approver_reissue',
+            'apiary_approval',
+            'latest_apiary_licence_document',
         )
+
+    def get_requirements(self, approval):
+        requirements = []
+        for proposal in approval.proposal_set.all():
+            for requirement in proposal.requirements.all():
+                requirements.append(ApiaryProposalRequirementSerializer(requirement).data)
+        return requirements
+
+    def get_annual_rental_fee_periods(self, approval):
+        annual_rental_fee_periods_qs = AnnualRentalFeePeriod.objects.filter(
+            annual_rental_fees__in=AnnualRentalFee.objects.filter(approval=approval)
+        ).distinct().order_by('period_start_date')
+
+        retrun_obj = []
+        for annual_rental_fee_period in annual_rental_fee_periods_qs:
+            serializer1 = AnnualRentalFeePeriodSerializer(annual_rental_fee_period)
+            temp = serializer1.data
+            temp['annual_rental_fees'] = []
+
+            annual_rental_fee_qs = AnnualRentalFee.objects.filter(approval=approval, annual_rental_fee_period=annual_rental_fee_period)
+            for annual_rental_fee in annual_rental_fee_qs:
+                serializer2 = AnnualRentalFeeSerializer(annual_rental_fee)
+                temp['annual_rental_fees'].append(serializer2.data)
+
+            retrun_obj.append(temp)
+
+        return retrun_obj
+
+    def get_apiary_licence_document_history(self, obj):
+        history = []
+        for doc in obj.documents.all():
+            history.append({
+                "name": doc.name,
+                "url": doc._file.url
+                })
+        return history
+
+    def get_latest_apiary_licence_document(self, obj):
+        return obj.documents.order_by('-uploaded_date')[0]._file.url
 
     def get_application_type(self,obj):
         if obj.current_proposal.application_type:
@@ -127,7 +205,10 @@ class ApprovalSerializer(serializers.ModelSerializer):
 
     def get_applicant(self,obj):
         try:
-            return obj.applicant.name if isinstance(obj.applicant, Organisation) else obj.applicant
+            if obj.proxy_applicant and obj.proxy_applicant.get_full_name():
+                return obj.proxy_applicant.get_full_name()
+            else:
+                return obj.applicant.name if isinstance(obj.applicant, Organisation) else obj.applicant
         except:
             return None
 
@@ -142,6 +223,32 @@ class ApprovalSerializer(serializers.ModelSerializer):
             return obj.relevant_applicant_id
         except:
             return None
+
+    def get_organisation_name(self,obj):
+        if obj.applicant:
+            return obj.applicant.name
+
+    def get_organisation_abn(self,obj):
+        if obj.applicant:
+            return obj.applicant.abn
+
+    def get_applicant_first_name(self,obj):
+        if obj.proxy_applicant:
+            return obj.proxy_applicant.first_name
+
+    def get_applicant_last_name(self,obj):
+        if obj.proxy_applicant:
+            return obj.proxy_applicant.last_name
+
+    #def get_relevant_applicant_address(self,obj):
+     #   return obj.relevant_applicant_address
+
+    def get_applicant_address(self, obj):
+        address_serializer = None
+        if obj.relevant_applicant_address:
+            address_serializer = ApplicantAddressSerializer(obj.relevant_applicant_address)
+            return address_serializer.data
+        return address_serializer
 
     def get_renewal_document(self,obj):
         if obj.renewal_document and obj.renewal_document._file:

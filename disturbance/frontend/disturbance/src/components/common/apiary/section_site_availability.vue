@@ -1,24 +1,35 @@
 <template lang="html">
-    <div>
+    <div class="row col-sm-12">
         <div class="row col-sm-12">
-            <datatable
-                ref="site_availability_table"
-                id="site-availability-table"
-                :dtOptions="dtOptions"
-                :dtHeaders="dtHeaders"
-            />
+            <template v-if="is_external">
+                <!--button v-if="!creatingProposal" class="btn btn-primary pull-right" @click="openNewTemporaryUse">Site Transfer</button-->
+                <button 
+                    class="btn btn-primary pull-right" 
+                    @click="openNewSiteTransfer">
+                    Site Transfer
+                </button>
+            </template>
         </div>
+
+        <ComponentSiteSelection
+            :apiary_sites="apiary_sites"
+            :is_internal="false"
+            :is_external="true"
+            :key="component_site_selection_key"
+            :show_col_checkbox="false"
+            :show_col_status="true"
+        />
     </div>
 </template>
 
 <script>
     import Vue from 'vue'
-    import datatable from '@vue-utils/datatable.vue'
     import uuid from 'uuid'
     import { api_endpoints, helpers, } from '@/utils/hooks'
-    //import uuid from 'uuid'
+    import ComponentSiteSelection from '@/components/common/apiary/component_site_selection.vue'
 
     export default {
+        name: 'ApiarySiteAvailability',
         props:{
             approval_id: {
                 type: Number,
@@ -37,61 +48,15 @@
         data:function () {
             let vm=this;
             return{
+                component_site_selection_key: '',
                 proposal_apiary: null,
                 modalBindId: null,
                 apiary_sites: [],
-                dtHeaders: [
-                    'id',
-                    'site',
-                    'action',
-                ],
-                dtOptions: {
-                    serverSide: false,
-                    searchDelay: 1000,
-                    lengthMenu: [ [10, 25, 50, 100, -1], [10, 25, 50, 100, "All"] ],
-                    order: [
-                        [1, 'desc'], [0, 'desc'],
-                    ],
-                    language: {
-                        processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
-                    },
-                    responsive: true,
-                    processing: true,
-                    columns: [
-                        {
-                            mRender: function (data, type, full) {
-                                if (full.id) {
-                                    return full.id;
-                                } else {
-                                    return '';
-                                }
-                            }
-                        },
-                        {
-                            mRender: function (data, type, full) {
-                                return '(site name)'
-                            }
-                        },
-                        {
-                            mRender: function (data, type, full) {
-                                let action_list = ['View on map (TODO)',]
-                                let display_text = ''
-                                if (full.available){
-                                    display_text = 'Mark as unavailable';
-                                } else {
-                                    display_text = 'Mark as available';
-                                }
-                                let ret = '<a><span class="toggle_availability" data-apiary-site-id="' + full.id + '" data-apiary-site-available="' + full.available + '"/>' + display_text + '</span></a>';
-                                action_list.push(ret);
-                                return action_list.join('<br />');
-                            }
-                        },
-                    ],
-                },
+                component_map_key: '',
             }
         },
         components: {
-            datatable,
+            ComponentSiteSelection,
         },
         computed:{
             addButtonEnabled: function() {
@@ -102,81 +67,98 @@
                     }
                 } catch(err) { }
                 return enabled;
-            }
+            },
+            /*
+            apiary_sites_minimal: function() {
+                let apiary_sites = [];
+                for (let site of this.apiary_sites) {
+                    if (site.checked) {
+                        apiary_sites.push(site.id)
+                    }
+                }
+                return apiary_sites;
+            },
+            */
         },
         watch:{
-           // initial_apiary_sites: {
-           //     deep: true,
-           //     handler(){
-           //         console.log('in watch: initial_apiary_site');
-           //         this.apiary_sites = this.initial_apiary_sites;
-           //         this.constructSitesTable();
-           //     },
-           // },
+
         },
         methods:{
+            _get_basic_data: function(){
+                let data = {
+                    'category': '',
+                    'profile': '', // TODO how to determine this?
+                    'district': '',
+                    //'application': '3',  // TODO Retrieve the id of the 'Temporary Use' type or handle it at the server side 
+                                         //      like if there is apiary_temporary_use attribute, it must be a temporary use application, or so.
+                    'sub_activity2': '',
+                    'region': '',
+                    'approval_level': '',
+                    'behalf_of': '',  // TODO how to determine this?
+                    'activity': '',
+                    'sub_activity1': '',
+                    'application_type_str': 'site_transfer',
+                    'originating_approval_id': this.approval_id,
+                    //'apiary_sites_minimal': this.apiary_sites_minimal,
+                    //'approval_id': this.approval_id,
+                }
+                return data
+            },
+
+            createProposal:function () {
+                console.log('createProposal');
+
+                let vm = this;
+                vm.creatingProposal = true;
+                let data = vm._get_basic_data();
+
+                vm.$http.post('/api/proposal.json', data).then(res => {
+                    vm.proposal = res.body;
+
+                    console.log('returned: ')
+                    console.log(vm.proposal)
+
+                    vm.$router.push({ name:"draft_proposal", params:{ proposal_id: vm.proposal.id }});
+                    vm.creatingProposal = false;
+                },
+                err => {
+                    console.log(err);
+                });
+            },
+
+            openNewSiteTransfer: function() {
+                let vm = this
+
+                swal({
+                    title: "Create Site Transfer Application",
+                    text: "Are you sure you want to create a new site transfer application?",
+                    type: "question",
+                    showCancelButton: true,
+                    confirmButtonText: 'Create'
+                }).then(
+                    () => {
+                        vm.createProposal();
+                    },
+                    (error) => {
+
+                    }
+                );
+            },
+
             loadApiarySites: async function(){
                 console.log('loadApiarySites');
 
                 await this.$http.get('/api/approvals/' + this.approval_id + '/apiary_site/').then(
                     (accept)=>{
-                        console.log('accept')
                         console.log(accept.body)
                         this.apiary_sites = accept.body
-                        this.constructSitesTable()
+                        this.component_site_selection_key = uuid()
                     },
                     (reject)=>{
-                        console.log('reject')
                     },
                 )
             },
-            constructSitesTable: function(){
-                console.log('constructSitesTable');
-                // Clear table
-                this.$refs.site_availability_table.vmDataTable.clear().draw();
-
-                // Construct table
-                if (this.apiary_sites.length > 0){
-                    for(let i=0; i<this.apiary_sites.length; i++){
-                        this.addApiarySiteToTable(this.apiary_sites[i]);
-                    }
-                }
-            },
-            addApiarySiteToTable: function(apiary_site) {
-                this.$refs.site_availability_table.vmDataTable.row.add(apiary_site).draw();
-            },
             addEventListeners: function() {
-                $("#site-availability-table").on("click", ".toggle_availability", this.toggleAvailability);
-            },
-            updateApiarySite: function(site_updated) {
-                // Update internal apiary_site data
-                for (let i=0; i<this.apiary_sites.length; i++){
-                    if (this.apiary_sites[i].id == site_updated.id){
-                        this.apiary_sites[i].available = site_updated.available
-                    }
-                }
-            },
-            toggleAvailability: function(e) {
-                let vm = this;
-                let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
-                let current_availability = e.target.getAttribute("data-apiary-site-available");
-                let requested_availability = current_availability === 'true' ? false : true
-
-                vm.$http.patch('/api/apiary_site/' + apiary_site_id + '/', { 'available': requested_availability }).then(
-                    async function(accept){
-                        // Update the site in the table
-                        let site_updated = accept.body
-                        this.updateApiarySite(site_updated)
-                        vm.constructSitesTable();
-                    },
-                    reject=>{
-                        swal(
-                            'Submit Error',
-                            helpers.apiVueResourceError(err),
-                            'error'
-                        )
-                    }
-                );
             },
         },
         created: function() {
@@ -188,7 +170,6 @@
             let vm = this;
             this.$nextTick(() => {
                 vm.addEventListeners();
-                this.constructSitesTable();
             });
         }
     }

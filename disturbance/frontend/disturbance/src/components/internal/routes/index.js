@@ -11,7 +11,8 @@ import Referral from '../referrals/referral_wrapper.vue'
 import ApprovalDash from '../approvals/dashboard.vue'
 import ComplianceDash from '../compliances/dashboard.vue'
 import Compliance from '../compliances/access.vue'
-import Approval from '../approvals/approval.vue'
+//import Approval from '../approvals/approval.vue'
+import Approval from '../approvals/approval_wrapper.vue'
 export default
 {
     path: '/internal',
@@ -25,7 +26,8 @@ export default
     children: [
         {
             path: '/',
-            component: InternalDashboard
+            component: InternalDashboard,
+            name:"internal-dashboard",
         },
         {
             path: 'approvals',

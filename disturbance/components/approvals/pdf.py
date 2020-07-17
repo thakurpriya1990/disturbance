@@ -172,8 +172,9 @@ def _create_approval(approval_buffer, approval, proposal, copied_to_permit, user
 
     elements = []
 
-
-    title = approval.title.encode('UTF-8')
+    title = ''
+    if approval.title:
+        title = approval.title.encode('UTF-8')
 
     #Organization details
 
@@ -424,7 +425,10 @@ def create_approval_doc(approval,proposal, copied_to_permit, user):
     approval_buffer = BytesIO()
 
     _create_approval(approval_buffer, approval, proposal, copied_to_permit, user)
-    filename = 'approval-{}.pdf'.format(approval.lodgement_number)
+    if proposal.apiary_group_application_type:
+        filename = 'approval-{}-{}.pdf'.format(approval.lodgement_number, proposal.lodgement_number)
+    else:
+        filename = 'approval-{}.pdf'.format(approval.lodgement_number)
     document = ApprovalDocument.objects.create(approval=approval,name=filename)
     document._file.save(filename, File(approval_buffer), save=True)
 
@@ -448,7 +452,11 @@ def create_renewal_doc(approval,proposal):
     renewal_buffer = BytesIO()
 
     _create_renewal(renewal_buffer, approval, proposal)
-    filename = 'renewal-{}.pdf'.format(approval.id)
+    if proposal.apiary_group_application_type:
+        filename = 'renewal-{}-{}.pdf'.format(approval.lodgement_number, proposal.lodgement_number)
+    else:
+        filename = 'renewal-{}.pdf'.format(approval.lodgement_number)
+    #filename = 'renewal-{}.pdf'.format(approval.id)
     document = ApprovalDocument.objects.create(approval=approval,name=filename)
     document._file.save(filename, File(renewal_buffer), save=True)
 

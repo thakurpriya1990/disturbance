@@ -6,15 +6,17 @@ from django.utils.encoding import python_2_unicode_compatible
 from django.utils import timezone
 from ledger.accounts.models import EmailUser, RevisionedMixin
 from ledger.payments.models import Invoice
-from disturbance.components.proposals.models import Proposal
+
+from disturbance.components.approvals.models import Approval
+from disturbance.components.proposals.models import Proposal, ApiarySite
 from decimal import Decimal as D
 from ledger.checkout.utils import calculate_excl_gst
 
 import logging
 logger = logging.getLogger(__name__)
 
-class Payment(RevisionedMixin):
 
+class Payment(RevisionedMixin):
     send_invoice = models.BooleanField(default=False)
     confirmation_sent = models.BooleanField(default=False)
     created = models.DateTimeField(auto_now_add=True)
@@ -48,7 +50,6 @@ class Payment(RevisionedMixin):
         if self.active_invoice:
             return self.active_invoice.payment_amount
         return amount
-
 
     def __check_invoice_payment_status(self):
         invoices = []
@@ -103,8 +104,6 @@ class ApplicationFee(Payment):
         (PAYMENT_TYPE_RECEPTION, 'Reception booking'),
         (PAYMENT_TYPE_BLACK, 'Black booking'),
         (PAYMENT_TYPE_TEMPORARY, 'Temporary reservation'),
-#        (4, 'Cancelled Booking'),
-#        (5, 'Changed Booking')
     )
 
     proposal = models.ForeignKey(Proposal, on_delete=models.PROTECT, blank=True, null=True, related_name='application_fees')
@@ -117,6 +116,43 @@ class ApplicationFee(Payment):
 
     class Meta:
         app_label = 'disturbance'
+
+
+class AnnualRentalFeePeriod(RevisionedMixin):
+    period_start_date = models.DateField(null=True, blank=True)
+    period_end_date = models.DateField(null=True, blank=True)
+
+    def __str__(self):
+        return 'AnnualRentalFeePeriod from {} to {}'.format(self.period_start_date, self.period_end_date)
+
+    class Meta:
+        app_label = 'disturbance'
+        ordering = ['-period_end_date', '-period_start_date',]
+        unique_together = ('period_start_date', 'period_end_date',)
+
+
+class AnnualRentalFee(Payment):
+    approval = models.ForeignKey(Approval, on_delete=models.PROTECT, blank=True, null=True, related_name='annual_rental_fees')
+    created_by = models.ForeignKey(EmailUser, on_delete=models.PROTECT, blank=True, null=True, related_name='created_by_annual_rental_fees')
+    annual_rental_fee_period = models.ForeignKey(AnnualRentalFeePeriod, on_delete=models.PROTECT, blank=True, null=True, related_name='annual_rental_fees')
+    invoice_period_start_date = models.DateField(null=True, blank=True)
+    invoice_period_end_date = models.DateField(null=True, blank=True)
+    invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
+
+    def __str__(self):
+        return 'Approval {} : Invoice {}'.format(self.approval, self.invoice_reference)
+
+    class Meta:
+        app_label = 'disturbance'
+
+
+class AnnualRentalFeeApiarySite(RevisionedMixin):
+    apiary_site = models.ForeignKey(ApiarySite, blank=True, null=True)
+    annual_rental_fee = models.ForeignKey(AnnualRentalFee, blank=True, null=True)
+
+    class Meta:
+        app_label = 'disturbance'
+
 
 class ApplicationFeeInvoice(RevisionedMixin):
     application_fee = models.ForeignKey(ApplicationFee, related_name='application_fee_invoices')
@@ -138,8 +174,30 @@ class ApplicationFeeInvoice(RevisionedMixin):
         return False
 
 
+# class AnnualRentalFeeInvoice(RevisionedMixin):
+#     annual_rental_fee = models.ForeignKey(AnnualRentalFee, related_name='annual_rental_fee_invoices')
+#     invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
+#
+#     def __str__(self):
+#         return 'Annual Rent Fee {} : Invoice #{}'.format(self.id, self.invoice_reference)
+#
+#     class Meta:
+#         app_label = 'disturbance'
+#
+#     @property
+#     def active(self):
+#         try:
+#             invoice = Invoice.objects.get(reference=self.invoice_reference)
+#             return False if invoice.voided else True
+#         except Invoice.DoesNotExist:
+#             pass
+#         return False
+
+
 import reversion
 reversion.register(ApplicationFee, follow=['application_fee_invoices'])
 reversion.register(ApplicationFeeInvoice)
+reversion.register(AnnualRentalFee)
+# reversion.register(AnnualRentalFeeInvoice)
 
 
