@@ -174,6 +174,10 @@
                     this.addApiarySite(vm.apiary_site_geojson_array[i])
                 }
 
+                let container = document.getElementById('popup')
+                let content_element = document.getElementById('popup-content')
+                let closer = document.getElementById('popup-closer')
+
                 vm.map.on('click', function(evt){
                     let feature = vm.map.forEachFeatureAtPixel(evt.pixel, function(feature, layer) {
                         return feature;
@@ -181,6 +185,7 @@
                     if (feature){
                         let geometry = feature.getGeometry();
                         let coord = geometry.getCoordinates();
+                        console.log(coord)
                         let content = '<h3>' + feature.get('status') + '</h3>';
 
                         content_element.innerHTML = content;
@@ -274,46 +279,46 @@
 </script>
 
 <style lang="css" scoped>
-.ol-popup {
-    position: absolute;
-    min-width: 180px;
-    background-color: white;
-    -webkit-filter: drop-shadow(0 1px 4px rgba(0,0,0,0.2));
-    filter: drop-shadow(0 1px 4px rgba(0,0,0,0.2));
-    padding: 15px;
-    border-radius: 10px;
-    border: 1px solid #ccc;
-    bottom: 12px;
-    left: -50px;
-}
-.ol-popup:after, .ol-popup:before {
-    top: 100%;
-    border: solid transparent;
-    content: " ";
-    height: 0;
-    width: 0;
-    position: absolute;
-    pointer-events: none;
-}
-.ol-popup:after {
-    border-top-color: white;
-    border-width: 10px;
-    left: 48px;
-    margin-left: -10px;
-}
-.ol-popup:before {
-    border-top-color: #cccccc;
-    border-width: 11px;
-    left: 48px;
-    margin-left: -11px;
-}
-.ol-popup-closer {
-    text-decoration: none;
-    position: absolute;
-    top: 2px;
-    right: 8px;
-}
-.ol-popup-closer:after {
-    content: "✖";
-}
+    .ol-popup {
+        position: absolute;
+        min-width: 180px;
+        background-color: white;
+        -webkit-filter: drop-shadow(0 1px 4px rgba(0,0,0,0.2));
+        filter: drop-shadow(0 1px 4px rgba(0,0,0,0.2));
+        padding: 15px;
+        border-radius: 10px;
+        border: 1px solid #ccc;
+        bottom: 12px;
+        left: -50px;
+    }
+    .ol-popup:after, .ol-popup:before {
+        top: 100%;
+        border: solid transparent;
+        content: " ";
+        height: 0;
+        width: 0;
+        position: absolute;
+        pointer-events: none;
+    }
+    .ol-popup:after {
+        border-top-color: white;
+        border-width: 10px;
+        left: 48px;
+        margin-left: -10px;
+    }
+    .ol-popup:before {
+        border-top-color: #cccccc;
+        border-width: 11px;
+        left: 48px;
+        margin-left: -11px;
+    }
+    .ol-popup-closer {
+        text-decoration: none;
+        position: absolute;
+        top: 2px;
+        right: 8px;
+    }
+    .ol-popup-closer:after {
+        content: "✖";
+    }
 </style>
