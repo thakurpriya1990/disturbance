@@ -2549,11 +2549,14 @@ class ProposalApiary(models.Model):
                                 site.apiary_site.save()
                         else:
                             count_approved_site = 0
-                            sites_approved = request.data.get('apiary_sites', [])
-                            sites_approved = [site for site in sites_approved if site['checked']]
-                            count_approved_site = self.update_apiary_sites(approval, sites_approved)
-                            if count_approved_site == 0:
+                            sites_received = request.data.get('apiary_sites', [])
+
+                            # Check the number of sites to be approved
+                            sites_approved = [site for site in sites_received if site['checked']]
+                            if len(sites_approved) == 0:
                                 raise ValidationError("There must be at least one apiary site to approve")
+
+                            self.update_apiary_sites(approval, sites_received)
 
                             # TODO: Generate an invoice for the annual rental fee for the sites added newly
 
@@ -2661,19 +2664,16 @@ class ProposalApiary(models.Model):
                 raise
 
     def update_apiary_sites(self, approval, sites_approved):
-        count_approved_site = 0
         for my_site in sites_approved:
             a_site = ApiarySite.objects.get(id=my_site['id'])
             if my_site['checked']:
                 a_site.approval = approval
                 a_site.status = ApiarySite.STATUS_CURRENT
                 a_site.workflow_selected_status = True
-                count_approved_site += 1
             else:
                 a_site.status = ApiarySite.STATUS_DENIED
                 a_site.workflow_selected_status = False
             a_site.save()
-        return count_approved_site
 
 
 class SiteCategory(models.Model):
@@ -2804,13 +2804,14 @@ class ApiaryAnnualRentalFeeRunDate(RevisionedMixin):
     """
     NAME_CRON = 'date_to_run_cron_job'
     NAME_CHOICES = (
-        (NAME_CRON, 'Date to run job'),
+        (NAME_CRON, 'Date to Issue'),
     )
     name = models.CharField(unique=True, max_length=50, choices=NAME_CHOICES, )
     date_run_cron = models.DateField(blank=True, null=True)
 
     class Meta:
         app_label = 'disturbance'
+        verbose_name = 'Annual Rental Fee Issue Date'
 
     def __str__(self):
         return '{}: {} {}'.format(self.name, self.date_run_cron.strftime('%B'), self.date_run_cron.day)
