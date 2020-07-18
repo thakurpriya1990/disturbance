@@ -596,7 +596,7 @@ class ProposalApiaryViewSet(viewsets.ModelViewSet):
                             user,
                             context={
                                 'request': request,
-                                'sending_approval_id': instance.sending_approval.id,
+                                'originating_approval_id': instance.originating_approval.id,
                                 })
                     return Response(serializer.data)
             # Fallback if no email address found
@@ -1659,9 +1659,9 @@ class ProposalViewSet(viewsets.ModelViewSet):
                         new_answer = ApiaryApplicantChecklistAnswer.objects.create(proposal = proposal_apiary,
                                                                                    question = question)
                 elif application_type.name == ApplicationType.SITE_TRANSFER:
-                    approval_id = request.data.get('sending_approval_id')
+                    approval_id = request.data.get('originating_approval_id')
                     approval = Approval.objects.get(id=approval_id)
-                    details_data['sending_approval_id'] = approval_id
+                    details_data['originating_approval_id'] = approval_id
                     serializer = CreateProposalApiarySiteTransferSerializer(data=details_data)
                     serializer.is_valid(raise_exception=True)
                     proposal_apiary = serializer.save()
