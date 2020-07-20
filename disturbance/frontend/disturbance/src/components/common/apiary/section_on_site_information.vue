@@ -145,6 +145,7 @@
                             }
                         },
                         {
+                            visible: false,
                             mRender: function (data, type, full) {
                                 if (vm.is_external){
                                     if (full.action) {
