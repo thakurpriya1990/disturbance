@@ -1659,14 +1659,14 @@ class ProposalViewSet(viewsets.ModelViewSet):
                         new_answer = ApiaryApplicantChecklistAnswer.objects.create(proposal = proposal_apiary,
                                                                                    question = question)
                     # Find relevant approval
-                    approval = proposal_obj.retrieve_approval
+                    approval = proposal_apiary.retrieve_approval
                     # Copy requirements from approval.current_proposal
                     req = approval.current_proposal.requirements.all().exclude(is_deleted=True)
                     from copy import deepcopy
                     if req:
                         for r in req:
                             old_r = deepcopy(r)
-                            r.proposal = proposal_obj
+                            r.proposal = proposal_apiary.proposal
                             r.copied_from=old_r
                             r.id = None
                             r.save()
