@@ -2603,6 +2603,7 @@ class ProposalApiary(models.Model):
                     if self.proposal.application_type.name == ApplicationType.APIARY:
                         from disturbance.components.compliances.models import Compliance, ComplianceUserAction
                         if created:
+                            # Apiary has no amendment applications
                             if self.proposal.proposal_type == 'amendment':
                                 approval_compliances = Compliance.objects.filter(
                                         approval= previous_approval, 
