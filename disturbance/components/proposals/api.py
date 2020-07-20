@@ -1579,6 +1579,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(str(e))
 
     def create(self, request, *args, **kwargs):
+        #import ipdb; ipdb.set_trace()
         try:
             with transaction.atomic():
                 http_status = status.HTTP_200_OK
@@ -1659,17 +1660,18 @@ class ProposalViewSet(viewsets.ModelViewSet):
                         new_answer = ApiaryApplicantChecklistAnswer.objects.create(proposal = proposal_apiary,
                                                                                    question = question)
                     # Find relevant approval
-                    approval = proposal_obj.retrieve_approval
-                    # Copy requirements from approval.current_proposal
-                    req = approval.current_proposal.requirements.all().exclude(is_deleted=True)
-                    from copy import deepcopy
-                    if req:
-                        for r in req:
-                            old_r = deepcopy(r)
-                            r.proposal = proposal_obj
-                            r.copied_from=old_r
-                            r.id = None
-                            r.save()
+                    approval = proposal_apiary.retrieve_approval
+                    if approval:
+                        # Copy requirements from approval.current_proposal
+                        req = approval.current_proposal.requirements.all().exclude(is_deleted=True)
+                        from copy import deepcopy
+                        if req:
+                            for r in req:
+                                old_r = deepcopy(r)
+                                r.proposal = proposal_apiary.proposal
+                                r.copied_from=old_r
+                                r.id = None
+                                r.save()
 
                 elif application_type.name == ApplicationType.SITE_TRANSFER:
                     approval_id = request.data.get('originating_approval_id')

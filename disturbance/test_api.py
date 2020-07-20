@@ -8,6 +8,7 @@ from disturbance.components.proposals.models import (
 
 class ProposalTests(APITestSetup):
     def test_create_proposal_apiary(self):
+        #import ipdb; ipdb.set_trace()
         print("test_create_proposal_apiary")
         self.client.login(email=self.customer, password='pass')
         self.client.enforce_csrf_checks=True
