@@ -189,14 +189,12 @@
                         return feature;
                     });
                     if (feature){
+                        console.log(feature)
                         let geometry = feature.getGeometry();
                         let coord = geometry.getCoordinates();
-                        console.log(coord)
-                        let content = '<h3>' + feature.get('status') + '</h3>';
-
+                        let content = '<div>site: ' + feature.id_ + '</div>';
                         content_element.innerHTML = content;
                         overlay.setPosition(coord);
-                        console.info(feature.getProperties());
                     }
                 })
                 vm.map.on('pointermove', function(e) {
@@ -211,7 +209,6 @@
             },
             addApiarySite: function(apiary_site_geojson) {
                 let feature = (new GeoJSON()).readFeature(apiary_site_geojson)
-                let status = feature.get('status')
                 this.apiarySitesQuerySource.addFeature(feature)
             },
             zoomToApiarySiteById: function(apiary_site_id){
@@ -247,11 +244,11 @@
 <style lang="css" scoped>
     .ol-popup {
         position: absolute;
-        min-width: 180px;
+        min-width: 80px;
         background-color: white;
         -webkit-filter: drop-shadow(0 1px 4px rgba(0,0,0,0.2));
         filter: drop-shadow(0 1px 4px rgba(0,0,0,0.2));
-        padding: 15px;
+        padding: 2px;
         border-radius: 10px;
         border: 1px solid #ccc;
         bottom: 12px;
