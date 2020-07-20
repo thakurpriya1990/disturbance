@@ -31,6 +31,7 @@
     import { getDistance } from 'ol/sphere';
     import { circular} from 'ol/geom/Polygon';
     import GeoJSON from 'ol/format/GeoJSON';
+    import { getFillColour, getStrokeColour } from '@/components/common/apiary/site_colours.js'
 
     export default {
         props:{
@@ -105,8 +106,8 @@
                 }, 50)
             },
             getStyle: function(status, checked){
-                let fillObj = this.getFillColour(status)
-                let strokeObj = this.getStrokeColour(status, checked)
+                let fillObj = getFillColour(status)
+                let strokeObj = getStrokeColour(status, checked)
                 return new Style({
                             image: new CircleStyle({
                                 radius: 7,
@@ -165,43 +166,6 @@
             },
             getDegrees: function(coords){
                 return coords[0].toFixed(6) + ', ' + coords[1].toFixed(6);
-            },
-            getFillColour: function(status){
-                switch(status){
-                    case 'draft':
-                        return new Fill({color: '#e0e0e0'})
-                    case 'pending':
-                        return new Fill({color: '#fff59d'})
-                    case 'current':
-                        return new Fill({color: '#bbdefb'})
-                    case 'suspended':
-                        return new Fill({color: '#ffcc80'})
-                    case 'not_to_be_reissued':
-                        return new Fill({color: '#d1c4e9'})
-                    case 'denied':
-                        return new Fill({color: '#ffcdd2'})
-                    case 'vacant':
-                        return new Fill({color: '#7fcac3'})
-                }
-            },
-            getStrokeColour: function(status, selected=false){
-                let stroke_width = selected ? 4 : 2
-                switch(status){
-                    case 'draft':
-                        return new Stroke({color: '#616161', width: stroke_width})
-                    case 'pending':
-                        return new Stroke({color: '#f2cb29', width: stroke_width})
-                    case 'current':
-                        return new Stroke({color: '#1a76d2', width: stroke_width})
-                    case 'suspended':
-                        return new Stroke({color: '#f57c01', width: stroke_width})
-                    case 'not_to_be_reissued':
-                        return new Stroke({color: '#512da8', width: stroke_width})
-                    case 'denied':
-                        return new Stroke({color: '#d2302f', width: stroke_width})
-                    case 'vacant':
-                        return new Stroke({color: '#00796b', width: stroke_width})
-                }
             },
             addApiarySite: function(apiary_site_geojson) {
                 let feature = (new GeoJSON()).readFeature(apiary_site_geojson)
