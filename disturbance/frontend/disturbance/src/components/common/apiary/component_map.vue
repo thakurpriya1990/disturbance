@@ -211,6 +211,11 @@
                 let feature = (new GeoJSON()).readFeature(apiary_site_geojson)
                 this.apiarySitesQuerySource.addFeature(feature)
             },
+            removeApiarySiteById: function(apiary_site_id){
+                let feature = this.apiarySitesQuerySource.getFeatureById(apiary_site_id)
+                console.log(feature)
+                this.apiarySitesQuerySource.removeFeature(feature)
+            },
             zoomToApiarySiteById: function(apiary_site_id){
                 let feature = this.apiarySitesQuerySource.getFeatureById(apiary_site_id)
                 let view = this.map.getView()
