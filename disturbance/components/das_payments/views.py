@@ -134,16 +134,16 @@ class SiteTransferApplicationFeeSuccessView(TemplateView):
             try:
                 if proposal.applicant:
                     recipient = proposal.applicant.email
-                    submitter = proposal.applicant
+                    #submitter = proposal.applicant
                 elif proposal.proxy_applicant:
                     recipient = proposal.proxy_applicant.email
-                    submitter = proposal.proxy_applicant
+                    #submitter = proposal.proxy_applicant
                 else:
                     recipient = proposal.submitter.email
-                    submitter = proposal.submitter
+                    #submitter = proposal.submitter
             except:
                 recipient = proposal.submitter.email
-                submitter = proposal.submitter
+            submitter = proposal.submitter
 
             if self.request.user.is_authenticated():
                 basket = Basket.objects.filter(status='Submitted', owner=request.user).order_by('-id')[:1]
@@ -254,16 +254,16 @@ class ApplicationFeeSuccessView(TemplateView):
             try:
                 if proposal.applicant:
                     recipient = proposal.applicant.email
-                    submitter = proposal.applicant
+                    #submitter = proposal.applicant
                 elif proposal.proxy_applicant:
                     recipient = proposal.proxy_applicant.email
-                    submitter = proposal.proxy_applicant
+                    #submitter = proposal.proxy_applicant
                 else:
                     recipient = proposal.submitter.email
-                    submitter = proposal.submitter
+                    #submitter = proposal.submitter
             except:
                 recipient = proposal.submitter.email
-                submitter = proposal.submitter
+            submitter = proposal.submitter
 
             if self.request.user.is_authenticated():
                 basket = Basket.objects.filter(status='Submitted', owner=request.user).order_by('-id')[:1]
