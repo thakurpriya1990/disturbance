@@ -4,12 +4,14 @@
             <div class="col-md-12 alert alert-success" v-if="proposal.processing_status == 'Approved'">
                 <div v-if="proposal.proposal_apiary">
                     <p>The licence has been issued and has been emailed to {{proposal.applicant.name}}</p>
+                    <p>Expiry date: {{proposal.proposed_issuance_approval.expiry_date}}
+                    <p>Permit: <a target="_blank" :href="proposal.permit">licence.pdf</a></p>
                 </div>
                 <div v-else>
                     <p>The approval has been issued and has been emailed to {{proposal.applicant.name}}</p>
+                    <p>Expiry date: {{proposal.proposed_issuance_approval.expiry_date}}
+                    <p>Permit: <a target="_blank" :href="proposal.permit">approval.pdf</a></p>
                 </div>
-                <p>Expiry date: {{proposal.proposed_issuance_approval.expiry_date}}
-                <p>Permit: <a target="_blank" :href="proposal.permit">approval.pdf</a></p>
             </div>
             <div v-else class="col-md-12 alert alert-warning">
                 <div v-if="proposal.proposal_apiary">

@@ -147,9 +147,16 @@
                             </div>
                             <template v-if="proposal.processing_status == 'With Assessor (Requirements)' || proposal.processing_status == 'With Approver' || isFinalised">
                                 <div class="col-sm-12">
-                                    <strong>Proposal</strong><br/>
-                                    <a class="actionBtn" v-if="!showingProposal" @click.prevent="toggleProposal()">Show Proposal</a>
-                                    <a class="actionBtn" v-else @click.prevent="toggleProposal()">Hide Proposal</a>
+                                    <div v-if="proposal.proposal_apiary">
+                                        <strong>Application</strong><br/>
+                                        <a class="actionBtn" v-if="!showingProposal" @click.prevent="toggleProposal()">Show Application</a>
+                                        <a class="actionBtn" v-else @click.prevent="toggleProposal()">Hide Application</a>
+                                    </div>
+                                    <div v-else>
+                                        <strong>Proposal</strong><br/>
+                                        <a class="actionBtn" v-if="!showingProposal" @click.prevent="toggleProposal()">Show Proposal</a>
+                                        <a class="actionBtn" v-else @click.prevent="toggleProposal()">Hide Proposal</a>
+                                    </div>
                                 </div>
                                 <div class="col-sm-12">
                                     <div class="separator"></div>

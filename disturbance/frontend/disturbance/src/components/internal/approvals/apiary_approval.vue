@@ -1,7 +1,7 @@
 <template>
 <div class="container" id="internalApproval">
     <div class="row">
-        <h3>Approval {{ approval.lodgement_number }}</h3>
+        <h3>Licence {{ approval.lodgement_number }}</h3>
         <div class="col-md-3">
             <CommsLogs :comms_url="comms_url" :logs_url="logs_url" :comms_add_url="comms_add_url" :disable_add_entry="false"/>
             <div class="row">
