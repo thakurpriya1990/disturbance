@@ -1,6 +1,5 @@
 <template id="proposal_requirements">
     <div>
-        This file is proposal_approval_site_transfer_temporary_use.vue
         <template v-if="isFinalised">
             <div class="col-md-12 alert alert-success" v-if="proposal.processing_status == 'Approved'">
                 <p>The approval has been issued and has been emailed to {{proposal.applicant.name}}</p>
