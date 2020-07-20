@@ -17,7 +17,7 @@ class AnnualRentalFeePeriodSerializer(serializers.ModelSerializer):
         )
 
     def get_year_name(self, obj):
-        return obj.period_start_date.year
+        return str(obj.period_start_date.year) + ' (' + obj.period_start_date.strftime('%d/%m/%Y') + ' to ' + obj.period_end_date.strftime('%d/%m/%Y') + ')'
 
 
 class AnnualRentalFeeSerializer(serializers.ModelSerializer):

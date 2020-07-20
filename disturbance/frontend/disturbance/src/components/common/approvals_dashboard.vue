@@ -3,7 +3,7 @@
         <div class="col-sm-12">
             <div class="panel panel-default">
                 <div class="panel-heading">
-                    <h3 class="panel-title">Approvals/Licenses <small v-if="is_external">View existing approvals/licenses and amend or renew them</small>
+                    <h3 class="panel-title">Approvals/Licences <small v-if="is_external">View existing approvals/licences and amend or renew them</small>
                         <a :href="'#'+pBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="pBody">
                             <span class="glyphicon glyphicon-chevron-up pull-right "></span>
                         </a>

@@ -152,7 +152,7 @@ export default {
             proposal_submitters: [],
             proposal_status: [],
             proposal_ex_headers:[
-                "Number","Region","District","Activity","Title","Submitter","Proponent","Status","Lodged on","Invoice/Confirmation","Action"
+                "Number","Region","District","Activity","Title","Submitter","Proponent","Status","Lodged on","Invoice","Action"
                 //"LodgementNo","ProcessingStatus","AssessorProcess","CanUserEdit",
             ],
 
@@ -347,7 +347,7 @@ export default {
                 */
             },
             proposal_headers:[
-                "Number","Region","District","Activity","Title","Submitter","Proponent","Status","Lodged on","Assigned Officer","Invoice/Confirmation","Action",
+                "Number","Region","District","Activity","Title","Submitter","Proponent","Status","Lodged on","Assigned Officer","Invoice","Action",
             ],
             proposal_options:{
                 autoWidth: false,
