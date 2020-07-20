@@ -201,7 +201,7 @@
                             // Previous Site Holder/Applicant
                             visible: vm.show_col_previous_site_holder,
                             mRender: function (data, type, apiary_site){
-                                return 'holder'
+                                return apiary_site.previous_site_holder_or_applicant
                             }
                         },
                         {
