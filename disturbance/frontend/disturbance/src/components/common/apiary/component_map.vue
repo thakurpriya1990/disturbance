@@ -33,6 +33,7 @@
     import { getDistance } from 'ol/sphere';
     import { circular} from 'ol/geom/Polygon';
     import GeoJSON from 'ol/format/GeoJSON';
+    import Overlay from 'ol/Overlay';
     import { getFillColour, getStrokeColour } from '@/components/common/apiary/site_colours.js'
 
     export default {
@@ -170,6 +171,19 @@
                 let content_element = document.getElementById('popup-content')
                 let closer = document.getElementById('popup-closer')
 
+                closer.onclick = function() {
+                    overlay.setPosition(undefined)
+                    closer.blur()
+                    return false
+                }
+
+                let overlay = new Overlay({
+                    element: container,
+                    autoPan: true,
+                    offest: [0, -10]
+                })
+                vm.map.addOverlay(overlay)
+
                 vm.map.on('click', function(evt){
                     let feature = vm.map.forEachFeatureAtPixel(evt.pixel, function(feature, layer) {
                         return feature;
@@ -185,6 +199,12 @@
                         console.info(feature.getProperties());
                     }
                 })
+                vm.map.on('pointermove', function(e) {
+                    if (e.dragging) return;
+                    let pixel = vm.map.getEventPixel(e.originalEvent);
+                    let hit = vm.map.hasFeatureAtPixel(pixel);
+                    vm.map.getTargetElement().style.cursor = hit ? 'pointer' : '';
+                });
             },
             getDegrees: function(coords){
                 return coords[0].toFixed(6) + ', ' + coords[1].toFixed(6);
