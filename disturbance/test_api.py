@@ -8,6 +8,7 @@ from disturbance.components.proposals.models import (
 
 class ProposalTests(APITestSetup):
     def test_create_proposal_apiary(self):
+        #import ipdb; ipdb.set_trace()
         print("test_create_proposal_apiary")
         self.client.login(email=self.customer, password='pass')
         self.client.enforce_csrf_checks=True
@@ -492,6 +493,8 @@ class IntegrationTests(APITestSetup):
         print("APPROVAL SITES customer 1")
         for approval_site in ApiarySite.objects.filter(approval=customer1_approval):
             print(approval_site)
+        print(customer1_approval.current_proposal)
+        print(customer1_approval.current_proposal.application_type.name)
 
         self.assertEqual(len(ApiarySite.objects.filter(approval=customer1_approval)), 2)
 
@@ -503,6 +506,8 @@ class IntegrationTests(APITestSetup):
         print("APPROVAL SITES customer 2")
         for approval_site in ApiarySite.objects.filter(approval=customer2_approval):
             print(approval_site)
+        print(customer2_approval.current_proposal)
+        print(customer2_approval.current_proposal.application_type.name)
 
         self.assertEqual(len(ApiarySite.objects.filter(approval=customer2_approval)), 4)
 

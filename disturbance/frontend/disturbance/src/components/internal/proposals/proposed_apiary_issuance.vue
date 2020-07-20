@@ -290,7 +290,7 @@ export default {
         preview:function () {
             let vm =this;
             let formData = new FormData(vm.form)
-            if (this.siteTransferApplication && this.proposal.approval) {
+            if (this.proposal.approval && this.proposal.approval.start_date && this.proposal.approval.expiry_date) {
                 formData.append('start_date', moment(this.proposal.approval.start_date, 'YYYY-MM-DD').format('DD/MM/YYYY'));
                 formData.append('due_date', moment(this.proposal.approval.expiry_date, 'YYYY-MM-DD').format('DD/MM/YYYY'));
             }
