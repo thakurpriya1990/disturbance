@@ -1,6 +1,5 @@
 <template lang="html">
     <div id="proposedIssuanceApproval">
-        proposed_apiary_issuance.vue
         <modal transition="modal fade" @ok="ok()" @cancel="cancel()" :title="title" large>
             <div class="container-fluid">
                 <div class="row">

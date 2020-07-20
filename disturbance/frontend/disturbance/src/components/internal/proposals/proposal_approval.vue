@@ -1,6 +1,5 @@
 <template id="proposal_requirements">
     <div>
-        proposal_approval.vue
         <template v-if="isFinalised">
             <div class="col-md-12 alert alert-success" v-if="proposal.processing_status == 'Approved'">
                 <div v-if="proposal.proposal_apiary">
