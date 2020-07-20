@@ -28,7 +28,7 @@
 
         <div class="form-group row">
             <label class="col-sm-3">Calendar year</label>
-            <div class="col-sm-3">
+            <div class="col-sm-4">
                 <select class="form-control" v-model="year_name_selected">
                     <template v-if="annual_rental_fee_periods">
                         <option value="all">
