@@ -451,6 +451,16 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
         serializer = ApiarySiteGeojsonSerializer(qs, many=True)
         return Response(serializer.data)
 
+    @list_route(methods=['GET',])
+    @basic_exception_handler
+    def transitable_sites(self, request):
+        q_objects = Q()
+        q_objects |= Q(status__in=ApiarySite.TRANSITABLE_STATUSES)
+
+        qs = ApiarySite.objects.filter(q_objects)
+        serializer = ApiarySiteSerializer(qs, many=True)
+        return Response(serializer.data)
+
     @basic_exception_handler
     def partial_update(self, request, *args, **kwargs):
         with transaction.atomic():

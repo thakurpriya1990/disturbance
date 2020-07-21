@@ -220,6 +220,15 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
     onsiteinformation_set = OnSiteInformationSerializer(read_only=True, many=True,)
     coordinates = serializers.SerializerMethodField()
     as_geojson = serializers.SerializerMethodField()
+    previous_site_holder_or_applicant = serializers.SerializerMethodField()
+
+    def get_previous_site_holder_or_applicant(self, apiary_site):
+        if apiary_site.approval:
+            relevant_applicant = apiary_site.approval.relevant_applicant_name
+        else:
+            relevant_applicant = apiary_site.proposal_apiary.proposal.relevant_applicant_name
+
+        return relevant_applicant
 
     def get_as_geojson(self, apiary_site):
         return ApiarySiteGeojsonSerializer(apiary_site).data
@@ -245,6 +254,7 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
             'as_geojson',
             'status',
             'workflow_selected_status',
+            'previous_site_holder_or_applicant',
         )
 
 
