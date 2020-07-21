@@ -293,6 +293,6 @@
         position: absolute;
         left: -2px;
         top: -11px;
-
+        filter: drop-shadow(0 1px 4px rgba(0,0,0,0.2));
     }
 </style>
