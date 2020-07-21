@@ -78,11 +78,28 @@ class VersionSerializer(serializers.ModelSerializer):
             apiary_sites = []
             for record in obj.revision.version_set.all():
                 if record.object:
+                    # Exclude these models from the result
+                    if record.object._meta.model_name in [
+                            'proposallogentry',
+                            'annualrentalfee',
+                            'approvaldocument',
+                            'approval',
+                            ]:
+                        continue
                     if ContentType.objects.get(id=record.content_type_id).model == 'apiarysite':
-                        apiary_sites.append({record.object._meta.model_name: record.field_dict})
+                        payload = record.field_dict
+                        # Exclude these fields from the result
+                        payload.pop("wkb_geometry", None)
+                        payload.pop("objects", None)
+                        payload.pop("site_guid", None)
+                        apiary_sites.append({record.object._meta.model_name: payload})
                     else:
+                        #print("record.object._meta.model_name")
+                        #print(record.object._meta.model_name)
                         proposal_data.append({record.object._meta.model_name: record.field_dict})
             proposal_data.append({'apiary_sites': apiary_sites})
+        #print("proposal_data")
+        #print(proposal_data)
         return proposal_data
 
 

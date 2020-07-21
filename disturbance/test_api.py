@@ -136,16 +136,27 @@ class IntegrationTests(APITestSetup):
                 format='json'
                 #content_type='application/json'
                 )
-
         self.assertEqual(final_approval_response.status_code, 200)
 
         # Show properties of newly created approval
         final_proposal = Proposal.objects.get(id=proposal_id)
+        final_proposal_proposal_apiary_id = final_proposal.proposal_apiary.id
         print(Proposal.objects.get(id=proposal_id).approval.apiary_approval)
         print(Proposal.objects.get(id=proposal_id).processing_status)
         print("APPROVAL SITES")
         for approval_site in ApiarySite.objects.filter(approval=final_proposal.approval):
             print(approval_site)
+
+        # check Reversion endpoint
+        #print(final_proposal_proposal_apiary_id)
+        url = '/api/proposal_apiary/{}/proposal_history/'.format(final_proposal_proposal_apiary_id)
+        #print(url)
+        reversion_response = self.client.get(
+                url,
+                #format='json'
+                content_type='application/json'
+                )
+        self.assertEqual(reversion_response.status_code, 200)
 
     def test_proposal_apiary_site_transfer_workflow(self):
         print("test_proposal_apiary_site_transfer_workflow")
