@@ -1,10 +1,12 @@
 <template lang="html">
     <div>
         <div :id="elem_id" class="map"></div>
-        <div :id="popup_id" class="ol-popup">
-            <a href="#" :id="popup_closer_id" class="ol-popup-closer"></a>
-            <div :id="popup_content_id"></div>
+        
+        <div id="popup" class="ol-popup">
+            <a href="#" id="popup-closer" class="ol-popup-closer"></a>
+            <div id="popup-content"></div>
         </div>
+
     </div>
 </template>
 
@@ -31,6 +33,7 @@
     import { getDistance } from 'ol/sphere';
     import { circular} from 'ol/geom/Polygon';
     import GeoJSON from 'ol/format/GeoJSON';
+    import Overlay from 'ol/Overlay';
     import { getFillColour, getStrokeColour } from '@/components/common/apiary/site_colours.js'
 
     export default {
@@ -163,14 +166,55 @@
                 for (let i=0; i<vm.apiary_site_geojson_array.length; i++){
                     this.addApiarySite(vm.apiary_site_geojson_array[i])
                 }
+
+                let container = document.getElementById('popup')
+                let content_element = document.getElementById('popup-content')
+                let closer = document.getElementById('popup-closer')
+
+                closer.onclick = function() {
+                    overlay.setPosition(undefined)
+                    closer.blur()
+                    return false
+                }
+
+                let overlay = new Overlay({
+                    element: container,
+                    autoPan: true,
+                    offest: [0, -10]
+                })
+                vm.map.addOverlay(overlay)
+
+                vm.map.on('click', function(evt){
+                    let feature = vm.map.forEachFeatureAtPixel(evt.pixel, function(feature, layer) {
+                        return feature;
+                    });
+                    if (feature){
+                        console.log(feature)
+                        let geometry = feature.getGeometry();
+                        let coord = geometry.getCoordinates();
+                        let content = '<div>site: ' + feature.id_ + '</div>';
+                        content_element.innerHTML = content;
+                        overlay.setPosition(coord);
+                    }
+                })
+                vm.map.on('pointermove', function(e) {
+                    if (e.dragging) return;
+                    let pixel = vm.map.getEventPixel(e.originalEvent);
+                    let hit = vm.map.hasFeatureAtPixel(pixel);
+                    vm.map.getTargetElement().style.cursor = hit ? 'pointer' : '';
+                });
             },
             getDegrees: function(coords){
                 return coords[0].toFixed(6) + ', ' + coords[1].toFixed(6);
             },
             addApiarySite: function(apiary_site_geojson) {
                 let feature = (new GeoJSON()).readFeature(apiary_site_geojson)
-                let status = feature.get('status')
                 this.apiarySitesQuerySource.addFeature(feature)
+            },
+            removeApiarySiteById: function(apiary_site_id){
+                let feature = this.apiarySitesQuerySource.getFeatureById(apiary_site_id)
+                console.log(feature)
+                this.apiarySitesQuerySource.removeFeature(feature)
             },
             zoomToApiarySiteById: function(apiary_site_id){
                 let feature = this.apiarySitesQuerySource.getFeatureById(apiary_site_id)
@@ -203,4 +247,46 @@
 </script>
 
 <style lang="css" scoped>
+    .ol-popup {
+        position: absolute;
+        min-width: 80px;
+        background-color: white;
+        -webkit-filter: drop-shadow(0 1px 4px rgba(0,0,0,0.2));
+        filter: drop-shadow(0 1px 4px rgba(0,0,0,0.2));
+        padding: 2px;
+        border-radius: 10px;
+        border: 1px solid #ccc;
+        bottom: 12px;
+        left: -50px;
+    }
+    .ol-popup:after, .ol-popup:before {
+        top: 100%;
+        border: solid transparent;
+        content: " ";
+        height: 0;
+        width: 0;
+        position: absolute;
+        pointer-events: none;
+    }
+    .ol-popup:after {
+        border-top-color: white;
+        border-width: 10px;
+        left: 48px;
+        margin-left: -10px;
+    }
+    .ol-popup:before {
+        border-top-color: #cccccc;
+        border-width: 11px;
+        left: 48px;
+        margin-left: -11px;
+    }
+    .ol-popup-closer {
+        text-decoration: none;
+        position: absolute;
+        top: 2px;
+        right: 8px;
+    }
+    .ol-popup-closer:after {
+        content: "✖";
+    }
 </style>
