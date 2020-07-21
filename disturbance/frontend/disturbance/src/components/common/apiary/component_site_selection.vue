@@ -383,9 +383,11 @@
                             async function(accept){
                                 // Update the site in the table
                                 let site_updated = accept.body
+
                                 // Remove the site from the table
                                 vm.removeApiarySiteById(apiary_site_id)
                                 vm.constructApiarySitesTable();
+
                                 // Remove the site from the map
                                 this.$refs.component_map.removeApiarySiteById(apiary_site_id)
                                 //vm.component_map_key = uuid()

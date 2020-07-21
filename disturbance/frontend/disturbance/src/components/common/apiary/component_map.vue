@@ -34,7 +34,7 @@
     import { circular} from 'ol/geom/Polygon';
     import GeoJSON from 'ol/format/GeoJSON';
     import Overlay from 'ol/Overlay';
-    import { getFillColour, getStrokeColour } from '@/components/common/apiary/site_colours.js'
+    import { getFillColour, getStrokeColour, existingSiteRadius } from '@/components/common/apiary/site_colours.js'
 
     export default {
         props:{
@@ -97,7 +97,7 @@
                 let strokeObj = getStrokeColour(status, checked)
                 return new Style({
                             image: new CircleStyle({
-                                radius: 7,
+                                radius: existingSiteRadius,
                                 fill: fillObj,
                                 stroke: strokeObj,
                             })
