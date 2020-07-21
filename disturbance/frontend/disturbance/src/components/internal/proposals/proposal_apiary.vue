@@ -721,14 +721,14 @@ export default {
         targetApprovalId: function() {
             let returnVal = null;
             if (this.proposal.application_type === 'Site Transfer') {
-                returnVal = this.proposal.approval.id;
+                returnVal = this.proposal.proposal_apiary.target_approval_id;
             }
             return returnVal;
         },
         targetApprovalLodgementNumber: function() {
             let returnVal = '';
             if (this.proposal.application_type === 'Site Transfer') {
-                returnVal = this.proposal.approval.lodgement_number;
+                returnVal = this.proposal.proposal_apiary.target_approval_lodgement_number;
             }
             return returnVal;
         },
