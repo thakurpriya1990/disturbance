@@ -2,9 +2,9 @@
     <div>
         <div :id="elem_id" class="map"></div>
         
-        <div id="popup" class="ol-popup">
-            <a href="#" id="popup-closer" class="ol-popup-closer"></a>
-            <div id="popup-content"></div>
+        <div :id="popup_id" class="ol-popup">
+            <a href="#" :id="popup_closer_id" class="ol-popup-closer"></a>
+            <div :id="popup_content_id"></div>
         </div>
 
     </div>
@@ -151,9 +151,9 @@
                     this.addApiarySite(vm.apiary_site_geojson_array[i])
                 }
 
-                let container = document.getElementById('popup')
-                let content_element = document.getElementById('popup-content')
-                let closer = document.getElementById('popup-closer')
+                let container = document.getElementById(vm.popup_id)
+                let content_element = document.getElementById(vm.popup_content_id)
+                let closer = document.getElementById(vm.popup_closer_id)
 
                 closer.onclick = function() {
                     overlay.setPosition(undefined)
@@ -163,7 +163,7 @@
 
                 let overlay = new Overlay({
                     element: container,
-                    autoPan: true,
+                    autoPan: false,
                     offest: [0, -10]
                 })
                 vm.map.addOverlay(overlay)
@@ -176,6 +176,7 @@
                         console.log(feature)
                         let geometry = feature.getGeometry();
                         let coord = geometry.getCoordinates();
+                        console.log(coord)
                         let content = '<div>site: ' + feature.id_ + '</div>';
                         content_element.innerHTML = content;
                         overlay.setPosition(coord);
@@ -202,6 +203,9 @@
             },
             zoomToApiarySiteById: function(apiary_site_id){
                 let feature = this.apiarySitesQuerySource.getFeatureById(apiary_site_id)
+                        let geometry = feature.getGeometry();
+                        let coord = geometry.getCoordinates();
+                        console.log(coord)
                 let view = this.map.getView()
                 this.map.getView().animate({zoom: 16, center: feature['values_']['geometry']['flatCoordinates']})
             },
