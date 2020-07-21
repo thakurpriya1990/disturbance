@@ -222,19 +222,20 @@ class Approval(RevisionedMixin):
 
     @property
     def can_amend(self):
-        try:
-            amend_conditions = {
-                    'previous_application': self.current_proposal,
-                    'proposal_type': 'amendment'
-                    }
-            proposal=Proposal.objects.get(**amend_conditions)
-            if proposal:
-                return False
-        except Proposal.DoesNotExist:
-            if self.can_renew:
-                return True
-            else:
-                return False
+        if not self.apiary_approval:
+            try:
+                amend_conditions = {
+                        'previous_application': self.current_proposal,
+                        'proposal_type': 'amendment'
+                        }
+                proposal=Proposal.objects.get(**amend_conditions)
+                if proposal:
+                    return False
+            except Proposal.DoesNotExist:
+                if self.can_renew:
+                    return True
+                else:
+                    return False
 
 
     def generate_doc(self, user, preview=False):
