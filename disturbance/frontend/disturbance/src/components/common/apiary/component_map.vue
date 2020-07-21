@@ -65,22 +65,6 @@
                 popup_id: uuid(),
                 popup_closer_id: uuid(),
                 popup_content_id: uuid(),
-                style_not_checked: 
-                    new Style({
-                        image: new CircleStyle({
-                            radius: 7,
-                            fill: new Fill({color: '#e0e0e0'}),
-                            stroke: new Stroke({color: '#616161', width: 2})
-                        })
-                    }),
-                style_checked:
-                    new Style({
-                        image: new CircleStyle({
-                        radius: 7,
-                        fill: new Fill({color: '#03a9f4'}),
-                        stroke: new Stroke({color: '#2e6da4', width: 2})
-                        })
-                    }),
             }
         },
         created: function(){
