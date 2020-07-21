@@ -30,9 +30,9 @@ const SiteColours = {
         'stroke': '#00796b'
     }
 }
-
 export default SiteColours
-
+export let existingSiteRadius = 5
+export let drawingSiteRadius = 7
 export function getFillColour(status){
     switch(status){
         case 'draft':
@@ -51,7 +51,6 @@ export function getFillColour(status){
             return new Fill({color: SiteColours.vacant.fill})
     }
 }
-
 export function getStrokeColour(status, selected=false){
     let stroke_width = selected ? 4 : 2
     switch(status){
