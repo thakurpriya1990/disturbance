@@ -3,7 +3,22 @@
         <div :id="elem_id" class="map"></div>
         
         <div :id="popup_id" class="ol-popup">
-            <a href="#" :id="popup_closer_id" class="ol-popup-closer"></a>
+            <a href="#" :id="popup_closer_id" class="ol-popup-closer">
+           <svg xmlns='http://www.w3.org/2000/svg' version='1.1' height='20' width='20' class="close-icon">
+
+
+  <g transform='matrix(0.51623652,0,0,0.51623652,-22,-22)'
+     >
+    <path
+       style='fill:#337ab7;fill-opacity:1;'
+       d='m 241.92578,171.51367 a 64.001904,64.001904 0 0 0 -63.70312,64.00195 64.001904,64.001904 0 0 0 64.00195,64.00196 64.001904,64.001904 0 0 0 64.00195,-64.00196 64.001904,64.001904 0 0 0 -64.00195,-64.00195 64.001904,64.001904 0 0 0 -0.29883,0 z m -27.33398,20.78516 27.63086,27.63281 27.63281,-27.63281 15.58594,15.58398 -27.63282,27.63281 27.63282,27.63086 -15.58594,15.58594 -27.63281,-27.63086 -27.63086,27.63086 -15.58399,-15.58594 27.63086,-27.63086 -27.63086,-27.63281 z'
+       transform='scale(0.26458333)' />
+  </g>
+
+           </svg>
+
+
+            </a>
             <div :id="popup_content_id"></div>
         </div>
 
@@ -88,7 +103,6 @@
             forceToRefreshMap: function() {
                 let vm = this
                 setTimeout(function(){
-                    console.log('updateResize()')
                     vm.map.updateSize();
                 }, 50)
             },
@@ -173,11 +187,10 @@
                         return feature;
                     });
                     if (feature){
-                        console.log(feature)
                         let geometry = feature.getGeometry();
                         let coord = geometry.getCoordinates();
-                        console.log(coord)
-                        let content = '<div>site: ' + feature.id_ + '</div>';
+                        let content = '<div class="popup-content">site: ' + feature.id_ + '</div>';
+                        content += '<div class="content-status">' + feature.get('status') + '</div>';
                         content_element.innerHTML = content;
                         overlay.setPosition(coord);
                     }
@@ -198,19 +211,16 @@
             },
             removeApiarySiteById: function(apiary_site_id){
                 let feature = this.apiarySitesQuerySource.getFeatureById(apiary_site_id)
-                console.log(feature)
                 this.apiarySitesQuerySource.removeFeature(feature)
             },
             zoomToApiarySiteById: function(apiary_site_id){
                 let feature = this.apiarySitesQuerySource.getFeatureById(apiary_site_id)
                         let geometry = feature.getGeometry();
                         let coord = geometry.getCoordinates();
-                        console.log(coord)
                 let view = this.map.getView()
                 this.map.getView().animate({zoom: 16, center: feature['values_']['geometry']['flatCoordinates']})
             },
             setApiarySiteSelectedStatus: function(apiary_site_id, selected) {
-                console.log('setApiarySiteSelectedStatus')
                 let feature = this.apiarySitesQuerySource.getFeatureById(apiary_site_id)
                 let style_applied = this.getStyle(feature.get('status'), selected)
                 feature.setStyle(style_applied)
@@ -237,12 +247,12 @@
 <style lang="css" scoped>
     .ol-popup {
         position: absolute;
-        min-width: 80px;
+        min-width: 95px;
         background-color: white;
         -webkit-filter: drop-shadow(0 1px 4px rgba(0,0,0,0.2));
         filter: drop-shadow(0 1px 4px rgba(0,0,0,0.2));
         padding: 2px;
-        border-radius: 10px;
+        border-radius: 4px;
         border: 1px solid #ccc;
         bottom: 12px;
         left: -50px;
@@ -275,6 +285,14 @@
         right: 8px;
     }
     .ol-popup-closer:after {
+        /*
         content: "✖";
+        */
+    }
+    .close-icon {
+        position: absolute;
+        left: -2px;
+        top: -11px;
+
     }
 </style>
