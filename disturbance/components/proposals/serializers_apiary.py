@@ -315,6 +315,9 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
     originating_approval_lodgement_number = serializers.SerializerMethodField()
     target_approval_lodgement_number = serializers.SerializerMethodField()
     transferee_name = serializers.SerializerMethodField()
+    transferee_org_name = serializers.SerializerMethodField()
+    transferee_first_name = serializers.SerializerMethodField()
+    transferee_last_name = serializers.SerializerMethodField()
 
     class Meta:
         model = ProposalApiary
@@ -335,6 +338,9 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
             'originating_approval_lodgement_number',
             'target_approval_lodgement_number',
             'transferee_name',
+            'transferee_org_name',
+            'transferee_first_name',
+            'transferee_last_name',
         )
 
     def get_transfer_apiary_sites(self, obj):
@@ -350,6 +356,24 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
         name = None
         if obj.proposal.approval:
             name = obj.proposal.approval.relevant_applicant_name
+        return name
+
+    def get_transferee_org_name(self, obj):
+        name = None
+        if obj.proposal.approval and obj.proposal.approval.applicant:
+            name = obj.proposal.approval.applicant.name
+        return name
+
+    def get_transferee_first_name(self, obj):
+        name = None
+        if obj.proposal.approval and obj.proposal.approval.proxy_applicant:
+            name = obj.proposal.approval.proxy_applicant.first_name
+        return name
+
+    def get_transferee_last_name(self, obj):
+        name = None
+        if obj.proposal.approval and obj.proposal.approval.proxy_applicant:
+            name = obj.proposal.approval.proxy_applicant.last_name
         return name
 
     def get_target_approval_lodgement_number(self, obj):
