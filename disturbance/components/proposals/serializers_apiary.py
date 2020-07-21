@@ -86,7 +86,7 @@ class VersionSerializer(serializers.ModelSerializer):
                             'approval',
                             ]:
                         continue
-                    if ContentType.objects.get(id=record.content_type_id).model == 'apiarysite':
+                    elif ContentType.objects.get(id=record.content_type_id).model == 'apiarysite':
                         payload = record.field_dict
                         # Exclude these fields from the result
                         payload.pop("wkb_geometry", None)
