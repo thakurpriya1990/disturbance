@@ -263,11 +263,11 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         user = self.request.user
         #import ipdb; ipdb.set_trace()
         if is_internal(self.request): #user.is_authenticated():
-            return Proposal.objects.all()
+            return Proposal.objects.all().order_by('-id')
         elif is_customer(self.request):
             user_orgs = [org.id for org in user.disturbance_organisations.all()]
             #return  Proposal.objects.filter( Q(applicant_id__in = user_orgs) | Q(submitter = user) )
-            return  Proposal.objects.filter( Q(applicant_id__in = user_orgs) | Q(submitter = user) | Q(proxy_applicant = user))
+            return Proposal.objects.filter( Q(applicant_id__in = user_orgs) | Q(submitter = user) | Q(proxy_applicant = user)).order_by('-id')
             #queryset =  Proposal.objects.filter(region__isnull=False).filter( Q(applicant_id__in = user_orgs) | Q(submitter = user) )
         return Proposal.objects.none()
 
@@ -292,7 +292,7 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         #import ipdb; ipdb.set_trace()
         qs = self.get_queryset()
         #qs = self.filter_queryset(self.request, qs, self)
-        qs = self.filter_queryset(qs)
+        qs = self.filter_queryset(qs).order_by('-id')
 
         # on the internal organisations dashboard, filter the Proposal/Approval/Compliance datatables by applicant/organisation
         applicant_id = request.GET.get('org_id')
@@ -341,7 +341,7 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         """
         qs = self.get_queryset().exclude(processing_status='discarded')
         #qs = self.filter_queryset(self.request, qs, self)
-        qs = self.filter_queryset(qs)
+        qs = self.filter_queryset(qs).order_by('-id')
 
         # on the internal organisations dashboard, filter the Proposal/Approval/Compliance datatables by applicant/organisation
         applicant_id = request.GET.get('org_id')
