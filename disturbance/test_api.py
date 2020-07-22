@@ -148,14 +148,8 @@ class IntegrationTests(APITestSetup):
             print(approval_site)
 
         # check Reversion endpoint
-        #print(final_proposal_proposal_apiary_id)
         url = '/api/proposal_apiary/{}/proposal_history/'.format(final_proposal_proposal_apiary_id)
-        #print(url)
-        reversion_response = self.client.get(
-                url,
-                #format='json'
-                content_type='application/json'
-                )
+        reversion_response = self.client.get(url)
         self.assertEqual(reversion_response.status_code, 200)
 
     def test_proposal_apiary_site_transfer_workflow(self):
