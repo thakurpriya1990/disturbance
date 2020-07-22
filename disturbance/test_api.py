@@ -279,10 +279,8 @@ class IntegrationTests(APITestSetup):
                 #content_type='application/json'
                 )
         self.assertEqual(add_requirements_response_4.status_code, 201)
-        delete_requirement_response_2 = self.client.post(
-                '/api/proposal_requirements/{}/discard.json'.format(proposal_requirement_2_id), 
-                format='json'
-                #content_type='application/json'
+        delete_requirement_response_2 = self.client.get(
+                '/api/proposal_requirements/{}/discard.json'.format(proposal_requirement_2_id)
                 )
         self.assertEqual(delete_requirement_response_2.status_code, 201)
 
