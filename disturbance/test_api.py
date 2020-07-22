@@ -329,6 +329,7 @@ class IntegrationTests(APITestSetup):
         print("APPROVAL SITES")
         for approval_site in ApiarySite.objects.filter(approval=final_proposal.approval):
             print(approval_site)
+        # Compliance creation test
         approval_requirements = []
         for compliance in final_proposal.approval.compliances.all():
             #print('{}, {}, {}, {}'.format(compliance.lodgement_number, compliance.due_date, compliance_text)
