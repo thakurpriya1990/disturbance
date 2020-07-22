@@ -1682,6 +1682,11 @@ class ProposalViewSet(viewsets.ModelViewSet):
                                 r.copied_from=old_r
                                 r.id = None
                                 r.save()
+                        # Set previous_application and proposal_type for requirements and compliances processing
+                        proposal_apiary.proposal.previous_application = approval.current_proposal
+                        proposal_apiary.proposal.save()
+                        #proposal_apiary.proposal.proposal_type = 'amendment'
+                        #proposal_apiary.proposal.save()
 
                 elif application_type.name == ApplicationType.SITE_TRANSFER:
                     approval_id = request.data.get('originating_approval_id')

@@ -1170,7 +1170,7 @@ class Proposal(RevisionedMixin):
                     raise exceptions.ProposalNotAuthorized()
                 if self.processing_status != 'with_assessor_requirements':
                     raise ValidationError('You cannot propose for approval if it is not with assessor for requirements')
-                if self.application_type.name == ApplicationType.SITE_TRANSFER:
+                if (self.apiary_group_application_type and self.previous_application) or self.application_type.name == ApplicationType.SITE_TRANSFER:
                     self.proposed_issuance_approval = {
                         #'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
                         #'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
@@ -2379,7 +2379,9 @@ class ProposalApiary(models.Model):
                 #if not self.applicant.organisation.postal_address:
                 if not self.proposal.relevant_applicant_address:
                     raise ValidationError('The applicant needs to have set their postal address before approving this proposal.')
-                if self.proposal.application_type.name == ApplicationType.SITE_TRANSFER:
+                #if self.proposal.application_type.name == ApplicationType.SITE_TRANSFER:
+                if (self.proposal.apiary_group_application_type and self.proposal.previous_application) \
+                        or self.proposal.application_type.name == ApplicationType.SITE_TRANSFER:
                     self.proposed_issuance_approval = {
                         #'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
                         #'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
@@ -2604,20 +2606,24 @@ class ProposalApiary(models.Model):
                     if self.proposal.application_type.name == ApplicationType.APIARY:
                         from disturbance.components.compliances.models import Compliance, ComplianceUserAction
                         if created:
-                            # Apiary has no amendment applications
-                            if self.proposal.proposal_type == 'amendment':
-                                approval_compliances = Compliance.objects.filter(
-                                        approval= previous_approval, 
-                                        proposal = self.proposal.previous_application, 
-                                        processing_status='future'
-                                        )
-                                if approval_compliances:
-                                    for c in approval_compliances:
-                                        c.delete()
+                            # ProposalType set during def create api method
+                            #if self.proposal.proposal_type == 'amendment':
+                            ## Delete future dated compliances for approval
+
+                            #if self.proposal.previous_application:
+                            #    approval_compliances = Compliance.objects.filter(
+                            #            approval= approval, 
+                            #            #proposal = self.proposal.previous_application, 
+                            #            processing_status='future'
+                            #            )
+                            #    if approval_compliances:
+                            #        for c in approval_compliances:
+                            #            c.delete()
+
                             # Log creation
                             # Generate the document
                             approval.generate_doc(request.user)
-                            self.proposal.generate_compliances(approval, request)
+                            self.generate_apiary_compliances(approval, request)
                             # send the doc and log in approval and org
                         else:
                             #approval.replaced_by = request.user
@@ -2627,13 +2633,13 @@ class ProposalApiary(models.Model):
                             #Delete the future compliances if Approval is reissued and generate the compliances again.
                             approval_compliances = Compliance.objects.filter(
                                     approval= approval, 
-                                    proposal = self.proposal, 
+                                    #proposal = self.proposal, 
                                     processing_status='future'
                                     )
                             if approval_compliances:
                                 for c in approval_compliances:
                                     c.delete()
-                            self.proposal.generate_compliances(approval, request)
+                            self.generate_apiary_compliances(approval, request)
                             # Log proposal action
                             self.proposal.log_user_action(
                                     ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.proposal.id),
@@ -2655,6 +2661,88 @@ class ProposalApiary(models.Model):
                 self.proposal.save(version_comment='Final Approval: {}'.format(self.proposal.approval.lodgement_number))
                 self.proposal.approval.documents.all().update(can_delete=False)
 
+            except:
+                raise
+
+    def generate_apiary_compliances(self,approval, request):
+        today = timezone.now().date()
+        timedelta = datetime.timedelta
+        from disturbance.components.compliances.models import Compliance, ComplianceUserAction
+
+        proposal = self.proposal
+        #For amendment type of Proposal, check for copied requirements from previous proposal
+        #if proposal.proposal_type == 'amendment':
+        if self.proposal.previous_application:
+            try:
+                for r in proposal.requirements.filter(copied_from__isnull=False):
+                    cs=[]
+                    cs=Compliance.objects.filter(
+                            requirement=r.copied_from, 
+                            #proposal=proposal.previous_application, 
+                            processing_status='due'
+                            )
+                    if cs:
+                        if r.is_deleted == True:
+                            for c in cs:
+                                c.processing_status='discarded'
+                                c.customer_status = 'discarded'
+                                c.reminder_sent=True
+                                c.post_reminder_sent=True
+                                c.save()
+                        #if r.is_deleted == False:
+                        #    for c in cs:
+                        #        #c.proposal= proposal
+                        #        c.approval=approval
+                        #        c.requirement=r
+                        #        c.save()
+            except:
+                raise
+        #requirement_set= self.requirements.filter(copied_from__isnull=True).exclude(is_deleted=True)
+        requirement_set= proposal.requirements.all().exclude(is_deleted=True)
+
+        #for req in self.requirements.all():
+        for req in requirement_set:
+            try:
+                if req.due_date and req.due_date >= today:
+                    current_date = req.due_date
+                    #create a first Compliance
+                    try:
+                        compliance= Compliance.objects.get(requirement = req, due_date = current_date)
+                    except Compliance.DoesNotExist:
+                        compliance =Compliance.objects.create(
+                                    #proposal=proposal,
+                                    due_date=current_date,
+                                    processing_status='future',
+                                    approval=approval,
+                                    requirement=req,
+                        )
+                        compliance.log_user_action(ComplianceUserAction.ACTION_CREATE.format(compliance.id),request)
+                    if req.recurrence:
+                        while current_date < approval.expiry_date:
+                            for x in range(req.recurrence_schedule):
+                            #Weekly
+                                if req.recurrence_pattern == 1:
+                                    current_date += timedelta(weeks=1)
+                            #Monthly
+                                elif req.recurrence_pattern == 2:
+                                    current_date += timedelta(weeks=4)
+                                    pass
+                            #Yearly
+                                elif req.recurrence_pattern == 3:
+                                    current_date += timedelta(days=365)
+                            # Create the compliance
+                            if current_date <= approval.expiry_date:
+                                try:
+                                    compliance= Compliance.objects.get(requirement = req, due_date = current_date)
+                                except Compliance.DoesNotExist:
+                                    compliance =Compliance.objects.create(
+                                                #proposal=self,
+                                                due_date=current_date,
+                                                processing_status='future',
+                                                approval=approval,
+                                                requirement=req,
+                                    )
+                                    compliance.log_user_action(ComplianceUserAction.ACTION_CREATE.format(compliance.id),request)
             except:
                 raise
 
