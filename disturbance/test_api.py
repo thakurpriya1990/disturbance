@@ -335,10 +335,10 @@ class IntegrationTests(APITestSetup):
             #print('{}, {}, {}, {}'.format(compliance.lodgement_number, compliance.due_date, compliance_text)
             print(compliance.__dict__)
             approval_requirements.append(compliance.requirement.id)
-        self.AssertIn(proposal_requirement_1_id, approval_requirements)
-        self.AssertNotIn(proposal_requirement_2_id, approval_requirements)
-        self.AssertIn(proposal_requirement_3_id, approval_requirements)
-        self.AssertIn(proposal_requirement_4_id, approval_requirements)
+        self.assertIn(proposal_requirement_1_id, approval_requirements)
+        self.assertNotIn(proposal_requirement_2_id, approval_requirements)
+        self.assertIn(proposal_requirement_3_id, approval_requirements)
+        self.assertIn(proposal_requirement_4_id, approval_requirements)
 
         # check Reversion endpoint
         url = '/api/proposal_apiary/{}/proposal_history/'.format(final_proposal_proposal_apiary_id)
