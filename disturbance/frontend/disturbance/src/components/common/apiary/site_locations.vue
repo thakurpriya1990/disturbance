@@ -111,7 +111,7 @@
     import datatable from '@vue-utils/datatable.vue'
     import uuid from 'uuid';
     import SiteLocationsModal from './site_locations_modal';
-    import { getFillColour, getStrokeColour } from '@/components/common/apiary/site_colours.js'
+    import { getFillColour, getStrokeColour, existingSiteRadius, drawingSiteRadius } from '@/components/common/apiary/site_colours.js'
 
     export default {
         props:{
@@ -413,7 +413,7 @@
                 let strokeObj = getStrokeColour(status, checked)
                 return new Style({
                             image: new CircleStyle({
-                                radius: 7,
+                                radius: existingSiteRadius,
                                 fill: fillObj,
                                 stroke: strokeObj,
                             })
@@ -492,7 +492,7 @@
                             width: 2
                         }),
                         image: new CircleStyle({
-                            radius: 7,
+                            radius: drawingSiteRadius,
                             fill: new Fill({
                                 color: '#ffcc33'
                             })
