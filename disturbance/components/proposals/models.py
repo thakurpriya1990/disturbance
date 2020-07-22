@@ -401,6 +401,7 @@ class Proposal(RevisionedMixin):
 
     class Meta:
         app_label = 'disturbance'
+        ordering = ['-id']
 
     def __str__(self):
         return str(self.id)

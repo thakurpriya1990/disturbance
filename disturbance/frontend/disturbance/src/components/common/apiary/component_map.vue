@@ -2,9 +2,9 @@
     <div>
         <div :id="elem_id" class="map"></div>
         
-        <div id="popup" class="ol-popup">
-            <a href="#" id="popup-closer" class="ol-popup-closer"></a>
-            <div id="popup-content"></div>
+        <div :id="popup_id" class="ol-popup">
+            <a href="#" :id="popup_closer_id" class="ol-popup-closer"></a>
+            <div :id="popup_content_id"></div>
         </div>
 
     </div>
@@ -34,7 +34,7 @@
     import { circular} from 'ol/geom/Polygon';
     import GeoJSON from 'ol/format/GeoJSON';
     import Overlay from 'ol/Overlay';
-    import { getFillColour, getStrokeColour } from '@/components/common/apiary/site_colours.js'
+    import { getFillColour, getStrokeColour, existingSiteRadius } from '@/components/common/apiary/site_colours.js'
 
     export default {
         props:{
@@ -65,22 +65,6 @@
                 popup_id: uuid(),
                 popup_closer_id: uuid(),
                 popup_content_id: uuid(),
-                style_not_checked: 
-                    new Style({
-                        image: new CircleStyle({
-                            radius: 7,
-                            fill: new Fill({color: '#e0e0e0'}),
-                            stroke: new Stroke({color: '#616161', width: 2})
-                        })
-                    }),
-                style_checked:
-                    new Style({
-                        image: new CircleStyle({
-                        radius: 7,
-                        fill: new Fill({color: '#03a9f4'}),
-                        stroke: new Stroke({color: '#2e6da4', width: 2})
-                        })
-                    }),
             }
         },
         created: function(){
@@ -113,7 +97,7 @@
                 let strokeObj = getStrokeColour(status, checked)
                 return new Style({
                             image: new CircleStyle({
-                                radius: 7,
+                                radius: existingSiteRadius,
                                 fill: fillObj,
                                 stroke: strokeObj,
                             })
@@ -167,9 +151,9 @@
                     this.addApiarySite(vm.apiary_site_geojson_array[i])
                 }
 
-                let container = document.getElementById('popup')
-                let content_element = document.getElementById('popup-content')
-                let closer = document.getElementById('popup-closer')
+                let container = document.getElementById(vm.popup_id)
+                let content_element = document.getElementById(vm.popup_content_id)
+                let closer = document.getElementById(vm.popup_closer_id)
 
                 closer.onclick = function() {
                     overlay.setPosition(undefined)
@@ -179,7 +163,7 @@
 
                 let overlay = new Overlay({
                     element: container,
-                    autoPan: true,
+                    autoPan: false,
                     offest: [0, -10]
                 })
                 vm.map.addOverlay(overlay)
@@ -192,6 +176,7 @@
                         console.log(feature)
                         let geometry = feature.getGeometry();
                         let coord = geometry.getCoordinates();
+                        console.log(coord)
                         let content = '<div>site: ' + feature.id_ + '</div>';
                         content_element.innerHTML = content;
                         overlay.setPosition(coord);
@@ -218,6 +203,9 @@
             },
             zoomToApiarySiteById: function(apiary_site_id){
                 let feature = this.apiarySitesQuerySource.getFeatureById(apiary_site_id)
+                        let geometry = feature.getGeometry();
+                        let coord = geometry.getCoordinates();
+                        console.log(coord)
                 let view = this.map.getView()
                 this.map.getView().animate({zoom: 16, center: feature['values_']['geometry']['flatCoordinates']})
             },
