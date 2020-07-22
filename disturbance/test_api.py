@@ -282,7 +282,7 @@ class IntegrationTests(APITestSetup):
         delete_requirement_response_2 = self.client.get(
                 '/api/proposal_requirements/{}/discard.json'.format(proposal_requirement_2_id)
                 )
-        self.assertEqual(delete_requirement_response_2.status_code, 201)
+        self.assertEqual(delete_requirement_response_2.status_code, 200)
 
         # Propose to approve
         apiary_sites_2 = []
@@ -327,6 +327,9 @@ class IntegrationTests(APITestSetup):
         print("APPROVAL SITES")
         for approval_site in ApiarySite.objects.filter(approval=final_proposal.approval):
             print(approval_site)
+        for compliance in final_proposal.approval.compliances.all():
+            #print('{}, {}, {}, {}'.format(compliance.lodgement_number, compliance.due_date, compliance_text)
+            print(compliance.__dict__)
 
         # check Reversion endpoint
         url = '/api/proposal_apiary/{}/proposal_history/'.format(final_proposal_proposal_apiary_id)
