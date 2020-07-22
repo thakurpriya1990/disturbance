@@ -121,6 +121,7 @@ class IntegrationTests(APITestSetup):
                 format='json'
                 #content_type='application/json'
                 )
+        proposal_requirement_1_id = add_requirements_response_1.data.get('id')
         self.assertEqual(add_requirements_response_1.status_code, 201)
 
         add_requirements_data_2 = {
@@ -139,6 +140,7 @@ class IntegrationTests(APITestSetup):
                 format='json'
                 #content_type='application/json'
                 )
+        proposal_requirement_2_id = add_requirements_response_2.data.get('id')
         self.assertEqual(add_requirements_response_2.status_code, 201)
 
         # Propose to approve
@@ -277,6 +279,12 @@ class IntegrationTests(APITestSetup):
                 #content_type='application/json'
                 )
         self.assertEqual(add_requirements_response_4.status_code, 201)
+        delete_requirement_response_2 = self.client.post(
+                '/api/proposal_requirements/{}/discard.json'.format(proposal_requirement_2_id), 
+                format='json'
+                #content_type='application/json'
+                )
+        self.assertEqual(delete_requirement_response_2.status_code, 201)
 
         # Propose to approve
         apiary_sites_2 = []

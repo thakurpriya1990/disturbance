@@ -1170,7 +1170,7 @@ class Proposal(RevisionedMixin):
                     raise exceptions.ProposalNotAuthorized()
                 if self.processing_status != 'with_assessor_requirements':
                     raise ValidationError('You cannot propose for approval if it is not with assessor for requirements')
-                if self.application_type.name == ApplicationType.SITE_TRANSFER:
+                if (self.apiary_group_application_type and self.previous_application) or self.application_type.name == ApplicationType.SITE_TRANSFER:
                     self.proposed_issuance_approval = {
                         #'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
                         #'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
