@@ -78,11 +78,28 @@ class VersionSerializer(serializers.ModelSerializer):
             apiary_sites = []
             for record in obj.revision.version_set.all():
                 if record.object:
-                    if ContentType.objects.get(id=record.content_type_id).model == 'apiarysite':
-                        apiary_sites.append({record.object._meta.model_name: record.field_dict})
+                    # Exclude these models from the result
+                    if record.object._meta.model_name in [
+                            'proposallogentry',
+                            'annualrentalfee',
+                            'approvaldocument',
+                            'approval',
+                            ]:
+                        continue
+                    elif ContentType.objects.get(id=record.content_type_id).model == 'apiarysite':
+                        payload = record.field_dict
+                        # Exclude these fields from the result
+                        payload.pop("wkb_geometry", None)
+                        payload.pop("objects", None)
+                        payload.pop("site_guid", None)
+                        apiary_sites.append({record.object._meta.model_name: payload})
                     else:
+                        #print("record.object._meta.model_name")
+                        #print(record.object._meta.model_name)
                         proposal_data.append({record.object._meta.model_name: record.field_dict})
             proposal_data.append({'apiary_sites': apiary_sites})
+        #print("proposal_data")
+        #print(proposal_data)
         return proposal_data
 
 
@@ -313,6 +330,7 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
     checklist_answers = serializers.SerializerMethodField()
     site_remainders = serializers.SerializerMethodField()
     originating_approval_lodgement_number = serializers.SerializerMethodField()
+    target_approval_id = serializers.SerializerMethodField()
     target_approval_lodgement_number = serializers.SerializerMethodField()
     transferee_name = serializers.SerializerMethodField()
     transferee_org_name = serializers.SerializerMethodField()
@@ -336,6 +354,7 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
             'site_remainders',
             'originating_approval_id',
             'originating_approval_lodgement_number',
+            'target_approval_id',
             'target_approval_lodgement_number',
             'transferee_name',
             'transferee_org_name',
@@ -375,6 +394,12 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
         if obj.proposal.approval and obj.proposal.approval.proxy_applicant:
             name = obj.proposal.approval.proxy_applicant.last_name
         return name
+
+    def get_target_approval_id(self, obj):
+        target_id = None
+        if obj.proposal.approval:
+            target_id = obj.proposal.approval.id
+        return target_id
 
     def get_target_approval_lodgement_number(self, obj):
         lodgement_number = None

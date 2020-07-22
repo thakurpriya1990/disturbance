@@ -476,12 +476,11 @@ class ApprovalViewSet(viewsets.ModelViewSet):
         try:
             approval = self.get_object()
             requirements = []
-            for proposal in approval.proposal_set.all():
-                for requirement in proposal.requirements.all():
-                    requirements.append(ApiaryProposalRequirementSerializer(requirement).data)
-            #return requirements
-            #qs = instance.requirements.all().exclude(is_deleted=True)
-            #serializer = ApiaryProposalRequirementSerializer(qs,many=True)
+            #for proposal in approval.proposal_set.all():
+             #   for requirement in proposal.requirements.all():
+              #      requirements.append(ApiaryProposalRequirementSerializer(requirement).data)
+            for requirement in approval.current_proposal.requirements.all():
+                requirements.append(ApiaryProposalRequirementSerializer(requirement).data)
             return Response(requirements)
         except serializers.ValidationError:
             print(traceback.print_exc())
