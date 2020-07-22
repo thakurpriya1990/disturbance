@@ -335,6 +335,8 @@ class IntegrationTests(APITestSetup):
             #print('{}, {}, {}, {}'.format(compliance.lodgement_number, compliance.due_date, compliance_text)
             print(compliance.__dict__)
             approval_requirements.append(compliance.requirement.id)
+        print("approval_requirements")
+        print(approval_requirements)
         self.assertIn(proposal_requirement_1_id, approval_requirements)
         self.assertNotIn(proposal_requirement_2_id, approval_requirements)
         self.assertIn(proposal_requirement_3_id, approval_requirements)
