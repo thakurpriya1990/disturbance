@@ -2379,7 +2379,8 @@ class ProposalApiary(models.Model):
                 #if not self.applicant.organisation.postal_address:
                 if not self.proposal.relevant_applicant_address:
                     raise ValidationError('The applicant needs to have set their postal address before approving this proposal.')
-                if self.proposal.application_type.name == ApplicationType.SITE_TRANSFER:
+                #if self.proposal.application_type.name == ApplicationType.SITE_TRANSFER:
+                if (self.apiary_group_application_type and self.previous_application) or self.application_type.name == ApplicationType.SITE_TRANSFER:
                     self.proposed_issuance_approval = {
                         #'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
                         #'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),

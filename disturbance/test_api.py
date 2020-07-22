@@ -260,6 +260,7 @@ class IntegrationTests(APITestSetup):
                 format='json'
                 #content_type='application/json'
                 )
+        proposal_requirement_3_id = add_requirements_response_3.data.get('id')
         self.assertEqual(add_requirements_response_3.status_code, 201)
 
         add_requirements_data_4 = {
@@ -278,6 +279,7 @@ class IntegrationTests(APITestSetup):
                 format='json'
                 #content_type='application/json'
                 )
+        proposal_requirement_4_id = add_requirements_response_4.data.get('id')
         self.assertEqual(add_requirements_response_4.status_code, 201)
         delete_requirement_response_2 = self.client.get(
                 '/api/proposal_requirements/{}/discard.json'.format(proposal_requirement_2_id)
@@ -327,9 +329,15 @@ class IntegrationTests(APITestSetup):
         print("APPROVAL SITES")
         for approval_site in ApiarySite.objects.filter(approval=final_proposal.approval):
             print(approval_site)
+        approval_requirements = []
         for compliance in final_proposal.approval.compliances.all():
             #print('{}, {}, {}, {}'.format(compliance.lodgement_number, compliance.due_date, compliance_text)
             print(compliance.__dict__)
+            approval_requirements.append(compliance.requirement.id)
+        self.AssertIn(proposal_requirement_1_id, approval_requirements)
+        self.AssertNotIn(proposal_requirement_2_id, approval_requirements)
+        self.AssertIn(proposal_requirement_3_id, approval_requirements)
+        self.AssertIn(proposal_requirement_4_id, approval_requirements)
 
         # check Reversion endpoint
         url = '/api/proposal_apiary/{}/proposal_history/'.format(final_proposal_proposal_apiary_id)
