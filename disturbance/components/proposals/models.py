@@ -2621,7 +2621,7 @@ class ProposalApiary(models.Model):
                             # Log creation
                             # Generate the document
                             approval.generate_doc(request.user)
-                            self.proposal.generate_apiary_compliances(approval, request)
+                            self.generate_apiary_compliances(approval, request)
                             # send the doc and log in approval and org
                         else:
                             #approval.replaced_by = request.user
@@ -2637,7 +2637,7 @@ class ProposalApiary(models.Model):
                             if approval_compliances:
                                 for c in approval_compliances:
                                     c.delete()
-                            self.proposal.generate_apiary_compliances(approval, request)
+                            self.generate_apiary_compliances(approval, request)
                             # Log proposal action
                             self.proposal.log_user_action(
                                     ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.proposal.id),

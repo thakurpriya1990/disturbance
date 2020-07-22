@@ -3,6 +3,7 @@ import json
 from disturbance.components.proposals.models import (
         Proposal,
         ApiarySite,
+        ProposalStandardRequirement,
         )
 #from disturbance.components.proposals.serializers_apiary import ApiarySiteSerializer
 
@@ -102,6 +103,43 @@ class IntegrationTests(APITestSetup):
         # login as internal 
         self.client.login(email=self.adminUser, password='pass')
         self.client.enforce_csrf_checks=True
+
+        # add requirements
+        add_requirements_data_1 = {
+                "due_date": "16/07/2020",
+                "standard": true,
+                "recurrence": true,
+                "recurrence_pattern": "1",
+                "proposal": proposal_id,
+                "standard_requirement": str(ProposalStandardRequirement.objects.get(code='R1').id),
+                "recurrence_schedule": "1",
+                "free_requirement": ""
+                }
+        add_requirements_response_1 = self.client.post(
+                '/api/proposal_requirements.json', 
+                add_requirements_data_1, 
+                format='json'
+                #content_type='application/json'
+                )
+        self.assertEqual(add_requirements_response_1.status_code, 201)
+
+        add_requirements_data_2 = {
+                "due_date": "16/07/2020",
+                "standard": true,
+                "recurrence": false,
+                "recurrence_pattern": "1",
+                "proposal": proposal_id,
+                "standard_requirement": str(ProposalStandardRequirement.objects.get(code='A1').id),
+                #"recurrence_schedule": "1",
+                "free_requirement": ""
+                }
+        add_requirements_response_2 = self.client.post(
+                '/api/proposal_requirements.json', 
+                add_requirements_data_2, 
+                format='json'
+                #content_type='application/json'
+                )
+        self.assertEqual(add_requirements_response_2.status_code, 201)
 
         # Propose to approve
         apiary_sites = []
