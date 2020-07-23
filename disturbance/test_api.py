@@ -105,13 +105,14 @@ class IntegrationTests(APITestSetup):
         self.client.enforce_csrf_checks=True
 
         # add requirements
+        proposal_standard_req_r1_id = ProposalStandardRequirement.objects.get(code='R1').id
         add_requirements_data_1 = {
-                "due_date": "16/07/2020",
+                "due_date": "16/08/2020",
                 "standard": True,
                 "recurrence": True,
                 "recurrence_pattern": "1",
                 "proposal": proposal_id,
-                "standard_requirement": str(ProposalStandardRequirement.objects.get(code='R1').id),
+                "standard_requirement": str(proposal_standard_req_r1_id),
                 "recurrence_schedule": "1",
                 "free_requirement": ""
                 }
@@ -121,16 +122,17 @@ class IntegrationTests(APITestSetup):
                 format='json'
                 #content_type='application/json'
                 )
-        proposal_requirement_1_id = add_requirements_response_1.data.get('id')
+        #proposal_requirement_1_id = add_requirements_response_1.data.get('id')
         self.assertEqual(add_requirements_response_1.status_code, 201)
 
+        proposal_standard_req_a1_id = ProposalStandardRequirement.objects.get(code='A1').id
         add_requirements_data_2 = {
-                "due_date": "16/07/2020",
+                "due_date": "16/08/2020",
                 "standard": True,
                 "recurrence": False,
                 "recurrence_pattern": "1",
                 "proposal": proposal_id,
-                "standard_requirement": str(ProposalStandardRequirement.objects.get(code='A1').id),
+                "standard_requirement": str(proposal_standard_req_a1_id),
                 #"recurrence_schedule": "1",
                 "free_requirement": ""
                 }
@@ -140,7 +142,7 @@ class IntegrationTests(APITestSetup):
                 format='json'
                 #content_type='application/json'
                 )
-        proposal_requirement_2_id = add_requirements_response_2.data.get('id')
+        #proposal_requirement_2_id = add_requirements_response_2.data.get('id')
         self.assertEqual(add_requirements_response_2.status_code, 201)
 
         # Propose to approve
@@ -244,13 +246,14 @@ class IntegrationTests(APITestSetup):
         self.client.enforce_csrf_checks=True
 
         # add requirements
+        proposal_standard_req_r2_id = ProposalStandardRequirement.objects.get(code='R2').id
         add_requirements_data_3 = {
                 "due_date": "26/08/2020",
                 "standard": True,
                 "recurrence": True,
                 "recurrence_pattern": "1",
-                "proposal": proposal_id,
-                "standard_requirement": str(ProposalStandardRequirement.objects.get(code='R2').id),
+                "proposal": proposal_id_2,
+                "standard_requirement": str(proposal_standard_req_r2_id),
                 "recurrence_schedule": "1",
                 "free_requirement": ""
                 }
@@ -260,16 +263,17 @@ class IntegrationTests(APITestSetup):
                 format='json'
                 #content_type='application/json'
                 )
-        proposal_requirement_3_id = add_requirements_response_3.data.get('id')
+        #proposal_requirement_3_id = add_requirements_response_3.data.get('id')
         self.assertEqual(add_requirements_response_3.status_code, 201)
 
+        proposal_standard_req_a2_id = ProposalStandardRequirement.objects.get(code='A2').id
         add_requirements_data_4 = {
-                "due_date": "26/07/2020",
+                "due_date": "26/08/2020",
                 "standard": True,
                 "recurrence": False,
                 "recurrence_pattern": "1",
-                "proposal": proposal_id,
-                "standard_requirement": str(ProposalStandardRequirement.objects.get(code='A2').id),
+                "proposal": proposal_id_2,
+                "standard_requirement": str(proposal_standard_req_a2_id),
                 #"recurrence_schedule": "1",
                 "free_requirement": ""
                 }
@@ -279,10 +283,14 @@ class IntegrationTests(APITestSetup):
                 format='json'
                 #content_type='application/json'
                 )
-        proposal_requirement_4_id = add_requirements_response_4.data.get('id')
+        #proposal_requirement_4_id = add_requirements_response_4.data.get('id')
         self.assertEqual(add_requirements_response_4.status_code, 201)
+
+        ## delete requirement
+        #proposal_standard_req_a2_id = ProposalStandardRequirement.objects.get(code='A2').id
+        requirement_to_delete_id = Proposal.objects.get(id=proposal_id_2).requirements.filter(standard_requirement__code="A1")[0].id
         delete_requirement_response_2 = self.client.get(
-                '/api/proposal_requirements/{}/discard.json'.format(proposal_requirement_2_id)
+                '/api/proposal_requirements/{}/discard.json'.format(requirement_to_delete_id)
                 )
         self.assertEqual(delete_requirement_response_2.status_code, 200)
 
@@ -311,6 +319,7 @@ class IntegrationTests(APITestSetup):
         self.assertEqual(propose_to_approve_response_2.status_code, 200)
 
         # Final approval with unchanged data
+        #import ipdb; ipdb.set_trace()
         final_approval_data_2 = propose_to_approve_data_2
         final_approval_response_2 = self.client.post(
                 '/api/proposal_apiary/{}/final_approval/'.format(proposal_id_2), 
@@ -322,7 +331,6 @@ class IntegrationTests(APITestSetup):
 
 
         # Show properties of newly created approval
-        #import ipdb; ipdb.set_trace()
         final_proposal = Proposal.objects.get(id=proposal_id_2)
         final_proposal_proposal_apiary_id = final_proposal.proposal_apiary.id
         print(Proposal.objects.get(id=proposal_id).approval.apiary_approval)
@@ -331,17 +339,26 @@ class IntegrationTests(APITestSetup):
         for approval_site in ApiarySite.objects.filter(approval=final_proposal.approval):
             print(approval_site)
         # Compliance creation test
-        approval_compliances = []
+        approval_standard_requirements = []
         for compliance in final_proposal.approval.compliances.all():
             #print('{}, {}, {}, {}'.format(compliance.lodgement_number, compliance.due_date, compliance_text)
-            print(compliance.__dict__)
-            approval_compliances.append(compliance.requirement.id)
-        print("approval_compliances")
-        print(approval_compliances)
-        #self.assertIn(proposal_requirement_1_id, approval_requirements)
-        self.assertNotIn(proposal_requirement_2_id, approval_compliances)
-        self.assertIn(proposal_requirement_3_id, approval_compliances)
-        #self.assertIn(proposal_requirement_4_id, approval_requirements)
+            #print("compliance.__dict__")
+            #print(compliance.__dict__)
+            #approval_requirements.append(compliance.requirement.id)
+            approval_standard_requirements.append(compliance.requirement.standard_requirement_id)
+            #print("compliance.requirement.__dict__")
+            #print(compliance.requirement.__dict__)
+        print("approval_requirements")
+        print(approval_standard_requirements)
+        print(proposal_standard_req_r1_id)
+        print(proposal_standard_req_a1_id)
+        print(proposal_standard_req_r2_id)
+        print(proposal_standard_req_a2_id)
+        self.assertIn(proposal_standard_req_r1_id, approval_standard_requirements)
+        #self.assertIn(proposal_standard_req_a1_id, approval_standard_requirements)
+        self.assertNotIn(proposal_standard_req_a1_id, approval_standard_requirements)
+        self.assertIn(proposal_standard_req_r2_id, approval_standard_requirements)
+        self.assertIn(proposal_standard_req_a2_id, approval_standard_requirements)
 
         # check Reversion endpoint
         url = '/api/proposal_apiary/{}/proposal_history/'.format(final_proposal_proposal_apiary_id)
