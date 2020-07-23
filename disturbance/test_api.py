@@ -287,7 +287,6 @@ class IntegrationTests(APITestSetup):
         self.assertEqual(add_requirements_response_4.status_code, 201)
 
         ## delete requirement
-        #proposal_standard_req_a2_id = ProposalStandardRequirement.objects.get(code='A2').id
         requirement_to_delete_id = Proposal.objects.get(id=proposal_id_2).requirements.filter(standard_requirement__code="A1")[0].id
         delete_requirement_response_2 = self.client.get(
                 '/api/proposal_requirements/{}/discard.json'.format(requirement_to_delete_id)
@@ -313,7 +312,6 @@ class IntegrationTests(APITestSetup):
                 '/api/proposal/{}/proposed_approval/'.format(proposal_id_2), 
                 propose_to_approve_data_2, 
                 format='json'
-                #content_type='application/json'
                 )
 
         self.assertEqual(propose_to_approve_response_2.status_code, 200)
@@ -325,7 +323,6 @@ class IntegrationTests(APITestSetup):
                 '/api/proposal_apiary/{}/final_approval/'.format(proposal_id_2), 
                 final_approval_data_2, 
                 format='json'
-                #content_type='application/json'
                 )
         self.assertEqual(final_approval_response_2.status_code, 200)
 
@@ -341,13 +338,7 @@ class IntegrationTests(APITestSetup):
         # Compliance creation test
         approval_standard_requirements = []
         for compliance in final_proposal.approval.compliances.all():
-            #print('{}, {}, {}, {}'.format(compliance.lodgement_number, compliance.due_date, compliance_text)
-            #print("compliance.__dict__")
-            #print(compliance.__dict__)
-            #approval_requirements.append(compliance.requirement.id)
             approval_standard_requirements.append(compliance.requirement.standard_requirement_id)
-            #print("compliance.requirement.__dict__")
-            #print(compliance.requirement.__dict__)
         print("approval_requirements")
         print(approval_standard_requirements)
         print(proposal_standard_req_r1_id)
@@ -355,7 +346,7 @@ class IntegrationTests(APITestSetup):
         print(proposal_standard_req_r2_id)
         print(proposal_standard_req_a2_id)
         self.assertIn(proposal_standard_req_r1_id, approval_standard_requirements)
-        #self.assertIn(proposal_standard_req_a1_id, approval_standard_requirements)
+        # This requirement is deleted earlier
         self.assertNotIn(proposal_standard_req_a1_id, approval_standard_requirements)
         self.assertIn(proposal_standard_req_r2_id, approval_standard_requirements)
         self.assertIn(proposal_standard_req_a2_id, approval_standard_requirements)
