@@ -245,7 +245,7 @@ class IntegrationTests(APITestSetup):
 
         # add requirements
         add_requirements_data_3 = {
-                "due_date": "26/06/2020",
+                "due_date": "26/08/2020",
                 "standard": True,
                 "recurrence": True,
                 "recurrence_pattern": "1",
@@ -331,16 +331,16 @@ class IntegrationTests(APITestSetup):
         for approval_site in ApiarySite.objects.filter(approval=final_proposal.approval):
             print(approval_site)
         # Compliance creation test
-        approval_requirements = []
+        approval_compliances = []
         for compliance in final_proposal.approval.compliances.all():
             #print('{}, {}, {}, {}'.format(compliance.lodgement_number, compliance.due_date, compliance_text)
             print(compliance.__dict__)
-            approval_requirements.append(compliance.requirement.id)
-        print("approval_requirements")
-        print(approval_requirements)
+            approval_compliances.append(compliance.requirement.id)
+        print("approval_compliances")
+        print(approval_compliances)
         #self.assertIn(proposal_requirement_1_id, approval_requirements)
-        self.assertNotIn(proposal_requirement_2_id, approval_requirements)
-        self.assertIn(proposal_requirement_3_id, approval_requirements)
+        self.assertNotIn(proposal_requirement_2_id, approval_compliances)
+        self.assertIn(proposal_requirement_3_id, approval_compliances)
         #self.assertIn(proposal_requirement_4_id, approval_requirements)
 
         # check Reversion endpoint
