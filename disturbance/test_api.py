@@ -153,7 +153,7 @@ class IntegrationTests(APITestSetup):
                 })
         propose_to_approve_data = {
                 "details": "test details",
-                "expiry_date": "15/07/2020",
+                "expiry_date": "15/07/2021",
                 "start_date": "01/07/2020",
                 #"apiary_sites": "{}".format(apiary_sites)
                 "apiary_sites": apiary_sites
@@ -245,7 +245,7 @@ class IntegrationTests(APITestSetup):
 
         # add requirements
         add_requirements_data_3 = {
-                "due_date": "26/07/2020",
+                "due_date": "26/06/2020",
                 "standard": True,
                 "recurrence": True,
                 "recurrence_pattern": "1",
@@ -322,6 +322,7 @@ class IntegrationTests(APITestSetup):
 
 
         # Show properties of newly created approval
+        #import ipdb; ipdb.set_trace()
         final_proposal = Proposal.objects.get(id=proposal_id_2)
         final_proposal_proposal_apiary_id = final_proposal.proposal_apiary.id
         print(Proposal.objects.get(id=proposal_id).approval.apiary_approval)
@@ -419,7 +420,7 @@ class IntegrationTests(APITestSetup):
                 })
         propose_to_approve_data_1 = {
                 "details": "test details 1",
-                "expiry_date": "15/07/2020",
+                "expiry_date": "15/07/2021",
                 "start_date": "01/07/2020",
                 #"apiary_sites": "{}".format(apiary_sites)
                 "apiary_sites": apiary_sites_1
@@ -533,7 +534,7 @@ class IntegrationTests(APITestSetup):
                 })
         propose_to_approve_data_2 = {
                 "details": "test details 2",
-                "expiry_date": "15/07/2020",
+                "expiry_date": "15/07/2021",
                 "start_date": "01/07/2020",
                 #"apiary_sites": "{}".format(apiary_sites)
                 "apiary_sites": apiary_sites_2
@@ -657,7 +658,7 @@ class IntegrationTests(APITestSetup):
                 })
         site_transfer_propose_to_approve_data = {
                 "details": "site transfer test details",
-                "expiry_date": "15/07/2020",
+                "expiry_date": "15/07/2021",
                 "start_date": "01/07/2020",
                 #"apiary_sites": "{}".format(apiary_sites)
                 "apiary_sites": site_transfer_apiary_sites

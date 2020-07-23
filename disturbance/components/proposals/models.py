@@ -2665,6 +2665,7 @@ class ProposalApiary(models.Model):
                 raise
 
     def generate_apiary_compliances(self,approval, request):
+        #import ipdb; ipdb.set_trace()
         today = timezone.now().date()
         timedelta = datetime.timedelta
         from disturbance.components.compliances.models import Compliance, ComplianceUserAction
@@ -2676,9 +2677,10 @@ class ProposalApiary(models.Model):
             try:
                 for r in proposal.requirements.filter(copied_from__isnull=False):
                     cs=[]
+                    # Now discard all of the due compliances
                     cs=Compliance.objects.filter(
                             requirement=r.copied_from, 
-                            #proposal=proposal.previous_application, 
+                            approval=approval, 
                             processing_status='due'
                             )
                     if cs:
