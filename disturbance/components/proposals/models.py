@@ -2357,9 +2357,9 @@ class ProposalApiary(models.Model):
         from disturbance.components.approvals.models import Approval
         approval = None
         if self.proposal.applicant:
-            approval = Approval.objects.filter(applicant=self.proposal.applicant, status='current', apiary_approval=True).first()
+            approval = Approval.objects.filter(applicant=self.proposal.applicant, status=Approval.STATUS_CURRENT, apiary_approval=True).first()
         elif self.proposal.proxy_applicant:
-            approval = Approval.objects.filter(proxy_applicant=self.proposal.proxy_applicant, status='current', apiary_approval=True).first()
+            approval = Approval.objects.filter(proxy_applicant=self.proposal.proxy_applicant, status=Approval.STATUS_CURRENT, apiary_approval=True).first()
         return approval
 
 

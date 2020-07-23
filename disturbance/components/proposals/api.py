@@ -453,6 +453,17 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
 
     @list_route(methods=['GET',])
     @basic_exception_handler
+    def available_sites(self, request):
+        q_objects = Q()
+        q_objects &= Q(available=True)
+        q_objects &= Q(status=ApiarySite.STATUS_CURRENT)
+
+        qs = ApiarySite.objects.filter(q_objects)
+        serializer = ApiarySiteSerializer(qs, many=True)
+        return Response(serializer.data)
+
+    @list_route(methods=['GET',])
+    @basic_exception_handler
     def transitable_sites(self, request):
         q_objects = Q()
         q_objects |= Q(status__in=ApiarySite.TRANSITABLE_STATUSES)
