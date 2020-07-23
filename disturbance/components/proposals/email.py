@@ -316,6 +316,7 @@ def send_approver_approve_email_notification(request, proposal):
     if proposal.applicant:
         _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
 
+
 def send_proposal_decline_email_notification(proposal,request,proposal_decline):
     email = ProposalDeclineSendNotificationEmail()
 
@@ -327,14 +328,19 @@ def send_proposal_decline_email_notification(proposal,request,proposal_decline):
     all_ccs = []
     if cc_list:
         all_ccs = cc_list.split(',')
-    if proposal.applicant.email:
-        all_ccs.append(proposal.applicant.email)
+    if proposal.applicant:
+        if proposal.applicant.email:
+            all_ccs.append(proposal.applicant.email)
+    elif proposal.proxy_applicant:
+        if proposal.proxy_applicant.email:
+            all_ccs.append(proposal.proxy_applicant.email)
 
-    msg = email.send(proposal.submitter.email, bcc= all_ccs, context=context)
+    msg = email.send(proposal.submitter.email, bcc=all_ccs, context=context)
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     _log_proposal_email(msg, proposal, sender=sender)
     if proposal.applicant:
         _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
+
 
 def send_proposal_approver_sendback_email_notification(request, proposal):
     email = ApproverSendBackNotificationEmail()
@@ -350,7 +356,6 @@ def send_proposal_approver_sendback_email_notification(request, proposal):
     _log_proposal_email(msg, proposal, sender=sender)
     if proposal.applicant:
         _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
-
 
 
 def send_proposal_approval_email_notification(proposal,request):

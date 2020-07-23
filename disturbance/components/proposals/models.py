@@ -1118,6 +1118,14 @@ class Proposal(RevisionedMixin):
                 self.processing_status = 'declined'
                 self.customer_status = 'declined'
                 self.save()
+
+                # Update apiary site status
+                proposal_id = request.data.get('proposal', 0)
+                proposal = Proposal.objects.get(id=int(proposal_id))
+                for apiary_site in proposal.proposal_apiary.apiary_sites.all():
+                    apiary_site.status = ApiarySite.STATUS_DENIED
+                    apiary_site.save()
+
                 # Log proposal action
                 self.log_user_action(ProposalUserAction.ACTION_DECLINE.format(self.id),request)
                 # Log entry for organisation
