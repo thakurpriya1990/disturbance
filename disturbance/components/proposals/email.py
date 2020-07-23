@@ -224,10 +224,11 @@ def send_amendment_email_notification(amendment_request, request, proposal):
     }
 
     all_ccs = []
-    if proposal.applicant.email:
-        cc_list = proposal.applicant.email
-        if cc_list:
-            all_ccs = [cc_list]
+    if proposal.applicant:
+        if proposal.applicant.email:
+            cc_list = proposal.applicant.email
+            if cc_list:
+                all_ccs = [cc_list]
 
     msg = email.send(proposal.submitter.email, cc=all_ccs, context=context,  attachments=attachments)
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
