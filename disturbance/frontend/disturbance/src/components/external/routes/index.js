@@ -8,6 +8,8 @@ import Compliance from '../compliances/access.vue'
 import ComplianceSubmit from '../compliances/submit.vue'
 //import Approval from '../approvals/approval.vue'
 import Approval from '../approvals/approval_wrapper.vue'
+import AvailableSites from '../available_sites.vue'
+
 export default
 {
     path: '/external',
@@ -36,6 +38,11 @@ export default
             path: 'compliance/submit',
             component: ComplianceSubmit,
             name:"submit_compliance"
+        },
+        {
+            path: 'available_sites',
+            component: AvailableSites,
+            name: 'available_sites'
         },
         {
             path: 'approval/:approval_id',
