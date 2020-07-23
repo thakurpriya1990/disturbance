@@ -17,7 +17,7 @@ from ledger.accounts.models import EmailUser, RevisionedMixin
 from ledger.licence.models import  Licence
 from disturbance import exceptions
 from disturbance.components.organisations.models import Organisation
-from disturbance.components.proposals.models import Proposal, ProposalUserAction
+from disturbance.components.proposals.models import Proposal, ProposalUserAction, ApiarySite
 from disturbance.components.main.models import CommunicationsLogEntry, UserAction, Document
 from disturbance.components.approvals.email import (
     send_approval_expire_email_notification,
@@ -28,7 +28,7 @@ from disturbance.components.approvals.email import (
 )
 from disturbance.utils import search_keys, search_multiple_keys
 #from disturbance.components.approvals.email import send_referral_email_notification
-
+from disturbance.helpers import is_customer
 
 def update_approval_doc_filename(instance, filename):
     return 'approvals/{}/documents/{}'.format(instance.approval.id,filename)
@@ -53,16 +53,22 @@ class ApprovalDocument(Document):
 
 #class Approval(models.Model):
 class Approval(RevisionedMixin):
+    STATUS_CURRENT = 'current'
+    STATUS_EXPIRED = 'expired'
+    STATUS_CANCELLED = 'cancelled'
+    STATUS_SURRENDERED = 'surrendered'
+    STATUS_SUSPENDED = 'suspended'
     STATUS_CHOICES = (
-        ('current','Current'),
-        ('expired','Expired'),
-        ('cancelled','Cancelled'),
-        ('surrendered','Surrendered'),
-        ('suspended','Suspended')
+        (STATUS_CURRENT, 'Current'),
+        (STATUS_EXPIRED, 'Expired'),
+        (STATUS_CANCELLED, 'Cancelled'),
+        (STATUS_SURRENDERED, 'Surrendered'),
+        (STATUS_SUSPENDED, 'Suspended')
     )
     lodgement_number = models.CharField(max_length=9, blank=True, default='')
     status = models.CharField(max_length=40, choices=STATUS_CHOICES,
                                        default=STATUS_CHOICES[0][0])
+    # NB: licence_document not used for Apiary applications
     licence_document = models.ForeignKey(ApprovalDocument, blank=True, null=True, related_name='licence_document')
     cover_letter_document = models.ForeignKey(ApprovalDocument, blank=True, null=True, related_name='cover_letter_document')
     replaced_by = models.ForeignKey('self', blank=True, null=True)
@@ -80,7 +86,8 @@ class Approval(RevisionedMixin):
     expiry_date = models.DateField()
     surrender_details = JSONField(blank=True,null=True)
     suspension_details = JSONField(blank=True,null=True)
-    applicant = models.ForeignKey(Organisation,on_delete=models.PROTECT, related_name='disturbance_approvals')
+    applicant = models.ForeignKey(Organisation,on_delete=models.PROTECT, blank=True, null=True, related_name='disturbance_approvals')
+    proxy_applicant = models.ForeignKey(EmailUser,on_delete=models.PROTECT, blank=True, null=True, related_name='disturbance_proxy_approvals')
     extracted_fields = JSONField(blank=True, null=True)
     cancellation_details = models.TextField(blank=True)
     cancellation_date = models.DateField(blank=True, null=True)
@@ -88,10 +95,51 @@ class Approval(RevisionedMixin):
     set_to_suspend = models.BooleanField(default=False)
     set_to_surrender = models.BooleanField(default=False)
     reissued= models.BooleanField(default=False)
+    apiary_approval = models.BooleanField(default=False)
+    no_annual_rental_fee_until = models.DateField(blank=True, null=True)
 
     class Meta:
         app_label = 'disturbance'
         unique_together= ('lodgement_number', 'issue_date')
+
+    @property
+    def relevant_applicant_id(self):
+        if self.applicant:
+            #return self.org_applicant.organisation.id
+            return self.applicant.id
+        elif self.proxy_applicant:
+            return self.proxy_applicant.id
+
+    @property
+    def relevant_applicant(self):
+        if self.applicant:
+            return self.applicant
+        else:
+            return self.proxy_applicant
+
+    @property
+    def relevant_applicant_email(self):
+        if self.applicant and hasattr(self.applicant.organisation, 'email') and self.applicant.organisation.email:
+            return self.applicant.organisation.email
+        elif self.proxy_applicant:
+            return self.proxy_applicant.email
+        else:
+            return self.current_proposal.submitter.email
+
+    @property
+    def relevant_applicant_name(self):
+        if self.applicant:
+            return self.applicant.name
+        else:
+            return self.proxy_applicant.get_full_name()
+
+    @property
+    def relevant_applicant_address(self):
+        if self.applicant:
+            return self.applicant.address
+        elif self.proxy_applicant:
+            #return self.proxy_applicant.addresses.all().first()
+            return self.proxy_applicant.residential_address
 
     @property
     def region(self):
@@ -174,19 +222,20 @@ class Approval(RevisionedMixin):
 
     @property
     def can_amend(self):
-        try:
-            amend_conditions = {
-                    'previous_application': self.current_proposal,
-                    'proposal_type': 'amendment'
-                    }
-            proposal=Proposal.objects.get(**amend_conditions)
-            if proposal:
-                return False
-        except Proposal.DoesNotExist:
-            if self.can_renew:
-                return True
-            else:
-                return False
+        if not self.apiary_approval:
+            try:
+                amend_conditions = {
+                        'previous_application': self.current_proposal,
+                        'proposal_type': 'amendment'
+                        }
+                proposal=Proposal.objects.get(**amend_conditions)
+                if proposal:
+                    return False
+            except Proposal.DoesNotExist:
+                if self.can_renew:
+                    return True
+                else:
+                    return False
 
 
     def generate_doc(self, user, preview=False):
@@ -228,20 +277,34 @@ class Approval(RevisionedMixin):
     def log_user_action(self, action, request):
        return ApprovalUserAction.log_action(self, action, request.user)
 
-
     def expire_approval(self,user):
         with transaction.atomic():
             try:
                 today = timezone.localtime(timezone.now()).date()
-                if self.status == 'current' and self.expiry_date < today:
-                    self.status = 'expired'
+                if self.status == Approval.STATUS_CURRENT and self.expiry_date < today:
+                    self.status = Approval.STATUS_EXPIRED
                     self.save()
                     send_approval_expire_email_notification(self)
+
+                    # Change the statuses of the apiary sites, too
+                    self.change_apiary_site_status(self.status)
+
                     proposal = self.current_proposal
                     ApprovalUserAction.log_action(self,ApprovalUserAction.ACTION_EXPIRE_APPROVAL.format(self.id),user)
                     ProposalUserAction.log_action(proposal,ProposalUserAction.ACTION_EXPIRED_APPROVAL_.format(proposal.id),user)
             except:
                 raise
+
+    def change_apiary_site_status(self, approval_status):
+        for site in self.apiary_sites:
+            if approval_status in (Approval.STATUS_CANCELLED, Approval.STATUS_SUSPENDED, Approval.STATUS_SURRENDERED,):
+                site.status = ApiarySite.STATUS_NOT_TO_BE_REISSUED
+            elif approval_status == Approval.STATUS_EXPIRED:
+                site.status = ApiarySite.STATUS_VACANT
+            elif approval_status == Approval.STATUS_CURRENT:
+                site.status = ApiarySite.STATUS_CURRENT
+
+            site.save()
 
     def approval_cancellation(self,request,details):
         with transaction.atomic():
@@ -257,10 +320,13 @@ class Approval(RevisionedMixin):
                 self.cancellation_date = cancellation_date
                 today = timezone.now().date()
                 if cancellation_date <= today:
-                    if not self.status == 'cancelled':
-                        self.status = 'cancelled'
+                    if not self.status == Approval.STATUS_CANCELLED:
+                        self.status = Approval.STATUS_CANCELLED
                         self.set_to_cancel = False
                         send_approval_cancel_email_notification(self)
+
+                        # Change the statuses of the apiary sites, too
+                        self.change_apiary_site_status(self.status)
                 else:
                     self.set_to_cancel = True
                     send_approval_cancel_email_notification(self, future_cancel=True)
@@ -293,11 +359,14 @@ class Approval(RevisionedMixin):
                 from_date = datetime.datetime.strptime(self.suspension_details['from_date'],'%d/%m/%Y')
                 from_date = from_date.date()
                 if from_date <= today:
-                    if not self.status == 'suspended':
-                        self.status = 'suspended'
+                    if not self.status == Approval.STATUS_SUSPENDED:
+                        self.status = Approval.STATUS_SUSPENDED
                         self.set_to_suspend = False
                         self.save()
                         send_approval_suspend_email_notification(self)
+
+                        # Change the statuses of the apiary sites, too
+                        self.change_apiary_site_status(self.status)
                 else:
                     self.set_to_suspend = True
                     send_approval_suspend_email_notification(self, future_suspend=True)
@@ -321,18 +390,22 @@ class Approval(RevisionedMixin):
                 if not self.can_reinstate and self.expiry_date>= today:
                 #if not self.status == 'suspended' and self.expiry_date >= today:
                     raise ValidationError('You cannot reinstate approval at this stage')
-                if self.status == 'cancelled':
+                if self.status == Approval.STATUS_CANCELLED:
                     self.cancellation_details =  ''
                     self.cancellation_date = None
-                if self.status == 'surrendered':
+                if self.status == Approval.STATUS_SURRENDERED:
                     self.surrender_details = {}
-                if self.status == 'suspended':
+                if self.status == Approval.STATUS_SUSPENDED:
                     self.suspension_details = {}
 
-                self.status = 'current'
+                self.status = Approval.STATUS_CURRENT
                 #self.suspension_details = {}
                 self.save()
                 send_approval_reinstate_email_notification(self, request)
+
+                # Change the statuses of the apiary sites, too
+                self.change_apiary_site_status(self.status)
+
                 # Log approval action
                 self.log_user_action(ApprovalUserAction.ACTION_REINSTATE_APPROVAL.format(self.id),request)
                 # Log entry for proposal
@@ -343,8 +416,9 @@ class Approval(RevisionedMixin):
     def approval_surrender(self,request,details):
         with transaction.atomic():
             try:
-                if not request.user.disturbance_organisations.filter(organisation_id = self.applicant.id):
-                    if not request.user in self.allowed_assessors:
+                if self.applicant and not request.user.disturbance_organisations.filter(organisation_id = self.relevant_applicant_id):
+                    #if not request.user in self.allowed_assessors:
+                    if request.user not in self.allowed_assessors and not is_customer(request):
                         raise ValidationError('You do not have access to surrender this approval')
                 if not self.can_reissue and self.can_action:
                     raise ValidationError('You cannot surrender approval if it is not current or suspended')
@@ -356,11 +430,14 @@ class Approval(RevisionedMixin):
                 surrender_date = datetime.datetime.strptime(self.surrender_details['surrender_date'],'%d/%m/%Y')
                 surrender_date = surrender_date.date()
                 if surrender_date <= today:
-                    if not self.status == 'surrendered':
-                        self.status = 'surrendered'
+                    if not self.status == Approval.STATUS_SURRENDERED:
+                        self.status = Approval.STATUS_SURRENDERED
                         self.set_to_surrender = False
                         self.save()
                         send_approval_surrender_email_notification(self)
+
+                        # Change the statuses of the apiary sites, too
+                        self.change_apiary_site_status(self.status)
                 else:
                     self.set_to_surrender = True
                     send_approval_surrender_email_notification(self, future_surrender=True)
@@ -413,6 +490,7 @@ class ApprovalUserAction(UserAction):
     ACTION_RENEW_APPROVAL = "Create renewal Proposal for approval {}"
     ACTION_AMEND_APPROVAL = "Create amendment Proposal for approval {}"
     ACTION_APPROVAL_PDF_VIEW ="View approval PDF for approval {}"
+    ACTION_UPDATE_NO_CHARGE_DATE_UNTIL = "'Do not charge annual rental fee until' date updated to {} for approval {}"
 
     class Meta:
         app_label = 'disturbance'

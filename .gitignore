@@ -1,5 +1,6 @@
 .settings/
 .env
+*.swo
 venv/
 venv2/
 node_modules/
@@ -102,3 +103,7 @@ disturbance/static/disturbance_vue/static/*
 # npm locks
 #*-lock.json
 
+# apiary.txt contains private data
+# to avoid accidentally making it under the version control
+# add this file to here
+apiary.txt

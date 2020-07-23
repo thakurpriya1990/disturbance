@@ -273,7 +273,7 @@ export default {
             addressBody: 'addressBody'+vm._uid,
             contactsBody: 'contactsBody'+vm._uid,
             //"proposal": null,
-            referral: null,
+            //referral: null,
             referral_sent_list: null,
             "loading": [],
             selected_referral: '',
@@ -326,7 +326,7 @@ export default {
             logs_url: helpers.add_endpoint_json(api_endpoints.proposals,vm.$route.params.proposal_id+'/action_log'),
             comms_url: helpers.add_endpoint_json(api_endpoints.proposals,vm.$route.params.proposal_id+'/comms_log'),
             panelClickersInitialised: false,
-            referral: {}
+            referral: {},
         }
     },
     components: {
@@ -340,6 +340,11 @@ export default {
         formatDate: function(data){
             return data ? moment(data).format('DD/MM/YYYY HH:mm:ss'): '';
         }
+    },
+    props:{
+            referralId:{
+                type:Number,
+            },
     },
     watch: {
     },
@@ -701,6 +706,17 @@ export default {
             vm.form = document.forms.new_proposal;
         });
     },
+    created: function() {
+        Vue.http.get(helpers.add_endpoint_json(api_endpoints.referrals,this.referralId)).then(res => {
+                this.referral = res.body;
+                this.referral.proposal.applicant.address = this.proposal.applicant.address != null ? this.proposal.applicant.address : {};
+                //vm.fetchreferrallist(vm.referral.id);
+            },
+            err => {
+              console.log(err);
+            });
+    },
+    /*
     beforeRouteEnter: function(to, from, next) {
           //Vue.http.get(`/api/proposal/${to.params.proposal_id}/referral_proposal.json`).then(res => {
           Vue.http.get(helpers.add_endpoint_json(api_endpoints.referrals,to.params.referral_id)).then(res => {
@@ -714,6 +730,7 @@ export default {
               console.log(err);
             });
     },
+    */
     beforeRouteUpdate: function(to, from, next) {
           Vue.http.get(`/api/proposal/${to.params.proposal_id}/referall_proposal.json`).then(res => {
               next(vm => {

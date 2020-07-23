@@ -14,7 +14,7 @@
                                         <div class="col-sm-6">
                                             <input type="text" disabled class="form-control" name="name" placeholder="" v-model="org.name">
                                         </div>
-                                    </div>   
+                                    </div>
                                     <div class="form-group">
                                         <label for="" class="col-sm-3 control-label">ABN</label>
                                         <div class="col-sm-6">
@@ -95,17 +95,6 @@
 
             </div>
 
-            <div class="row">
-                <FormSection :formCollapse="false" label="Site(s)" Index="site_avaiability">
-                    <SiteAvailability :apiary_site_location_id="apiary_site_location_id" ref="site_availability" />
-                </FormSection>
-            </div>
-
-            <div class="row">
-                <FormSection :formCollapse="false" label="On Site" Index="on_site">
-                    <OnSiteInformation :apiary_site_location_id="apiary_site_location_id" ref="on_site_information" />
-                </FormSection>
-            </div>
         </div>
     </div>
 </div>
@@ -118,11 +107,23 @@ import CommsLogs from '@common-utils/comms_logs.vue'
 import ResponsiveDatatablesHelper from "@/utils/responsive_datatable_helper.js"
 import FormSection from "@/components/forms/section_toggle.vue"
 import { api_endpoints, helpers } from '@/utils/hooks'
-import OnSiteInformation from '@/components/common/apiary/on_site_information.vue'
-import SiteAvailability from '@/components/common/apiary/site_availability.vue'
 
 export default {
     name: 'Approval',
+    props:{
+        is_external: {
+            type: Boolean,
+            default: false
+        },
+        is_internal: {
+            type: Boolean,
+            default: false
+        },
+        approvalId: {
+            type: Number,
+            default: null,
+        }
+    },
     data() {
         let vm = this;
         return {
@@ -140,47 +141,78 @@ export default {
                 address: {}
             },
 
+            // variables passed to the child component
+            test_apiary_sites: [],
+            on_site_information_list: [],
             // Filters
 
         }
     },
-    watch: {},
+    watch: {
+        approval: {
+            deep: true,
+            handler(){
+                console.log('approval in watch');
+
+                // Construct the array, which is passed to the child component, SiteAvailability
+                // Construct the array, which is passed to the child component, OnSiteInformation
+                this.test_apiary_sites = []
+                this.on_site_information_list = []
+
+                for (let i=0; i<this.approval.apiary_sites.length; i++){
+                    console.log(this.approval.apiary_sites[i]);
+                    this.test_apiary_sites.push(this.approval.apiary_sites[i].apiary_site)
+                    for (let j=0; j<this.approval.apiary_sites[i].apiary_site.onsiteinformation_set.length; j++){
+                        this.on_site_information_list.push(this.approval.apiary_sites[i].apiary_site.onsiteinformation_set[j])
+                    }
+                }
+
+                // Construct the array, which is passed to the child component, TemporaryUse
+
+            }
+        }
+    },
     filters: {
         formatDate: function(data){
             return moment(data).format('DD/MM/YYYY');
         }
     },
-    beforeRouteEnter: function(to, from, next){
-        Vue.http.get(helpers.add_endpoint_json(api_endpoints.approvals,to.params.approval_id)).then((response) => {
-            next(vm => {
-                vm.approval = response.body;
-                vm.approval.applicant_id = response.body.applicant_id;
-                vm.fetchOrganisation(vm.approval.applicant_id)
-            })
-        },(error) => {
-            console.log(error);
-        }) 
+    created: function() {
+        if (this.approvalId) {
+            this.loadApproval(this.approvalId)
+        }
     },
     components: {
         datatable,
         CommsLogs,
         FormSection,
-        OnSiteInformation,
-        SiteAvailability,
     },
     computed: {
         isLoading: function () {
             return this.loading.length > 0;
         },
-        apiary_site_location_id: function() {
+        proposal_apiary_id: function() {
             try {
-                return this.approval.current_proposal.apiary_site_location.id;
+                return this.approval.current_proposal.proposal_apiary.id;
             } catch(err) {
                 return 0;
             }
         },
     },
     methods: {
+        loadApproval: function(approval_id){
+            let vm = this
+            Vue.http.get(helpers.add_endpoint_json(api_endpoints.approvals,approval_id)).then(
+                res => {
+                    vm.approval = res.body;
+                    vm.approval.applicant_id = res.body.applicant_id;
+                    vm.fetchOrganisation(vm.approval.applicant_id)
+                },
+                error => {
+                    console.log(error);
+                }
+            )
+        },
         commaToNewline(s){
             return s.replace(/[,;]/g, '\n');
         },

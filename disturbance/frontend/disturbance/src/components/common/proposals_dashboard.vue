@@ -152,7 +152,7 @@ export default {
             proposal_submitters: [],
             proposal_status: [],
             proposal_ex_headers:[
-                "Number","Region","District","Activity","Title","Submitter","Proponent","Status","Lodged on","Invoice/Confirmation","Action"
+                "Number","Region","District","Activity","Title","Submitter","Proponent/Applicant","Status","Lodged on","Invoice/Confirmation","Action"
                 //"LodgementNo","ProcessingStatus","AssessorProcess","CanUserEdit",
             ],
 
@@ -222,9 +222,14 @@ export default {
                         },
                         name: "submitter__email",
                     },
+                    /*
                     {
                         data: "applicant",
                         name: "applicant__organisation__name",
+                    },
+                    */
+                    {
+                        data: "relevant_applicant_name",
                     },
                     {
                         data: "customer_status",
@@ -246,8 +251,10 @@ export default {
                             let links = '';
                             if (full.fee_paid) {
                                 links +=  `<a href='/payments/invoice-pdf/${full.fee_invoice_reference}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i></a> &nbsp`;
-                                links +=  `<a href='/payments/confirmation-pdf/${full.fee_invoice_reference}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i></a><br/>`;
-                                links +=  `<a href='/ledger/payments/invoice/payment?invoice=${full.fee_invoice_reference}' target='_blank'>View Payment</a><br/>`;
+                                if (!full.apiary_group_application_type) {
+                                    links +=  `<a href='/payments/confirmation-pdf/${full.fee_invoice_reference}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i></a><br/>`;
+                                }
+                                //links +=  `<a href='/ledger/payments/invoice/payment?invoice=${full.fee_invoice_reference}' target='_blank'>View Payment</a><br/>`;
                             }
                             return links;
                         },
@@ -340,7 +347,7 @@ export default {
                 */
             },
             proposal_headers:[
-                "Number","Region","District","Activity","Title","Submitter","Proponent","Status","Lodged on","Assigned Officer","Invoice/Confirmation","Action",
+                "Number","Region","District","Activity","Title","Submitter","Proponent/Applicant","Status","Lodged on","Assigned Officer","Invoice/Confirmation","Action",
             ],
             proposal_options:{
                 autoWidth: false,
@@ -406,9 +413,14 @@ export default {
                         name: "submitter__email",
                     },
                     {
+                        data: "relevant_applicant_name",
+                    },
+                    /*
+                    {
                         data: "applicant",
                         name: "applicant__organisation__name",
                     },
+                    */
                     {
                         data: "processing_status",
                         //mRender:function(data,type,full){
@@ -435,7 +447,9 @@ export default {
                             let links = '';
                             if (full.fee_paid) {
                                 links +=  `<a href='/payments/invoice-pdf/${full.fee_invoice_reference}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i></a> &nbsp`;
-                                links +=  `<a href='/payments/confirmation-pdf/${full.fee_invoice_reference}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i></a><br/>`;
+                                if (!full.apiary_group_application_type) {
+                                    links +=  `<a href='/payments/confirmation-pdf/${full.fee_invoice_reference}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i></a><br/>`;
+                                }
                                 links +=  `<a href='/ledger/payments/invoice/payment?invoice=${full.fee_invoice_reference}' target='_blank'>View Payment</a><br/>`;
                             }
                             return links;
@@ -450,12 +464,27 @@ export default {
                             let links = '';
                             if (!vm.is_external){
                                 /*if(vm.check_assessor(full) && full.can_officer_process)*/
+                                /*
                                 if(full.assessor_process){
+                                    if (full.application_type === 'Apiary') {
+                                        links +=  `<a href='/internal/proposal/${full.id}/apiary'>Process</a><br/>`;
+                                    } else {
                                         links +=  `<a href='/internal/proposal/${full.id}'>Process</a><br/>`;
-                            }
-                                else{
-                                    links +=  `<a href='/internal/proposal/${full.id}'>View</a><br/>`;
+                                    }
+                                } else {
+                                    if (full.application_type === 'Apiary') {
+                                        links +=  `<a href='/internal/proposal/${full.id}/apiary'>View</a><br/>`;
+                                    } else {
+                                        links +=  `<a href='/internal/proposal/${full.id}'>View</a><br/>`;
+                                    }
                                 }
+                                */
+                                if(full.assessor_process){
+                                    links +=  `<a href='/internal/proposal/${full.id}'>Process</a><br/>`;
+                                } else {
+                                    links +=  `<a href='/internal/proposal/${full.id}'>View</a><br/>`;
+                                    }
+
                             }
                             else{
                                 if (full.can_user_edit) {

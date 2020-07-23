@@ -1,3 +1,7 @@
+import sys
+from datetime import datetime
+
+import pytz
 from django.conf import settings
 from disturbance.components.proposals.models import Proposal, ProposalType, HelpPage, ApplicationType
 from collections import OrderedDict
@@ -162,6 +166,21 @@ def compare_proposal(current_proposal, prev_proposal_id):
     prev_proposal = Proposal.objects.get(id=prev_proposal_id)
     return compare_data(current_proposal.data[0], prev_proposal.data[0], current_proposal.schema)
 
+
+def convert_moment_str_to_python_datetime_obj(moment_str):
+    """
+    This function convert moment-obj-str to python datetime obj
+    """
+    # Serialized moment obj is supposed to be sent. Which is UTC timezone.
+    date_utc = datetime.strptime(moment_str, '%Y-%m-%dT%H:%M:%S.%fZ')
+    # Add timezone (UTC)
+    date_utc = date_utc.replace(tzinfo=pytz.UTC)
+    # Convert the timezone to TIME_ZONE
+    date_perth = date_utc.astimezone(pytz.timezone(settings.TIME_ZONE))
+
+    return date_perth
+
+
 def compare_data(dict1, dict2, schema):
     """
     dict1 - most recent data
@@ -209,18 +228,18 @@ def create_helppage_object(application_type='Disturbance', help_type=HelpPage.HE
 	"""
 	try:
 		application_type_id = ApplicationType.objects.get(name=application_type).id
-	except Exception, e:
+	except Exception as e:
 		print 'application type: {} does not exist, maybe!'.format(application_type, e)
 
 	try:
 		help_page = HelpPage.objects.filter(application_type_id=application_type_id, help_type=help_type).latest('version')
 		next_version = help_page.version + 1
-	except Exception, e:
+	except Exception as e:
 		next_version = 1
 
 	try:
 		proposal_type = ProposalType.objects.filter(name=application_type).latest('version')
-	except Exception, e:
+	except Exception as e:
 		print 'proposal type: {} does not exist, maybe!'.format(application_type, e)
 
 
@@ -277,7 +296,7 @@ def search_keys(dictionary, search_list=['help_text', 'label']):
                     if key_label and key_label.endswith(search_item2) and key_label == corresponding_label_key: # and result.has_key(key):
                         #import ipdb; ipdb.set_trace()
                         help_list.append({search_item2: j[key_label], search_item1: i[key]})
-        except Exception, e:
+        except Exception as e:
             #import ipdb; ipdb.set_trace()
             print e
 
@@ -345,7 +364,7 @@ def search_multiple_keys(dictionary, primary_search='isRequired', search_list=['
                 #if tmp_dict:
                 #  help_list.append( {primary_search: tmp_dict} )
 
-        except Exception, e:
+        except Exception as e:
             #import ipdb; ipdb.set_trace()
             print e
 
@@ -401,4 +420,11 @@ def create_dummy_history(proposal_id):
     p.previous_application = prev_proposal
     p.save()
     return p.id, p.get_history
+
+
+def are_migrations_running():
+    '''
+    Checks whether the app was launched with the migration-specific params
+    '''
+    return sys.argv and ('migrate' in sys.argv or 'makemigrations' in sys.argv)
 

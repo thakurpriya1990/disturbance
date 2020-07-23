@@ -172,16 +172,19 @@ def _create_approval(approval_buffer, approval, proposal, copied_to_permit, user
 
     elements = []
 
-
-    title = approval.title.encode('UTF-8')
+    title = ''
+    if approval.title:
+        title = approval.title.encode('UTF-8')
 
     #Organization details
 
-    address = proposal.applicant.organisation.postal_address
+    #address = proposal.applicant.organisation.postal_address
+    address = proposal.relevant_applicant_address
     #email = proposal.applicant.organisation.organisation_set.all().first().contacts.all().first().email
     #elements.append(Paragraph(email,styles['BoldLeft']))
     elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
-    elements.append(Paragraph(_format_name(approval.applicant),styles['BoldLeft']))
+    #elements.append(Paragraph(_format_name(approval.applicant),styles['BoldLeft']))
+    elements.append(Paragraph(approval.relevant_applicant_name,styles['BoldLeft']))
     elements.append(Paragraph(address.line1, styles['BoldLeft']))
     elements.append(Paragraph(address.line2, styles['BoldLeft']))
     elements.append(Paragraph(address.line3, styles['BoldLeft']))
@@ -203,7 +206,8 @@ def _create_approval(approval_buffer, approval, proposal, copied_to_permit, user
 
     list_of_bullets= []
     list_of_bullets.append('The potential impacts of the proposal on values the department manages have been removed or minimised to a level \'As Low As Reasonably Practicable\' (ALARP) and the proposal is consistent with departmental objectives, associated management plans and the land use category/s in the activity area.')
-    list_of_bullets.append('Approval is granted for the period {} to {}.  This approval is not valid if {} makes changes to what has been proposed or the proposal has expired.  To change the proposal or seek an extension, the proponent must re-submit the proposal for assessment.'.format(approval.start_date.strftime(DATE_FORMAT), approval.expiry_date.strftime(DATE_FORMAT),_format_name(approval.applicant)))
+    #list_of_bullets.append('Approval is granted for the period {} to {}.  This approval is not valid if {} makes changes to what has been proposed or the proposal has expired.  To change the proposal or seek an extension, the proponent must re-submit the proposal for assessment.'.format(approval.start_date.strftime(DATE_FORMAT), approval.expiry_date.strftime(DATE_FORMAT),_format_name(approval.applicant)))
+    list_of_bullets.append('Approval is granted for the period {} to {}.  This approval is not valid if {} makes changes to what has been proposed or the proposal has expired.  To change the proposal or seek an extension, the proponent must re-submit the proposal for assessment.'.format(approval.start_date.strftime(DATE_FORMAT), approval.expiry_date.strftime(DATE_FORMAT),approval.relevant_applicant_name))
     list_of_bullets.append('The proponent accepts responsibility for advising {} of new information or unforeseen threats that may affect the risk of the proposed activity.'.format(settings.DEP_NAME_SHORT))
     list_of_bullets.append('Information provided by {0} for the purposes of this proposal will not be provided to third parties without permission from {0}.'.format(settings.DEP_NAME_SHORT))
     list_of_bullets.append('The proponent accepts responsibility for supervising and monitoring implementation of activity/ies to ensure compliance with this proposal. {} reserves the right to request documents and records demonstrating compliance for departmental monitoring and auditing.'.format(settings.DEP_NAME_SHORT))
@@ -421,7 +425,10 @@ def create_approval_doc(approval,proposal, copied_to_permit, user):
     approval_buffer = BytesIO()
 
     _create_approval(approval_buffer, approval, proposal, copied_to_permit, user)
-    filename = 'approval-{}.pdf'.format(approval.lodgement_number)
+    if proposal.apiary_group_application_type:
+        filename = 'approval-{}-{}.pdf'.format(approval.lodgement_number, proposal.lodgement_number)
+    else:
+        filename = 'approval-{}.pdf'.format(approval.lodgement_number)
     document = ApprovalDocument.objects.create(approval=approval,name=filename)
     document._file.save(filename, File(approval_buffer), save=True)
 
@@ -445,7 +452,11 @@ def create_renewal_doc(approval,proposal):
     renewal_buffer = BytesIO()
 
     _create_renewal(renewal_buffer, approval, proposal)
-    filename = 'renewal-{}.pdf'.format(approval.id)
+    if proposal.apiary_group_application_type:
+        filename = 'renewal-{}-{}.pdf'.format(approval.lodgement_number, proposal.lodgement_number)
+    else:
+        filename = 'renewal-{}.pdf'.format(approval.lodgement_number)
+    #filename = 'renewal-{}.pdf'.format(approval.id)
     document = ApprovalDocument.objects.create(approval=approval,name=filename)
     document._file.save(filename, File(renewal_buffer), save=True)
 
@@ -469,8 +480,9 @@ def _create_renewal(renewal_buffer, approval, proposal):
 
     elements = []
 
-
-    title = approval.title.encode('UTF-8')
+    title = ''
+    if approval.title:
+        title = approval.title.encode('UTF-8')
 
     # additional information
     '''if approval.additional_information:
@@ -488,7 +500,8 @@ def _create_renewal(renewal_buffer, approval, proposal):
                           Paragraph('%s %s %s' % (address.locality, address.state, address.postcode), styles['Left']),
                           Paragraph(address.country.name, styles['Left'])]
     delegation.append(Table([[[Paragraph('Licensee:', styles['BoldLeft']), Paragraph('Address', styles['BoldLeft'])],
-                              [Paragraph(_format_name(approval.applicant),
+                              #[Paragraph(_format_name(approval.applicant),
+                              [Paragraph(approval.relevant_applicant_name,
                                          styles['Left'])] + address_paragraphs]],
                             colWidths=(120, PAGE_WIDTH - (2 * PAGE_MARGIN) - 120),
                             style=approval_table_style))

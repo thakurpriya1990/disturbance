@@ -84,7 +84,7 @@ import {
     helpers
 }from '@/utils/hooks'
 export default {
-    name: 'ProposalTableDash',
+    name: 'RefferralsTableDash',
     props: {
         url:{
             type: String,
@@ -182,9 +182,24 @@ export default {
                         },
                         name: "proposal__submitter__email",
                     },
+                    /*
                     {
                         data: "applicant",
+                        mRender:function (data,type,full) {
+                            if (data) {
+                                return `${data}`;
+                            } else if (full.proposal_proxy_applicant) {
+                                return full.proposal_proxy_applicant.name;
+                            } else {
+                                return '';
+                            }
+                        },
                         name: "proposal__applicant__organisation__name",
+                    },
+                    */
+                    {
+                        data: "relevant_applicant_name",
+                        name: "proposal__relevant_applicant_name",
                     },
                     {
                         data: "processing_status",

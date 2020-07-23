@@ -3,7 +3,7 @@
         <div class="col-sm-12">
             <div class="panel panel-default">
                 <div class="panel-heading">
-                    <h3 class="panel-title">Approvals/Licenses <small v-if="is_external">View existing approvals/licenses and amend or renew them</small>
+                    <h3 class="panel-title">Approvals/Licences <small v-if="is_external">View existing approvals/licences and amend or renew them</small>
                         <a :href="'#'+pBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="pBody">
                             <span class="glyphicon glyphicon-chevron-up pull-right "></span>
                         </a>
@@ -85,7 +85,7 @@ import {
     helpers
 }from '@/utils/hooks'
 export default {
-    name: 'ProposalTableDash',
+    name: 'ApprovalsTableDash',
     props: {
         level:{
             type: String,
@@ -218,7 +218,7 @@ export default {
                     },
                     {
                         data: "applicant",
-                        name: "applicant__organisation__name" // will be use like: Approval.objects.all().order_by('applicant__organisation__nane')
+                        //name: "applicant__organisation__name" // will be use like: Approval.objects.all().order_by('applicant__organisation__nane')
                     },
                     {data: "status"},
                     {
@@ -241,11 +241,15 @@ export default {
                             //let link='';
                             //return `<a href="${data}" target="_blank"><i style="color:red" class="fa fa-file-pdf-o"></i></a>`;
                             // link=`<a href='#${full.id}'<i style="color:red" class="fa fa-file-pdf-o"></i></a>`;
-                            if(vm.is_external){
-                                return `<a href="${data}" target="_blank"><i style="color:red" class="fa fa-file-pdf-o"></i></a>`;
-                            }
-                            else{
-                                return `<a href="#${full.id}" data-pdf-approval='${full.id}' media-link='${data}'><i style="color:red" class="fa fa-file-pdf-o"></i></a>`;
+                            if (full.apiary_approval) {
+                                return `<a href="${full.latest_apiary_licence_document}" target="_blank"><i style="color:red" class="fa fa-file-pdf-o"></i></a>`;
+                            } else {
+                                if(vm.is_external){
+                                    return `<a href="${data}" target="_blank"><i style="color:red" class="fa fa-file-pdf-o"></i></a>`;
+                                }
+                                else{
+                                    return `<a href="#${full.id}" data-pdf-approval='${full.id}' media-link='${data}'><i style="color:red" class="fa fa-file-pdf-o"></i></a>`;
+                                }
                             }
                             //return link;
                         },

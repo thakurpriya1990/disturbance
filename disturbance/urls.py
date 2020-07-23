@@ -7,6 +7,7 @@ from disturbance.admin import disturbance_admin_site
 from disturbance.components.proposals import views as proposal_views
 from disturbance.components.organisations import views as organisation_views
 from disturbance.components.das_payments import views as payment_views
+from disturbance.components.proposals.views import ExternalProposalTemporaryUseSubmitSuccessView
 
 from disturbance.components.users import api as users_api
 from disturbance.components.organisations import api as org_api
@@ -19,11 +20,15 @@ from disturbance.components.das_payments import api as payment_api
 from ledger.urls import urlpatterns as ledger_patterns
 
 # API patterns
+from disturbance.management.default_data_manager import DefaultDataManager
+from disturbance.utils import are_migrations_running
+
 router = routers.DefaultRouter()
 router.register(r'organisations',org_api.OrganisationViewSet)
 router.register(r'proposal',proposal_api.ProposalViewSet)
-router.register(r'proposal_apiary_site_location', proposal_api.ProposalApiarySiteLocationViewSet)
+router.register(r'proposal_apiary', proposal_api.ProposalApiaryViewSet)
 router.register(r'on_site_information', proposal_api.OnSiteInformationViewSet)
+router.register(r'apiary_site', proposal_api.ApiarySiteViewSet)
 router.register(r'proposal_paginated',proposal_api.ProposalPaginatedViewSet)
 router.register(r'approval_paginated',approval_api.ApprovalPaginatedViewSet)
 router.register(r'compliance_paginated',compliances_api.CompliancePaginatedViewSet)
@@ -42,6 +47,8 @@ router.register(r'regions', main_api.RegionViewSet)
 router.register(r'activity_matrix', main_api.ActivityMatrixViewSet)
 #router.register(r'tenure', main_api.TenureViewSet)
 router.register(r'application_types', main_api.ApplicationTypeViewSet)
+router.register(r'apiary_referral_groups', proposal_api.ApiaryReferralGroupViewSet)
+router.register(r'apiary_referrals',proposal_api.ApiaryReferralViewSet)
 #router.register(r'payment',payment_api.PaymentViewSet)
 
 
@@ -60,6 +67,8 @@ api_patterns = [
 ]
 
 # URL Patterns
+# You have to be careful about the order of the urls below.
+# Django searches matching url from the top of the list, and once found a matching url, it never goes through the urls below it.
 urlpatterns = [
     url(r'^admin/', disturbance_admin_site.urls),
     url(r'', include(api_patterns)),
@@ -68,6 +77,7 @@ urlpatterns = [
     url(r'^further_info/', views.DisturbanceFurtherInformationView.as_view(), name='ds_further_info'),
     url(r'^internal/', views.InternalView.as_view(), name='internal'),
     url(r'^internal/proposal/(?P<proposal_pk>\d+)/referral/(?P<referral_pk>\d+)/$', views.ReferralView.as_view(), name='internal-referral-detail'),
+    url(r'^external/proposal/(?P<proposal_pk>\d+)/submit_temp_use_success/$', ExternalProposalTemporaryUseSubmitSuccessView.as_view(),),
     url(r'^external/', views.ExternalView.as_view(), name='external'),
     url(r'^firsttime/$', views.first_time, name='first_time'),
     url(r'^account/$', views.ExternalView.as_view(), name='manage-account'),
@@ -80,11 +90,12 @@ urlpatterns = [
 
     url(r'^application_fee/(?P<proposal_pk>\d+)/$', payment_views.ApplicationFeeView.as_view(), name='application_fee'),
     url(r'^success/fee/$', payment_views.ApplicationFeeSuccessView.as_view(), name='fee_success'),
+    url(r'^success/site_transfer_fee/$', payment_views.SiteTransferApplicationFeeSuccessView.as_view(), name='site_transfer_fee_success'),
     url(r'payments/invoice-pdf/(?P<reference>\d+)', payment_views.InvoicePDFView.as_view(), name='invoice-pdf'),
     url(r'payments/confirmation-pdf/(?P<reference>\d+)', payment_views.ConfirmationPDFView.as_view(), name='confirmation-pdf'),
 
 
-    #following url is defined so that to include url path when sending Proposal amendment request to user.
+    # following url is defined so that to include url path when sending Proposal amendment request to user.
     url(r'^external/proposal/(?P<proposal_pk>\d+)/$', views.ExternalProposalView.as_view(), name='external-proposal-detail'),
     url(r'^internal/proposal/(?P<proposal_pk>\d+)/$', views.InternalProposalView.as_view(), name='internal-proposal-detail'),
     url(r'^external/compliance/(?P<compliance_pk>\d+)/$', views.ExternalComplianceView.as_view(), name='external-compliance-detail'),
@@ -100,7 +111,11 @@ urlpatterns = [
     url(r'^history/helppage/(?P<pk>\d+)/$', proposal_views.HelpPageHistoryCompareView.as_view(), name='helppage_history'),
     url(r'^history/organisation/(?P<pk>\d+)/$', organisation_views.OrganisationHistoryCompareView.as_view(), name='organisation_history'),
 
+    # url(r'^external/proposal/(?P<proposal_pk>\d+)/submit_temp_use_success/$', success_view, name='external-proposal-temporary-use-submit-success'),
 ] + ledger_patterns
+
+if not are_migrations_running():
+    DefaultDataManager()
 
 if settings.DEBUG:  # Serve media locally in development.
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -3,12 +3,18 @@ import Search from '../search.vue'
 import OrgAccessTable from '../organisations/dashboard.vue'
 import OrgAccess from '../organisations/access.vue'
 import Organisation from '../organisations/manage.vue'
-import Proposal from '../proposals/proposal.vue'
-import Referral from '../referrals/referral.vue'
+//import Proposal from '../proposals/proposal.vue'
+//import ProposalApiary from '../proposals/proposal_apiary.vue'
+import Proposal from '../proposals/proposal_wrapper.vue';
+//import Referral from '../referrals/referral.vue'
+import Referral from '../referrals/referral_wrapper.vue'
 import ApprovalDash from '../approvals/dashboard.vue'
 import ComplianceDash from '../compliances/dashboard.vue'
 import Compliance from '../compliances/access.vue'
-import Approval from '../approvals/approval.vue'
+//import Approval from '../approvals/approval.vue'
+import Approval from '../approvals/approval_wrapper.vue'
+import SiteTransitions from '../site_transitions/site_transitions.vue'
+
 export default
 {
     path: '/internal',
@@ -22,7 +28,8 @@ export default
     children: [
         {
             path: '/',
-            component: InternalDashboard
+            component: InternalDashboard,
+            name:"internal-dashboard",
         },
         {
             path: 'approvals',
@@ -48,6 +55,11 @@ export default
             path: 'search',
             component: Search,
             name:"internal-search"
+        },
+        {
+            path: 'site_transitions',
+            component: SiteTransitions,
+            name:"internal-site-transitions"
         },
         {
             path: 'organisations',
@@ -104,6 +116,13 @@ export default
                             component: Referral,
                             name:"internal-referral"
                         },
+                        /*
+                        {
+                            path: 'apiary',
+                            component: ProposalApiary,
+                            name:"internal-proposal-apiary"
+                        },
+                        */
                     ]
                 },
  

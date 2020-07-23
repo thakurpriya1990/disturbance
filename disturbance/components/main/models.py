@@ -43,8 +43,23 @@ class ApplicationType(models.Model):
     DISTURBANCE = 'Disturbance'
     POWERLINE_MAINTENANCE = 'Powerline Maintenance'
     APIARY = 'Apiary'
+    TEMPORARY_USE = 'Temporary Use'
+    SITE_TRANSFER = 'Site Transfer'
 
-    name = models.CharField(max_length=64, unique=True)
+    APPLICATION_TYPES = (
+        (DISTURBANCE, 'Disturbance'),
+        (POWERLINE_MAINTENANCE, 'Powerline Maintenance'),
+        (APIARY, 'Apiary'),
+        (TEMPORARY_USE, 'Temporary Use'),
+        (SITE_TRANSFER, 'Site Transfer'),
+    )
+
+    #name = models.CharField(max_length=64, unique=True)
+    name = models.CharField(
+            verbose_name='Application Type name', 
+            max_length=64, 
+            choices=APPLICATION_TYPES, 
+            )
     order = models.PositiveSmallIntegerField(default=0)
     visible = models.BooleanField(default=True)
 
@@ -112,7 +127,13 @@ class UserAction(models.Model):
 
 
 class CommunicationsLogEntry(models.Model):
-    TYPE_CHOICES = [('email', 'Email'), ('phone', 'Phone Call'), ('mail', 'Mail'), ('person', 'In Person')]
+    TYPE_CHOICES = [
+            ('email', 'Email'), 
+            ('phone', 'Phone Call'), 
+            ('mail', 'Mail'), 
+            ('person', 'In Person'),
+            ('referral_complete','Referral Completed'),
+            ]
     DEFAULT_TYPE = TYPE_CHOICES[0][0]
 
     #to = models.CharField(max_length=200, blank=True, verbose_name="To")
@@ -196,4 +217,24 @@ class GlobalSettings(models.Model):
 
     def __str__(self):
         return self.key
+
+
+class TemporaryDocumentCollection(models.Model):
+    #input_name = models.CharField(max_length=255, null=True, blank=True)
+
+    class Meta:
+        app_label = 'disturbance'
+
+
+# temp document obj for generic file upload component
+class TemporaryDocument(Document):
+    temp_document_collection = models.ForeignKey(
+        TemporaryDocumentCollection,
+        related_name='documents')
+    _file = models.FileField(max_length=255)
+    #input_name = models.CharField(max_length=255, null=True, blank=True)
+
+    class Meta:
+        app_label = 'disturbance'
+
 
