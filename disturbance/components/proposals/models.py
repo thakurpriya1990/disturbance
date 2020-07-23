@@ -3459,7 +3459,8 @@ class ApiaryReferral(RevisionedMixin):
 
 
 import reversion
-reversion.register(Proposal, follow=['requirements', 'documents', 'compliances', 'referrals', 'approvals', 'proposal_apiary'])
+#reversion.register(Proposal, follow=['requirements', 'documents', 'compliances', 'referrals', 'approvals', 'proposal_apiary'])
+reversion.register(Proposal, follow=['proposal_apiary'])
 reversion.register(ProposalType)
 reversion.register(ProposalRequirement)            # related_name=requirements
 reversion.register(ProposalStandardRequirement)    # related_name=proposal_requirements
@@ -3472,8 +3473,8 @@ reversion.register(Assessment)
 reversion.register(Referral)
 reversion.register(HelpPage)
 reversion.register(ApplicationType)
-#reversion.register(ProposalApiary, follow=['apiary_sites'])
-reversion.register(ProposalApiary)
+reversion.register(ProposalApiary, follow=['apiary_sites'])
+#reversion.register(ProposalApiary)
 reversion.register(ApiarySite)
 
 
