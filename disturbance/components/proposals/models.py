@@ -2692,7 +2692,7 @@ class ProposalApiary(models.Model):
                             processing_status='due'
                             )
                     if cs:
-                        if r.is_deleted == True:
+                        if r.is_deleted:
                             for c in cs:
                                 c.processing_status='discarded'
                                 c.customer_status = 'discarded'
