@@ -1,8 +1,41 @@
 <template lang="html">
     <div>
 
-        <div class="row col-sm-12">
-            <div class="col-sm-6">
+        <template v-if="table_and_map_in_a_row">
+            <div class="row col-sm-12">
+                <div class="col-sm-6">
+                    <datatable
+                        ref="table_apiary_site"
+                        :id="table_id"
+                        :dtOptions="dtOptions"
+                        :dtHeaders="dtHeaders"
+                    />
+                    <template v-if="show_view_all_features_button">
+                        <div class="button_row">
+                            <span class="view_all_button" @click="displayAllFeatures">View All On Map</span>
+                        </div>
+                    </template>
+                </div>
+
+                <div class="col-sm-6">
+                    <ComponentMap 
+                        ref="component_map"
+                        :apiary_site_geojson_array="apiary_site_geojson_array"
+                        :key="component_map_key"
+                    />
+                </div>
+            </div>
+        </template>
+
+        <template v-else>
+            <div class="row col-sm-12">
+                <ComponentMap 
+                    ref="component_map"
+                    :apiary_site_geojson_array="apiary_site_geojson_array"
+                    :key="component_map_key"
+                />
+            </div>
+            <div class="row col-sm-12">
                 <datatable
                     ref="table_apiary_site"
                     :id="table_id"
@@ -15,15 +48,7 @@
                     </div>
                 </template>
             </div>
-
-            <div class="col-sm-6">
-                <ComponentMap 
-                    ref="component_map"
-                    :apiary_site_geojson_array="apiary_site_geojson_array"
-                    :key="component_map_key"
-                />
-            </div>
-        </div>
+        </template>
 
     </div>
 </template>
@@ -50,6 +75,10 @@
             is_internal:{
                 type: Boolean,
                 default: false,
+            },
+            table_and_map_in_a_row: {
+                type: Boolean,
+                default: true,
             },
             show_col_id: {
                 type: Boolean,
@@ -100,6 +129,10 @@
                 default: true,
             },
             show_action_make_vacant: {
+                type: Boolean,
+                default: false,
+            },
+            show_action_contact_licence_holder: {
                 type: Boolean,
                 default: false,
             }
@@ -249,6 +282,11 @@
                                     let ret = '<a><span class="make_vacant" data-apiary-site-id="' + apiary_site.id + '"/>' + display_text + '</span></a>';
                                     action_list.push(ret);
                                 }
+                                if (vm.show_action_contact_licence_holder){
+                                    let display_text = 'Contact licence holder'
+                                    let ret = '<a><span class="contact_licence_holder" data-apiary-site-id="' + apiary_site.id + '"/>' + display_text + '</span></a>';
+                                    action_list.push(ret);
+                                }
                                 return action_list.join('<br />');
                             }
                         },
@@ -333,6 +371,7 @@
                 $("#" + this.table_id).on("click", ".toggle_availability", this.toggleAvailability)
                 $("#" + this.table_id).on('click', 'input[type="checkbox"]', this.checkboxClicked)
                 $("#" + this.table_id).on('click', '.make_vacant', this.makeVacantClicked)
+                $("#" + this.table_id).on('click', '.contact_licence_holder', this.contactLicenceHolder)
             },
             updateApiarySite: function(site_updated) {
                 // Update internal apiary_site data
@@ -366,6 +405,12 @@
                 }
                 this.$emit('apiary_sites_updated', this.apiary_sites_local)
                 this.$refs.component_map.setApiarySiteSelectedStatus(apiary_site_id, checked_status)
+            },
+            contactLicenceHolder: function(e){
+                let vm = this;
+                let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
+                
+                console.log('Contact licence holder')
             },
             makeVacantClicked: function(e) {
                 let vm = this;
