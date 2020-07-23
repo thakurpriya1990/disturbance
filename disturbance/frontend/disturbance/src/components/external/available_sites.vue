@@ -1,22 +1,26 @@
 <template>
     <div class="container"> 
-        <ComponentSiteSelection
-            :apiary_sites="apiary_sites"
-            :is_internal="true"
-            :is_external="false"
-            :show_col_checkbox="false"
-            :show_action_available_unavailable="false"
-            :show_col_status="true"
-            :show_col_previous_site_holder="true"
-            :show_action_make_vacant="true"
-            :key="component_site_selection_key"
-            @apiary_sites_updated="apiarySitesUpdated"
-        />
+        <FormSection :formCollapse="false" label="Available Sites" Index="available_sites">
+            <ComponentSiteSelection
+                :apiary_sites="apiary_sites"
+                :is_internal="true"
+                :is_external="false"
+                :show_col_checkbox="false"
+                :show_action_available_unavailable="false"
+                :show_col_status="true"
+                :show_col_previous_site_holder="true"
+                :key="component_site_selection_key"
+                :table_and_map_in_a_row="false"
+                :show_action_contact_licence_holder="true"
+                @apiary_sites_updated="apiarySitesUpdated"
+            />
+        </FormSection>
     </div>
 </template>
 
 <script>
     import ComponentSiteSelection from '@/components/common/apiary/component_site_selection.vue'
+    import FormSection from "@/components/forms/section_toggle.vue"
     import uuid from 'uuid'
     import Vue from 'vue'
 
@@ -30,6 +34,7 @@
         },
         components: {
             ComponentSiteSelection,
+            FormSection,
         },
         props: {
 
@@ -47,7 +52,7 @@
             loadSites: async function() {
                 let vm = this
 
-                Vue.http.get('/api/apiary_site/transitable_sites/').then(re => {
+                Vue.http.get('/api/apiary_site/available_sites/').then(re => {
                     console.log(re.body)
 
                     vm.apiary_sites = re.body
