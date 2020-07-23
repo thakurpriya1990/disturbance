@@ -263,11 +263,11 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         user = self.request.user
         #import ipdb; ipdb.set_trace()
         if is_internal(self.request): #user.is_authenticated():
-            return Proposal.objects.all()
+            return Proposal.objects.all().order_by('-id')
         elif is_customer(self.request):
             user_orgs = [org.id for org in user.disturbance_organisations.all()]
             #return  Proposal.objects.filter( Q(applicant_id__in = user_orgs) | Q(submitter = user) )
-            return  Proposal.objects.filter( Q(applicant_id__in = user_orgs) | Q(submitter = user) | Q(proxy_applicant = user))
+            return Proposal.objects.filter( Q(applicant_id__in = user_orgs) | Q(submitter = user) | Q(proxy_applicant = user)).order_by('-id')
             #queryset =  Proposal.objects.filter(region__isnull=False).filter( Q(applicant_id__in = user_orgs) | Q(submitter = user) )
         return Proposal.objects.none()
 
@@ -292,7 +292,7 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         #import ipdb; ipdb.set_trace()
         qs = self.get_queryset()
         #qs = self.filter_queryset(self.request, qs, self)
-        qs = self.filter_queryset(qs)
+        qs = self.filter_queryset(qs).order_by('-id')
 
         # on the internal organisations dashboard, filter the Proposal/Approval/Compliance datatables by applicant/organisation
         applicant_id = request.GET.get('org_id')
@@ -341,7 +341,7 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         """
         qs = self.get_queryset().exclude(processing_status='discarded')
         #qs = self.filter_queryset(self.request, qs, self)
-        qs = self.filter_queryset(qs)
+        qs = self.filter_queryset(qs).order_by('-id')
 
         # on the internal organisations dashboard, filter the Proposal/Approval/Compliance datatables by applicant/organisation
         applicant_id = request.GET.get('org_id')
@@ -449,6 +449,16 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
 
         qs = ApiarySite.objects.all().exclude(q_objects)
         serializer = ApiarySiteGeojsonSerializer(qs, many=True)
+        return Response(serializer.data)
+
+    @list_route(methods=['GET',])
+    @basic_exception_handler
+    def transitable_sites(self, request):
+        q_objects = Q()
+        q_objects |= Q(status__in=ApiarySite.TRANSITABLE_STATUSES)
+
+        qs = ApiarySite.objects.filter(q_objects)
+        serializer = ApiarySiteSerializer(qs, many=True)
         return Response(serializer.data)
 
     @basic_exception_handler
@@ -1579,6 +1589,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(str(e))
 
     def create(self, request, *args, **kwargs):
+        #import ipdb; ipdb.set_trace()
         try:
             with transaction.atomic():
                 http_status = status.HTTP_200_OK
@@ -1658,6 +1669,20 @@ class ProposalViewSet(viewsets.ModelViewSet):
                     for question in ApiaryApplicantChecklistQuestion.objects.filter(checklist_type='apiary'):
                         new_answer = ApiaryApplicantChecklistAnswer.objects.create(proposal = proposal_apiary,
                                                                                    question = question)
+                    # Find relevant approval
+                    approval = proposal_apiary.retrieve_approval
+                    if approval:
+                        # Copy requirements from approval.current_proposal
+                        req = approval.current_proposal.requirements.all().exclude(is_deleted=True)
+                        from copy import deepcopy
+                        if req:
+                            for r in req:
+                                old_r = deepcopy(r)
+                                r.proposal = proposal_apiary.proposal
+                                r.copied_from=old_r
+                                r.id = None
+                                r.save()
+
                 elif application_type.name == ApplicationType.SITE_TRANSFER:
                     approval_id = request.data.get('originating_approval_id')
                     approval = Approval.objects.get(id=approval_id)

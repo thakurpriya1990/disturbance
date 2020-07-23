@@ -33,6 +33,7 @@
     import datatable from '@vue-utils/datatable.vue'
     import uuid from 'uuid'
     import ComponentMap from '@/components/common/apiary/component_map.vue'
+    import SiteColours from '@/components/common/apiary/site_colours.js'
 
     export default {
         props:{
@@ -97,6 +98,10 @@
             show_action_available_unavailable: {
                 type: Boolean,
                 default: true,
+            },
+            show_action_make_vacant: {
+                type: Boolean,
+                default: false,
             }
         },
         watch: {
@@ -123,6 +128,7 @@
                 ],
                 dtOptions: {
                     serverSide: false,
+                    searching: false,
                     searchDelay: 1000,
                     lengthMenu: [ [10, 25, 50, 100, -1], [10, 25, 50, 100, "All"] ],
                     order: [
@@ -161,8 +167,10 @@
                             // Site
                             visible: vm.show_col_site,
                             mRender: function (data, type, apiary_site) {
-                                let fillColour = vm.getFillColour(apiary_site.status)
-                                let strokeColour = vm.getStrokeColour(apiary_site.status)
+                                //let fillColour = vm.getFillColour(apiary_site.status)
+                                //let strokeColour = vm.getStrokeColour(apiary_site.status)
+                                let fillColour = SiteColours[apiary_site.status].fill
+                                let strokeColour = SiteColours[apiary_site.status].stroke
                                 return '<svg height="20" width="20">' + 
                                             '<circle cx="10" cy="10" r="6" stroke="' + strokeColour + '" stroke-width="2" fill="' + fillColour + '" />' + 
                                        '</svg> site: ' + apiary_site.id
@@ -200,7 +208,7 @@
                             // Previous Site Holder/Applicant
                             visible: vm.show_col_previous_site_holder,
                             mRender: function (data, type, apiary_site){
-                                return 'holder'
+                                return apiary_site.previous_site_holder_or_applicant
                             }
                         },
                         {
@@ -236,6 +244,11 @@
                                         action_list.push(display_text);
                                     }
                                 }
+                                if (vm.show_action_make_vacant){
+                                    let display_text = 'Make Vacant'
+                                    let ret = '<a><span class="make_vacant" data-apiary-site-id="' + apiary_site.id + '"/>' + display_text + '</span></a>';
+                                    action_list.push(ret);
+                                }
                                 return action_list.join('<br />');
                             }
                         },
@@ -264,43 +277,6 @@
 
         },
         methods: {
-            getFillColour: function(status){
-                switch(status){
-                    case 'draft':
-                        return '#e0e0e0'
-                    case 'pending':
-                        return '#fff59d'
-                    case 'current':
-                        return '#bbdefb'
-                    case 'suspended':
-                        return '#ffcc80'
-                    case 'not_to_be_reissued':
-                        return '#d1c4e9'
-                    case 'denied':
-                        return '#ffcdd2'
-                    case 'vacant':
-                        return '#7fcac3'
-                }
-            },
-            // This function is not used
-            getStrokeColour: function(status){
-                switch(status){
-                    case 'draft':
-                        return '#616161'
-                    case 'pending':
-                        return '#ffeb3b'
-                    case 'current':
-                        return '#1a76d2'
-                    case 'suspended':
-                        return '#f57c01'
-                    case 'not_to_be_reissued':
-                        return '#512da8'
-                    case 'denied':
-                        return '#d2302f'
-                    case 'vacant':
-                        return '#00796b'
-                }
-            },
             ensureCheckedStatus: function() {
                 console.log('in ensureCheckedStatus')
                 if (this.apiary_sites.length > 0){
@@ -356,6 +332,7 @@
                 $("#" + this.table_id).on("click", ".view_on_map", this.zoomOnApiarySite)
                 $("#" + this.table_id).on("click", ".toggle_availability", this.toggleAvailability)
                 $("#" + this.table_id).on('click', 'input[type="checkbox"]', this.checkboxClicked)
+                $("#" + this.table_id).on('click', '.make_vacant', this.makeVacantClicked)
             },
             updateApiarySite: function(site_updated) {
                 // Update internal apiary_site data
@@ -363,6 +340,19 @@
                     if (this.apiary_sites[i].id == site_updated.id){
                         this.apiary_sites[i].available = site_updated.available
                     }
+                }
+            },
+            removeApiarySiteById: function(site_id){
+                // Remove a site for the array which the table is created based on.
+                let array_index_removed = null
+                for (let i=0; i<this.apiary_sites.length; i++){
+                    if (this.apiary_sites[i].id == site_id){
+                        array_index_removed = i
+                        break
+                    }
+                }
+                if (array_index_removed >= 0){
+                    this.apiary_sites.splice(array_index_removed, 1)
                 }
             },
             checkboxClicked: function(e) {
@@ -377,6 +367,46 @@
                 this.$emit('apiary_sites_updated', this.apiary_sites_local)
                 this.$refs.component_map.setApiarySiteSelectedStatus(apiary_site_id, checked_status)
             },
+            makeVacantClicked: function(e) {
+                let vm = this;
+                let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
+
+                swal({
+                    title: "Make Vacant",
+                    text: "Are you sure you want to make this apiary site: " + apiary_site_id + " vacant?",
+                    type: "question",
+                    showCancelButton: true,
+                    confirmButtonText: 'Yes, make vacant'
+                }).then(
+                    () => {
+                        vm.$http.patch('/api/apiary_site/' + apiary_site_id + '/', { 'status': 'vacant' }).then(
+                            async function(accept){
+                                // Update the site in the table
+                                let site_updated = accept.body
+
+                                // Remove the site from the table
+                                vm.removeApiarySiteById(apiary_site_id)
+                                vm.constructApiarySitesTable();
+
+                                // Remove the site from the map
+                                this.$refs.component_map.removeApiarySiteById(apiary_site_id)
+                                //vm.component_map_key = uuid()
+                            },
+                            reject=>{
+                                swal(
+                                    'Submit Error',
+                                    helpers.apiVueResourceError(err),
+                                    'error'
+                                )
+                            }
+                        );
+                    },
+                    err => {
+                        console.log(err)
+                    }
+                );
+
+            },
             toggleAvailability: function(e) {
                 let vm = this;
                 let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
@@ -387,7 +417,7 @@
                     async function(accept){
                         // Update the site in the table
                         let site_updated = accept.body
-                        this.updateApiarySite(site_updated)
+                        vm.updateApiarySite(site_updated)
                         vm.constructApiarySitesTable();
                     },
                     reject=>{

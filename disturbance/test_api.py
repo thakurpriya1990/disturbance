@@ -8,6 +8,7 @@ from disturbance.components.proposals.models import (
 
 class ProposalTests(APITestSetup):
     def test_create_proposal_apiary(self):
+        #import ipdb; ipdb.set_trace()
         print("test_create_proposal_apiary")
         self.client.login(email=self.customer, password='pass')
         self.client.enforce_csrf_checks=True
@@ -135,16 +136,21 @@ class IntegrationTests(APITestSetup):
                 format='json'
                 #content_type='application/json'
                 )
-
         self.assertEqual(final_approval_response.status_code, 200)
 
         # Show properties of newly created approval
         final_proposal = Proposal.objects.get(id=proposal_id)
+        final_proposal_proposal_apiary_id = final_proposal.proposal_apiary.id
         print(Proposal.objects.get(id=proposal_id).approval.apiary_approval)
         print(Proposal.objects.get(id=proposal_id).processing_status)
         print("APPROVAL SITES")
         for approval_site in ApiarySite.objects.filter(approval=final_proposal.approval):
             print(approval_site)
+
+        # check Reversion endpoint
+        url = '/api/proposal_apiary/{}/proposal_history/'.format(final_proposal_proposal_apiary_id)
+        reversion_response = self.client.get(url)
+        self.assertEqual(reversion_response.status_code, 200)
 
     def test_proposal_apiary_site_transfer_workflow(self):
         print("test_proposal_apiary_site_transfer_workflow")
@@ -492,6 +498,8 @@ class IntegrationTests(APITestSetup):
         print("APPROVAL SITES customer 1")
         for approval_site in ApiarySite.objects.filter(approval=customer1_approval):
             print(approval_site)
+        print(customer1_approval.current_proposal)
+        print(customer1_approval.current_proposal.application_type.name)
 
         self.assertEqual(len(ApiarySite.objects.filter(approval=customer1_approval)), 2)
 
@@ -503,6 +511,8 @@ class IntegrationTests(APITestSetup):
         print("APPROVAL SITES customer 2")
         for approval_site in ApiarySite.objects.filter(approval=customer2_approval):
             print(approval_site)
+        print(customer2_approval.current_proposal)
+        print(customer2_approval.current_proposal.application_type.name)
 
         self.assertEqual(len(ApiarySite.objects.filter(approval=customer2_approval)), 4)
 

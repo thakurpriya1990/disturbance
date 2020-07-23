@@ -401,6 +401,7 @@ class Proposal(RevisionedMixin):
 
     class Meta:
         app_label = 'disturbance'
+        ordering = ['-id']
 
     def __str__(self):
         return str(self.id)
@@ -2499,15 +2500,6 @@ class ProposalApiary(models.Model):
                                     }
                                 )
                             else:
-
-                                ## There is an existing approval already.  Attach new site(s) to the existing approval
-                                ## approval.issue_date = timezone.now()
-                                ## approval.expiry_date = details.get('expiry_date')
-                                ## approval.start_date = details.get('start_date')
-                                #approval.applicant = self.proposal.applicant
-                                #approval.proxy_applicant = self.proposal.proxy_applicant
-                                #approval.apiary_approval = self.proposal.apiary_group_application_type
-
                                 approval.issue_date = timezone.now()
                                 # retain original expiry and start dates
                                 #approval.expiry_date = details.get('expiry_date')
@@ -2516,7 +2508,9 @@ class ProposalApiary(models.Model):
                                 #approval.proxy_applicant = self.proposal.proxy_applicant
                                 #approval.apiary_approval = self.proposal.apiary_group_application_type
                                 # ensure current_proposal is updated with this proposal
-                                current_proposal = checking_proposal
+                                if self.proposal.application_type.name != ApplicationType.SITE_TRANSFER:
+                                    approval.current_proposal = checking_proposal
+                                approval.save()
 
 
                         # Get apiary sites from proposal
@@ -2610,6 +2604,7 @@ class ProposalApiary(models.Model):
                     if self.proposal.application_type.name == ApplicationType.APIARY:
                         from disturbance.components.compliances.models import Compliance, ComplianceUserAction
                         if created:
+                            # Apiary has no amendment applications
                             if self.proposal.proposal_type == 'amendment':
                                 approval_compliances = Compliance.objects.filter(
                                         approval= previous_approval, 
@@ -2804,13 +2799,14 @@ class ApiaryAnnualRentalFeeRunDate(RevisionedMixin):
     """
     NAME_CRON = 'date_to_run_cron_job'
     NAME_CHOICES = (
-        (NAME_CRON, 'Date to run job'),
+        (NAME_CRON, 'Date to Issue'),
     )
     name = models.CharField(unique=True, max_length=50, choices=NAME_CHOICES, )
     date_run_cron = models.DateField(blank=True, null=True)
 
     class Meta:
         app_label = 'disturbance'
+        verbose_name = 'Annual Rental Fee Issue Date'
 
     def __str__(self):
         return '{}: {} {}'.format(self.name, self.date_run_cron.strftime('%B'), self.date_run_cron.day)
@@ -2834,6 +2830,7 @@ class ApiarySite(models.Model):
         (STATUS_VACANT, 'vacant'),
     )
     NON_RESTRICTIVE_STATUSES = (STATUS_DRAFT, STATUS_VACANT,)
+    TRANSITABLE_STATUSES = (STATUS_NOT_TO_BE_REISSUED, STATUS_DENIED,)
 
     #TODO - this should link to Proposal, not ProposalApiary
     #proposal = models.ForeignKey(Proposal, null=True, blank=True, related_name='apiary_sites')
@@ -3462,7 +3459,8 @@ class ApiaryReferral(RevisionedMixin):
 
 
 import reversion
-reversion.register(Proposal, follow=['requirements', 'documents', 'compliances', 'referrals', 'approvals', 'proposal_apiary'])
+#reversion.register(Proposal, follow=['requirements', 'documents', 'compliances', 'referrals', 'approvals', 'proposal_apiary'])
+reversion.register(Proposal, follow=['proposal_apiary'])
 reversion.register(ProposalType)
 reversion.register(ProposalRequirement)            # related_name=requirements
 reversion.register(ProposalStandardRequirement)    # related_name=proposal_requirements
@@ -3475,8 +3473,8 @@ reversion.register(Assessment)
 reversion.register(Referral)
 reversion.register(HelpPage)
 reversion.register(ApplicationType)
-#reversion.register(ProposalApiary, follow=['apiary_sites'])
-reversion.register(ProposalApiary)
+reversion.register(ProposalApiary, follow=['apiary_sites'])
+#reversion.register(ProposalApiary)
 reversion.register(ApiarySite)
 
 

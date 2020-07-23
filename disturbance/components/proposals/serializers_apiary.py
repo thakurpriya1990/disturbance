@@ -78,11 +78,28 @@ class VersionSerializer(serializers.ModelSerializer):
             apiary_sites = []
             for record in obj.revision.version_set.all():
                 if record.object:
-                    if ContentType.objects.get(id=record.content_type_id).model == 'apiarysite':
-                        apiary_sites.append({record.object._meta.model_name: record.field_dict})
+                    # Exclude these models from the result
+                    if record.object._meta.model_name in [
+                            'proposallogentry',
+                            'annualrentalfee',
+                            'approvaldocument',
+                            'approval',
+                            ]:
+                        continue
+                    elif ContentType.objects.get(id=record.content_type_id).model == 'apiarysite':
+                        payload = record.field_dict
+                        # Exclude these fields from the result
+                        payload.pop("wkb_geometry", None)
+                        payload.pop("objects", None)
+                        payload.pop("site_guid", None)
+                        apiary_sites.append({record.object._meta.model_name: payload})
                     else:
+                        #print("record.object._meta.model_name")
+                        #print(record.object._meta.model_name)
                         proposal_data.append({record.object._meta.model_name: record.field_dict})
             proposal_data.append({'apiary_sites': apiary_sites})
+        #print("proposal_data")
+        #print(proposal_data)
         return proposal_data
 
 
@@ -220,6 +237,15 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
     onsiteinformation_set = OnSiteInformationSerializer(read_only=True, many=True,)
     coordinates = serializers.SerializerMethodField()
     as_geojson = serializers.SerializerMethodField()
+    previous_site_holder_or_applicant = serializers.SerializerMethodField()
+
+    def get_previous_site_holder_or_applicant(self, apiary_site):
+        if apiary_site.approval:
+            relevant_applicant = apiary_site.approval.relevant_applicant_name
+        else:
+            relevant_applicant = apiary_site.proposal_apiary.proposal.relevant_applicant_name
+
+        return relevant_applicant
 
     def get_as_geojson(self, apiary_site):
         return ApiarySiteGeojsonSerializer(apiary_site).data
@@ -245,6 +271,7 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
             'as_geojson',
             'status',
             'workflow_selected_status',
+            'previous_site_holder_or_applicant',
         )
 
 
@@ -303,8 +330,12 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
     checklist_answers = serializers.SerializerMethodField()
     site_remainders = serializers.SerializerMethodField()
     originating_approval_lodgement_number = serializers.SerializerMethodField()
+    target_approval_id = serializers.SerializerMethodField()
     target_approval_lodgement_number = serializers.SerializerMethodField()
     transferee_name = serializers.SerializerMethodField()
+    transferee_org_name = serializers.SerializerMethodField()
+    transferee_first_name = serializers.SerializerMethodField()
+    transferee_last_name = serializers.SerializerMethodField()
 
     class Meta:
         model = ProposalApiary
@@ -323,8 +354,12 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
             'site_remainders',
             'originating_approval_id',
             'originating_approval_lodgement_number',
+            'target_approval_id',
             'target_approval_lodgement_number',
             'transferee_name',
+            'transferee_org_name',
+            'transferee_first_name',
+            'transferee_last_name',
         )
 
     def get_transfer_apiary_sites(self, obj):
@@ -341,6 +376,30 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
         if obj.proposal.approval:
             name = obj.proposal.approval.relevant_applicant_name
         return name
+
+    def get_transferee_org_name(self, obj):
+        name = None
+        if obj.proposal.approval and obj.proposal.approval.applicant:
+            name = obj.proposal.approval.applicant.name
+        return name
+
+    def get_transferee_first_name(self, obj):
+        name = None
+        if obj.proposal.approval and obj.proposal.approval.proxy_applicant:
+            name = obj.proposal.approval.proxy_applicant.first_name
+        return name
+
+    def get_transferee_last_name(self, obj):
+        name = None
+        if obj.proposal.approval and obj.proposal.approval.proxy_applicant:
+            name = obj.proposal.approval.proxy_applicant.last_name
+        return name
+
+    def get_target_approval_id(self, obj):
+        target_id = None
+        if obj.proposal.approval:
+            target_id = obj.proposal.approval.id
+        return target_id
 
     def get_target_approval_lodgement_number(self, obj):
         lodgement_number = None

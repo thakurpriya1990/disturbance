@@ -1,10 +1,12 @@
 <template lang="html">
     <div>
         <div :id="elem_id" class="map"></div>
+        
         <div :id="popup_id" class="ol-popup">
             <a href="#" :id="popup_closer_id" class="ol-popup-closer"></a>
             <div :id="popup_content_id"></div>
         </div>
+
     </div>
 </template>
 
@@ -31,6 +33,8 @@
     import { getDistance } from 'ol/sphere';
     import { circular} from 'ol/geom/Polygon';
     import GeoJSON from 'ol/format/GeoJSON';
+    import Overlay from 'ol/Overlay';
+    import { getFillColour, getStrokeColour, existingSiteRadius } from '@/components/common/apiary/site_colours.js'
 
     export default {
         props:{
@@ -61,22 +65,6 @@
                 popup_id: uuid(),
                 popup_closer_id: uuid(),
                 popup_content_id: uuid(),
-                style_not_checked: 
-                    new Style({
-                        image: new CircleStyle({
-                            radius: 7,
-                            fill: new Fill({color: '#e0e0e0'}),
-                            stroke: new Stroke({color: '#616161', width: 2})
-                        })
-                    }),
-                style_checked:
-                    new Style({
-                        image: new CircleStyle({
-                        radius: 7,
-                        fill: new Fill({color: '#03a9f4'}),
-                        stroke: new Stroke({color: '#2e6da4', width: 2})
-                        })
-                    }),
             }
         },
         created: function(){
@@ -104,24 +92,12 @@
                     vm.map.updateSize();
                 }, 50)
             },
-            drawStyle: function(feature, resolution){
-                return this.getStyle(feature.get('status'), feature.get('checked'))
-                //let fillObj = this.getFillColour(feature.get('status'))
-                //let strokeObj = this.getStrokeColour(feature.get('status'), feature.get('checked'))
-                //return new Style({
-                //            image: new CircleStyle({
-                //                radius: 7,
-                //                fill: fillObj,
-                //                stroke: strokeObj,
-                //            })
-                //        })
-            },
             getStyle: function(status, checked){
-                let fillObj = this.getFillColour(status)
-                let strokeObj = this.getStrokeColour(status, checked)
+                let fillObj = getFillColour(status)
+                let strokeObj = getStrokeColour(status, checked)
                 return new Style({
                             image: new CircleStyle({
-                                radius: 7,
+                                radius: existingSiteRadius,
                                 fill: fillObj,
                                 stroke: strokeObj,
                             })
@@ -150,7 +126,10 @@
                 });
                 vm.apiarySitesQueryLayer = new VectorLayer({
                     source: vm.apiarySitesQuerySource,
-                    style: this.drawStyle
+                    //style: this.drawStyle
+                    style: function(feature, resolution){
+                        return vm.getStyle(feature.get('status'), feature.get('checked'))
+                    },
                 });
                 vm.map.addLayer(vm.apiarySitesQueryLayer);
 
@@ -171,63 +150,62 @@
                 for (let i=0; i<vm.apiary_site_geojson_array.length; i++){
                     this.addApiarySite(vm.apiary_site_geojson_array[i])
                 }
+
+                let container = document.getElementById(vm.popup_id)
+                let content_element = document.getElementById(vm.popup_content_id)
+                let closer = document.getElementById(vm.popup_closer_id)
+
+                closer.onclick = function() {
+                    overlay.setPosition(undefined)
+                    closer.blur()
+                    return false
+                }
+
+                let overlay = new Overlay({
+                    element: container,
+                    autoPan: false,
+                    offest: [0, -10]
+                })
+                vm.map.addOverlay(overlay)
+
+                vm.map.on('click', function(evt){
+                    let feature = vm.map.forEachFeatureAtPixel(evt.pixel, function(feature, layer) {
+                        return feature;
+                    });
+                    if (feature){
+                        console.log(feature)
+                        let geometry = feature.getGeometry();
+                        let coord = geometry.getCoordinates();
+                        console.log(coord)
+                        let content = '<div>site: ' + feature.id_ + '</div>';
+                        content_element.innerHTML = content;
+                        overlay.setPosition(coord);
+                    }
+                })
+                vm.map.on('pointermove', function(e) {
+                    if (e.dragging) return;
+                    let pixel = vm.map.getEventPixel(e.originalEvent);
+                    let hit = vm.map.hasFeatureAtPixel(pixel);
+                    vm.map.getTargetElement().style.cursor = hit ? 'pointer' : '';
+                });
             },
             getDegrees: function(coords){
                 return coords[0].toFixed(6) + ', ' + coords[1].toFixed(6);
             },
-            // This function is not used
-            getFillColour: function(status){
-                switch(status){
-                    case 'draft':
-                        return new Fill({color: '#e0e0e0'})
-                    case 'pending':
-                        return new Fill({color: '#fff59d'})
-                    case 'current':
-                        return new Fill({color: '#bbdefb'})
-                    case 'suspended':
-                        return new Fill({color: '#ffcc80'})
-                    case 'not_to_be_reissued':
-                        return new Fill({color: '#d1c4e9'})
-                    case 'denied':
-                        return new Fill({color: '#ffcdd2'})
-                    case 'vacant':
-                        return new Fill({color: '#7fcac3'})
-                }
-            },
-            // This function is not used
-            getStrokeColour: function(status, selected=false){
-                let stroke_width = selected ? 4 : 2
-                switch(status){
-                    case 'draft':
-                        return new Stroke({color: '#616161', width: stroke_width})
-                    case 'pending':
-                        return new Stroke({color: '#f2cb29', width: stroke_width})
-                    case 'current':
-                        return new Stroke({color: '#1a76d2', width: stroke_width})
-                    case 'suspended':
-                        return new Stroke({color: '#f57c01', width: stroke_width})
-                    case 'not_to_be_reissued':
-                        return new Stroke({color: '#512da8', width: stroke_width})
-                    case 'denied':
-                        return new Stroke({color: '#d2302f', width: stroke_width})
-                    case 'vacant':
-                        return new Stroke({color: '#00796b', width: stroke_width})
-                }
-            },
             addApiarySite: function(apiary_site_geojson) {
-                console.log('in addApiarySite')
-                console.log(apiary_site_geojson)
-                
                 let feature = (new GeoJSON()).readFeature(apiary_site_geojson)
-                let status = feature.get('status')
-                let checked_status = apiary_site_geojson.properties.hasOwnProperty('checked') ? apiary_site_geojson.properties.checked : false
-                console.log(checked_status)
-                //let style_applied = checked_status ? this.style_checked : this.style_not_checked
-                //feature.setStyle(style_applied)
                 this.apiarySitesQuerySource.addFeature(feature)
+            },
+            removeApiarySiteById: function(apiary_site_id){
+                let feature = this.apiarySitesQuerySource.getFeatureById(apiary_site_id)
+                console.log(feature)
+                this.apiarySitesQuerySource.removeFeature(feature)
             },
             zoomToApiarySiteById: function(apiary_site_id){
                 let feature = this.apiarySitesQuerySource.getFeatureById(apiary_site_id)
+                        let geometry = feature.getGeometry();
+                        let coord = geometry.getCoordinates();
+                        console.log(coord)
                 let view = this.map.getView()
                 this.map.getView().animate({zoom: 16, center: feature['values_']['geometry']['flatCoordinates']})
             },
@@ -257,4 +235,46 @@
 </script>
 
 <style lang="css" scoped>
+    .ol-popup {
+        position: absolute;
+        min-width: 80px;
+        background-color: white;
+        -webkit-filter: drop-shadow(0 1px 4px rgba(0,0,0,0.2));
+        filter: drop-shadow(0 1px 4px rgba(0,0,0,0.2));
+        padding: 2px;
+        border-radius: 10px;
+        border: 1px solid #ccc;
+        bottom: 12px;
+        left: -50px;
+    }
+    .ol-popup:after, .ol-popup:before {
+        top: 100%;
+        border: solid transparent;
+        content: " ";
+        height: 0;
+        width: 0;
+        position: absolute;
+        pointer-events: none;
+    }
+    .ol-popup:after {
+        border-top-color: white;
+        border-width: 10px;
+        left: 48px;
+        margin-left: -10px;
+    }
+    .ol-popup:before {
+        border-top-color: #cccccc;
+        border-width: 11px;
+        left: 48px;
+        margin-left: -11px;
+    }
+    .ol-popup-closer {
+        text-decoration: none;
+        position: absolute;
+        top: 2px;
+        right: 8px;
+    }
+    .ol-popup-closer:after {
+        content: "✖";
+    }
 </style>

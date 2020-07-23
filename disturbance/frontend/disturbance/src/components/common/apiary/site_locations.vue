@@ -111,6 +111,7 @@
     import datatable from '@vue-utils/datatable.vue'
     import uuid from 'uuid';
     import SiteLocationsModal from './site_locations_modal';
+    import { getFillColour, getStrokeColour, existingSiteRadius, drawingSiteRadius } from '@/components/common/apiary/site_colours.js'
 
     export default {
         props:{
@@ -177,7 +178,7 @@
 
                 dtHeaders: [
                     'Id',
-                    'Guid',
+                    //'Guid',
                     'Latitude',
                     'Longitude',
                     'Action',
@@ -209,16 +210,16 @@
                                 }
                             }
                         },
-                        {
-                            mRender: function (data, type, full) {
-                                if (full.getId()) {
-                                    //return full.site_guid;
-                                    return full.getId();
-                                } else {
-                                    return '';
-                                }
-                            }
-                        },
+                        //{
+                        //    mRender: function (data, type, full) {
+                        //        if (full.getId()) {
+                        //            //return full.site_guid;
+                        //            return full.getId();
+                        //        } else {
+                        //            return '';
+                        //        }
+                        //    }
+                        //},
                         {
                             mRender: function (data, type, full) {
                                 let coords = full.getGeometry().getCoordinates()
@@ -407,6 +408,17 @@
 
                 this.constructSiteLocationsTable();
             },
+            getStyle: function(status, checked){
+                let fillObj = getFillColour(status)
+                let strokeObj = getStrokeColour(status, checked)
+                return new Style({
+                            image: new CircleStyle({
+                                radius: existingSiteRadius,
+                                fill: fillObj,
+                                stroke: strokeObj,
+                            })
+                        })
+            },
             initMap: function() {
                 console.log('initMap start')
                 let vm = this;
@@ -427,6 +439,9 @@
                 });
                 vm.apiarySitesQueryLayer = new VectorLayer({
                     source: vm.apiarySitesQuerySource,
+                    style: function(feature, resolution){
+                        return vm.getStyle(feature.get('status'), feature.get('checked'))
+                    },
                 });
                 vm.map.addLayer(vm.apiarySitesQueryLayer);
 
@@ -477,7 +492,7 @@
                             width: 2
                         }),
                         image: new CircleStyle({
-                            radius: 7,
+                            radius: drawingSiteRadius,
                             fill: new Fill({
                                 color: '#ffcc33'
                             })

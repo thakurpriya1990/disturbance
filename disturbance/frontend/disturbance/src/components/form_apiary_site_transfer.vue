@@ -39,7 +39,20 @@
                     </div>
                 </div>
                 <div v-else>
-                    {{ transfereeName }}
+                    <div v-if="transfereeOrgName" class="col-sm-8">
+                        Organisation Name: {{ transfereeOrgName }}
+                    </div>
+                    <div v-else>
+                        <div class="col-sm-8">
+                            First Name: {{ transfereeFirstName }}
+                        </div>
+                        <div class="col-sm-8">
+                            Last Name: {{ transfereeFirstName }}
+                        </div>
+                    </div>
+                    <div class="col-sm-8">
+                        Licence: {{ targetApprovalLodgementNumber }}
+                    </div>
                 </div>
                 <!--/span-->
                 <div class="row col-sm-12">
@@ -194,6 +207,26 @@
             transfereeName: function() {
                 if (this.proposal && this.proposal.proposal_apiary) {
                     return this.proposal.proposal_apiary.transferee_name;
+                }
+            },
+            transfereeOrgName: function() {
+                if (this.proposal && this.proposal.proposal_apiary) {
+                    return this.proposal.proposal_apiary.transferee_org_name;
+                }
+            },
+            transfereeFirstName: function() {
+                if (this.proposal && this.proposal.proposal_apiary) {
+                    return this.proposal.proposal_apiary.transferee_first_name;
+                }
+            },
+            transfereeLastName: function() {
+                if (this.proposal && this.proposal.proposal_apiary) {
+                    return this.proposal.proposal_apiary.transferee_last_name;
+                }
+            },
+            targetApprovalLodgementNumber: function() {
+                if (this.proposal && this.proposal.proposal_apiary) {
+                    return this.proposal.proposal_apiary.target_approval_lodgement_number;
                 }
             },
             apiary_sections_classname: function() {
