@@ -17,7 +17,7 @@ from ledger.accounts.models import EmailUser, RevisionedMixin
 from ledger.licence.models import  Licence
 from disturbance import exceptions
 from disturbance.components.organisations.models import Organisation
-from disturbance.components.proposals.models import Proposal, ProposalUserAction
+from disturbance.components.proposals.models import Proposal, ProposalUserAction, ApiarySite
 from disturbance.components.main.models import CommunicationsLogEntry, UserAction, Document
 from disturbance.components.approvals.email import (
     send_approval_expire_email_notification,
@@ -277,7 +277,6 @@ class Approval(RevisionedMixin):
     def log_user_action(self, action, request):
        return ApprovalUserAction.log_action(self, action, request.user)
 
-
     def expire_approval(self,user):
         with transaction.atomic():
             try:
@@ -291,6 +290,12 @@ class Approval(RevisionedMixin):
                     ProposalUserAction.log_action(proposal,ProposalUserAction.ACTION_EXPIRED_APPROVAL_.format(proposal.id),user)
             except:
                 raise
+
+    def change_apiary_site_status(self, approval_status):
+        for site in self.apiary_sites:
+            if approval_status in (Approval.STATUS_CANCELLED, Approval.STATUS_SUSPENDED, Approval.STATUS_SURRENDERED,):
+                site.status = ApiarySite.STATUS_NOT_TO_BE_REISSUED
+                site.save()
 
     def approval_cancellation(self,request,details):
         with transaction.atomic():
@@ -306,10 +311,13 @@ class Approval(RevisionedMixin):
                 self.cancellation_date = cancellation_date
                 today = timezone.now().date()
                 if cancellation_date <= today:
-                    if not self.status == 'cancelled':
-                        self.status = 'cancelled'
+                    if not self.status == Approval.STATUS_CANCELLED:
+                        self.status = Approval.STATUS_CANCELLED
                         self.set_to_cancel = False
                         send_approval_cancel_email_notification(self)
+
+                        # Change the statuses of the apiary sites, too
+                        self.change_apiary_site_status(self.status)
                 else:
                     self.set_to_cancel = True
                     send_approval_cancel_email_notification(self, future_cancel=True)
@@ -342,11 +350,14 @@ class Approval(RevisionedMixin):
                 from_date = datetime.datetime.strptime(self.suspension_details['from_date'],'%d/%m/%Y')
                 from_date = from_date.date()
                 if from_date <= today:
-                    if not self.status == 'suspended':
-                        self.status = 'suspended'
+                    if not self.status == Approval.STATUS_SUSPENDED:
+                        self.status = Approval.STATUS_SUSPENDED
                         self.set_to_suspend = False
                         self.save()
                         send_approval_suspend_email_notification(self)
+
+                        # Change the statuses of the apiary sites, too
+                        self.change_apiary_site_status(self.status)
                 else:
                     self.set_to_suspend = True
                     send_approval_suspend_email_notification(self, future_suspend=True)
@@ -406,11 +417,14 @@ class Approval(RevisionedMixin):
                 surrender_date = datetime.datetime.strptime(self.surrender_details['surrender_date'],'%d/%m/%Y')
                 surrender_date = surrender_date.date()
                 if surrender_date <= today:
-                    if not self.status == 'surrendered':
-                        self.status = 'surrendered'
+                    if not self.status == Approval.STATUS_SURRENDERED:
+                        self.status = Approval.STATUS_SURRENDERED
                         self.set_to_surrender = False
                         self.save()
                         send_approval_surrender_email_notification(self)
+
+                        # Change the statuses of the apiary sites, too
+                        self.change_apiary_site_status(self.status)
                 else:
                     self.set_to_surrender = True
                     send_approval_surrender_email_notification(self, future_surrender=True)
