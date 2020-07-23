@@ -182,11 +182,11 @@ class Approval(RevisionedMixin):
 
     @property
     def can_reissue(self):
-        return self.status == 'current' or self.status == 'suspended'
+        return self.status == Approval.STATUS_CURRENT or self.status == Approval.STATUS_SUSPENDED
 
     @property
     def can_reinstate(self):
-        return (self.status == 'cancelled' or self.status == 'suspended' or self.status == 'surrendered') and self.can_action
+        return self.status in (Approval.STATUS_CANCELLED, Approval.STATUS_SUSPENDED, Approval.STATUS_SURRENDERED) and self.can_action
 
     @property
     def allowed_assessors(self):
