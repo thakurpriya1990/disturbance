@@ -281,10 +281,14 @@ class Approval(RevisionedMixin):
         with transaction.atomic():
             try:
                 today = timezone.localtime(timezone.now()).date()
-                if self.status == 'current' and self.expiry_date < today:
-                    self.status = 'expired'
+                if self.status == Approval.STATUS_CURRENT and self.expiry_date < today:
+                    self.status = Approval.STATUS_EXPIRED
                     self.save()
                     send_approval_expire_email_notification(self)
+
+                    # Change the statuses of the apiary sites, too
+                    self.change_apiary_site_status(self.status)
+
                     proposal = self.current_proposal
                     ApprovalUserAction.log_action(self,ApprovalUserAction.ACTION_EXPIRE_APPROVAL.format(self.id),user)
                     ProposalUserAction.log_action(proposal,ProposalUserAction.ACTION_EXPIRED_APPROVAL_.format(proposal.id),user)
@@ -295,7 +299,12 @@ class Approval(RevisionedMixin):
         for site in self.apiary_sites:
             if approval_status in (Approval.STATUS_CANCELLED, Approval.STATUS_SUSPENDED, Approval.STATUS_SURRENDERED,):
                 site.status = ApiarySite.STATUS_NOT_TO_BE_REISSUED
-                site.save()
+            elif approval_status == Approval.STATUS_EXPIRED:
+                site.status = ApiarySite.STATUS_VACANT
+            elif approval_status == Approval.STATUS_CURRENT:
+                site.status = ApiarySite.STATUS_CURRENT
+
+            site.save()
 
     def approval_cancellation(self,request,details):
         with transaction.atomic():
@@ -381,18 +390,22 @@ class Approval(RevisionedMixin):
                 if not self.can_reinstate and self.expiry_date>= today:
                 #if not self.status == 'suspended' and self.expiry_date >= today:
                     raise ValidationError('You cannot reinstate approval at this stage')
-                if self.status == 'cancelled':
+                if self.status == Approval.STATUS_CANCELLED:
                     self.cancellation_details =  ''
                     self.cancellation_date = None
-                if self.status == 'surrendered':
+                if self.status == Approval.STATUS_SURRENDERED:
                     self.surrender_details = {}
-                if self.status == 'suspended':
+                if self.status == Approval.STATUS_SUSPENDED:
                     self.suspension_details = {}
 
-                self.status = 'current'
+                self.status = Approval.STATUS_CURRENT
                 #self.suspension_details = {}
                 self.save()
                 send_approval_reinstate_email_notification(self, request)
+
+                # Change the statuses of the apiary sites, too
+                self.change_apiary_site_status(self.status)
+
                 # Log approval action
                 self.log_user_action(ApprovalUserAction.ACTION_REINSTATE_APPROVAL.format(self.id),request)
                 # Log entry for proposal
