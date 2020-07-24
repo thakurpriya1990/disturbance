@@ -459,11 +459,11 @@
                                 // Update the site in the table
                                 let site_updated = accept.body
 
-                                // Remove the site table which the table is based on
-                                vm.removeApiarySiteById(apiary_site_id)
-
                                 // Remove the row from the table
-                                $(e.target).closest('tr').fadeOut('slow')
+                                $(e.target).closest('tr').fadeOut('slow', function(){
+                                    // Remove the site table which the table is based on
+                                    vm.removeApiarySiteById(apiary_site_id)
+                                })
 
                                 // Remove the site from the map
                                 this.$refs.component_map.removeApiarySiteById(apiary_site_id)
