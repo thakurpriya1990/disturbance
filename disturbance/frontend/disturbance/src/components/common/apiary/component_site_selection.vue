@@ -318,16 +318,17 @@
         },
         methods: {
             updateTableByFeatures: function(features) {
-                console.log('in updateTableByFeatures')
+                // Generate a list of the feature ids displayed on the map
                 let ids = $.map(features, function(feature){
                     return feature.id_
                 })
 
+                // Generate a list of apiary_sites whose ids are in the list generated above
                 let apiary_sites_filtered = this.apiary_sites.filter(function(apiary_site){
                     return ids.includes(apiary_site.id)
                 })
-                console.log(apiary_sites_filtered)
 
+                // Update the table
                 this.constructApiarySitesTable(apiary_sites_filtered)
             },
             ensureCheckedStatus: function() {
