@@ -310,6 +310,9 @@
         content: "✖";
         */
     }
+    .close-icon:hover {
+        filter: brightness(80%);
+    }
     .close-icon {
         position: absolute;
         left: 1px;
