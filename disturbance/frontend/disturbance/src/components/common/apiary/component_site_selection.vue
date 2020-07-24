@@ -439,7 +439,7 @@
                 let vm = this;
                 let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
                 
-                console.log('Contact licence holder')
+                this.$emit('contact-licence-holder-clicked', apiary_site_id)
             },
             makeVacantClicked: function(e) {
                 let vm = this;
