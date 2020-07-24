@@ -22,6 +22,7 @@
                         ref="component_map"
                         :apiary_site_geojson_array="apiary_site_geojson_array"
                         :key="component_map_key"
+                        @featuresDisplayed="updateTableByFeatures"
                     />
                 </div>
             </div>
@@ -301,7 +302,8 @@
             let vm = this;
             this.$nextTick(() => {
                 vm.addEventListeners();
-                vm.constructApiarySitesTable();
+                //vm.constructApiarySitesTable();
+                vm.constructApiarySitesTable(vm.apiary_sites);
                 vm.addApiarySitesToMap(vm.apiary_sites)
                 vm.ensureCheckedStatus();
             });
@@ -315,6 +317,20 @@
 
         },
         methods: {
+            updateTableByFeatures: function(features) {
+                // Generate a list of the feature ids displayed on the map
+                let ids = $.map(features, function(feature){
+                    return feature.id_
+                })
+
+                // Generate a list of apiary_sites whose ids are in the list generated above
+                let apiary_sites_filtered = this.apiary_sites_local.filter(function(apiary_site){
+                    return ids.includes(apiary_site.id)
+                })
+
+                // Update the table
+                this.constructApiarySitesTable(apiary_sites_filtered)
+            },
             ensureCheckedStatus: function() {
                 console.log('in ensureCheckedStatus')
                 if (this.apiary_sites.length > 0){
@@ -350,15 +366,28 @@
                 // Reload ComponentMap by assigning a new key value
                 this.component_map_key = uuid()
             },
-            constructApiarySitesTable: function() {
+            //constructApiarySitesTable: function() {
+            //    if (this.$refs.table_apiary_site){
+            //        // Clear table
+            //        this.$refs.table_apiary_site.vmDataTable.clear().draw();
+
+            //        // Construct table
+            //        if (this.apiary_sites.length > 0){
+            //            for(let i=0; i<this.apiary_sites.length; i++){
+            //                this.addApiarySiteToTable(this.apiary_sites[i]);
+            //            }
+            //        }
+            //    }
+            //},
+            constructApiarySitesTable: function(apiary_sites) {
                 if (this.$refs.table_apiary_site){
                     // Clear table
                     this.$refs.table_apiary_site.vmDataTable.clear().draw();
 
                     // Construct table
-                    if (this.apiary_sites.length > 0){
-                        for(let i=0; i<this.apiary_sites.length; i++){
-                            this.addApiarySiteToTable(this.apiary_sites[i]);
+                    if (apiary_sites.length > 0){
+                        for(let i=0; i<apiary_sites.length; i++){
+                            this.addApiarySiteToTable(apiary_sites[i]);
                         }
                     }
                 }
@@ -431,7 +460,8 @@
 
                                 // Remove the site from the table
                                 vm.removeApiarySiteById(apiary_site_id)
-                                vm.constructApiarySitesTable();
+                                //vm.constructApiarySitesTable();
+                                vm.constructApiarySitesTable(vm.apiary_sites);
 
                                 // Remove the site from the map
                                 this.$refs.component_map.removeApiarySiteById(apiary_site_id)
@@ -464,6 +494,7 @@
                         let site_updated = accept.body
                         vm.updateApiarySite(site_updated)
                         vm.constructApiarySitesTable();
+                        vm.constructApiarySitesTable(vm.apiary_sites);
                     },
                     reject=>{
                         swal(

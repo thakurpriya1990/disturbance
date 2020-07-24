@@ -7,10 +7,10 @@
                 :is_external="false"
                 :show_col_checkbox="false"
                 :show_action_available_unavailable="false"
-                :show_col_status="true"
-                :show_col_previous_site_holder="true"
+                :show_col_status="false"
+                :show_col_previous_site_holder="false"
                 :key="component_site_selection_key"
-                :table_and_map_in_a_row="false"
+                :table_and_map_in_a_row="true"
                 :show_action_contact_licence_holder="true"
                 @apiary_sites_updated="apiarySitesUpdated"
             />
