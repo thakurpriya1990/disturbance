@@ -61,6 +61,11 @@ class CompliancePaginatedViewSet(viewsets.ModelViewSet):
             return Compliance.objects.all().exclude(processing_status='discarded')
         elif is_customer(self.request):
             user_orgs = [org.id for org in self.request.user.disturbance_organisations.all()]
+            # Apiary logic for individual applicants
+            return Compliance.objects.filter( 
+                    Q(proposal__applicant_id__in = user_orgs) | Q(proposal__submitter = self.request.user) | Q(proposal__proxy_applicant = self.request.user
+                        )).order_by('-id')
+            # DAS logic
             queryset =  Compliance.objects.filter( Q(proposal__applicant_id__in = user_orgs) | Q(proposal__submitter = self.request.user) ).exclude(processing_status='discarded')
             return queryset
         return Compliance.objects.none()
@@ -103,6 +108,7 @@ class ComplianceViewSet(viewsets.ModelViewSet):
     queryset = Compliance.objects.none()
 
     def get_queryset(self):
+        #import ipdb; ipdb.set_trace()
         if is_internal(self.request):
             return Compliance.objects.all().exclude(processing_status='discarded')
         elif is_customer(self.request):
