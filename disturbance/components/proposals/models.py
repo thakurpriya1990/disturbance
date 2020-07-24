@@ -2725,6 +2725,7 @@ class ProposalApiary(models.Model):
                                     processing_status='future',
                                     approval=approval,
                                     requirement=req,
+                                    apiary_compliance=True
                         )
                         compliance.log_user_action(ComplianceUserAction.ACTION_CREATE.format(compliance.id),request)
                     if req.recurrence:
@@ -2751,6 +2752,7 @@ class ProposalApiary(models.Model):
                                                 processing_status='future',
                                                 approval=approval,
                                                 requirement=req,
+                                                apiary_compliance=True
                                     )
                                     compliance.log_user_action(ComplianceUserAction.ACTION_CREATE.format(compliance.id),request)
             except:
