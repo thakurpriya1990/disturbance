@@ -201,6 +201,11 @@
                     let hit = vm.map.hasFeatureAtPixel(pixel);
                     vm.map.getTargetElement().style.cursor = hit ? 'pointer' : '';
                 });
+                vm.map.on('moveend', function(e){
+                    let extent = vm.map.getView().calculateExtent(vm.map.getSize());
+                    let features = vm.apiarySitesQuerySource.getFeaturesInExtent(extent)
+                    vm.$emit('featuresDisplayed', features)
+                });
             },
             getDegrees: function(coords){
                 return coords[0].toFixed(6) + ', ' + coords[1].toFixed(6);
