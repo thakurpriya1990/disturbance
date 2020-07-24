@@ -241,11 +241,11 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
 
     def get_previous_site_holder_or_applicant(self, apiary_site):
         if apiary_site.approval:
-            relevant_applicant = apiary_site.approval.relevant_applicant_name
+            relevant_applicant_name = apiary_site.approval.relevant_applicant_name
         else:
-            relevant_applicant = apiary_site.proposal_apiary.proposal.relevant_applicant_name
+            relevant_applicant_name = apiary_site.proposal_apiary.proposal.relevant_applicant_name
 
-        return relevant_applicant
+        return relevant_applicant_name
 
     def get_as_geojson(self, apiary_site):
         return ApiarySiteGeojsonSerializer(apiary_site).data
