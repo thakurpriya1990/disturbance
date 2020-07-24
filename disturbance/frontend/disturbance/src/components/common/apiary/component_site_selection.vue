@@ -445,6 +445,7 @@
                 let vm = this;
                 let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
 
+
                 swal({
                     title: "Make Vacant",
                     text: "Are you sure you want to make this apiary site: " + apiary_site_id + " vacant?",
@@ -458,10 +459,11 @@
                                 // Update the site in the table
                                 let site_updated = accept.body
 
-                                // Remove the site from the table
+                                // Remove the site table which the table is based on
                                 vm.removeApiarySiteById(apiary_site_id)
-                                //vm.constructApiarySitesTable();
-                                vm.constructApiarySitesTable(vm.apiary_sites);
+
+                                // Remove the row from the table
+                                $(e.target).closest('tr').fadeOut('slow')
 
                                 // Remove the site from the map
                                 this.$refs.component_map.removeApiarySiteById(apiary_site_id)
