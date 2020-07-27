@@ -1112,6 +1112,49 @@ class ProposalViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(str(e))
 
     @detail_route(methods=['GET',])
+    def apiary_site_transfer_originating_approval_requirements(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            #qs = instance.requirements.all()
+            #qs = instance.requirements.all().exclude(is_deleted=True)
+            approval = Approval.objects.get(id=instance.proposal_apiary.originating_approval_id)
+            qs = instance.apiary_requirements(approval).exclude(is_deleted=True)
+            #qs = instance.apiary_site_transfer_originatingrequirements(approval_id).exclude(is_deleted=True)
+            serializer = ProposalRequirementSerializer(qs,many=True)
+            return Response(serializer.data)
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['GET',])
+    def apiary_site_transfer_target_approval_requirements(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            #qs = instance.requirements.all()
+            #qs = instance.requirements.all().exclude(is_deleted=True)
+            approval = Approval.objects.get(id=instance.proposal_apiary.target_approval_id)
+            qs = instance.apiary_requirements(approval).exclude(is_deleted=True)
+            #qs = instance.apiary_site_transfer_originatingrequirements(approval_id).exclude(is_deleted=True)
+            serializer = ProposalRequirementSerializer(qs,many=True)
+            return Response(serializer.data)
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+
+    @detail_route(methods=['GET',])
     def amendment_request(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
@@ -1684,7 +1727,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                     approval = proposal_apiary.retrieve_approval
                     if approval:
                         # Copy requirements from approval.current_proposal
-                        req = approval.current_proposal.requirements.all().exclude(is_deleted=True)
+                        req = approval.current_proposal.apiary_requirements(approval).exclude(is_deleted=True)
                         from copy import deepcopy
                         if req:
                             for r in req:

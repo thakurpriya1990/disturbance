@@ -1602,6 +1602,12 @@ class Proposal(RevisionedMixin):
     def internal_view_log(self,request):
         self.log_user_action(ProposalUserAction.ACTION_VIEW_PROPOSAL.format(self.id),request)
         return self
+    
+    def apiary_requirements(self, approval=None):
+        if self.application_type.name == ApplicationType.SITE_TRANSFER and approval:
+            return self.requirements.filter(site_transfer_approval=approval)
+        else:
+            return self.requirements.all()
 
 
 class ProposalLogDocument(Document):
@@ -2493,6 +2499,8 @@ class ProposalApiary(models.Model):
                             approval.applicant = self.proposal.applicant
                             approval.proxy_applicant = self.proposal.proxy_applicant
                             approval.apiary_approval = self.proposal.apiary_group_application_type
+                            approval.current_proposal = checking_proposal
+                            approval.save()
                         else:
                             if not approval:
                                 # There are no existing approvals.  Create a new one.
@@ -2514,15 +2522,9 @@ class ProposalApiary(models.Model):
                                 )
                             else:
                                 approval.issue_date = timezone.now()
-                                # retain original expiry and start dates
-                                #approval.expiry_date = details.get('expiry_date')
-                                #approval.start_date = details.get('start_date')
-                                #approval.applicant = self.proposal.applicant
-                                #approval.proxy_applicant = self.proposal.proxy_applicant
-                                #approval.apiary_approval = self.proposal.apiary_group_application_type
                                 # ensure current_proposal is updated with this proposal
-                                if self.proposal.application_type.name != ApplicationType.SITE_TRANSFER:
-                                    approval.current_proposal = checking_proposal
+                                #if self.proposal.application_type.name != ApplicationType.SITE_TRANSFER:
+                                approval.current_proposal = checking_proposal
                                 approval.save()
 
 

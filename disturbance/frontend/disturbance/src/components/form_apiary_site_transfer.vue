@@ -301,16 +301,16 @@
                 }
                 return lodgement_number;
             },
+            */
             selectedLicence: function() {
                 let licence = null;
-                if (this.proposal && this.proposal.proposal_apiary && this.proposal.proposal_apiary.receiving_approval_lodgement_number) {
-                    licence = this.proposal.proposal_apiary.receiving_approval_lodgement_number;
+                if (this.proposal && this.proposal.proposal_apiary && this.proposal.proposal_apiary.target_approval_lodgement_number) {
+                    licence = this.proposal.proposal_apiary.target_approval_lodgement_number;
                 } else if (this.proposal && this.proposal.proposal_apiary && this.proposal.proposal_apiary.selected_licence) {
                     licence = this.proposal.proposal_apiary.selected_licence;
                 }
                 return licence;
             },
-            */
             /*
             site_transfer_apiary_sites: function(){
                 let sites = []
@@ -348,7 +348,10 @@
                 Vue.http.post(helpers.add_endpoint_json(
                     api_endpoints.proposal_apiary,this.proposal.proposal_apiary.id+'/get_apiary_approvals'),
                     //data,{
-                    {'user_email': this.transfereeEmail}).then(res => {
+                    {
+                        'user_email': this.transfereeEmail,
+                        'originating_approval_id': this.proposal.proposal_apiary.originating_approval_id,
+                    }).then(res => {
                         console.log(res.body);
                         if (res.body && res.body.apiary_approvals) {
                             this.apiaryApprovals = res.body.apiary_approvals.approvals;
