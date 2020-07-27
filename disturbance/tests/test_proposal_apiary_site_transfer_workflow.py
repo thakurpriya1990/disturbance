@@ -1,157 +1,16 @@
-from .test_setup import APITestSetup
+from disturbance.test_setup import APITestSetup
 import json
 from disturbance.components.proposals.models import (
         Proposal,
         ApiarySite,
+        ProposalStandardRequirement,
         )
+from disturbance.management.commands.update_compliance_status import Command
+#import subprocess
 #from disturbance.components.proposals.serializers_apiary import ApiarySiteSerializer
 
-class ProposalTests(APITestSetup):
-    def test_create_proposal_apiary(self):
-        #import ipdb; ipdb.set_trace()
-        print("test_create_proposal_apiary")
-        self.client.login(email=self.customer, password='pass')
-        self.client.enforce_csrf_checks=True
-        create_response = self.client.post(
-                '/api/proposal/', 
-                self.create_proposal_data,
-                format='json'
-                #content_type='application/json'
-                )
 
-        #print(create_response.status_code)
-        #print(create_response.data)
-        self.assertEqual(create_response.status_code, 200)
-        self.assertTrue(create_response.data.get('id') > 0)
-
-class IntegrationTests(APITestSetup):
-    def test_proposal_apiary_workflow(self):
-        #import ipdb; ipdb.set_trace()
-        #try:
-        print("test_proposal_apiary_workflow")
-        self.client.login(email=self.customer, password='pass')
-        self.client.enforce_csrf_checks=True
-        # create proposal
-        create_response = self.client.post(
-                '/api/proposal/', 
-                self.create_proposal_data,
-                format='json'
-                #content_type='application/json'
-                )
-        proposal_id = create_response.data.get('id')
-        # get proposal
-        url = 'http://localhost:8071/api/proposal_apiary/{}.json'.format(proposal_id)
-        get_response = self.client.get(url)
-
-        self.assertEqual(get_response.status_code, 200)
-        #######################
-        proposal = Proposal.objects.get(id=proposal_id)
-        draft_schema = {
-            "proposal_apiary": {
-                "id": proposal_id,
-                "title": "test_title",
-                "checklist_answers": [
-                        {
-                        #"id": self.apiary_qu_1.id,
-                        "id": proposal.proposal_apiary.apiary_applicant_checklist.all()[0].id,
-                        "answer": True
-                        },
-                        {
-                        #"id": self.apiary_qu_2.id,
-                        "id": proposal.proposal_apiary.apiary_applicant_checklist.all()[1].id,
-                        "answer": False
-                        },
-                        {
-                        #"id": self.apiary_qu_3.id,
-                        "id": proposal.proposal_apiary.apiary_applicant_checklist.all()[2].id,
-                        "answer": True
-                        },
-                    ]
-                }
-            #"all_the_features": [json.dumps(all_the_features),],
-            #"all_the_features": json.dumps(all_the_features),
-            }
-
-        #draft_schema['proposal_apiary']['id'] = proposal_id
-        draft_proposal_data = {
-                "schema": json.dumps(draft_schema),
-                #"all_the_features": json.dumps(self.all_the_features)
-                "all_the_features": self.all_the_features
-                }
-        draft_response = self.client.post(
-                '/api/proposal/{}/draft/'.format(proposal_id),
-                draft_proposal_data, 
-                format='json'
-                #content_type='application/json'
-                )
-        self.assertEqual(draft_response.status_code, 302)
-        #self.assertTrue(submit_response.data.get('id') > 0)
-
-        # Simulate Proposal submission by changing status instead of going through the payment gateway
-        saved_proposal = Proposal.objects.get(id=proposal_id)
-        saved_proposal.processing_status = 'with_assessor'
-        saved_proposal.customer_status = 'with_assessor'
-        saved_proposal.save()
-
-        # referrals testing goes here
-
-        # Move status to 'With Assessor (Requirements)
-        saved_proposal.processing_status = 'with_assessor_requirements'
-        saved_proposal.save()
-
-        # login as internal 
-        self.client.login(email=self.adminUser, password='pass')
-        self.client.enforce_csrf_checks=True
-
-        # Propose to approve
-        apiary_sites = []
-        for site in saved_proposal.proposal_apiary.apiary_sites.all():
-            apiary_sites.append({
-                #"id": "{}".format(site.id),
-                "id": site.id,
-                "checked": True
-                })
-        propose_to_approve_data = {
-                "details": "test details",
-                "expiry_date": "15/07/2020",
-                "start_date": "01/07/2020",
-                #"apiary_sites": "{}".format(apiary_sites)
-                "apiary_sites": apiary_sites
-                }
-        print(propose_to_approve_data)
-        propose_to_approve_response = self.client.post(
-                '/api/proposal/{}/proposed_approval/'.format(proposal_id), 
-                propose_to_approve_data, 
-                format='json'
-                #content_type='application/json'
-                )
-
-        self.assertEqual(propose_to_approve_response.status_code, 200)
-
-        # Final approval with unchanged data
-        final_approval_data = propose_to_approve_data
-        final_approval_response = self.client.post(
-                '/api/proposal_apiary/{}/final_approval/'.format(proposal_id), 
-                final_approval_data, 
-                format='json'
-                #content_type='application/json'
-                )
-        self.assertEqual(final_approval_response.status_code, 200)
-
-        # Show properties of newly created approval
-        final_proposal = Proposal.objects.get(id=proposal_id)
-        final_proposal_proposal_apiary_id = final_proposal.proposal_apiary.id
-        print(Proposal.objects.get(id=proposal_id).approval.apiary_approval)
-        print(Proposal.objects.get(id=proposal_id).processing_status)
-        print("APPROVAL SITES")
-        for approval_site in ApiarySite.objects.filter(approval=final_proposal.approval):
-            print(approval_site)
-
-        # check Reversion endpoint
-        url = '/api/proposal_apiary/{}/proposal_history/'.format(final_proposal_proposal_apiary_id)
-        reversion_response = self.client.get(url)
-        self.assertEqual(reversion_response.status_code, 200)
-
+class ApiarySiteTransferIntegrationTests(APITestSetup):
     def test_proposal_apiary_site_transfer_workflow(self):
         print("test_proposal_apiary_site_transfer_workflow")
         self.client.login(email=self.customer1, password='pass')
@@ -224,7 +83,7 @@ class IntegrationTests(APITestSetup):
                 })
         propose_to_approve_data_1 = {
                 "details": "test details 1",
-                "expiry_date": "15/07/2020",
+                "expiry_date": "15/07/2021",
                 "start_date": "01/07/2020",
                 #"apiary_sites": "{}".format(apiary_sites)
                 "apiary_sites": apiary_sites_1
@@ -338,7 +197,7 @@ class IntegrationTests(APITestSetup):
                 })
         propose_to_approve_data_2 = {
                 "details": "test details 2",
-                "expiry_date": "15/07/2020",
+                "expiry_date": "15/07/2021",
                 "start_date": "01/07/2020",
                 #"apiary_sites": "{}".format(apiary_sites)
                 "apiary_sites": apiary_sites_2
@@ -457,12 +316,13 @@ class IntegrationTests(APITestSetup):
         for site_transfer_site in saved_site_transfer_proposal.proposal_apiary.site_transfer_apiary_sites.all():
             site_transfer_apiary_sites.append({
                 #"id": "{}".format(site.id),
-                "id": site_transfer_site.id,
+                #"id": site_transfer_site.apiary_site.id,
+                "id": site_transfer_site.apiary_site.id,
                 "checked": True
                 })
         site_transfer_propose_to_approve_data = {
                 "details": "site transfer test details",
-                "expiry_date": "15/07/2020",
+                "expiry_date": "15/07/2021",
                 "start_date": "01/07/2020",
                 #"apiary_sites": "{}".format(apiary_sites)
                 "apiary_sites": site_transfer_apiary_sites
