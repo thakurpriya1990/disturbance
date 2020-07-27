@@ -28,6 +28,7 @@ from disturbance.components.proposals.models import (
         ApiaryAssessorGroup,
         ApiaryApproverGroup,
         SiteCategory,
+        ProposalStandardRequirement,
         )
 from disturbance.components.approvals.models import (
         Approval,
@@ -176,6 +177,23 @@ class APITestSetup(APITestCase):
         # Create SiteCategories
         SiteCategory.objects.create(name='south_west')
         SiteCategory.objects.create(name='remote')
+        # Create ProposalStandardRequirements
+        ProposalStandardRequirement.objects.create(
+                code='R1',
+                text='Standard requirement 1'
+                )
+        ProposalStandardRequirement.objects.create(
+                code='R2',
+                text='Standard requirement 2'
+                )
+        ProposalStandardRequirement.objects.create(
+                code='A1',
+                text='Standard Apiary requirement 1'
+                )
+        ProposalStandardRequirement.objects.create(
+                code='A2',
+                text='Standard Apiary requirement 2'
+                )
         ## create_proposal_data
         # Apiary applications
         self.apiary_application_type_id = ApplicationType.objects.get(name='Apiary').id
