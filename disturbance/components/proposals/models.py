@@ -1822,6 +1822,7 @@ class ProposalRequirement(OrderedModel):
     recurrence_schedule = models.IntegerField(null=True,blank=True)
     copied_from = models.ForeignKey('self', on_delete=models.SET_NULL, blank=True, null=True)
     is_deleted = models.BooleanField(default=False)
+    site_transfer_approval = models.ForeignKey('disturbance.Approval',null=True,blank=True)
     #order = models.IntegerField(default=1)
     # referral_group is no longer required for Apiary
     referral_group = models.ForeignKey(ApiaryReferralGroup,null=True,blank=True,related_name='apiary_requirement_referral_groups')
@@ -2264,7 +2265,8 @@ class ProposalApiary(models.Model):
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     # required for Site Transfer applications
     transferee = models.ForeignKey(EmailUser, blank=True, null=True, related_name='apiary_transferee')
-    originating_approval = models.ForeignKey('disturbance.Approval', blank=True, null=True)
+    originating_approval = models.ForeignKey('disturbance.Approval', blank=True, null=True, related_name="site_transfer_originating_approval")
+    target_approval = models.ForeignKey('disturbance.Approval', blank=True, null=True, related_name="site_transfer_target_approval")
     ###
 
     # @property
@@ -2375,7 +2377,8 @@ class ProposalApiary(models.Model):
                     approval = self.retrieve_approval
                 elif self.proposal.application_type.name == 'Site Transfer':
                 #elif self.proposal.application_type.name == ApplicationType.SITE_TRANSFER:
-                    approval = self.proposal.approval
+                    #approval = self.proposal.approval
+                    approval = self.target_approval
 
                 #approval = None
                 #approval = self.retrieve_approval()

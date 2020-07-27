@@ -66,8 +66,8 @@
                                 Licence: {{approval.lodgement_number}}
                             </div>
                         </div>
-                        <div v-else-if="receivingApprovalLodgementNumber">
-                            Licence: {{receivingApprovalLodgementNumber}}
+                        <div v-else-if="targetApprovalLodgementNumber">
+                            Licence: {{targetApprovalLodgementNumber}}
                         </div>
                     </div>
                 </div>
@@ -293,6 +293,7 @@
                 }
                 return show;
             },
+            /*
             receivingApprovalLodgementNumber: function() {
                 let lodgement_number = '';
                 if (this.proposal && this.proposal.proposal_apiary && this.proposal.proposal_apiary.receiving_approval_lodgement_number) {
@@ -309,6 +310,7 @@
                 }
                 return licence;
             },
+            */
             /*
             site_transfer_apiary_sites: function(){
                 let sites = []

@@ -330,7 +330,7 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
     checklist_answers = serializers.SerializerMethodField()
     site_remainders = serializers.SerializerMethodField()
     originating_approval_lodgement_number = serializers.SerializerMethodField()
-    target_approval_id = serializers.SerializerMethodField()
+    #target_approval_id = serializers.SerializerMethodField()
     target_approval_lodgement_number = serializers.SerializerMethodField()
     transferee_name = serializers.SerializerMethodField()
     transferee_org_name = serializers.SerializerMethodField()
@@ -395,16 +395,17 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
             name = obj.proposal.approval.proxy_applicant.last_name
         return name
 
-    def get_target_approval_id(self, obj):
-        target_id = None
-        if obj.proposal.approval:
-            target_id = obj.proposal.approval.id
-        return target_id
+    #def get_target_approval_id(self, obj):
+    #    target_id = None
+    #    if obj.proposal.approval:
+    #        target_id = obj.proposal.approval.id
+    #    return target_id
 
     def get_target_approval_lodgement_number(self, obj):
         lodgement_number = None
-        if obj.proposal.approval:
-            lodgement_number = obj.proposal.approval.lodgement_number
+        if obj.target_approval:
+            #lodgement_number = obj.proposal.approval.lodgement_number
+            lodgement_number = obj.target_approval.lodgement_number
         return lodgement_number
 
     def get_originating_approval_lodgement_number(self, obj):

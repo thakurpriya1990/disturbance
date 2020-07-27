@@ -405,8 +405,44 @@ def save_proponent_data_apiary_site_transfer(proposal_obj, request, viewset):
 
             selected_licence = proposal_apiary_data.get('selected_licence')
             if selected_licence:
-                approval = Approval.objects.get(id=selected_licence)
-                proposal_obj.approval = approval
+                #target_approval = Approval.objects.get(id=selected_licence)
+                proposal_obj.proposal_apiary.target_approval = Approval.objects.get(id=selected_licence)
+                proposal_obj.proposal_apiary.save()
+                # 20200727 - don't do this any more
+                #proposal_obj.approval = approval
+
+                ## On submit, requirements need to be copied for originating and target approvals
+                if viewset.action == 'submit':
+                    # Find originating approval
+                    originating_approval = proposal_obj.proposal_apiary.retrieve_approval
+                    if originating_approval:
+                        # Copy requirements from approval.current_proposal
+                        origin_req = originating_approval.current_proposal.requirements.all().exclude(is_deleted=True)
+                        from copy import deepcopy
+                        if origin_req:
+                            for origin_r in origin_req:
+                                old_origin_r = deepcopy(origin_r)
+                                #r.proposal = proposal_apiary.proposal
+                                origin_r.proposal = None
+                                origin_r.site_transfer_approval = originating_approval
+                                origin_r.copied_from=old_origin_r
+                                origin_r.id = None
+                                origin_r.save()
+                    # Find target approval
+                    #approval = proposal_apiary.retrieve_approval
+                    if target_approval:
+                        # Copy requirements from approval.current_proposal
+                        target_req = proposal_obj.proposal_apiary.target_approval.current_proposal.requirements.all().exclude(is_deleted=True)
+                        from copy import deepcopy
+                        if target_req:
+                            for target_r in target_req:
+                                old_target_r = deepcopy(target_r)
+                                #r.proposal = proposal_apiary.proposal
+                                target_r.proposal = None
+                                target_r.site_transfer_approval = proposal_obj.proposal_apiary.target_approval
+                                target_r.copied_from=old_target_r
+                                target_r.id = None
+                                target_r.save()
 
             # save/update any additonal special propoerties here
             #proposal_obj.title = proposal_obj.proposal_apiary.title if hasattr(proposal_obj, 'proposal_apiary') else proposal_obj.title
