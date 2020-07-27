@@ -20,6 +20,7 @@
         <ContactLicenceHolderModal
             ref="contact_licence_holder_modal"
             :key="modalBindId"
+            @contact_licence_holder="contactLicenceHolder"
         />
     </div>
 </template>
@@ -56,9 +57,11 @@
         },
         methods: {
             contactLicenceHolderClicked: function(apiary_site_id){
-                console.log('contactLicenceHolderClicked')
                 console.log(apiary_site_id)
                 this.openOnSiteInformationModal(apiary_site_id)
+            },
+            contactLicenceHolder: function(obj){
+                console.log(obj)
             },
             openOnSiteInformationModal: async function(apiary_site_id) {
                 this.modalBindId = uuid()
