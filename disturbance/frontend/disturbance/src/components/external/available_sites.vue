@@ -13,14 +13,22 @@
                 :table_and_map_in_a_row="true"
                 :show_action_contact_licence_holder="true"
                 @apiary_sites_updated="apiarySitesUpdated"
+                @contact-licence-holder-clicked="contactLicenceHolderClicked"
             />
         </FormSection>
+
+        <ContactLicenceHolderModal
+            ref="contact_licence_holder_modal"
+            :key="modalBindId"
+            @contact_licence_holder="contactLicenceHolder"
+        />
     </div>
 </template>
 
 <script>
     import ComponentSiteSelection from '@/components/common/apiary/component_site_selection.vue'
     import FormSection from "@/components/forms/section_toggle.vue"
+    import ContactLicenceHolderModal from "@/components/common/apiary/contact_licence_holder_modal.vue"
     import uuid from 'uuid'
     import Vue from 'vue'
 
@@ -30,11 +38,13 @@
             return {
                 component_site_selection_key: uuid(),
                 apiary_sites: [],
+                modalBindId: uuid(),
             }
         },
         components: {
             ComponentSiteSelection,
             FormSection,
+            ContactLicenceHolderModal
         },
         props: {
 
@@ -46,6 +56,27 @@
 
         },
         methods: {
+            contactLicenceHolderClicked: function(apiary_site_id){
+                console.log(apiary_site_id)
+                this.openOnSiteInformationModal(apiary_site_id)
+            },
+            contactLicenceHolder: function(obj){
+                console.log(obj)
+            },
+            openOnSiteInformationModal: async function(apiary_site_id) {
+                this.modalBindId = uuid()
+
+                try {
+                    this.$nextTick(() => {
+                        if (this.$refs.contact_licence_holder_modal){
+                            this.$refs.contact_licence_holder_modal.apiary_site_id = apiary_site_id
+                            this.$refs.contact_licence_holder_modal.openMe();
+                        }
+                    });
+                } catch (err) {
+
+                }
+            },
             apiarySitesUpdated: function(apiary_sites){
                 console.log(apiary_sites)
             },
