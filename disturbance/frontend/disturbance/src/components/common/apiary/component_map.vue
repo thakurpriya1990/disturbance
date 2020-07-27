@@ -212,8 +212,10 @@
             showPopup: function(feature){
                 let geometry = feature.getGeometry();
                 let coord = geometry.getCoordinates();
-                let content = '<div style="padding: 0.25em;">' +
-                                  '<div style="background: darkgray; color: white; text-align: center;">site: ' + feature.id_ + '</div>' + 
+                let svg_hexa = "<svg xmlns='http://www.w3.org/2000/svg' version='1.1' height='20' width='15'>" + 
+                '<g transform="translate(0, 4) scale(0.9)"><path d="M 14.3395,12.64426 7.5609998,16.557828 0.78249996,12.64426 0.7825,4.8171222 7.5609999,0.90355349 14.3395,4.8171223 Z" id="path837" style="fill:none;stroke:#ffffff;stroke-width:1.565;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" /></g></svg>'
+                let content = '<div style="padding: 0.25em;">' + 
+                '<div style="background: darkgray; color: white; text-align: center;" class="align-middle">' + svg_hexa + ' site: ' + feature.id_ + '</div>' + 
                                   '<div style="font-size: 0.8em;">' + 
                                       '<div>' + feature.get('status') + '</div>' + 
                                       '<div>' + feature['values_']['geometry']['flatCoordinates'] + '</div>' + 
