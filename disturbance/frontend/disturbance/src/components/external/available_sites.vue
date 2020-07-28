@@ -61,7 +61,15 @@
                 this.openOnSiteInformationModal(apiary_site_id)
             },
             contactLicenceHolder: function(obj){
-                console.log(obj)
+                console.log('contactLicenceHolder')
+                this.$http.post('/api/apiary_site/' + obj.apiary_site_id + '/contact_licence_holder/', obj).then(
+                    res => {
+                        this.$refs.contact_licence_holder_modal.close();
+                    },
+                    err => {
+
+                    }
+                )
             },
             openOnSiteInformationModal: async function(apiary_site_id) {
                 this.modalBindId = uuid()
