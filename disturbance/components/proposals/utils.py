@@ -26,6 +26,7 @@ from disturbance.components.proposals.serializers_apiary import (
     ProposalApiarySerializer,
     ProposalApiaryTemporaryUseSerializer,
     ProposalApiarySiteTransferSerializer, ApiarySiteSerializer, TemporaryUseApiarySiteSerializer,
+    ApiarySiteSavePointSerializer,
 )
 from disturbance.components.proposals.email import send_submit_email_notification, send_external_submit_email_notification
 
@@ -476,13 +477,17 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                     # Save coordinate
                     geom_str = GEOSGeometry(
                         'POINT(' +
-                            str(feature['values_']['geometry']['flatCoordinates'][0]) + ' ' +
-                            str(feature['values_']['geometry']['flatCoordinates'][1]) +
+                        str(feature['values_']['geometry']['flatCoordinates'][0]) + ' ' +
+                        str(feature['values_']['geometry']['flatCoordinates'][1]) +
                         ')',
                         srid=4326
                     )
-                    apiary_site_obj.wkb_geometry = geom_str
-                    apiary_site_obj.save()
+                    serializer = ApiarySiteSavePointSerializer(apiary_site_obj, data={'wkb_geometry': geom_str})
+                    serializer.is_valid(raise_exception=True)
+                    serializer.save()
+
+                    # apiary_site_obj.wkb_geometry = geom_str
+                    # apiary_site_obj.save()
                 # END: Handle ApiarySites
 
                 for new_answer in site_location_data['checklist_answers']:
