@@ -129,18 +129,22 @@ module.exports = {
       return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
     },
     processError: async function(err){
+        console.log(err)
         let errorText = '';
         if (err.body.non_field_errors) {
+            console.log('non_field_errors')
             // When non field errors raised
             for (let i=0; i<err.body.non_field_errors.length; i++){
                 errorText += err.body.non_field_errors[i] + '<br />';
             }
         } else if(Array.isArray(err.body)) {
-            // When general errors raised
+            console.log('isArray')
+            // When serializers.ValidationError raised
             for (let i=0; i<err.body.length; i++){
                 errorText += err.body[i] + '<br />';
             }
         } else {
+            console.log('else')
             // When field errors raised
             for (let field_name in err.body){
                 if (err.body.hasOwnProperty(field_name)){
