@@ -73,6 +73,47 @@ class ApiarySiteTransferIntegrationTests(APITestSetup):
         self.client.login(email=self.adminUser, password='pass')
         self.client.enforce_csrf_checks=True
 
+        # add requirements
+        proposal_standard_req_r1_id = ProposalStandardRequirement.objects.get(code='R1').id
+        add_requirements_data_1 = {
+                "due_date": "16/08/2020",
+                "standard": True,
+                "recurrence": True,
+                "recurrence_pattern": "1",
+                "proposal": proposal_id_1,
+                "standard_requirement": str(proposal_standard_req_r1_id),
+                "recurrence_schedule": "1",
+                "free_requirement": ""
+                }
+        add_requirements_response_1 = self.client.post(
+                '/api/proposal_requirements.json', 
+                add_requirements_data_1, 
+                format='json'
+                #content_type='application/json'
+                )
+        #proposal_requirement_1_id = add_requirements_response_1.data.get('id')
+        self.assertEqual(add_requirements_response_1.status_code, 201)
+
+        proposal_standard_req_a1_id = ProposalStandardRequirement.objects.get(code='A1').id
+        add_requirements_data_2 = {
+                "due_date": "16/08/2020",
+                "standard": True,
+                "recurrence": False,
+                "recurrence_pattern": "1",
+                "proposal": proposal_id_1,
+                "standard_requirement": str(proposal_standard_req_a1_id),
+                #"recurrence_schedule": "1",
+                "free_requirement": ""
+                }
+        add_requirements_response_2 = self.client.post(
+                '/api/proposal_requirements.json', 
+                add_requirements_data_2, 
+                format='json'
+                #content_type='application/json'
+                )
+        #proposal_requirement_2_id = add_requirements_response_2.data.get('id')
+        self.assertEqual(add_requirements_response_2.status_code, 201)
+
         # Propose to approve
         apiary_sites_1 = []
         for site_1 in saved_proposal_1.proposal_apiary.apiary_sites.all():
@@ -186,6 +227,48 @@ class ApiarySiteTransferIntegrationTests(APITestSetup):
         # login as internal 
         self.client.login(email=self.adminUser, password='pass')
         self.client.enforce_csrf_checks=True
+
+        # add requirements
+        proposal_standard_req_r2_id = ProposalStandardRequirement.objects.get(code='R2').id
+        add_requirements_data_3 = {
+                "due_date": "26/08/2020",
+                "standard": True,
+                "recurrence": True,
+                "recurrence_pattern": "1",
+                "proposal": proposal_id_2,
+                "standard_requirement": str(proposal_standard_req_r2_id),
+                "recurrence_schedule": "1",
+                "free_requirement": ""
+                }
+        add_requirements_response_3 = self.client.post(
+                '/api/proposal_requirements.json', 
+                add_requirements_data_3, 
+                format='json'
+                #content_type='application/json'
+                )
+        #proposal_requirement_3_id = add_requirements_response_3.data.get('id')
+        self.assertEqual(add_requirements_response_3.status_code, 201)
+
+        proposal_standard_req_a2_id = ProposalStandardRequirement.objects.get(code='A2').id
+        add_requirements_data_4 = {
+                "due_date": "26/07/2020",
+                "standard": True,
+                "recurrence": False,
+                "recurrence_pattern": "1",
+                "proposal": proposal_id_2,
+                "standard_requirement": str(proposal_standard_req_a2_id),
+                #"recurrence_schedule": "1",
+                "free_requirement": ""
+                }
+        add_requirements_response_4 = self.client.post(
+                '/api/proposal_requirements.json', 
+                add_requirements_data_4, 
+                format='json'
+                #content_type='application/json'
+                )
+        #proposal_requirement_4_id = add_requirements_response_4.data.get('id')
+        self.assertEqual(add_requirements_response_4.status_code, 201)
+
 
         # Propose to approve
         apiary_sites_2 = []

@@ -2521,6 +2521,7 @@ class ProposalApiary(models.Model):
                     else:
                         if self.proposal.application_type.name == ApplicationType.SITE_TRANSFER:
                             # approval must already exist - we reissue with same start and expiry dates
+                            # does thhis need to be reissued with self.reissue_approval() ?
                             originating_approval.issue_date = timezone.now()
                             originating_approval.applicant = self.proposal.applicant
                             originating_approval.proxy_applicant = self.proposal.proxy_applicant
@@ -2756,13 +2757,13 @@ class ProposalApiary(models.Model):
                 send_site_transfer_approval_email_notification(self.proposal, request, approval)
                 #self.proposal.save(version_comment='Final Approval: {}'.format(self.proposal.approval.lodgement_number))
                 self.proposal.save(version_comment='Originating Approval: {}, Target Approval: {}'.format(
-                    self.originating_approval.lodgement_number,
-                    self.target_approval.lodgement_number,
+                    originating_approval.lodgement_number,
+                    target_approval.lodgement_number,
                     )
                 )
                 #self.proposal.approval.documents.all().update(can_delete=False)
-                self.originating_approval.documents.all().update(can_delete=False)
-                self.target_approval.documents.all().update(can_delete=False)
+                originating_approval.documents.all().update(can_delete=False)
+                target_approval.documents.all().update(can_delete=False)
 
             except:
                 raise
