@@ -1137,6 +1137,7 @@ class Proposal(RevisionedMixin):
 
     def preview_approval(self,request,details):
         from disturbance.components.approvals.models import PreviewTempApproval
+        from disturbance.components.approvals.models import Approval
         with transaction.atomic():
             try:
                 if self.processing_status != 'with_approver':
@@ -1148,24 +1149,47 @@ class Proposal(RevisionedMixin):
                     raise ValidationError('The applicant needs to have set their postal address before approving this proposal.')
 
                 lodgement_number = self.previous_application.approval.lodgement_number if self.proposal_type in ['renewal', 'amendment'] else '' # renewals/amendments keep same licence number
-                preview_approval = PreviewTempApproval.objects.create(
-                    current_proposal = self,
-                    issue_date = timezone.now(),
-                    expiry_date = datetime.datetime.strptime(details.get('due_date'), '%d/%m/%Y').date(),
-                    start_date = datetime.datetime.strptime(details.get('start_date'), '%d/%m/%Y').date(),
-                    #submitter = self.submitter,
-                    #org_applicant = self.applicant if isinstance(self.applicant, Organisation) else None,
-                    #proxy_applicant = self.applicant if isinstance(self.applicant, EmailUser) else None,
-                    applicant = self.applicant,
-                    proxy_applicant = self.proxy_applicant,
-                    lodgement_number = lodgement_number,
-                )
+                # Apiary Site Transfer logic
+                form_data_str = request.POST.get('formData')
+                form_data = json.loads(form_data_str)
+                #if isinstance(form_data, list):
+                originating_approval_id = form_data.get('originating_approval_id')
+                target_approval_id = form_data.get('target_approval_id')
+                licence_buffer = None
+                if originating_approval_id:
+                    preview_approval = Approval.objects.get(id=originating_approval_id)
+                    licence_buffer = preview_approval.generate_apiary_site_transfer_doc(
+                            request.user, 
+                            site_transfer_proposal=self,
+                            preview=True
+                            )
+                elif target_approval_id:
+                    preview_approval = Approval.objects.get(id=target_approval_id)
+                    licence_buffer = preview_approval.generate_apiary_site_transfer_doc(
+                            request.user, 
+                            site_transfer_proposal=self,
+                            preview=True
+                            )
+                # All other logic
+                else:
+                    preview_approval = PreviewTempApproval.objects.create(
+                        current_proposal = self,
+                        issue_date = timezone.now(),
+                        expiry_date = datetime.datetime.strptime(details.get('due_date'), '%d/%m/%Y').date(),
+                        start_date = datetime.datetime.strptime(details.get('start_date'), '%d/%m/%Y').date(),
+                        #submitter = self.submitter,
+                        #org_applicant = self.applicant if isinstance(self.applicant, Organisation) else None,
+                        #proxy_applicant = self.applicant if isinstance(self.applicant, EmailUser) else None,
+                        applicant = self.applicant,
+                        proxy_applicant = self.proxy_applicant,
+                        lodgement_number = lodgement_number,
+                    )
 
-                # Generate the preview document - get the value of the BytesIO buffer
-                licence_buffer = preview_approval.generate_doc(request.user, preview=True)
+                    # Generate the preview document - get the value of the BytesIO buffer
+                    licence_buffer = preview_approval.generate_doc(request.user, preview=True)
 
-                # clean temp preview licence object
-                transaction.set_rollback(True)
+                    # clean temp preview licence object
+                    transaction.set_rollback(True)
 
                 return licence_buffer
             except:
