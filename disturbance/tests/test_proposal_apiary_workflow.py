@@ -62,7 +62,7 @@ class ApiaryIntegrationTests(APITestSetup):
         draft_proposal_data = {
                 "schema": json.dumps(draft_schema),
                 #"all_the_features": json.dumps(self.all_the_features)
-                "all_the_features": self.all_the_features
+                "all_the_features": self.all_the_features_1
                 }
         draft_response = self.client.post(
                 '/api/proposal/{}/draft/'.format(proposal_id),
