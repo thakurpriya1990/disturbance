@@ -1,5 +1,6 @@
 import re
 
+from django.contrib.gis.measure import Distance
 from django.core.exceptions import ValidationError
 from django.shortcuts import redirect
 from django.urls import reverse
@@ -26,6 +27,7 @@ from disturbance.components.proposals.serializers_apiary import (
     ProposalApiarySerializer,
     ProposalApiaryTemporaryUseSerializer,
     ProposalApiarySiteTransferSerializer, ApiarySiteSerializer, TemporaryUseApiarySiteSerializer,
+    ApiarySiteSavePointSerializer,
 )
 from disturbance.components.proposals.email import send_submit_email_notification, send_external_submit_email_notification
 
@@ -35,6 +37,7 @@ import json
 
 import logging
 
+from disturbance.settings import RESTRICTED_RADIUS
 from disturbance.utils import convert_moment_str_to_python_datetime_obj
 
 logger = logging.getLogger(__name__)
@@ -487,6 +490,7 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                 site_ids_delete = [id for id in site_ids_existing if id not in site_ids_received]
 
                 # Handle ApiarySites here
+                ids = []
                 for index, feature in enumerate(site_locations_received):
                     feature['proposal_apiary_id'] = proposal_obj.proposal_apiary.id
 
@@ -515,14 +519,30 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                     # Save coordinate
                     geom_str = GEOSGeometry(
                         'POINT(' +
-                            str(feature['values_']['geometry']['flatCoordinates'][0]) + ' ' +
-                            str(feature['values_']['geometry']['flatCoordinates'][1]) +
+                        str(feature['values_']['geometry']['flatCoordinates'][0]) + ' ' +
+                        str(feature['values_']['geometry']['flatCoordinates'][1]) +
                         ')',
                         srid=4326
                     )
-                    apiary_site_obj.wkb_geometry = geom_str
-                    apiary_site_obj.save()
-                # END: Handle ApiarySites
+
+                    # Perform validation to the existing apiary sites
+                    serializer = ApiarySiteSavePointSerializer(apiary_site_obj, data={'wkb_geometry': geom_str})
+                    serializer.is_valid(raise_exception=True)
+                    serializer.save()
+
+                    ids.append(apiary_site_obj.id)
+
+                # Perform validation among the sites in this proposal
+                for id in ids:
+                    site = ApiarySite.objects.get(id=id)
+                    qs_sites_within = ApiarySite.objects.filter(
+                        wkb_geometry__distance_lte=(site.wkb_geometry, Distance(m=RESTRICTED_RADIUS)),
+                        id__in=ids
+                    ).exclude(id=id)
+
+                    if qs_sites_within:
+                        # In this proposal, there are apiary sites which are too close to each other
+                        raise serializers.ValidationError(['There are apiary sites in this proposal which are too close to each other.',])
 
                 for new_answer in site_location_data['checklist_answers']:
                     ans = ApiaryApplicantChecklistAnswer.objects.get(id=new_answer['id'])
