@@ -55,12 +55,44 @@ class ApprovalAnnualRentalFeeInvoiceEmail(TemplateEmailBase):
     txt_template = 'disturbance/emails/approval_annual_rental_fee_invoice.txt'
 
 
+class ContactLicenceHolderEmail(TemplateEmailBase):
+    subject = 'Someone is interested in your apiary site available.'
+    html_template = 'disturbance/emails/contact_licence_holder_email.html'
+    txt_template = 'disturbance/emails/contact_licence_holder_email.txt'
+
+
 def get_value_of_annual_rental_fee_invoice(approval, invoice):
     invoice_buffer = BytesIO()
     create_annual_rental_fee_invoice(invoice_buffer, approval, invoice)
     value = invoice_buffer.getvalue() # Get the value of the BytesIO buffer
     invoice_buffer.close()
     return value
+
+
+def send_contact_licence_holder_email(apiary_site, comments, sender):
+    email = ContactLicenceHolderEmail()
+
+    context = {
+        'apiary_site': apiary_site,
+        'comments': comments,
+        'sender': sender,
+    }
+    to_address = [apiary_site.approval.relevant_applicant_email,]
+    cc = [sender.email,]
+    bcc = []
+
+    msg = email.send(
+        to_address,
+        context=context,
+        attachments=[],
+        cc=cc,
+        bcc=bcc,
+    )
+
+    # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    sender = settings.DEFAULT_FROM_EMAIL
+    email_data = _extract_email_headers(msg, sender=sender)
+    return email_data
 
 
 def send_annual_rental_fee_invoice(approval, invoice):
