@@ -2523,15 +2523,15 @@ class ProposalApiary(models.Model):
                             # approval must already exist - we reissue with same start and expiry dates
                             # does thhis need to be reissued with self.reissue_approval() ?
                             originating_approval.issue_date = timezone.now()
-                            originating_approval.applicant = self.proposal.applicant
-                            originating_approval.proxy_applicant = self.proposal.proxy_applicant
-                            originating_approval.apiary_approval = self.proposal.apiary_group_application_type
+                            #originating_approval.applicant = self.proposal.applicant
+                            #originating_approval.proxy_applicant = self.proposal.proxy_applicant
+                            #originating_approval.apiary_approval = self.proposal.apiary_group_application_type
                             originating_approval.current_proposal = checking_proposal
                             originating_approval.save()
                             target_approval.issue_date = timezone.now()
-                            target_approval.applicant = self.proposal.applicant
-                            target_approval.proxy_applicant = self.proposal.proxy_applicant
-                            target_approval.apiary_approval = self.proposal.apiary_group_application_type
+                            #target_approval.applicant = self.proposal.applicant
+                            #target_approval.proxy_applicant = self.proposal.proxy_applicant
+                            #target_approval.apiary_approval = self.proposal.apiary_group_application_type
                             target_approval.current_proposal = checking_proposal
                             target_approval.save()
                         else:
@@ -2571,6 +2571,7 @@ class ProposalApiary(models.Model):
                         #import ipdb;ipdb.set_trace()
                         # for site in self.apiary_sites.all():
                         if self.proposal.application_type.name == ApplicationType.SITE_TRANSFER:
+                            #import ipdb; ipdb.set_trace()
                             # updated apiary_site.selected with 'checked' flag status
                             apiary_sites = request.data.get('apiary_sites', [])
                             for apiary_site in apiary_sites:
@@ -2587,7 +2588,7 @@ class ProposalApiary(models.Model):
                                     customer_selected=True
                                     )
                             for site in transfer_sites:
-                                site.apiary_site.approval = approval
+                                site.apiary_site.approval = target_approval
                                 site.apiary_site.save()
                         else:
                             count_approved_site = 0
@@ -2698,6 +2699,10 @@ class ProposalApiary(models.Model):
                                         request
                                         )
                         self.proposal.approval = approval
+                        #send Proposal approval email with attachment
+                        send_proposal_approval_email_notification(self.proposal,request)
+                        self.proposal.save(version_comment='Final Approval: {}'.format(self.proposal.approval.lodgement_number))
+                        self.proposal.approval.documents.all().update(can_delete=False)
                     elif self.proposal.application_type.name == ApplicationType.SITE_TRANSFER:
                         #import ipdb;ipdb.set_trace()
                         # add Site Transfer Compliance/Requirements logic here
@@ -2725,6 +2730,8 @@ class ProposalApiary(models.Model):
                                     ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.proposal.id),
                                     request
                                     )
+                        #send Proposal approval email with attachment
+                        send_site_transfer_approval_email_notification(self.proposal, request, originating_approval)
                         ## Target approval
                         target_approval.generate_apiary_site_transfer_doc(request.user, site_transfer_proposal=self.proposal)
                         #Delete the future compliances if Approval is reissued and generate the compliances again.
@@ -2748,22 +2755,17 @@ class ProposalApiary(models.Model):
                                     ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.proposal.id),
                                     request
                                     )
-
-                        #self.proposal.approval = approval
-
-                        #pass
-
-                #send Proposal approval email with attachment
-                send_site_transfer_approval_email_notification(self.proposal, request, approval)
-                #self.proposal.save(version_comment='Final Approval: {}'.format(self.proposal.approval.lodgement_number))
-                self.proposal.save(version_comment='Originating Approval: {}, Target Approval: {}'.format(
-                    originating_approval.lodgement_number,
-                    target_approval.lodgement_number,
-                    )
-                )
-                #self.proposal.approval.documents.all().update(can_delete=False)
-                originating_approval.documents.all().update(can_delete=False)
-                target_approval.documents.all().update(can_delete=False)
+                        #send Proposal approval email with attachment
+                        send_site_transfer_approval_email_notification(self.proposal, request, target_approval)
+                        #self.proposal.save(version_comment='Final Approval: {}'.format(self.proposal.approval.lodgement_number))
+                        self.proposal.save(version_comment='Originating Approval: {}, Target Approval: {}'.format(
+                            originating_approval.lodgement_number,
+                            target_approval.lodgement_number,
+                            )
+                        )
+                        #self.proposal.approval.documents.all().update(can_delete=False)
+                        originating_approval.documents.all().update(can_delete=False)
+                        target_approval.documents.all().update(can_delete=False)
 
             except:
                 raise

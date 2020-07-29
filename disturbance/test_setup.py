@@ -1,6 +1,8 @@
 from mixer.backend.django import mixer
 from django.conf import settings
 from importlib import import_module
+from django.utils import timezone
+from datetime import timedelta
 
 from .management.default_data_manager import DefaultDataManager
 from .models import *
@@ -228,6 +230,18 @@ class APITestSetup(APITestCase):
             self.all_the_features_1 = json.load(features_file_1)
         with open('all_the_features_2.json', 'r') as features_file_2:
             self.all_the_features_2 = json.load(features_file_2)
+
+        # Dates
+        self.today = timezone.now().date()
+        self.today_str = self.today.strftime('%d/%m/%Y')
+        day_delta = timedelta(days=1)
+        week_delta = timedelta(weeks=1)
+        self.today_plus_1_day = self.today + day_delta
+        self.today_plus_1_week = self.today + day_delta
+        self.today_plus_26_weeks = self.today + (day_delta * 26)
+        self.today_plus_1_day_str = self.today_plus_1_day.strftime('%d/%m/%Y')
+        self.today_plus_1_week_str = self.today_plus_1_week.strftime('%d/%m/%Y')
+        self.today_plus_26_weeks_str = self.today_plus_26_weeks.strftime('%d/%m/%Y')
 
         # Get data ready
         temp = DefaultDataManager()

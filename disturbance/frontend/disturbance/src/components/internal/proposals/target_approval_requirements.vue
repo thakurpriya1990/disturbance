@@ -23,7 +23,7 @@
         ref="requirement_detail" 
         :proposal_id="proposal.id" 
         :requirements="requirements"
-        :approval="targetApprovalId"/>
+        :approval_id="targetApprovalId"/>
     </div>
 </template>
 <script>
