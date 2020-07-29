@@ -14,6 +14,7 @@ from django.core.files import File
 from django.conf import settings
 
 from disturbance.components.approvals.models import ApprovalDocument
+from disturbance.components.main.models import ApplicationType
 
 #BW_DPAW_HEADER_LOGO = os.path.join(settings.BASE_DIR, 'wildlifelicensing', 'static', 'wl', 'img',
 #                                   'bw_dpaw_header_logo.png')
@@ -220,8 +221,13 @@ def _create_approval(approval_buffer, approval, proposal, copied_to_permit, user
             #bulletFontName=BOLD_FONTNAME
     elements.append(understandingList)
 
-    # proposal requirements
-    requirements = proposal.requirements.all().exclude(is_deleted=True)
+    ## proposal requirements
+    requirements = None
+    # Apiary Site Transfer requirements
+    if proposal.application_type.name == ApplicationType.SITE_TRANSFER:
+        requirements = proposal.apiary_requirements(approval).exclude(is_deleted=True)
+    else:
+        requirements = proposal.requirements.all().exclude(is_deleted=True)
     if requirements.exists():
         elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
         elements.append(Paragraph('The following requirements must be satisfied for the approval of the proposal not to be withdrawn:', styles['BoldLeft']))

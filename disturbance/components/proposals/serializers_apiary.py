@@ -359,7 +359,7 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
     checklist_answers = serializers.SerializerMethodField()
     site_remainders = serializers.SerializerMethodField()
     originating_approval_lodgement_number = serializers.SerializerMethodField()
-    target_approval_id = serializers.SerializerMethodField()
+    #target_approval_id = serializers.SerializerMethodField()
     target_approval_lodgement_number = serializers.SerializerMethodField()
     transferee_name = serializers.SerializerMethodField()
     transferee_org_name = serializers.SerializerMethodField()
@@ -424,16 +424,17 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
             name = obj.proposal.approval.proxy_applicant.last_name
         return name
 
-    def get_target_approval_id(self, obj):
-        target_id = None
-        if obj.proposal.approval:
-            target_id = obj.proposal.approval.id
-        return target_id
+    #def get_target_approval_id(self, obj):
+    #    target_id = None
+    #    if obj.proposal.approval:
+    #        target_id = obj.proposal.approval.id
+    #    return target_id
 
     def get_target_approval_lodgement_number(self, obj):
         lodgement_number = None
-        if obj.proposal.approval:
-            lodgement_number = obj.proposal.approval.lodgement_number
+        if obj.target_approval:
+            #lodgement_number = obj.proposal.approval.lodgement_number
+            lodgement_number = obj.target_approval.lodgement_number
         return lodgement_number
 
     def get_originating_approval_lodgement_number(self, obj):
@@ -1159,8 +1160,8 @@ class UserApiaryApprovalSerializer(serializers.ModelSerializer):
                 )
 
     def get_apiary_approvals(self, obj):
-        sending_approval_id = self.context.get('sending_approval_id')
-        print(sending_approval_id)
+        originating_approval_id = self.context.get('originating_approval_id')
+        print(originating_approval_id)
         #return 'apiary_approvals'
         approvals = []
         multiple_approvals = False
@@ -1170,7 +1171,7 @@ class UserApiaryApprovalSerializer(serializers.ModelSerializer):
         for individual_approval in obj.disturbance_proxy_approvals.filter(
                 status='current', 
                 apiary_approval=True
-                ).exclude(id=sending_approval_id
+                ).exclude(id=originating_approval_id
                         ):
             #approval = Approval.objects.filter(applicant=self.proposal.applicant, status='current', apiary_approval=True).first()
             if individual_approval.apiary_approval:
@@ -1189,7 +1190,7 @@ class UserApiaryApprovalSerializer(serializers.ModelSerializer):
             for organisation_approval in user_delegation.organisation.disturbance_approvals.filter(
                     status='current',
                     apiary_approval=True
-                    ).exclude(id=sending_approval_id
+                    ).exclude(id=originating_approval_id
                             ):
                 if organisation_approval.apiary_approval:
                     approvals.append({

@@ -31,15 +31,15 @@ class ApiarySiteTransferIntegrationTests(APITestSetup):
                 "title": "test_title",
                 "checklist_answers": [
                         {
-                        "id": proposal_1.proposal_apiary.apiary_applicant_checklist.all()[0].id,
+                        "id": proposal_1.proposal_apiary.apiary_applicant_checklist.order_by('id')[0].id,
                         "answer": True
                         },
                         {
-                        "id": proposal_1.proposal_apiary.apiary_applicant_checklist.all()[1].id,
+                        "id": proposal_1.proposal_apiary.apiary_applicant_checklist.order_by('id')[1].id,
                         "answer": False
                         },
                         {
-                        "id": proposal_1.proposal_apiary.apiary_applicant_checklist.all()[2].id,
+                        "id": proposal_1.proposal_apiary.apiary_applicant_checklist.order_by('id')[2].id,
                         "answer": True
                         },
                     ]
@@ -73,6 +73,49 @@ class ApiarySiteTransferIntegrationTests(APITestSetup):
         self.client.login(email=self.adminUser, password='pass')
         self.client.enforce_csrf_checks=True
 
+        # add requirements
+        proposal_standard_req_r1_id = ProposalStandardRequirement.objects.get(code='R1').id
+        add_requirements_data_1 = {
+                #"due_date": "16/08/2020",
+                "due_date": self.today_plus_1_week_str,
+                "standard": True,
+                "recurrence": True,
+                "recurrence_pattern": "1",
+                "proposal": proposal_id_1,
+                "standard_requirement": str(proposal_standard_req_r1_id),
+                "recurrence_schedule": "1",
+                "free_requirement": ""
+                }
+        add_requirements_response_1 = self.client.post(
+                '/api/proposal_requirements.json', 
+                add_requirements_data_1, 
+                format='json'
+                #content_type='application/json'
+                )
+        #proposal_requirement_1_id = add_requirements_response_1.data.get('id')
+        self.assertEqual(add_requirements_response_1.status_code, 201)
+
+        proposal_standard_req_a1_id = ProposalStandardRequirement.objects.get(code='A1').id
+        add_requirements_data_2 = {
+                #"due_date": "16/08/2020",
+                "due_date": self.today_plus_1_week_str,
+                "standard": True,
+                "recurrence": False,
+                "recurrence_pattern": "1",
+                "proposal": proposal_id_1,
+                "standard_requirement": str(proposal_standard_req_a1_id),
+                #"recurrence_schedule": "1",
+                "free_requirement": ""
+                }
+        add_requirements_response_2 = self.client.post(
+                '/api/proposal_requirements.json', 
+                add_requirements_data_2, 
+                format='json'
+                #content_type='application/json'
+                )
+        #proposal_requirement_2_id = add_requirements_response_2.data.get('id')
+        self.assertEqual(add_requirements_response_2.status_code, 201)
+
         # Propose to approve
         apiary_sites_1 = []
         for site_1 in saved_proposal_1.proposal_apiary.apiary_sites.all():
@@ -83,8 +126,10 @@ class ApiarySiteTransferIntegrationTests(APITestSetup):
                 })
         propose_to_approve_data_1 = {
                 "details": "test details 1",
-                "expiry_date": "15/07/2021",
-                "start_date": "01/07/2020",
+                #"expiry_date": "15/07/2021",
+                "expiry_date": self.today_plus_26_weeks_str,
+                "start_date": self.today_str,
+                #"start_date": "01/07/2020",
                 #"apiary_sites": "{}".format(apiary_sites)
                 "apiary_sites": apiary_sites_1
                 }
@@ -145,15 +190,15 @@ class ApiarySiteTransferIntegrationTests(APITestSetup):
                 "title": "test_title",
                 "checklist_answers": [
                         {
-                        "id": proposal_2.proposal_apiary.apiary_applicant_checklist.all()[0].id,
+                        "id": proposal_2.proposal_apiary.apiary_applicant_checklist.order_by('id')[0].id,
                         "answer": True
                         },
                         {
-                        "id": proposal_2.proposal_apiary.apiary_applicant_checklist.all()[1].id,
+                        "id": proposal_2.proposal_apiary.apiary_applicant_checklist.order_by('id')[1].id,
                         "answer": False
                         },
                         {
-                        "id": proposal_2.proposal_apiary.apiary_applicant_checklist.all()[2].id,
+                        "id": proposal_2.proposal_apiary.apiary_applicant_checklist.order_by('id')[2].id,
                         "answer": True
                         },
                     ]
@@ -187,6 +232,50 @@ class ApiarySiteTransferIntegrationTests(APITestSetup):
         self.client.login(email=self.adminUser, password='pass')
         self.client.enforce_csrf_checks=True
 
+        # add requirements
+        proposal_standard_req_r2_id = ProposalStandardRequirement.objects.get(code='R2').id
+        add_requirements_data_3 = {
+                #"due_date": "26/08/2020",
+                "due_date": self.today_plus_1_week_str,
+                "standard": True,
+                "recurrence": True,
+                "recurrence_pattern": "1",
+                "proposal": proposal_id_2,
+                "standard_requirement": str(proposal_standard_req_r2_id),
+                "recurrence_schedule": "1",
+                "free_requirement": ""
+                }
+        add_requirements_response_3 = self.client.post(
+                '/api/proposal_requirements.json', 
+                add_requirements_data_3, 
+                format='json'
+                #content_type='application/json'
+                )
+        #proposal_requirement_3_id = add_requirements_response_3.data.get('id')
+        self.assertEqual(add_requirements_response_3.status_code, 201)
+
+        proposal_standard_req_a2_id = ProposalStandardRequirement.objects.get(code='A2').id
+        add_requirements_data_4 = {
+                #"due_date": "26/07/2020",
+                "due_date": self.today_plus_1_week_str,
+                "standard": True,
+                "recurrence": False,
+                "recurrence_pattern": "1",
+                "proposal": proposal_id_2,
+                "standard_requirement": str(proposal_standard_req_a2_id),
+                #"recurrence_schedule": "1",
+                "free_requirement": ""
+                }
+        add_requirements_response_4 = self.client.post(
+                '/api/proposal_requirements.json', 
+                add_requirements_data_4, 
+                format='json'
+                #content_type='application/json'
+                )
+        #proposal_requirement_4_id = add_requirements_response_4.data.get('id')
+        self.assertEqual(add_requirements_response_4.status_code, 201)
+
+
         # Propose to approve
         apiary_sites_2 = []
         for site_2 in saved_proposal_2.proposal_apiary.apiary_sites.all():
@@ -197,8 +286,10 @@ class ApiarySiteTransferIntegrationTests(APITestSetup):
                 })
         propose_to_approve_data_2 = {
                 "details": "test details 2",
-                "expiry_date": "15/07/2021",
-                "start_date": "01/07/2020",
+                #"expiry_date": "15/07/2021",
+                #"start_date": "01/07/2020",
+                "expiry_date": self.today_plus_26_weeks_str,
+                "start_date": self.today_str,
                 #"apiary_sites": "{}".format(apiary_sites)
                 "apiary_sites": apiary_sites_2
                 }
@@ -267,15 +358,15 @@ class ApiarySiteTransferIntegrationTests(APITestSetup):
                 "title": "test_title",
                 "checklist_answers": [
                         {
-                        "id": site_transfer_proposal.proposal_apiary.apiary_applicant_checklist.all()[0].id,
+                        "id": site_transfer_proposal.proposal_apiary.apiary_applicant_checklist.order_by('id')[0].id,
                         "answer": True
                         },
                         {
-                        "id": site_transfer_proposal.proposal_apiary.apiary_applicant_checklist.all()[1].id,
+                        "id": site_transfer_proposal.proposal_apiary.apiary_applicant_checklist.order_by('id')[1].id,
                         "answer": False
                         },
                         {
-                        "id": site_transfer_proposal.proposal_apiary.apiary_applicant_checklist.all()[2].id,
+                        "id": site_transfer_proposal.proposal_apiary.apiary_applicant_checklist.order_by('id')[2].id,
                         "answer": True
                         },
                     ]
@@ -322,8 +413,8 @@ class ApiarySiteTransferIntegrationTests(APITestSetup):
                 })
         site_transfer_propose_to_approve_data = {
                 "details": "site transfer test details",
-                "expiry_date": "15/07/2021",
-                "start_date": "01/07/2020",
+                #"expiry_date": "15/07/2021",
+                #"start_date": "01/07/2020",
                 #"apiary_sites": "{}".format(apiary_sites)
                 "apiary_sites": site_transfer_apiary_sites
                 }
