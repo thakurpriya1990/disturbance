@@ -4,8 +4,8 @@ from importlib import import_module
 from django.utils import timezone
 from datetime import timedelta
 
-from .management.default_data_manager import DefaultDataManager
-from .models import *
+from disturbance.management.default_data_manager import DefaultDataManager
+#from .models import *
 from ledger.accounts.models import EmailUser, EmailUserManager
 import random
 import string
@@ -226,9 +226,9 @@ class APITestSetup(APITestCase):
          #   submit_schema = json.load(submit_schema_file)
         #with open('all_the_features.json', 'r') as features_file:
          #   self.all_the_features = json.load(features_file)
-        with open('all_the_features_1.json', 'r') as features_file_1:
+        with open('disturbance/tests/all_the_features_1.json', 'r') as features_file_1:
             self.all_the_features_1 = json.load(features_file_1)
-        with open('all_the_features_2.json', 'r') as features_file_2:
+        with open('disturbance/tests/all_the_features_2.json', 'r') as features_file_2:
             self.all_the_features_2 = json.load(features_file_2)
 
         # Dates
