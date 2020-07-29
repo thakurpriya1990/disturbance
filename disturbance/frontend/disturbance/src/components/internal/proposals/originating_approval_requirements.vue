@@ -19,7 +19,11 @@
                 </div>
             </div>
         </div>
-        <RequirementDetail ref="requirement_detail" :proposal_id="proposal.id" :requirements="requirements"/>
+        <RequirementDetail 
+        ref="requirement_detail" 
+        :proposal_id="proposal.id" 
+        :requirements="requirements"
+        :approval_id="originatingApprovalId"/>
     </div>
 </template>
 <script>
@@ -57,7 +61,7 @@ export default {
                 },
                 responsive: true,
                 ajax: {
-                    "url": helpers.add_endpoint_json(api_endpoints.approvals,vm.originatingApprovalId+'/requirements'),
+                    "url": helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/apiary_site_transfer_originating_approval_requirements'),
                     "dataSrc": ''
                 },
                 order: [],

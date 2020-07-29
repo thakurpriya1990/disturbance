@@ -107,7 +107,19 @@
                 </template>
 
             </div>
-            <p v-if="can_preview">Click <a href="#" @click.prevent="preview">here</a> to preview the approval letter.</p>
+            <div v-if="can_preview">
+                <div v-if="siteTransferApplication">
+                    <div>
+                        Click <a href="#" @click.prevent="preview_originating_approval">here</a> to preview the originating approval letter.
+                    </div>
+                    <div>
+                        Click <a href="#" @click.prevent="preview_target_approval">here</a> to preview the target approval letter.
+                    </div>
+                </div>
+                <div v-else>
+                    Click <a href="#" @click.prevent="preview">here</a> to preview the approval letter.
+                </div>
+            </div>
             <div slot="footer">
                 <button type="button" v-if="issuingApproval" disabled class="btn btn-default" @click="ok"><i class="fa fa-spinner fa-spin"></i> Processing</button>
                 <button type="button" v-else class="btn btn-default" @click="ok">Ok</button>
@@ -299,6 +311,36 @@ export default {
             for (const [key, value] of formData.entries()) {
                 jsonObject[key] = value;
             }
+            vm.post_and_redirect(vm.preview_licence_url, {'csrfmiddlewaretoken' : vm.csrf_token, 'formData': JSON.stringify(jsonObject)});
+        },
+        preview_originating_approval:function () {
+            let vm =this;
+            let formData = new FormData(vm.form)
+            if (this.proposal.approval && this.proposal.approval.start_date && this.proposal.approval.expiry_date) {
+                formData.append('start_date', moment(this.proposal.approval.start_date, 'YYYY-MM-DD').format('DD/MM/YYYY'));
+                formData.append('due_date', moment(this.proposal.approval.expiry_date, 'YYYY-MM-DD').format('DD/MM/YYYY'));
+            }
+            // convert formData to json
+            let jsonObject = {};
+            for (const [key, value] of formData.entries()) {
+                jsonObject[key] = value;
+            }
+            jsonObject['originating_approval_id'] = this.proposal.proposal_apiary.originating_approval_id;
+            vm.post_and_redirect(vm.preview_licence_url, {'csrfmiddlewaretoken' : vm.csrf_token, 'formData': JSON.stringify(jsonObject)});
+        },
+        preview_target_approval:function () {
+            let vm =this;
+            let formData = new FormData(vm.form)
+            if (this.proposal.approval && this.proposal.approval.start_date && this.proposal.approval.expiry_date) {
+                formData.append('start_date', moment(this.proposal.approval.start_date, 'YYYY-MM-DD').format('DD/MM/YYYY'));
+                formData.append('due_date', moment(this.proposal.approval.expiry_date, 'YYYY-MM-DD').format('DD/MM/YYYY'));
+            }
+            // convert formData to json
+            let jsonObject = {};
+            for (const [key, value] of formData.entries()) {
+                jsonObject[key] = value;
+            }
+            jsonObject['target_approval_id'] = this.proposal.proposal_apiary.target_approval_id;
             vm.post_and_redirect(vm.preview_licence_url, {'csrfmiddlewaretoken' : vm.csrf_token, 'formData': JSON.stringify(jsonObject)});
         },
         post_and_redirect: function(url, postData) {
