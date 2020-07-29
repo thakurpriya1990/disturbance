@@ -224,8 +224,8 @@ class APITestSetup(APITestCase):
         # submit_proposal_data
         #with open('submit_schema.json', 'r') as submit_schema_file:
          #   submit_schema = json.load(submit_schema_file)
-        with open('all_the_features.json', 'r') as features_file:
-            self.all_the_features = json.load(features_file)
+        #with open('all_the_features.json', 'r') as features_file:
+         #   self.all_the_features = json.load(features_file)
         with open('all_the_features_1.json', 'r') as features_file_1:
             self.all_the_features_1 = json.load(features_file_1)
         with open('all_the_features_2.json', 'r') as features_file_2:
