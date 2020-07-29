@@ -1,6 +1,8 @@
 import pytz
 from django.conf import settings
 from datetime import datetime, timedelta, date
+
+from django.contrib.gis.measure import Distance
 from django.db.models import Q
 
 from ledger.settings_base import TIME_ZONE
@@ -44,6 +46,8 @@ from reversion.models import Version
 from django.utils import timezone
 from django.contrib.contenttypes.models import ContentType
 from ledger.accounts.models import EmailUser
+
+from disturbance.settings import RESTRICTED_RADIUS
 
 
 class VersionSerializer(serializers.ModelSerializer):
@@ -226,8 +230,30 @@ class OnSiteInformationSerializer(serializers.ModelSerializer):
             # Partial udpate, which means the dict data doesn't have all the field
             pass
 
-
         return data
+
+
+class ApiarySiteSavePointSerializer(GeoFeatureModelSerializer):
+
+    def validate(self, attrs):
+        non_field_errors = []
+
+        qs_sites_within = ApiarySite.objects.filter(wkb_geometry__distance_lte=(attrs['wkb_geometry'], Distance(m=RESTRICTED_RADIUS))).\
+                                             exclude(status__in=ApiarySite.NON_RESTRICTIVE_STATUSES)
+        if qs_sites_within:
+            # There is at least one existing apiary site which is too close to the site being created
+            non_field_errors.append('There is an existing apiary site which is too close to the apiary site you are adding at the coordinates: {}'.format(attrs['wkb_geometry'].coords))
+
+        # Raise errors
+        if non_field_errors:
+            raise serializers.ValidationError(non_field_errors)
+
+        return attrs
+
+    class Meta:
+        model = ApiarySite
+        geo_field = 'wkb_geometry'
+        fields = ('wkb_geometry',)
 
 
 class ApiarySiteSerializer(serializers.ModelSerializer):
@@ -238,6 +264,9 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
     coordinates = serializers.SerializerMethodField()
     as_geojson = serializers.SerializerMethodField()
     previous_site_holder_or_applicant = serializers.SerializerMethodField()
+
+    def validate(self, attrs):
+        return attrs
 
     def get_previous_site_holder_or_applicant(self, apiary_site):
         if apiary_site.approval:

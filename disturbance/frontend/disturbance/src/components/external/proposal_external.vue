@@ -212,11 +212,7 @@ export default {
                 console.log('in attach_apiary_sites_data')
                 if (this.proposal && this.proposal.proposal_apiary){
                     let allFeatures = this.$refs.proposal_apiary.$refs.apiary_site_locations.getFeatures()
-                    console.log('allFeatures: ')
-                    console.log(allFeatures)
                     let json_features = JSON.stringify(allFeatures)
-                    console.log('json_features: ')
-                    console.log(json_features)
                     formData.append('all_the_features', json_features)
                 }
                 return formData
@@ -245,10 +241,6 @@ export default {
                 formData.append('apiary_sites_local', JSON.stringify(this.$refs.apiary_site_transfer.apiary_sites_local));
             }
 
-            console.log('formData: ')
-            console.log(formData)
-            console.log('url: ' + vm.proposal_form_url)
-
             vm.$http.post(vm.proposal_form_url, formData).then(
                 res=>{
                     if (confirmation_required){
@@ -260,7 +252,7 @@ export default {
                     }
                 },
                 err=>{
-
+                    helpers.processError(err)
                 }
             );
         },

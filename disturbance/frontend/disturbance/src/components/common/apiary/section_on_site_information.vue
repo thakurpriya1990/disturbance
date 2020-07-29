@@ -213,7 +213,7 @@
                         }
                     });
                 } catch (err) {
-                    this.processError(err)
+                    helpers.processError(err)
                 }
             },
             constructOnSiteInformationTable: function(){

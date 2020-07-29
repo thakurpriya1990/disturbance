@@ -31,6 +31,7 @@ from ledger.accounts.models import EmailUser, Address
 from ledger.address.models import Country
 from datetime import datetime, timedelta, date
 
+from disturbance.components.approvals.email import send_contact_licence_holder_email
 from disturbance.components.main.decorators import basic_exception_handler
 from disturbance.components.proposals.utils import (
     save_proponent_data,
@@ -108,7 +109,7 @@ from disturbance.components.proposals.serializers_apiary import (
     UserApiaryApprovalSerializer, ApiarySiteGeojsonSerializer,
 )
 from disturbance.components.approvals.models import Approval
-from disturbance.components.approvals.serializers import ApprovalSerializer
+from disturbance.components.approvals.serializers import ApprovalSerializer, ApprovalLogEntrySerializer
 from disturbance.components.compliances.models import Compliance
 from disturbance.components.compliances.serializers import ComplianceSerializer
 
@@ -431,6 +432,22 @@ class OnSiteInformationViewSet(viewsets.ModelViewSet):
 class ApiarySiteViewSet(viewsets.ModelViewSet):
     queryset = ApiarySite.objects.all()
     serializer_class = ApiarySiteSerializer
+
+    @detail_route(methods=['POST',])
+    @basic_exception_handler
+    def contact_licence_holder(self, request, *args, **kwargs):
+        apiary_site = self.get_object()
+        comments = request.data.get('comments', '')
+        sender = request.user
+        email_data = send_contact_licence_holder_email(apiary_site, comments, sender)
+
+        email_data['approval'] = u'{}'.format(apiary_site.approval.id)
+        # request.data['staff'] = u'{}'.format(request.user.id)
+        serializer = ApprovalLogEntrySerializer(data=email_data)
+        serializer.is_valid(raise_exception=True)
+        comms = serializer.save()
+
+        return Response({})
 
     @list_route(methods=['GET',])
     @basic_exception_handler
