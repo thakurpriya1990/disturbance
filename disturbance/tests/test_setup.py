@@ -38,6 +38,7 @@ from disturbance.components.approvals.models import (
 
 
 class APITestSetup(APITestCase):
+    fixtures = ['countries.json']
 
     def setUp(self):
         print("setup method")
