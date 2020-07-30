@@ -319,7 +319,7 @@ def oracle_integration(date,override):
 
 def create_other_invoice_for_annual_rental_fee(approval, today_now, period, apiary_sites, request=None):
     """
-    This function is called from the cron job to issue annual rental fee invoices
+    This function is called to issue annual rental fee invoices
     """
     with transaction.atomic():
         try:
@@ -418,14 +418,15 @@ def generate_line_items_for_annual_rental_fee(approval, today_now, period, apiar
         sites_str = ', '.join(['site: ' + str(site['id']) for site in apiary_sites])
 
     line_items = [
-        {'ledger_description': 'Annual Rental Fee: {}, Issued: {} {}, Period: {} to {}, Site(s): {}'.format(
-            approval.lodgement_number,
-            today_now.strftime("%d/%m/%Y"),
-            today_now.strftime("%I:%M %p"),
-            details_dict['charge_start_date'].strftime('%d/%m/%Y'),
-            details_dict['charge_end_date'].strftime('%d/%m/%Y'),
-            sites_str
-        ),
+        {
+            'ledger_description': 'Annual Rental Fee: {}, Issued: {} {}, Period: {} to {}, Site(s): {}'.format(
+                approval.lodgement_number,
+                today_now.strftime("%d/%m/%Y"),
+                today_now.strftime("%I:%M %p"),
+                details_dict['charge_start_date'].strftime('%d/%m/%Y'),
+                details_dict['charge_end_date'].strftime('%d/%m/%Y'),
+                sites_str
+            ),
             'oracle_code': 'ABC123 GST',
             'price_incl_tax': details_dict['total_amount'],
             'price_excl_tax': details_dict['total_amount'],

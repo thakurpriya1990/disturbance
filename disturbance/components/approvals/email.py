@@ -4,6 +4,8 @@ from django.core.mail import EmailMultiAlternatives, EmailMessage
 from django.utils.encoding import smart_text
 from django.conf import settings
 
+from disturbance.components.das_payments.awaiting_payment_invoice_pdf import \
+    create_annual_rental_fee_awaiting_payment_confirmation
 from disturbance.components.das_payments.invoice_pdf import create_annual_rental_fee_invoice
 from disturbance.components.emails.emails import TemplateEmailBase
 from ledger.accounts.models import EmailUser
@@ -55,10 +57,24 @@ class ApprovalAnnualRentalFeeInvoiceEmail(TemplateEmailBase):
     txt_template = 'disturbance/emails/approval_annual_rental_fee_invoice.txt'
 
 
+class ApprovalAnnualRentalFeeAwaitingPaymentConfirmationEmail(TemplateEmailBase):
+    subject = 'Annual rental fee invoice for your licence has been issued.'
+    html_template = 'disturbance/emails/approval_annual_rental_fee_awaiting_payment_confirmation.html'
+    txt_template = 'disturbance/emails/approval_annual_rental_fee_awaiting_payment_confirmation.txt'
+
+
 class ContactLicenceHolderEmail(TemplateEmailBase):
     subject = 'Someone is interested in your apiary site available.'
     html_template = 'disturbance/emails/contact_licence_holder_email.html'
     txt_template = 'disturbance/emails/contact_licence_holder_email.txt'
+
+
+def get_value_of_annual_rental_fee_awaiting_payment_confirmatin(approval, annual_rental_fee):
+    invoice_buffer = BytesIO()
+    create_annual_rental_fee_awaiting_payment_confirmation(invoice_buffer, approval, annual_rental_fee)
+    value = invoice_buffer.getvalue() # Get the value of the BytesIO buffer
+    invoice_buffer.close()
+    return value
 
 
 def get_value_of_annual_rental_fee_invoice(approval, invoice):
@@ -85,6 +101,36 @@ def send_contact_licence_holder_email(apiary_site, comments, sender):
         to_address,
         context=context,
         attachments=[],
+        cc=cc,
+        bcc=bcc,
+    )
+
+    # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    sender = settings.DEFAULT_FROM_EMAIL
+    email_data = _extract_email_headers(msg, sender=sender)
+    return email_data
+
+
+def send_annual_rental_fee_awaiting_payment_confirmation(approval, annual_rental_fee):
+    email = ApprovalAnnualRentalFeeAwaitingPaymentConfirmationEmail()
+
+    context = {
+        'approval': approval,
+        'annual_rental_fee': annual_rental_fee,
+    }
+
+    attachments = []
+    contents = get_value_of_annual_rental_fee_awaiting_payment_confirmatin(approval, annual_rental_fee)
+    attachments.append(('awaiting_payment_confirmation.pdf', contents, 'application/pdf'))
+
+    to_address = [approval.relevant_applicant_email]
+    cc = []
+    bcc = []
+
+    msg = email.send(
+        to_address,
+        context=context,
+        attachments=attachments,
         cc=cc,
         bcc=bcc,
     )
