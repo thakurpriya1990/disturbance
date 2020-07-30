@@ -238,7 +238,6 @@ class Approval(RevisionedMixin):
                     return False
 
     def generate_apiary_site_transfer_doc(self, user, site_transfer_proposal, preview=False):
-        import ipdb; ipdb.set_trace()
         from disturbance.components.approvals.pdf import create_approval_doc, create_approval_pdf_bytes
         # review this data
         copied_to_permit = self.copiedToPermit_fields(site_transfer_proposal) #Get data related to isCopiedToPermit tag
