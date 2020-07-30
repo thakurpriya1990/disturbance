@@ -1,4 +1,4 @@
-from disturbance.test_setup import APITestSetup
+from disturbance.tests.test_setup import APITestSetup
 import json
 from disturbance.components.proposals.models import (
         Proposal,
