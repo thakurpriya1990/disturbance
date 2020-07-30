@@ -89,19 +89,9 @@ class APITestSetup(APITestCase):
         # customer1 UserAddress
         user1_address = UserAddress.objects.create(
                 country_id= 'AU',
-                #is_default_for_billing= True,
-                #is_default_for_shipping= True,
                 line1= '17 Dick Perry',
-                #line2: '',
-                #line3': u'',
-                #line4': u'BENTLEY DELIVERY CENTRE',
-                #notes': u'',
-                #num_orders': 0,
-                #phone_number': None,
                 postcode= '6151',
-                #'search_text': u'',
                 state= 'WA',
-                #title': u'',
                 user_id= self.customer1.id
                 )
 
@@ -116,19 +106,9 @@ class APITestSetup(APITestCase):
         # customer2 UserAddress
         user2_address = UserAddress.objects.create(
                 country_id= 'AU',
-                #is_default_for_billing= True,
-                #is_default_for_shipping= True,
                 line1= '17 Dick Perry',
-                #line2: '',
-                #line3': u'',
-                #line4': u'BENTLEY DELIVERY CENTRE',
-                #notes': u'',
-                #num_orders': 0,
-                #phone_number': None,
                 postcode= '6151',
-                #'search_text': u'',
                 state= 'WA',
-                #title': u'',
                 user_id= self.customer2.id
                 )
 
@@ -156,7 +136,6 @@ class APITestSetup(APITestCase):
         self.new_apiary_approver_group.members.add(self.adminUser)
 
         # Checklist questions/answers
-        #import ipdb; ipdb.set_trace()
         self.apiary_qu_1 = ApiaryApplicantChecklistQuestion.objects.create(answer_type='yes_no', checklist_type="apiary", text="first_question")
         self.apiary_qu_2 = ApiaryApplicantChecklistQuestion.objects.create(answer_type='yes_no', checklist_type="apiary", text="second_question")
         self.apiary_qu_3 = ApiaryApplicantChecklistQuestion.objects.create(answer_type='yes_no', checklist_type="apiary", text="third_question")
@@ -223,10 +202,6 @@ class APITestSetup(APITestCase):
             u'behalf_of': u'individual',
             }
         # submit_proposal_data
-        #with open('submit_schema.json', 'r') as submit_schema_file:
-         #   submit_schema = json.load(submit_schema_file)
-        #with open('all_the_features.json', 'r') as features_file:
-         #   self.all_the_features = json.load(features_file)
         with open('disturbance/tests/all_the_features_1.json', 'r') as features_file_1:
             self.all_the_features_1 = json.load(features_file_1)
         with open('disturbance/tests/all_the_features_2.json', 'r') as features_file_2:
