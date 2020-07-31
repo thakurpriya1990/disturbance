@@ -258,10 +258,11 @@ export default {
                     {
                         data: '',
                         mRender:function (data,type,full) {
+                            console.log(full)
                             let links = '';
                             if (!vm.is_external){
-                                if(full.can_approver_reissue){
-                                        links +=  `<a href='#${full.id}' data-reissue-approval='${full.current_proposal}'>Reissue</a><br/>`;
+                                if(full.can_approver_reissue && full.current_proposal && full.current_proposal.application_type !== 'Site Transfer'){
+                                        links +=  `<a href='#${full.id}' data-reissue-approval='${full.current_proposal.id}'>Reissue</a><br/>`;
                                 }
                                 if(vm.check_assessor(full)){
                                     // if(full.can_approver_reissue){
