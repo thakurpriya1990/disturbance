@@ -305,7 +305,7 @@ class Approval(RevisionedMixin):
                 raise
 
     def change_apiary_site_status(self, approval_status):
-        for site in self.apiary_sites:
+        for site in self.apiary_sites.all():
             if approval_status in (Approval.STATUS_CANCELLED, Approval.STATUS_SUSPENDED, Approval.STATUS_SURRENDERED,):
                 site.status = ApiarySite.STATUS_NOT_TO_BE_REISSUED
             elif approval_status == Approval.STATUS_EXPIRED:

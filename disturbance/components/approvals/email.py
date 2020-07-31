@@ -133,8 +133,10 @@ def send_approval_expire_email_notification(approval):
         'proposal': proposal
     } 
     all_ccs = []
-    if proposal.applicant.email:
-        cc_list = proposal.applicant.email
+    #if proposal.applicant.email:
+     #   cc_list = proposal.applicant.email
+    if proposal.relevant_applicant_email:
+        cc_list = proposal.relevant_applicant_email
         if cc_list:
             all_ccs = [cc_list]
 
@@ -146,7 +148,8 @@ def send_approval_expire_email_notification(approval):
         EmailUser.objects.create(email=sender, password='')
         sender_user = EmailUser.objects.get(email__icontains=sender)
     _log_approval_email(msg, approval, sender=sender_user)
-    _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender_user)
+    if proposal.applicant:
+        _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender_user)
 
 
 def send_approval_cancel_email_notification(approval, future_cancel=False):
@@ -160,8 +163,11 @@ def send_approval_cancel_email_notification(approval, future_cancel=False):
     }
 
     all_ccs = []
-    if proposal.applicant.email:
-        cc_list = proposal.applicant.email
+    #if proposal.applicant.email:
+     #   cc_list = proposal.applicant.email
+    if proposal.relevant_applicant_email:
+        cc_list = proposal.relevant_applicant_email
+
         if cc_list:
             all_ccs = [cc_list]
 
@@ -174,7 +180,8 @@ def send_approval_cancel_email_notification(approval, future_cancel=False):
     msg = email.send(proposal.submitter.email, cc=all_ccs, context=context)
     sender = settings.DEFAULT_FROM_EMAIL    
     _log_approval_email(msg, approval, sender=sender_user)
-    _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender_user)
+    if proposal.applicant:
+        _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender_user)
 
 
 def send_approval_suspend_email_notification(approval, future_suspend=False):
@@ -190,8 +197,10 @@ def send_approval_suspend_email_notification(approval, future_suspend=False):
     }
 
     all_ccs = []
-    if proposal.applicant.email:
-        cc_list = proposal.applicant.email
+    #if proposal.applicant.email:
+     #   cc_list = proposal.applicant.email
+    if proposal.relevant_applicant_email:
+        cc_list = proposal.relevant_applicant_email
         if cc_list:
             all_ccs = [cc_list]
 
@@ -204,7 +213,8 @@ def send_approval_suspend_email_notification(approval, future_suspend=False):
     msg = email.send(proposal.submitter.email, cc=all_ccs, context=context)
     sender = settings.DEFAULT_FROM_EMAIL    
     _log_approval_email(msg, approval, sender=sender_user)
-    _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender_user)
+    if proposal.applicant:
+        _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender_user)
 
 
 def send_approval_surrender_email_notification(approval, future_surrender=False):
@@ -218,8 +228,10 @@ def send_approval_surrender_email_notification(approval, future_surrender=False)
         'future_surrender': future_surrender           
     }
     all_ccs = []
-    if proposal.applicant and proposal.applicant.email:
-        cc_list = proposal.applicant.email
+    #if proposal.applicant and proposal.applicant.email:
+     #   cc_list = proposal.applicant.email
+    if proposal.relevant_applicant_email:
+        cc_list = proposal.relevant_applicant_email
         if cc_list:
             all_ccs = [cc_list]
 
@@ -245,8 +257,10 @@ def send_approval_renewal_email_notification(approval):
                     
     }
     all_ccs = []
-    if proposal.applicant.email:
-        cc_list = proposal.applicant.email
+    #if proposal.applicant.email:
+     #   cc_list = proposal.applicant.email
+    if proposal.relevant_applicant_email:
+        cc_list = proposal.relevant_applicant_email
         if cc_list:
             all_ccs = [cc_list]
 
@@ -267,7 +281,8 @@ def send_approval_renewal_email_notification(approval):
     msg = email.send(proposal.submitter.email, cc=all_ccs, attachments=attachment, context=context)
     sender = settings.DEFAULT_FROM_EMAIL    
     _log_approval_email(msg, approval, sender=sender_user)
-    _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender_user)
+    if proposal.applicant:
+        _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender_user)
 
 
 def send_approval_reinstate_email_notification(approval, request):
@@ -279,15 +294,18 @@ def send_approval_reinstate_email_notification(approval, request):
                 
     }    
     all_ccs = []
-    if proposal.applicant.email:
-        cc_list = proposal.applicant.email
+    #if proposal.applicant.email:
+     #   cc_list = proposal.applicant.email
+    if proposal.relevant_applicant_email:
+        cc_list = proposal.relevant_applicant_email
         if cc_list:
             all_ccs = [cc_list]
 
     msg = email.send(proposal.submitter.email,cc=all_ccs, context=context)
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL    
     _log_approval_email(msg, approval, sender=sender)
-    _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
+    if proposal.applicant:
+        _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
 
 
 def _log_approval_email(email_message, approval, sender=None):
