@@ -58,7 +58,7 @@ class ApprovalAnnualRentalFeeInvoiceEmail(TemplateEmailBase):
 
 
 class ApprovalAnnualRentalFeeAwaitingPaymentConfirmationEmail(TemplateEmailBase):
-    subject = 'Annual rental fee invoice for your licence has been issued.'
+    subject = 'Annual rental fee awaiting payment confirmation for your licence has been issued.'
     html_template = 'disturbance/emails/approval_annual_rental_fee_awaiting_payment_confirmation.html'
     txt_template = 'disturbance/emails/approval_annual_rental_fee_awaiting_payment_confirmation.txt'
 
@@ -69,9 +69,9 @@ class ContactLicenceHolderEmail(TemplateEmailBase):
     txt_template = 'disturbance/emails/contact_licence_holder_email.txt'
 
 
-def get_value_of_annual_rental_fee_awaiting_payment_confirmatin(approval, annual_rental_fee):
+def get_value_of_annual_rental_fee_awaiting_payment_confirmation(annual_rental_fee):
     invoice_buffer = BytesIO()
-    create_annual_rental_fee_awaiting_payment_confirmation(invoice_buffer, approval, annual_rental_fee)
+    create_annual_rental_fee_awaiting_payment_confirmation(invoice_buffer, annual_rental_fee)
     value = invoice_buffer.getvalue() # Get the value of the BytesIO buffer
     invoice_buffer.close()
     return value
@@ -120,7 +120,7 @@ def send_annual_rental_fee_awaiting_payment_confirmation(approval, annual_rental
     }
 
     attachments = []
-    contents = get_value_of_annual_rental_fee_awaiting_payment_confirmatin(approval, annual_rental_fee)
+    contents = get_value_of_annual_rental_fee_awaiting_payment_confirmation(annual_rental_fee)
     attachments.append(('awaiting_payment_confirmation.pdf', contents, 'application/pdf'))
 
     to_address = [approval.relevant_applicant_email]

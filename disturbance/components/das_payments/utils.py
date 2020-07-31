@@ -51,11 +51,24 @@ def set_session_application_invoice(session, application_fee):
     session.modified = True
 
 
+def delete_session_annual_rental_fee(session):
+    """ Application Fee session ID """
+    if 'annual_rental_fee' in session:
+        del session['annual_rental_fee']
+        session.modified = True
+
+
+def set_session_annual_rental_fee(session, annual_rental_fee):
+    session['annual_rental_fee'] = annual_rental_fee.id
+    session.modified = True
+
+
 def delete_session_application_invoice(session):
     """ Application Fee session ID """
     if 'das_app_invoice' in session:
         del session['das_app_invoice']
         session.modified = True
+
 
 def get_session_site_transfer_application_invoice(session):
     """ Application Fee session ID """
@@ -275,7 +288,8 @@ def checkout(request, proposal, lines, return_url_ns='public_payment_success', r
     #if internal or request.user.is_anonymous():
     if proxy or request.user.is_anonymous():
         #checkout_params['basket_owner'] = booking.customer.id
-        checkout_params['basket_owner'] = proposal.submitter_id
+        # checkout_params['basket_owner'] = proposal.submitter_id  # There isn't a submitter_id field... supposed to be submitter.id...?
+        checkout_params['basket_owner'] = proposal.submitter.id
 
 
     create_checkout_session(request, checkout_params)

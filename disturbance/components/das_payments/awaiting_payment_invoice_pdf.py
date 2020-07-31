@@ -19,6 +19,7 @@ from django.conf import settings
 
 from ledger.checkout.utils import calculate_excl_gst
 from disturbance.components.main.utils import to_local_tz
+from disturbance.settings import DBCA_ABN
 
 DPAW_HEADER_LOGO = os.path.join(settings.PROJECT_DIR, 'payments','static', 'payments', 'img','dbca_logo.jpg')
 DPAW_HEADER_LOGO_SM = os.path.join(settings.PROJECT_DIR, 'payments','static', 'payments', 'img','dbca_logo_small.png')
@@ -202,10 +203,10 @@ def _create_header(canvas, doc, draw_page_number=True):
     canvas.drawImage(dpaw_header_logo, PAGE_WIDTH / 3, current_y - (dpaw_header_logo_size[1]/2),width=dpaw_header_logo_size[0]/2, height=dpaw_header_logo_size[1]/2, mask='auto')
 
     current_y -= 70
-    canvas.drawCentredString(PAGE_WIDTH / 2, current_y - LARGE_FONTSIZE, 'TAX INVOICE')
+    canvas.drawCentredString(PAGE_WIDTH / 2, current_y - LARGE_FONTSIZE, 'AWAITING PAYMENT CONFIRMATION')
 
     current_y -= 20
-    canvas.drawCentredString(PAGE_WIDTH / 2, current_y - LARGE_FONTSIZE, 'ABN: 38 052 249 024')
+    canvas.drawCentredString(PAGE_WIDTH / 2, current_y - LARGE_FONTSIZE, 'ABN: ' + DBCA_ABN)
 
     # Invoice address details
     invoice_details_offset = 37
@@ -257,7 +258,7 @@ def _is_gst_exempt(proposal, invoice):
     return proposal.application_type.is_gst_exempt if proposal and proposal.fee_invoice_reference == invoice.reference else False
 
 
-def create_annual_rental_fee_awaiting_payment_confirmation(invoice_buffer, approval, annual_rental_fee):
+def create_annual_rental_fee_awaiting_payment_confirmation(invoice_buffer, annual_rental_fee):
     global DPAW_HEADER_LOGO
     DPAW_HEADER_LOGO = os.path.join(settings.PROJECT_DIR, 'payments','static', 'payments', 'img','dbca_logo.jpg')
     every_page_frame = Frame(PAGE_MARGIN, PAGE_MARGIN + 250, PAGE_WIDTH - 2 * PAGE_MARGIN, PAGE_HEIGHT -450 , id='EveryPagesFrame',showBoundary=0)
@@ -268,7 +269,7 @@ def create_annual_rental_fee_awaiting_payment_confirmation(invoice_buffer, appro
     # this is the only way to get data into the onPage callback function
     # doc.invoice = invoice
     # doc.proposal = proposal
-    doc.approval = approval
+    doc.approval = annual_rental_fee.approval
     doc.annual_rental_fee = annual_rental_fee
 
     # owner = invoice.owner

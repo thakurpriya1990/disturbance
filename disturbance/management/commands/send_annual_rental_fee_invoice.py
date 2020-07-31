@@ -159,5 +159,6 @@ def make_serializable(line_items):
     for line in line_items:
         for key in line:
             if isinstance(line[key], Decimal):
+                # Convert Decimal to str
                 line[key] = str(line[key])
     return line_items

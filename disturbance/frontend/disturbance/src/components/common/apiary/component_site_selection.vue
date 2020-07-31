@@ -151,7 +151,7 @@
                 default_checkbox_checked: false,  // If checked property isn't set as a apiary_site's property, this default value is used
                 dtHeaders: [
                     'Id',
-                    'C',
+                    '',
                     'Site',
                     'Longitude',
                     'Latitude',
