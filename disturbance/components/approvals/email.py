@@ -135,7 +135,7 @@ def send_approval_expire_email_notification(approval):
     all_ccs = []
     #if proposal.applicant.email:
      #   cc_list = proposal.applicant.email
-    if proposal.relevant_applicant_email:
+    if proposal.applicant and proposal.applicant.email != proposal.submitter.email:
         cc_list = proposal.relevant_applicant_email
         if cc_list:
             all_ccs = [cc_list]
@@ -165,7 +165,9 @@ def send_approval_cancel_email_notification(approval, future_cancel=False):
     all_ccs = []
     #if proposal.applicant.email:
      #   cc_list = proposal.applicant.email
-    if proposal.relevant_applicant_email:
+    #if proposal.relevant_applicant_email:
+    if proposal.applicant and proposal.applicant.email != proposal.submitter.email:
+    #if proposal.relevant_applicant_email and proposal.relevant_applicant_email != proposal.submitter.email:
         cc_list = proposal.relevant_applicant_email
 
         if cc_list:
@@ -199,7 +201,9 @@ def send_approval_suspend_email_notification(approval, future_suspend=False):
     all_ccs = []
     #if proposal.applicant.email:
      #   cc_list = proposal.applicant.email
-    if proposal.relevant_applicant_email:
+    #if proposal.relevant_applicant_email:
+    #if proposal.relevant_applicant_email and proposal.relevant_applicant_email != proposal.submitter.email:
+    if proposal.applicant and proposal.applicant.email != proposal.submitter.email:
         cc_list = proposal.relevant_applicant_email
         if cc_list:
             all_ccs = [cc_list]
@@ -230,7 +234,9 @@ def send_approval_surrender_email_notification(approval, future_surrender=False)
     all_ccs = []
     #if proposal.applicant and proposal.applicant.email:
      #   cc_list = proposal.applicant.email
-    if proposal.relevant_applicant_email:
+    #if proposal.relevant_applicant_email:
+    #if proposal.relevant_applicant_email and proposal.relevant_applicant_email != proposal.submitter.email:
+    if proposal.applicant and proposal.applicant.email != proposal.submitter.email:
         cc_list = proposal.relevant_applicant_email
         if cc_list:
             all_ccs = [cc_list]
@@ -259,7 +265,9 @@ def send_approval_renewal_email_notification(approval):
     all_ccs = []
     #if proposal.applicant.email:
      #   cc_list = proposal.applicant.email
-    if proposal.relevant_applicant_email:
+    #if proposal.relevant_applicant_email:
+    #if proposal.relevant_applicant_email and proposal.relevant_applicant_email != proposal.submitter.email:
+    if proposal.applicant and proposal.applicant.email != proposal.submitter.email:
         cc_list = proposal.relevant_applicant_email
         if cc_list:
             all_ccs = [cc_list]
@@ -296,7 +304,9 @@ def send_approval_reinstate_email_notification(approval, request):
     all_ccs = []
     #if proposal.applicant.email:
      #   cc_list = proposal.applicant.email
-    if proposal.relevant_applicant_email:
+    #if proposal.relevant_applicant_email:
+    #if proposal.relevant_applicant_email and proposal.relevant_applicant_email != proposal.submitter.email:
+    if proposal.applicant and proposal.applicant.email != proposal.submitter.email:
         cc_list = proposal.relevant_applicant_email
         if cc_list:
             all_ccs = [cc_list]
