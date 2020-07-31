@@ -1064,7 +1064,9 @@ class Proposal(RevisionedMixin):
         if not self.processing_status=='approved' :
             raise ValidationError('You cannot change the current status at this time')
         elif self.approval and self.approval.can_reissue:
-            if self.__approver_group() in request.user.proposalapprovergroup_set.all():
+            # Apiary logic in first condition
+            if (self.apiary_group_application_type and self.__approver_group() in request.user.apiaryapprovergroup_set.all()) \
+                    or self.__approver_group() in request.user.proposalapprovergroup_set.all():
                 self.processing_status = status
                 self.save()
                 self.approval.reissued=True
