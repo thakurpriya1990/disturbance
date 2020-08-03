@@ -153,6 +153,10 @@ def create_fee_lines_apiary(proposal):
 
     # applicant = EmailUser.objects.get(email='katsufumi.shibata@dbca.wa.gov.au')  # TODO: Get proper applicant
 
+    # Once payment success, data is updated based on this variable
+    # This variable is stored in the session
+    db_process_after_success = {'apiary_sites': [], 'site_remainder_used': [], 'site_remainder_to_be_added': []}
+
     # Calculate total number of sites applied per category
     summary = {}
     for apiary_site in proposal.proposal_apiary.apiary_sites.all():
@@ -160,10 +164,7 @@ def create_fee_lines_apiary(proposal):
             summary[apiary_site.site_category.id] += 1
         else:
             summary[apiary_site.site_category.id] = 1
-
-    # Once payment success, data is updated based on this variable
-    # This variable is stored in the session
-    db_process_after_success = {'site_remainder_used': [], 'site_remainder_to_be_added': []}
+        db_process_after_success['apiary_sites'].append({'id': apiary_site.id})
 
     # Calculate number of sites to calculate the fee
     for site_category_id, number_of_sites_applied in summary.items():
