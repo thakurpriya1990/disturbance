@@ -17,7 +17,8 @@ from dateutil.relativedelta import relativedelta
 from ledger.accounts.models import EmailUser
 
 from disturbance.components.approvals.email import get_value_of_annual_rental_fee_awaiting_payment_confirmation
-from disturbance.components.proposals.models import Proposal, ApiarySiteFeeRemainder, ApiarySiteFeeType, SiteCategory
+from disturbance.components.proposals.models import Proposal, ApiarySiteFeeRemainder, ApiarySiteFeeType, SiteCategory, \
+    ApiarySite
 from disturbance.components.compliances.models import Compliance
 from disturbance.components.main.models import ApplicationType
 from disturbance.components.organisations.models import Organisation
@@ -67,9 +68,10 @@ class AnnualRentalFeeView(TemplateView):
         return get_object_or_404(AnnualRentalFee, id=self.kwargs['annual_rental_fee_id'])
 
     def restore_original_format(self, lines):
-
-        # TODO: restore original format
-
+        for line in lines:
+            for key in line:
+                if key in ('price_incl_tax', 'price_excl_tax') and isinstance(line[key], (str, unicode)):
+                    line[key] = Decimal(line[key])
         return lines
 
     def get(self, request, *args, **kwargs):
@@ -401,6 +403,11 @@ class ApplicationFeeSuccessView(TemplateView):
         return render(request, self.template_name, context)
 
     def adjust_db_operations(self, db_operations):
+        for item in db_operations['apiary_sites']:
+            apiary_site = ApiarySite.objects.get(id=item['id'])
+            apiary_site.status = ApiarySite.STATUS_PENDING
+            apiary_site.save()
+
         # Perform database operations to remove and/or store site remainders
         # site remainders used
         for item in db_operations['site_remainder_used']:
