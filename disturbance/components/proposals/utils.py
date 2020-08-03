@@ -455,9 +455,9 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                 for index, feature in enumerate(site_locations_received):
                     feature['proposal_apiary_id'] = proposal_obj.proposal_apiary.id
 
-                    if viewset.action == 'submit':
-                        # When this function is called for the 'submit', we want to the apiary_sites' status 'pending'
-                        feature['status'] = ApiarySite.STATUS_PENDING
+                    # if viewset.action == 'submit':
+                    #     When this function is called for the 'submit', we want to the apiary_sites' status 'pending'
+                    #     feature['status'] = ApiarySite.STATUS_PENDING
 
                     try:
                         # Update existing
@@ -504,6 +504,13 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                     if qs_sites_within:
                         # In this proposal, there are apiary sites which are too close to each other
                         raise serializers.ValidationError(['There are apiary sites in this proposal which are too close to each other.',])
+
+                if viewset.action == 'submit':
+                    # All the new apiary sites are validated.  At last, update the status to 'pending'
+                    for id in ids:
+                        site = ApiarySite.objects.get(id=id)
+                        site.status = ApiarySite.STATUS_PENDING
+                        site.save()
 
                 for new_answer in site_location_data['checklist_answers']:
                     ans = ApiaryApplicantChecklistAnswer.objects.get(id=new_answer['id'])

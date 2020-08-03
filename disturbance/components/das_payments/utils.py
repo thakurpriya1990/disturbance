@@ -144,6 +144,7 @@ def create_fee_lines_site_transfer(proposal):
 
     return line_items, None
 
+
 def create_fee_lines_apiary(proposal):
     now = datetime.now().strftime('%Y-%m-%d %H:%M')
     today_local = datetime.now(pytz.timezone(TIME_ZONE)).date()
