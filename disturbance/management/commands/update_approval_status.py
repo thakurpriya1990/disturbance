@@ -44,9 +44,10 @@ class Command(BaseCommand):
                         # Change apiary site status too
                         a.change_apiary_site_status(a.status)
 
-                        proposal = a.current_proposal
                         ApprovalUserAction.log_action(a,ApprovalUserAction.ACTION_SUSPEND_APPROVAL.format(a.id),user)  
-                        ProposalUserAction.log_action(proposal,ProposalUserAction.ACTION_SUSPEND_APPROVAL.format(proposal.id),user)
+                        if not a.apiary_approval:
+                            proposal = a.current_proposal
+                            ProposalUserAction.log_action(proposal,ProposalUserAction.ACTION_SUSPEND_APPROVAL.format(proposal.id),user)
                         logger.info('Updated Approval {} status to {}'.format(a.id,a.status))
                     except:
                         logger.info('Error suspending Approval {} status'.format(a.id))
@@ -62,9 +63,10 @@ class Command(BaseCommand):
                         # Change apiary site status too
                         a.change_apiary_site_status(a.status)
 
-                        proposal = a.current_proposal
                         ApprovalUserAction.log_action(a,ApprovalUserAction.ACTION_CANCEL_APPROVAL.format(a.id),user)  
-                        ProposalUserAction.log_action(proposal,ProposalUserAction.ACTION_CANCEL_APPROVAL.format(proposal.id),user)
+                        if not a.apiary_approval:
+                            proposal = a.current_proposal
+                            ProposalUserAction.log_action(proposal,ProposalUserAction.ACTION_CANCEL_APPROVAL.format(proposal.id),user)
                         logger.info('Updated Approval {} status to {}'.format(a.id,a.status))
                     except:
                         logger.info('Error cancelling Approval {} status'.format(a.id))
@@ -82,9 +84,10 @@ class Command(BaseCommand):
                         # Change apiary site status too
                         a.change_apiary_site_status(a.status)
 
-                        proposal = a.current_proposal
                         ApprovalUserAction.log_action(a,ApprovalUserAction.ACTION_SURRENDER_APPROVAL.format(a.id),user)  
-                        ProposalUserAction.log_action(proposal,ProposalUserAction.ACTION_SURRENDER_APPROVAL.format(proposal.id),user)
+                        if not a.apiary_approval:
+                            proposal = a.current_proposal
+                            ProposalUserAction.log_action(proposal,ProposalUserAction.ACTION_SURRENDER_APPROVAL.format(proposal.id),user)
                         logger.info('Updated Approval {} status to {}'.format(a.id,a.status))
                     except:
                         logger.info('Error surrendering Approval {} status'.format(a.id))
@@ -101,9 +104,10 @@ class Command(BaseCommand):
                         # Change apiary site status too
                         a.change_apiary_site_status(a.status)
 
-                        proposal = a.current_proposal
                         ApprovalUserAction.log_action(a,ApprovalUserAction.ACTION_REINSTATE_APPROVAL.format(a.id),user)  
-                        ProposalUserAction.log_action(proposal,ProposalUserAction.ACTION_REINSTATE_APPROVAL.format(proposal.id),user)
+                        if not a.apiary_approval:
+                            proposal = a.current_proposal
+                            ProposalUserAction.log_action(proposal,ProposalUserAction.ACTION_REINSTATE_APPROVAL.format(proposal.id),user)
                         logger.info('Updated Approval {} status to {}'.format(a.id,a.status))
                     except:
                         logger.info('Error suspending Approval {} status'.format(a.id))
@@ -119,9 +123,10 @@ class Command(BaseCommand):
                         a.change_apiary_site_status(a.status)
 
                         send_approval_cancel_email_notification(a)
-                        proposal = a.current_proposal
                         ApprovalUserAction.log_action(a,ApprovalUserAction.ACTION_CANCEL_APPROVAL.format(a.id),user)  
-                        ProposalUserAction.log_action(proposal,ProposalUserAction.ACTION_CANCEL_APPROVAL.format(proposal.id),user)
+                        if not a.apiary_approval:
+                            proposal = a.current_proposal
+                            ProposalUserAction.log_action(proposal,ProposalUserAction.ACTION_CANCEL_APPROVAL.format(proposal.id),user)
                         logger.info('Updated Approval {} status to {}'.format(a.id,a.status))
                     except:
                         logger.info('Error cancelling Approval {} status'.format(a.id))
@@ -139,9 +144,10 @@ class Command(BaseCommand):
                         a.change_apiary_site_status(a.status)
 
                         send_approval_surrender_email_notification(a)
-                        proposal = a.current_proposal
                         ApprovalUserAction.log_action(a,ApprovalUserAction.ACTION_SURRENDER_APPROVAL.format(a.id),user)  
-                        ProposalUserAction.log_action(proposal,ProposalUserAction.ACTION_SURRENDER_APPROVAL.format(proposal.id),user)
+                        if not a.apiary_approval:
+                            proposal = a.current_proposal
+                            ProposalUserAction.log_action(proposal,ProposalUserAction.ACTION_SURRENDER_APPROVAL.format(proposal.id),user)
                         logger.info('Updated Approval {} status to {}'.format(a.id,a.status))
                     except:
                         logger.info('Error surrendering Approval {} status'.format(a.id))
