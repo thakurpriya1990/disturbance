@@ -63,7 +63,7 @@ export function getStrokeColour(status, selected=false){
         case 'suspended':
             return new Stroke({color: SiteColours.suspended.stroke, width: stroke_width})
         case 'not_to_be_reissued':
-            return new Stroke({color: SiteColours.no_to_be_reissued.stroke, width: stroke_width})
+            return new Stroke({color: SiteColours.not_to_be_reissued.stroke, width: stroke_width})
         case 'denied':
             return new Stroke({color: SiteColours.denied.stroke, width: stroke_width})
         case 'vacant':
