@@ -51,11 +51,24 @@ def set_session_application_invoice(session, application_fee):
     session.modified = True
 
 
+def delete_session_annual_rental_fee(session):
+    """ Application Fee session ID """
+    if 'annual_rental_fee' in session:
+        del session['annual_rental_fee']
+        session.modified = True
+
+
+def set_session_annual_rental_fee(session, annual_rental_fee):
+    session['annual_rental_fee'] = annual_rental_fee.id
+    session.modified = True
+
+
 def delete_session_application_invoice(session):
     """ Application Fee session ID """
     if 'das_app_invoice' in session:
         del session['das_app_invoice']
         session.modified = True
+
 
 def get_session_site_transfer_application_invoice(session):
     """ Application Fee session ID """
@@ -130,6 +143,7 @@ def create_fee_lines_site_transfer(proposal):
         line_items.append(line_item)
 
     return line_items, None
+
 
 def create_fee_lines_apiary(proposal):
     now = datetime.now().strftime('%Y-%m-%d %H:%M')
@@ -275,7 +289,8 @@ def checkout(request, proposal, lines, return_url_ns='public_payment_success', r
     #if internal or request.user.is_anonymous():
     if proxy or request.user.is_anonymous():
         #checkout_params['basket_owner'] = booking.customer.id
-        checkout_params['basket_owner'] = proposal.submitter_id
+        # checkout_params['basket_owner'] = proposal.submitter_id  # There isn't a submitter_id field... supposed to be submitter.id...?
+        checkout_params['basket_owner'] = proposal.submitter.id
 
 
     create_checkout_session(request, checkout_params)
@@ -319,7 +334,7 @@ def oracle_integration(date,override):
 
 def create_other_invoice_for_annual_rental_fee(approval, today_now, period, apiary_sites, request=None):
     """
-    This function is called from the cron job to issue annual rental fee invoices
+    This function is called to issue annual rental fee invoices
     """
     with transaction.atomic():
         try:
@@ -418,14 +433,15 @@ def generate_line_items_for_annual_rental_fee(approval, today_now, period, apiar
         sites_str = ', '.join(['site: ' + str(site['id']) for site in apiary_sites])
 
     line_items = [
-        {'ledger_description': 'Annual Rental Fee: {}, Issued: {} {}, Period: {} to {}, Site(s): {}'.format(
-            approval.lodgement_number,
-            today_now.strftime("%d/%m/%Y"),
-            today_now.strftime("%I:%M %p"),
-            details_dict['charge_start_date'].strftime('%d/%m/%Y'),
-            details_dict['charge_end_date'].strftime('%d/%m/%Y'),
-            sites_str
-        ),
+        {
+            'ledger_description': 'Annual Rental Fee: {}, Issued: {} {}, Period: {} to {}, Site(s): {}'.format(
+                approval.lodgement_number,
+                today_now.strftime("%d/%m/%Y"),
+                today_now.strftime("%I:%M %p"),
+                details_dict['charge_start_date'].strftime('%d/%m/%Y'),
+                details_dict['charge_end_date'].strftime('%d/%m/%Y'),
+                sites_str
+            ),
             'oracle_code': 'ABC123 GST',
             'price_incl_tax': details_dict['total_amount'],
             'price_excl_tax': details_dict['total_amount'],
