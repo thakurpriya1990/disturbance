@@ -1,0 +1,7 @@
+{%  extends 'disturbance/emails/base_email.html' %}
+
+{%  block content %}
+    <p>Annual rental fee awaiting payment confirmation has been issued:</p>
+    <p><strong>Approval : {{ approval.lodgement_number}}</strong></p>
+    <p>Please find the attached annual rental fee awaiting payment confirmation.</p>
+{%  endblock %}
