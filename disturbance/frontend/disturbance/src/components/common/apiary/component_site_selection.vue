@@ -495,7 +495,7 @@
                         // Update the site in the table
                         let site_updated = accept.body
                         vm.updateApiarySite(site_updated)
-                        vm.constructApiarySitesTable();
+                       // vm.constructApiarySitesTable();
                         vm.constructApiarySitesTable(vm.apiary_sites);
                     },
                     reject=>{
