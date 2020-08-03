@@ -463,19 +463,20 @@ export default {
         },
         check_assessor: function(compliance){
             let vm = this;
+            if (compliance.allowed_assessors) {
+                var assessor = compliance.allowed_assessors.filter(function(elem){
+                        return(elem.id==vm.profile.id)
+                    });
 
-            var assessor = compliance.allowed_assessors.filter(function(elem){
-                    return(elem.id==vm.profile.id)
-                });
-
-            if (assessor.length > 0){
-                //console.log(proposal.id, assessor)
-                return true;
-            }
-            else
+                if (assessor.length > 0){
+                    //console.log(proposal.id, assessor)
+                    return true;
+                }
+                else
+                    return false;
+            } else {
                 return false;
-
-            return false;
+            }
         }
     },
     mounted: function(){
