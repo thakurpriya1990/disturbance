@@ -1,4 +1,5 @@
 import datetime
+from decimal import Decimal
 
 import pytz
 from django.core.exceptions import ValidationError
@@ -10,9 +11,11 @@ from django.db.models import Q, Min
 from ledger.settings_base import TIME_ZONE
 
 # from disturbance.components.approvals.email import send_annual_rental_fee_invoice
+from disturbance.components.approvals.email import send_annual_rental_fee_awaiting_payment_confirmation
 from disturbance.components.approvals.models import Approval
 from disturbance.components.das_payments.models import AnnualRentalFee, AnnualRentalFeePeriod, AnnualRentalFeeApiarySite
-from disturbance.components.das_payments.utils import create_other_invoice_for_annual_rental_fee
+from disturbance.components.das_payments.utils import create_other_invoice_for_annual_rental_fee, \
+    generate_line_items_for_annual_rental_fee
 from disturbance.components.proposals.models import ApiaryAnnualRentalFeeRunDate, ApiaryAnnualRentalFeePeriodStartDate, \
     ApiarySite
 
@@ -117,13 +120,18 @@ class Command(BaseCommand):
                         apiary_sites_to_be_charged = get_apiary_sites_to_be_charged(approval, annual_rental_fee_period)
 
                         if apiary_sites_to_be_charged.count() > 0:
-                            invoice, details_dict = create_other_invoice_for_annual_rental_fee(approval, today_now_local, (period_start_date, period_end_date), apiary_sites_to_be_charged)
+                            # invoice, details_dict = create_other_invoice_for_annual_rental_fee(approval, today_now_local, (period_start_date, period_end_date), apiary_sites_to_be_charged)
+                            products, details_dict = generate_line_items_for_annual_rental_fee(approval, today_now_local, (period_start_date, period_end_date), apiary_sites_to_be_charged)
+
+                            products = make_serializable(products)
+
                             annual_rental_fee = AnnualRentalFee.objects.create(
                                 approval=approval,
                                 annual_rental_fee_period=annual_rental_fee_period,
-                                invoice_reference=invoice.reference,
+                                # invoice_reference=invoice.reference,  #  We don't create an ledger invoice, but just store the lines
                                 invoice_period_start_date=details_dict['charge_start_date'],
                                 invoice_period_end_date=details_dict['charge_end_date'],
+                                lines=products,  # This is used when generating the invoice at payment time
                             )
 
                             # Store the apiary sites which the invoice created above has been issued for
@@ -133,8 +141,11 @@ class Command(BaseCommand):
 
                             # TODO: Attach the invoice and send emails
                             #   update invoice_sent attribute of the annual_rental_fee obj?
-                            from disturbance.components.approvals.email import send_annual_rental_fee_invoice
-                            send_annual_rental_fee_invoice(approval, invoice)
+                            # from disturbance.components.approvals.email import send_annual_rental_fee_invoice
+                            # send_annual_rental_fee_invoice(approval, invoice)
+                            email_data = send_annual_rental_fee_awaiting_payment_confirmation(approval, annual_rental_fee)
+
+                            # TODO: Add comms log
 
                 except Exception as e:
                     logger.error('Error command {}'.format(__name__))
@@ -142,3 +153,12 @@ class Command(BaseCommand):
 
         except Exception as e:
             logger.error('Error command {}'.format(__name__))
+
+
+def make_serializable(line_items):
+    for line in line_items:
+        for key in line:
+            if isinstance(line[key], Decimal):
+                # Convert Decimal to str
+                line[key] = str(line[key])
+    return line_items
