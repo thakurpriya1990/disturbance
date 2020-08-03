@@ -1,0 +1,6 @@
+{%  extends 'disturbance/emails/base_email.html' %}
+
+{%  block content %}
+        <p>Originating Approval <strong>{{originating_approval.lodgement_number}} </strong> and <p>Target Approval <strong>{{target_approval.lodgement_number}} </strong> for Proposal <strong>{{proposal.lodgement_number}}</strong> have been reissued.</p>
+   
+{%  endblock %}
