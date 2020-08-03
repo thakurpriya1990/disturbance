@@ -237,6 +237,15 @@ class Approval(RevisionedMixin):
                 else:
                     return False
 
+    def generate_apiary_site_transfer_doc(self, user, site_transfer_proposal, preview=False):
+        from disturbance.components.approvals.pdf import create_approval_doc, create_approval_pdf_bytes
+        # review this data
+        copied_to_permit = self.copiedToPermit_fields(site_transfer_proposal) #Get data related to isCopiedToPermit tag
+        if preview:
+            return create_approval_pdf_bytes(self,site_transfer_proposal, copied_to_permit, user)
+        self.licence_document = create_approval_doc(self,site_transfer_proposal, copied_to_permit, user)
+        self.save(version_comment='Created Approval PDF: {}'.format(self.licence_document.name))
+        self.current_proposal.save(version_comment='Created Approval PDF: {}'.format(self.licence_document.name))
 
     def generate_doc(self, user, preview=False):
         from disturbance.components.approvals.pdf import create_approval_doc, create_approval_pdf_bytes
@@ -296,7 +305,7 @@ class Approval(RevisionedMixin):
                 raise
 
     def change_apiary_site_status(self, approval_status):
-        for site in self.apiary_sites:
+        for site in self.apiary_sites.all():
             if approval_status in (Approval.STATUS_CANCELLED, Approval.STATUS_SUSPENDED, Approval.STATUS_SURRENDERED,):
                 site.status = ApiarySite.STATUS_NOT_TO_BE_REISSUED
             elif approval_status == Approval.STATUS_EXPIRED:

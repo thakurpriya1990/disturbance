@@ -1,4 +1,4 @@
-from disturbance.test_setup import APITestSetup
+from disturbance.tests.test_setup import APITestSetup
 import json
 from disturbance.components.proposals.models import (
         Proposal,
@@ -6,14 +6,10 @@ from disturbance.components.proposals.models import (
         ProposalStandardRequirement,
         )
 from disturbance.management.commands.update_compliance_status import Command
-#import subprocess
-#from disturbance.components.proposals.serializers_apiary import ApiarySiteSerializer
 
 
 class ApiaryIntegrationTests(APITestSetup):
     def test_proposal_apiary_workflow(self):
-        #import ipdb; ipdb.set_trace()
-        #try:
         print("test_proposal_apiary_workflow")
         self.client.login(email=self.customer, password='pass')
         self.client.enforce_csrf_checks=True
@@ -22,7 +18,6 @@ class ApiaryIntegrationTests(APITestSetup):
                 '/api/proposal/', 
                 self.create_proposal_data,
                 format='json'
-                #content_type='application/json'
                 )
         proposal_id = create_response.data.get('id')
         # get proposal
@@ -38,40 +33,31 @@ class ApiaryIntegrationTests(APITestSetup):
                 "title": "test_title",
                 "checklist_answers": [
                         {
-                        #"id": self.apiary_qu_1.id,
-                        "id": proposal.proposal_apiary.apiary_applicant_checklist.all()[0].id,
+                        "id": proposal.proposal_apiary.apiary_applicant_checklist.order_by('id')[0].id,
                         "answer": True
                         },
                         {
-                        #"id": self.apiary_qu_2.id,
-                        "id": proposal.proposal_apiary.apiary_applicant_checklist.all()[1].id,
+                        "id": proposal.proposal_apiary.apiary_applicant_checklist.order_by('id')[1].id,
                         "answer": False
                         },
                         {
-                        #"id": self.apiary_qu_3.id,
-                        "id": proposal.proposal_apiary.apiary_applicant_checklist.all()[2].id,
+                        "id": proposal.proposal_apiary.apiary_applicant_checklist.order_by('id')[2].id,
                         "answer": True
                         },
                     ]
                 }
-            #"all_the_features": [json.dumps(all_the_features),],
-            #"all_the_features": json.dumps(all_the_features),
             }
 
-        #draft_schema['proposal_apiary']['id'] = proposal_id
         draft_proposal_data = {
                 "schema": json.dumps(draft_schema),
-                #"all_the_features": json.dumps(self.all_the_features)
-                "all_the_features": self.all_the_features
+                "all_the_features": self.all_the_features_1
                 }
         draft_response = self.client.post(
                 '/api/proposal/{}/draft/'.format(proposal_id),
                 draft_proposal_data, 
                 format='json'
-                #content_type='application/json'
                 )
         self.assertEqual(draft_response.status_code, 302)
-        #self.assertTrue(submit_response.data.get('id') > 0)
 
         # Simulate Proposal submission by changing status instead of going through the payment gateway
         saved_proposal = Proposal.objects.get(id=proposal_id)
@@ -92,7 +78,7 @@ class ApiaryIntegrationTests(APITestSetup):
         # add requirements
         proposal_standard_req_r1_id = ProposalStandardRequirement.objects.get(code='R1').id
         add_requirements_data_1 = {
-                "due_date": "16/08/2020",
+                "due_date": self.today_plus_1_week_str,
                 "standard": True,
                 "recurrence": True,
                 "recurrence_pattern": "1",
@@ -105,14 +91,12 @@ class ApiaryIntegrationTests(APITestSetup):
                 '/api/proposal_requirements.json', 
                 add_requirements_data_1, 
                 format='json'
-                #content_type='application/json'
                 )
-        #proposal_requirement_1_id = add_requirements_response_1.data.get('id')
         self.assertEqual(add_requirements_response_1.status_code, 201)
 
         proposal_standard_req_a1_id = ProposalStandardRequirement.objects.get(code='A1').id
         add_requirements_data_2 = {
-                "due_date": "16/08/2020",
+                "due_date": self.today_plus_1_week_str,
                 "standard": True,
                 "recurrence": False,
                 "recurrence_pattern": "1",
@@ -125,24 +109,20 @@ class ApiaryIntegrationTests(APITestSetup):
                 '/api/proposal_requirements.json', 
                 add_requirements_data_2, 
                 format='json'
-                #content_type='application/json'
                 )
-        #proposal_requirement_2_id = add_requirements_response_2.data.get('id')
         self.assertEqual(add_requirements_response_2.status_code, 201)
 
         # Propose to approve
         apiary_sites = []
         for site in saved_proposal.proposal_apiary.apiary_sites.all():
             apiary_sites.append({
-                #"id": "{}".format(site.id),
                 "id": site.id,
                 "checked": True
                 })
         propose_to_approve_data = {
                 "details": "test details",
-                "expiry_date": "15/07/2021",
-                "start_date": "02/07/2020",
-                #"apiary_sites": "{}".format(apiary_sites)
+                "expiry_date": self.today_plus_26_weeks_str,
+                "start_date": self.today_str,
                 "apiary_sites": apiary_sites
                 }
         print(propose_to_approve_data)
@@ -150,7 +130,6 @@ class ApiaryIntegrationTests(APITestSetup):
                 '/api/proposal/{}/proposed_approval/'.format(proposal_id), 
                 propose_to_approve_data, 
                 format='json'
-                #content_type='application/json'
                 )
 
         self.assertEqual(propose_to_approve_response.status_code, 200)
@@ -161,7 +140,6 @@ class ApiaryIntegrationTests(APITestSetup):
                 '/api/proposal_apiary/{}/final_approval/'.format(proposal_id), 
                 final_approval_data, 
                 format='json'
-                #content_type='application/json'
                 )
         self.assertEqual(final_approval_response.status_code, 200)
 
@@ -188,15 +166,15 @@ class ApiaryIntegrationTests(APITestSetup):
                 "title": "test_title",
                 "checklist_answers": [
                         {
-                        "id": proposal_2.proposal_apiary.apiary_applicant_checklist.all()[0].id,
+                        "id": proposal_2.proposal_apiary.apiary_applicant_checklist.order_by('id')[0].id,
                         "answer": True
                         },
                         {
-                        "id": proposal_2.proposal_apiary.apiary_applicant_checklist.all()[1].id,
+                        "id": proposal_2.proposal_apiary.apiary_applicant_checklist.order_by('id')[1].id,
                         "answer": False
                         },
                         {
-                        "id": proposal_2.proposal_apiary.apiary_applicant_checklist.all()[2].id,
+                        "id": proposal_2.proposal_apiary.apiary_applicant_checklist.order_by('id')[2].id,
                         "answer": True
                         },
                     ]
@@ -205,7 +183,7 @@ class ApiaryIntegrationTests(APITestSetup):
 
         draft_proposal_data_2 = {
                 "schema": json.dumps(draft_schema_2),
-                "all_the_features": self.all_the_features
+                "all_the_features": self.all_the_features_2
                 }
         draft_response_2 = self.client.post(
                 '/api/proposal/{}/draft/'.format(proposal_id_2),
@@ -233,7 +211,7 @@ class ApiaryIntegrationTests(APITestSetup):
         # add requirements
         proposal_standard_req_r2_id = ProposalStandardRequirement.objects.get(code='R2').id
         add_requirements_data_3 = {
-                "due_date": "26/08/2020",
+                "due_date": self.today_plus_1_week_str,
                 "standard": True,
                 "recurrence": True,
                 "recurrence_pattern": "1",
@@ -246,14 +224,12 @@ class ApiaryIntegrationTests(APITestSetup):
                 '/api/proposal_requirements.json', 
                 add_requirements_data_3, 
                 format='json'
-                #content_type='application/json'
                 )
-        #proposal_requirement_3_id = add_requirements_response_3.data.get('id')
         self.assertEqual(add_requirements_response_3.status_code, 201)
 
         proposal_standard_req_a2_id = ProposalStandardRequirement.objects.get(code='A2').id
         add_requirements_data_4 = {
-                "due_date": "26/07/2020",
+                "due_date": self.today_plus_1_week_str,
                 "standard": True,
                 "recurrence": False,
                 "recurrence_pattern": "1",
@@ -266,7 +242,6 @@ class ApiaryIntegrationTests(APITestSetup):
                 '/api/proposal_requirements.json', 
                 add_requirements_data_4, 
                 format='json'
-                #content_type='application/json'
                 )
         #proposal_requirement_4_id = add_requirements_response_4.data.get('id')
         self.assertEqual(add_requirements_response_4.status_code, 201)
@@ -282,14 +257,11 @@ class ApiaryIntegrationTests(APITestSetup):
         apiary_sites_2 = []
         for site in saved_proposal_2.proposal_apiary.apiary_sites.all():
             apiary_sites_2.append({
-                #"id": "{}".format(site.id),
                 "id": site.id,
                 "checked": True
                 })
         propose_to_approve_data_2 = {
                 "details": "test details",
-                #"expiry_date": "15/07/2020",
-                #"start_date": "01/07/2020",
                 "apiary_sites": apiary_sites_2
                 }
         print(propose_to_approve_data_2)
@@ -302,7 +274,6 @@ class ApiaryIntegrationTests(APITestSetup):
         self.assertEqual(propose_to_approve_response_2.status_code, 200)
 
         # Final approval with unchanged data
-        #import ipdb; ipdb.set_trace()
         final_approval_data_2 = propose_to_approve_data_2
         final_approval_response_2 = self.client.post(
                 '/api/proposal_apiary/{}/final_approval/'.format(proposal_id_2), 
@@ -323,21 +294,7 @@ class ApiaryIntegrationTests(APITestSetup):
         # Compliance creation test
         approval_standard_requirements = []
         for compliance in final_proposal.approval.compliances.all():
-            #print('{}, {}, {}, {}, {}'.format(
-            #    compliance.id, 
-            #    compliance.lodgement_number, 
-            #    str(compliance.requirement.standard_requirement), 
-            #    compliance.processing_status,
-            #    str(compliance.due_date)
-            #    )
-            #)
             approval_standard_requirements.append(compliance.requirement.standard_requirement_id)
-        #print("approval_requirements")
-        #print(approval_standard_requirements)
-        #print(proposal_standard_req_r1_id)
-        #print(proposal_standard_req_a1_id)
-        #print(proposal_standard_req_r2_id)
-        #print(proposal_standard_req_a2_id)
         self.assertIn(proposal_standard_req_r1_id, approval_standard_requirements)
         # This requirement is deleted earlier
         self.assertNotIn(proposal_standard_req_a1_id, approval_standard_requirements)
@@ -350,20 +307,8 @@ class ApiaryIntegrationTests(APITestSetup):
         self.assertEqual(reversion_response.status_code, 200)
 
         # Update newly created Compliance status values
-        #subprocess.call('python manage_ds.py update_compliance_status', shell=True)
         cron_job = Command()
         cron_job.handle()
-        #for compliance in Proposal.objects.get(id=proposal_id_2).approval.compliances.all():
-        #    print('{}, {}, {}, {}, {}, {}, {}'.format(
-        #        final_proposal.approval.status,
-        #        str(final_proposal.approval.expiry_date),
-        #        compliance.id, 
-        #        compliance.lodgement_number, 
-        #        str(compliance.requirement.standard_requirement), 
-        #        compliance.processing_status,
-        #        str(compliance.due_date)
-        #        )
-        #    )
         # Compliance with standard_requirement code "A2" should now have status "due"
         compliance_a2 = Proposal.objects.get(id=proposal_id_2).approval.compliances.filter(requirement__standard_requirement__code="A2")[0]
         self.assertEqual(compliance_a2.processing_status, "due")
