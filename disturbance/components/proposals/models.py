@@ -1632,7 +1632,7 @@ class Proposal(RevisionedMixin):
     
     def apiary_requirements(self, approval=None):
         if self.application_type.name == ApplicationType.SITE_TRANSFER and approval:
-            return self.requirements.filter(site_transfer_approval=approval)
+            return self.requirements.filter(apiary_approval=approval)
         else:
             return self.requirements.all()
 
@@ -1855,7 +1855,8 @@ class ProposalRequirement(OrderedModel):
     recurrence_schedule = models.IntegerField(null=True,blank=True)
     copied_from = models.ForeignKey('self', on_delete=models.SET_NULL, blank=True, null=True)
     is_deleted = models.BooleanField(default=False)
-    site_transfer_approval = models.ForeignKey('disturbance.Approval',null=True,blank=True)
+    #site_transfer_approval = models.ForeignKey('disturbance.Approval',null=True,blank=True)
+    apiary_approval = models.ForeignKey('disturbance.Approval',null=True,blank=True)
     #order = models.IntegerField(default=1)
     # referral_group is no longer required for Apiary
     referral_group = models.ForeignKey(ApiaryReferralGroup,null=True,blank=True,related_name='apiary_requirement_referral_groups')
@@ -2780,7 +2781,7 @@ class ProposalApiary(models.Model):
 
         proposal = self.proposal
         try:
-            for r in proposal.requirements.filter(site_transfer_approval=approval).filter(copied_from__isnull=False):
+            for r in proposal.requirements.filter(apiary_approval=approval).filter(copied_from__isnull=False):
                 cs=[]
                 # Now discard all of the due compliances
                 cs=Compliance.objects.filter(
@@ -2799,7 +2800,7 @@ class ProposalApiary(models.Model):
         except:
             raise
         #requirement_set= self.requirements.filter(copied_from__isnull=True).exclude(is_deleted=True)
-        requirement_set= proposal.requirements.filter(site_transfer_approval=approval).exclude(is_deleted=True)
+        requirement_set= proposal.requirements.filter(apiary_approval=approval).exclude(is_deleted=True)
 
         #for req in self.requirements.all():
         for req in requirement_set:
