@@ -16,7 +16,9 @@ from django.utils import timezone
 from dateutil.relativedelta import relativedelta
 from ledger.accounts.models import EmailUser
 
-from disturbance.components.proposals.models import Proposal, ApiarySiteFeeRemainder, ApiarySiteFeeType, SiteCategory
+from disturbance.components.approvals.email import get_value_of_annual_rental_fee_awaiting_payment_confirmation
+from disturbance.components.proposals.models import Proposal, ApiarySiteFeeRemainder, ApiarySiteFeeType, SiteCategory, \
+    ApiarySite
 from disturbance.components.compliances.models import Compliance
 from disturbance.components.main.models import ApplicationType
 from disturbance.components.organisations.models import Organisation
@@ -36,9 +38,9 @@ from disturbance.components.das_payments.utils import (
     delete_session_application_invoice,
     get_session_site_transfer_application_invoice,
     set_session_site_transfer_application_invoice,
-    delete_session_site_transfer_application_invoice,
-    #create_bpay_invoice,
-    #create_other_invoice,
+    delete_session_site_transfer_application_invoice, set_session_annual_rental_fee,
+    # create_bpay_invoice,
+    # create_other_invoice,
 )
 
 from disturbance.components.das_payments.models import ApplicationFee, ApplicationFeeInvoice, AnnualRentalFee
@@ -57,6 +59,53 @@ from ledger.payments.helpers import is_payment_admin
 
 import logging
 logger = logging.getLogger('payment_checkout')
+
+
+class AnnualRentalFeeView(TemplateView):
+    template_name = 'disturbance/payment/success.html'
+
+    def get_object(self):
+        return get_object_or_404(AnnualRentalFee, id=self.kwargs['annual_rental_fee_id'])
+
+    def restore_original_format(self, lines):
+        for line in lines:
+            for key in line:
+                if key in ('price_incl_tax', 'price_excl_tax') and isinstance(line[key], (str, unicode)):
+                    line[key] = Decimal(line[key])
+        return lines
+
+    def get(self, request, *args, **kwargs):
+        annual_rental_fee = self.get_object()
+
+        try:
+            with transaction.atomic():
+                set_session_annual_rental_fee(request.session, annual_rental_fee)
+
+                lines = self.restore_original_format(annual_rental_fee.lines)
+
+                checkout_response = checkout(
+                    request,
+                    None,
+                    lines,
+                    return_url_ns='annual_rental_fee_success',
+                    return_preload_url_ns='site_transfer_fee_success',
+                    invoice_text='Annual Rental Fee'
+                )
+
+                logger.info('{} built payment line item {} for Annual Rental Fee and handing over to payment gateway'.format(
+                    'User {} with id {}'.format(
+                        request.user.get_full_name(), request.user.id
+                    ), annual_rental_fee.approval.lodgement_number
+                ))
+                return checkout_response
+
+        except Exception, e:
+            logger.error('Error Creating Application Fee: {}'.format(e))
+            raise
+
+
+class AnnualRentalFeeSuccessView(TemplateView):
+    pass
 
 
 class ApplicationFeeView(TemplateView):
@@ -354,6 +403,11 @@ class ApplicationFeeSuccessView(TemplateView):
         return render(request, self.template_name, context)
 
     def adjust_db_operations(self, db_operations):
+        for item in db_operations['apiary_sites']:
+            apiary_site = ApiarySite.objects.get(id=item['id'])
+            apiary_site.status = ApiarySite.STATUS_PENDING
+            apiary_site.save()
+
         # Perform database operations to remove and/or store site remainders
         # site remainders used
         for item in db_operations['site_remainder_used']:
@@ -377,6 +431,14 @@ class ApplicationFeeSuccessView(TemplateView):
                 proxy_applicant=proxy_applicant,
                 # date_expiry=date_expiry,
             )
+
+
+class AwaitingPaymentPDFView(View):
+    def get(self, request, *args, **kwargs):
+        annual_rental_fee = get_object_or_404(AnnualRentalFee, id=self.kwargs['annual_rental_fee_id'])
+        response = HttpResponse(content_type='application/pdf')
+        response.write(get_value_of_annual_rental_fee_awaiting_payment_confirmation(annual_rental_fee))
+        return response
 
 
 class InvoicePDFView(View):
@@ -409,7 +471,7 @@ class InvoicePDFView(View):
             raise
 
     def get_object(self):
-        return  get_object_or_404(Invoice, reference=self.kwargs['reference'])
+        return get_object_or_404(Invoice, reference=self.kwargs['reference'])
 
     def check_owner(self, organisation):
         return is_in_organisation_contacts(self.request, organisation) or is_internal(self.request) or self.request.user.is_superuser
