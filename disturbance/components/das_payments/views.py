@@ -38,7 +38,8 @@ from disturbance.components.das_payments.utils import (
     delete_session_application_invoice,
     get_session_site_transfer_application_invoice,
     set_session_site_transfer_application_invoice,
-    delete_session_site_transfer_application_invoice, set_session_annual_rental_fee,
+    delete_session_site_transfer_application_invoice, set_session_annual_rental_fee, get_session_annual_rental_fee,
+    delete_session_annual_rental_fee,
     # create_bpay_invoice,
     # create_other_invoice,
 )
@@ -71,7 +72,10 @@ class AnnualRentalFeeView(TemplateView):
         for line in lines:
             for key in line:
                 if key in ('price_incl_tax', 'price_excl_tax') and isinstance(line[key], (str, unicode)):
-                    line[key] = Decimal(line[key])
+                    amount_f = float(line[key])  # string to float
+                    round_f = round(amount_f)  # Round to 2 decimal places
+                    decimal_f = Decimal(str(round_f))  # Generate Decimal with 2 decimal places string
+                    line[key] = decimal_f
         return lines
 
     def get(self, request, *args, **kwargs):
@@ -82,13 +86,12 @@ class AnnualRentalFeeView(TemplateView):
                 set_session_annual_rental_fee(request.session, annual_rental_fee)
 
                 lines = self.restore_original_format(annual_rental_fee.lines)
-
                 checkout_response = checkout(
                     request,
                     None,
                     lines,
                     return_url_ns='annual_rental_fee_success',
-                    return_preload_url_ns='site_transfer_fee_success',
+                    return_preload_url_ns='annual_rental_fee_success',
                     invoice_text='Annual Rental Fee'
                 )
 
@@ -100,12 +103,8 @@ class AnnualRentalFeeView(TemplateView):
                 return checkout_response
 
         except Exception, e:
-            logger.error('Error Creating Application Fee: {}'.format(e))
+            logger.error('Error Creating Annual Rental Fee: {}'.format(e))
             raise
-
-
-class AnnualRentalFeeSuccessView(TemplateView):
-    pass
 
 
 class ApplicationFeeView(TemplateView):
@@ -281,12 +280,50 @@ class SiteTransferApplicationFeeSuccessView(TemplateView):
         return render(request, self.template_name, context)
 
 
+class AnnualRentalFeeSuccessView(TemplateView):
+    template_name = 'disturbance/payment/success_fee.html'
+
+    def get(self, request, *args, **kwargs):
+        invoice = None
+
+        try:
+            context = template_context(self.request)
+            basket = None
+
+            annual_rental_fee = get_session_annual_rental_fee(request.session)
+
+            if self.request.user.is_authenticated():
+                basket = Basket.objects.filter(status='Submitted', owner=request.user).order_by('-id')[:1]
+            else:
+                pass
+
+            order = Order.objects.get(basket=basket[0])
+            invoice = Invoice.objects.get(order_number=order.number)
+            annual_rental_fee.invoice_reference = invoice.reference
+            annual_rental_fee.save()
+
+            request.session['last_annual_rental_fee_id'] = annual_rental_fee.id
+            delete_session_annual_rental_fee(request.session)
+
+            # send_application_fee_invoice_apiary_email_notification(request, proposal, invoice, recipients=[recipient])
+            # send_application_fee_confirmation_apiary_email_notification(request, application_fee, invoice, recipients=[recipient])
+
+            context = { }
+            return render(request, self.template_name, context)
+
+        except Exception as e:
+            print('Display success screen')
+            pass
+
+            context = {
+            }
+            return render(request, self.template_name, context)
+
+
 class ApplicationFeeSuccessView(TemplateView):
     template_name = 'disturbance/payment/success_fee.html'
 
     def get(self, request, *args, **kwargs):
-        print (" APPLICATION FEE SUCCESS ")
-
         proposal = None
         submitter = None
         invoice = None

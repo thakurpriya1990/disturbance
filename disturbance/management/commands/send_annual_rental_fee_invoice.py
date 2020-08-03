@@ -123,7 +123,7 @@ class Command(BaseCommand):
                             # invoice, details_dict = create_other_invoice_for_annual_rental_fee(approval, today_now_local, (period_start_date, period_end_date), apiary_sites_to_be_charged)
                             products, details_dict = generate_line_items_for_annual_rental_fee(approval, today_now_local, (period_start_date, period_end_date), apiary_sites_to_be_charged)
 
-                            products = make_serializable(products)
+                            products = make_serializable(products)  # Make line items serializable to store in the JSONField
 
                             annual_rental_fee = AnnualRentalFee.objects.create(
                                 approval=approval,
