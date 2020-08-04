@@ -64,8 +64,6 @@ logger = logging.getLogger('payment_checkout')
 
 
 class AnnualRentalFeeView(TemplateView):
-    template_name = 'disturbance/payment/success.html'
-
     def get_object(self):
         return get_object_or_404(AnnualRentalFee, id=self.kwargs['annual_rental_fee_id'])
 
@@ -77,7 +75,7 @@ class AnnualRentalFeeView(TemplateView):
                     if not DEBUG and PRODUCTION_EMAIL:
                         round_f = round(amount_f, 2)  # Round to 2 decimal places
                     else:
-                        # in Dev/UAT, avoid decimal amount
+                        # in Dev/UAT, avoid decimal amount, otherwise payment is declined
                         round_f = round(amount_f)
                     decimal_f = Decimal(str(round_f))  # Generate Decimal with 2 decimal places string
                     line[key] = decimal_f
@@ -286,7 +284,7 @@ class SiteTransferApplicationFeeSuccessView(TemplateView):
 
 
 class AnnualRentalFeeSuccessView(TemplateView):
-    template_name = 'disturbance/payment/success_fee.html'
+    template_name = 'disturbance/payment/annual_rental_fee_success.html'
 
     def get(self, request, *args, **kwargs):
         invoice = None
@@ -295,6 +293,8 @@ class AnnualRentalFeeSuccessView(TemplateView):
             context = template_context(self.request)
             basket = None
 
+            # When accessed first time, there is a annual_rental_fee in the session which was set at AnnualRentalFeeView()
+            # but when accessed sencond time, it is deleted therefore raise an error.
             annual_rental_fee = get_session_annual_rental_fee(request.session)
 
             if self.request.user.is_authenticated():
@@ -310,19 +310,33 @@ class AnnualRentalFeeSuccessView(TemplateView):
             request.session['last_annual_rental_fee_id'] = annual_rental_fee.id
             delete_session_annual_rental_fee(request.session)
 
+            # TODO: Send invoice
+            # TODO: Add comms log
             # send_application_fee_invoice_apiary_email_notification(request, proposal, invoice, recipients=[recipient])
             # send_application_fee_confirmation_apiary_email_notification(request, application_fee, invoice, recipients=[recipient])
 
-            context = { }
+            context = {
+                'annual_rental_fee': annual_rental_fee,
+            }
             return render(request, self.template_name, context)
 
         except Exception as e:
-            print('Display success screen')
-            pass
+            if 'last_annual_rental_fee_id' in request.session and AnnualRentalFee.objects.filter(id=request.session['last_annual_rental_fee_id']).exists():
+                annual_rental_fee = AnnualRentalFee.objects.get(id=request.session['last_annual_rental_fee_id'])
+                del request.session['last_annual_rental_fee_id']
+                request.session.modified = True
 
-            context = {
-            }
-            return render(request, self.template_name, context)
+                # TODO: Display success screen
+                context = {
+                    'annual_rental_fee': annual_rental_fee,
+                }
+                return render(request, self.template_name, context)
+            else:
+                return redirect('home')
+
+        except AnnualRentalFee.DoesNotExist:
+            logger.error('AnnualRentalFee id:{} not found in the database'.format(request.session['last_annual_rental_fee_id']))
+            return redirect('home')
 
 
 class ApplicationFeeSuccessView(TemplateView):

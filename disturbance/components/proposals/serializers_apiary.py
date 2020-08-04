@@ -265,7 +265,7 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
     coordinates = serializers.SerializerMethodField()
     as_geojson = serializers.SerializerMethodField()
     previous_site_holder_or_applicant = serializers.SerializerMethodField()
-    status = CustomChoiceField()
+    status = CustomChoiceField(read_only=True)
 
     def validate(self, attrs):
         return attrs
