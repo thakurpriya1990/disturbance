@@ -118,7 +118,7 @@
     import datatable from '@vue-utils/datatable.vue'
     import uuid from 'uuid';
     import SiteLocationsModal from './site_locations_modal';
-    import { getFillColour, getStrokeColour, existingSiteRadius, drawingSiteRadius } from '@/components/common/apiary/site_colours.js'
+    import { getApiaryFeatureStyle, getFillColour, getStrokeColour, existingSiteRadius, drawingSiteRadius } from '@/components/common/apiary/site_colours.js'
 
     export default {
         props:{
@@ -181,96 +181,6 @@
                 bufferLayerSource: new VectorSource(),
                 bufferLayer: null,
                 existing_sites_feature_collection: null,
-                apiaryFeatureStyles: {
-                    "default" : new Style({
-                        image: new CircleStyle({
-                            radius: 5,
-                            fill: new Fill({
-                                color: '#FF00FF'
-                            }),
-                            stroke: new Stroke({
-                                color: '#00FF00',
-                                width: 2
-                            })
-                        })
-                    }),
-                    "current" : new Style({
-                        image: new CircleStyle({
-                            radius: 5,
-                            fill: new Fill({
-                                color: '#00FF00'
-                            }),
-                            stroke: new Stroke({
-                                color: '#000000',
-                                width: 1
-                            })
-                        })
-                    }),
-                    "not to be re-issued" : new Style({
-                        image: new CircleStyle({
-                            radius: 5,
-                            fill: new Fill({
-                                color: '#FF0000'
-                            }),
-                            stroke: new Stroke({
-                                color: '#000000',
-                                width: 1
-                            })
-                        })
-                    }),
-                    "pending" : new Style({
-                        image: new CircleStyle({
-                            radius: 5,
-                            fill: new Fill({
-                                color: '#0070FF'
-                                //color: '#FFAA00'
-                            }),
-                            stroke: new Stroke({
-                                color: '#000000',
-                                width: 1
-                            })
-                        })
-                    }),
-                    "vacant" : new Style({
-                        image: new CircleStyle({
-                            radius: 5,
-                            fill: new Fill({
-                                color: '#FFAA00'
-                                //color: '#0070FF'
-                            }),
-                            stroke: new Stroke({
-                                color: '#000000',
-                                width: 1
-                            })
-                        })
-                    }),
-                    "denied application" : new Style({
-                        image: new Icon({
-                            color: '#000000',
-                            //src: "data/x2.png"
-                            src: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAMCAYAAABWdVznAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAOwgAADsIBFShKgAAAABl0RVh0U29mdHdhcmUAcGFpbnQubmV0IDQuMC4xMzQDW3oAAACMSURBVChTlZDbDYAwDAM7AAOw/ypISEyAEMOUXHDS8viAk0xDYkPbUmv9pShgMg3lBj3NIAOrv95C1OoBngyMaoCHpN6M5wzoa31olsDN8rQAMDBtpoDazWD1I8A2FlNA3Z+pBRiYYs+7BHkRtp4PGhpAHPDtIjJwMfsvDWr1AE8G4GIO6GkGGfioWg6CRJYCwPQeRwAAAABJRU5ErkJggg=="
-                        })
-                    }),
-                    "dpaw pool of sites" : new Style({
-                        image: new Icon({
-                        color: '#A900E6',
-                            //src: "data/+2.png"
-                            src: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAMCAYAAABWdVznAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAZdEVYdFNvZnR3YXJlAHBhaW50Lm5ldCA0LjAuMTM0A1t6AAAAQklEQVQoU52LMQoAIBDD/P+n69KAmBvEQJaGriSToKahgpqGCmoaKqhpqKB2xie+DpOgpqGCmoYKahoqqGmocO1ZGzz92jSqmlDHAAAAAElFTkSuQmCC"
-                        }),
-                    }),
-                    "suspended" : new Style({
-                        image: new CircleStyle({
-                            radius: 5,
-                            fill: new Fill({
-                                color: '#FFFFFF'
-                            }),
-                            stroke: new Stroke({
-                                color: '#000000',
-                                width: 1
-                            })
-                        })
-                    }),
-                },
 
                 //
                 dtHeaders: [
@@ -423,11 +333,7 @@
             },
             apiaryStyleFunction: function(feature) {
                 var status = feature.get("status");
-                if (status in this.apiaryFeatureStyles) {
-                    return this.apiaryFeatureStyles[status];
-                }
-                console.log(status + " => default");
-                return this.apiaryFeatureStyles["default"];
+                return getApiaryFeatureStyle(status);
             },
             existingSiteAvailableClicked: function() {
                 alert("TODO: open screen 45: External - Contact Holder of Available Site in a different tab page.");
