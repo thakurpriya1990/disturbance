@@ -18,7 +18,7 @@
                 </div>
 
                 <div class="col-sm-6">
-                    <ComponentMap 
+                    <ComponentMap
                         ref="component_map"
                         :apiary_site_geojson_array="apiary_site_geojson_array"
                         :key="component_map_key"
@@ -30,7 +30,7 @@
 
         <template v-else>
             <div class="row col-sm-12">
-                <ComponentMap 
+                <ComponentMap
                     ref="component_map"
                     :apiary_site_geojson_array="apiary_site_geojson_array"
                     :key="component_map_key"
@@ -146,7 +146,7 @@
             return{
                 apiary_sites_local: JSON.parse(JSON.stringify(this.apiary_sites)),  // Deep copy the array
                 component_map_key: '',
-                table_id: uuid(), 
+                table_id: uuid(),
                 apiary_site_geojson_array: [],  // This is passed to the ComponentMap as props
                 default_checkbox_checked: false,  // If checked property isn't set as a apiary_site's property, this default value is used
                 dtHeaders: [
@@ -203,10 +203,10 @@
                             mRender: function (data, type, apiary_site) {
                                 //let fillColour = vm.getFillColour(apiary_site.status)
                                 //let strokeColour = vm.getStrokeColour(apiary_site.status)
-                                let fillColour = SiteColours[apiary_site.status].fill
-                                let strokeColour = SiteColours[apiary_site.status].stroke
-                                return '<svg height="20" width="20">' + 
-                                            '<circle cx="10" cy="10" r="6" stroke="' + strokeColour + '" stroke-width="2" fill="' + fillColour + '" />' + 
+                                let fillColour = SiteColours[apiary_site.status.id].fill
+                                let strokeColour = SiteColours[apiary_site.status.id].stroke
+                                return '<svg height="20" width="20">' +
+                                            '<circle cx="10" cy="10" r="6" stroke="' + strokeColour + '" stroke-width="2" fill="' + fillColour + '" />' +
                                        '</svg> site: ' + apiary_site.id
                             }
                         },
@@ -235,7 +235,8 @@
                             // Status
                             visible: vm.show_col_status,
                             mRender: function (data, type, apiary_site){
-                                return apiary_site.status
+                                console.log(apiary_site)
+                                return apiary_site.status.name
                             }
                         },
                         {
@@ -260,16 +261,16 @@
                                 if (vm.show_action_available_unavailable){
                                     // Mark as Available/Unavailable
                                     let display_text = ''
-                                    if (vm.is_external && ['Current', 'current'].includes(apiary_site.status)){
+                                    if (vm.is_external && ['Current', 'current'].includes(apiary_site.status.id)){
                                         if (apiary_site.available){
                                             display_text = 'Mark as unavailable';
                                         } else {
                                             display_text = 'Mark as available';
                                         }
-                                        let ret = '<a><span class="toggle_availability" data-apiary-site-id="' + apiary_site.id + 
+                                        let ret = '<a><span class="toggle_availability" data-apiary-site-id="' + apiary_site.id +
                                             '" data-apiary-site-available="' + apiary_site.available + '"/>' + display_text + '</span></a>';
                                         action_list.push(ret);
-                                    } else if (vm.is_internal && ['Current', 'current'].includes(apiary_site.status)){
+                                    } else if (vm.is_internal && ['Current', 'current'].includes(apiary_site.status.id)){
                                         if (apiary_site.available){
                                             display_text = 'Available';
                                         } else {
@@ -438,7 +439,7 @@
             contactLicenceHolder: function(e){
                 let vm = this;
                 let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
-                
+
                 this.$emit('contact-licence-holder-clicked', apiary_site_id)
             },
             makeVacantClicked: function(e) {

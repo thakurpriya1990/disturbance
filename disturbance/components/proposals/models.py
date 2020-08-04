@@ -3101,11 +3101,11 @@ class ApiarySite(models.Model):
     STATUS_CHOICES = (
         (STATUS_DRAFT, 'Draft'),
         (STATUS_PENDING, 'Pending'),
-        (STATUS_CURRENT, 'current'),
+        (STATUS_CURRENT, 'Current'),
         (STATUS_SUSPENDED, 'Suspended'),
-        (STATUS_NOT_TO_BE_REISSUED, 'not_to_be_reissued'),
-        (STATUS_DENIED, 'denied'),
-        (STATUS_VACANT, 'vacant'),
+        (STATUS_NOT_TO_BE_REISSUED, 'Not to be Reissued'),
+        (STATUS_DENIED, 'Denied'),
+        (STATUS_VACANT, 'Vacant'),
     )
     NON_RESTRICTIVE_STATUSES = (STATUS_DRAFT, STATUS_VACANT,)
     TRANSITABLE_STATUSES = (STATUS_NOT_TO_BE_REISSUED, STATUS_DENIED,)
