@@ -1,67 +1,74 @@
 <template lang="html">
     <div>
 
-        <span class="row col-sm-12">
-            <div class="col-sm-4 form-group">
+        <div class="row col-sm-12">
+            <div class="form-group">
                 <label class="inline">Title:</label>
                 <input
                     type="text"
                     class="form-control"
                     v-model="proposal.proposal_apiary.title"
                     :readonly="readonly"
-                />
-            </div>
-        </span>
-
-        <span class="row col-sm-12">
-            Mark the location of the new proposed site either by entering the latitude and longitude or by clicking the location in the map.
-        </span>
-
-        <div class="row col-sm-12">
-            <div class="col-sm-4 form-group">
-                <label class="inline">Latitude:</label>
-                <input
-                    type="number"
-                    min="-90"
-                    max="90"
-                    class="form-control"
-                    v-model.number="proposal.proposal_apiary.latitude"
-                    :readonly="readonly"
+                    style="width: 100%;"
                 />
             </div>
         </div>
 
         <div class="row col-sm-12">
-            <div class="col-sm-4 form-group">
-                <label class="inline">Longitude:</label>
-                <input
-                    type="number"
-                    min="-180"
-                    max="180"
-                    class="form-control"
-                    v-model.number="proposal.proposal_apiary.longitude"
-                    :readonly="readonly"
-                />
-                <template v-if="!readonly">
-                    <input type="button" @click="tryCreateNewSiteFromForm" value="Add proposed site" class="btn btn-primary">
-                </template>
+            Mark the location of the new proposed site either by entering the latitude and longitude or by clicking the location in the map.
+        </div>
+
+        <div class="row">
+            <div class="col-sm-4">
+                <div class="form-group">
+                    <label class="inline">Latitude:</label>
+                    <input
+                        type="number"
+                        min="-90"
+                        max="90"
+                        class="form-control"
+                        v-model.number="proposal.proposal_apiary.latitude"
+                        :readonly="readonly"
+                    />
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-sm-4">
+                <div class="form-group">
+                    <label class="inline">Longitude:</label>
+                    <input
+                        type="number"
+                        min="-180"
+                        max="180"
+                        class="form-control"
+                        v-model.number="proposal.proposal_apiary.longitude"
+                        :readonly="readonly"
+                    />
+                    <template v-if="!readonly">
+                        <input type="button" @click="tryCreateNewSiteFromForm" value="Add proposed site" class="btn btn-primary" style="margin: 1em 0 0 0;">
+                    </template>
+                </div>
             </div>
         </div>
 
         <template v-if="proposal && proposal.proposal_apiary">
-            <div class="row col-sm-12 debug-info">
-                <div>
-                    Category:
-                    <select v-model="current_category" class="form-group">
-                        <option value="south_west">South West</option>
-                        <option value="remote">Remote</option>
-                    </select>
-                </div>
-
-                Remainders:
-                <div v-for="remainder in proposal.proposal_apiary.site_remainders" class="debug-remainders">
+            <div class="row debug-info">
+                <div class="col-sm-12">
                     <div>
-                        {{ remainder.category_name }}: {{ remainder.remainders }} left (${{ remainder.fee }}/site)
+                        Category:
+                        <select v-model="current_category" class="form-group">
+                            <option value="south_west">South West</option>
+                            <option value="remote">Remote</option>
+                        </select>
+                    </div>
+
+                    Remainders:
+                    <div v-for="remainder in proposal.proposal_apiary.site_remainders" class="debug-remainders">
+                        <div>
+                            {{ remainder.category_name }}: {{ remainder.remainders }} left (${{ remainder.fee }}/site)
+                        </div>
                     </div>
                 </div>
             </div>
@@ -705,7 +712,6 @@
     }
     .debug-info {
         background: #CCC;
-        padding: 1em;
         margin: 1em;
     }
     .debug-message {
