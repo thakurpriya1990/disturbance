@@ -15,6 +15,7 @@ from datetime import datetime, timedelta, date
 from django.utils import timezone
 from dateutil.relativedelta import relativedelta
 from ledger.accounts.models import EmailUser
+from ledger.settings_base import PRODUCTION_EMAIL, DEBUG
 
 from disturbance.components.approvals.email import get_value_of_annual_rental_fee_awaiting_payment_confirmation
 from disturbance.components.proposals.models import Proposal, ApiarySiteFeeRemainder, ApiarySiteFeeType, SiteCategory, \
@@ -73,7 +74,11 @@ class AnnualRentalFeeView(TemplateView):
             for key in line:
                 if key in ('price_incl_tax', 'price_excl_tax') and isinstance(line[key], (str, unicode)):
                     amount_f = float(line[key])  # string to float
-                    round_f = round(amount_f)  # Round to 2 decimal places
+                    if not DEBUG and PRODUCTION_EMAIL:
+                        round_f = round(amount_f, 2)  # Round to 2 decimal places
+                    else:
+                        # in Dev/UAT, avoid decimal amount
+                        round_f = round(amount_f)
                     decimal_f = Decimal(str(round_f))  # Generate Decimal with 2 decimal places string
                     line[key] = decimal_f
         return lines
