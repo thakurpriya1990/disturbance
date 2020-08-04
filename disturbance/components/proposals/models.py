@@ -2618,16 +2618,19 @@ class ProposalApiary(models.Model):
                             annual_rental_fee_period, created = AnnualRentalFeePeriod.objects.get_or_create(period_start_date=period_start_date, period_end_date=period_end_date)
 
                             from disturbance.components.das_payments.utils import \
-                                create_other_invoice_for_annual_rental_fee
-                            invoice, details_dict = create_other_invoice_for_annual_rental_fee(approval, today_now_local, (period_start_date, period_end_date), sites_approved)
+                                generate_line_items_for_annual_rental_fee
+                            products, details_dict = generate_line_items_for_annual_rental_fee(approval, today_now_local, (period_start_date, period_end_date), sites_approved)
+                            from disturbance.management.commands.send_annual_rental_fee_invoice import make_serializable
+                            products = make_serializable(products)  # Make line items serializable to store in the JSONField
 
                             from disturbance.components.das_payments.models import AnnualRentalFee
                             annual_rental_fee = AnnualRentalFee.objects.create(
                                 approval=approval,
                                 annual_rental_fee_period=annual_rental_fee_period,
-                                invoice_reference=invoice.reference,
+                                # invoice_reference=invoice.reference,  #  We don't create an ledger invoice, but just store the lines
                                 invoice_period_start_date=details_dict['charge_start_date'],
                                 invoice_period_end_date=details_dict['charge_end_date'],
+                                lines=products,  # This is used when generating the invoice at payment time
                             )
 
                             # Store the apiary sites which the invoice created above has been issued for
@@ -2637,17 +2640,10 @@ class ProposalApiary(models.Model):
                                 annual_rental_fee_apiary_site = AnnualRentalFeeApiarySite(apiary_site=apiary_site, annual_rental_fee=annual_rental_fee)
                                 annual_rental_fee_apiary_site.save()
 
-                            # TODO: Attach the invoice and send emails
-                            #   update invoice_sent attribute of the annual_rental_fee obj?
-                            from disturbance.components.approvals.email import send_annual_rental_fee_invoice
-                            email_data = send_annual_rental_fee_invoice(approval, invoice)
-
-                            # TODO: communication log
-                            # if email_data:
-                            #     email_data['sanction_outcome'] = instance.id
-                            #     serializer = SanctionOutcomeCommsLogEntrySerializer(instance=workflow_entry, data=email_data, partial=True)
-                            #     serializer.is_valid(raise_exception=True)
-                            #     serializer.save()
+                            from disturbance.components.approvals.email import \
+                                send_annual_rental_fee_awaiting_payment_confirmation
+                            email_data = send_annual_rental_fee_awaiting_payment_confirmation(approval, annual_rental_fee)
+                            # TODO: Add comms log
 
                         #print approval,approval.id, created
                     # Generate compliances
