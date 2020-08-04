@@ -12,7 +12,7 @@ from dateutil.relativedelta import relativedelta
 from ledger.accounts.models import EmailUser
 from ledger.settings_base import TIME_ZONE
 
-from disturbance.components.main.models import ApplicationType
+from disturbance.components.main.models import ApplicationType, GlobalSettings
 from disturbance.components.proposals.models import SiteCategory, ApiarySiteFeeType, \
     ApiarySiteFeeRemainder, ApiaryAnnualRentalFee, ApiarySite
 from disturbance.components.organisations.models import Organisation
@@ -456,7 +456,7 @@ def generate_line_items_for_annual_rental_fee(approval, today_now, period, apiar
                 details_dict['charge_end_date'].strftime('%d/%m/%Y'),
                 sites_str
             ),
-            'oracle_code': 'ABC123 GST',
+            'oracle_code': GlobalSettings.objects.get(key=GlobalSettings.KEY_ORACLE_CODE_APIARY_SITE_ANNUAL_RENTAL_FEE),
             'price_incl_tax': details_dict['total_amount'],
             'price_excl_tax': details_dict['total_amount'],
             'quantity': 1,
