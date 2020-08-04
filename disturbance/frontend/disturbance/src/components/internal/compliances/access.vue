@@ -243,14 +243,17 @@ export default {
     check_assessor: function(){
         let vm = this;
         //vm.members = vm.compliance.allowed_assessors
-        
-        var assessor = vm.members.filter(function(elem){
-                    return(elem.id==vm.profile.id);
-                });
-                if (assessor.length > 0)
-                    return true;
-                else
-                    return false;
+        if (vm.members) {
+            var assessor = vm.members.filter(function(elem){
+                        return(elem.id==vm.profile.id);
+                    });
+                    if (assessor.length > 0)
+                        return true;
+                    else
+                        return false;
+        } else {
+            return false;
+        }
      },
   },
   mounted: function () {
