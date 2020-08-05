@@ -8,6 +8,7 @@ from django.db.models import Q
 from ledger.settings_base import TIME_ZONE
 from rest_framework_gis.serializers import GeoFeatureModelSerializer
 
+from disturbance.components.main.fields import CustomChoiceField
 from disturbance.components.organisations.serializers import OrganisationSerializer
 from disturbance.components.organisations.models import UserDelegation
 from disturbance.components.proposals.serializers_base import (
@@ -264,6 +265,7 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
     coordinates = serializers.SerializerMethodField()
     as_geojson = serializers.SerializerMethodField()
     previous_site_holder_or_applicant = serializers.SerializerMethodField()
+    status = CustomChoiceField(read_only=True)
 
     def validate(self, attrs):
         return attrs

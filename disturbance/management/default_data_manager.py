@@ -4,7 +4,7 @@ import logging
 import pytz
 from ledger.settings_base import TIME_ZONE
 
-from disturbance.components.main.models import ApplicationType
+from disturbance.components.main.models import ApplicationType, GlobalSettings
 from disturbance.components.proposals.models import ApiarySiteFeeType, SiteCategory, ApiarySiteFee, ProposalType, \
     ApiaryAnnualRentalFeePeriodStartDate, ApiaryAnnualRentalFeeRunDate, ApiaryAnnualRentalFee
 
@@ -14,6 +14,14 @@ logger = logging.getLogger(__name__)
 class DefaultDataManager(object):
 
     def __init__(self):
+        # Store
+        for item in GlobalSettings.default_values:
+            obj, created = GlobalSettings.objects.get_or_create(key=item[0])
+            if created:
+                obj.value = item[1]
+                obj.save()
+                logger.info("Created {}: {}".format(item[0], item[1]))
+
         # Store default ApiarySiteFeeType data
         for item in ApiarySiteFeeType.FEE_TYPE_CHOICES:
             obj, created = ApiarySiteFeeType.objects.get_or_create(name=item[0])

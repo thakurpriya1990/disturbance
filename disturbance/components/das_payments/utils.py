@@ -12,7 +12,7 @@ from dateutil.relativedelta import relativedelta
 from ledger.accounts.models import EmailUser
 from ledger.settings_base import TIME_ZONE
 
-from disturbance.components.main.models import ApplicationType
+from disturbance.components.main.models import ApplicationType, GlobalSettings
 from disturbance.components.proposals.models import SiteCategory, ApiarySiteFeeType, \
     ApiarySiteFeeRemainder, ApiaryAnnualRentalFee, ApiarySite
 from disturbance.components.organisations.models import Organisation
@@ -30,6 +30,7 @@ from disturbance.settings import PAYMENT_SYSTEM_ID
 
 logger = logging.getLogger('payment_checkout')
 
+
 def get_session_application_invoice(session):
     """ Application Fee session ID """
     if 'das_app_invoice' in session:
@@ -41,7 +42,7 @@ def get_session_application_invoice(session):
         #return Invoice.objects.get(id=application_invoice_id)
         #return Proposal.objects.get(id=proposal_id)
         return ApplicationFee.objects.get(id=application_fee_id)
-    except Invoice.DoesNotExist:
+    except ApplicationFee.DoesNotExist:
         raise Exception('Application not found for application {}'.format(application_fee_id))
 
 
@@ -63,6 +64,18 @@ def set_session_annual_rental_fee(session, annual_rental_fee):
     session.modified = True
 
 
+def get_session_annual_rental_fee(session):
+    if 'annual_rental_fee' in session:
+        annual_rental_fee_id = session['annual_rental_fee']
+    else:
+        raise Exception('AnnualRentalFee not in Session')
+
+    try:
+        return AnnualRentalFee.objects.get(id=annual_rental_fee_id)
+    except AnnualRentalFee.DoesNotExist:
+        raise Exception('AnnualRentalFee not found for id {}'.format(annual_rental_fee_id))
+
+
 def delete_session_application_invoice(session):
     """ Application Fee session ID """
     if 'das_app_invoice' in session:
@@ -81,7 +94,7 @@ def get_session_site_transfer_application_invoice(session):
         #return Invoice.objects.get(id=application_invoice_id)
         #return Proposal.objects.get(id=proposal_id)
         return ApplicationFee.objects.get(id=application_fee_id)
-    except Invoice.DoesNotExist:
+    except ApplicationFee.DoesNotExist:
         raise Exception('Application not found for application {}'.format(application_fee_id))
 
 
@@ -443,7 +456,7 @@ def generate_line_items_for_annual_rental_fee(approval, today_now, period, apiar
                 details_dict['charge_end_date'].strftime('%d/%m/%Y'),
                 sites_str
             ),
-            'oracle_code': 'ABC123 GST',
+            'oracle_code': GlobalSettings.objects.get(key=GlobalSettings.KEY_ORACLE_CODE_APIARY_SITE_ANNUAL_RENTAL_FEE),
             'price_incl_tax': details_dict['total_amount'],
             'price_excl_tax': details_dict['total_amount'],
             'quantity': 1,
