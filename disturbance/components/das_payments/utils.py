@@ -446,6 +446,8 @@ def generate_line_items_for_annual_rental_fee(approval, today_now, period, apiar
     except:
         sites_str = ', '.join(['site: ' + str(site['id']) for site in apiary_sites])
 
+    oracle_code_obj = GlobalSettings.objects.get(key=GlobalSettings.KEY_ORACLE_CODE_APIARY_SITE_ANNUAL_RENTAL_FEE)
+
     line_items = [
         {
             'ledger_description': 'Annual Rental Fee: {}, Issued: {} {}, Period: {} to {}, Site(s): {}'.format(
@@ -456,7 +458,7 @@ def generate_line_items_for_annual_rental_fee(approval, today_now, period, apiar
                 details_dict['charge_end_date'].strftime('%d/%m/%Y'),
                 sites_str
             ),
-            'oracle_code': GlobalSettings.objects.get(key=GlobalSettings.KEY_ORACLE_CODE_APIARY_SITE_ANNUAL_RENTAL_FEE),
+            'oracle_code': oracle_code_obj.value,
             'price_incl_tax': details_dict['total_amount'],
             'price_excl_tax': details_dict['total_amount'],
             'quantity': 1,

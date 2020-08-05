@@ -10,7 +10,6 @@ from django.db import transaction
 from django.db.models import Q, Min
 from ledger.settings_base import TIME_ZONE
 
-# from disturbance.components.approvals.email import send_annual_rental_fee_invoice
 from disturbance.components.approvals.email import send_annual_rental_fee_awaiting_payment_confirmation
 from disturbance.components.approvals.models import Approval
 from disturbance.components.das_payments.models import AnnualRentalFee, AnnualRentalFeePeriod, AnnualRentalFeeApiarySite
@@ -141,8 +140,6 @@ class Command(BaseCommand):
 
                             # TODO: Attach the invoice and send emails
                             #   update invoice_sent attribute of the annual_rental_fee obj?
-                            # from disturbance.components.approvals.email import send_annual_rental_fee_invoice
-                            # send_annual_rental_fee_invoice(approval, invoice)
                             email_data = send_annual_rental_fee_awaiting_payment_confirmation(approval, annual_rental_fee)
 
                             # TODO: Add comms log
