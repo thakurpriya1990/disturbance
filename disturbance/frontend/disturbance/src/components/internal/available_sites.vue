@@ -11,7 +11,7 @@
                 :show_col_previous_site_holder="false"
                 :key="component_site_selection_key"
                 :table_and_map_in_a_row="true"
-                :show_action_contact_licence_holder="true"
+                :show_action_contact_licence_holder="false"
                 @apiary_sites_updated="apiarySitesUpdated"
                 @contact-licence-holder-clicked="contactLicenceHolderClicked"
             />
