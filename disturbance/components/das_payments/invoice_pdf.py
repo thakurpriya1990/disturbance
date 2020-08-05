@@ -255,7 +255,7 @@ def _is_gst_exempt(proposal, invoice):
     return proposal.application_type.is_gst_exempt if proposal and proposal.fee_invoice_reference == invoice.reference else False
 
 
-def _create_invoice(invoice_buffer, invoice, proposal):
+def _create_invoice(invoice_buffer, invoice, url_var, proposal):
 
     global DPAW_HEADER_LOGO
 #    if  cols_var["TEMPLATE_GROUP"] == 'rottnest':
