@@ -118,7 +118,7 @@
     import datatable from '@vue-utils/datatable.vue'
     import uuid from 'uuid';
     import SiteLocationsModal from './site_locations_modal';
-    import { getApiaryFeatureStyle, getFillColour, getStrokeColour, existingSiteRadius, drawingSiteRadius } from '@/components/common/apiary/site_colours.js'
+    import { getApiaryFeatureStyle, drawingSiteRadius } from '@/components/common/apiary/site_colours.js'
 
     export default {
         props:{
@@ -418,17 +418,6 @@
                 this.drawingLayerSource.removeFeature(myFeature);
 
                 this.constructSiteLocationsTable();
-            },
-            getStyle: function(status, checked){
-                let fillObj = getFillColour(status)
-                let strokeObj = getStrokeColour(status, checked)
-                return new Style({
-                            image: new CircleStyle({
-                                radius: existingSiteRadius,
-                                fill: fillObj,
-                                stroke: strokeObj,
-                            })
-                        })
             },
             initMap: function() {
                 console.log('initMap start')
