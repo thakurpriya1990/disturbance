@@ -53,7 +53,7 @@
     import { circular} from 'ol/geom/Polygon';
     import GeoJSON from 'ol/format/GeoJSON';
     import Overlay from 'ol/Overlay';
-    import { getFillColour, getStrokeColour, existingSiteRadius } from '@/components/common/apiary/site_colours.js'
+    import { getApiaryFeatureStyle } from '@/components/common/apiary/site_colours.js'
 
     export default {
         props:{
@@ -112,17 +112,6 @@
                     vm.map.updateSize();
                 }, 50)
             },
-            getStyle: function(status, checked){
-                let fillObj = getFillColour(status)
-                let strokeObj = getStrokeColour(status, checked)
-                return new Style({
-                            image: new CircleStyle({
-                                radius: existingSiteRadius,
-                                fill: fillObj,
-                                stroke: strokeObj,
-                            })
-                        })
-            },
             initMap: function() {
                 let vm = this;
 
@@ -148,7 +137,7 @@
                     source: vm.apiarySitesQuerySource,
                     //style: this.drawStyle
                     style: function(feature, resolution){
-                        return vm.getStyle(feature.get('status'), feature.get('checked'))
+                        return getApiaryFeatureStyle(feature.get('status'), feature.get('checked'))
                     },
                 });
                 vm.map.addLayer(vm.apiarySitesQueryLayer);
@@ -245,7 +234,7 @@
             },
             setApiarySiteSelectedStatus: function(apiary_site_id, selected) {
                 let feature = this.apiarySitesQuerySource.getFeatureById(apiary_site_id)
-                let style_applied = this.getStyle(feature.get('status'), selected)
+                let style_applied = getApiaryFeatureStyle(feature.get('status'), selected)
                 feature.setStyle(style_applied)
             },
             addEventListeners: function () {

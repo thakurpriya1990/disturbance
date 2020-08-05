@@ -201,8 +201,6 @@
                             // Site
                             visible: vm.show_col_site,
                             mRender: function (data, type, apiary_site) {
-                                //let fillColour = vm.getFillColour(apiary_site.status)
-                                //let strokeColour = vm.getStrokeColour(apiary_site.status)
                                 let fillColour = SiteColours[apiary_site.status.id].fill
                                 let strokeColour = SiteColours[apiary_site.status.id].stroke
                                 return '<svg height="20" width="20">' +

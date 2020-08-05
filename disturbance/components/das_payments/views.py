@@ -17,7 +17,9 @@ from dateutil.relativedelta import relativedelta
 from ledger.accounts.models import EmailUser
 from ledger.settings_base import PRODUCTION_EMAIL, DEBUG
 
-from disturbance.components.approvals.email import get_value_of_annual_rental_fee_awaiting_payment_confirmation
+from disturbance.components.approvals.email import get_value_of_annual_rental_fee_awaiting_payment_confirmation, \
+    send_annual_rental_fee_invoice
+from disturbance.components.approvals.serializers import ApprovalLogEntrySerializer
 from disturbance.components.proposals.models import Proposal, ApiarySiteFeeRemainder, ApiarySiteFeeType, SiteCategory, \
     ApiarySite
 from disturbance.components.compliances.models import Compliance
@@ -310,10 +312,14 @@ class AnnualRentalFeeSuccessView(TemplateView):
             request.session['last_annual_rental_fee_id'] = annual_rental_fee.id
             delete_session_annual_rental_fee(request.session)
 
-            # TODO: Send invoice
-            # TODO: Add comms log
-            # send_application_fee_invoice_apiary_email_notification(request, proposal, invoice, recipients=[recipient])
-            # send_application_fee_confirmation_apiary_email_notification(request, application_fee, invoice, recipients=[recipient])
+            # Send invoice
+            email_data = send_annual_rental_fee_invoice(annual_rental_fee.approval, invoice)
+
+            # Add comms log
+            email_data['approval'] = u'{}'.format(annual_rental_fee.approval.id)
+            serializer = ApprovalLogEntrySerializer(data=email_data)
+            serializer.is_valid(raise_exception=True)
+            comms = serializer.save()
 
             context = {
                 'annual_rental_fee': annual_rental_fee,
