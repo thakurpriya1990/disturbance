@@ -94,7 +94,7 @@ def send_contact_licence_holder_email(apiary_site, comments, sender):
         'sender': sender,
     }
     to_address = [apiary_site.approval.relevant_applicant_email,]
-    cc = [sender.email,]
+    cc = []
     bcc = []
 
     msg = email.send(
