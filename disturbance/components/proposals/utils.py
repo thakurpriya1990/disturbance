@@ -421,8 +421,9 @@ def save_proponent_data_apiary_site_transfer(proposal_obj, request, viewset):
                     originating_approval = proposal_obj.proposal_apiary.retrieve_approval
                     if originating_approval:
                         # Copy requirements from approval.current_proposal
-                        origin_req = originating_approval.current_proposal.apiary_requirements(
-                                approval=originating_approval).exclude(is_deleted=True)
+                        #origin_req = originating_approval.current_proposal.apiary_requirements(
+                         #       approval=originating_approval).exclude(is_deleted=True)
+                        origin_req = originating_approval.proposalrequirement_set.exclude(is_deleted=True)
                         from copy import deepcopy
                         if origin_req:
                             for origin_r in origin_req:
@@ -438,8 +439,9 @@ def save_proponent_data_apiary_site_transfer(proposal_obj, request, viewset):
                     #approval = proposal_apiary.retrieve_approval
                     if proposal_obj.proposal_apiary.target_approval:
                         # Copy requirements from approval.current_proposal
-                        target_req = proposal_obj.proposal_apiary.target_approval.current_proposal.apiary_requirements(
-                                approval=proposal_obj.proposal_apiary.target_approval).exclude(is_deleted=True)
+                        #target_req = proposal_obj.proposal_apiary.target_approval.current_proposal.apiary_requirements(
+                         #       approval=proposal_obj.proposal_apiary.target_approval).exclude(is_deleted=True)
+                        origin_req = proposal_obj.proposal_apiary.target_approval.proposalrequirement_set.exclude(is_deleted=True)
                         from copy import deepcopy
                         if target_req:
                             for target_r in target_req:
