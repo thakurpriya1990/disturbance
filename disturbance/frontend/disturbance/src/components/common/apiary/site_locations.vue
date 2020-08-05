@@ -94,7 +94,6 @@
 <script>
     import 'ol/ol.css';
     //import 'index.css';  // copy-and-pasted the contents of this file at the <style> section below in this file
-
     import Map from 'ol/Map';
     import View from 'ol/View';
     import WMTSCapabilities from 'ol/format/WMTSCapabilities';
@@ -102,7 +101,8 @@
     import OSM from 'ol/source/OSM';
     import WMTS, {optionsFromCapabilities} from 'ol/source/WMTS';
     import Collection from 'ol/Collection';
-    import {Draw, Modify, Snap} from 'ol/interaction';
+    import {Draw, Modify, Snap, Select} from 'ol/interaction';
+    import {pointerMove} from 'ol/events/condition';
     import VectorLayer from 'ol/layer/Vector';
     import VectorSource from 'ol/source/Vector'; 
     import {Circle as CircleStyle, Fill, Stroke, Style, Icon} from 'ol/style';
@@ -596,6 +596,73 @@
                     });
                     vm.map.addInteraction(modifyTool);
                 }
+
+                /////////////////////
+                // Test
+                ////////////////////
+                let hoverInteraction = new Select({
+                    condition: pointerMove,
+                    layers: [vm.apiarySitesQueryLayer]
+                });
+                vm.map.addInteraction(hoverInteraction);
+                hoverInteraction.on('select', function(evt){
+                    if(evt.selected.length > 0){
+                        console.info('selected: ')
+                        console.log(evt.selected[0]);
+                    }
+                });
+
+                let selected = null
+                vm.map.on('pointermove', function (e) {
+                    let pixel = vm.map.getEventPixel(e.originalEvent);
+                    //let hit = vm.map.hasFeatureAtPixel(pixel);
+                    let hit = vm.map.hasFeatureAtPixel(e.pixel, {
+                        layerFilter: function(layer) {
+                            if (layer === vm.apiarySitesQueryLayer){
+                                return true
+                            }
+                            return false
+                            //return layer.get('layer_name') === 'jls';
+                        }
+                    });
+
+                    if(hit){
+                        //console.log('hit')
+                    }
+
+
+                    if (selected !== null) {
+                        selected.setStyle(undefined);
+                        selected = null;
+                    }
+
+                    vm.map.forEachFeatureAtPixel(e.pixel, function (f, layer) {
+                        console.log(f.id)
+                        if (f.id){
+                            selected = f;
+                        }
+                        //f.setStyle(highlightStyle);
+                        return true;
+                    });
+
+                    if (selected) {
+                        console.log(selected)
+                    }
+                });
+
+                vm.map.on('click', function(evt){
+                    console.log('click')
+                    let feature = vm.map.forEachFeatureAtPixel(evt.pixel, function(feature, layer) {
+                        return feature;
+                    });
+                    if (feature){
+                        console.log(feature)
+                    }
+                })
+                ////////////////////////
+                // END TEST
+                ////////////////////////
+
                 console.log('initMap end')
             },  // End: initMap()
             excludeFeature: function(excludedFeature) {
