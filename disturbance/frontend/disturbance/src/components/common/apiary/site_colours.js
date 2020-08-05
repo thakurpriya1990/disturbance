@@ -1,4 +1,4 @@
-import { Fill, Stroke } from 'ol/style';
+import {Circle as CircleStyle, Fill, Stroke, Style, Icon} from 'ol/style';
 
 const SiteColours = {
     'draft': {
@@ -63,10 +63,120 @@ export function getStrokeColour(status, selected=false){
         case 'suspended':
             return new Stroke({color: SiteColours.suspended.stroke, width: stroke_width})
         case 'not_to_be_reissued':
-            return new Stroke({color: SiteColours.no_to_be_reissued.stroke, width: stroke_width})
+            return new Stroke({color: SiteColours.not_to_be_reissued.stroke, width: stroke_width})
         case 'denied':
             return new Stroke({color: SiteColours.denied.stroke, width: stroke_width})
         case 'vacant':
             return new Stroke({color: SiteColours.vacant.stroke, width: stroke_width})
     }
+}
+export function getApiaryFeatureStyle(status){
+    switch(status){
+        case 'pending':
+            return new Style({
+                image: new CircleStyle({
+                    radius: 5,
+                    fill: new Fill({
+                        color: '#0070FF'
+                        //color: '#FFAA00'
+                    }),
+                    stroke: new Stroke({
+                        color: '#000000',
+                        width: 1
+                    })
+                })
+            });
+            break;
+        case 'current':
+            return new Style({
+                image: new CircleStyle({
+                    radius: 5,
+                    fill: new Fill({
+                        color: '#00FF00'
+                    }),
+                    stroke: new Stroke({
+                        color: '#000000',
+                        width: 1
+                    })
+                })
+            });
+            break;
+        case 'suspended':
+            return new Style({
+                image: new CircleStyle({
+                    radius: 5,
+                    fill: new Fill({
+                        color: '#FFFFFF'
+                    }),
+                    stroke: new Stroke({
+                        color: '#000000',
+                        width: 1
+                    })
+                })
+            });
+            break;
+        case 'not_to_be_reissued':
+            return new Style({
+                image: new CircleStyle({
+                    radius: 5,
+                    fill: new Fill({
+                        color: '#FF0000'
+                    }),
+                    stroke: new Stroke({
+                        color: '#000000',
+                        width: 1
+                    })
+                })
+            });
+            break;
+        case 'denied':
+            return new Style({
+                image: new Icon({
+                    color: '#000000',
+                    //src: "data/x2.png"
+                    src: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAMCAYAAABWdVznAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAOwgAADsIBFShKgAAAABl0RVh0U29mdHdhcmUAcGFpbnQubmV0IDQuMC4xMzQDW3oAAACMSURBVChTlZDbDYAwDAM7AAOw/ypISEyAEMOUXHDS8viAk0xDYkPbUmv9pShgMg3lBj3NIAOrv95C1OoBngyMaoCHpN6M5wzoa31olsDN8rQAMDBtpoDazWD1I8A2FlNA3Z+pBRiYYs+7BHkRtp4PGhpAHPDtIjJwMfsvDWr1AE8G4GIO6GkGGfioWg6CRJYCwPQeRwAAAABJRU5ErkJggg=="
+                })
+            });
+            break;
+        case 'vacant':
+            return new Style({
+                image: new CircleStyle({
+                    radius: 5,
+                    fill: new Fill({
+                        color: '#FFAA00'
+                        //color: '#0070FF'
+                    }),
+                    stroke: new Stroke({
+                        color: '#000000',
+                        width: 1
+                    })
+                })
+            });
+            break;
+        case 'dpaw_pool_of_sites':
+            return new Style({
+                image: new Icon({
+                color: '#A900E6',
+                    //src: "data/+2.png"
+                    src: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAMCAYAAABWdVznAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAZdEVYdFNvZnR3YXJlAHBhaW50Lm5ldCA0LjAuMTM0A1t6AAAAQklEQVQoU52LMQoAIBDD/P+n69KAmBvEQJaGriSToKahgpqGCmoaKqhpqKB2xie+DpOgpqGCmoYKahoqqGmocO1ZGzz92jSqmlDHAAAAAElFTkSuQmCC"
+                }),
+            });
+            break;
+        default:
+            return new Style({
+                image: new CircleStyle({
+                    radius: 5,
+                    fill: new Fill({
+                        color: '#FF00FF'
+                    }),
+                    stroke: new Stroke({
+                        color: '#00FF00',
+                        width: 2
+                    })
+                })
+            });
+            break;
+    }
+
+
 }
