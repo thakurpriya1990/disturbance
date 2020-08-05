@@ -103,6 +103,7 @@ DATA_UPLOAD_MAX_NUMBER_FIELDS = None
 
 # Department details
 SYSTEM_NAME = env('SYSTEM_NAME', 'Disturbance Approval System')
+APIARY_SYSTEM_NAME = env('APIARY_SYSTEM_NAME', 'Apiary System')
 SYSTEM_NAME_SHORT = env('SYSTEM_NAME_SHORT', 'DAS')
 SITE_PREFIX = env('SITE_PREFIX')
 SITE_DOMAIN = env('SITE_DOMAIN')
