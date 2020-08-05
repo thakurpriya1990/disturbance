@@ -15,6 +15,7 @@ from datetime import datetime, timedelta, date
 from django.utils import timezone
 from dateutil.relativedelta import relativedelta
 from ledger.accounts.models import EmailUser
+from ledger.settings_base import PRODUCTION_EMAIL, DEBUG
 
 from disturbance.components.approvals.email import get_value_of_annual_rental_fee_awaiting_payment_confirmation
 from disturbance.components.proposals.models import Proposal, ApiarySiteFeeRemainder, ApiarySiteFeeType, SiteCategory, \
@@ -38,7 +39,8 @@ from disturbance.components.das_payments.utils import (
     delete_session_application_invoice,
     get_session_site_transfer_application_invoice,
     set_session_site_transfer_application_invoice,
-    delete_session_site_transfer_application_invoice, set_session_annual_rental_fee,
+    delete_session_site_transfer_application_invoice, set_session_annual_rental_fee, get_session_annual_rental_fee,
+    delete_session_annual_rental_fee,
     # create_bpay_invoice,
     # create_other_invoice,
 )
@@ -62,8 +64,6 @@ logger = logging.getLogger('payment_checkout')
 
 
 class AnnualRentalFeeView(TemplateView):
-    template_name = 'disturbance/payment/success.html'
-
     def get_object(self):
         return get_object_or_404(AnnualRentalFee, id=self.kwargs['annual_rental_fee_id'])
 
@@ -71,7 +71,14 @@ class AnnualRentalFeeView(TemplateView):
         for line in lines:
             for key in line:
                 if key in ('price_incl_tax', 'price_excl_tax') and isinstance(line[key], (str, unicode)):
-                    line[key] = Decimal(line[key])
+                    amount_f = float(line[key])  # string to float
+                    if not DEBUG and PRODUCTION_EMAIL:
+                        round_f = round(amount_f, 2)  # Round to 2 decimal places
+                    else:
+                        # in Dev/UAT, avoid decimal amount, otherwise payment is declined
+                        round_f = round(amount_f)
+                    decimal_f = Decimal(str(round_f))  # Generate Decimal with 2 decimal places string
+                    line[key] = decimal_f
         return lines
 
     def get(self, request, *args, **kwargs):
@@ -82,13 +89,12 @@ class AnnualRentalFeeView(TemplateView):
                 set_session_annual_rental_fee(request.session, annual_rental_fee)
 
                 lines = self.restore_original_format(annual_rental_fee.lines)
-
                 checkout_response = checkout(
                     request,
                     None,
                     lines,
                     return_url_ns='annual_rental_fee_success',
-                    return_preload_url_ns='site_transfer_fee_success',
+                    return_preload_url_ns='annual_rental_fee_success',
                     invoice_text='Annual Rental Fee'
                 )
 
@@ -100,12 +106,8 @@ class AnnualRentalFeeView(TemplateView):
                 return checkout_response
 
         except Exception, e:
-            logger.error('Error Creating Application Fee: {}'.format(e))
+            logger.error('Error Creating Annual Rental Fee: {}'.format(e))
             raise
-
-
-class AnnualRentalFeeSuccessView(TemplateView):
-    pass
 
 
 class ApplicationFeeView(TemplateView):
@@ -281,12 +283,66 @@ class SiteTransferApplicationFeeSuccessView(TemplateView):
         return render(request, self.template_name, context)
 
 
+class AnnualRentalFeeSuccessView(TemplateView):
+    template_name = 'disturbance/payment/annual_rental_fee_success.html'
+
+    def get(self, request, *args, **kwargs):
+        invoice = None
+
+        try:
+            context = template_context(self.request)
+            basket = None
+
+            # When accessed first time, there is a annual_rental_fee in the session which was set at AnnualRentalFeeView()
+            # but when accessed sencond time, it is deleted therefore raise an error.
+            annual_rental_fee = get_session_annual_rental_fee(request.session)
+
+            if self.request.user.is_authenticated():
+                basket = Basket.objects.filter(status='Submitted', owner=request.user).order_by('-id')[:1]
+            else:
+                pass
+
+            order = Order.objects.get(basket=basket[0])
+            invoice = Invoice.objects.get(order_number=order.number)
+            annual_rental_fee.invoice_reference = invoice.reference
+            annual_rental_fee.save()
+
+            request.session['last_annual_rental_fee_id'] = annual_rental_fee.id
+            delete_session_annual_rental_fee(request.session)
+
+            # TODO: Send invoice
+            # TODO: Add comms log
+            # send_application_fee_invoice_apiary_email_notification(request, proposal, invoice, recipients=[recipient])
+            # send_application_fee_confirmation_apiary_email_notification(request, application_fee, invoice, recipients=[recipient])
+
+            context = {
+                'annual_rental_fee': annual_rental_fee,
+            }
+            return render(request, self.template_name, context)
+
+        except Exception as e:
+            if 'last_annual_rental_fee_id' in request.session and AnnualRentalFee.objects.filter(id=request.session['last_annual_rental_fee_id']).exists():
+                annual_rental_fee = AnnualRentalFee.objects.get(id=request.session['last_annual_rental_fee_id'])
+                del request.session['last_annual_rental_fee_id']
+                request.session.modified = True
+
+                # TODO: Display success screen
+                context = {
+                    'annual_rental_fee': annual_rental_fee,
+                }
+                return render(request, self.template_name, context)
+            else:
+                return redirect('home')
+
+        except AnnualRentalFee.DoesNotExist:
+            logger.error('AnnualRentalFee id:{} not found in the database'.format(request.session['last_annual_rental_fee_id']))
+            return redirect('home')
+
+
 class ApplicationFeeSuccessView(TemplateView):
     template_name = 'disturbance/payment/success_fee.html'
 
     def get(self, request, *args, **kwargs):
-        print (" APPLICATION FEE SUCCESS ")
-
         proposal = None
         submitter = None
         invoice = None
