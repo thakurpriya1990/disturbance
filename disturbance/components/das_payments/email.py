@@ -28,13 +28,14 @@ def send_application_fee_invoice_apiary_email_notification(request, proposal, in
     email = ApplicationFeeInvoiceApiarySendNotificationEmail()
     #url = request.build_absolute_uri(reverse('external-proposal-detail',kwargs={'proposal_pk': proposal.id}))
 
+    url_var = apiary_url(request)
     context = {
         'lodgement_number': proposal.lodgement_number,
         #'url': url,
     }
 
     filename = 'invoice.pdf'
-    doc = create_invoice_pdf_bytes(filename, invoice, proposal)
+    doc = create_invoice_pdf_bytes(filename, invoice, url_var, proposal)
     attachment = (filename, doc, 'application/pdf')
 
     msg = email.send(recipients, attachments=[attachment], context=context)

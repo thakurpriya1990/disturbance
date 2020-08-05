@@ -3331,6 +3331,7 @@ class ApiaryChecklistAnswer(models.Model):
     question=models.ForeignKey(ApiaryChecklistQuestion, related_name='answers')
     answer = models.NullBooleanField()
     proposal = models.ForeignKey(ProposalApiary, related_name="apiary_checklist")
+    text_answer= models.CharField(max_length=256, blank=True, null=True)
 
     def __str__(self):
         return self.question.text

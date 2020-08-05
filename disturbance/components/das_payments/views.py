@@ -58,6 +58,7 @@ from ledger.payments.mixins import InvoiceOwnerMixin
 from oscar.apps.order.models import Order
 from disturbance.helpers import is_internal, is_disturbance_admin, is_in_organisation_contacts
 from ledger.payments.helpers import is_payment_admin
+from disturbance.context_processors import apiary_url, template_context
 
 import logging
 logger = logging.getLogger('payment_checkout')
@@ -500,6 +501,7 @@ class AwaitingPaymentPDFView(View):
 class InvoicePDFView(View):
     def get(self, request, *args, **kwargs):
         invoice = get_object_or_404(Invoice, reference=self.kwargs['reference'])
+        url_var = apiary_url(request)
 
         try:
             # Assume the invoice has been issued for the application(proposal)
@@ -509,19 +511,19 @@ class InvoicePDFView(View):
                 organisation = proposal.applicant.organisation.organisation_set.all()[0]
                 if self.check_owner(organisation):
                     response = HttpResponse(content_type='application/pdf')
-                    response.write(create_invoice_pdf_bytes('invoice.pdf', invoice, proposal))
+                    response.write(create_invoice_pdf_bytes('invoice.pdf', invoice, url_var, proposal))
                     return response
                 raise PermissionDenied
             else:
                 response = HttpResponse(content_type='application/pdf')
-                response.write(create_invoice_pdf_bytes('invoice.pdf', invoice, proposal))
+                response.write(create_invoice_pdf_bytes('invoice.pdf', invoice, url_var, proposal))
                 return response
         except Proposal.DoesNotExist:
             # The invoice might be issued for the annual rental fee
             annual_rental_fee = AnnualRentalFee.objects.get(invoice_reference=invoice.reference)
             approval = annual_rental_fee.approval
             response = HttpResponse(content_type='application/pdf')
-            response.write(create_invoice_pdf_bytes('invoice.pdf', invoice, None))
+            response.write(create_invoice_pdf_bytes('invoice.pdf', invoice, url_var, None))
             return response
         except:
             raise

@@ -364,10 +364,10 @@ def _create_invoice(invoice_buffer, invoice, proposal):
 
     return invoice_buffer
 
-
-def create_invoice_pdf_bytes(filename, invoice, proposal):
+# proposal needs to be nullable for the annual rental fee?
+def create_invoice_pdf_bytes(filename, invoice, url_var, proposal=None):
     invoice_buffer = BytesIO()
-    _create_invoice(invoice_buffer, invoice, proposal)
+    _create_invoice(invoice_buffer, invoice, url_var, proposal)
 
     # Get the value of the BytesIO buffer
     value = invoice_buffer.getvalue()
