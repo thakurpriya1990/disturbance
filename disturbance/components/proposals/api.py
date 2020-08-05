@@ -495,9 +495,13 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             request_data = request.data
 
-            serializer = ApiarySiteSerializer(instance, data=request_data, partial=True)
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
+            new_status = request.data.get('status', None)
+            all_statuses = list(map(lambda x: x[0], ApiarySite.STATUS_CHOICES))
+            if new_status and new_status in all_statuses:
+                instance.status = new_status
+                instance.save()
+
+            serializer = ApiarySiteSerializer(instance)
 
             return Response(serializer.data)
 

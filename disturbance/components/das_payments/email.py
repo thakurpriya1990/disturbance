@@ -13,10 +13,12 @@ logger = logging.getLogger(__name__)
 
 SYSTEM_NAME = settings.SYSTEM_NAME_SHORT + ' Automated Message'
 
+
 class ApplicationFeeInvoiceApiarySendNotificationEmail(TemplateEmailBase):
     subject = 'Your application fee invoice.'
     html_template = 'disturbance/emails/payments/apiary/send_application_fee_notification.html'
     txt_template = 'disturbance/emails/payments/apiary/send_application_fee_notification.txt'
+
 
 class ApplicationFeeConfirmationApiarySendNotificationEmail(TemplateEmailBase):
     subject = 'Your application fee confirmation.'
@@ -172,6 +174,7 @@ def _log_org_email(email_message, organisation, customer ,sender=None):
     email_entry = OrganisationLogEntry.objects.create(**kwargs)
 
     return email_entry
+
 
 def _log_user_email(email_message, emailuser, customer ,sender=None):
     from ledger.accounts.models import EmailUserLogEntry

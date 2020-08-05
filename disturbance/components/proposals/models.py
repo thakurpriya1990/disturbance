@@ -26,7 +26,6 @@ from ledger.licence.models import  Licence
 from ledger.payments.models import Invoice
 from disturbance import exceptions
 # from disturbance.components.das_payments.models import AnnualRentalFeePeriod
-# from disturbance.components.approvals.email import send_annual_rental_fee_invoice
 # from disturbance.components.das_payments.models import AnnualRentalFee, AnnualRentalFeeApiarySite
 # from disturbance.components.das_payments.utils import create_other_invoice_for_annual_rental_fee
 from disturbance.components.organisations.models import Organisation
@@ -48,7 +47,6 @@ from disturbance.components.proposals.email import (
         send_referral_recall_email_notification,
         send_site_transfer_approval_email_notification,
         )
-# from disturbance.management.commands.send_annual_rental_fee_invoice import get_annual_rental_fee_period
 from disturbance.ordered_model import OrderedModel
 import copy
 import subprocess
@@ -3114,7 +3112,7 @@ class ApiarySite(models.Model):
         (STATUS_DENIED, 'Denied'),
         (STATUS_VACANT, 'Vacant'),
     )
-    NON_RESTRICTIVE_STATUSES = (STATUS_DRAFT, STATUS_VACANT,)
+    NON_RESTRICTIVE_STATUSES = (STATUS_DRAFT, )
     TRANSITABLE_STATUSES = (STATUS_NOT_TO_BE_REISSUED, STATUS_DENIED,)
 
     #TODO - this should link to Proposal, not ProposalApiary
