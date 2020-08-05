@@ -24,8 +24,8 @@ from requests.auth import HTTPBasicAuth
 from disturbance.components.proposals.models import (
         ProposalType,
         ApplicationType,
-        ApiaryApplicantChecklistQuestion,
-        ApiaryApplicantChecklistAnswer,
+        ApiaryChecklistQuestion,
+        ApiaryChecklistAnswer,
         ProposalAssessorGroup,
         ApiaryAssessorGroup,
         ApiaryApproverGroup,
@@ -139,12 +139,42 @@ class APITestSetup(APITestCase):
         self.new_apiary_approver_group.members.add(self.adminUser)
 
         # Checklist questions/answers
-        self.apiary_qu_1 = ApiaryApplicantChecklistQuestion.objects.create(answer_type='yes_no', checklist_type="apiary", text="first_question")
-        self.apiary_qu_2 = ApiaryApplicantChecklistQuestion.objects.create(answer_type='yes_no', checklist_type="apiary", text="second_question")
-        self.apiary_qu_3 = ApiaryApplicantChecklistQuestion.objects.create(answer_type='yes_no', checklist_type="apiary", text="third_question")
-        self.apiary_site_transfer_qu_1 = ApiaryApplicantChecklistQuestion.objects.create(answer_type='yes_no', checklist_type="site_transfer", text="first_question")
-        self.apiary_site_transfer_qu_2 = ApiaryApplicantChecklistQuestion.objects.create(answer_type='yes_no', checklist_type="site_transfer", text="second_question")
-        self.apiary_site_transfer_qu_3 = ApiaryApplicantChecklistQuestion.objects.create(answer_type='yes_no', checklist_type="site_transfer", text="third_question")
+        self.apiary_qu_1 = ApiaryChecklistQuestion.objects.create(
+                answer_type='yes_no', 
+                checklist_type="apiary", 
+                text="first_question", 
+                checklist_role='applicant'
+                )
+        self.apiary_qu_2 = ApiaryChecklistQuestion.objects.create(
+                answer_type='yes_no', 
+                checklist_type="apiary", 
+                text="second_question",
+                checklist_role='applicant'
+                )
+        self.apiary_qu_3 = ApiaryChecklistQuestion.objects.create(
+                answer_type='yes_no', 
+                checklist_type="apiary", 
+                text="third_question",
+                checklist_role='applicant'
+                )
+        self.apiary_site_transfer_qu_1 = ApiaryChecklistQuestion.objects.create(
+                answer_type='yes_no', 
+                checklist_type="site_transfer", 
+                text="first_question",
+                checklist_role='applicant'
+                )
+        self.apiary_site_transfer_qu_2 = ApiaryChecklistQuestion.objects.create(
+                answer_type='yes_no', 
+                checklist_type="site_transfer", 
+                text="second_question",
+                checklist_role='applicant'
+                )
+        self.apiary_site_transfer_qu_3 = ApiaryChecklistQuestion.objects.create(
+                answer_type='yes_no', 
+                checklist_type="site_transfer", 
+                text="third_question",
+                checklist_role='applicant'
+                )
 
         # Create ProposalTypes
         ProposalType.objects.create(name='Apiary', schema='[{}]')
