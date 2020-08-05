@@ -142,6 +142,8 @@ class ApiaryIntegrationTests(APITestSetup):
                 format='json'
                 )
         self.assertEqual(final_approval_response.status_code, 200)
+        #proposal_1 = Proposal.objects.get(id=proposal_id)
+        #import ipdb; ipdb.set_trace()
 
         print("new apiary proposal for same licence")
         self.client.login(email=self.customer, password='pass')
@@ -216,6 +218,7 @@ class ApiaryIntegrationTests(APITestSetup):
                 "recurrence": True,
                 "recurrence_pattern": "1",
                 "proposal": proposal_id_2,
+                "apiary_approval": Proposal.objects.get(id=proposal_id).approval.id,
                 "standard_requirement": str(proposal_standard_req_r2_id),
                 "recurrence_schedule": "1",
                 "free_requirement": ""
@@ -234,6 +237,7 @@ class ApiaryIntegrationTests(APITestSetup):
                 "recurrence": False,
                 "recurrence_pattern": "1",
                 "proposal": proposal_id_2,
+                "apiary_approval": Proposal.objects.get(id=proposal_id).approval.id,
                 "standard_requirement": str(proposal_standard_req_a2_id),
                 #"recurrence_schedule": "1",
                 "free_requirement": ""
@@ -247,6 +251,7 @@ class ApiaryIntegrationTests(APITestSetup):
         self.assertEqual(add_requirements_response_4.status_code, 201)
 
         ## delete requirement
+        #import ipdb; ipdb.set_trace()
         requirement_to_delete_id = Proposal.objects.get(id=proposal_id_2).requirements.filter(standard_requirement__code="A1")[0].id
         delete_requirement_response_2 = self.client.get(
                 '/api/proposal_requirements/{}/discard.json'.format(requirement_to_delete_id)
