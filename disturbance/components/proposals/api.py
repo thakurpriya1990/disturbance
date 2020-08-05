@@ -39,7 +39,7 @@ from disturbance.components.proposals.utils import (
     save_apiary_assessor_data, update_proposal_apiary_temporary_use,
 )
 from disturbance.components.proposals.models import searchKeyWords, search_reference, ProposalUserAction, \
-    ProposalApiary, OnSiteInformation, ApiarySite, ApiaryApplicantChecklistQuestion, ApiaryApplicantChecklistAnswer, \
+    ProposalApiary, OnSiteInformation, ApiarySite, ApiaryChecklistQuestion, ApiaryChecklistAnswer, \
     ProposalApiaryTemporaryUse, TemporaryUseApiarySite
 from disturbance.utils import missing_required_fields, search_tenure, convert_moment_str_to_python_datetime_obj
 from disturbance.components.main.utils import check_db_connection, convert_utc_time_to_local
@@ -1740,8 +1740,11 @@ class ProposalViewSet(viewsets.ModelViewSet):
                     serializer = SaveProposalApiarySerializer(data=details_data)
                     serializer.is_valid(raise_exception=True)
                     proposal_apiary = serializer.save()
-                    for question in ApiaryApplicantChecklistQuestion.objects.filter(checklist_type='apiary'):
-                        new_answer = ApiaryApplicantChecklistAnswer.objects.create(proposal = proposal_apiary,
+                    for question in ApiaryChecklistQuestion.objects.filter(
+                            checklist_type='apiary',
+                            checklist_role='applicant'
+                            ):
+                        new_answer = ApiaryChecklistAnswer.objects.create(proposal = proposal_apiary,
                                                                                    question = question)
                     # Find relevant approval
                     #import ipdb; ipdb.set_trace()
@@ -1779,8 +1782,11 @@ class ProposalViewSet(viewsets.ModelViewSet):
                         proposal_obj.proxy_applicant = approval.proxy_applicant
                     proposal_obj.save()
                     # Set up checklist questions
-                    for question in ApiaryApplicantChecklistQuestion.objects.filter(checklist_type='site_transfer'):
-                        new_answer = ApiaryApplicantChecklistAnswer.objects.create(proposal = proposal_apiary,
+                    for question in ApiaryChecklistQuestion.objects.filter(
+                            checklist_type='site_transfer',
+                            checklist_role='applicant'
+                            ):
+                        new_answer = ApiaryChecklistAnswer.objects.create(proposal = proposal_apiary,
                                                                                    question = question)
                     # Save approval apiary sites to site transfer proposal
                     for apiary_site in approval.apiary_sites.all():

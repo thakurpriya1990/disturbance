@@ -3287,13 +3287,19 @@ class DeedPollDocument(Document):
 #            return super(DeedPollDocument, self).delete()
 
 
-class ApiaryApplicantChecklistQuestion(models.Model):
+class ApiaryChecklistQuestion(models.Model):
     ANSWER_TYPE_CHOICES = (
         ('yes_no', 'Yes/No type'),
+        ('free_text','Free text type'),
     )
     CHECKLIST_TYPE_CHOICES = (
         ('apiary', 'Apiary'),
         ('site_transfer', 'Site Transfer'),
+    )
+    CHECKLIST_ROLE_CHOICES = (
+        ('assessor', 'Assessor'),
+        ('applicant', 'Applicant'),
+        ('referrer', 'Referrer'),
     )
     text = models.TextField()
     answer_type = models.CharField('Answer Type',
@@ -3305,6 +3311,11 @@ class ApiaryApplicantChecklistQuestion(models.Model):
                                    choices=CHECKLIST_TYPE_CHOICES,
                                    #default=ANSWER_TYPE_CHOICES[0][0]
                                    )
+    checklist_role = models.CharField('Checklist Role',
+                                   max_length=30,
+                                   choices=CHECKLIST_ROLE_CHOICES,
+                                   #default=ANSWER_TYPE_CHOICES[0][0]
+                                   )
     order = models.PositiveIntegerField(default=1)
 
     def __str__(self):
@@ -3314,10 +3325,10 @@ class ApiaryApplicantChecklistQuestion(models.Model):
         app_label = 'disturbance'
 
 
-class ApiaryApplicantChecklistAnswer(models.Model):
-    question=models.ForeignKey(ApiaryApplicantChecklistQuestion, related_name='answers')
+class ApiaryChecklistAnswer(models.Model):
+    question=models.ForeignKey(ApiaryChecklistQuestion, related_name='answers')
     answer = models.NullBooleanField()
-    proposal = models.ForeignKey(ProposalApiary, related_name='apiary_applicant_checklist')
+    proposal = models.ForeignKey(ProposalApiary, related_name="apiary_checklist")
 
     def __str__(self):
         return self.question.text

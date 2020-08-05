@@ -29,15 +29,15 @@ class ApiarySiteTransferIntegrationTests(APITestSetup):
                 "title": "test_title",
                 "checklist_answers": [
                         {
-                        "id": proposal_1.proposal_apiary.apiary_applicant_checklist.order_by('id')[0].id,
+                        "id": proposal_1.proposal_apiary.apiary_checklist.order_by('id')[0].id,
                         "answer": True
                         },
                         {
-                        "id": proposal_1.proposal_apiary.apiary_applicant_checklist.order_by('id')[1].id,
+                        "id": proposal_1.proposal_apiary.apiary_checklist.order_by('id')[1].id,
                         "answer": False
                         },
                         {
-                        "id": proposal_1.proposal_apiary.apiary_applicant_checklist.order_by('id')[2].id,
+                        "id": proposal_1.proposal_apiary.apiary_checklist.order_by('id')[2].id,
                         "answer": True
                         },
                     ]
@@ -169,15 +169,15 @@ class ApiarySiteTransferIntegrationTests(APITestSetup):
                 "title": "test_title",
                 "checklist_answers": [
                         {
-                        "id": proposal_2.proposal_apiary.apiary_applicant_checklist.order_by('id')[0].id,
+                        "id": proposal_2.proposal_apiary.apiary_checklist.order_by('id')[0].id,
                         "answer": True
                         },
                         {
-                        "id": proposal_2.proposal_apiary.apiary_applicant_checklist.order_by('id')[1].id,
+                        "id": proposal_2.proposal_apiary.apiary_checklist.order_by('id')[1].id,
                         "answer": False
                         },
                         {
-                        "id": proposal_2.proposal_apiary.apiary_applicant_checklist.order_by('id')[2].id,
+                        "id": proposal_2.proposal_apiary.apiary_checklist.order_by('id')[2].id,
                         "answer": True
                         },
                     ]
@@ -316,15 +316,15 @@ class ApiarySiteTransferIntegrationTests(APITestSetup):
                 "title": "test_title",
                 "checklist_answers": [
                         {
-                        "id": site_transfer_proposal.proposal_apiary.apiary_applicant_checklist.order_by('id')[0].id,
+                        "id": site_transfer_proposal.proposal_apiary.apiary_checklist.order_by('id')[0].id,
                         "answer": True
                         },
                         {
-                        "id": site_transfer_proposal.proposal_apiary.apiary_applicant_checklist.order_by('id')[1].id,
+                        "id": site_transfer_proposal.proposal_apiary.apiary_checklist.order_by('id')[1].id,
                         "answer": False
                         },
                         {
-                        "id": site_transfer_proposal.proposal_apiary.apiary_applicant_checklist.order_by('id')[2].id,
+                        "id": site_transfer_proposal.proposal_apiary.apiary_checklist.order_by('id')[2].id,
                         "answer": True
                         },
                     ]
