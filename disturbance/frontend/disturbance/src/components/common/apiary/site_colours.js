@@ -6,83 +6,56 @@ const SiteColours = {
         'stroke': '#616161',
     },
     'pending': {
-        'fill': '#fff59d',
-        'stroke': '#f2cb29',
+        'fill': '#0070FF',
+        'stroke': '#00000',
     },
     'current': {
-        'fill': '#bbdefb', 
-        'stroke': '#1a76d2',
+        'fill': '#00ff00', 
+        'stroke': '#000000',
     },
     'suspended': {
-        'fill': '#ffcc80',
-        'stroke': '#f57c01',
+        'fill': '#ffffff',
+        'stroke': '#000000',
     },
     'not_to_be_reissued': {
-        'fill': '#d1c4e9',
-        'stroke': '#512da8',
+        'fill': '#ff0000',
+        'stroke': '#000000',
     },
     'denied': {
-        'fill': '#ffcdd2',
-        'stroke': '#d2302f',
+        'fill': '#000000',
+        'stroke': '#000000',
+        'icon_colour': '#000000',
     },
     'vacant': {
-        'fill': '#7fcac3',
-        'stroke': '#00796b'
+        'fill': '#ffaa00',
+        'stroke': '#000000'
+    },
+    'dpaw_pool_of_sites': {
+        'fill': '#a900e6',
+        'stroke': '#000000',
+        'icon_colour': '#a900e6',
+    },
+    'default': {
+        'fill': '#ff00ff',
+        'stroke': '#00ff00'
     }
 }
 export default SiteColours
 export let existingSiteRadius = 5
 export let drawingSiteRadius = 7
-export function getFillColour(status){
-    switch(status){
-        case 'draft':
-            return new Fill({color: SiteColours.draft.fill})
-        case 'pending':
-            return new Fill({color: SiteColours.pending.fill})
-        case 'current':
-            return new Fill({color: SiteColours.current.fill})
-        case 'suspended':
-            return new Fill({color: SiteColours.suspended.fill})
-        case 'not_to_be_reissued':
-            return new Fill({color: SiteColours.not_to_be_reissued.fill})
-        case 'denied':
-            return new Fill({color: SiteColours.denied.fill})
-        case 'vacant':
-            return new Fill({color: SiteColours.vacant.fill})
-    }
-}
-export function getStrokeColour(status, selected=false){
-    let stroke_width = selected ? 4 : 2
-    switch(status){
-        case 'draft':
-            return new Stroke({color: SiteColours.draft.stroke, width: stroke_width})
-        case 'pending':
-            return new Stroke({color: SiteColours.pending.stroke, width: stroke_width})
-        case 'current':
-            return new Stroke({color: SiteColours.current.stroke, width: stroke_width})
-        case 'suspended':
-            return new Stroke({color: SiteColours.suspended.stroke, width: stroke_width})
-        case 'not_to_be_reissued':
-            return new Stroke({color: SiteColours.not_to_be_reissued.stroke, width: stroke_width})
-        case 'denied':
-            return new Stroke({color: SiteColours.denied.stroke, width: stroke_width})
-        case 'vacant':
-            return new Stroke({color: SiteColours.vacant.stroke, width: stroke_width})
-    }
-}
-export function getApiaryFeatureStyle(status){
+export function getApiaryFeatureStyle(status, selected=false){
+    let additional_width = selected ? 2 : 0
     switch(status){
         case 'pending':
             return new Style({
                 image: new CircleStyle({
-                    radius: 5,
+                    radius: existingSiteRadius,
                     fill: new Fill({
-                        color: '#0070FF'
-                        //color: '#FFAA00'
+                        color: SiteColours.pending.fill
                     }),
                     stroke: new Stroke({
-                        color: '#000000',
-                        width: 1
+                        color: SiteColours.pending.stroke,
+                        width: 1 + additional_width
                     })
                 })
             });
@@ -90,13 +63,13 @@ export function getApiaryFeatureStyle(status){
         case 'current':
             return new Style({
                 image: new CircleStyle({
-                    radius: 5,
+                    radius: existingSiteRadius,
                     fill: new Fill({
-                        color: '#00FF00'
+                        color: SiteColours.current.fill
                     }),
                     stroke: new Stroke({
-                        color: '#000000',
-                        width: 1
+                        color: SiteColours.current.stroke,
+                        width: 1 + additional_width
                     })
                 })
             });
@@ -104,13 +77,13 @@ export function getApiaryFeatureStyle(status){
         case 'suspended':
             return new Style({
                 image: new CircleStyle({
-                    radius: 5,
+                    radius: existingSiteRadius,
                     fill: new Fill({
-                        color: '#FFFFFF'
+                        color: SiteColours.suspended.fill
                     }),
                     stroke: new Stroke({
-                        color: '#000000',
-                        width: 1
+                        color: SiteColours.suspended.stroke,
+                        width: 1 + additional_width
                     })
                 })
             });
@@ -118,13 +91,13 @@ export function getApiaryFeatureStyle(status){
         case 'not_to_be_reissued':
             return new Style({
                 image: new CircleStyle({
-                    radius: 5,
+                    radius: existingSiteRadius,
                     fill: new Fill({
-                        color: '#FF0000'
+                        color: SiteColours.not_to_be_reissued.fill
                     }),
                     stroke: new Stroke({
-                        color: '#000000',
-                        width: 1
+                        color: SiteColours.not_to_be_reissued.stroke,
+                        width: 1 + additional_width
                     })
                 })
             });
@@ -132,7 +105,7 @@ export function getApiaryFeatureStyle(status){
         case 'denied':
             return new Style({
                 image: new Icon({
-                    color: '#000000',
+                    color: SiteColours.denied.icon_colour,
                     //src: "data/x2.png"
                     src: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAMCAYAAABWdVznAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAOwgAADsIBFShKgAAAABl0RVh0U29mdHdhcmUAcGFpbnQubmV0IDQuMC4xMzQDW3oAAACMSURBVChTlZDbDYAwDAM7AAOw/ypISEyAEMOUXHDS8viAk0xDYkPbUmv9pShgMg3lBj3NIAOrv95C1OoBngyMaoCHpN6M5wzoa31olsDN8rQAMDBtpoDazWD1I8A2FlNA3Z+pBRiYYs+7BHkRtp4PGhpAHPDtIjJwMfsvDWr1AE8G4GIO6GkGGfioWg6CRJYCwPQeRwAAAABJRU5ErkJggg=="
                 })
@@ -141,14 +114,13 @@ export function getApiaryFeatureStyle(status){
         case 'vacant':
             return new Style({
                 image: new CircleStyle({
-                    radius: 5,
+                    radius: existingSiteRadius,
                     fill: new Fill({
-                        color: '#FFAA00'
-                        //color: '#0070FF'
+                        color: SiteColours.vacant.fill
                     }),
                     stroke: new Stroke({
-                        color: '#000000',
-                        width: 1
+                        color: SiteColours.vacant.stroke,
+                        width: 1 + additional_width
                     })
                 })
             });
@@ -156,7 +128,7 @@ export function getApiaryFeatureStyle(status){
         case 'dpaw_pool_of_sites':
             return new Style({
                 image: new Icon({
-                color: '#A900E6',
+                color: SiteColours.dpaw_pool_of_sites.icon_colour,
                     //src: "data/+2.png"
                     src: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAMCAYAAABWdVznAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAZdEVYdFNvZnR3YXJlAHBhaW50Lm5ldCA0LjAuMTM0A1t6AAAAQklEQVQoU52LMQoAIBDD/P+n69KAmBvEQJaGriSToKahgpqGCmoaKqhpqKB2xie+DpOgpqGCmoYKahoqqGmocO1ZGzz92jSqmlDHAAAAAElFTkSuQmCC"
                 }),
@@ -165,18 +137,16 @@ export function getApiaryFeatureStyle(status){
         default:
             return new Style({
                 image: new CircleStyle({
-                    radius: 5,
+                    radius: existingSiteRadius,
                     fill: new Fill({
-                        color: '#FF00FF'
+                        color: SiteColours.default.fill
                     }),
                     stroke: new Stroke({
-                        color: '#00FF00',
-                        width: 2
+                        color: SiteColours.default.stroke,
+                        width: 2 + additional_width
                     })
                 })
             });
             break;
     }
-
-
 }

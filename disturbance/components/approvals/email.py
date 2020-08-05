@@ -150,7 +150,7 @@ def send_annual_rental_fee_invoice(approval, invoice):
 
     attachments = []
     contents = get_value_of_annual_rental_fee_invoice(approval, invoice)
-    attachments.append(('invoice.pdf', contents, 'application/pdf'))
+    attachments.append(('annual_rental_fee_invoice_{}.pdf'.format(invoice.reference), contents, 'application/pdf'))
 
     to_address = [approval.relevant_applicant_email]
     cc = []
