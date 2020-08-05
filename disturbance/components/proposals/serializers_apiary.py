@@ -22,8 +22,8 @@ from disturbance.components.proposals.models import (
     ProposalApiary,
     ProposalApiaryTemporaryUse,
     ProposalApiarySiteTransfer,
-    ApiaryApplicantChecklistQuestion,
-    ApiaryApplicantChecklistAnswer,
+    ApiaryChecklistQuestion,
+    ApiaryChecklistAnswer,
     ProposalApiaryDocument,
     ApiarySite,
     OnSiteInformation,
@@ -125,10 +125,10 @@ class ProposalHistorySerializer(serializers.ModelSerializer):
         return entry_versions.data
 
 
-class ApiaryApplicantChecklistQuestionSerializer(serializers.ModelSerializer):
+class ApiaryChecklistQuestionSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = ApiaryApplicantChecklistQuestion
+        model = ApiaryChecklistQuestion
         fields=('id',
                 'text',
                 'answer_type',
@@ -136,11 +136,11 @@ class ApiaryApplicantChecklistQuestionSerializer(serializers.ModelSerializer):
                 'order'
                 )
 
-class ApiaryApplicantChecklistAnswerSerializer(serializers.ModelSerializer):
-    question = ApiaryApplicantChecklistQuestionSerializer()
+class ApiaryChecklistAnswerSerializer(serializers.ModelSerializer):
+    question = ApiaryChecklistQuestionSerializer()
 
     class Meta:
-        model = ApiaryApplicantChecklistAnswer
+        model = ApiaryChecklistAnswer
         fields=('id',
                 'question',
                 'answer',
@@ -493,29 +493,8 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
         ret = OnSiteInformationSerializer(on_site_information_list, many=True).data
         return ret
 
-    #def get_checklist_questions(self, obj):
-     #   checklistQuestion = ApiaryApplicantChecklistQuestion.objects.values('text')
-      #  ret = ApiaryApplicantChecklistQuestionSerializer(checklistQuestion, many=True).data
-       # return ret
-
-
-        # checklistQuestion = ApiaryApplicantChecklistQuestion.objects.all()
-        # return_obj = []
-        # for question in checklistQuestion:
-        #     ret_obj = {}
-        #     answer = ApiaryApplicantChecklistAnswer.objects.filter(proposal=proposalapiaryobj, question=question)
-        #
-        #     serialized_q = ApiaryApplicantChecklistQuestionSerializer(question).data
-        #     serialized_a = ApiaryApplicantChecklistAnswerSerializer(answer).data
-        #     ret_obj['question'] = serialized_q
-        #     ret_obj['answer'] = serialized_a
-        #
-        #     return_obj.append(ret_obj)
-        #
-        # return return_obj
-
     def get_checklist_answers(self, obj):
-        return ApiaryApplicantChecklistAnswerSerializer(obj.apiary_applicant_checklist, many=True).data
+        return ApiaryChecklistAnswerSerializer(obj.apiary_checklist, many=True).data
 
 
 class CreateProposalApiarySiteTransferSerializer(serializers.ModelSerializer):
@@ -881,7 +860,6 @@ class ApiaryInternalProposalSerializer(BaseProposalSerializer):
     apiary_temporary_use = ProposalApiaryTemporaryUseSerializer(many=False, read_only=True)
     apiary_site_transfer = ProposalApiarySiteTransferSerializer()
 
-    # apiary_applicant_checklist = ApiaryApplicantChecklistAnswerSerializer(many=True)
     applicant_checklist = serializers.SerializerMethodField()
     apiary_group_application_type = serializers.SerializerMethodField()
     # approval = ApiaryInternalApprovalSerializer()
@@ -950,7 +928,7 @@ class ApiaryInternalProposalSerializer(BaseProposalSerializer):
                 'apiary_site_transfer',
                 'applicant_address',
 
-                # 'apiary_applicant_checklist',
+                # 'apiary_checklist',
                 'applicant_checklist',
                 'applicant_address',
                 'applicant_first_name',
@@ -977,9 +955,9 @@ class ApiaryInternalProposalSerializer(BaseProposalSerializer):
     def get_applicant_checklist(self, obj):
         checklist = []
         if hasattr(obj, 'proposal_apiary'):
-            if obj.proposal_apiary and obj.proposal_apiary.apiary_applicant_checklist.all():
-                for answer in obj.proposal_apiary.apiary_applicant_checklist.all():
-                    serialized_answer = ApiaryApplicantChecklistAnswerSerializer(answer)
+            if obj.proposal_apiary and obj.proposal_apiary.apiary_checklist.all():
+                for answer in obj.proposal_apiary.apiary_checklist.all():
+                    serialized_answer = ApiaryChecklistAnswerSerializer(answer)
                     checklist.append(serialized_answer.data)
         return checklist
 

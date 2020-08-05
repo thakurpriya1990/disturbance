@@ -12,7 +12,7 @@ from ledger.accounts.models import EmailUser, Document
 from rest_framework import serializers
 
 from disturbance.components.proposals.models import ProposalDocument, ProposalUserAction, ApiarySite, SiteCategory, \
-    ProposalApiaryTemporaryUse, TemporaryUseApiarySite, ApiaryApplicantChecklistAnswer
+    ProposalApiaryTemporaryUse, TemporaryUseApiarySite, ApiaryChecklistAnswer
 from disturbance.components.proposals.serializers import SaveProposalSerializer
 
 from disturbance.components.main.models import ApplicationType
@@ -377,7 +377,7 @@ def save_proponent_data_apiary_site_transfer(proposal_obj, request, viewset):
             proposal_apiary_data = sc.get('proposal_apiary', None)
             if proposal_apiary_data:
                 for new_answer in proposal_apiary_data['checklist_answers']:
-                    ans = ApiaryApplicantChecklistAnswer.objects.get(id=new_answer['id'])
+                    ans = ApiaryChecklistAnswer.objects.get(id=new_answer['id'])
                     ans.answer = new_answer['answer']
                     ans.save()
 
@@ -544,7 +544,7 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                         raise serializers.ValidationError(['There are apiary sites in this proposal which are too close to each other.',])
 
                 for new_answer in site_location_data['checklist_answers']:
-                    ans = ApiaryApplicantChecklistAnswer.objects.get(id=new_answer['id'])
+                    ans = ApiaryChecklistAnswer.objects.get(id=new_answer['id'])
                     ans.answer = new_answer['answer']
                     ans.save()
 
