@@ -119,7 +119,7 @@ class ApprovalPaginatedViewSet(viewsets.ModelViewSet):
         #qs = self.queryset().order_by('lodgement_number', '-issue_date').distinct('lodgement_number')
         #qs = ProposalFilterBackend().filter_queryset(self.request, qs, self)
 
-        ids = self.get_queryset().order_by('lodgement_number', '-issue_date').distinct('lodgement_number').values_list('id', flat=True)
+        ids = self.get_queryset().distinct('lodgement_number').values_list('id', flat=True)
         qs = Approval.objects.filter(id__in=ids)
         qs = self.filter_queryset(qs)
 
@@ -130,6 +130,9 @@ class ApprovalPaginatedViewSet(viewsets.ModelViewSet):
         submitter_id = request.GET.get('submitter_id', None)
         if submitter_id:
             qs = qs.filter(submitter_id=submitter_id)
+
+        # Set default order
+        qs = qs.order_by('-lodgement_number', '-issue_date')
 
         self.paginator.page_size = qs.count()
         result_page = self.paginator.paginate_queryset(qs, request)
@@ -154,7 +157,7 @@ class ApprovalViewSet(viewsets.ModelViewSet):
 
     def list(self, request, *args, **kwargs):
         #queryset = self.get_queryset()
-        queryset = self.get_queryset().order_by('lodgement_number', '-issue_date').distinct('lodgement_number')
+        queryset = self.get_queryset().order_by('-lodgement_number', '-issue_date').distinct('lodgement_number')
         # Filter by org
         org_id = request.GET.get('org_id',None)
         if org_id:
