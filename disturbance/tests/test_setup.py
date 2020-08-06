@@ -24,8 +24,8 @@ from requests.auth import HTTPBasicAuth
 from disturbance.components.proposals.models import (
         ProposalType,
         ApplicationType,
-        ApiaryApplicantChecklistQuestion,
-        ApiaryApplicantChecklistAnswer,
+        ApiaryChecklistQuestion,
+        ApiaryChecklistAnswer,
         ProposalAssessorGroup,
         ApiaryAssessorGroup,
         ApiaryApproverGroup,
@@ -34,6 +34,9 @@ from disturbance.components.proposals.models import (
         )
 from disturbance.components.approvals.models import (
         Approval,
+        )
+from disturbance.components.main.models import (
+        GlobalSettings,
         )
 
 
@@ -136,12 +139,42 @@ class APITestSetup(APITestCase):
         self.new_apiary_approver_group.members.add(self.adminUser)
 
         # Checklist questions/answers
-        self.apiary_qu_1 = ApiaryApplicantChecklistQuestion.objects.create(answer_type='yes_no', checklist_type="apiary", text="first_question")
-        self.apiary_qu_2 = ApiaryApplicantChecklistQuestion.objects.create(answer_type='yes_no', checklist_type="apiary", text="second_question")
-        self.apiary_qu_3 = ApiaryApplicantChecklistQuestion.objects.create(answer_type='yes_no', checklist_type="apiary", text="third_question")
-        self.apiary_site_transfer_qu_1 = ApiaryApplicantChecklistQuestion.objects.create(answer_type='yes_no', checklist_type="site_transfer", text="first_question")
-        self.apiary_site_transfer_qu_2 = ApiaryApplicantChecklistQuestion.objects.create(answer_type='yes_no', checklist_type="site_transfer", text="second_question")
-        self.apiary_site_transfer_qu_3 = ApiaryApplicantChecklistQuestion.objects.create(answer_type='yes_no', checklist_type="site_transfer", text="third_question")
+        self.apiary_qu_1 = ApiaryChecklistQuestion.objects.create(
+                answer_type='yes_no', 
+                checklist_type="apiary", 
+                text="first_question", 
+                checklist_role='applicant'
+                )
+        self.apiary_qu_2 = ApiaryChecklistQuestion.objects.create(
+                answer_type='yes_no', 
+                checklist_type="apiary", 
+                text="second_question",
+                checklist_role='applicant'
+                )
+        self.apiary_qu_3 = ApiaryChecklistQuestion.objects.create(
+                answer_type='yes_no', 
+                checklist_type="apiary", 
+                text="third_question",
+                checklist_role='applicant'
+                )
+        self.apiary_site_transfer_qu_1 = ApiaryChecklistQuestion.objects.create(
+                answer_type='yes_no', 
+                checklist_type="site_transfer", 
+                text="first_question",
+                checklist_role='applicant'
+                )
+        self.apiary_site_transfer_qu_2 = ApiaryChecklistQuestion.objects.create(
+                answer_type='yes_no', 
+                checklist_type="site_transfer", 
+                text="second_question",
+                checklist_role='applicant'
+                )
+        self.apiary_site_transfer_qu_3 = ApiaryChecklistQuestion.objects.create(
+                answer_type='yes_no', 
+                checklist_type="site_transfer", 
+                text="third_question",
+                checklist_role='applicant'
+                )
 
         # Create ProposalTypes
         ProposalType.objects.create(name='Apiary', schema='[{}]')
@@ -218,6 +251,9 @@ class APITestSetup(APITestCase):
         self.today_plus_1_day_str = self.today_plus_1_day.strftime('%d/%m/%Y')
         self.today_plus_1_week_str = self.today_plus_1_week.strftime('%d/%m/%Y')
         self.today_plus_26_weeks_str = self.today_plus_26_weeks.strftime('%d/%m/%Y')
+
+        # Global settings
+        GlobalSettings.objects.create(key='oracle_code_apiary_site_annural_rental_fee', value='sample')
 
         # Get data ready
         temp = DefaultDataManager()
