@@ -94,7 +94,6 @@
 <script>
     import 'ol/ol.css';
     //import 'index.css';  // copy-and-pasted the contents of this file at the <style> section below in this file
-
     import Map from 'ol/Map';
     import View from 'ol/View';
     import WMTSCapabilities from 'ol/format/WMTSCapabilities';
@@ -102,7 +101,8 @@
     import OSM from 'ol/source/OSM';
     import WMTS, {optionsFromCapabilities} from 'ol/source/WMTS';
     import Collection from 'ol/Collection';
-    import {Draw, Modify, Snap} from 'ol/interaction';
+    import {Draw, Modify, Snap, Select} from 'ol/interaction';
+    import {pointerMove} from 'ol/events/condition';
     import VectorLayer from 'ol/layer/Vector';
     import VectorSource from 'ol/source/Vector'; 
     import {Circle as CircleStyle, Fill, Stroke, Style, Icon} from 'ol/style';
@@ -170,6 +170,7 @@
                 marker_lng: null,
                 marker_lat: null,
                 deed_poll_url: '',
+                buffer_radius: 3000, // [m]
 
                 // variables for the GIS
                 map: null,
@@ -181,7 +182,7 @@
                 bufferLayerSource: new VectorSource(),
                 bufferLayer: null,
                 existing_sites_feature_collection: null,
-
+                apiary_site_being_selected: null,
                 //
                 dtHeaders: [
                     'Id',
@@ -267,6 +268,9 @@
             },
         },
         watch:{
+            apiary_site_being_selected: function() {
+                console.log(this.apiary_site_being_selected);
+            }
         },
         methods:{
             uuidv4: function () {
@@ -307,8 +311,8 @@
             },
             isNewPositionValid: function(coords, filter=null){
                 let distance = this.metersToNearest(coords, filter);
-                if (distance < 3000) {
-                    console.log('distance: ' + distance + ' NG');
+                if (distance < this.buffer_radius) {
+                    console.warn('distance: ' + distance + ' NG');
                     return false;
                 }
                 console.log('distance: ' + distance + ' OK');
@@ -323,7 +327,7 @@
                     coords = coords[0];
                 }
 
-                let buffer = new Feature(circular(coords, 3000, 16));
+                let buffer = new Feature(circular(coords, this.buffer_radius, 16));
                 buffer.setId(id)
                 this.bufferLayerSource.addFeature(buffer);
             },
@@ -407,15 +411,20 @@
                 console.log('removeSiteLocation')
 
                 let site_location_guid = e.target.getAttribute("data-site-location-guid");
-                console.log('guid to delete');
-                console.log(site_location_guid);
+                console.log('guid to delete: ' + site_location_guid);
 
                 let myFeature = this.drawingLayerSource.getFeatureById(site_location_guid)
+                console.log('myFeature: ')
+                console.log(myFeature)
 
-                // Remove buffer
-                this.removeBufferForSite(myFeature)
-
-                this.drawingLayerSource.removeFeature(myFeature);
+                let myFeatureStatus = myFeature.get('status')
+                if (myFeatureStatus && myFeatureStatus != 'draft'){
+                    this.drawingLayerSource.removeFeature(myFeature);
+                } else {
+                    // Remove buffer
+                    this.removeBufferForSite(myFeature)
+                    this.drawingLayerSource.removeFeature(myFeature);
+                }
 
                 this.constructSiteLocationsTable();
             },
@@ -535,8 +544,17 @@
                     });
                     drawTool.on("drawstart", function(attributes){
                         console.log('drawstart')
-                        if (!vm.isNewPositionValid(attributes.feature.getGeometry().getCoordinates())) {
+                        if (vm.apiary_site_being_selected){
+                            // Abort drawing, instead 'vacant' site is to be added
                             drawTool.abortDrawing();
+                            // Copy the 'id_' attribute, which should have the apiary_site.id in the database, to the 'id' attribute
+                            // This 'id' attribute is used to determine if it exists already in the database once posted.
+                            vm.apiary_site_being_selected.id = vm.apiary_site_being_selected.id_
+                            vm.drawingLayerSource.addFeature(vm.apiary_site_being_selected);
+                        } else {
+                            if (!vm.isNewPositionValid(attributes.feature.getGeometry().getCoordinates())) {
+                                drawTool.abortDrawing();
+                            }
                         }
                     });
                     drawTool.on('drawend', function(attributes){
@@ -564,6 +582,13 @@
 
                     let modifyTool = new Modify({
                         source: vm.drawingLayerSource,
+                    });
+                    modifyTool.on("modifystart", function(attributes){
+                        attributes.features.forEach(function(feature){
+
+                            // TODO: Prevent the 'existing' features from being modified
+
+                        })
                     });
                     modifyTool.on("modifyend", function(attributes){
                         // this will list all features in layer, not so useful without cross referencing
@@ -596,6 +621,95 @@
                     });
                     vm.map.addInteraction(modifyTool);
                 }
+
+                /////////////////////
+                // Test
+                ////////////////////
+                let hoverInteraction = new Select({
+                    condition: pointerMove,
+                    //condition: function(e){
+                    //    return true
+                    //},
+                    layers: [vm.apiarySitesQueryLayer]
+                });
+                vm.map.addInteraction(hoverInteraction);
+                hoverInteraction.on('select', function(evt){
+                    if(evt.selected.length > 0){
+                        if(evt.selected[0].get('status') === 'vacant'){
+                            // When mouse hover on the 'vacant' apiary site, temporarily store it 
+                            // so that it can be added to the new apiary site application when user clicking.
+                            vm.apiary_site_being_selected = evt.selected[0]
+
+                            let style_applied = getApiaryFeatureStyle(vm.apiary_site_being_selected.get('status'), true, 4)
+                            vm.apiary_site_being_selected.setStyle(style_applied)
+                        }
+                    } else {
+                        if (vm.apiary_site_being_selected){
+                            let style_applied = getApiaryFeatureStyle(vm.apiary_site_being_selected.get('status'), false)
+                            vm.apiary_site_being_selected.setStyle(style_applied)
+                        }
+
+                        vm.apiary_site_being_selected = null
+                    }
+                });
+                //if(false){
+                //    let snapInteraction = new Snap({
+                //        source: vm.apiarySitesQuerySource
+                //    })
+                //    vm.map.addInteraction(snapInteraction);
+                //}
+
+                //let selected = null
+                //vm.map.on('pointermove', function (e) {
+                //    let pixel = vm.map.getEventPixel(e.originalEvent);
+                //    //let hit = vm.map.hasFeatureAtPixel(pixel);
+                //    let hit = vm.map.hasFeatureAtPixel(e.pixel, {
+                //        layerFilter: function(layer) {
+                //            if (layer === vm.apiarySitesQueryLayer){
+                //                return true
+                //            }
+                //            return false
+                //            //return layer.get('layer_name') === 'jls';
+                //        }
+                //    });
+
+                //    if(hit){
+                //        //console.log('hit')
+                //    }
+
+
+                //    if (selected !== null) {
+                //        selected.setStyle(undefined);
+                //        selected = null;
+                //    }
+
+                //    vm.map.forEachFeatureAtPixel(e.pixel, function (f, layer) {
+                //        console.log(f.id)
+                //        if (f.id){
+                //            selected = f;
+                //        }
+                //        //f.setStyle(highlightStyle);
+                //        return true;
+                //    });
+
+                //    if (selected) {
+                //        console.log(selected)
+                //    }
+                //});
+
+                //vm.map.on('click', function(evt){
+                //    console.log('click')
+                //    let feature = vm.map.forEachFeatureAtPixel(evt.pixel, function(feature, layer) {
+                //        return feature;
+                //    });
+                //    if (feature){
+                //        console.log(feature)
+                //    }
+                //})
+                ////////////////////////
+                // END TEST
+                ////////////////////////
+
                 console.log('initMap end')
             },  // End: initMap()
             excludeFeature: function(excludedFeature) {

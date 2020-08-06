@@ -43,8 +43,8 @@ const SiteColours = {
 export default SiteColours
 export let existingSiteRadius = 5
 export let drawingSiteRadius = 7
-export function getApiaryFeatureStyle(status, selected=false){
-    let additional_width = selected ? 2 : 0
+export function getApiaryFeatureStyle(status, selected=false, stroke_width_when_selected=2){
+    let additional_width = selected ? stroke_width_when_selected : 0
     switch(status){
         case 'pending':
             return new Style({
