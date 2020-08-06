@@ -181,7 +181,7 @@
                 bufferLayerSource: new VectorSource(),
                 bufferLayer: null,
                 existing_sites_feature_collection: null,
-
+                apiary_site_being_selected: null,
                 //
                 dtHeaders: [
                     'Id',
@@ -267,6 +267,9 @@
             },
         },
         watch:{
+            apiary_site_being_selected: function() {
+                console.log(this.apiary_site_being_selected);
+            }
         },
         methods:{
             uuidv4: function () {
@@ -308,7 +311,7 @@
             isNewPositionValid: function(coords, filter=null){
                 let distance = this.metersToNearest(coords, filter);
                 if (distance < 3000) {
-                    console.log('distance: ' + distance + ' NG');
+                    console.warn('distance: ' + distance + ' NG');
                     return false;
                 }
                 console.log('distance: ' + distance + ' OK');
@@ -601,64 +604,86 @@
                 // Test
                 ////////////////////
                 let hoverInteraction = new Select({
-                    //condition: pointerMove,
+                    condition: pointerMove,
+                    //condition: function(e){
+                    //    return true
+                    //},
                     layers: [vm.apiarySitesQueryLayer]
                 });
                 vm.map.addInteraction(hoverInteraction);
                 hoverInteraction.on('select', function(evt){
                     if(evt.selected.length > 0){
-                        console.info('selected: ')
-                        console.log(evt.selected[0]);
+                        if(evt.selected[0].get('status') === 'vacant'){
+                            // When mouse hover on the 'vacant' apiary site, temporarily store it 
+                            // so that it can be added to the new apiary site application when user clicking.
+                            vm.apiary_site_being_selected = evt.selected[0]
+
+                            let style_applied = getApiaryFeatureStyle(vm.apiary_site_being_selected.get('status'), true, 4)
+                            vm.apiary_site_being_selected.setStyle(style_applied)
+                        }
+                    } else {
+                        if (vm.apiary_site_being_selected){
+                            let style_applied = getApiaryFeatureStyle(vm.apiary_site_being_selected.get('status'), false)
+                            vm.apiary_site_being_selected.setStyle(style_applied)
+                        }
+
+                        vm.apiary_site_being_selected = null
                     }
                 });
+                //if(false){
+                //    let snapInteraction = new Snap({
+                //        source: vm.apiarySitesQuerySource
+                //    })
+                //    vm.map.addInteraction(snapInteraction);
+                //}
 
-                let selected = null
-                vm.map.on('pointermove', function (e) {
-                    let pixel = vm.map.getEventPixel(e.originalEvent);
-                    //let hit = vm.map.hasFeatureAtPixel(pixel);
-                    let hit = vm.map.hasFeatureAtPixel(e.pixel, {
-                        layerFilter: function(layer) {
-                            if (layer === vm.apiarySitesQueryLayer){
-                                return true
-                            }
-                            return false
-                            //return layer.get('layer_name') === 'jls';
-                        }
-                    });
+                //let selected = null
+                //vm.map.on('pointermove', function (e) {
+                //    let pixel = vm.map.getEventPixel(e.originalEvent);
+                //    //let hit = vm.map.hasFeatureAtPixel(pixel);
+                //    let hit = vm.map.hasFeatureAtPixel(e.pixel, {
+                //        layerFilter: function(layer) {
+                //            if (layer === vm.apiarySitesQueryLayer){
+                //                return true
+                //            }
+                //            return false
+                //            //return layer.get('layer_name') === 'jls';
+                //        }
+                //    });
 
-                    if(hit){
-                        //console.log('hit')
-                    }
+                //    if(hit){
+                //        //console.log('hit')
+                //    }
 
 
-                    if (selected !== null) {
-                        selected.setStyle(undefined);
-                        selected = null;
-                    }
+                //    if (selected !== null) {
+                //        selected.setStyle(undefined);
+                //        selected = null;
+                //    }
 
-                    vm.map.forEachFeatureAtPixel(e.pixel, function (f, layer) {
-                        console.log(f.id)
-                        if (f.id){
-                            selected = f;
-                        }
-                        //f.setStyle(highlightStyle);
-                        return true;
-                    });
+                //    vm.map.forEachFeatureAtPixel(e.pixel, function (f, layer) {
+                //        console.log(f.id)
+                //        if (f.id){
+                //            selected = f;
+                //        }
+                //        //f.setStyle(highlightStyle);
+                //        return true;
+                //    });
 
-                    if (selected) {
-                        console.log(selected)
-                    }
-                });
+                //    if (selected) {
+                //        console.log(selected)
+                //    }
+                //});
 
-                vm.map.on('click', function(evt){
-                    console.log('click')
-                    let feature = vm.map.forEachFeatureAtPixel(evt.pixel, function(feature, layer) {
-                        return feature;
-                    });
-                    if (feature){
-                        console.log(feature)
-                    }
-                })
+                //vm.map.on('click', function(evt){
+                //    console.log('click')
+                //    let feature = vm.map.forEachFeatureAtPixel(evt.pixel, function(feature, layer) {
+                //        return feature;
+                //    });
+                //    if (feature){
+                //        console.log(feature)
+                //    }
+                //})
                 ////////////////////////
                 // END TEST
                 ////////////////////////
