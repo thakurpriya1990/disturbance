@@ -20,6 +20,8 @@ from disturbance.components.approvals.models import Approval
 from disturbance.components.proposals.models import (
     ProposalApiary,
     SiteTransferApiarySite,
+    ApiaryChecklistQuestion,
+    ApiaryChecklistAnswer,
     #ProposalApiaryTemporaryUse,
     #ProposalApiarySiteTransfer,
 )
@@ -543,6 +545,7 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                     if qs_sites_within:
                         # In this proposal, there are apiary sites which are too close to each other
                         raise serializers.ValidationError(['There are apiary sites in this proposal which are too close to each other.',])
+                # save applicant checklist answers
                 save_checklist_answers(site_location_data['applicant_checklist_answers'])
 
                 # Delete existing
@@ -742,6 +745,7 @@ def save_assessor_data(instance,request,viewset):
 
 
 def save_apiary_assessor_data(instance,request,viewset):
+    #import ipdb; ipdb.set_trace()
     with transaction.atomic():
         try:
             #lookable_fields = ['isTitleColumnForDashboard','isActivityColumnForDashboard','isRegionColumnForDashboard']
@@ -772,6 +776,17 @@ def save_apiary_assessor_data(instance,request,viewset):
                 document._file = request.FILES[f]
                 document.save()
             # End Save Documents
+            # save assessor checklist answers
+            try:
+                schema = request.data.get('schema')
+            except:
+                schema = request.POST.get('schema')
+
+            sc = json.loads(schema) if schema else {}
+
+            proposal_apiary_data = sc.get('proposal_apiary')
+
+            save_checklist_answers(proposal_apiary_data.get('assessor_checklist_answers'))
             instance.log_user_action(ProposalUserAction.APIARY_ACTION_SAVE_APPLICATION.format(instance.id),request)
         except:
             raise
@@ -810,19 +825,13 @@ def proposal_submit_apiary(proposal, request):
                 proposal.save()
             else:
                 raise ValidationError('An error occurred while submitting proposal (Submit email notifications failed)')
-            #Create assessor checklist with the current assessor_list type questions
-            #Assessment instance already exits then skip.
-#            try:
-#                assessor_assessment=ProposalAssessment.objects.get(proposal=proposal,referral_group=None, referral_assessment=False)
-#            except ProposalAssessment.DoesNotExist:
-#                assessor_assessment=ProposalAssessment.objects.create(proposal=proposal,referral_group=None, referral_assessment=False)
-#                checklist=ChecklistQuestion.objects.filter(list_type='assessor_list', obsolete=False)
-#                for chk in checklist:
-#                    try:
-#                        chk_instance=ProposalAssessmentAnswer.objects.get(question=chk, assessment=assessor_assessment)
-#                    except ProposalAssessmentAnswer.DoesNotExist:
-#                        chk_instance=ProposalAssessmentAnswer.objects.create(question=chk, assessment=assessor_assessment)
-#
+
+            for question in ApiaryChecklistQuestion.objects.filter(
+                    checklist_type='apiary',
+                    checklist_role='assessor'
+                    ):
+                new_answer = ApiaryChecklistAnswer.objects.create(proposal = proposal.proposal_apiary,
+                                                                           question = question)
             return proposal
 
         else:

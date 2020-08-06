@@ -56,11 +56,20 @@
                     </div>
                 </div>
             </FormSection>
-            <ApplicantChecklist 
+            <ApiaryChecklist 
             :checklist="applicantChecklistAnswers"
             section_title="Applicant Checklist"
             :readonly="readonly"
+            ref="applicant_checklist"
             />
+            <div v-if="!assessorChecklistReadonly">
+                <ApiaryChecklist 
+                :checklist="assessorChecklistAnswers"
+                section_title="Assessor Checklist"
+                :readonly="assessorChecklistReadonly"
+                ref="assessor_checklist"
+                />
+            </div>
 
             <!--FormSection :formCollapse="false" label="Checklist" Index="checklist">
                 <ul class="list-unstyled col-sm-12" v-for="q in proposal.proposal_apiary.applicant_checklist_answers">
@@ -93,7 +102,7 @@
     import FileField from '@/components/forms/filefield_immediate.vue'
     import FormSection from "@/components/forms/section_toggle.vue"
     import SiteLocations from '@/components/common/apiary/site_locations.vue'
-    import ApplicantChecklist from '@/components/common/apiary/section_checklist.vue'
+    import ApiaryChecklist from '@/components/common/apiary/section_checklist.vue'
     import uuid from 'uuid'
     import {
         api_endpoints,
@@ -154,7 +163,7 @@
             ComponentSiteSelection,
             FileField,
             FormSection,
-            ApplicantChecklist,
+            ApiaryChecklist,
         },
         computed:{
             showActionAvailableUnavailable: function() {
@@ -204,6 +213,13 @@
                 }
                 return readonlyStatus;
             },
+            assessorChecklistReadonly: function() {
+                let readonlyStatus = true;
+                if (this.proposal.processing_status === 'With Assessor' && this.is_internal) {
+                    readonlyStatus = false;
+                }
+                return readonlyStatus;
+            },
             getUnansweredChecklistQuestions: function() {
                 let UnansweredChecklistQuestions = false;
 
@@ -232,6 +248,11 @@
             applicantChecklistAnswers: function() {
                 if (this.proposal && this.proposal.proposal_apiary && this.proposal.proposal_apiary.applicant_checklist_answers) {
                     return this.proposal.proposal_apiary.applicant_checklist_answers;
+                }
+            },
+            assessorChecklistAnswers: function() {
+                if (this.proposal && this.proposal.proposal_apiary && this.proposal.proposal_apiary.assessor_checklist_answers) {
+                    return this.proposal.proposal_apiary.assessor_checklist_answers;
                 }
             },
 
