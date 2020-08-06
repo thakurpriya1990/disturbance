@@ -170,6 +170,7 @@
                 marker_lng: null,
                 marker_lat: null,
                 deed_poll_url: '',
+                buffer_radius: 3000, // [m]
 
                 // variables for the GIS
                 map: null,
@@ -310,7 +311,7 @@
             },
             isNewPositionValid: function(coords, filter=null){
                 let distance = this.metersToNearest(coords, filter);
-                if (distance < 3000) {
+                if (distance < this.buffer_radius) {
                     console.warn('distance: ' + distance + ' NG');
                     return false;
                 }
@@ -326,7 +327,7 @@
                     coords = coords[0];
                 }
 
-                let buffer = new Feature(circular(coords, 3000, 16));
+                let buffer = new Feature(circular(coords, this.buffer_radius, 16));
                 buffer.setId(id)
                 this.bufferLayerSource.addFeature(buffer);
             },
@@ -410,15 +411,20 @@
                 console.log('removeSiteLocation')
 
                 let site_location_guid = e.target.getAttribute("data-site-location-guid");
-                console.log('guid to delete');
-                console.log(site_location_guid);
+                console.log('guid to delete: ' + site_location_guid);
 
                 let myFeature = this.drawingLayerSource.getFeatureById(site_location_guid)
+                console.log('myFeature: ')
+                console.log(myFeature)
 
-                // Remove buffer
-                this.removeBufferForSite(myFeature)
-
-                this.drawingLayerSource.removeFeature(myFeature);
+                let myFeatureStatus = myFeature.get('status')
+                if (myFeatureStatus && myFeatureStatus != 'draft'){
+                    this.drawingLayerSource.removeFeature(myFeature);
+                } else {
+                    // Remove buffer
+                    this.removeBufferForSite(myFeature)
+                    this.drawingLayerSource.removeFeature(myFeature);
+                }
 
                 this.constructSiteLocationsTable();
             },
@@ -538,8 +544,17 @@
                     });
                     drawTool.on("drawstart", function(attributes){
                         console.log('drawstart')
-                        if (!vm.isNewPositionValid(attributes.feature.getGeometry().getCoordinates())) {
+                        if (vm.apiary_site_being_selected){
+                            // Abort drawing, instead 'vacant' site is to be added
                             drawTool.abortDrawing();
+                            // Copy the 'id_' attribute, which should have the apiary_site.id in the database, to the 'id' attribute
+                            // This 'id' attribute is used to determine if it exists already in the database once posted.
+                            vm.apiary_site_being_selected.id = vm.apiary_site_being_selected.id_
+                            vm.drawingLayerSource.addFeature(vm.apiary_site_being_selected);
+                        } else {
+                            if (!vm.isNewPositionValid(attributes.feature.getGeometry().getCoordinates())) {
+                                drawTool.abortDrawing();
+                            }
                         }
                     });
                     drawTool.on('drawend', function(attributes){
@@ -567,6 +582,13 @@
 
                     let modifyTool = new Modify({
                         source: vm.drawingLayerSource,
+                    });
+                    modifyTool.on("modifystart", function(attributes){
+                        attributes.features.forEach(function(feature){
+
+                            // TODO: Prevent the 'existing' features from being modified
+
+                        })
                     });
                     modifyTool.on("modifyend", function(attributes){
                         // this will list all features in layer, not so useful without cross referencing

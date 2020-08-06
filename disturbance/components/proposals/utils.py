@@ -494,15 +494,26 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
 
                 # Handle ApiarySites here
                 ids = []
+                vacant_sites_nominated = []
                 for index, feature in enumerate(site_locations_received):
                     feature['proposal_apiary_id'] = proposal_obj.proposal_apiary.id
 
                     try:
                         # Update existing
-                        a_site = ApiarySite.objects.get(site_guid=feature['id_'])
-                        serializer = ApiarySiteSerializer(a_site, data=feature)
-                    except ApiarySite.DoesNotExist:
-                        # Create new
+                        # for the newely addes apiary site, 'id_' has its guid
+                        # for the existing apiary site, 'value_'.'site_guid' has its guid
+                        try:
+                            # Try to get this apiary site assuming already saved as 'draft'
+                            a_site = ApiarySite.objects.get(site_guid=feature['id_'])
+                            serializer = ApiarySiteSerializer(a_site, data=feature)
+                        except ApiarySite.DoesNotExist:
+                            # Try to get this apiary site assuming it is 'vacant' site (available site)
+                            a_site = ApiarySite.objects.get(site_guid=feature['values_']['site_guid'])
+                            vacant_sites_nominated.append(a_site)
+                            serializer = ApiarySiteSerializer(a_site, data=feature)
+                            # serializer = None
+                    except KeyError:  # when 'site_guid' is not defined above
+                        # Create new apiary site when both of the above queries failed
                         if feature['values_']['site_category'] == 'south_west':
                             category_obj = SiteCategory.objects.get(name='south_west')
                         else:
@@ -512,24 +523,25 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
 
                         serializer = ApiarySiteSerializer(data=feature)
 
-                    serializer.is_valid(raise_exception=True)
-                    apiary_site_obj = serializer.save()
+                    if serializer:
+                        serializer.is_valid(raise_exception=True)
+                        apiary_site_obj = serializer.save()
 
-                    # Save coordinate
-                    geom_str = GEOSGeometry(
-                        'POINT(' +
-                        str(feature['values_']['geometry']['flatCoordinates'][0]) + ' ' +
-                        str(feature['values_']['geometry']['flatCoordinates'][1]) +
-                        ')',
-                        srid=4326
-                    )
+                        # Save coordinate
+                        geom_str = GEOSGeometry(
+                            'POINT(' +
+                            str(feature['values_']['geometry']['flatCoordinates'][0]) + ' ' +
+                            str(feature['values_']['geometry']['flatCoordinates'][1]) +
+                            ')',
+                            srid=4326
+                        )
 
-                    # Perform validation to the existing apiary sites
-                    serializer = ApiarySiteSavePointSerializer(apiary_site_obj, data={'wkb_geometry': geom_str})
-                    serializer.is_valid(raise_exception=True)
-                    serializer.save()
+                        # Perform validation to the existing apiary sites
+                        serializer = ApiarySiteSavePointSerializer(apiary_site_obj, data={'wkb_geometry': geom_str})
+                        serializer.is_valid(raise_exception=True)
+                        serializer.save()
 
-                    ids.append(apiary_site_obj.id)
+                        ids.append(apiary_site_obj.id)
 
                 # Perform validation among the sites in this proposal
                 for id in ids:
