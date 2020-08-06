@@ -224,8 +224,7 @@ def send_amendment_email_notification(amendment_request, request, proposal):
     }
 
     all_ccs = []
-    if proposal.applicant:
-        if proposal.applicant.email:
+    if proposal.applicant and proposal.applicant.email != proposal.submitter.email:
             cc_list = proposal.applicant.email
             if cc_list:
                 all_ccs = [cc_list]
@@ -271,7 +270,8 @@ def send_external_submit_email_notification(request, proposal):
     }
 
     all_ccs = []
-    if proposal.applicant and proposal.applicant.email:
+    #if proposal.applicant and proposal.applicant.email:
+    if proposal.applicant and proposal.applicant.email != proposal.submitter.email:
         cc_list = proposal.applicant.email
         if cc_list:
             all_ccs = [cc_list]
@@ -329,12 +329,10 @@ def send_proposal_decline_email_notification(proposal,request,proposal_decline):
     all_ccs = []
     if cc_list:
         all_ccs = cc_list.split(',')
-    if proposal.applicant:
-        if proposal.applicant.email:
+    #if proposal.applicant:
+    if proposal.applicant and proposal.applicant.email != proposal.submitter.email:
+     #   if proposal.applicant.email:
             all_ccs.append(proposal.applicant.email)
-    elif proposal.proxy_applicant:
-        if proposal.proxy_applicant.email:
-            all_ccs.append(proposal.proxy_applicant.email)
 
     msg = email.send(proposal.submitter.email, bcc=all_ccs, context=context)
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
@@ -372,12 +370,10 @@ def send_proposal_approval_email_notification(proposal,request):
     all_ccs = []
     if cc_list:
         all_ccs = cc_list.split(',')
-    if proposal.applicant:
-        if proposal.applicant.email:
+    #if proposal.applicant:
+    if proposal.applicant and proposal.applicant.email != proposal.submitter.email:
+     #   if proposal.applicant.email:
             all_ccs.append(proposal.applicant.email)
-    else:
-        if proposal.proxy_applicant.email:
-            all_ccs.append(proposal.proxy_applicant.email)
 
     licence_document= proposal.approval.licence_document._file
     if licence_document is not None:
@@ -405,12 +401,10 @@ def send_site_transfer_approval_email_notification(proposal, request, approval):
     all_ccs = []
     if cc_list:
         all_ccs = cc_list.split(',')
-    if proposal.applicant:
-        if proposal.applicant.email:
+    #if proposal.applicant:
+    if proposal.applicant and proposal.applicant.email != proposal.submitter.email:
+     #   if proposal.applicant.email:
             all_ccs.append(proposal.applicant.email)
-    else:
-        if proposal.proxy_applicant.email:
-            all_ccs.append(proposal.proxy_applicant.email)
 
     licence_document= approval.licence_document._file
     if licence_document is not None:
