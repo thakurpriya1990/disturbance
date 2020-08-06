@@ -376,10 +376,11 @@ def save_proponent_data_apiary_site_transfer(proposal_obj, request, viewset):
 
             proposal_apiary_data = sc.get('proposal_apiary', None)
             if proposal_apiary_data:
-                for new_answer in proposal_apiary_data['checklist_answers']:
-                    ans = ApiaryChecklistAnswer.objects.get(id=new_answer['id'])
-                    ans.answer = new_answer['answer']
-                    ans.save()
+                save_checklist_answers(site_location_data['applicant_checklist_answers'])
+                #for new_answer in proposal_apiary_data['applicant_checklist_answers']:
+                #    ans = ApiaryChecklistAnswer.objects.get(id=new_answer['id'])
+                #    ans.answer = new_answer['answer']
+                #    ans.save()
 
             #save Site Transfer Apiary Sites
             #site_transfer_apiary_sites = json.loads(request.data.get('site_transfer_apiary_sites'))
@@ -542,11 +543,7 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                     if qs_sites_within:
                         # In this proposal, there are apiary sites which are too close to each other
                         raise serializers.ValidationError(['There are apiary sites in this proposal which are too close to each other.',])
-
-                for new_answer in site_location_data['checklist_answers']:
-                    ans = ApiaryChecklistAnswer.objects.get(id=new_answer['id'])
-                    ans.answer = new_answer['answer']
-                    ans.save()
+                save_checklist_answers(site_location_data['applicant_checklist_answers'])
 
                 # Delete existing
                 sites_delete = ApiarySite.objects.filter(id__in=site_ids_delete)
@@ -582,6 +579,14 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
         except Exception as e:
             raise
 
+def save_checklist_answers(checklist_answers):
+    for new_answer in checklist_answers:
+        ans = ApiaryChecklistAnswer.objects.get(id=new_answer['id'])
+        if new_answer.get('question', {}).get('answer_type') == 'free_text':
+            ans.text_answer = new_answer['text_answer']
+        elif new_answer.get('question', {}).get('answer_type') == 'yes_no':
+            ans.answer = new_answer['answer']
+        ans.save()
 
 def update_proposal_apiary_temporary_use(temp_use_obj, temp_use_data, action):
     temp_use_data['from_date'] = convert_moment_str_to_python_datetime_obj(temp_use_data['from_date']).date() if temp_use_data['from_date'] else None

@@ -364,7 +364,7 @@ def _create_invoice(invoice_buffer, invoice, url_var, proposal):
 
     return invoice_buffer
 
-# proposal needs to be nullable for the annual rental fee?
+# proposal needs to be nullable for Annual rental fees
 def create_invoice_pdf_bytes(filename, invoice, url_var, proposal=None):
     invoice_buffer = BytesIO()
     _create_invoice(invoice_buffer, invoice, url_var, proposal)
