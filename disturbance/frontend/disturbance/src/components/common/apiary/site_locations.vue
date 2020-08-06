@@ -601,7 +601,7 @@
                 // Test
                 ////////////////////
                 let hoverInteraction = new Select({
-                    condition: pointerMove,
+                    //condition: pointerMove,
                     layers: [vm.apiarySitesQueryLayer]
                 });
                 vm.map.addInteraction(hoverInteraction);
