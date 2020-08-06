@@ -378,7 +378,7 @@ def save_proponent_data_apiary_site_transfer(proposal_obj, request, viewset):
 
             proposal_apiary_data = sc.get('proposal_apiary', None)
             if proposal_apiary_data:
-                save_checklist_answers(site_location_data['applicant_checklist_answers'])
+                save_checklist_answers(proposal_apiary_data.get('applicant_checklist_answers'))
                 #for new_answer in proposal_apiary_data['applicant_checklist_answers']:
                 #    ans = ApiaryChecklistAnswer.objects.get(id=new_answer['id'])
                 #    ans.answer = new_answer['answer']
@@ -546,7 +546,7 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                         # In this proposal, there are apiary sites which are too close to each other
                         raise serializers.ValidationError(['There are apiary sites in this proposal which are too close to each other.',])
                 # save applicant checklist answers
-                save_checklist_answers(site_location_data['applicant_checklist_answers'])
+                save_checklist_answers(site_location_data.get('applicant_checklist_answers'))
 
                 # Delete existing
                 sites_delete = ApiarySite.objects.filter(id__in=site_ids_delete)
