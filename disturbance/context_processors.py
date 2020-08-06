@@ -10,11 +10,13 @@ def apiary_url(request):
        #TERMS  = "https://www.rottnestisland.com/~/media/Files/boating-documents/marine-hire-facilities-tcs.pdf?la=en"
        PUBLIC_URL='https://apiary.dbca.wa.gov.au/'
        application_group = 'apiary'
+       displayed_system_name = settings.APIARY_SYSTEM_NAME
     else:
        template_group = 'das'
        #TERMS = "/know/online-mooring-site-booking-terms-and-conditions"
        PUBLIC_URL='https://das.dbca.wa.gov.au'
        application_group = 'das'
+       displayed_system_name = settings.SYSTEM_NAME
 
 
     #is_officer = False
@@ -55,6 +57,8 @@ def apiary_url(request):
         #'IS_CUSTOMER' : is_customer,
         'PUBLIC_URL' : PUBLIC_URL,
         #'MOORING_GROUP': mooring_group
+        'APPLICATION_GROUP': application_group,
+        'DISPLAYED_SYSTEM_NAME': displayed_system_name,
         }
 
 
