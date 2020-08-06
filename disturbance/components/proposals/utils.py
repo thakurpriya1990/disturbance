@@ -748,18 +748,6 @@ def save_apiary_assessor_data(instance,request,viewset):
     #import ipdb; ipdb.set_trace()
     with transaction.atomic():
         try:
-            #lookable_fields = ['isTitleColumnForDashboard','isActivityColumnForDashboard','isRegionColumnForDashboard']
-            #extracted_fields,special_fields,assessor_data,comment_data = create_data_from_form(
-             #   instance.schema, request.POST, request.FILES,special_fields=lookable_fields,assessor_data=True)
-
-            #logger.info("ASSESSOR DATA - Region: {}, Activity: {}".format(special_fields.get('isRegionColumnForDashboard',None), special_fields.get('isActivityColumnForDashboard',None)))
-
-            #data = {
-               # 'data': extracted_fields,
-              #  'assessor_data': assessor_data,
-             #   'comment_data': comment_data,
-            #}
-            #serializer = SaveProposalSerializer(instance, data, partial=True)
             serializer = SaveProposalSerializer(instance, request.data, partial=True)
             serializer.is_valid(raise_exception=True)
             viewset.perform_update(serializer)
@@ -790,7 +778,6 @@ def save_apiary_assessor_data(instance,request,viewset):
             instance.log_user_action(ProposalUserAction.APIARY_ACTION_SAVE_APPLICATION.format(instance.id),request)
         except:
             raise
-
 
 def proposal_submit_apiary(proposal, request):
     with transaction.atomic():

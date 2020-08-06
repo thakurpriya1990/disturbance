@@ -2357,6 +2357,16 @@ class ProposalApiary(models.Model):
                             #sent_by=request.user,
                             #text=referral_text
                         )
+                        # create referral checklist answers
+                        for question in ApiaryChecklistQuestion.objects.filter(
+                                checklist_type='apiary',
+                                checklist_role='referrer'
+                                ):
+                            new_answer = ApiaryChecklistAnswer.objects.create(
+                                    proposal = self,
+                                    apiary_referral = apiary_referral,
+                                    question = question
+                                    )
 
                         # Create a log entry for the proposal
                         #self.log_user_action(ProposalUserAction.ACTION_SEND_REFERRAL_TO.format(referral.id,self.id,'{}({})'.format(user.get_full_name(),user.email)),request)
@@ -3329,6 +3339,7 @@ class ApiaryChecklistAnswer(models.Model):
     question=models.ForeignKey(ApiaryChecklistQuestion, related_name='answers')
     answer = models.NullBooleanField()
     proposal = models.ForeignKey(ProposalApiary, related_name="apiary_checklist")
+    apiary_referral = models.ForeignKey('ApiaryReferral', related_name="apiary_checklist_referral", blank=True, null=True)
     text_answer= models.CharField(max_length=256, blank=True, null=True)
 
     def __str__(self):

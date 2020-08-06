@@ -145,6 +145,7 @@ class ApiaryChecklistAnswerSerializer(serializers.ModelSerializer):
                 'question',
                 'answer',
                 'proposal_id',
+                'apiary_referral_id',
                 'text_answer',
                 )
 
@@ -503,15 +504,22 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
                 obj.apiary_checklist.filter(question__checklist_role='applicant'), 
                 many=True).data
 
-    def get_referrer_checklist_answers(self, obj):
-        return ApiaryChecklistAnswerSerializer(
-                obj.apiary_checklist.filter(question__checklist_role='referrer'), 
-                many=True).data
-
     def get_assessor_checklist_answers(self, obj):
         return ApiaryChecklistAnswerSerializer(
                 obj.apiary_checklist.filter(question__checklist_role='assessor'), 
                 many=True).data
+
+    def get_referrer_checklist_answers(self, obj):
+        referral_list = []
+        for referral in obj.proposal.referrals.all():
+            qs = ApiaryChecklistAnswerSerializer(
+                obj.apiary_checklist.filter(apiary_referral_id=referral.apiary_referral.id), 
+                many=True).data
+            referral_list.append({
+                "referral_id": referral.id, 
+                "referral_data": qs
+                })
+        return referral_list
 
 
 class CreateProposalApiarySiteTransferSerializer(serializers.ModelSerializer):

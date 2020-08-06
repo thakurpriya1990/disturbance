@@ -246,13 +246,21 @@
                 return draftStatus;
             },
             applicantChecklistAnswers: function() {
-                if (this.proposal && this.proposal.proposal_apiary && this.proposal.proposal_apiary.applicant_checklist_answers) {
+                if (this.proposal && this.proposal.proposal_apiary && this.proposal.proposal_apiary.applicant_checklist_answers &&
+                    this.proposal.proposal_apiary.applicant_checklist_answers.length > 0) {
                     return this.proposal.proposal_apiary.applicant_checklist_answers;
                 }
             },
             assessorChecklistAnswers: function() {
-                if (this.proposal && this.proposal.proposal_apiary && this.proposal.proposal_apiary.assessor_checklist_answers) {
+                if (this.proposal && this.proposal.proposal_apiary && this.proposal.proposal_apiary.assessor_checklist_answers &&
+                    this.proposal.proposal_apiary.assessor_checklist_answers.length > 0) {
                     return this.proposal.proposal_apiary.assessor_checklist_answers;
+                }
+            },
+            referrerChecklistAnswers: function() {
+                if (this.proposal && this.proposal.proposal_apiary && this.proposal.proposal_apiary.referrer_checklist_answers && 
+                    this.proposal.proposal_apiary.referrer_checklist_answers.length > 0) {
+                    return this.proposal.proposal_apiary.referrer_checklist_answers;
                 }
             },
 
