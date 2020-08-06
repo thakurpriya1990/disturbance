@@ -39,7 +39,7 @@ from disturbance.components.proposals.utils import (
     save_apiary_assessor_data, update_proposal_apiary_temporary_use,
 )
 from disturbance.components.proposals.models import searchKeyWords, search_reference, ProposalUserAction, \
-    ProposalApiary, OnSiteInformation, ApiarySite, ApiaryApplicantChecklistQuestion, ApiaryApplicantChecklistAnswer, \
+    ProposalApiary, OnSiteInformation, ApiarySite, ApiaryChecklistQuestion, ApiaryChecklistAnswer, \
     ProposalApiaryTemporaryUse, TemporaryUseApiarySite
 from disturbance.utils import missing_required_fields, search_tenure, convert_moment_str_to_python_datetime_obj
 from disturbance.components.main.utils import check_db_connection, convert_utc_time_to_local
@@ -1664,7 +1664,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(str(e))
 
     def create(self, request, *args, **kwargs):
-        #import ipdb; ipdb.set_trace()
         try:
             with transaction.atomic():
                 http_status = status.HTTP_200_OK
@@ -1741,23 +1740,29 @@ class ProposalViewSet(viewsets.ModelViewSet):
                     serializer = SaveProposalApiarySerializer(data=details_data)
                     serializer.is_valid(raise_exception=True)
                     proposal_apiary = serializer.save()
-                    for question in ApiaryApplicantChecklistQuestion.objects.filter(checklist_type='apiary'):
-                        new_answer = ApiaryApplicantChecklistAnswer.objects.create(proposal = proposal_apiary,
+                    for question in ApiaryChecklistQuestion.objects.filter(
+                            checklist_type='apiary',
+                            checklist_role='applicant'
+                            ):
+                        new_answer = ApiaryChecklistAnswer.objects.create(proposal = proposal_apiary,
                                                                                    question = question)
                     # Find relevant approval
+                    #import ipdb; ipdb.set_trace()
                     approval = proposal_apiary.retrieve_approval
                     if approval:
                         # Copy requirements from approval.current_proposal
-                        req = approval.current_proposal.apiary_requirements(approval).exclude(is_deleted=True)
+                        #req = approval.current_proposal.apiary_requirements(approval).exclude(is_deleted=True)
+                        req = approval.proposalrequirement_set.exclude(is_deleted=True)
                         from copy import deepcopy
                         if req:
                             for r in req:
                                 old_r = deepcopy(r)
                                 r.proposal = proposal_apiary.proposal
+                                #r.apiary_approval = approval
                                 r.copied_from=old_r
                                 r.id = None
                                 r.save()
-                        # Set previous_application and proposal_type for requirements and compliances processing
+                        # Set previous_application to maintain proposal history
                         proposal_apiary.proposal.previous_application = approval.current_proposal
                         proposal_apiary.proposal.save()
                         #proposal_apiary.proposal.proposal_type = 'amendment'
@@ -1777,8 +1782,11 @@ class ProposalViewSet(viewsets.ModelViewSet):
                         proposal_obj.proxy_applicant = approval.proxy_applicant
                     proposal_obj.save()
                     # Set up checklist questions
-                    for question in ApiaryApplicantChecklistQuestion.objects.filter(checklist_type='site_transfer'):
-                        new_answer = ApiaryApplicantChecklistAnswer.objects.create(proposal = proposal_apiary,
+                    for question in ApiaryChecklistQuestion.objects.filter(
+                            checklist_type='site_transfer',
+                            checklist_role='applicant'
+                            ):
+                        new_answer = ApiaryChecklistAnswer.objects.create(proposal = proposal_apiary,
                                                                                    question = question)
                     # Save approval apiary sites to site transfer proposal
                     for apiary_site in approval.apiary_sites.all():

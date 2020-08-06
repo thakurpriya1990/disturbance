@@ -1630,7 +1630,7 @@ class Proposal(RevisionedMixin):
     
     def apiary_requirements(self, approval=None):
         if self.application_type.name == ApplicationType.SITE_TRANSFER and approval:
-            return self.requirements.filter(site_transfer_approval=approval)
+            return self.requirements.filter(apiary_approval=approval)
         else:
             return self.requirements.all()
 
@@ -1853,7 +1853,8 @@ class ProposalRequirement(OrderedModel):
     recurrence_schedule = models.IntegerField(null=True,blank=True)
     copied_from = models.ForeignKey('self', on_delete=models.SET_NULL, blank=True, null=True)
     is_deleted = models.BooleanField(default=False)
-    site_transfer_approval = models.ForeignKey('disturbance.Approval',null=True,blank=True)
+    #site_transfer_approval = models.ForeignKey('disturbance.Approval',null=True,blank=True)
+    apiary_approval = models.ForeignKey('disturbance.Approval',null=True,blank=True)
     #order = models.IntegerField(default=1)
     # referral_group is no longer required for Apiary
     referral_group = models.ForeignKey(ApiaryReferralGroup,null=True,blank=True,related_name='apiary_requirement_referral_groups')
@@ -2523,16 +2524,10 @@ class ProposalApiary(models.Model):
                             # approval must already exist - we reissue with same start and expiry dates
                             # does thhis need to be reissued with self.reissue_approval() ?
                             originating_approval.issue_date = timezone.now()
-                            #originating_approval.applicant = self.proposal.applicant
-                            #originating_approval.proxy_applicant = self.proposal.proxy_applicant
-                            #originating_approval.apiary_approval = self.proposal.apiary_group_application_type
                             originating_approval.current_proposal = checking_proposal
                             originating_approval.save()
                             target_approval.issue_date = timezone.now()
-                            #target_approval.applicant = self.proposal.applicant
-                            #target_approval.proxy_applicant = self.proposal.proxy_applicant
-                            #target_approval.apiary_approval = self.proposal.apiary_group_application_type
-                            target_approval.current_proposal = checking_proposal
+                            #target_approval.current_proposal = checking_proposal
                             target_approval.save()
                         else:
                             if not approval:
@@ -2666,6 +2661,7 @@ class ProposalApiary(models.Model):
                             # Log creation
                             # Generate the document
                             approval.generate_doc(request.user)
+                            self.link_apiary_approval_requirements(approval)
                             self.generate_apiary_compliances(approval, request)
                             # send the doc and log in approval and org
                         else:
@@ -2682,6 +2678,7 @@ class ProposalApiary(models.Model):
                             if approval_compliances:
                                 for c in approval_compliances:
                                     c.delete()
+                            self.link_apiary_approval_requirements(approval)
                             self.generate_apiary_compliances(approval, request)
                             # Log proposal action
                             self.proposal.log_user_action(
@@ -2714,7 +2711,9 @@ class ProposalApiary(models.Model):
                         if approval_compliances:
                             for c in approval_compliances:
                                 c.delete()
-                        self.generate_apiary_site_transfer_compliances(originating_approval, request)
+                        #self.generate_apiary_site_transfer_compliances(originating_approval, request)
+                        self.link_apiary_approval_requirements(originating_approval)
+                        self.generate_apiary_compliances(originating_approval, request)
                         # Log proposal action
                         self.proposal.log_user_action(
                                 ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.proposal.id),
@@ -2739,7 +2738,8 @@ class ProposalApiary(models.Model):
                         if approval_compliances:
                             for c in approval_compliances:
                                 c.delete()
-                        self.generate_apiary_site_transfer_compliances(target_approval, request)
+                        self.link_apiary_approval_requirements(target_approval)
+                        self.generate_apiary_compliances(target_approval, request)
                         # Log proposal action
                         self.proposal.log_user_action(
                                 ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.proposal.id),
@@ -2766,83 +2766,94 @@ class ProposalApiary(models.Model):
             except:
                 raise
 
-    def generate_apiary_site_transfer_compliances(self,approval, request):
-        #import ipdb; ipdb.set_trace()
-        today = timezone.now().date()
-        timedelta = datetime.timedelta
-        from disturbance.components.compliances.models import Compliance, ComplianceUserAction
+    #def generate_apiary_site_transfer_compliances(self,approval, request):
+    #    #import ipdb; ipdb.set_trace()
+    #    today = timezone.now().date()
+    #    timedelta = datetime.timedelta
+    #    from disturbance.components.compliances.models import Compliance, ComplianceUserAction
 
-        proposal = self.proposal
-        try:
-            for r in proposal.requirements.filter(site_transfer_approval=approval).filter(copied_from__isnull=False):
-                cs=[]
-                # Now discard all of the due compliances
-                cs=Compliance.objects.filter(
-                        requirement=r.copied_from, 
-                        approval=approval, 
-                        processing_status='due'
-                        )
-                if cs:
-                    if r.is_deleted:
-                        for c in cs:
-                            c.processing_status='discarded'
-                            c.customer_status = 'discarded'
-                            c.reminder_sent=True
-                            c.post_reminder_sent=True
-                            c.save()
-        except:
-            raise
-        #requirement_set= self.requirements.filter(copied_from__isnull=True).exclude(is_deleted=True)
-        requirement_set= proposal.requirements.filter(site_transfer_approval=approval).exclude(is_deleted=True)
+    #    proposal = self.proposal
+    #    try:
+    #        for r in proposal.requirements.filter(apiary_approval=approval).filter(copied_from__isnull=False):
+    #            cs=[]
+    #            # Now discard all of the due compliances
+    #            cs=Compliance.objects.filter(
+    #                    requirement=r.copied_from, 
+    #                    approval=approval, 
+    #                    processing_status='due'
+    #                    )
+    #            if cs:
+    #                if r.is_deleted:
+    #                    for c in cs:
+    #                        c.processing_status='discarded'
+    #                        c.customer_status = 'discarded'
+    #                        c.reminder_sent=True
+    #                        c.post_reminder_sent=True
+    #                        c.save()
+    #    except:
+    #        raise
+    #    #requirement_set= self.requirements.filter(copied_from__isnull=True).exclude(is_deleted=True)
+    #    requirement_set= proposal.requirements.filter(apiary_approval=approval).exclude(is_deleted=True)
 
-        #for req in self.requirements.all():
-        for req in requirement_set:
-            try:
-                if req.due_date and req.due_date >= today:
-                    current_date = req.due_date
-                    #create a first Compliance
-                    try:
-                        compliance= Compliance.objects.get(requirement = req, due_date = current_date)
-                    except Compliance.DoesNotExist:
-                        compliance =Compliance.objects.create(
-                                    #proposal=proposal,
-                                    due_date=current_date,
-                                    processing_status='future',
-                                    approval=approval,
-                                    requirement=req,
-                                    apiary_compliance=True
-                        )
-                        compliance.log_user_action(ComplianceUserAction.ACTION_CREATE.format(compliance.id),request)
-                    if req.recurrence:
-                        while current_date < approval.expiry_date:
-                            for x in range(req.recurrence_schedule):
-                            #Weekly
-                                if req.recurrence_pattern == 1:
-                                    current_date += timedelta(weeks=1)
-                            #Monthly
-                                elif req.recurrence_pattern == 2:
-                                    current_date += timedelta(weeks=4)
-                                    pass
-                            #Yearly
-                                elif req.recurrence_pattern == 3:
-                                    current_date += timedelta(days=365)
-                            # Create the compliance
-                            if current_date <= approval.expiry_date:
-                                try:
-                                    compliance= Compliance.objects.get(requirement = req, due_date = current_date)
-                                except Compliance.DoesNotExist:
-                                    compliance =Compliance.objects.create(
-                                                #proposal=self,
-                                                due_date=current_date,
-                                                processing_status='future',
-                                                approval=approval,
-                                                requirement=req,
-                                                apiary_compliance=True
-                                    )
-                                    compliance.log_user_action(ComplianceUserAction.ACTION_CREATE.format(compliance.id),request)
-            except:
-                raise
+    #    #for req in self.requirements.all():
+    #    for req in requirement_set:
+    #        try:
+    #            if req.due_date and req.due_date >= today:
+    #                current_date = req.due_date
+    #                #create a first Compliance
+    #                try:
+    #                    compliance= Compliance.objects.get(requirement = req, due_date = current_date)
+    #                except Compliance.DoesNotExist:
+    #                    compliance =Compliance.objects.create(
+    #                                #proposal=proposal,
+    #                                due_date=current_date,
+    #                                processing_status='future',
+    #                                approval=approval,
+    #                                requirement=req,
+    #                                apiary_compliance=True
+    #                    )
+    #                    compliance.log_user_action(ComplianceUserAction.ACTION_CREATE.format(compliance.id),request)
+    #                if req.recurrence:
+    #                    while current_date < approval.expiry_date:
+    #                        for x in range(req.recurrence_schedule):
+    #                        #Weekly
+    #                            if req.recurrence_pattern == 1:
+    #                                current_date += timedelta(weeks=1)
+    #                        #Monthly
+    #                            elif req.recurrence_pattern == 2:
+    #                                current_date += timedelta(weeks=4)
+    #                                pass
+    #                        #Yearly
+    #                            elif req.recurrence_pattern == 3:
+    #                                current_date += timedelta(days=365)
+    #                        # Create the compliance
+    #                        if current_date <= approval.expiry_date:
+    #                            try:
+    #                                compliance= Compliance.objects.get(requirement = req, due_date = current_date)
+    #                            except Compliance.DoesNotExist:
+    #                                compliance =Compliance.objects.create(
+    #                                            #proposal=self,
+    #                                            due_date=current_date,
+    #                                            processing_status='future',
+    #                                            approval=approval,
+    #                                            requirement=req,
+    #                                            apiary_compliance=True
+    #                                )
+    #                                compliance.log_user_action(ComplianceUserAction.ACTION_CREATE.format(compliance.id),request)
+    #        except:
+    #            raise
 
+    def link_apiary_approval_requirements(self, approval):
+        # Ensure current requirements are associated with apiary approval
+        link_requirement_set = self.proposal.requirements.all()
+        for link_r in link_requirement_set:
+            link_r.apiary_approval = approval
+            link_r.save()
+        # Remove apiary approval link from previous requirements
+        unlink_requirement_set = approval.proposalrequirement_set.exclude(proposal=self.proposal)
+        for unlink_r in unlink_requirement_set:
+            unlink_r.apiary_approval = None
+            unlink_r.save()
 
     def generate_apiary_compliances(self,approval, request):
         #import ipdb; ipdb.set_trace()
@@ -2855,7 +2866,7 @@ class ProposalApiary(models.Model):
         #if proposal.proposal_type == 'amendment':
         if self.proposal.previous_application:
             try:
-                for r in proposal.requirements.filter(copied_from__isnull=False):
+                for r in proposal.requirements.filter(apiary_approval=approval).filter(copied_from__isnull=False):
                     cs=[]
                     # Now discard all of the due compliances
                     cs=Compliance.objects.filter(
@@ -2880,7 +2891,7 @@ class ProposalApiary(models.Model):
             except:
                 raise
         #requirement_set= self.requirements.filter(copied_from__isnull=True).exclude(is_deleted=True)
-        requirement_set= proposal.requirements.all().exclude(is_deleted=True)
+        requirement_set= proposal.requirements.filter(apiary_approval=approval).exclude(is_deleted=True)
 
         #for req in self.requirements.all():
         for req in requirement_set:
@@ -3276,13 +3287,19 @@ class DeedPollDocument(Document):
 #            return super(DeedPollDocument, self).delete()
 
 
-class ApiaryApplicantChecklistQuestion(models.Model):
+class ApiaryChecklistQuestion(models.Model):
     ANSWER_TYPE_CHOICES = (
         ('yes_no', 'Yes/No type'),
+        ('free_text','Free text type'),
     )
     CHECKLIST_TYPE_CHOICES = (
         ('apiary', 'Apiary'),
         ('site_transfer', 'Site Transfer'),
+    )
+    CHECKLIST_ROLE_CHOICES = (
+        ('assessor', 'Assessor'),
+        ('applicant', 'Applicant'),
+        ('referrer', 'Referrer'),
     )
     text = models.TextField()
     answer_type = models.CharField('Answer Type',
@@ -3294,6 +3311,11 @@ class ApiaryApplicantChecklistQuestion(models.Model):
                                    choices=CHECKLIST_TYPE_CHOICES,
                                    #default=ANSWER_TYPE_CHOICES[0][0]
                                    )
+    checklist_role = models.CharField('Checklist Role',
+                                   max_length=30,
+                                   choices=CHECKLIST_ROLE_CHOICES,
+                                   #default=ANSWER_TYPE_CHOICES[0][0]
+                                   )
     order = models.PositiveIntegerField(default=1)
 
     def __str__(self):
@@ -3303,10 +3325,10 @@ class ApiaryApplicantChecklistQuestion(models.Model):
         app_label = 'disturbance'
 
 
-class ApiaryApplicantChecklistAnswer(models.Model):
-    question=models.ForeignKey(ApiaryApplicantChecklistQuestion, related_name='answers')
+class ApiaryChecklistAnswer(models.Model):
+    question=models.ForeignKey(ApiaryChecklistQuestion, related_name='answers')
     answer = models.NullBooleanField()
-    proposal = models.ForeignKey(ProposalApiary, related_name='apiary_applicant_checklist')
+    proposal = models.ForeignKey(ProposalApiary, related_name="apiary_checklist")
 
     def __str__(self):
         return self.question.text

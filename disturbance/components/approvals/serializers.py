@@ -52,7 +52,8 @@ class ApprovalSerializer(serializers.ModelSerializer):
     region = serializers.CharField(source='current_proposal.region.name')
     district = serializers.CharField(source='current_proposal.district.name', allow_null=True)
     #tenure = serializers.CharField(source='current_proposal.tenure.name')
-    activity = serializers.CharField(source='current_proposal.activity')
+    #activity = serializers.CharField(source='current_proposal.activity')
+    activity = serializers.SerializerMethodField(read_only=True)
     title = serializers.CharField(source='current_proposal.title')
     #current_proposal = InternalProposalSerializer(many=False)
     can_approver_reissue = serializers.SerializerMethodField(read_only=True)
@@ -158,6 +159,14 @@ class ApprovalSerializer(serializers.ModelSerializer):
             'apiary_approval',
             'latest_apiary_licence_document',
         )
+
+    def get_activity(self, approval):
+        activity_text = None
+        if approval.apiary_approval:
+            activity_text = 'Apiary'
+        else:
+            activity_text = approval.current_proposal.activity
+        return activity_text
 
     def get_requirements(self, approval):
         requirements = []

@@ -12,7 +12,7 @@ from ledger.accounts.models import EmailUser, Document
 from rest_framework import serializers
 
 from disturbance.components.proposals.models import ProposalDocument, ProposalUserAction, ApiarySite, SiteCategory, \
-    ProposalApiaryTemporaryUse, TemporaryUseApiarySite, ApiaryApplicantChecklistAnswer
+    ProposalApiaryTemporaryUse, TemporaryUseApiarySite, ApiaryChecklistAnswer
 from disturbance.components.proposals.serializers import SaveProposalSerializer
 
 from disturbance.components.main.models import ApplicationType
@@ -377,7 +377,7 @@ def save_proponent_data_apiary_site_transfer(proposal_obj, request, viewset):
             proposal_apiary_data = sc.get('proposal_apiary', None)
             if proposal_apiary_data:
                 for new_answer in proposal_apiary_data['checklist_answers']:
-                    ans = ApiaryApplicantChecklistAnswer.objects.get(id=new_answer['id'])
+                    ans = ApiaryChecklistAnswer.objects.get(id=new_answer['id'])
                     ans.answer = new_answer['answer']
                     ans.save()
 
@@ -421,15 +421,17 @@ def save_proponent_data_apiary_site_transfer(proposal_obj, request, viewset):
                     originating_approval = proposal_obj.proposal_apiary.retrieve_approval
                     if originating_approval:
                         # Copy requirements from approval.current_proposal
-                        origin_req = originating_approval.current_proposal.apiary_requirements(
-                                approval=originating_approval).exclude(is_deleted=True)
+                        #origin_req = originating_approval.current_proposal.apiary_requirements(
+                         #       approval=originating_approval).exclude(is_deleted=True)
+                        origin_req = originating_approval.proposalrequirement_set.exclude(is_deleted=True)
                         from copy import deepcopy
                         if origin_req:
                             for origin_r in origin_req:
                                 old_origin_r = deepcopy(origin_r)
                                 origin_r.proposal = proposal_obj
                                 #origin_r.proposal = None
-                                origin_r.site_transfer_approval = originating_approval
+                                #origin_r.site_transfer_approval = originating_approval
+                                origin_r.apiary_approval = originating_approval
                                 origin_r.copied_from=old_origin_r
                                 origin_r.id = None
                                 origin_r.save()
@@ -437,15 +439,16 @@ def save_proponent_data_apiary_site_transfer(proposal_obj, request, viewset):
                     #approval = proposal_apiary.retrieve_approval
                     if proposal_obj.proposal_apiary.target_approval:
                         # Copy requirements from approval.current_proposal
-                        target_req = proposal_obj.proposal_apiary.target_approval.current_proposal.apiary_requirements(
-                                approval=proposal_obj.proposal_apiary.target_approval).exclude(is_deleted=True)
+                        #target_req = proposal_obj.proposal_apiary.target_approval.current_proposal.apiary_requirements(
+                         #       approval=proposal_obj.proposal_apiary.target_approval).exclude(is_deleted=True)
+                        origin_req = proposal_obj.proposal_apiary.target_approval.proposalrequirement_set.exclude(is_deleted=True)
                         from copy import deepcopy
                         if target_req:
                             for target_r in target_req:
                                 old_target_r = deepcopy(target_r)
                                 target_r.proposal = proposal_obj
                                 #target_r.proposal = None
-                                target_r.site_transfer_approval = proposal_obj.proposal_apiary.target_approval
+                                target_r.apiary_approval = proposal_obj.proposal_apiary.target_approval
                                 target_r.copied_from=old_target_r
                                 target_r.id = None
                                 target_r.save()
@@ -541,7 +544,7 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                         raise serializers.ValidationError(['There are apiary sites in this proposal which are too close to each other.',])
 
                 for new_answer in site_location_data['checklist_answers']:
-                    ans = ApiaryApplicantChecklistAnswer.objects.get(id=new_answer['id'])
+                    ans = ApiaryChecklistAnswer.objects.get(id=new_answer['id'])
                     ans.answer = new_answer['answer']
                     ans.save()
 
