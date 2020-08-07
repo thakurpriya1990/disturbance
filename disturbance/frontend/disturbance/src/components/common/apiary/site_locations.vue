@@ -76,6 +76,7 @@
 
         <div class="row col-sm-12">
             <datatable ref="site_locations_table" id="site-locations-table" :dtOptions="dtOptions" :dtHeaders="dtHeaders" />
+            <span class="view_all_button action_link" @click="displayAllFeatures">View All Proposed Sites On Map</span>
         </div>
 
         <div id="map" class="map"></div>
@@ -242,11 +243,16 @@
                         },
                         {
                             mRender: function (data, type, full) {
-                                let ret_str = ''
+                                console.log(full)
+                                let action_list = []
+                                let ret_str_delete = '<span class="delete_button action_link" data-site-location-guid="' + full.getId() + '">Delete</span>'
+                                let ret_str_view = '<span class="view_on_map action_link" data-apiary-site-id="' + full.getId() + '"/>View on map</span>';
+
+                                action_list.push(ret_str_view)
                                 if (!vm.readonly){
-                                    ret_str = '<span class="delete_button" style="color:#347ab7; cursor: pointer;" data-site-location-guid="' + full.getId() + '">Delete</span>'
+                                    action_list.push(ret_str_delete)
                                 }
-                                return ret_str
+                                return action_list.join('<br />');
                             }
                         },
                     ],
@@ -273,6 +279,28 @@
             }
         },
         methods:{
+            displayAllFeatures: function() {
+                if (this.map){
+                    if (this.drawingLayerSource.getFeatures().length>0){
+                        let view = this.map.getView()
+
+                        let ext = this.drawingLayerSource.getExtent()
+                        let centre = [(ext[0] + ext[2])/2.0, (ext[1] + ext[3])/2.0]
+                        let resolution = view.getResolutionForExtent(ext);
+                        let z = view.getZoomForResolution(resolution) - 1
+                        view.animate({zoom: z, center: centre})
+                    }
+                }
+            },
+            zoomToApiarySiteById: function(apiary_site_id){
+                console.log(apiary_site_id)
+                let feature = this.drawingLayerSource.getFeatureById(apiary_site_id)
+                let geometry = feature.getGeometry()
+                let coord = geometry.getCoordinates()
+                let view = this.map.getView()
+                this.map.getView().animate({zoom: 16, center: feature['values_']['geometry']['flatCoordinates']})
+                //this.showPopup(feature)
+            },
             uuidv4: function () {
                 return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, 
                     function(c) {
@@ -406,16 +434,15 @@
             },
             addEventListeners: function(){
                 $("#site-locations-table").on("click", ".delete_button", this.removeSiteLocation);
+                $("#site-locations-table").on("click", ".view_on_map", this.zoomOnApiarySite)
+            },
+            zoomOnApiarySite: function(e) {
+                let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
+                this.zoomToApiarySiteById(apiary_site_id)
             },
             removeSiteLocation: function(e){
-                console.log('removeSiteLocation')
-
                 let site_location_guid = e.target.getAttribute("data-site-location-guid");
-                console.log('guid to delete: ' + site_location_guid);
-
                 let myFeature = this.drawingLayerSource.getFeatureById(site_location_guid)
-                console.log('myFeature: ')
-                console.log(myFeature)
 
                 let myFeatureStatus = myFeature.get('status')
                 if (myFeatureStatus && myFeatureStatus != 'draft'){
@@ -426,7 +453,8 @@
                     this.drawingLayerSource.removeFeature(myFeature);
                 }
 
-                this.constructSiteLocationsTable();
+                // Remove the row from the table
+                $(e.target).closest('tr').fadeOut('slow', function(){ })
             },
             initMap: function() {
                 console.log('initMap start')
@@ -840,5 +868,9 @@
         padding: 8px;
         color: white;
         background-color: rgba(37, 45, 51, 0.7);
+    }
+    .action_link {
+        color: #347ab7; 
+        cursor: pointer;
     }
 </style>
