@@ -20,6 +20,8 @@ from disturbance.components.approvals.models import Approval
 from disturbance.components.proposals.models import (
     ProposalApiary,
     SiteTransferApiarySite,
+    ApiaryChecklistQuestion,
+    ApiaryChecklistAnswer,
     #ProposalApiaryTemporaryUse,
     #ProposalApiarySiteTransfer,
 )
@@ -376,10 +378,11 @@ def save_proponent_data_apiary_site_transfer(proposal_obj, request, viewset):
 
             proposal_apiary_data = sc.get('proposal_apiary', None)
             if proposal_apiary_data:
-                for new_answer in proposal_apiary_data['checklist_answers']:
-                    ans = ApiaryChecklistAnswer.objects.get(id=new_answer['id'])
-                    ans.answer = new_answer['answer']
-                    ans.save()
+                save_checklist_answers('applicant', proposal_apiary_data.get('applicant_checklist_answers'))
+                #for new_answer in proposal_apiary_data['applicant_checklist_answers']:
+                #    ans = ApiaryChecklistAnswer.objects.get(id=new_answer['id'])
+                #    ans.answer = new_answer['answer']
+                #    ans.save()
 
             #save Site Transfer Apiary Sites
             #site_transfer_apiary_sites = json.loads(request.data.get('site_transfer_apiary_sites'))
@@ -542,11 +545,8 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                     if qs_sites_within:
                         # In this proposal, there are apiary sites which are too close to each other
                         raise serializers.ValidationError(['There are apiary sites in this proposal which are too close to each other.',])
-
-                for new_answer in site_location_data['checklist_answers']:
-                    ans = ApiaryChecklistAnswer.objects.get(id=new_answer['id'])
-                    ans.answer = new_answer['answer']
-                    ans.save()
+                # save applicant checklist answers
+                save_checklist_answers('applicant', site_location_data.get('applicant_checklist_answers'))
 
                 # Delete existing
                 sites_delete = ApiarySite.objects.filter(id__in=site_ids_delete)
@@ -582,6 +582,24 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
         except Exception as e:
             raise
 
+def save_checklist_answers(checklist_type, checklist_answers=None):
+    if checklist_answers and checklist_type == 'referrer':
+        for referral_answers in checklist_answers:
+            for ref_answer in referral_answers.get('referral_data'):
+                r_ans = ApiaryChecklistAnswer.objects.get(id=ref_answer['id'])
+                if ref_answer.get('question', {}).get('answer_type') == 'free_text':
+                    r_ans.text_answer = ref_answer['text_answer']
+                elif ref_answer.get('question', {}).get('answer_type') == 'yes_no':
+                    r_ans.answer = ref_answer['answer']
+                r_ans.save()
+    elif checklist_answers:
+        for new_answer in checklist_answers:
+            ans = ApiaryChecklistAnswer.objects.get(id=new_answer['id'])
+            if new_answer.get('question', {}).get('answer_type') == 'free_text':
+                ans.text_answer = new_answer['text_answer']
+            elif new_answer.get('question', {}).get('answer_type') == 'yes_no':
+                ans.answer = new_answer['answer']
+            ans.save()
 
 def update_proposal_apiary_temporary_use(temp_use_obj, temp_use_data, action):
     temp_use_data['from_date'] = convert_moment_str_to_python_datetime_obj(temp_use_data['from_date']).date() if temp_use_data['from_date'] else None
@@ -737,20 +755,9 @@ def save_assessor_data(instance,request,viewset):
 
 
 def save_apiary_assessor_data(instance,request,viewset):
+    #import ipdb; ipdb.set_trace()
     with transaction.atomic():
         try:
-            #lookable_fields = ['isTitleColumnForDashboard','isActivityColumnForDashboard','isRegionColumnForDashboard']
-            #extracted_fields,special_fields,assessor_data,comment_data = create_data_from_form(
-             #   instance.schema, request.POST, request.FILES,special_fields=lookable_fields,assessor_data=True)
-
-            #logger.info("ASSESSOR DATA - Region: {}, Activity: {}".format(special_fields.get('isRegionColumnForDashboard',None), special_fields.get('isActivityColumnForDashboard',None)))
-
-            #data = {
-               # 'data': extracted_fields,
-              #  'assessor_data': assessor_data,
-             #   'comment_data': comment_data,
-            #}
-            #serializer = SaveProposalSerializer(instance, data, partial=True)
             serializer = SaveProposalSerializer(instance, request.data, partial=True)
             serializer.is_valid(raise_exception=True)
             viewset.perform_update(serializer)
@@ -767,10 +774,29 @@ def save_apiary_assessor_data(instance,request,viewset):
                 document._file = request.FILES[f]
                 document.save()
             # End Save Documents
+            # save assessor checklist answers
+            try:
+                schema = request.data.get('schema')
+            except:
+                schema = request.POST.get('schema')
+
+            sc = json.loads(schema) if schema else {}
+
+            proposal_apiary_data = sc.get('proposal_apiary')
+            if proposal_apiary_data:
+                save_checklist_answers('assessor', proposal_apiary_data.get('assessor_checklist_answers'))
+            # referrer checklist answers
+            try:
+                referrer_checklist_answers_str = request.data.get('referrer_checklist_answers')
+            except:
+                referrer_checklist_answers_str = request.POST.get('referrer_checklist_answers')
+
+            referrer_checklist_answers = json.loads(referrer_checklist_answers_str) if referrer_checklist_answers_str else []
+            if referrer_checklist_answers:
+                save_checklist_answers('referrer', referrer_checklist_answers)
             instance.log_user_action(ProposalUserAction.APIARY_ACTION_SAVE_APPLICATION.format(instance.id),request)
         except:
             raise
-
 
 def proposal_submit_apiary(proposal, request):
     with transaction.atomic():
@@ -805,19 +831,13 @@ def proposal_submit_apiary(proposal, request):
                 proposal.save()
             else:
                 raise ValidationError('An error occurred while submitting proposal (Submit email notifications failed)')
-            #Create assessor checklist with the current assessor_list type questions
-            #Assessment instance already exits then skip.
-#            try:
-#                assessor_assessment=ProposalAssessment.objects.get(proposal=proposal,referral_group=None, referral_assessment=False)
-#            except ProposalAssessment.DoesNotExist:
-#                assessor_assessment=ProposalAssessment.objects.create(proposal=proposal,referral_group=None, referral_assessment=False)
-#                checklist=ChecklistQuestion.objects.filter(list_type='assessor_list', obsolete=False)
-#                for chk in checklist:
-#                    try:
-#                        chk_instance=ProposalAssessmentAnswer.objects.get(question=chk, assessment=assessor_assessment)
-#                    except ProposalAssessmentAnswer.DoesNotExist:
-#                        chk_instance=ProposalAssessmentAnswer.objects.create(question=chk, assessment=assessor_assessment)
-#
+
+            for question in ApiaryChecklistQuestion.objects.filter(
+                    checklist_type='apiary',
+                    checklist_role='assessor'
+                    ):
+                new_answer = ApiaryChecklistAnswer.objects.create(proposal = proposal.proposal_apiary,
+                                                                           question = question)
             return proposal
 
         else:
