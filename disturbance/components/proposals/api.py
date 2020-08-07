@@ -462,7 +462,7 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
             q_objects |= Q(proposal_apiary=proposal.proposal_apiary)
         q_objects |= Q(status__in=ApiarySite.NON_RESTRICTIVE_STATUSES)
         q_objects |= Q(wkb_geometry=None)
-        q_objects |= Q(proposal_apiary=None)
+        # q_objects |= Q(proposal_apiary=None)
 
         qs = ApiarySite.objects.all().exclude(q_objects)
         serializer = ApiarySiteGeojsonSerializer(qs, many=True)

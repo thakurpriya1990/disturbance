@@ -226,8 +226,8 @@
             },
             zoomToApiarySiteById: function(apiary_site_id){
                 let feature = this.apiarySitesQuerySource.getFeatureById(apiary_site_id)
-                        let geometry = feature.getGeometry();
-                        let coord = geometry.getCoordinates();
+                let geometry = feature.getGeometry()
+                let coord = geometry.getCoordinates()
                 let view = this.map.getView()
                 this.map.getView().animate({zoom: 16, center: feature['values_']['geometry']['flatCoordinates']})
                 this.showPopup(feature)
