@@ -242,7 +242,7 @@ class ApiarySiteSavePointSerializer(GeoFeatureModelSerializer):
         non_field_errors = []
 
         qs_sites_within = ApiarySite.objects.filter(wkb_geometry__distance_lte=(attrs['wkb_geometry'], Distance(m=RESTRICTED_RADIUS))).\
-                                             exclude(status__in=ApiarySite.NON_RESTRICTIVE_STATUSES)
+                                             exclude(status__in=ApiarySite.NON_RESTRICTIVE_STATUSES).exclude(id=self.instance.id)
         if qs_sites_within:
             # There is at least one existing apiary site which is too close to the site being created
             non_field_errors.append('There is an existing apiary site which is too close to the apiary site you are adding at the coordinates: {}'.format(attrs['wkb_geometry'].coords))
@@ -310,6 +310,7 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
 
 class ApiarySiteGeojsonSerializer(GeoFeatureModelSerializer):
     site_category_name = serializers.CharField(source='site_category.name')
+    stable_coords = serializers.SerializerMethodField()
 
     class Meta:
         model = ApiarySite
@@ -323,7 +324,11 @@ class ApiarySiteGeojsonSerializer(GeoFeatureModelSerializer):
             'site_category_name',
             'status',
             'workflow_selected_status',
+            'stable_coords',
         )
+
+    def get_stable_coords(self, obj):
+        return [obj.wkb_geometry.tuple[0], obj.wkb_geometry.tuple[1]]
 
 
 class SiteTransferApiarySiteSerializer(serializers.ModelSerializer):
