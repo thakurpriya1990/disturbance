@@ -95,7 +95,23 @@ class CompliancePaginatedViewSet(viewsets.ModelViewSet):
             http://localhost:8000/api/compliance_paginated/compliances_external/?format=datatables&draw=1&length=2
         """
 
-        qs = self.get_queryset().exclude(processing_status='future')
+        web_url = request.META.get('HTTP_HOST', None)
+        template_group = None
+        if web_url in settings.APIARY_URL:
+           template_group = 'apiary'
+        else:
+           template_group = 'das'
+        #import ipdb; ipdb.set_trace()
+        if template_group == 'apiary':
+            #qs = self.get_queryset().filter(application_type__apiary_group_application_type=True).exclude(processing_status='discarded')
+            qs = self.get_queryset().filter(
+                    apiary_compliance=True
+                    )
+        else:
+            qs = self.get_queryset().exclude(
+                    apiary_compliance=True
+                    )
+        #qs = self.get_queryset().exclude(processing_status='future')
         qs = ProposalFilterBackend().filter_queryset(self.request, qs, self)
         #qs = self.filter_queryset(qs)
         #qs = qs.order_by('lodgement_number', '-issue_date').distinct('lodgement_number')
