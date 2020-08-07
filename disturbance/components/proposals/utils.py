@@ -378,7 +378,7 @@ def save_proponent_data_apiary_site_transfer(proposal_obj, request, viewset):
 
             proposal_apiary_data = sc.get('proposal_apiary', None)
             if proposal_apiary_data:
-                save_checklist_answers(proposal_apiary_data.get('applicant_checklist_answers'))
+                save_checklist_answers('applicant', proposal_apiary_data.get('applicant_checklist_answers'))
                 #for new_answer in proposal_apiary_data['applicant_checklist_answers']:
                 #    ans = ApiaryChecklistAnswer.objects.get(id=new_answer['id'])
                 #    ans.answer = new_answer['answer']
@@ -546,7 +546,7 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                         # In this proposal, there are apiary sites which are too close to each other
                         raise serializers.ValidationError(['There are apiary sites in this proposal which are too close to each other.',])
                 # save applicant checklist answers
-                save_checklist_answers(site_location_data.get('applicant_checklist_answers'))
+                save_checklist_answers('applicant', site_location_data.get('applicant_checklist_answers'))
 
                 # Delete existing
                 sites_delete = ApiarySite.objects.filter(id__in=site_ids_delete)
@@ -582,14 +582,24 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
         except Exception as e:
             raise
 
-def save_checklist_answers(checklist_answers):
-    for new_answer in checklist_answers:
-        ans = ApiaryChecklistAnswer.objects.get(id=new_answer['id'])
-        if new_answer.get('question', {}).get('answer_type') == 'free_text':
-            ans.text_answer = new_answer['text_answer']
-        elif new_answer.get('question', {}).get('answer_type') == 'yes_no':
-            ans.answer = new_answer['answer']
-        ans.save()
+def save_checklist_answers(checklist_type, checklist_answers=None):
+    if checklist_answers and checklist_type == 'referrer':
+        for referral_answers in checklist_answers:
+            for ref_answer in referral_answers.get('referral_data'):
+                r_ans = ApiaryChecklistAnswer.objects.get(id=ref_answer['id'])
+                if ref_answer.get('question', {}).get('answer_type') == 'free_text':
+                    r_ans.text_answer = ref_answer['text_answer']
+                elif ref_answer.get('question', {}).get('answer_type') == 'yes_no':
+                    r_ans.answer = ref_answer['answer']
+                r_ans.save()
+    elif checklist_answers:
+        for new_answer in checklist_answers:
+            ans = ApiaryChecklistAnswer.objects.get(id=new_answer['id'])
+            if new_answer.get('question', {}).get('answer_type') == 'free_text':
+                ans.text_answer = new_answer['text_answer']
+            elif new_answer.get('question', {}).get('answer_type') == 'yes_no':
+                ans.answer = new_answer['answer']
+            ans.save()
 
 def update_proposal_apiary_temporary_use(temp_use_obj, temp_use_data, action):
     temp_use_data['from_date'] = convert_moment_str_to_python_datetime_obj(temp_use_data['from_date']).date() if temp_use_data['from_date'] else None
@@ -773,8 +783,17 @@ def save_apiary_assessor_data(instance,request,viewset):
             sc = json.loads(schema) if schema else {}
 
             proposal_apiary_data = sc.get('proposal_apiary')
+            if proposal_apiary_data:
+                save_checklist_answers('assessor', proposal_apiary_data.get('assessor_checklist_answers'))
+            # referrer checklist answers
+            try:
+                referrer_checklist_answers_str = request.data.get('referrer_checklist_answers')
+            except:
+                referrer_checklist_answers_str = request.POST.get('referrer_checklist_answers')
 
-            save_checklist_answers(proposal_apiary_data.get('assessor_checklist_answers'))
+            referrer_checklist_answers = json.loads(referrer_checklist_answers_str) if referrer_checklist_answers_str else []
+            if referrer_checklist_answers:
+                save_checklist_answers('referrer', referrer_checklist_answers)
             instance.log_user_action(ProposalUserAction.APIARY_ACTION_SAVE_APPLICATION.format(instance.id),request)
         except:
             raise

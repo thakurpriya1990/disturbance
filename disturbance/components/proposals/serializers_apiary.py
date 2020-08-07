@@ -517,7 +517,8 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
                 many=True).data
             referral_list.append({
                 "referral_id": referral.id, 
-                "referral_data": qs
+                "referral_data": qs,
+                "referrer_group_name": referral.apiary_referral.referral_group.name,
                 })
         return referral_list
 
@@ -1070,13 +1071,14 @@ class ApiaryInternalProposalSerializer(BaseProposalSerializer):
 class ApiaryReferralSerializer(serializers.ModelSerializer):
     #processing_status = serializers.CharField(source='get_processing_status_display')
     #latest_referrals = ProposalReferralSerializer(many=True)
-    #can_be_completed = serializers.BooleanField()
+    can_process = serializers.BooleanField()
     referral_group = ApiaryReferralGroupSerializer()
     class Meta:
         model = ApiaryReferral
         fields = (
                 'id',
                 'referral_group',
+                'can_process',
                 )
 
     #def __init__(self,*args,**kwargs):

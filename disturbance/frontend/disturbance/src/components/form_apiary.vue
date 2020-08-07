@@ -62,13 +62,25 @@
             :readonly="readonly"
             ref="applicant_checklist"
             />
-            <div v-if="!assessorChecklistReadonly">
+            <div v-if="assessorChecklistVisibility">
                 <ApiaryChecklist 
                 :checklist="assessorChecklistAnswers"
                 section_title="Assessor Checklist"
                 :readonly="assessorChecklistReadonly"
                 ref="assessor_checklist"
                 />
+            </div>
+            <div v-for="r in referrerChecklistAnswers">
+                <!--div v-if="(referral && r.referral_id === referral.id) || (assessorChecklistVisibility && proposal.processing_status === 'With Assessor')"-->
+                <div v-if="(referral && r.referral_id === referral.id) || (assessorChecklistVisibility)">
+                <!--div v-if="r.id = referral.id"-->
+                    <ApiaryChecklist 
+                    :checklist="r.referral_data"
+                    :section_title="'Referral Checklist: ' + r.referrer_group_name"
+                    :readonly="referrerChecklistReadonly"
+                    ref="referrer_checklist"
+                    />
+                </div>
             </div>
 
             <!--FormSection :formCollapse="false" label="Checklist" Index="checklist">
@@ -203,6 +215,11 @@
                 }
                 return url;
             },
+            /*
+            referralChecklistTitle: function() {
+                let title = 'Referral Checklist ';
+                if (this.referral &&
+                */
             deedPollUrl: function() {
                 return '';
             },
@@ -215,10 +232,37 @@
             },
             assessorChecklistReadonly: function() {
                 let readonlyStatus = true;
-                if (this.proposal.processing_status === 'With Assessor' && this.is_internal) {
+                //if (this.proposal.processing_status === 'With Assessor' && this.is_internal) {
+                if (this.is_internal && this.proposal && this.proposal.assessor_mode && this.proposal.assessor_mode.assessor_can_assess) {
                     readonlyStatus = false;
                 }
                 return readonlyStatus;
+            },
+            assessorChecklistVisibility: function() {
+                let visibility = false;
+                //if (this.proposal.processing_status === 'With Assessor' && this.is_internal) {
+                if (this.is_internal && this.proposal && this.proposal.assessor_mode && this.proposal.assessor_mode.has_assessor_mode) {
+                    visibility = true;
+                }
+                return visibility;
+            },
+            referrerChecklistReadonly: function() {
+                let readonlyStatus = true;
+                // referrer must have access
+                if (this.is_internal && this.proposal.processing_status === 'With Referral' && 
+                    this.referral && this.referral.processing_status === 'Awaiting' &&
+                    this.referral.apiary_referral && this.referral.apiary_referral.can_process) {
+                    readonlyStatus = false;
+                }
+                return readonlyStatus;
+            },
+            referrerChecklistVisibility: function() {
+                let visibility = false;
+                // must be relevant referral
+                if ((!this.referrerChecklistReadonly && r.id === this.referral.id) || this.assessorChecklistVisibility) {
+                    visibility = true;
+                }
+                return visibility;
             },
             getUnansweredChecklistQuestions: function() {
                 let UnansweredChecklistQuestions = false;
