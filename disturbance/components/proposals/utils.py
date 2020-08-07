@@ -488,21 +488,32 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
 
                 # Feature object doesn't have a field named 'id' originally unless manually added
                 # The field 'id_' is used in the frontend, though
-                site_ids_received = [feature['id'] if 'id' in feature else '' for feature in site_locations_received]  # if hasattr(feature, 'id')]
+                site_ids_received = [feature['id_'] if 'id_' in feature and isinstance(feature['id_'], int) else '' for feature in site_locations_received]
                 site_ids_existing = [site.id for site in ApiarySite.objects.filter(proposal_apiary_id=site_location_data['id'])]
                 site_ids_delete = [id for id in site_ids_existing if id not in site_ids_received]
 
                 # Handle ApiarySites here
                 ids = []
+                vacant_sites_nominated = []
                 for index, feature in enumerate(site_locations_received):
                     feature['proposal_apiary_id'] = proposal_obj.proposal_apiary.id
 
                     try:
                         # Update existing
-                        a_site = ApiarySite.objects.get(site_guid=feature['id_'])
-                        serializer = ApiarySiteSerializer(a_site, data=feature)
-                    except ApiarySite.DoesNotExist:
-                        # Create new
+                        # for the newely addes apiary site, 'id_' has its guid
+                        # for the existing apiary site, 'value_'.'site_guid' has its guid
+                        try:
+                            # Try to get this apiary site assuming already saved as 'draft'
+                            a_site = ApiarySite.objects.get(site_guid=feature['id_'])
+                            serializer = ApiarySiteSerializer(a_site, data=feature)
+                        except ApiarySite.DoesNotExist:
+                            # Try to get this apiary site assuming it is 'vacant' site (available site)
+                            a_site = ApiarySite.objects.get(site_guid=feature['values_']['site_guid'])
+                            vacant_sites_nominated.append(a_site)
+                            serializer = ApiarySiteSerializer(a_site, data=feature)
+                            # serializer = None
+                    except KeyError:  # when 'site_guid' is not defined above
+                        # Create new apiary site when both of the above queries failed
                         if feature['values_']['site_category'] == 'south_west':
                             category_obj = SiteCategory.objects.get(name='south_west')
                         else:
@@ -512,24 +523,25 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
 
                         serializer = ApiarySiteSerializer(data=feature)
 
-                    serializer.is_valid(raise_exception=True)
-                    apiary_site_obj = serializer.save()
+                    if serializer:
+                        serializer.is_valid(raise_exception=True)
+                        apiary_site_obj = serializer.save()
 
-                    # Save coordinate
-                    geom_str = GEOSGeometry(
-                        'POINT(' +
-                        str(feature['values_']['geometry']['flatCoordinates'][0]) + ' ' +
-                        str(feature['values_']['geometry']['flatCoordinates'][1]) +
-                        ')',
-                        srid=4326
-                    )
+                        # Save coordinate
+                        geom_str = GEOSGeometry(
+                            'POINT(' +
+                            str(feature['values_']['geometry']['flatCoordinates'][0]) + ' ' +
+                            str(feature['values_']['geometry']['flatCoordinates'][1]) +
+                            ')',
+                            srid=4326
+                        )
 
-                    # Perform validation to the existing apiary sites
-                    serializer = ApiarySiteSavePointSerializer(apiary_site_obj, data={'wkb_geometry': geom_str})
-                    serializer.is_valid(raise_exception=True)
-                    serializer.save()
+                        # Perform validation to the existing apiary sites
+                        serializer = ApiarySiteSavePointSerializer(apiary_site_obj, data={'wkb_geometry': geom_str})
+                        serializer.is_valid(raise_exception=True)
+                        serializer.save()
 
-                    ids.append(apiary_site_obj.id)
+                        ids.append(apiary_site_obj.id)
 
                 # Perform validation among the sites in this proposal
                 for id in ids:
@@ -549,8 +561,11 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                     ans.save()
 
                 # Delete existing
-                sites_delete = ApiarySite.objects.filter(id__in=site_ids_delete)
+                sites_delete = ApiarySite.objects.filter(id__in=site_ids_delete, status=ApiarySite.STATUS_DRAFT)
                 sites_delete.delete()
+                # Update the site(s) which is picked up as proposed site
+                sites_updated = ApiarySite.objects.filter(id__in=site_ids_delete)
+                sites_updated.update(proposal_apiary=None)
 
             #save Temporary Use data
             temporary_use_data = request.data.get('apiary_temporary_use', None)
