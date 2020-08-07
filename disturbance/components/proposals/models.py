@@ -7,6 +7,7 @@ import datetime
 import pytz
 from django.contrib.gis.db.models.fields import PointField
 from django.contrib.gis.db.models.manager import GeoManager
+from django.contrib.gis.geos import GEOSGeometry
 from django.db import models,transaction
 from django.contrib.gis.db import models as gis_models
 from django.db.models import Q
@@ -1230,6 +1231,24 @@ class Proposal(RevisionedMixin):
                             my_site = ApiarySite.objects.get(id=apiary_site['id'])
                             my_site.workflow_selected_status = apiary_site['checked']
                             my_site.save()
+
+                            if apiary_site['checked']:
+                                # Update coordinate
+                                geom_str = GEOSGeometry(
+                                    'POINT(' +
+                                        str(apiary_site['coordinates']['lng']) + ' ' +
+                                        str(apiary_site['coordinates']['lat']) +
+                                    ')',
+                                    srid=4326
+                                )
+
+                                # Perform validation to the existing apiary sites
+                                from disturbance.components.proposals.serializers_apiary import \
+                                    ApiarySiteSavePointSerializer
+                                serializer = ApiarySiteSavePointSerializer(my_site, data={'wkb_geometry': geom_str})
+                                serializer.is_valid(raise_exception=True)
+                                serializer.save()
+
                     # Site transfer
                     elif self.application_type.name == ApplicationType.SITE_TRANSFER:
                         for apiary_site in apiary_sites:

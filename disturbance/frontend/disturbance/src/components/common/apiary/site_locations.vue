@@ -556,8 +556,6 @@
                             vm.drawingLayerSource.addFeature(vm.apiary_site_being_selected);
                             vm.apiary_site_being_selected.getGeometry().on("change", function() {
                                 if (modifyInProgressList.indexOf(vm.apiary_site_being_selected.getId()) == -1) {
-                                    console.log('ahoooooooo')
-                                    console.log(vm.apiary_site_being_selected.getId())
                                     modifyInProgressList.push(vm.apiary_site_being_selected.getId());
                                 }
                             });
@@ -605,11 +603,8 @@
                         console.log('modifyend')
                         // this will list all features in layer, not so useful without cross referencing
                         attributes.features.forEach(function(feature){
-                            console.log(feature)
                             let id = feature.getId();
                             let index = modifyInProgressList.indexOf(id);
-                            console.log(index)
-
                             if (index != -1) {
                                 modifyInProgressList.splice(index, 1);
                                 let coords = feature.getGeometry().getCoordinates();

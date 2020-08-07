@@ -24,6 +24,7 @@
                         :key="component_map_key"
                         @featuresDisplayed="updateTableByFeatures"
                         :can_modify="can_modify"
+                        @featureGeometryUpdated="featureGeometryUpdated"
                     />
                 </div>
             </div>
@@ -322,6 +323,9 @@
 
         },
         methods: {
+            featureGeometryUpdated: function(feature){
+                console.log(feature)
+            },
             updateTableByFeatures: function(features) {
                 // Generate a list of the feature ids displayed on the map
                 let ids = $.map(features, function(feature){

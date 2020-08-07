@@ -90,6 +90,7 @@
                 popup_content_id: uuid(),
                 overlay: null,
                 content_element: null,
+                modifyInProgressList: []
             }
         },
         created: function(){
@@ -218,12 +219,20 @@
                     modifyTool.on("modifystart", function(attributes){
                         console.log('modifystart')
                         attributes.features.forEach(function(feature){
+                            console.log(feature)
                         })
                     });
                     modifyTool.on("modifyend", function(attributes){
                         console.log('modifyend')
                         attributes.features.forEach(function(feature){
-
+                            let id = feature.getId();
+                            let index = vm.modifyInProgressList.indexOf(id);
+                            if (index != -1) {
+                                // feature has been modified
+                                vm.modifyInProgressList.splice(index, 1);
+                                let coords = feature.getGeometry().getCoordinates();
+                                vm.$emit('featureGeometryUpdated', {'id': id, 'coordinates': coords})
+                            } 
                         });
                     });
                     vm.map.addInteraction(modifyTool);
@@ -250,10 +259,16 @@
                 return coords[0].toFixed(6) + ', ' + coords[1].toFixed(6);
             },
             addApiarySite: function(apiary_site_geojson) {
-                console.log('in addApiarySite')
-                console.log(apiary_site_geojson)
+                let vm = this
                 let feature = (new GeoJSON()).readFeature(apiary_site_geojson)
-                console.log(feature)
+
+                feature.getGeometry().on("change", function() {
+                    let feature_id = feature.getId()
+                    if (vm.modifyInProgressList.indexOf(feature_id) == -1) {
+                        vm.modifyInProgressList.push(feature_id);
+                    }
+                })
+
                 this.apiarySitesQuerySource.addFeature(feature)
             },
             removeApiarySiteById: function(apiary_site_id){
