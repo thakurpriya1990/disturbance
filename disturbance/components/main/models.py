@@ -75,18 +75,6 @@ class ApplicationType(models.Model):
     def __str__(self):
         return self.name
 
-    @property
-    def apiary_group_application_type(self):
-        import ipdb; ipdb.set_trace()
-        apiary = False
-        if self.name in (
-                self.APIARY,
-                self.TEMPORARY_USE,
-                self.SITE_TRANSFER,
-                ):
-            apiary = True
-        return apiary
-
 @python_2_unicode_compatible
 class ActivityMatrix(models.Model):
     #name = models.CharField(verbose_name='Activity matrix name', max_length=24, choices=application_type_choicelist(), default='Disturbance')

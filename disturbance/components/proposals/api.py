@@ -9,7 +9,7 @@ import pytz
 from ledger.settings_base import TIME_ZONE
 from six.moves.urllib.parse import urlparse
 from wsgiref.util import FileWrapper
-from django.db.models import Q, Min, F
+from django.db.models import Q, Min
 from django.db import transaction
 from django.http import HttpResponse
 from django.core.files.base import ContentFile
