@@ -308,6 +308,7 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
 
 class ApiarySiteGeojsonSerializer(GeoFeatureModelSerializer):
     site_category_name = serializers.CharField(source='site_category.name')
+    stable_coords = serializers.SerializerMethodField()
 
     class Meta:
         model = ApiarySite
@@ -321,7 +322,11 @@ class ApiarySiteGeojsonSerializer(GeoFeatureModelSerializer):
             'site_category_name',
             'status',
             'workflow_selected_status',
+            'stable_coords',
         )
+
+    def get_stable_coords(self, obj):
+        return [obj.wkb_geometry.tuple[0], obj.wkb_geometry.tuple[1]]
 
 
 class SiteTransferApiarySiteSerializer(serializers.ModelSerializer):

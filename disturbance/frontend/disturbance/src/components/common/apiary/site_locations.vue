@@ -187,7 +187,6 @@
                 //
                 dtHeaders: [
                     'Id',
-                    //'Guid',
                     'Latitude',
                     'Longitude',
                     'Action',
@@ -204,10 +203,6 @@
                     },
                     responsive: true,
                     processing: true,
-                //    "id": '',
-                //    "latitude": this.getDegrees(feature.getGeometry().getCoordinates()),
-                //    "longitude": this.getDegrees(feature.getGeometry().getCoordinates()),
-                //    "site_guid": feature.getId()
                     columns: [
                         {
                             visible: true,
@@ -219,16 +214,6 @@
                                 }
                             }
                         },
-                        //{
-                        //    mRender: function (data, type, full) {
-                        //        if (full.getId()) {
-                        //            //return full.site_guid;
-                        //            return full.getId();
-                        //        } else {
-                        //            return '';
-                        //        }
-                        //    }
-                        //},
                         {
                             mRender: function (data, type, full) {
                                 let coords = full.getGeometry().getCoordinates()
@@ -242,11 +227,15 @@
                             }
                         },
                         {
-                            mRender: function (data, type, full) {
-                                console.log(full)
+                            mRender: function (data, type, feature) {
+                                console.log('mRender')
+                                console.log(feature)
                                 let action_list = []
-                                let ret_str_delete = '<span class="delete_button action_link" data-site-location-guid="' + full.getId() + '">Delete</span>'
-                                let ret_str_view = '<span class="view_on_map action_link" data-apiary-site-id="' + full.getId() + '"/>View on map</span>';
+                                let ret_str_delete = '<span class="delete_button action_link" data-site-location-guid="' + feature.getId() + '">Delete</span>'
+                                let ret_str_view = '<span class="view_on_map action_link" data-apiary-site-id="' + feature.getId() + '"/>View on map</span>';
+
+                                let status = feature.get('status')
+                                console.log(status)
 
                                 action_list.push(ret_str_view)
                                 if (!vm.readonly){
@@ -805,17 +794,15 @@
             for (let i=0; i<vm.proposal.proposal_apiary.apiary_sites.length; i++){
                  let apiary_site = vm.proposal.proposal_apiary.apiary_sites[i]
 
-                 console.log('apiary_site')
-                 console.log(apiary_site)
+                 //let feature = new Feature(new Point([apiary_site.coordinates.lng, apiary_site.coordinates.lat]));
+                 //feature.setId(apiary_site.site_guid);
+                 //feature.id = apiary_site.id
+                 //feature.set("source", "form");
+                 //feature.set("site_category", apiary_site.site_category)
+                 //this.drawingLayerSource.addFeature(feature);
 
-                 let feature = new Feature(new Point([apiary_site.coordinates.lng, apiary_site.coordinates.lat]));
-                 feature.setId(apiary_site.site_guid);
-                 feature.id = apiary_site.id
-                 feature.set("source", "form");
-                 feature.set("site_category", apiary_site.site_category)
-                 this.drawingLayerSource.addFeature(feature);
-
-                 console.log('new feature added to the layer')
+                 let feature = (new GeoJSON).readFeature(apiary_site.as_geojson)
+                 this.drawingLayerSource.addFeature(feature)
 
                  this.createBufferForSite(feature);
             }

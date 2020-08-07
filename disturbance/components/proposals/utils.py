@@ -488,7 +488,7 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
 
                 # Feature object doesn't have a field named 'id' originally unless manually added
                 # The field 'id_' is used in the frontend, though
-                site_ids_received = [feature['id'] if 'id' in feature else '' for feature in site_locations_received]  # if hasattr(feature, 'id')]
+                site_ids_received = [feature['id_'] if 'id_' in feature and isinstance(feature['id_'], int) else '' for feature in site_locations_received]
                 site_ids_existing = [site.id for site in ApiarySite.objects.filter(proposal_apiary_id=site_location_data['id'])]
                 site_ids_delete = [id for id in site_ids_existing if id not in site_ids_received]
 
@@ -561,8 +561,11 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                     ans.save()
 
                 # Delete existing
-                sites_delete = ApiarySite.objects.filter(id__in=site_ids_delete)
+                sites_delete = ApiarySite.objects.filter(id__in=site_ids_delete, status=ApiarySite.STATUS_DRAFT)
                 sites_delete.delete()
+                # Update the site(s) which is picked up as proposed site
+                sites_updated = ApiarySite.objects.filter(id__in=site_ids_delete)
+                sites_updated.update(proposal_apiary=None)
 
             #save Temporary Use data
             temporary_use_data = request.data.get('apiary_temporary_use', None)
