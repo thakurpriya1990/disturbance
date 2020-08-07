@@ -101,6 +101,7 @@
                         :show_col_checkbox="true"
                         :show_action_available_unavailable="false"
                         :key="component_site_selection_key"
+                        :can_modify="true"
                         ref="component_site_selection"
                         @apiary_sites_updated="apiarySitesUpdated"
                     />

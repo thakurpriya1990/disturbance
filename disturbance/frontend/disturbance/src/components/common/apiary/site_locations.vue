@@ -205,7 +205,7 @@
                     processing: true,
                     columns: [
                         {
-                            visible: true,
+                            visible: false,
                             mRender: function (data, type, full) {
                                 if (full.id) {
                                     return full.id;
@@ -599,9 +599,6 @@
                     });
                     modifyTool.on("modifystart", function(attributes){
                         attributes.features.forEach(function(feature){
-
-                            // TODO: Prevent the 'existing' features from being modified
-
                         })
                     });
                     modifyTool.on("modifyend", function(attributes){
