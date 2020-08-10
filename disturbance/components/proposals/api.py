@@ -229,8 +229,19 @@ class ProposalFilterBackend(DatatablesFilterBackend):
             if date_to:
                 queryset = queryset.filter(proposal__lodgement_date__lte=date_to)
 
+        getter = request.query_params.get
+        fields = self.get_fields(getter)
+        ordering = self.get_ordering(getter, fields)
+        queryset = queryset.order_by(*ordering)
+        if len(ordering):
+            #for num, item in enumerate(ordering):
+             #   if item == 'status__name':
+              #      ordering[num] = 'status'
+               # elif item == '-status__name':
+                #    ordering[num] = '-status'
+            queryset = queryset.order_by(*ordering)
 
-        queryset = super(ProposalFilterBackend, self).filter_queryset(request, queryset, view)
+        #queryset = super(ProposalFilterBackend, self).filter_queryset(request, queryset, view)
         setattr(view, '_datatables_total_count', total_count)
         return queryset
 
@@ -254,6 +265,7 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
     renderer_classes = (ProposalRenderer,)
     queryset = Proposal.objects.none()
     serializer_class = ListProposalSerializer
+    #serializer_class = DTProposalSerializer
     page_size = 10
 
 #    @method_decorator(cache_page(60))
@@ -264,11 +276,13 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         user = self.request.user
         #import ipdb; ipdb.set_trace()
         if is_internal(self.request): #user.is_authenticated():
-            return Proposal.objects.all().order_by('-id')
+            #return Proposal.objects.all().order_by('-id')
+            return Proposal.objects.all()
         elif is_customer(self.request):
             user_orgs = [org.id for org in user.disturbance_organisations.all()]
             #return  Proposal.objects.filter( Q(applicant_id__in = user_orgs) | Q(submitter = user) )
-            return Proposal.objects.filter( Q(applicant_id__in = user_orgs) | Q(submitter = user) | Q(proxy_applicant = user)).order_by('-id')
+            #return Proposal.objects.filter( Q(applicant_id__in = user_orgs) | Q(submitter = user) | Q(proxy_applicant = user)).order_by('-id')
+            return Proposal.objects.filter( Q(applicant_id__in = user_orgs) | Q(submitter = user) | Q(proxy_applicant = user))
             #queryset =  Proposal.objects.filter(region__isnull=False).filter( Q(applicant_id__in = user_orgs) | Q(submitter = user) )
         return Proposal.objects.none()
 
@@ -308,7 +322,8 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
                     application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]
                     ).exclude(processing_status='discarded')
         #qs = self.filter_queryset(self.request, qs, self)
-        qs = self.filter_queryset(qs).order_by('-id')
+        #qs = self.filter_queryset(qs).order_by('-id')
+        qs = self.filter_queryset(qs)
 
         # on the internal organisations dashboard, filter the Proposal/Approval/Compliance datatables by applicant/organisation
         applicant_id = request.GET.get('org_id')
@@ -316,8 +331,13 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
             qs = qs.filter(applicant_id=applicant_id)
 
         self.paginator.page_size = qs.count()
+        #import ipdb; ipdb.set_trace()
         result_page = self.paginator.paginate_queryset(qs, request)
-        serializer = ListProposalSerializer(result_page, context={'request':request}, many=True)
+        serializer = ListProposalSerializer(result_page, context={
+            'request':request,
+            'template_group': template_group
+            }, many=True)
+        #serializer = DTProposalSerializer(result_page, context={'request':request}, many=True)
         return self.paginator.get_paginated_response(serializer.data)
 
     @list_route(methods=['GET',])
@@ -374,7 +394,8 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
             #qs = self.get_queryset().filter(application_type__apiary_group_application_type=False).exclude(processing_status='discarded')
         #qs = self.get_queryset().exclude(processing_status='discarded')
         #qs = self.filter_queryset(self.request, qs, self)
-        qs = self.filter_queryset(qs).order_by('-id')
+        #qs = self.filter_queryset(qs).order_by('-id')
+        qs = self.filter_queryset(qs)
 
         # on the internal organisations dashboard, filter the Proposal/Approval/Compliance datatables by applicant/organisation
         applicant_id = request.GET.get('org_id')
@@ -384,7 +405,11 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         #import ipdb; ipdb.set_trace()
         self.paginator.page_size = qs.count()
         result_page = self.paginator.paginate_queryset(qs, request)
-        serializer = ListProposalSerializer(result_page, context={'request':request}, many=True)
+        serializer = ListProposalSerializer(result_page, context={
+            'request':request,
+            'template_group': template_group
+            }, many=True)
+        #serializer = DTProposalSerializer(result_page, context={'request':request}, many=True)
         return self.paginator.get_paginated_response(serializer.data)
 
 
