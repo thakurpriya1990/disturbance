@@ -239,17 +239,19 @@ class OnSiteInformationSerializer(serializers.ModelSerializer):
 class ApiarySiteSavePointSerializer(GeoFeatureModelSerializer):
 
     def validate(self, attrs):
-        non_field_errors = []
+        validate_distance = self.context.get('validate_distance', True)
 
-        qs_sites_within = ApiarySite.objects.filter(wkb_geometry__distance_lte=(attrs['wkb_geometry'], Distance(m=RESTRICTED_RADIUS))).\
-                                             exclude(status__in=ApiarySite.NON_RESTRICTIVE_STATUSES).exclude(id=self.instance.id)
-        if qs_sites_within:
-            # There is at least one existing apiary site which is too close to the site being created
-            non_field_errors.append('There is an existing apiary site which is too close to the apiary site you are adding at the coordinates: {}'.format(attrs['wkb_geometry'].coords))
+        if validate_distance:
+            non_field_errors = []
+            qs_sites_within = ApiarySite.objects.filter(wkb_geometry__distance_lte=(attrs['wkb_geometry'], Distance(m=RESTRICTED_RADIUS))).\
+                                                 exclude(status__in=ApiarySite.NON_RESTRICTIVE_STATUSES).exclude(id=self.instance.id)
+            if qs_sites_within:
+                # There is at least one existing apiary site which is too close to the site being created
+                non_field_errors.append('There is an existing apiary site which is too close to the apiary site you are adding at the coordinates: {}'.format(attrs['wkb_geometry'].coords))
 
-        # Raise errors
-        if non_field_errors:
-            raise serializers.ValidationError(non_field_errors)
+            # Raise errors
+            if non_field_errors:
+                raise serializers.ValidationError(non_field_errors)
 
         return attrs
 
@@ -264,10 +266,11 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
     site_category_id = serializers.IntegerField(write_only=True, required=False)
     site_category = serializers.CharField(source='site_category.name', read_only=True)
     onsiteinformation_set = OnSiteInformationSerializer(read_only=True, many=True,)
-    coordinates = serializers.SerializerMethodField()
+    # coordinates = serializers.SerializerMethodField()
     as_geojson = serializers.SerializerMethodField()
     previous_site_holder_or_applicant = serializers.SerializerMethodField()
     status = CustomChoiceField(read_only=True)
+    wkb_geometry_applied = serializers.SerializerMethodField()
 
     def validate(self, attrs):
         return attrs
@@ -289,6 +292,12 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
         except:
             return {'lng': '', 'lat': ''}
 
+    def get_wkb_geometry_applied(self, obj):
+        if obj.wkb_geometry_applied:
+            return [obj.wkb_geometry_applied.tuple[0], obj.wkb_geometry_applied.tuple[1]]
+        else:
+            return None
+
     class Meta:
         model = ApiarySite
         fields = (
@@ -300,11 +309,12 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
             'site_category_id',
             'site_category',
             'onsiteinformation_set',
-            'coordinates',
+            # 'coordinates',
             'as_geojson',
             'status',
             'workflow_selected_status',
             'previous_site_holder_or_applicant',
+            'wkb_geometry_applied',
         )
 
 
