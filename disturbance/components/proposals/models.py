@@ -1234,18 +1234,9 @@ class Proposal(RevisionedMixin):
 
                             if apiary_site['checked'] and 'coordinates_moved' in apiary_site:
                                 # Update coordinate (Assessor and Approver can move the proposed site location)
-                                geom_str = GEOSGeometry(
-                                    'POINT(' +
-                                        str(apiary_site['coordinates_moved']['lng']) + ' ' +
-                                        str(apiary_site['coordinates_moved']['lat']) +
-                                    ')',
-                                    srid=4326
-                                )
-
-                                # Perform validation to the existing apiary sites
-                                from disturbance.components.proposals.serializers_apiary import \
-                                    ApiarySiteSavePointSerializer
-                                serializer = ApiarySiteSavePointSerializer(my_site, data={'wkb_geometry': geom_str})
+                                geom_str = GEOSGeometry('POINT(' + str(apiary_site['coordinates_moved']['lng']) + ' ' + str(apiary_site['coordinates_moved']['lat']) + ')', srid=4326)
+                                from disturbance.components.proposals.serializers_apiary import ApiarySiteSavePointSerializer
+                                serializer = ApiarySiteSavePointSerializer(my_site, data={'wkb_geometry': geom_str}, context={'validate_distance': True})
                                 serializer.is_valid(raise_exception=True)
                                 serializer.save()
 
@@ -2625,8 +2616,6 @@ class ProposalApiary(models.Model):
 
                             self.update_apiary_sites(approval, sites_received)
 
-                            # TODO: Generate an invoice for the annual rental fee for the sites added newly
-
                             # Check the current annual rental fee period
                             # Determine the start and end date of the annual rental fee, for which the invoices should be issued
                             today_now_local = datetime.datetime.now(pytz.timezone(TIME_ZONE))
@@ -2981,6 +2970,14 @@ class ProposalApiary(models.Model):
                 a_site.status = ApiarySite.STATUS_DENIED
                 a_site.workflow_selected_status = False
             a_site.save()
+
+            # Apiary Site can be moved by assessor and/or approver
+            if 'coordinates_moved' in my_site:
+                geom_str = GEOSGeometry('POINT(' + str(my_site['coordinates_moved']['lng']) + ' ' + str(my_site['coordinates_moved']['lat']) + ')', srid=4326)
+                from disturbance.components.proposals.serializers_apiary import ApiarySiteSavePointSerializer
+                serializer = ApiarySiteSavePointSerializer(my_site, data={'wkb_geometry': geom_str}, context={'validate_distance': True})
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
 
 
 class SiteCategory(models.Model):

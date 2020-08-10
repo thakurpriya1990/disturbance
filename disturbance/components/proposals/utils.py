@@ -487,8 +487,18 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                 site_locations_received = json.loads(request.data.get('all_the_features'))
 
                 # Feature object doesn't have a field named 'id' originally unless manually added
-                # The field 'id_' is used in the frontend, though
-                site_ids_received = [feature['id_'] if 'id_' in feature and isinstance(feature['id_'], int) else '' for feature in site_locations_received]
+                site_ids_received = []  # Store the apiary site ids already saved in the database
+                for feature in site_locations_received:
+                    if isinstance(feature['id_'], int):
+                        site_ids_received.append(feature['id_'])
+                    else:
+                        try:
+                            # feature['id_'] may have site_guid rather than database id even if it has been already saved.
+                            # Because feature.id in the frontend is not updated until the page refreshed
+                            site_already_saved = ApiarySite.objects.get(site_guid=feature['id_'])
+                            site_ids_received.append(site_already_saved.id)
+                        except:
+                            pass
                 site_ids_existing = [site.id for site in ApiarySite.objects.filter(proposal_apiary_id=site_location_data['id'])]
                 site_ids_delete = [id for id in site_ids_existing if id not in site_ids_received]
 
