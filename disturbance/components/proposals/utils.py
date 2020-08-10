@@ -18,17 +18,14 @@ from disturbance.components.proposals.serializers import SaveProposalSerializer
 from disturbance.components.main.models import ApplicationType
 from disturbance.components.approvals.models import Approval
 from disturbance.components.proposals.models import (
-    ProposalApiary,
     SiteTransferApiarySite,
     ApiaryChecklistQuestion,
     ApiaryChecklistAnswer,
-    #ProposalApiaryTemporaryUse,
-    #ProposalApiarySiteTransfer,
 )
 from disturbance.components.proposals.serializers_apiary import (
     ProposalApiarySerializer,
     ProposalApiaryTemporaryUseSerializer,
-    ProposalApiarySiteTransferSerializer, ApiarySiteSerializer, TemporaryUseApiarySiteSerializer,
+    ApiarySiteSerializer, TemporaryUseApiarySiteSerializer,
     ApiarySiteSavePointSerializer,
 )
 from disturbance.components.proposals.email import send_submit_email_notification, send_external_submit_email_notification
@@ -490,8 +487,18 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                 site_locations_received = json.loads(request.data.get('all_the_features'))
 
                 # Feature object doesn't have a field named 'id' originally unless manually added
-                # The field 'id_' is used in the frontend, though
-                site_ids_received = [feature['id_'] if 'id_' in feature and isinstance(feature['id_'], int) else '' for feature in site_locations_received]
+                site_ids_received = []  # Store the apiary site ids already saved in the database
+                for feature in site_locations_received:
+                    if isinstance(feature['id_'], int):
+                        site_ids_received.append(feature['id_'])
+                    else:
+                        try:
+                            # feature['id_'] may have site_guid rather than database id even if it has been already saved.
+                            # Because feature.id in the frontend is not updated until the page refreshed
+                            site_already_saved = ApiarySite.objects.get(site_guid=feature['id_'])
+                            site_ids_received.append(site_already_saved.id)
+                        except:
+                            pass
                 site_ids_existing = [site.id for site in ApiarySite.objects.filter(proposal_apiary_id=site_location_data['id'])]
                 site_ids_delete = [id for id in site_ids_existing if id not in site_ids_received]
 
@@ -540,9 +547,14 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                         )
 
                         # Perform validation to the existing apiary sites
-                        serializer = ApiarySiteSavePointSerializer(apiary_site_obj, data={'wkb_geometry': geom_str})
+                        data = {'wkb_geometry': geom_str}
+                        serializer = ApiarySiteSavePointSerializer(apiary_site_obj, data=data)
                         serializer.is_valid(raise_exception=True)
                         serializer.save()
+                        if viewset.action == 'submit':
+                            # When submit, save apiary site location in the field below too in order to keep the original location
+                            apiary_site_obj.wkb_geometry_applied = apiary_site_obj.wkb_geometry
+                            apiary_site_obj.save()
 
                         ids.append(apiary_site_obj.id)
 

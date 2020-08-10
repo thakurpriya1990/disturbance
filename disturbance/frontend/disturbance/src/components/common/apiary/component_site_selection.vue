@@ -23,6 +23,8 @@
                         :apiary_site_geojson_array="apiary_site_geojson_array"
                         :key="component_map_key"
                         @featuresDisplayed="updateTableByFeatures"
+                        :can_modify="can_modify"
+                        @featureGeometryUpdated="featureGeometryUpdated"
                     />
                 </div>
             </div>
@@ -34,6 +36,8 @@
                     ref="component_map"
                     :apiary_site_geojson_array="apiary_site_geojson_array"
                     :key="component_map_key"
+                    @featuresDisplayed="updateTableByFeatures"
+                    :can_modify="can_modify"
                 />
             </div>
             <div class="row col-sm-12">
@@ -136,6 +140,10 @@
             show_action_contact_licence_holder: {
                 type: Boolean,
                 default: false,
+            },
+            can_modify: {
+                type: Boolean,
+                default: false,
             }
         },
         watch: {
@@ -233,7 +241,6 @@
                             // Status
                             visible: vm.show_col_status,
                             mRender: function (data, type, apiary_site){
-                                console.log(apiary_site)
                                 return apiary_site.status.name
                             }
                         },
@@ -316,6 +323,9 @@
 
         },
         methods: {
+            featureGeometryUpdated: function(feature){
+                this.$emit('featureGeometryUpdated', feature)
+            },
             updateTableByFeatures: function(features) {
                 // Generate a list of the feature ids displayed on the map
                 let ids = $.map(features, function(feature){
