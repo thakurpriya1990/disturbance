@@ -71,6 +71,10 @@
                     return []
                 }
             },
+            can_modify: {
+                type: Boolean,
+                default: false
+            }
         },
         watch: {
 
@@ -86,6 +90,7 @@
                 popup_content_id: uuid(),
                 overlay: null,
                 content_element: null,
+                modifyInProgressList: []
             }
         },
         created: function(){
@@ -180,10 +185,20 @@
 
                 vm.map.on('click', function(evt){
                     let feature = vm.map.forEachFeatureAtPixel(evt.pixel, function(feature, layer) {
+                        console.log(evt)
+                        console.log(feature)
+                        console.log(layer)
                         return feature;
                     });
                     if (feature){
-                        vm.showPopup(feature)
+                        if (!feature.id){
+                            // When the Modify object is used for the layer, 'feature' losts some of the attributes including 'id', 'status'...
+                            // Therefore try to get the correct feature by the coordinate
+                            let geometry = feature.getGeometry();
+                            let coord = geometry.getCoordinates();
+                            feature = vm.apiarySitesQuerySource.getFeaturesAtCoordinate(coord)
+                        }
+                        vm.showPopup(feature[0])
                     }
                 })
                 vm.map.on('pointermove', function(e) {
@@ -197,10 +212,37 @@
                     let features = vm.apiarySitesQuerySource.getFeaturesInExtent(extent)
                     vm.$emit('featuresDisplayed', features)
                 });
+                if (vm.can_modify){
+                    let modifyTool = new Modify({
+                        source: vm.apiarySitesQuerySource,
+                    });
+                    modifyTool.on("modifystart", function(attributes){
+                        console.log('modifystart')
+                        attributes.features.forEach(function(feature){
+                            console.log(feature)
+                        })
+                    });
+                    modifyTool.on("modifyend", function(attributes){
+                        console.log('modifyend')
+                        attributes.features.forEach(function(feature){
+                            let id = feature.getId();
+                            let index = vm.modifyInProgressList.indexOf(id);
+                            if (index != -1) {
+                                // feature has been modified
+                                vm.modifyInProgressList.splice(index, 1);
+                                let coords = feature.getGeometry().getCoordinates();
+                                vm.$emit('featureGeometryUpdated', {'id': id, 'coordinates': {'lng': coords[0], 'lat': coords[1]}})
+                            } 
+                        });
+                    });
+                    vm.map.addInteraction(modifyTool);
+                }
             },
             showPopup: function(feature){
+                console.log('** showPopup **')
                 let geometry = feature.getGeometry();
                 let coord = geometry.getCoordinates();
+                console.log(coord)
                 let svg_hexa = "<svg xmlns='http://www.w3.org/2000/svg' version='1.1' height='20' width='15'>" + 
                 '<g transform="translate(0, 4) scale(0.9)"><path d="M 14.3395,12.64426 7.5609998,16.557828 0.78249996,12.64426 0.7825,4.8171222 7.5609999,0.90355349 14.3395,4.8171223 Z" id="path837" style="fill:none;stroke:#ffffff;stroke-width:1.565;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" /></g></svg>'
                 let content = '<div style="padding: 0.25em;">' + 
@@ -217,7 +259,16 @@
                 return coords[0].toFixed(6) + ', ' + coords[1].toFixed(6);
             },
             addApiarySite: function(apiary_site_geojson) {
+                let vm = this
                 let feature = (new GeoJSON()).readFeature(apiary_site_geojson)
+
+                feature.getGeometry().on("change", function() {
+                    let feature_id = feature.getId()
+                    if (vm.modifyInProgressList.indexOf(feature_id) == -1) {
+                        vm.modifyInProgressList.push(feature_id);
+                    }
+                })
+
                 this.apiarySitesQuerySource.addFeature(feature)
             },
             removeApiarySiteById: function(apiary_site_id){
