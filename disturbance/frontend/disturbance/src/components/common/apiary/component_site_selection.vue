@@ -324,7 +324,7 @@
         },
         methods: {
             featureGeometryUpdated: function(feature){
-                console.log(feature)
+                this.$emit('featureGeometryUpdated', feature)
             },
             updateTableByFeatures: function(features) {
                 // Generate a list of the feature ids displayed on the map

@@ -3147,6 +3147,7 @@ class ApiarySite(models.Model):
     status = models.CharField(max_length=40, choices=STATUS_CHOICES, default=STATUS_CHOICES[0][0])
     workflow_selected_status = models.BooleanField(default=False)  # This field is used only during approval process to select/deselect the site to be approved
     wkb_geometry = PointField(srid=4326, blank=True, null=True)
+    wkb_geometry_applied = PointField(srid=4326, blank=True, null=True)
     objects = GeoManager()
 
     def __str__(self):

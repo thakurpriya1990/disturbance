@@ -104,6 +104,7 @@
                         :can_modify="true"
                         ref="component_site_selection"
                         @apiary_sites_updated="apiarySitesUpdated"
+                        @featureGeometryUpdated="featureGeometryUpdated"
                     />
                 </template>
 
@@ -270,6 +271,10 @@ export default {
         },
     },
     methods:{
+        featureGeometryUpdated: function(feature){
+            console.log('issuance')
+            console.log(feature)
+        },
         apiarySitesUpdated: function(apiary_sites) {
             console.log('in proposed_apiary_issuance.vue')
             console.log('apiarySitesUpdated')
