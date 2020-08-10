@@ -274,6 +274,11 @@ export default {
         featureGeometryUpdated: function(feature){
             console.log('issuance')
             console.log(feature)
+            for (let i=0; i<this.apiary_sites_updated.length; i++){
+                if (this.apiary_sites_updated[i].id == feature.id){
+                    this.apiary_sites_updated[i].coordinates_moved = feature.coordinates
+                }
+            }
         },
         apiarySitesUpdated: function(apiary_sites) {
             console.log('in proposed_apiary_issuance.vue')
@@ -445,7 +450,6 @@ export default {
                         vm.errorString = helpers.apiVueResourceError(error);
                     });
             }
-            
         },
         addFormValidations: function() {
             let vm = this;

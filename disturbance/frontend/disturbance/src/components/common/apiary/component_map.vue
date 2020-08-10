@@ -231,7 +231,7 @@
                                 // feature has been modified
                                 vm.modifyInProgressList.splice(index, 1);
                                 let coords = feature.getGeometry().getCoordinates();
-                                vm.$emit('featureGeometryUpdated', {'id': id, 'coordinates': coords})
+                                vm.$emit('featureGeometryUpdated', {'id': id, 'coordinates': {'lng': coords[0], 'lat': coords[1]}})
                             } 
                         });
                     });
