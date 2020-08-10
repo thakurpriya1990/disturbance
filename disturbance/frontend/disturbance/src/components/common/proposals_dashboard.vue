@@ -164,6 +164,9 @@ export default {
                 responsive: true,
                 serverSide: true,
                 lengthMenu: [ [10, 25, 50, 100, -1], [10, 25, 50, 100, "All"] ],
+                order: [
+                    [0, 'desc']
+                    ],
                 ajax: {
                     "url": vm.url,
                     "dataSrc": 'data',
@@ -195,12 +198,14 @@ export default {
                         'createdCell': helpers.dtPopoverCellFn,
                         searchable: false, // handles by filter_queryset override method - class ProposalFilterBackend
                     },
+                    /*
                     {
                         data: "district",
                         //name: "District",
                         visible: false,
                         searchable: false,
                     },
+                    */
                     {
 						data: "activity",
 						name: "activity"
@@ -222,6 +227,11 @@ export default {
                         },
                         name: "submitter__email",
                     },
+                    /*
+                    {
+                        data: "submitter_full_name"
+                    },
+                    */
                     /*
                     {
                         data: "applicant",
@@ -347,16 +357,26 @@ export default {
                 */
             },
             proposal_headers:[
-                "Number","Region","District","Activity","Title","Submitter","Proponent/Applicant","Status","Lodged on","Assigned Officer","Invoice/Confirmation","Action",
+                "Number","Region","District","Activity","Title","Submitter",
+                "Proponent/Applicant","Status","Lodged on","Assigned Officer",
+                "Invoice/Confirmation","Action","",""
             ],
             proposal_options:{
                 autoWidth: false,
+                /*
+                rowCallback: function (row, data) {
+                    $(row).addClass('appRecordRow');
+                },
+                */
                 language: {
                     processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
                 },
                 responsive: true,
                 serverSide: true,
                 lengthMenu: [ [10, 25, 50, 100, -1], [10, 25, 50, 100, "All"] ],
+                order: [
+                    [0, 'desc']
+                    ],
                 ajax: {
                     "url": vm.url,
                     "dataSrc": 'data',
@@ -372,13 +392,23 @@ export default {
                 buttons:[
                 'excel', 'csv', ],
                 columns: [
+                    /*
                     {
                         data: "id",
+                        visible: false,
+                    },
+                    */
+                    {
+                        //data: "id",
+                        /*
                         mRender:function(data,type,full){
                             return full.lodgement_number;
                         },
+                        */
                         //name: "lodgement_number",
-                        data: "id, lodgement_number"
+                        //data: "id, lodgement_number"
+                        data: "lodgement_number",
+                        orderable: true
                     },
                     {
                         data: "region",
@@ -388,12 +418,14 @@ export default {
                         'createdCell': helpers.dtPopoverCellFn,
                         searchable: false, // handles by filter_queryset override method - class ProposalFilterBackend
                     },
+                    /*
                     {
                         data: "district",
                         //name: "District",
                         visible: false,
                         searchable: false,
                     },
+                    */
                     {data: "activity"},
                     {
                         data: "title",
@@ -412,6 +444,11 @@ export default {
                         },
                         name: "submitter__email",
                     },
+                    /*
+                    {
+                        data: "submitter_full_name"
+                    },
+                    */
                     {
                         data: "relevant_applicant_name",
                     },
@@ -500,8 +537,19 @@ export default {
                         name: '',
                         searchable: false,
                         orderable: false
-                    }
-
+                    },
+                    {
+                        data: "relevant_applicant_name",
+                        visible: false,
+                        searchable: false,
+                        orderable: false
+                    },
+                    {
+                        data: "apiary_group_application_type",
+                        visible: false,
+                        searchable: false,
+                        orderable: false
+                    },
                 ],
                 processing: true,
                 /*

@@ -137,6 +137,9 @@ export default {
                 responsive: true,
                 serverSide: true,
                 lengthMenu: [ [10, 25, 50, 100, -1], [10, 25, 50, 100, "All"] ],
+                order: [
+                    [0, 'desc']
+                    ],
                 ajax: {
                     "url": vm.url,
                     "dataSrc": 'data',
