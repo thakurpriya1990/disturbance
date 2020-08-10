@@ -56,9 +56,35 @@
                     </div>
                 </div>
             </FormSection>
+            <ApiaryChecklist 
+            :checklist="applicantChecklistAnswers"
+            section_title="Applicant Checklist"
+            :readonly="readonly"
+            ref="applicant_checklist"
+            />
+            <div v-if="assessorChecklistVisibility">
+                <ApiaryChecklist 
+                :checklist="assessorChecklistAnswers"
+                section_title="Assessor Checklist"
+                :readonly="assessorChecklistReadonly"
+                ref="assessor_checklist"
+                />
+            </div>
+            <div v-for="r in referrerChecklistAnswers">
+                <!--div v-if="(referral && r.referral_id === referral.id) || (assessorChecklistVisibility && proposal.processing_status === 'With Assessor')"-->
+                <div v-if="(referral && r.referral_id === referral.id) || (assessorChecklistVisibility)">
+                <!--div v-if="r.id = referral.id"-->
+                    <ApiaryChecklist 
+                    :checklist="r.referral_data"
+                    :section_title="'Referral Checklist: ' + r.referrer_group_name"
+                    :readonly="referrerChecklistReadonly"
+                    ref="referrer_checklist"
+                    />
+                </div>
+            </div>
 
-            <FormSection :formCollapse="false" label="Checklist" Index="checklist">
-                <ul class="list-unstyled col-sm-12" v-for="q in proposal.proposal_apiary.checklist_answers">
+            <!--FormSection :formCollapse="false" label="Checklist" Index="checklist">
+                <ul class="list-unstyled col-sm-12" v-for="q in proposal.proposal_apiary.applicant_checklist_answers">
                     <div class="row">
                         <div class="col-sm-12">
                             <li class="col-sm-6">
@@ -76,7 +102,7 @@
                         </div>
                     </div>
                 </ul>
-            </FormSection>
+            </FormSection-->
         </div>
 
     </div>
@@ -88,6 +114,7 @@
     import FileField from '@/components/forms/filefield_immediate.vue'
     import FormSection from "@/components/forms/section_toggle.vue"
     import SiteLocations from '@/components/common/apiary/site_locations.vue'
+    import ApiaryChecklist from '@/components/common/apiary/section_checklist.vue'
     import uuid from 'uuid'
     import {
         api_endpoints,
@@ -139,7 +166,7 @@
             return{
                 values:null,
                 pBody: 'pBody'+vm._uid,
-                checklist_answers : [],
+                //checklist_answers : [],
                 component_site_selection_key: '',
             }
         },
@@ -148,6 +175,7 @@
             ComponentSiteSelection,
             FileField,
             FormSection,
+            ApiaryChecklist,
         },
         computed:{
             showActionAvailableUnavailable: function() {
@@ -187,6 +215,11 @@
                 }
                 return url;
             },
+            /*
+            referralChecklistTitle: function() {
+                let title = 'Referral Checklist ';
+                if (this.referral &&
+                */
             deedPollUrl: function() {
                 return '';
             },
@@ -197,21 +230,52 @@
                 }
                 return readonlyStatus;
             },
+            assessorChecklistReadonly: function() {
+                let readonlyStatus = true;
+                //if (this.proposal.processing_status === 'With Assessor' && this.is_internal) {
+                if (this.is_internal && this.proposal && this.proposal.assessor_mode && this.proposal.assessor_mode.assessor_can_assess) {
+                    readonlyStatus = false;
+                }
+                return readonlyStatus;
+            },
+            assessorChecklistVisibility: function() {
+                let visibility = false;
+                //if (this.proposal.processing_status === 'With Assessor' && this.is_internal) {
+                if (this.is_internal && this.proposal && this.proposal.assessor_mode && this.proposal.assessor_mode.has_assessor_mode) {
+                    visibility = true;
+                }
+                return visibility;
+            },
+            referrerChecklistReadonly: function() {
+                let readonlyStatus = true;
+                // referrer must have access
+                if (this.is_internal && this.proposal.processing_status === 'With Referral' && 
+                    this.referral && this.referral.processing_status === 'Awaiting' &&
+                    this.referral.apiary_referral && this.referral.apiary_referral.can_process) {
+                    readonlyStatus = false;
+                }
+                return readonlyStatus;
+            },
+            referrerChecklistVisibility: function() {
+                let visibility = false;
+                // must be relevant referral
+                if ((!this.referrerChecklistReadonly && r.id === this.referral.id) || this.assessorChecklistVisibility) {
+                    visibility = true;
+                }
+                return visibility;
+            },
             getUnansweredChecklistQuestions: function() {
                 let UnansweredChecklistQuestions = false;
 
-                if(this.proposal && this.proposal.proposal_apiary.checklist_answers){
-                    let numOfAnswers = this.proposal.proposal_apiary.checklist_answers.length;
+                if(this.applicantChecklistAnswers){
+                    let numOfAnswers = this.applicantChecklistAnswers.length;
                     for( let i=0; i< numOfAnswers ; i ++){
-                        //console.log('ans [ '+i+'] '+this.proposal.proposal_apiary.checklist_answers[i].answer)
-                        if(this.proposal.proposal_apiary.checklist_answers[i].answer == null){
+                        if(this.applicantChecklistAnswers[i].answer == null && !this.applicantChecklistAnswers[i].text_answer){
                             UnansweredChecklistQuestions = true;
                         }
                     }
                 }
-
                 return UnansweredChecklistQuestions;
-
             },
             apiary_sites: function() {
                 if (this.proposal && this.proposal.proposal_apiary) {
@@ -225,6 +289,24 @@
                 }
                 return draftStatus;
             },
+            applicantChecklistAnswers: function() {
+                if (this.proposal && this.proposal.proposal_apiary && this.proposal.proposal_apiary.applicant_checklist_answers &&
+                    this.proposal.proposal_apiary.applicant_checklist_answers.length > 0) {
+                    return this.proposal.proposal_apiary.applicant_checklist_answers;
+                }
+            },
+            assessorChecklistAnswers: function() {
+                if (this.proposal && this.proposal.proposal_apiary && this.proposal.proposal_apiary.assessor_checklist_answers &&
+                    this.proposal.proposal_apiary.assessor_checklist_answers.length > 0) {
+                    return this.proposal.proposal_apiary.assessor_checklist_answers;
+                }
+            },
+            referrerChecklistAnswers: function() {
+                if (this.proposal && this.proposal.proposal_apiary && this.proposal.proposal_apiary.referrer_checklist_answers && 
+                    this.proposal.proposal_apiary.referrer_checklist_answers.length > 0) {
+                    return this.proposal.proposal_apiary.referrer_checklist_answers;
+                }
+            },
 
           //applicantType: function(){
           //  return this.proposal.applicant_type;
@@ -234,6 +316,7 @@
             button_text: function(button_text) {
                 this.$emit('button_text', button_text)
             },
+            /*
             getChecklistAnswers: function() {
                 let vm = this;
                 this.checklist_answers.push({
@@ -242,6 +325,7 @@
                  })
              return checklist_answers;
             },
+            */
 
         },
         mounted: function() {

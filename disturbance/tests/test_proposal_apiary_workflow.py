@@ -31,7 +31,7 @@ class ApiaryIntegrationTests(APITestSetup):
             "proposal_apiary": {
                 "id": proposal_id,
                 "title": "test_title",
-                "checklist_answers": [
+                "applicant_checklist_answers": [
                         {
                         "id": proposal.proposal_apiary.apiary_checklist.order_by('id')[0].id,
                         "answer": True
@@ -166,7 +166,7 @@ class ApiaryIntegrationTests(APITestSetup):
             "proposal_apiary": {
                 "id": proposal_id_2,
                 "title": "test_title",
-                "checklist_answers": [
+                "applicant_checklist_answers": [
                         {
                         "id": proposal_2.proposal_apiary.apiary_checklist.order_by('id')[0].id,
                         "answer": True

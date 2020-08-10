@@ -338,11 +338,13 @@
                             :is_external="false" 
                             :is_internal="true" 
                             :hasAssessorMode="hasAssessorMode"
+                            :referral="referral"
                             />
                                 <!--NewApply v-if="proposal" :proposal="proposal"></NewApply>
                                 <input type="hidden" name="csrfmiddlewaretoken" :value="csrf_token"/>
                                 <input type='hidden' name="schema" :value="JSON.stringify(proposal)" />
                                 <input type='hidden' name="proposal_id" :value="1" /-->
+                                <input type='hidden' name="referrer_checklist_answers" :value="JSON.stringify(proposalApiaryReferrerChecklistAnswers)" />
                                 <div class="navbar navbar-fixed-bottom" v-if="!proposal.can_user_edit && !isFinalised" style="background-color: #f5f5f5 ">
                                         <div class="navbar-inner">
                                             <div v-if="!isFinalised" class="container">
@@ -470,6 +472,11 @@ export default {
     computed: {
         proposal: function(){
             return this.referral != null && this.referall != 'undefined' ? this.referral.proposal : null;
+        },
+        proposalApiaryReferrerChecklistAnswers: function() {
+            if (this.proposal && this.proposal.proposal_apiary) {
+                return this.proposal.proposal_apiary.referrer_checklist_answers;
+            }
         },
         contactsURL: function(){
             return this.proposal!= null ? helpers.add_endpoint_json(api_endpoints.organisations,this.proposal.applicant.id+'/contacts') : '';

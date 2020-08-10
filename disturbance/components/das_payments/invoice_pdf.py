@@ -255,7 +255,7 @@ def _is_gst_exempt(proposal, invoice):
     return proposal.application_type.is_gst_exempt if proposal and proposal.fee_invoice_reference == invoice.reference else False
 
 
-def _create_invoice(invoice_buffer, invoice, proposal):
+def _create_invoice(invoice_buffer, invoice, url_var, proposal):
 
     global DPAW_HEADER_LOGO
 #    if  cols_var["TEMPLATE_GROUP"] == 'rottnest':
@@ -364,10 +364,10 @@ def _create_invoice(invoice_buffer, invoice, proposal):
 
     return invoice_buffer
 
-
-def create_invoice_pdf_bytes(filename, invoice, proposal):
+# proposal needs to be nullable for Annual rental fees
+def create_invoice_pdf_bytes(filename, invoice, url_var, proposal=None):
     invoice_buffer = BytesIO()
-    _create_invoice(invoice_buffer, invoice, proposal)
+    _create_invoice(invoice_buffer, invoice, url_var, proposal)
 
     # Get the value of the BytesIO buffer
     value = invoice_buffer.getvalue()
