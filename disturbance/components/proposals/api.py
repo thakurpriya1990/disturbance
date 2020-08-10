@@ -290,8 +290,23 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
 
         http://localhost:8499/api/proposal_paginated/proposal_paginated_internal/?format=datatables&draw=1&length=2
         """
+        web_url = request.META.get('HTTP_HOST', None)
+        template_group = None
+        if web_url in settings.APIARY_URL:
+           template_group = 'apiary'
+        else:
+           template_group = 'das'
         #import ipdb; ipdb.set_trace()
-        qs = self.get_queryset()
+        if template_group == 'apiary':
+            #qs = self.get_queryset().filter(application_type__apiary_group_application_type=True)
+            qs = self.get_queryset().filter(
+                    application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]
+                    ).exclude(processing_status='discarded')
+        else:
+            #qs = self.get_queryset().filter(application_type__apiary_group_application_type=False)
+            qs = self.get_queryset().exclude(
+                    application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]
+                    ).exclude(processing_status='discarded')
         #qs = self.filter_queryset(self.request, qs, self)
         qs = self.filter_queryset(qs).order_by('-id')
 
@@ -340,7 +355,24 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
 
         http://localhost:8499/api/proposal_paginated/proposal_paginated_external/?format=datatables&draw=1&length=2
         """
-        qs = self.get_queryset().exclude(processing_status='discarded')
+        web_url = request.META.get('HTTP_HOST', None)
+        template_group = None
+        if web_url in settings.APIARY_URL:
+           template_group = 'apiary'
+        else:
+           template_group = 'das'
+        #import ipdb; ipdb.set_trace()
+        if template_group == 'apiary':
+            #qs = self.get_queryset().filter(application_type__apiary_group_application_type=True).exclude(processing_status='discarded')
+            qs = self.get_queryset().filter(
+                    application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]
+                    ).exclude(processing_status='discarded')
+        else:
+            qs = self.get_queryset().exclude(
+                    application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]
+                    ).exclude(processing_status='discarded')
+            #qs = self.get_queryset().filter(application_type__apiary_group_application_type=False).exclude(processing_status='discarded')
+        #qs = self.get_queryset().exclude(processing_status='discarded')
         #qs = self.filter_queryset(self.request, qs, self)
         qs = self.filter_queryset(qs).order_by('-id')
 

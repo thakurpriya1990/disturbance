@@ -145,6 +145,8 @@ class ApiaryChecklistAnswerSerializer(serializers.ModelSerializer):
                 'question',
                 'answer',
                 'proposal_id',
+                'apiary_referral_id',
+                'text_answer',
                 )
 
 class ApplicantAddressSerializer(serializers.ModelSerializer):
@@ -363,7 +365,9 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
     on_site_information_list = serializers.SerializerMethodField()  # This is used for displaying OnSite table at the frontend
 
     #checklist_questions = serializers.SerializerMethodField()
-    checklist_answers = serializers.SerializerMethodField()
+    applicant_checklist_answers = serializers.SerializerMethodField()
+    assessor_checklist_answers = serializers.SerializerMethodField()
+    referrer_checklist_answers = serializers.SerializerMethodField()
     site_remainders = serializers.SerializerMethodField()
     originating_approval_lodgement_number = serializers.SerializerMethodField()
     #target_approval_id = serializers.SerializerMethodField()
@@ -386,7 +390,9 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
             'latitude',
             'on_site_information_list',
             #'checklist_questions',
-            'checklist_answers',
+            'applicant_checklist_answers',
+            'assessor_checklist_answers',
+            'referrer_checklist_answers',
             'site_remainders',
             'originating_approval_id',
             'originating_approval_lodgement_number',
@@ -498,8 +504,28 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
         ret = OnSiteInformationSerializer(on_site_information_list, many=True).data
         return ret
 
-    def get_checklist_answers(self, obj):
-        return ApiaryChecklistAnswerSerializer(obj.apiary_checklist, many=True).data
+    def get_applicant_checklist_answers(self, obj):
+        return ApiaryChecklistAnswerSerializer(
+                obj.apiary_checklist.filter(question__checklist_role='applicant'), 
+                many=True).data
+
+    def get_assessor_checklist_answers(self, obj):
+        return ApiaryChecklistAnswerSerializer(
+                obj.apiary_checklist.filter(question__checklist_role='assessor'), 
+                many=True).data
+
+    def get_referrer_checklist_answers(self, obj):
+        referral_list = []
+        for referral in obj.proposal.referrals.all():
+            qs = ApiaryChecklistAnswerSerializer(
+                obj.apiary_checklist.filter(apiary_referral_id=referral.apiary_referral.id), 
+                many=True).data
+            referral_list.append({
+                "referral_id": referral.id, 
+                "referral_data": qs,
+                "referrer_group_name": referral.apiary_referral.referral_group.name,
+                })
+        return referral_list
 
 
 class CreateProposalApiarySiteTransferSerializer(serializers.ModelSerializer):
@@ -1050,13 +1076,14 @@ class ApiaryInternalProposalSerializer(BaseProposalSerializer):
 class ApiaryReferralSerializer(serializers.ModelSerializer):
     #processing_status = serializers.CharField(source='get_processing_status_display')
     #latest_referrals = ProposalReferralSerializer(many=True)
-    #can_be_completed = serializers.BooleanField()
+    can_process = serializers.BooleanField()
     referral_group = ApiaryReferralGroupSerializer()
     class Meta:
         model = ApiaryReferral
         fields = (
                 'id',
                 'referral_group',
+                'can_process',
                 )
 
     #def __init__(self,*args,**kwargs):

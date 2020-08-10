@@ -27,7 +27,7 @@ class ApiarySiteTransferIntegrationTests(APITestSetup):
             "proposal_apiary": {
                 "id": proposal_id_1,
                 "title": "test_title",
-                "checklist_answers": [
+                "applicant_checklist_answers": [
                         {
                         "id": proposal_1.proposal_apiary.apiary_checklist.order_by('id')[0].id,
                         "answer": True
@@ -167,7 +167,7 @@ class ApiarySiteTransferIntegrationTests(APITestSetup):
             "proposal_apiary": {
                 "id": proposal_id_2,
                 "title": "test_title",
-                "checklist_answers": [
+                "applicant_checklist_answers": [
                         {
                         "id": proposal_2.proposal_apiary.apiary_checklist.order_by('id')[0].id,
                         "answer": True
@@ -314,7 +314,7 @@ class ApiarySiteTransferIntegrationTests(APITestSetup):
                 "id": site_transfer_proposal_id,
                 "selected_licence": proposal_2_obj.approval.id,
                 "title": "test_title",
-                "checklist_answers": [
+                "applicant_checklist_answers": [
                         {
                         "id": site_transfer_proposal.proposal_apiary.apiary_checklist.order_by('id')[0].id,
                         "answer": True

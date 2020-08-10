@@ -120,7 +120,24 @@ class ApprovalPaginatedViewSet(viewsets.ModelViewSet):
         #qs = ProposalFilterBackend().filter_queryset(self.request, qs, self)
 
         ids = self.get_queryset().distinct('lodgement_number').values_list('id', flat=True)
-        qs = Approval.objects.filter(id__in=ids)
+        #qs = Approval.objects.filter(id__in=ids)
+        web_url = request.META.get('HTTP_HOST', None)
+        template_group = None
+        if web_url in settings.APIARY_URL:
+           template_group = 'apiary'
+        else:
+           template_group = 'das'
+        #import ipdb; ipdb.set_trace()
+        if template_group == 'apiary':
+            #qs = self.get_queryset().filter(application_type__apiary_group_application_type=True).exclude(processing_status='discarded')
+            qs = self.get_queryset().filter(
+                    apiary_approval=True
+                    ).filter(id__in=ids)
+        else:
+            qs = self.get_queryset().exclude(
+                    apiary_approval=True
+                    ).filter(id__in=ids)
+        #qs = self.get_queryset().exclude(processing_status='future')
         qs = self.filter_queryset(qs)
 
         # on the internal organisations dashboard, filter the Proposal/Approval/Compliance datatables by applicant/organisation
