@@ -101,8 +101,10 @@
                         :show_col_checkbox="true"
                         :show_action_available_unavailable="false"
                         :key="component_site_selection_key"
+                        :can_modify="true"
                         ref="component_site_selection"
                         @apiary_sites_updated="apiarySitesUpdated"
+                        @featureGeometryUpdated="featureGeometryUpdated"
                     />
                 </template>
 
@@ -269,6 +271,15 @@ export default {
         },
     },
     methods:{
+        featureGeometryUpdated: function(feature){
+            console.log('issuance')
+            console.log(feature)
+            for (let i=0; i<this.apiary_sites_updated.length; i++){
+                if (this.apiary_sites_updated[i].id == feature.id){
+                    this.apiary_sites_updated[i].coordinates_moved = feature.coordinates
+                }
+            }
+        },
         apiarySitesUpdated: function(apiary_sites) {
             console.log('in proposed_apiary_issuance.vue')
             console.log('apiarySitesUpdated')
@@ -439,7 +450,6 @@ export default {
                         vm.errorString = helpers.apiVueResourceError(error);
                     });
             }
-            
         },
         addFormValidations: function() {
             let vm = this;
