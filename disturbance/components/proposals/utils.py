@@ -18,17 +18,14 @@ from disturbance.components.proposals.serializers import SaveProposalSerializer
 from disturbance.components.main.models import ApplicationType
 from disturbance.components.approvals.models import Approval
 from disturbance.components.proposals.models import (
-    ProposalApiary,
     SiteTransferApiarySite,
     ApiaryChecklistQuestion,
     ApiaryChecklistAnswer,
-    #ProposalApiaryTemporaryUse,
-    #ProposalApiarySiteTransfer,
 )
 from disturbance.components.proposals.serializers_apiary import (
     ProposalApiarySerializer,
     ProposalApiaryTemporaryUseSerializer,
-    ProposalApiarySiteTransferSerializer, ApiarySiteSerializer, TemporaryUseApiarySiteSerializer,
+    ApiarySiteSerializer, TemporaryUseApiarySiteSerializer,
     ApiarySiteSavePointSerializer,
 )
 from disturbance.components.proposals.email import send_submit_email_notification, send_external_submit_email_notification
@@ -540,9 +537,14 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                         )
 
                         # Perform validation to the existing apiary sites
-                        serializer = ApiarySiteSavePointSerializer(apiary_site_obj, data={'wkb_geometry': geom_str})
+                        data = {'wkb_geometry': geom_str}
+                        serializer = ApiarySiteSavePointSerializer(apiary_site_obj, data=data)
                         serializer.is_valid(raise_exception=True)
                         serializer.save()
+                        if viewset.action == 'submit':
+                            # When submit, save apiary site location in the field below too in order to keep the original location
+                            apiary_site_obj.wkb_geometry_applied = apiary_site_obj.wkb_geometry
+                            apiary_site_obj.save()
 
                         ids.append(apiary_site_obj.id)
 

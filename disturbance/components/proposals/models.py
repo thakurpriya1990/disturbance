@@ -1232,12 +1232,12 @@ class Proposal(RevisionedMixin):
                             my_site.workflow_selected_status = apiary_site['checked']
                             my_site.save()
 
-                            if apiary_site['checked']:
-                                # Update coordinate
+                            if apiary_site['checked'] and 'coordinates_moved' in apiary_site:
+                                # Update coordinate (Assessor and Approver can move the proposed site location)
                                 geom_str = GEOSGeometry(
                                     'POINT(' +
-                                        str(apiary_site['coordinates']['lng']) + ' ' +
-                                        str(apiary_site['coordinates']['lat']) +
+                                        str(apiary_site['coordinates_moved']['lng']) + ' ' +
+                                        str(apiary_site['coordinates_moved']['lat']) +
                                     ')',
                                     srid=4326
                                 )
@@ -3157,6 +3157,7 @@ class ApiarySite(models.Model):
     status = models.CharField(max_length=40, choices=STATUS_CHOICES, default=STATUS_CHOICES[0][0])
     workflow_selected_status = models.BooleanField(default=False)  # This field is used only during approval process to select/deselect the site to be approved
     wkb_geometry = PointField(srid=4326, blank=True, null=True)
+    wkb_geometry_applied = PointField(srid=4326, blank=True, null=True)
     objects = GeoManager()
 
     def __str__(self):

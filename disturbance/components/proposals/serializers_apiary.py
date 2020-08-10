@@ -268,6 +268,7 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
     as_geojson = serializers.SerializerMethodField()
     previous_site_holder_or_applicant = serializers.SerializerMethodField()
     status = CustomChoiceField(read_only=True)
+    wkb_geometry_applied = serializers.SerializerMethodField()
 
     def validate(self, attrs):
         return attrs
@@ -289,6 +290,12 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
         except:
             return {'lng': '', 'lat': ''}
 
+    def get_wkb_geometry_applied(self, obj):
+        if obj.wkb_geometry_applied:
+            return [obj.wkb_geometry_applied.tuple[0], obj.wkb_geometry_applied.tuple[1]]
+        else:
+            return None
+
     class Meta:
         model = ApiarySite
         fields = (
@@ -305,6 +312,7 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
             'status',
             'workflow_selected_status',
             'previous_site_holder_or_applicant',
+            'wkb_geometry_applied',
         )
 
 
