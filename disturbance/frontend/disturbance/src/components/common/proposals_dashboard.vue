@@ -115,6 +115,7 @@ export default {
             datatable_id: 'proposal-datatable-'+vm._uid,
             //Profile to check if user has access to process Proposal
             profile: {},
+            template_group: '',
             // Filters for Proposals
             filterProposalRegion: [],
             filterProposalActivity: 'All',
@@ -301,7 +302,13 @@ export default {
                         name: '',
                         searchable: false,
                         orderable: false
-                    }
+                    },
+                    {
+                        data: 'template_group',
+                        searchable: false,
+                        orderable: false,
+                        visible: false,
+                    },
 
                 ],
                 processing: true,
@@ -870,6 +877,15 @@ export default {
                 $( chev ).toggleClass( "glyphicon-chevron-down glyphicon-chevron-up" );
             }, 100 );
         });
+        // retrieve template group
+        vm.$http.get('/template_group',{
+            emulateJSON:true
+            }).then(res=>{
+                vm.template_group = res.body.template_group;
+        },err=>{
+        console.log(err);
+        });
+
         this.$nextTick(() => {
             vm.initialiseSearch();
             vm.addEventListeners();

@@ -76,12 +76,7 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
         # on the internal dashboard, the Region filter is multi-select - have to use the custom filter below
         regions = request.GET.get('regions')
         if regions:
-            if queryset.model is Proposal:
-                queryset = queryset.filter(region__name__iregex=regions.replace(',', '|'))
-            elif queryset.model is Referral or queryset.model is Compliance:
-                queryset = queryset.filter(proposal__region__name__iregex=regions.replace(',', '|'))
-            #elif queryset.model is Approval:
-            #    queryset = queryset.filter(region__iregex=regions.replace(',', '|'))
+            queryset = queryset.filter(region__iregex=regions.replace(',', '|'))
 
         # since in proposal_datatables.vue, the 'region' data field is declared 'searchable=false'
         #global_search = request.GET.get('search[value]')
@@ -105,37 +100,6 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
             queryset = queryset.filter(start_date__gte=date_from)
         if date_to:
             queryset = queryset.filter(expiry_date__lte=date_to)
-        #if queryset.model is Proposal:
-        #    if date_from:
-        #        queryset = queryset.filter(lodgement_date__gte=date_from)
-
-        #    if date_to:
-        #        queryset = queryset.filter(lodgement_date__lte=date_to)
-        #elif queryset.model is Approval:
-        #    if date_from:
-        #        queryset = queryset.filter(start_date__gte=date_from)
-
-        #    if date_to:
-        #        queryset = queryset.filter(expiry_date__lte=date_to)
-        #elif queryset.model is Compliance:
-        #    if date_from:
-        #        queryset = queryset.filter(due_date__gte=date_from)
-
-        #    if date_to:
-        #        queryset = queryset.filter(due_date__lte=date_to)
-
-        #    if request.GET.get('processing_status'):
-        #        queryset = queryset.filter(processing_status__icontains=request.GET.get('processing_status'))
-
-        #    if request.GET.get('customer_status'):
-        #        queryset = queryset.filter(customer_status__icontains=request.GET.get('customer_status'))
-
-        #elif queryset.model is Referral:
-        #    if date_from:
-        #        queryset = queryset.filter(proposal__lodgement_date__gte=date_from)
-
-        #    if date_to:
-        #        queryset = queryset.filter(proposal__lodgement_date__lte=date_to)
 
         getter = request.query_params.get
         fields = self.get_fields(getter)
@@ -263,7 +227,10 @@ class ApprovalPaginatedViewSet(viewsets.ModelViewSet):
 
         self.paginator.page_size = qs.count()
         result_page = self.paginator.paginate_queryset(qs, request)
-        serializer = ApprovalSerializer(result_page, context={'request':request}, many=True)
+        serializer = ApprovalSerializer(result_page, context={
+            'request':request,
+            'template_group': template_group
+            }, many=True)
         return self.paginator.get_paginated_response(serializer.data)
 
 

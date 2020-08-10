@@ -15,6 +15,8 @@ from disturbance.components.proposals.models import Referral, Proposal, HelpPage
 from disturbance.components.compliances.models import Compliance
 from disturbance.components.proposals.mixins import ReferralOwnerMixin
 from django.core.management import call_command
+from rest_framework.response import Response
+from rest_framework import serializers, views, status
 
 
 class InternalView(UserPassesTestMixin, TemplateView):
@@ -154,4 +156,16 @@ class ManagementCommandsView(LoginRequiredMixin, TemplateView):
 
         return render(request, self.template_name, data)
 
+
+class TemplateGroupView(views.APIView):
+    def get(self, request, format=None):
+        web_url = request.META.get('HTTP_HOST', None)
+        template_group = None
+        if web_url in settings.APIARY_URL:
+           template_group = 'apiary'
+        else:
+           template_group = 'das'
+        return Response({
+            'template_group': template_group
+            })
 

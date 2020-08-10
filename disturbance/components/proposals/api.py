@@ -231,7 +231,6 @@ class ProposalFilterBackend(DatatablesFilterBackend):
 
         getter = request.query_params.get
         fields = self.get_fields(getter)
-        #import ipdb; ipdb.set_trace()
         ordering = self.get_ordering(getter, fields)
         queryset = queryset.order_by(*ordering)
         if len(ordering):
@@ -334,7 +333,10 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         self.paginator.page_size = qs.count()
         #import ipdb; ipdb.set_trace()
         result_page = self.paginator.paginate_queryset(qs, request)
-        serializer = ListProposalSerializer(result_page, context={'request':request}, many=True)
+        serializer = ListProposalSerializer(result_page, context={
+            'request':request,
+            'template_group': template_group
+            }, many=True)
         #serializer = DTProposalSerializer(result_page, context={'request':request}, many=True)
         return self.paginator.get_paginated_response(serializer.data)
 
@@ -403,7 +405,10 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         #import ipdb; ipdb.set_trace()
         self.paginator.page_size = qs.count()
         result_page = self.paginator.paginate_queryset(qs, request)
-        serializer = ListProposalSerializer(result_page, context={'request':request}, many=True)
+        serializer = ListProposalSerializer(result_page, context={
+            'request':request,
+            'template_group': template_group
+            }, many=True)
         #serializer = DTProposalSerializer(result_page, context={'request':request}, many=True)
         return self.paginator.get_paginated_response(serializer.data)
 
