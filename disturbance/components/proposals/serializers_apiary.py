@@ -328,7 +328,8 @@ class ApiarySiteGeojsonSerializer(GeoFeatureModelSerializer):
         )
 
     def get_stable_coords(self, obj):
-        return [obj.wkb_geometry.tuple[0], obj.wkb_geometry.tuple[1]]
+        if obj.wkb_geometry and obj.wkb_geometry.tuple:
+            return [obj.wkb_geometry.tuple[0], obj.wkb_geometry.tuple[1]]
 
 
 class SiteTransferApiarySiteSerializer(serializers.ModelSerializer):
