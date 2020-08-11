@@ -177,6 +177,10 @@ export default {
                         //d.processing_status = vm.filterProposalStatus;
                         d.date_from = vm.filterProposalLodgedFrom != '' && vm.filterProposalLodgedFrom != null ? moment(vm.filterProposalLodgedFrom, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
                         d.date_to = vm.filterProposalLodgedTo != '' && vm.filterProposalLodgedTo != null ? moment(vm.filterProposalLodgedTo, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
+                        d.application_type = vm.filterProposalApplicationType;
+                        d.proposal_activity = vm.filterProposalActivity;
+                        d.submitter = vm.filterProposalSubmitter;
+                        d.proposal_status = vm.filterProposalStatus;
         		    }
 
                 },
@@ -337,6 +341,14 @@ export default {
                 vm.$refs.proposal_datatable.vmDataTable.columns(2).search(vm.filterProposalActivity).draw();
             } else {
                 vm.$refs.proposal_datatable.vmDataTable.columns(2).search('').draw();
+            }
+        },
+        filterProposalApplicationType: function() {
+            let vm = this;
+            if (vm.filterProposalApplicationType!= 'All') {
+                vm.$refs.proposal_datatable.vmDataTable.columns(3).search(vm.filterProposalApplicationType).draw();
+            } else {
+                vm.$refs.proposal_datatable.vmDataTable.columns(3).search('').draw();
             }
         },
         filterProposalStatus: function() {
