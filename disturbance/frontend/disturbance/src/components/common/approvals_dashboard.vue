@@ -3,7 +3,7 @@
         <div class="col-sm-12">
             <div class="panel panel-default">
                 <div class="panel-heading">
-                    <h3 class="panel-title">Approvals/Licences <small v-if="is_external">View existing approvals/licences and amend or renew them</small>
+                    <h3 class="panel-title">{{dashboardTitle}} <small v-if="is_external">View existing approvals/licences and amend or renew them</small>
                         <a :href="'#'+pBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="pBody">
                             <span class="glyphicon glyphicon-chevron-up pull-right "></span>
                         </a>
@@ -436,7 +436,31 @@ export default {
         },
         is_referral: function(){
             return this.level == 'referral';
-        }
+        },
+        apiaryTemplateGroup: function() {
+            let returnVal = false;
+            if (this.template_group == 'apiary'){
+                returnVal = true
+            }
+            return returnVal;
+        },
+        dasTemplateGroup: function() {
+            let returnVal = false;
+            if (this.template_group == 'das'){
+                returnVal = true
+            }
+            return returnVal;
+        },
+        dashboardTitle: function() {
+            let title = ''
+            if (this.apiaryTemplateGroup) {
+                title = 'Licences';
+            } else {
+                title = 'Approvals';
+            }
+            return title;
+        },
+
     },
     methods:{
         fetchFilterLists: function(){
