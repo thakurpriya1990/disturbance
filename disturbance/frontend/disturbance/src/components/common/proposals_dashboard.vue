@@ -3,7 +3,7 @@
         <div class="col-sm-12">
             <div class="panel panel-default">
                 <div class="panel-heading">
-                    <h3 class="panel-title">Proposals/Applications <small v-if="is_external">View existing proposals and lodge new ones</small>
+                    <h3 class="panel-title">{{dashboardTitle}} <small v-if="is_external">View existing proposals and lodge new ones</small>
                         <a :href="'#'+pBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="pBody">
                             <span class="glyphicon glyphicon-chevron-up pull-right "></span>
                         </a>
@@ -11,21 +11,34 @@
                 </div>
                 <div class="panel-body collapse in" :id="pBody">
                     <div class="row">
-                        <div class="col-md-3">
-                            <div class="form-group">
-                                <label for="">Region</label>
-                                <select style="width:100%" class="form-control input-sm" multiple ref="filterRegion" >
-                                    <option v-for="r in proposal_regions" :value="r">{{r}}</option>
-                                </select>
+                        <div v-if="!apiaryTemplateGroup">
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="">Region</label>
+                                    <select style="width:100%" class="form-control input-sm" multiple ref="filterRegion" >
+                                        <option v-for="r in proposal_regions" :value="r">{{r}}</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="">Activity</label>
+                                    <select class="form-control" v-model="filterProposalActivity">
+                                        <option value="All">All</option>
+                                        <option v-for="a in proposal_activityTitles" :value="a">{{a}}</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
-                        <div class="col-md-3">
-                            <div class="form-group">
-                                <label for="">Activity</label>
-                                <select class="form-control" v-model="filterProposalActivity">
-                                    <option value="All">All</option>
-                                    <option v-for="a in proposal_activityTitles" :value="a">{{a}}</option>
-                                </select>
+                        <div v-else>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="">Application Type</label>
+                                    <select class="form-control" v-model="filterProposalApplicationType" ref="filterApplicationType">
+                                        <option value="All">All</option>
+                                        <option v-for="a in proposal_applicationTypes" :value="a">{{a}}</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
                         <div class="col-md-3">
@@ -119,6 +132,7 @@ export default {
             // Filters for Proposals
             filterProposalRegion: [],
             filterProposalActivity: 'All',
+            filterProposalApplicationType: 'All',
             filterProposalStatus: 'All',
             filterProposalLodgedFrom: '',
             filterProposalLodgedTo: '',
@@ -149,11 +163,14 @@ export default {
                 {value: 'discarded', name: 'Discarded'},
             ],
             proposal_activityTitles : [],
+            proposal_applicationTypes : [],
             proposal_regions: [],
             proposal_submitters: [],
             proposal_status: [],
             proposal_ex_headers:[
-                "Number","Region","District","Activity","Title","Submitter","Proponent/Applicant","Status","Lodged on","Invoice/Confirmation","Action"
+                "Number","Region",
+                //"District",
+                "Activity","Title","Submitter","Proponent/Applicant","Status","Lodged on","Invoice/Confirmation","Action","Template Group"
                 //"LodgementNo","ProcessingStatus","AssessorProcess","CanUserEdit",
             ],
 
@@ -364,9 +381,12 @@ export default {
                 */
             },
             proposal_headers:[
-                "Number","Region","District","Activity","Title","Submitter",
+                "Number","Region",
+                //"District",
+                "Activity","Title","Submitter",
                 "Proponent/Applicant","Status","Lodged on","Assigned Officer",
-                "Invoice/Confirmation","Action","",""
+                "Invoice/Confirmation","Action","Template Group"
+                //"",""
             ],
             proposal_options:{
                 autoWidth: false,
@@ -546,6 +566,13 @@ export default {
                         orderable: false
                     },
                     {
+                        data: 'template_group',
+                        searchable: false,
+                        orderable: false,
+                        visible: false,
+                    },
+                    /*
+                    {
                         data: "relevant_applicant_name",
                         visible: false,
                         searchable: false,
@@ -557,6 +584,7 @@ export default {
                         searchable: false,
                         orderable: false
                     },
+                    */
                 ],
                 processing: true,
                 /*
@@ -663,6 +691,29 @@ export default {
         is_referral: function(){
             return this.level == 'referral';
         },
+        apiaryTemplateGroup: function() {
+            let returnVal = false;
+            if (this.template_group == 'apiary'){
+                returnVal = true
+            }
+            return returnVal;
+        },
+        dasTemplateGroup: function() {
+            let returnVal = false;
+            if (this.template_group == 'das'){
+                returnVal = true
+            }
+            return returnVal;
+        },
+        dashboardTitle: function() {
+            let title = ''
+            if (this.apiaryTemplateGroup) {
+                title = 'Applications';
+            } else {
+                title = 'Proposals';
+            }
+            return title;
+        },
 
     },
     methods:{
@@ -675,7 +726,8 @@ export default {
                 //vm.proposal_districts = response.body.districts;
 
                 vm.proposal_activityTitles = response.body.activities;
-                vm.proposal_activityTitles.push('Apiary');
+                vm.proposal_applicationTypes = response.body.application_types;
+                //vm.proposal_activityTitles.push('Apiary');
 
                 vm.proposal_submitters = response.body.submitters;
                 //vm.proposal_status = vm.level == 'internal' ? response.body.processing_status_choices: response.body.customer_status_choices;
@@ -740,20 +792,22 @@ export default {
                 var id = $(this).attr('data-discard-proposal');
                 vm.discardProposal(id);
             });
-            // Initialise select2 for region
-            $(vm.$refs.filterRegion).select2({
-                "theme": "bootstrap",
-                allowClear: true,
-                placeholder:"Select Region"
-            }).
-            on("select2:select",function (e) {
-                var selected = $(e.currentTarget);
-                vm.filterProposalRegion = selected.val();
-            }).
-            on("select2:unselect",function (e) {
-                var selected = $(e.currentTarget);
-                vm.filterProposalRegion = selected.val();
-            });
+            if (this.dasTemplateGroup) {
+                // Initialise select2 for region
+                $(vm.$refs.filterRegion).select2({
+                    "theme": "bootstrap",
+                    allowClear: true,
+                    placeholder:"Select Region"
+                }).
+                on("select2:select",function (e) {
+                    var selected = $(e.currentTarget);
+                    vm.filterProposalRegion = selected.val();
+                }).
+                on("select2:unselect",function (e) {
+                    var selected = $(e.currentTarget);
+                    vm.filterProposalRegion = selected.val();
+                });
+            }
         },
         initialiseSearch:function(){
             this.regionSearch();
@@ -877,6 +931,7 @@ export default {
                 $( chev ).toggleClass( "glyphicon-chevron-down glyphicon-chevron-up" );
             }, 100 );
         });
+        /*
         // retrieve template group
         vm.$http.get('/template_group',{
             emulateJSON:true
@@ -890,7 +945,25 @@ export default {
             vm.initialiseSearch();
             vm.addEventListeners();
         });
-    }
+        */
+    },
+    updated: function() {
+        this.$nextTick(() => {
+            this.initialiseSearch();
+            this.addEventListeners();
+        });
+    },
+    created: function() {
+        // retrieve template group
+        this.$http.get('/template_group',{
+            emulateJSON:true
+            }).then(res=>{
+                this.template_group = res.body.template_group;
+        },err=>{
+        console.log(err);
+        });
+
+    },
 }
 </script>
 <style scoped>

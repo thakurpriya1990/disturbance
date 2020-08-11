@@ -129,6 +129,14 @@ from copy import deepcopy
 import logging
 logger = logging.getLogger(__name__)
 
+def get_template_group(request):
+    web_url = request.META.get('HTTP_HOST', None)
+    template_group = None
+    if web_url in settings.APIARY_URL:
+       template_group = 'apiary'
+    else:
+       template_group = 'das'
+    return template_group
 
 class GetProposalType(views.APIView):
     renderer_classes = [JSONRenderer, ]
@@ -304,12 +312,7 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
 
         http://localhost:8499/api/proposal_paginated/proposal_paginated_internal/?format=datatables&draw=1&length=2
         """
-        web_url = request.META.get('HTTP_HOST', None)
-        template_group = None
-        if web_url in settings.APIARY_URL:
-           template_group = 'apiary'
-        else:
-           template_group = 'das'
+        template_group = get_template_group(request)
         #import ipdb; ipdb.set_trace()
         if template_group == 'apiary':
             #qs = self.get_queryset().filter(application_type__apiary_group_application_type=True)
@@ -349,6 +352,7 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         """
         #import ipdb; ipdb.set_trace()
         #self.serializer_class = ReferralSerializer
+        template_group = get_template_group(request)
         referral_id_list = []
         qs_r = Referral.objects.filter(referral=request.user) if is_internal(self.request) else Referral.objects.none()
         for r in qs_r:
@@ -365,7 +369,10 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
 
         self.paginator.page_size = qs.count()
         result_page = self.paginator.paginate_queryset(qs, request)
-        serializer = DTReferralSerializer(result_page, context={'request':request}, many=True)
+        serializer = DTReferralSerializer(result_page, context={
+            'request':request,
+            'template_group': template_group
+            }, many=True)
         return self.paginator.get_paginated_response(serializer.data)
 
     @list_route(methods=['GET',])
@@ -375,12 +382,7 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
 
         http://localhost:8499/api/proposal_paginated/proposal_paginated_external/?format=datatables&draw=1&length=2
         """
-        web_url = request.META.get('HTTP_HOST', None)
-        template_group = None
-        if web_url in settings.APIARY_URL:
-           template_group = 'apiary'
-        else:
-           template_group = 'das'
+        template_group = get_template_group(request)
         #import ipdb; ipdb.set_trace()
         if template_group == 'apiary':
             #qs = self.get_queryset().filter(application_type__apiary_group_application_type=True).exclude(processing_status='discarded')
@@ -1008,6 +1010,9 @@ class ProposalViewSet(viewsets.ModelViewSet):
     def filter_list(self, request, *args, **kwargs):
         """ Used by the internal/external dashboard filters """
         region_qs =  self.get_queryset().filter(region__isnull=False).values_list('region__name', flat=True).distinct()
+        application_type_qs =  ApplicationType.objects.filter(
+                name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]).values_list(
+                    'name', flat=True).distinct()
         #district_qs =  self.get_queryset().filter(district__isnull=False).values_list('district__name', flat=True).distinct()
         activity_qs =  self.get_queryset().filter(activity__isnull=False).values_list('activity', flat=True).distinct()
         submitter_qs = self.get_queryset().filter(submitter__isnull=False).distinct('submitter__email').values_list('submitter__first_name','submitter__last_name','submitter__email')
@@ -1017,6 +1022,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             #districts=district_qs,
             activities=activity_qs,
             submitters=submitters,
+            application_types=application_type_qs,
             #processing_status_choices = [i[1] for i in Proposal.PROCESSING_STATUS_CHOICES],
             #processing_status_id_choices = [i[0] for i in Proposal.PROCESSING_STATUS_CHOICES],
             #customer_status_choices = [i[1] for i in Proposal.CUSTOMER_STATUS_CHOICES],
@@ -2001,6 +2007,9 @@ class ReferralViewSet(viewsets.ModelViewSet):
         """ Used by the external dashboard filters """
         qs =  self.get_queryset().filter(referral=request.user)
         region_qs =  qs.filter(proposal__region__isnull=False).values_list('proposal__region__name', flat=True).distinct()
+        application_type_qs =  ApplicationType.objects.filter(
+                name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]).values_list(
+                    'name', flat=True).distinct()
         #district_qs =  qs.filter(proposal__district__isnull=False).values_list('proposal__district__name', flat=True).distinct()
         activity_qs =  qs.filter(proposal__activity__isnull=False).order_by('proposal__activity').distinct('proposal__activity').values_list('proposal__activity', flat=True).distinct()
         submitter_qs = qs.filter(proposal__submitter__isnull=False).order_by('proposal__submitter').distinct('proposal__submitter').values_list('proposal__submitter__first_name','proposal__submitter__last_name','proposal__submitter__email')
@@ -2010,6 +2019,7 @@ class ReferralViewSet(viewsets.ModelViewSet):
         data = dict(
             regions=region_qs,
             #districts=district_qs,
+            application_types=application_type_qs,
             activities=activity_qs,
             submitters=submitters,
             processing_status_choices=processing_status,
