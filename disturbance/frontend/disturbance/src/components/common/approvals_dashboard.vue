@@ -126,8 +126,9 @@ export default {
             proposal_activityTitles : [],
             proposal_regions: [],
             proposal_submitters: [],
+            template_group: '',
             proposal_headers:[
-                "Number","Region","Activity","Title","Holder","Status","Start Date","Expiry Date","Approval","Action",
+                "Number","Region","Activity","Title","Holder","Status","Start Date","Expiry Date","Approval","Action",""
                 //"LodgementNo","CanReissue","CanAction","CanReinstate","SetToCancel","SetToSuspend","SetToSurrender","CurrentProposal","RenewalDoc","RenewalSent","CanAmend","CanRenew"
             ],
             proposal_options:{
@@ -137,10 +138,20 @@ export default {
                 responsive: true,
                 serverSide: true,
                 lengthMenu: [ [10, 25, 50, 100, -1], [10, 25, 50, 100, "All"] ],
+                order: [
+                    [0, 'desc']
+                    ],
                 ajax: {
                     "url": vm.url,
                     "dataSrc": 'data',
+                    /*
+                    "dataSrc": function(data) {
+                        //console.log(d);
+                        //vm.template_group = d.template_group;
 
+                        return data.table_data;
+                    },
+                    */
                     // adding extra GET params for Custom filtering
                     "data": function ( d ) {
                         //d.regions = vm.filterProposalRegion.join(); // no need to add this since we can filter normally (filter is not multi-select in Approval table)
@@ -315,6 +326,12 @@ export default {
                         searchable: false,
                         orderable: false,
                         name: ''
+                    },
+                    {
+                        data: 'template_group',
+                        searchable: false,
+                        orderable: false,
+                        visible: false,
                     },
 
                 ],
@@ -807,6 +824,15 @@ export default {
                 $( chev ).toggleClass( "glyphicon-chevron-down glyphicon-chevron-up" );
             }, 100 );
         });
+        // retrieve template group
+        vm.$http.get('/template_group',{
+            emulateJSON:true
+            }).then(res=>{
+                vm.template_group = res.body.template_group;
+        },err=>{
+        console.log(err);
+        });
+
         this.$nextTick(() => {
             vm.addEventListeners();
             vm.initialiseSearch();
