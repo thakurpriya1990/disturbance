@@ -129,6 +129,14 @@ from copy import deepcopy
 import logging
 logger = logging.getLogger(__name__)
 
+def get_template_group(request):
+    web_url = request.META.get('HTTP_HOST', None)
+    template_group = None
+    if web_url in settings.APIARY_URL:
+       template_group = 'apiary'
+    else:
+       template_group = 'das'
+    return template_group
 
 class GetProposalType(views.APIView):
     renderer_classes = [JSONRenderer, ]
@@ -304,12 +312,7 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
 
         http://localhost:8499/api/proposal_paginated/proposal_paginated_internal/?format=datatables&draw=1&length=2
         """
-        web_url = request.META.get('HTTP_HOST', None)
-        template_group = None
-        if web_url in settings.APIARY_URL:
-           template_group = 'apiary'
-        else:
-           template_group = 'das'
+        template_group = get_template_group(request)
         #import ipdb; ipdb.set_trace()
         if template_group == 'apiary':
             #qs = self.get_queryset().filter(application_type__apiary_group_application_type=True)
@@ -349,12 +352,7 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         """
         #import ipdb; ipdb.set_trace()
         #self.serializer_class = ReferralSerializer
-        web_url = request.META.get('HTTP_HOST', None)
-        template_group = None
-        if web_url in settings.APIARY_URL:
-           template_group = 'apiary'
-        else:
-           template_group = 'das'
+        template_group = get_template_group(request)
         referral_id_list = []
         qs_r = Referral.objects.filter(referral=request.user) if is_internal(self.request) else Referral.objects.none()
         for r in qs_r:
@@ -384,12 +382,7 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
 
         http://localhost:8499/api/proposal_paginated/proposal_paginated_external/?format=datatables&draw=1&length=2
         """
-        web_url = request.META.get('HTTP_HOST', None)
-        template_group = None
-        if web_url in settings.APIARY_URL:
-           template_group = 'apiary'
-        else:
-           template_group = 'das'
+        template_group = get_template_group(request)
         #import ipdb; ipdb.set_trace()
         if template_group == 'apiary':
             #qs = self.get_queryset().filter(application_type__apiary_group_application_type=True).exclude(processing_status='discarded')
