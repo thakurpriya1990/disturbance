@@ -215,6 +215,10 @@ export default {
 
     },
     methods:{
+        updateComponentSiteSelectionKey: function(){
+            console.log('in updateComponentSiteSelectionKey')
+            this.component_site_selection_key = uuid()
+        },
         readFile: function() {
             let vm = this;
             let _file = null;
@@ -286,7 +290,7 @@ export default {
     },
     mounted: function(){
         let vm = this;
-        this.component_site_selection_key = uuid()
+        this.updateComponentSiteSelectionKey()
     }
 }
 </script>
