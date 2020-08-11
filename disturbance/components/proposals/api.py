@@ -505,10 +505,10 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
     serializer_class = ApiarySiteSerializer
 
     def is_internal_system(self, request):
-        apiary_site_export_token = request.query_params.get('apiary_site_export_token', None)
-        if apiary_site_export_token:
-            APIARY_SITES_EXPORT_TOKEN = env('APIARY_SITES_EXPORT_TOKEN', 'APIARY_SITES_EXPORT_TOKEN_NOT_FOUND')
-            if apiary_site_export_token == APIARY_SITES_EXPORT_TOKEN:
+        apiary_site_list_token = request.query_params.get('apiary_site_list_token', None)
+        if apiary_site_list_token:
+            APIARY_SITES_LIST_TOKEN = env('APIARY_SITES_LIST_TOKEN', 'APIARY_SITES_LIST_TOKEN_NOT_FOUND')
+            if apiary_site_list_token == APIARY_SITES_LIST_TOKEN:
                 return True
         return False
 
@@ -520,7 +520,8 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
         if is_internal(self.request):  # user.is_authenticated():
             pass
         elif is_customer(self.request):
-            qs = qs.exclude(status=ApiarySite.STATUS_DRAFT)
+            # qs = qs.exclude(status=ApiarySite.STATUS_DRAFT)
+            pass
         else:
             logger.warn("User is neither internal user nor customer: {} <{}>".format(user.get_full_name(), user.email))
             qs = OnSiteInformation.objects.none()
@@ -543,9 +544,10 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
 
         return Response({})
 
-    @list_route(methods=['GET',])
-    @basic_exception_handler
-    def export(self, request):
+    # @list_route(methods=['GET',])
+    # @basic_exception_handler
+    # def export(self, request):
+    def list(self, request):
         q_objects = Q()
         exclude_status = request.query_params.get('exclude_status', '')
         exclude_status_array = [x.strip() for x in exclude_status.split(',')]
@@ -577,7 +579,7 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
         q_objects |= Q(wkb_geometry=None)
         # q_objects |= Q(proposal_apiary=None)
 
-        qs = ApiarySite.objects.all().exclude(q_objects)
+        qs = self.get_queryset().exclude(q_objects)
         serializer = ApiarySiteGeojsonSerializer(qs, many=True)
         return Response(serializer.data)
 
@@ -588,7 +590,7 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
         q_objects &= Q(available=True)
         q_objects &= Q(status=ApiarySite.STATUS_CURRENT)
 
-        qs = ApiarySite.objects.filter(q_objects)
+        qs = self.get_queryset().filter(q_objects)
         serializer = ApiarySiteSerializer(qs, many=True)
         return Response(serializer.data)
 
@@ -598,7 +600,7 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
         q_objects = Q()
         q_objects |= Q(status__in=ApiarySite.TRANSITABLE_STATUSES)
 
-        qs = ApiarySite.objects.filter(q_objects)
+        qs = self.get_queryset().filter(q_objects)
         serializer = ApiarySiteSerializer(qs, many=True)
         return Response(serializer.data)
 
