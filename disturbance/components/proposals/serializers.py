@@ -500,6 +500,7 @@ class DTReferralSerializer(serializers.ModelSerializer):
     referral = EmailUserSerializer()
     relevant_applicant_name = serializers.SerializerMethodField()
     #proposal_application_type = serializers.SerializerMethodField()
+    template_group = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Referral
@@ -520,6 +521,7 @@ class DTReferralSerializer(serializers.ModelSerializer):
             'proposal_lodgement_date',
             'proposal_lodgement_number',
             'referral_text',
+            'template_group',
         )
 
     def get_submitter(self,obj):
@@ -527,6 +529,10 @@ class DTReferralSerializer(serializers.ModelSerializer):
 
     def get_relevant_applicant_name(self,obj):
         return obj.proposal.relevant_applicant_name
+
+    def get_template_group(self, obj):
+        return self.context.get('template_group')
+
 
 class ProposalRequirementSerializer(serializers.ModelSerializer):
     due_date = serializers.DateField(input_formats=['%d/%m/%Y'],required=False,allow_null=True)
