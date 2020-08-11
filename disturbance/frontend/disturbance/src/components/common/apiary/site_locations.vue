@@ -85,7 +85,7 @@
             <!--
             <a href="#" :id="popup_closer_id" class="ol-popup-closer"></a>
             -->
-            <div :id="popup_content_id"></div>
+            <div :id="popup_content_id" class="text-center"></div>
         </div>
 
 
