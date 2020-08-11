@@ -2975,7 +2975,7 @@ class ProposalApiary(models.Model):
             if 'coordinates_moved' in my_site:
                 geom_str = GEOSGeometry('POINT(' + str(my_site['coordinates_moved']['lng']) + ' ' + str(my_site['coordinates_moved']['lat']) + ')', srid=4326)
                 from disturbance.components.proposals.serializers_apiary import ApiarySiteSavePointSerializer
-                serializer = ApiarySiteSavePointSerializer(my_site, data={'wkb_geometry': geom_str}, context={'validate_distance': True})
+                serializer = ApiarySiteSavePointSerializer(a_site, data={'wkb_geometry': geom_str}, context={'validate_distance': True})
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
 

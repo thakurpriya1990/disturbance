@@ -258,7 +258,11 @@
                         <ApprovalScreenSiteTransferTemporaryUse :proposal="proposal" @refreshFromResponse="refreshFromResponse"/>
                     </div>
                     <div v-else>
-                        <ApprovalScreen :proposal="proposal" @refreshFromResponse="refreshFromResponse"/>
+                        <ApprovalScreen 
+                            :proposal="proposal" 
+                            ref="approval_screen"
+                            @refreshFromResponse="refreshFromResponse"
+                        />
                     </div>
                 </template>
                 <template v-if="proposal.processing_status == 'With Assessor (Requirements)' || ((proposal.processing_status == 'With Approver' || isFinalised) && showingRequirements)">
@@ -419,7 +423,6 @@
                         <div class="row">
                             <form :action="proposal_form_url" method="post" name="new_proposal" enctype="multipart/form-data">
                                 <div v-if="proposal && proposal.application_type=='Apiary'">
-
                                     <ApiaryForm
                                         v-if="proposal"
                                         :proposal="proposal"
@@ -932,6 +935,7 @@ export default {
             });
         },
         refreshFromResponse:function(response){
+            console.log('in refreshFromResponse')
             let vm = this;
             vm.original_proposal = helpers.copyObject(response.body);
             vm.proposal = helpers.copyObject(response.body);
@@ -940,6 +944,7 @@ export default {
                 vm.initialiseAssignedOfficerSelect(true);
                 vm.updateAssignedOfficerSelect();
             });
+            this.$refs.approval_screen.updateComponentSiteSelectionKey()
         },
         assignTo: function(){
             let vm = this;

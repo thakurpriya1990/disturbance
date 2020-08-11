@@ -81,6 +81,14 @@
 
         <div id="map" class="map"></div>
 
+        <div :id="popup_id" class="ol-popup">
+            <!--
+            <a href="#" :id="popup_closer_id" class="ol-popup-closer"></a>
+            -->
+            <div :id="popup_content_id"></div>
+        </div>
+
+
         <div class="row col-sm-12">
             <label>
                 Click <a @click="existingSiteAvailableClicked">here</a> if you are interested in existing sites that are available by the site licence holder.
@@ -120,6 +128,7 @@
     import uuid from 'uuid';
     import SiteLocationsModal from './site_locations_modal';
     import { getApiaryFeatureStyle, drawingSiteRadius } from '@/components/common/apiary/site_colours.js'
+    import Overlay from 'ol/Overlay';
 
     export default {
         props:{
@@ -172,6 +181,13 @@
                 marker_lat: null,
                 deed_poll_url: '',
                 buffer_radius: 3000, // [m]
+
+                // Popup
+                popup_id: uuid(),
+                //popup_closer_id: uuid(),
+                popup_content_id: uuid(),
+                content_element: null,
+                overlay: null,
 
                 // variables for the GIS
                 map: null,
@@ -263,9 +279,30 @@
         watch:{
             apiary_site_being_selected: function() {
                 console.log(this.apiary_site_being_selected);
+                if (this.apiary_site_being_selected){
+                    this.showPopup(this.apiary_site_being_selected)
+                } else {
+                    this.closePopup()
+                }
             }
         },
         methods:{
+            showPopup: function(feature){
+                console.log('** showPopup **')
+                let geometry = feature.getGeometry();
+                let coord = geometry.getCoordinates();
+                console.log(coord)
+                //let svg_hexa = "<svg xmlns='http://www.w3.org/2000/svg' version='1.1' height='20' width='15'>" + 
+                //'<g transform="translate(0, 4) scale(0.9)"><path d="M 14.3395,12.64426 7.5609998,16.557828 0.78249996,12.64426 0.7825,4.8171222 7.5609999,0.90355349 14.3395,4.8171223 Z" id="path837" style="fill:none;stroke:#ffffff;stroke-width:1.565;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" /></g></svg>'
+                let content = 'vacant'
+                this.content_element.innerHTML = content;
+                this.overlay.setPosition(coord);
+            },
+            closePopup: function(){
+                this.overlay.setPosition(undefined)
+                //closer.blur()
+                return false
+            },
             displayAllFeatures: function() {
                 if (this.map){
                     if (this.drawingLayerSource.getFeatures().length>0){
@@ -511,7 +548,20 @@
                 });
                 vm.map.addLayer(vm.drawingLayer);
 
-                // In memory vector layer for buffer
+                let container = document.getElementById(vm.popup_id)
+                vm.content_element = document.getElementById(vm.popup_content_id)
+                //let closer = document.getElementById(vm.popup_closer_id)
+                vm.overlay = new Overlay({
+                    element: container,
+                    autoPan: false,
+                    offest: [0, -10]
+                })
+                //closer.onclick = function() {
+                //    vm.overlay.setPosition(undefined)
+                //    closer.blur()
+                //    return false
+                //}
+                vm.map.addOverlay(vm.overlay)
 
                 //vm.bufferLayerSource = new VectorSource();
                 vm.bufferLayer = new VectorLayer({
@@ -839,4 +889,69 @@
         color: #347ab7; 
         cursor: pointer;
     }
+
+    .ol-popup {
+        position: absolute;
+        min-width: 95px;
+        background-color: white;
+        -webkit-filter: drop-shadow(0 1px 4px rgba(0,0,0,0.2));
+        filter: drop-shadow(0 1px 4px rgba(0,0,0,0.2));
+        padding: 2px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+        bottom: 12px;
+        left: -50px;
+    }
+    .ol-popup:after, .ol-popup:before {
+        top: 100%;
+        border: solid transparent;
+        content: " ";
+        height: 0;
+        width: 0;
+        position: absolute;
+        pointer-events: none;
+    }
+    .ol-popup:after {
+        border-top-color: white;
+        border-width: 10px;
+        left: 48px;
+        margin-left: -10px;
+    }
+    .ol-popup:before {
+        border-top-color: #cccccc;
+        border-width: 11px;
+        left: 48px;
+        margin-left: -11px;
+    }
+    /*
+    .ol-popup-closer {
+        text-decoration: none;
+        position: absolute;
+        top: 2px;
+        right: 8px;
+    }
+    .ol-popup-closer:after {
+        content: "✖";
+    }
+    */
+    .close-icon:hover {
+        filter: brightness(80%);
+    }
+    .close-icon {
+        position: absolute;
+        left: 1px;
+        top: -11px;
+        filter: drop-shadow(0 1px 4px rgba(0,0,0,0.2));
+    }
+    .popup-wrapper {
+        padding: 0.25em;
+    }
+    .popup-content-header {
+        background: darkgray;
+        color: white;
+    }
+    .popup-content {
+        font-size: small;
+    }
+</style>
 </style>
