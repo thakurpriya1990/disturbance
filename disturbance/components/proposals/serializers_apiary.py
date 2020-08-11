@@ -318,6 +318,23 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
         )
 
 
+class ApiarySiteExportSerializer(GeoFeatureModelSerializer):
+    site_category = serializers.CharField(source='site_category.name')
+
+    class Meta:
+        model = ApiarySite
+        geo_field = 'wkb_geometry'
+
+        fields = (
+            'id',
+            'site_guid',
+            'available',
+            'wkb_geometry',
+            'site_category',
+            'status',
+        )
+
+
 class ApiarySiteGeojsonSerializer(GeoFeatureModelSerializer):
     site_category_name = serializers.CharField(source='site_category.name')
     stable_coords = serializers.SerializerMethodField()
@@ -340,6 +357,8 @@ class ApiarySiteGeojsonSerializer(GeoFeatureModelSerializer):
     def get_stable_coords(self, obj):
         if obj.wkb_geometry and obj.wkb_geometry.tuple:
             return [obj.wkb_geometry.tuple[0], obj.wkb_geometry.tuple[1]]
+        else:
+            return []
 
 
 class SiteTransferApiarySiteSerializer(serializers.ModelSerializer):
