@@ -320,6 +320,11 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
 
 class ApiarySiteExportSerializer(GeoFeatureModelSerializer):
     site_category = serializers.CharField(source='site_category.name')
+    address = serializers.CharField(source='approval.relevant_applicant_address')
+    region = serializers.CharField(source='approval.region')
+    district = serializers.CharField(source='approval.district')
+    tenure = serializers.CharField(source='approval.tenure')
+    name = serializers.CharField(source='approval.relevant_applicant_name')
 
     class Meta:
         model = ApiarySite
@@ -332,6 +337,11 @@ class ApiarySiteExportSerializer(GeoFeatureModelSerializer):
             'wkb_geometry',
             'site_category',
             'status',
+            'address',
+            'region',
+            'district',
+            'tenure',
+            'name',
         )
 
 
