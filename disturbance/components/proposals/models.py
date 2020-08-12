@@ -2644,12 +2644,17 @@ class ProposalApiary(models.Model):
                                 lines=products,  # This is used when generating the invoice at payment time
                             )
 
-                            # Store the apiary sites which the invoice created above has been issued for
                             for site in sites_approved:
+                                # Store the apiary sites which the invoice created above has been issued for
                                 apiary_site = ApiarySite.objects.get(id=site['id'])
                                 from disturbance.components.das_payments.models import AnnualRentalFeeApiarySite
                                 annual_rental_fee_apiary_site = AnnualRentalFeeApiarySite(apiary_site=apiary_site, annual_rental_fee=annual_rental_fee)
                                 annual_rental_fee_apiary_site.save()
+
+                                # Add approved sites to the existing temporary use proposal with status 'draft'
+                                proposal_apiary_temporary_use_qs = ProposalApiaryTemporaryUse.objects.filter(loaning_approval=approval, proposal__status=Proposal.PROCESSING_STATUS_DRAFT)
+                                for proposal_apiary_temporary_use in proposal_apiary_temporary_use_qs:
+                                    temp_use_apiary_site, created = TemporaryUseApiarySite.objects.get_or_create(apiary_site=site, proposal_apiary_temporary_use=proposal_apiary_temporary_use)
 
                             from disturbance.components.approvals.email import \
                                 send_annual_rental_fee_awaiting_payment_confirmation

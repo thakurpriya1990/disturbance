@@ -1231,7 +1231,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-
 #    def list(self, request, *args, **kwargs):
 #        #import ipdb; ipdb.set_trace()
 #        #queryset = self.get_queryset()
