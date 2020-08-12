@@ -35,6 +35,9 @@ from disturbance.components.compliances.models import (
    ComplianceAmendmentRequest,
    ComplianceAmendmentReason
 )
+#from disturbance.components.proposals.models import (
+ #       Proposal
+  #      )
 from disturbance.components.compliances.serializers import (
     ComplianceSerializer,
     SaveComplianceSerializer,
@@ -46,11 +49,90 @@ from disturbance.components.compliances.serializers import (
 from disturbance.helpers import is_customer, is_internal
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 from disturbance.components.proposals.api import ProposalFilterBackend, ProposalRenderer
+from rest_framework_datatables.filters import DatatablesFilterBackend
+from rest_framework_datatables.renderers import DatatablesRenderer
+
+
+class ComplianceFilterBackend(DatatablesFilterBackend):
+    """
+    Custom filters
+    """
+
+    def filter_queryset(self, request, queryset, view):
+        total_count = queryset.count()
+
+        #def get_choice(status, choices=Approval.STATUS_CHOICES):
+        #    for i in choices:
+        #        if i[1]==status:
+        #            return i[0]
+        #    return None
+
+        def get_processing_choice(status, choices=Compliance.PROCESSING_STATUS_CHOICES):
+            for i in choices:
+                if i[1]==status:
+                    return i[0]
+            return None
+        def get_customer_choice(status, choices=Compliance.CUSTOMER_STATUS_CHOICES):
+            for i in choices:
+                if i[1]==status:
+                    return i[0]
+            return None
+        #import ipdb; ipdb.set_trace()
+        # on the internal dashboard, the Region filter is multi-select - have to use the custom filter below
+        region = request.GET.get('region')
+        if region and not region.lower() == 'all':
+            queryset = queryset.filter(proposal__region__name=region)
+        proposal_activity = request.GET.get('proposal_activity')
+        if proposal_activity and not proposal_activity.lower() == 'all':
+            queryset = queryset.filter(proposal__activity=proposal_activity)
+        compliance_status = request.GET.get('compliance_status')
+        if compliance_status and not compliance_status.lower() == 'all':
+            is_external = request.GET.get('is_external')
+            if is_external == 'true':
+                queryset = queryset.filter(customer_status=get_customer_choice(compliance_status))
+            else:
+                queryset = queryset.filter(processing_status=get_processing_choice(compliance_status))
+
+        date_from = request.GET.get('date_from')
+        date_to = request.GET.get('date_to')
+        #import ipdb; ipdb.set_trace()
+        if date_from:
+            queryset = queryset.filter(approval__start_date__gte=date_from)
+        if date_to:
+            queryset = queryset.filter(approval__expiry_date__lte=date_to)
+
+        getter = request.query_params.get
+        fields = self.get_fields(getter)
+        #import ipdb; ipdb.set_trace()
+        ordering = self.get_ordering(getter, fields)
+        queryset = queryset.order_by(*ordering)
+        if len(ordering):
+            #for num, item in enumerate(ordering):
+             #   if item == 'status__name':
+              #      ordering[num] = 'status'
+               # elif item == '-status__name':
+                #    ordering[num] = '-status'
+            queryset = queryset.order_by(*ordering)
+
+        #queryset = super(ProposalFilterBackend, self).filter_queryset(request, queryset, view)
+        setattr(view, '_datatables_total_count', total_count)
+        return queryset
+
+
+class ComplianceRenderer(DatatablesRenderer):
+    def render(self, data, accepted_media_type=None, renderer_context=None):
+        #import ipdb; ipdb.set_trace()
+        if 'view' in renderer_context and hasattr(renderer_context['view'], '_datatables_total_count'):
+            data['recordsTotal'] = renderer_context['view']._datatables_total_count
+            #data.pop('recordsTotal')
+            #data.pop('recordsFiltered')
+        return super(ComplianceRenderer, self).render(data, accepted_media_type, renderer_context)
+
 
 class CompliancePaginatedViewSet(viewsets.ModelViewSet):
-    filter_backends = (ProposalFilterBackend,)
+    filter_backends = (ComplianceFilterBackend,)
     pagination_class = DatatablesPageNumberPagination
-    renderer_classes = (ProposalRenderer,)
+    renderer_classes = (ComplianceRenderer,)
     page_size = 10
     queryset = Compliance.objects.none()
     serializer_class = ComplianceSerializer
@@ -112,8 +194,8 @@ class CompliancePaginatedViewSet(viewsets.ModelViewSet):
                     apiary_compliance=True
                     )
         #qs = self.get_queryset().exclude(processing_status='future')
-        qs = ProposalFilterBackend().filter_queryset(self.request, qs, self)
-        #qs = self.filter_queryset(qs)
+        #qs = ProposalFilterBackend().filter_queryset(self.request, qs, self)
+        qs = self.filter_queryset(qs)
         #qs = qs.order_by('lodgement_number', '-issue_date').distinct('lodgement_number')
 
         # on the internal organisations dashboard, filter the Proposal/Approval/Compliance datatables by applicant/organisation
