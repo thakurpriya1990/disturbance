@@ -2652,7 +2652,7 @@ class ProposalApiary(models.Model):
                                 annual_rental_fee_apiary_site.save()
 
                                 # Add approved sites to the existing temporary use proposal with status 'draft'
-                                proposal_apiary_temporary_use_qs = ProposalApiaryTemporaryUse.objects.filter(loaning_approval=approval, proposal__status=Proposal.PROCESSING_STATUS_DRAFT)
+                                proposal_apiary_temporary_use_qs = ProposalApiaryTemporaryUse.objects.filter(loaning_approval=approval, proposal__processing_status=Proposal.PROCESSING_STATUS_DRAFT)
                                 for proposal_apiary_temporary_use in proposal_apiary_temporary_use_qs:
                                     temp_use_apiary_site, created = TemporaryUseApiarySite.objects.get_or_create(apiary_site=site, proposal_apiary_temporary_use=proposal_apiary_temporary_use)
 

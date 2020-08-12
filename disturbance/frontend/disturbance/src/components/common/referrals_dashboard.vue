@@ -130,7 +130,9 @@ export default {
         return {
             pBody: 'pBody' + vm._uid,
             datatable_id: 'proposal-datatable-'+vm._uid,
-            template_group: '',
+            //template_group: '',
+            dasTemplateGroup: false,
+            apiaryTemplateGroup: false,
             // Filters for Proposals
             filterProposalRegion: [],
             filterProposalActivity: 'All',
@@ -152,7 +154,7 @@ export default {
             proposal_applicationTypes : [],
             proposal_regions: [],
             proposal_submitters: [],
-            proposal_headers:["Number","Region","Activity","Title","Submitter","Proponent","Status","Lodged on","Action","Template Group"],
+            //proposal_headers:["Number","Region","Activity","Title","Submitter","Proponent","Status","Lodged on","Action","Template Group"],
             proposal_options:{
                 customProposalSearch: true,
                 tableID: 'proposal-datatable-'+vm._uid,
@@ -204,7 +206,7 @@ export default {
                     {
                         data: "region",
                         searchable: false, // handles by filter_queryset override method - class ProposalFilterBackend
-
+                        visible: false,
                     },
                     {
                         data: "activity",
@@ -278,6 +280,14 @@ export default {
 
                 ],
                 processing: true,
+                initComplete: function() {
+                    // set column visibility and headers according to template group
+                    // region
+                    let regionColumn = vm.$refs.proposal_datatable.vmDataTable.columns(1);
+                    if (vm.dasTemplateGroup) {
+                        regionColumn.visible(true);
+                    }
+                },
                 /*
                 initComplete: function () {
                     // Grab Regions from the data in the table
@@ -382,6 +392,7 @@ export default {
         }
     },
     computed: {
+        /*
         apiaryTemplateGroup: function() {
             let returnVal = false;
             if (this.template_group == 'apiary'){
@@ -396,6 +407,7 @@ export default {
             }
             return returnVal;
         },
+        */
         dashboardTitle: function() {
             let title = ''
             if (this.apiaryTemplateGroup) {
@@ -405,7 +417,13 @@ export default {
             }
             return title;
         },
-
+        proposal_headers: function() {
+            if (this.apiaryTemplateGroup) {
+                return ["Number","Region","Application Type","Title","Submitter","Applicant","Status","Lodged on","Action","Template Group"]
+            } else {
+                return ["Number","Region","Activity","Title","Submitter","Proponent","Status","Lodged on","Action","Template Group"]
+            }
+        },
     },
     methods:{
         fetchFilterLists: function(){
@@ -571,12 +589,29 @@ export default {
         this.$http.get('/template_group',{
             emulateJSON:true
             }).then(res=>{
+                //this.template_group = res.body.template_group;
+                if (res.body.template_group === 'apiary') {
+                    this.apiaryTemplateGroup = true;
+                } else {
+                    this.dasTemplateGroup = true;
+                }
+        },err=>{
+        console.log(err);
+        });
+    },
+    /*
+    created: function() {
+        // retrieve template group
+        this.$http.get('/template_group',{
+            emulateJSON:true
+            }).then(res=>{
                 this.template_group = res.body.template_group;
         },err=>{
         console.log(err);
         });
 
     },
+    */
 }
 </script>
 <style scoped>

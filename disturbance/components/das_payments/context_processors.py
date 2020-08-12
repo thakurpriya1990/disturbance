@@ -13,6 +13,7 @@ def disturbance_url(request):
     if request.user.is_authenticated:
          #is_officer = helpers.is_officer(request)
          is_admin = helpers.is_disturbance_admin(request)
+         is_apiary_admin = helpers.is_disturbance_admin(request)
          is_customer = helpers.is_customer(request)
 
     return {
@@ -25,6 +26,7 @@ def disturbance_url(request):
         'SYSTEM_NAME' : settings.SYSTEM_NAME,
         'IS_OFFICER' : is_officer,
         'IS_ADMIN' : is_admin,
+        'IS_APIARY_ADMIN' : is_apiary_admin,
         'IS_CUSTOMER' : is_customer,
         'PUBLIC_URL' : settings.PUBLIC_URL
         }
