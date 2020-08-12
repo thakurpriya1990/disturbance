@@ -1271,7 +1271,7 @@ class Proposal(RevisionedMixin):
                     raise ValidationError('You cannot approve the proposal if it is not with an assessor')
 
                 self.proposed_decline_status = False
-                self.processing_status = 'approved'
+                self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
                 self.customer_status = 'approved'
 
                 # Log proposal action
@@ -3168,6 +3168,17 @@ class ApiarySite(models.Model):
     def get_current_application_fee_per_site(self):
         current_fee = self.site_category.current_application_fee_per_site
         return current_fee
+
+    def period_valid_for_temporary_use(self, period):
+        valid = True
+
+        qs = TemporaryUseApiarySite.objects.filter(apiary_site=self, selected=True, proposal_apiary_temporary_use__proposal__processing_status=Proposal.PROCESSING_STATUS_APPROVED)
+        for temp_site in qs:
+            valid = (period[0] <= period[1] < temp_site.proposal_apiary_temporary_use.from_date) or (temp_site.proposal_apiary_temporary_use.to_date < period[0] <= period[1])
+            if not valid:
+                break
+
+        return valid
 
     class Meta:
         app_label = 'disturbance'
