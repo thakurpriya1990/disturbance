@@ -6,6 +6,7 @@ import geojson
 import json
 
 import pytz
+from confy import env
 from ledger.settings_base import TIME_ZONE
 from six.moves.urllib.parse import urlparse
 from wsgiref.util import FileWrapper
@@ -106,7 +107,7 @@ from disturbance.components.proposals.serializers_apiary import (
     DTApiaryReferralSerializer,
     FullApiaryReferralSerializer,
     ProposalHistorySerializer,
-    UserApiaryApprovalSerializer, ApiarySiteGeojsonSerializer,
+    UserApiaryApprovalSerializer, ApiarySiteGeojsonSerializer, ApiarySiteExportSerializer,
 )
 from disturbance.components.approvals.models import Approval
 from disturbance.components.approvals.serializers import ApprovalSerializer, ApprovalLogEntrySerializer
@@ -482,6 +483,19 @@ class OnSiteInformationViewSet(viewsets.ModelViewSet):
     queryset = OnSiteInformation.objects.filter(datetime_deleted=None)
     serializer_class = OnSiteInformationSerializer
 
+    def get_queryset(self):
+        user = self.request.user
+        qs = OnSiteInformation.objects.all()
+
+        # Only internal user is supposed to access here
+        if is_internal(self.request):  # user.is_authenticated():
+            qs = qs.filter(datetime_deleted=None)
+        else:
+            logger.warn("User is not internal user: {} <{}>".format(user.get_full_name(), user.email))
+            qs = OnSiteInformation.objects.none()
+
+        return qs
+
     @staticmethod
     def sanitize_date(data_dict, property_name):
         if property_name not in data_dict or not data_dict[property_name] or 'invalid' in data_dict[property_name].lower():
@@ -555,6 +569,30 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
     queryset = ApiarySite.objects.all()
     serializer_class = ApiarySiteSerializer
 
+    def is_internal_system(self, request):
+        apiary_site_list_token = request.query_params.get('apiary_site_list_token', None)
+        if apiary_site_list_token:
+            APIARY_SITES_LIST_TOKEN = env('APIARY_SITES_LIST_TOKEN', 'APIARY_SITES_LIST_TOKEN_NOT_FOUND')
+            if apiary_site_list_token == APIARY_SITES_LIST_TOKEN:
+                return True
+        return False
+
+    def get_queryset(self):
+        user = self.request.user
+        qs = ApiarySite.objects.all()
+
+        # Only internal user is supposed to access here
+        if is_internal(self.request):  # user.is_authenticated():
+            pass
+        elif is_customer(self.request):
+            # qs = qs.exclude(status=ApiarySite.STATUS_DRAFT)
+            pass
+        else:
+            logger.warn("User is neither internal user nor customer: {} <{}>".format(user.get_full_name(), user.email))
+            qs = OnSiteInformation.objects.none()
+
+        return qs
+
     @detail_route(methods=['POST',])
     @basic_exception_handler
     def contact_licence_holder(self, request, *args, **kwargs):
@@ -571,6 +609,26 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
 
         return Response({})
 
+    # @list_route(methods=['GET',])
+    # @basic_exception_handler
+    # def export(self, request):
+    def list(self, request):
+        q_objects = Q()
+        exclude_status = request.query_params.get('exclude_status', '')
+        exclude_status_array = [x.strip() for x in exclude_status.split(',')]
+        q_objects |= Q(status__in=exclude_status_array)
+
+        qs = ApiarySite.objects.none()
+        if self.is_internal_system(request):
+            qs = ApiarySite.objects.all()
+        # q_objects |= Q(status__in=ApiarySite.NON_RESTRICTIVE_STATUSES)
+        # q_objects |= Q(wkb_geometry=None)
+        # q_objects |= Q(proposal_apiary=None)
+        qs = qs.exclude(q_objects)
+        serializer = ApiarySiteExportSerializer(qs, many=True)
+        return Response(serializer.data)
+
+
     @list_route(methods=['GET',])
     @basic_exception_handler
     def list_existing(self, request):
@@ -586,7 +644,7 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
         q_objects |= Q(wkb_geometry=None)
         # q_objects |= Q(proposal_apiary=None)
 
-        qs = ApiarySite.objects.all().exclude(q_objects)
+        qs = self.get_queryset().exclude(q_objects)
         serializer = ApiarySiteGeojsonSerializer(qs, many=True)
         return Response(serializer.data)
 
@@ -597,7 +655,7 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
         q_objects &= Q(available=True)
         q_objects &= Q(status=ApiarySite.STATUS_CURRENT)
 
-        qs = ApiarySite.objects.filter(q_objects)
+        qs = self.get_queryset().filter(q_objects)
         serializer = ApiarySiteSerializer(qs, many=True)
         return Response(serializer.data)
 
@@ -607,7 +665,7 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
         q_objects = Q()
         q_objects |= Q(status__in=ApiarySite.TRANSITABLE_STATUSES)
 
-        qs = ApiarySite.objects.filter(q_objects)
+        qs = self.get_queryset().filter(q_objects)
         serializer = ApiarySiteSerializer(qs, many=True)
         return Response(serializer.data)
 
@@ -787,7 +845,7 @@ class ApiaryReferralViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if user.is_authenticated() and is_internal(self.request):
             #queryset =  Referral.objects.filter(referral=user)
-            queryset =  ApiaryReferral.objects.all()
+            queryset = ApiaryReferral.objects.all()
             return queryset
         return ApiaryReferral.objects.none()
 
@@ -1172,7 +1230,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
-
 
 #    def list(self, request, *args, **kwargs):
 #        #import ipdb; ipdb.set_trace()

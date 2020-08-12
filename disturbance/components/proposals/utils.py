@@ -628,6 +628,7 @@ def save_checklist_answers(checklist_type, checklist_answers=None):
                 ans.answer = new_answer['answer']
             ans.save()
 
+
 def update_proposal_apiary_temporary_use(temp_use_obj, temp_use_data, action):
     temp_use_data['from_date'] = convert_moment_str_to_python_datetime_obj(temp_use_data['from_date']).date() if temp_use_data['from_date'] else None
     temp_use_data['to_date'] = convert_moment_str_to_python_datetime_obj(temp_use_data['to_date']).date() if temp_use_data['to_date'] else None
@@ -639,18 +640,28 @@ def update_proposal_apiary_temporary_use(temp_use_obj, temp_use_data, action):
     # Update TemporaryUseApiarySite
     num_of_sites = 0
     for item in temp_use_data['temporary_use_apiary_sites']:
+        # Store all the apiary sites regardless of the selection status
         item['selected'] = item['apiary_site']['checked']
         tuas_obj = TemporaryUseApiarySite.objects.get(id=item['id'])
 
         serializer = TemporaryUseApiarySiteSerializer(tuas_obj, data=item)
         serializer.is_valid(raise_exception=True)
         serializer.save()
+
+        # Calculate the numbe of sites selected
         if item['selected']:
             num_of_sites += 1
 
     if action == 'submit':
         field_errors = {}
         non_field_errors = []
+
+        for item in temp_use_data['temporary_use_apiary_sites']:
+            if item['apiary_site']['checked']:
+                apiary_site = ApiarySite.objects.get(id=item['apiary_site']['id'])
+                if not apiary_site.period_valid_for_temporary_use((temp_use_data['from_date'], temp_use_data['to_date'])):
+                    non_field_errors.append('Temporary use period you submitted overlaps with the existing temporary use.')
+                    break
 
         if not num_of_sites > 0:
             non_field_errors.append('At least one apiary site must be selected.')

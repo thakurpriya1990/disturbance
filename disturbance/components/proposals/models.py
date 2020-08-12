@@ -1271,7 +1271,7 @@ class Proposal(RevisionedMixin):
                     raise ValidationError('You cannot approve the proposal if it is not with an assessor')
 
                 self.proposed_decline_status = False
-                self.processing_status = 'approved'
+                self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
                 self.customer_status = 'approved'
 
                 # Log proposal action
@@ -2644,12 +2644,17 @@ class ProposalApiary(models.Model):
                                 lines=products,  # This is used when generating the invoice at payment time
                             )
 
-                            # Store the apiary sites which the invoice created above has been issued for
                             for site in sites_approved:
+                                # Store the apiary sites which the invoice created above has been issued for
                                 apiary_site = ApiarySite.objects.get(id=site['id'])
                                 from disturbance.components.das_payments.models import AnnualRentalFeeApiarySite
                                 annual_rental_fee_apiary_site = AnnualRentalFeeApiarySite(apiary_site=apiary_site, annual_rental_fee=annual_rental_fee)
                                 annual_rental_fee_apiary_site.save()
+
+                                # Add approved sites to the existing temporary use proposal with status 'draft'
+                                proposal_apiary_temporary_use_qs = ProposalApiaryTemporaryUse.objects.filter(loaning_approval=approval, proposal__status=Proposal.PROCESSING_STATUS_DRAFT)
+                                for proposal_apiary_temporary_use in proposal_apiary_temporary_use_qs:
+                                    temp_use_apiary_site, created = TemporaryUseApiarySite.objects.get_or_create(apiary_site=site, proposal_apiary_temporary_use=proposal_apiary_temporary_use)
 
                             from disturbance.components.approvals.email import \
                                 send_annual_rental_fee_awaiting_payment_confirmation
@@ -3163,6 +3168,17 @@ class ApiarySite(models.Model):
     def get_current_application_fee_per_site(self):
         current_fee = self.site_category.current_application_fee_per_site
         return current_fee
+
+    def period_valid_for_temporary_use(self, period):
+        valid = True
+
+        qs = TemporaryUseApiarySite.objects.filter(apiary_site=self, selected=True, proposal_apiary_temporary_use__proposal__processing_status=Proposal.PROCESSING_STATUS_APPROVED)
+        for temp_site in qs:
+            valid = (period[0] <= period[1] < temp_site.proposal_apiary_temporary_use.from_date) or (temp_site.proposal_apiary_temporary_use.to_date < period[0] <= period[1])
+            if not valid:
+                break
+
+        return valid
 
     class Meta:
         app_label = 'disturbance'
