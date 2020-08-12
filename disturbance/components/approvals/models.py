@@ -147,15 +147,24 @@ class Approval(RevisionedMixin):
 
     @property
     def region(self):
-        return self.current_proposal.region.name
+        try:
+            return self.current_proposal.region.name
+        except:
+            return ''
 
     @property
     def district(self):
-        return self.current_proposal.district.name
+        try:
+            return self.current_proposal.district.name
+        except:
+            return ''
 
     @property
     def tenure(self):
-        return self.current_proposal.tenure.name
+        try:
+            return self.current_proposal.tenure.name
+        except:
+            return ''
 
     @property
     def activity(self):
