@@ -74,9 +74,15 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
 
         #import ipdb; ipdb.set_trace()
         # on the internal dashboard, the Region filter is multi-select - have to use the custom filter below
-        regions = request.GET.get('regions')
-        if regions:
-            queryset = queryset.filter(region__iregex=regions.replace(',', '|'))
+        region = request.GET.get('region')
+        if region and not region.lower() == 'all':
+            queryset = queryset.filter(current_proposal__region__name=region)
+        proposal_activity = request.GET.get('proposal_activity')
+        if proposal_activity and not proposal_activity.lower() == 'all':
+            queryset = queryset.filter(current_proposal__activity=proposal_activity)
+        approval_status = request.GET.get('approval_status')
+        if approval_status and not approval_status.lower() == 'all':
+            queryset = queryset.filter(status=get_choice(approval_status))
 
         # since in proposal_datatables.vue, the 'region' data field is declared 'searchable=false'
         #global_search = request.GET.get('search[value]')
