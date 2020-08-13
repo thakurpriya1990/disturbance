@@ -128,7 +128,9 @@ export default {
             datatable_id: 'proposal-datatable-'+vm._uid,
             //Profile to check if user has access to process Proposal
             profile: {},
-            template_group: '',
+            //template_group: '',
+            apiaryTemplateGroup: false,
+            dasTemplateGroup: false,
             // Filters for Proposals
             filterProposalRegion: [],
             filterProposalActivity: 'All',
@@ -167,12 +169,14 @@ export default {
             proposal_regions: [],
             proposal_submitters: [],
             proposal_status: [],
+            /*
             proposal_ex_headers:[
                 "Number","Region",
                 //"District",
                 "Activity","Title","Submitter","Proponent/Applicant","Status","Lodged on","Invoice/Confirmation","Action","Template Group"
                 //"LodgementNo","ProcessingStatus","AssessorProcess","CanUserEdit",
             ],
+            */
 
             proposal_ex_options:{
                 autoWidth: false,
@@ -219,6 +223,8 @@ export default {
                         },
                         'createdCell': helpers.dtPopoverCellFn,
                         searchable: false, // handles by filter_queryset override method - class ProposalFilterBackend
+                        //visible: this.dasTemplateGroup,
+                        visible: false,
                     },
                     /*
                     {
@@ -333,6 +339,15 @@ export default {
 
                 ],
                 processing: true,
+                initComplete: function() {
+                    // set column visibility and headers according to template group
+                    // region
+                    let regionColumn = vm.$refs.proposal_datatable.vmDataTable.columns(1);
+                    if (vm.dasTemplateGroup) {
+                        regionColumn.visible(true);
+                    }
+                },
+
                 /*
                 initComplete: function () {
                     // Grab Regions from the data in the table
@@ -384,14 +399,6 @@ export default {
                 }
                 */
             },
-            proposal_headers:[
-                "Number","Region",
-                //"District",
-                "Activity","Title","Submitter",
-                "Proponent/Applicant","Status","Lodged on","Assigned Officer",
-                "Invoice/Confirmation","Action","Template Group"
-                //"",""
-            ],
             proposal_options:{
                 autoWidth: false,
                 /*
@@ -452,6 +459,7 @@ export default {
                         },
                         'createdCell': helpers.dtPopoverCellFn,
                         searchable: false, // handles by filter_queryset override method - class ProposalFilterBackend
+                        visible: false,
                     },
                     /*
                     {
@@ -595,6 +603,14 @@ export default {
                     */
                 ],
                 processing: true,
+                initComplete: function() {
+                    // set column visibility and headers according to template group
+                    // region
+                    let regionColumn = vm.$refs.proposal_datatable.vmDataTable.columns(1);
+                    if (vm.dasTemplateGroup) {
+                        regionColumn.visible(true);
+                    }
+                },
                 /*
                 initComplete: function () {
                     // Grab Regions from the data in the table
@@ -701,12 +717,51 @@ export default {
         }
     },
     computed: {
+        proposal_headers: function() {
+            if (this.apiaryTemplateGroup) {
+                return [
+            "Number","Region",
+            //"District",
+            "Application Type","Title","Submitter",
+            "Applicant","Status","Lodged on","Assigned Officer",
+            "Invoice","Action","Template Group"
+            ]
+            } else {
+                return [
+            "Number","Region",
+            //"District",
+            "Activity","Title","Submitter",
+            "Proponent","Status","Lodged on","Assigned Officer",
+            "Invoice/Confirmation","Action","Template Group"
+            ]
+            }
+        },
+        proposal_ex_headers: function() {
+            if (this.apiaryTemplateGroup) {
+                return [
+            "Number","Region",
+            //"District",
+            "Application Type","Title","Submitter",
+            "Applicant","Status","Lodged on",
+            "Invoice","Action","Template Group"
+            ]
+            } else {
+                return [
+            "Number","Region",
+            //"District",
+            "Activity","Title","Submitter",
+            "Proponent","Status","Lodged on",
+            "Invoice/Confirmation","Action","Template Group"
+            ]
+            }
+        },
         is_external: function(){
             return this.level == 'external';
         },
         is_referral: function(){
             return this.level == 'referral';
         },
+        /*
         apiaryTemplateGroup: function() {
             let returnVal = false;
             if (this.template_group == 'apiary'){
@@ -721,6 +776,7 @@ export default {
             }
             return returnVal;
         },
+        */
         dashboardTitle: function() {
             let title = ''
             if (this.apiaryTemplateGroup) {
@@ -974,11 +1030,15 @@ export default {
         this.$http.get('/template_group',{
             emulateJSON:true
             }).then(res=>{
-                this.template_group = res.body.template_group;
+                //this.template_group = res.body.template_group;
+                if (res.body.template_group === 'apiary') {
+                    this.apiaryTemplateGroup = true;
+                } else {
+                    this.dasTemplateGroup = true;
+                }
         },err=>{
         console.log(err);
         });
-
     },
 }
 </script>
