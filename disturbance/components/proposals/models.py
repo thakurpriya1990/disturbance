@@ -1205,6 +1205,7 @@ class Proposal(RevisionedMixin):
 
     def proposed_approval(self,request,details):
         with transaction.atomic():
+            #import ipdb; ipdb.set_trace()
             try:
                 if not self.can_assess(request.user):
                     raise exceptions.ProposalNotAuthorized()
@@ -1218,18 +1219,41 @@ class Proposal(RevisionedMixin):
                 #        'cc_email':details.get('cc_email')
                 #    }
                 #else:
-                #    self.proposed_issuance_approval = {
-                #        'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
-                #        'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
-                #        'details': details.get('details'),
-                #        'cc_email':details.get('cc_email')
-                #    }
-                self.proposed_issuance_approval = {
-                    'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
-                    'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
-                    'details': details.get('details'),
-                    'cc_email':details.get('cc_email')
-                }
+                # Do not accept new start and expiry dates for Apiary group applications with a licence, unless the licence has been reissued
+                #if not (self.apiary_group_application_type and self.previous_application) or (self.approval and self.approval.reissued):
+                if self.apiary_group_application_type:
+                    if self.approval and self.approval.reissued:
+                        self.proposed_issuance_approval = {
+                            'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
+                            'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
+                            'details': details.get('details'),
+                            'cc_email':details.get('cc_email')
+                        }
+                    else:
+                        self.proposed_issuance_approval = {
+                            #'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
+                            #'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
+                            'details': details.get('details'),
+                            'cc_email':details.get('cc_email')
+                        }
+                else:
+                    self.proposed_issuance_approval = {
+                        'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
+                        'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
+                        'details': details.get('details'),
+                        'cc_email':details.get('cc_email')
+                    }
+                    #start_date = None
+                    #if details.get('start_date'):
+                    #    start_date = details.get('start_date').strftime('%d/%m/%Y')
+                    #    self.proposed_issuance_approval['start_date'] = start_date
+                    #expiry_date = None
+                    #if details.get('expiry_date'):
+                    #    expiry_date = details.get('expiry_date').strftime('%d/%m/%Y')
+                    #    self.proposed_issuance_approval['expiry_date'] = expiry_date
+                self.proposed_issuance_approval['details'] = details.get('details')
+                self.proposed_issuance_approval['cc_email'] = details.get('cc_email')
+
                 self.proposed_decline_status = False
                 approver_comment = ''
                 self.move_to_status(request,'with_approver', approver_comment)
@@ -2479,12 +2503,35 @@ class ProposalApiary(models.Model):
                 #if not self.applicant.organisation.postal_address:
                 if not self.proposal.relevant_applicant_address:
                     raise ValidationError('The applicant needs to have set their postal address before approving this proposal.')
-                self.proposed_issuance_approval = {
-                    'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
-                    'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
-                    'details': details.get('details'),
-                    'cc_email':details.get('cc_email')
-                }
+                #self.proposed_issuance_approval = {
+                #    'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
+                #    'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
+                #    'details': details.get('details'),
+                #    'cc_email':details.get('cc_email')
+                #}
+                if self.proposal.apiary_group_application_type:
+                    if self.proposal.approval and self.proposal.approval.reissued:
+                        self.proposal.proposed_issuance_approval = {
+                            'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
+                            'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
+                            'details': details.get('details'),
+                            'cc_email':details.get('cc_email')
+                        }
+                    else:
+                        self.proposal.proposed_issuance_approval = {
+                            #'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
+                            #'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
+                            'details': details.get('details'),
+                            'cc_email':details.get('cc_email')
+                        }
+                else:
+                    self.proposal.proposed_issuance_approval = {
+                        'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
+                        'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
+                        'details': details.get('details'),
+                        'cc_email':details.get('cc_email')
+                    }
+
                 #if (self.proposal.apiary_group_application_type and self.proposal.previous_application) \
                 #        or self.proposal.application_type.name == ApplicationType.SITE_TRANSFER:
                 #    self.proposed_issuance_approval = {
