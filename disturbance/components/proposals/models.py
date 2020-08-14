@@ -1220,6 +1220,13 @@ class Proposal(RevisionedMixin):
                             'details' : details.get('details'),
                             'cc_email' : details.get('cc_email'),
                         }
+                    else:
+                        self.proposed_issuance_approval = {
+                            #'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
+                            #'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
+                            'details' : details.get('details'),
+                            'cc_email' : details.get('cc_email'),
+                        }
                 else:
                     self.proposed_issuance_approval = {
                         'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
@@ -2477,18 +2484,18 @@ class ProposalApiary(models.Model):
                 #if not self.applicant.organisation.postal_address:
                 if not self.proposal.relevant_applicant_address:
                     raise ValidationError('The applicant needs to have set their postal address before approving this proposal.')
-                if self.proposal.apiary_group_application_type:
-                    if self.proposal.approval and self.proposal.approval.reissued:
-                        self.proposal.proposed_issuance_approval = {
-                            'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
-                            'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
-                            'details' : details.get('details'),
-                            'cc_email' : details.get('cc_email'),
-                        }
-                else:
+                # Do not accept new start and expiry dates for Apiary group applications with a licence, unless the licence has been reissued
+                if self.proposal.approval and self.proposal.approval.reissued:
                     self.proposal.proposed_issuance_approval = {
                         'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
                         'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
+                        'details' : details.get('details'),
+                        'cc_email' : details.get('cc_email'),
+                    }
+                else:
+                    self.proposed_issuance_approval = {
+                        #'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
+                        #'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
                         'details' : details.get('details'),
                         'cc_email' : details.get('cc_email'),
                     }
