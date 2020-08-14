@@ -3023,12 +3023,13 @@ class SiteCategory(models.Model):
                 fee_application = self.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_APPLICATION)
                 # fee_amendment = self.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_AMENDMENT)
                 # fee_renewal = self.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_RENEWAL)
-                # fee_transfer = self.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_TRANSFER)
-                return '{} - application: {}'.format(item[1], fee_application)
+                fee_transfer = self.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_TRANSFER)
+                return '{} - new application: ${}, transfer: ${}'.format(item[1], fee_application, fee_transfer)
         return '---'
 
     class Meta:
         app_label = 'disturbance'
+        verbose_name = 'apiary site fee'
 
 
 class ApiarySiteFeeType(RevisionedMixin):
