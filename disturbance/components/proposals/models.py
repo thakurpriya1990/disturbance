@@ -1210,32 +1210,41 @@ class Proposal(RevisionedMixin):
                     raise exceptions.ProposalNotAuthorized()
                 if self.processing_status != 'with_assessor_requirements':
                     raise ValidationError('You cannot propose for approval if it is not with assessor for requirements')
-                if (self.apiary_group_application_type and self.previous_application) or self.application_type.name == ApplicationType.SITE_TRANSFER:
-                    self.proposed_issuance_approval = {
-                        #'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
-                        #'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
-                        'details': details.get('details'),
-                        'cc_email':details.get('cc_email')
-                    }
-                else:
-                    self.proposed_issuance_approval = {
-                        'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
-                        'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
-                        'details': details.get('details'),
-                        'cc_email':details.get('cc_email')
-                    }
+                #if (self.apiary_group_application_type and self.previous_application) or self.application_type.name == ApplicationType.SITE_TRANSFER:
+                #    self.proposed_issuance_approval = {
+                #        #'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
+                #        #'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
+                #        'details': details.get('details'),
+                #        'cc_email':details.get('cc_email')
+                #    }
+                #else:
+                #    self.proposed_issuance_approval = {
+                #        'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
+                #        'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
+                #        'details': details.get('details'),
+                #        'cc_email':details.get('cc_email')
+                #    }
+                self.proposed_issuance_approval = {
+                    'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
+                    'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
+                    'details': details.get('details'),
+                    'cc_email':details.get('cc_email')
+                }
                 self.proposed_decline_status = False
                 approver_comment = ''
                 self.move_to_status(request,'with_approver', approver_comment)
                 self.assigned_officer = None
 
                 apiary_sites = request.data.get('apiary_sites', None)
+                apiary_sites_list = []
                 if apiary_sites:
                     # When new apiary proposal
                     if self.application_type.name == ApplicationType.APIARY:
                         for apiary_site in apiary_sites:
                             my_site = ApiarySite.objects.get(id=apiary_site['id'])
                             my_site.workflow_selected_status = apiary_site['checked']
+                            if apiary_site.get('checked'):
+                                apiary_sites_list.append(apiary_site.get('id'))
                             my_site.save()
 
                             if apiary_site['checked'] and 'coordinates_moved' in apiary_site:
@@ -1254,14 +1263,34 @@ class Proposal(RevisionedMixin):
                                     apiary_site_id=apiary_site.get('id')
                                     )
                             transfer_site.internal_selected = apiary_site.get('checked') if transfer_site.customer_selected else False
+                            if apiary_site.get('checked'):
+                                apiary_sites_list.append(apiary_site.get('id'))
                             transfer_site.save()
 
                 self.save()
                 # Log proposal action
-                self.log_user_action(ProposalUserAction.ACTION_PROPOSED_APPROVAL.format(self.id),request)
+                if self.apiary_group_application_type:
+                    self.log_user_action(ProposalUserAction.ACTION_PROPOSED_APIARY_APPROVAL.format(
+                        self.id, 
+                        self.proposed_issuance_approval.get('start_date'),
+                        self.proposed_issuance_approval.get('expiry_date'),
+                        #', '.join(apiary_sites_list)
+                        str(apiary_sites_list).lstrip('[').rstrip(']')
+                        ),request)
+                else:
+                    self.log_user_action(ProposalUserAction.ACTION_PROPOSED_APPROVAL.format(self.id),request)
                 # Log entry for organisation
                 if self.applicant:
-                    self.applicant.log_user_action(ProposalUserAction.ACTION_PROPOSED_APPROVAL.format(self.id),request)
+                    if self.apiary_group_application_type:
+                        self.applicant.log_user_action(ProposalUserAction.ACTION_PROPOSED_APIARY_APPROVAL.format(
+                            self.id, 
+                            self.proposed_issuance_approval.get('start_date'),
+                            self.proposed_issuance_approval.get('expiry_date'),
+                            str(apiary_sites_list).lstrip('[').rstrip(']')
+                            #', '.join(apiary_sites_list)
+                            ),request)
+                    else:
+                        self.applicant.log_user_action(ProposalUserAction.ACTION_PROPOSED_APPROVAL.format(self.id),request)
 
                 send_approver_approve_email_notification(request, self)
             except:
@@ -1934,6 +1963,7 @@ class ProposalUserAction(UserAction):
     ACTION_SAVE_ASSESSMENT_ = "Save assessment {}"
     ACTION_CONCLUDE_ASSESSMENT_ = "Conclude assessment {}"
     ACTION_PROPOSED_APPROVAL = "Proposal {} has been proposed for approval"
+    ACTION_PROPOSED_APIARY_APPROVAL = "Proposal {} has been proposed for approval with start date {}, expiry date {} and apiary sites {}"
     ACTION_PROPOSED_DECLINE = "Proposal {} has been proposed for decline"
     # Referrals
     ACTION_SEND_REFERRAL_TO = "Send referral {} for proposal {} to {}"
@@ -2449,6 +2479,12 @@ class ProposalApiary(models.Model):
                 #if not self.applicant.organisation.postal_address:
                 if not self.proposal.relevant_applicant_address:
                     raise ValidationError('The applicant needs to have set their postal address before approving this proposal.')
+                self.proposed_issuance_approval = {
+                    'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
+                    'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
+                    'details': details.get('details'),
+                    'cc_email':details.get('cc_email')
+                }
                 #if (self.proposal.apiary_group_application_type and self.proposal.previous_application) \
                 #        or self.proposal.application_type.name == ApplicationType.SITE_TRANSFER:
                 #    self.proposed_issuance_approval = {
@@ -2547,10 +2583,10 @@ class ProposalApiary(models.Model):
                                 originating_approval.expiry_date = details.get('expiry_date')
                                 originating_approval.start_date = details.get('start_date')
                             originating_approval.reissued = False
-                            self.proposal.proposed_issuance_approval['start_date'] = originating_approval.start_date.strftime('%d/%m/%Y')
-                            self.proposal.proposed_issuance_approval['expiry_date'] = originating_approval.expiry_date.strftime('%d/%m/%Y')
-                            self.proposal.proposed_issuance_approval['details'] = ''
-                            self.proposal.proposed_issuance_approval['cc_email'] = ''
+                            #self.proposal.proposed_issuance_approval['start_date'] = originating_approval.start_date.strftime('%d/%m/%Y')
+                            #self.proposal.proposed_issuance_approval['expiry_date'] = originating_approval.expiry_date.strftime('%d/%m/%Y')
+                            #self.proposal.proposed_issuance_approval['details'] = ''
+                            #self.proposal.proposed_issuance_approval['cc_email'] = ''
                             originating_approval.save()
                             target_approval.issue_date = timezone.now()
                             #target_approval.current_proposal = checking_proposal
@@ -2584,10 +2620,10 @@ class ProposalApiary(models.Model):
                                     approval.expiry_date = details.get('expiry_date')
                                     approval.start_date = details.get('start_date')
                                 approval.reissued = False
-                                self.proposal.proposed_issuance_approval['start_date'] = approval.start_date.strftime('%d/%m/%Y')
-                                self.proposal.proposed_issuance_approval['expiry_date'] = approval.expiry_date.strftime('%d/%m/%Y')
-                                self.proposal.proposed_issuance_approval['details'] = ''
-                                self.proposal.proposed_issuance_approval['cc_email'] = ''
+                                #self.proposal.proposed_issuance_approval['start_date'] = approval.start_date.strftime('%d/%m/%Y')
+                                #self.proposal.proposed_issuance_approval['expiry_date'] = approval.expiry_date.strftime('%d/%m/%Y')
+                                #self.proposal.proposed_issuance_approval['details'] = ''
+                                #self.proposal.proposed_issuance_approval['cc_email'] = ''
                                 approval.save()
 
 
