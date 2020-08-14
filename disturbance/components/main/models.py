@@ -203,16 +203,27 @@ class SystemMaintenance(models.Model):
 
 
 @python_2_unicode_compatible
-class GlobalSettings(models.Model):
-    KEY_ASSESSMENT_REMINDER_DAYS = 'assessment_reminder_days'
+class ApiaryGlobalSettings(models.Model):
+
+    class Meta:
+        app_label = 'disturbance'
+        verbose_name_plural = "Global Settings"
+        #unique_together = ('id', 'key')
+
+    def __str__(self):
+        return self.key
+
+
+@python_2_unicode_compatible
+class ApiaryGlobalSettings(models.Model):
     KEY_ORACLE_CODE_APIARY_SITE_ANNUAL_RENTAL_FEE = 'oracle_code_apiary_site_annural_rental_fee'
     KEY_APIARY_SITES_LIST_TOKEN = 'apiary_sites_list_token'
 
     keys = (
-        (KEY_ASSESSMENT_REMINDER_DAYS, 'Assessment reminder days'),
         (KEY_ORACLE_CODE_APIARY_SITE_ANNUAL_RENTAL_FEE, 'Oracle code for the apiary site annual rental fee'),
         (KEY_APIARY_SITES_LIST_TOKEN, 'Token to import the apiary sites list'),
     )
+
     default_values = (
         (KEY_ORACLE_CODE_APIARY_SITE_ANNUAL_RENTAL_FEE, 'APIARY_ANNUAL'),
         (KEY_APIARY_SITES_LIST_TOKEN, 'abc123'),
@@ -222,8 +233,27 @@ class GlobalSettings(models.Model):
 
     class Meta:
         app_label = 'disturbance'
+        verbose_name_plural = "Apiary Global Settings"
+
+    def __str__(self):
+        return self.key
+
+
+@python_2_unicode_compatible
+class GlobalSettings(models.Model):
+    KEY_ASSESSMENT_REMINDER_DAYS = 'assessment_reminder_days'
+
+    keys = (
+        (KEY_ASSESSMENT_REMINDER_DAYS, 'Assessment reminder days'),
+    )
+    default_values = (
+    )
+    key = models.CharField(max_length=255, choices=keys, blank=False, null=False, unique=True)
+    value = models.CharField(max_length=255)
+
+    class Meta:
+        app_label = 'disturbance'
         verbose_name_plural = "Global Settings"
-        #unique_together = ('id', 'key')
 
     def __str__(self):
         return self.key
