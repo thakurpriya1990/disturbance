@@ -16,7 +16,7 @@
                                     </div>
                                     <div class="col-sm-9">
                                         <template v-if="!startDateCanBeModified">
-                                            {{ proposal.proposed_issuance_approval.start_date }} (Start date of the licence)
+                                            {{ proposal.approval.start_date }} (Start date of the licence)
                                         </template>
                                         <template v-else>
                                             <div class="input-group date" ref="start_date" style="width: 70%;">
@@ -41,7 +41,7 @@
                                     </div>
                                     <div class="col-sm-9">
                                         <template v-if="!expiryDateCanBeModified">
-                                            {{ proposal.proposed_issuance_approval.expiry_date }} (Expiry date of the licence)
+                                            {{ proposal.approval.expiry_date }} (Expiry date of the licence)
                                         </template>
                                         <template v-else>
                                             <div class="input-group date" ref="due_date" style="width: 70%;">
