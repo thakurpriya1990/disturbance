@@ -15,8 +15,8 @@
                                         <label v-else class="control-label pull-left"  for="Name">Proposed Start Date</label>
                                     </div>
                                     <div class="col-sm-9">
-                                        <template v-if="proposal.approval">
-                                            {{ proposal.approval.start_date }} (Start date of the licence)
+                                        <template v-if="!startDateCanBeModified">
+                                            {{ proposal.proposed_issuance_approval.start_date }} (Start date of the licence)
                                         </template>
                                         <template v-else>
                                             <div class="input-group date" ref="start_date" style="width: 70%;">
@@ -40,8 +40,8 @@
                                         <label v-else class="control-label pull-left"  for="Name">Proposed Expiry Date</label>
                                     </div>
                                     <div class="col-sm-9">
-                                        <template v-if="proposal.approval">
-                                            {{ proposal.approval.expiry_date }} (Expiry date of the licence)
+                                        <template v-if="!expiryDateCanBeModified">
+                                            {{ proposal.proposed_issuance_approval.expiry_date }} (Expiry date of the licence)
                                         </template>
                                         <template v-else>
                                             <div class="input-group date" ref="due_date" style="width: 70%;">
@@ -210,6 +210,24 @@ export default {
         }
     },
     computed: {
+        startDateCanBeModified: function() {
+            let returnVal = false;
+            if (this.proposal && this.proposal.approval && this.proposal.approval.reissued) {
+                returnVal = true;
+            } else if (this.proposal && !this.proposal.approval) {
+                returnVal = true;
+            }
+            return returnVal;
+        },
+        expiryDateCanBeModified: function() {
+            let returnVal = false;
+            if (this.proposal && this.proposal.approval && this.proposal.approval.reissued) {
+                returnVal = true;
+            } else if (this.proposal && !this.proposal.approval) {
+                returnVal = true;
+            }
+            return returnVal;
+        },
         showError: function() {
             var vm = this;
             return vm.errors;
@@ -412,9 +430,12 @@ export default {
             vm.errors = false;
             //vm.approval.apiary_sites = vm.proposal.proposal_apiary.apiary_sites
             vm.approval.apiary_sites = vm.apiary_sites_updated
-            if (this.proposal.approval){
+            if (!this.startDateCanBeModified){
                 // There is an existing licence. Therefore start_date and expiry_date are fixed to that dates
                 this.approval.start_date = moment(this.proposal.approval.start_date, 'YYYY-MM-DD').format('DD/MM/YYYY')
+            }
+            if (!this.expiryDateCanBeModified){
+                // There is an existing licence. Therefore start_date and expiry_date are fixed to that dates
                 this.approval.expiry_date = moment(this.proposal.approval.expiry_date, 'YYYY-MM-DD').format('DD/MM/YYYY')
             }
             let approval = JSON.parse(JSON.stringify(vm.approval)); // Deep copy
