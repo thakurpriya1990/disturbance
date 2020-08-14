@@ -1217,14 +1217,16 @@ class Proposal(RevisionedMixin):
                         self.proposed_issuance_approval = {
                             'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
                             'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
+                            'details' : details.get('details'),
+                            'cc_email' : details.get('cc_email'),
                         }
                 else:
                     self.proposed_issuance_approval = {
                         'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
                         'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
+                        'details' : details.get('details'),
+                        'cc_email' : details.get('cc_email'),
                     }
-                self.proposed_issuance_approval['details'] = details.get('details')
-                self.proposed_issuance_approval['cc_email'] = details.get('cc_email')
 
                 self.proposed_decline_status = False
                 approver_comment = ''
@@ -2480,14 +2482,16 @@ class ProposalApiary(models.Model):
                         self.proposal.proposed_issuance_approval = {
                             'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
                             'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
+                            'details' : details.get('details'),
+                            'cc_email' : details.get('cc_email'),
                         }
                 else:
                     self.proposal.proposed_issuance_approval = {
                         'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
                         'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
+                        'details' : details.get('details'),
+                        'cc_email' : details.get('cc_email'),
                     }
-                self.proposed_issuance_approval['details'] = details.get('details')
-                self.proposed_issuance_approval['cc_email'] = details.get('cc_email')
                 self.save()
 
                 self.proposal.proposed_decline_status = False
