@@ -204,18 +204,6 @@ class SystemMaintenance(models.Model):
 
 @python_2_unicode_compatible
 class ApiaryGlobalSettings(models.Model):
-
-    class Meta:
-        app_label = 'disturbance'
-        verbose_name_plural = "Global Settings"
-        #unique_together = ('id', 'key')
-
-    def __str__(self):
-        return self.key
-
-
-@python_2_unicode_compatible
-class ApiaryGlobalSettings(models.Model):
     KEY_ORACLE_CODE_APIARY_SITE_ANNUAL_RENTAL_FEE = 'oracle_code_apiary_site_annural_rental_fee'
     KEY_APIARY_SITES_LIST_TOKEN = 'apiary_sites_list_token'
 
