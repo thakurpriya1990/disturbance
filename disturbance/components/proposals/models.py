@@ -1212,11 +1212,13 @@ class Proposal(RevisionedMixin):
                 if self.processing_status != 'with_assessor_requirements':
                     raise ValidationError('You cannot propose for approval if it is not with assessor for requirements')
                 # Do not accept new start and expiry dates for Apiary group applications with a licence, unless the licence has been reissued
+                start_date = details.get('start_date').strftime('%d/%m/%Y') if details.get('start_date') else None
+                expiry_date = details.get('expiry_date').strftime('%d/%m/%Y') if details.get('expiry_date') else None
                 if self.apiary_group_application_type:
                     if self.approval and self.approval.reissued:
                         self.proposed_issuance_approval = {
-                            'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
-                            'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
+                            'start_date' : start_date,
+                            'expiry_date' : expiry_date,
                             'details' : details.get('details'),
                             'cc_email' : details.get('cc_email'),
                         }
@@ -1229,16 +1231,16 @@ class Proposal(RevisionedMixin):
                         }
                     else:
                         self.proposed_issuance_approval = {
-                                'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
-                                'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
+                                'start_date' : start_date,
+                                'expiry_date' : expiry_date,
                                 'details' : details.get('details'),
                                 'cc_email' : details.get('cc_email'),
                         }
                 # non-apiary Proposals
                 else:
                     self.proposed_issuance_approval = {
-                            'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
-                            'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
+                            'start_date' : start_date,
+                            'expiry_date' : expiry_date,
                             'details' : details.get('details'),
                             'cc_email' : details.get('cc_email'),
                     }
@@ -2492,9 +2494,11 @@ class ProposalApiary(models.Model):
                 #if not self.applicant.organisation.postal_address:
                 if not self.proposal.relevant_applicant_address:
                     raise ValidationError('The applicant needs to have set their postal address before approving this proposal.')
+                start_date = details.get('start_date').strftime('%d/%m/%Y') if details.get('start_date') else None
+                expiry_date = details.get('expiry_date').strftime('%d/%m/%Y') if details.get('expiry_date') else None
                 self.proposal.proposed_issuance_approval = {
-                        'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
-                        'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
+                        'start_date' : start_date,
+                        'expiry_date' : expiry_date,
                         'details' : details.get('details'),
                         'cc_email' : details.get('cc_email'),
                 }
