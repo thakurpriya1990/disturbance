@@ -1220,19 +1220,27 @@ class Proposal(RevisionedMixin):
                             'details' : details.get('details'),
                             'cc_email' : details.get('cc_email'),
                         }
+                    elif self.proposed_issuance_approval:
+                        self.proposed_issuance_approval = {
+                                #'start_date' : self.proposed_issuance_approval.get('start_date') if self.proposed_issuance_approval.get('start_date') else details.get('start_date').strftime('%d/%m/%Y'),
+                                #'expiry_date' : self.proposed_issuance_approval.get('expiry_date') if self.proposed_issuance_approval.get('expiry_date') else details.get('expiry_date').strftime('%d/%m/%Y'),
+                                'details' : details.get('details'),
+                                'cc_email' : details.get('cc_email'),
+                        }
                     else:
                         self.proposed_issuance_approval = {
-                            #'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
-                            #'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
-                            'details' : details.get('details'),
-                            'cc_email' : details.get('cc_email'),
+                                'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
+                                'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
+                                'details' : details.get('details'),
+                                'cc_email' : details.get('cc_email'),
                         }
+                # non-apiary Proposals
                 else:
                     self.proposed_issuance_approval = {
-                        'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
-                        'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
-                        'details' : details.get('details'),
-                        'cc_email' : details.get('cc_email'),
+                            'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
+                            'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
+                            'details' : details.get('details'),
+                            'cc_email' : details.get('cc_email'),
                     }
 
                 self.proposed_decline_status = False
@@ -2484,21 +2492,12 @@ class ProposalApiary(models.Model):
                 #if not self.applicant.organisation.postal_address:
                 if not self.proposal.relevant_applicant_address:
                     raise ValidationError('The applicant needs to have set their postal address before approving this proposal.')
-                # Do not accept new start and expiry dates for Apiary group applications with a licence, unless the licence has been reissued
-                if self.proposal.approval and self.proposal.approval.reissued:
-                    self.proposal.proposed_issuance_approval = {
+                self.proposal.proposed_issuance_approval = {
                         'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
                         'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
                         'details' : details.get('details'),
                         'cc_email' : details.get('cc_email'),
-                    }
-                else:
-                    self.proposed_issuance_approval = {
-                        #'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
-                        #'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
-                        'details' : details.get('details'),
-                        'cc_email' : details.get('cc_email'),
-                    }
+                }
                 self.save()
 
                 self.proposal.proposed_decline_status = False
