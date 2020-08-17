@@ -145,6 +145,7 @@
                             }
                         },
                         {
+                            visible: false,
                             mRender: function (data, type, full) {
                                 if (vm.is_external){
                                     if (full.action) {
@@ -212,7 +213,7 @@
                         }
                     });
                 } catch (err) {
-                    this.processError(err)
+                    helpers.processError(err)
                 }
             },
             constructOnSiteInformationTable: function(){

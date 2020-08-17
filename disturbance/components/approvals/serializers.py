@@ -52,7 +52,8 @@ class ApprovalSerializer(serializers.ModelSerializer):
     region = serializers.CharField(source='current_proposal.region.name')
     district = serializers.CharField(source='current_proposal.district.name', allow_null=True)
     #tenure = serializers.CharField(source='current_proposal.tenure.name')
-    activity = serializers.CharField(source='current_proposal.activity')
+    #activity = serializers.CharField(source='current_proposal.activity')
+    activity = serializers.SerializerMethodField(read_only=True)
     title = serializers.CharField(source='current_proposal.title')
     #current_proposal = InternalProposalSerializer(many=False)
     can_approver_reissue = serializers.SerializerMethodField(read_only=True)
@@ -70,6 +71,7 @@ class ApprovalSerializer(serializers.ModelSerializer):
     latest_apiary_licence_document = serializers.SerializerMethodField()
     apiary_licence_document_history = serializers.SerializerMethodField()
     requirements = serializers.SerializerMethodField()
+    template_group = serializers.SerializerMethodField()
 
     class Meta:
         model = Approval
@@ -127,6 +129,7 @@ class ApprovalSerializer(serializers.ModelSerializer):
             'apiary_licence_document_history',
             'no_annual_rental_fee_until',
             'requirements',
+            'template_group',
         )
         # the serverSide functionality of datatables is such that only columns that have field 'data' defined are requested from the serializer. We
         # also require the following additional fields for some of the mRender functions
@@ -157,7 +160,16 @@ class ApprovalSerializer(serializers.ModelSerializer):
             'can_approver_reissue',
             'apiary_approval',
             'latest_apiary_licence_document',
+            'template_group',
         )
+
+    def get_activity(self, approval):
+        activity_text = None
+        if approval.apiary_approval:
+            activity_text = 'Apiary'
+        else:
+            activity_text = approval.current_proposal.activity
+        return activity_text
 
     def get_requirements(self, approval):
         requirements = []
@@ -263,6 +275,9 @@ class ApprovalSerializer(serializers.ModelSerializer):
             if user in obj.allowed_approvers:
                 return True
         return False
+
+    def get_template_group(self, obj):
+        return self.context.get('template_group')
 
     # def get_apiary_site_location(self, obj):
     #     if hasattr(obj.current_proposal, 'apiary_site_location'):

@@ -75,6 +75,7 @@ MIDDLEWARE_CLASSES += [
 TEMPLATES[0]['DIRS'].append(os.path.join(BASE_DIR, 'disturbance', 'templates'))
 TEMPLATES[0]['DIRS'].append(os.path.join(BASE_DIR, 'disturbance','components','organisations', 'templates'))
 TEMPLATES[0]['DIRS'].append(os.path.join(BASE_DIR, 'disturbance','components','emails', 'templates'))
+TEMPLATES[0]['OPTIONS']['context_processors'].append('disturbance.context_processors.apiary_url')
 BOOTSTRAP3 = {
     'jquery_url': '//static.dpaw.wa.gov.au/static/libs/jquery/2.2.1/jquery.min.js',
     'base_url': '//static.dpaw.wa.gov.au/static/libs/twitter-bootstrap/3.3.6/',
@@ -102,6 +103,7 @@ DATA_UPLOAD_MAX_NUMBER_FIELDS = None
 
 # Department details
 SYSTEM_NAME = env('SYSTEM_NAME', 'Disturbance Approval System')
+APIARY_SYSTEM_NAME = env('APIARY_SYSTEM_NAME', 'Apiary System')
 SYSTEM_NAME_SHORT = env('SYSTEM_NAME_SHORT', 'DAS')
 SITE_PREFIX = env('SITE_PREFIX')
 SITE_DOMAIN = env('SITE_DOMAIN')
@@ -117,6 +119,7 @@ SITE_URL = env('SITE_URL', 'https://' + SITE_PREFIX + '.' + SITE_DOMAIN)
 PUBLIC_URL=env('PUBLIC_URL', SITE_URL)
 DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', 'no-reply@' + SITE_DOMAIN).lower()
 ADMIN_GROUP = env('ADMIN_GROUP', 'Disturbance Admin')
+APIARY_ADMIN_GROUP = env('APIARY_ADMIN_GROUP', 'Apiary Admin')
 CRON_EMAIL = env('CRON_EMAIL', 'cron@' + SITE_DOMAIN).lower()
 TENURE_SECTION = env('TENURE_SECTION', None)
 ASSESSMENT_REMINDER_DAYS = env('ASSESSMENT_REMINDER_DAYS', 15)
@@ -126,8 +129,7 @@ PAYMENT_SYSTEM_ID = env('PAYMENT_SYSTEM_ID', 'S517')
 PS_PAYMENT_SYSTEM_ID = PAYMENT_SYSTEM_ID
 PAYMENT_SYSTEM_PREFIX = env('PAYMENT_SYSTEM_PREFIX', PAYMENT_SYSTEM_ID.replace('S','0')) # '0517'
 os.environ['LEDGER_PRODUCT_CUSTOM_FIELDS'] = "('ledger_description','quantity','price_incl_tax','price_excl_tax','oracle_code')"
-
-
+APIARY_URL = env('APIARY_URL', [])
 
 BASE_URL=env('BASE_URL')
 
@@ -145,6 +147,8 @@ CKEDITOR_CONFIGS = {
 
 DEV_APP_BUILD_URL = env('DEV_APP_BUILD_URL')  # URL of the Dev app.js served by webpack & express
 GEOCODING_ADDRESS_SEARCH_TOKEN = env('GEOCODING_ADDRESS_SEARCH_TOKEN', 'ACCESS_TOKEN_NOT_FOUND')
-
+RESTRICTED_RADIUS = 3000
+DBCA_ABN = '38 052 249 024'
 if env('CONSOLE_EMAIL_BACKEND', False):
    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+

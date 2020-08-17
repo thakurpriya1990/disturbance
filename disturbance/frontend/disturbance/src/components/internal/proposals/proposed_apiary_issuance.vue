@@ -1,6 +1,5 @@
 <template lang="html">
     <div id="proposedIssuanceApproval">
-        proposed_apiary_issuance.vue
         <modal transition="modal fade" @ok="ok()" @cancel="cancel()" :title="title" large>
             <div class="container-fluid">
                 <div class="row">
@@ -16,7 +15,7 @@
                                         <label v-else class="control-label pull-left"  for="Name">Proposed Start Date</label>
                                     </div>
                                     <div class="col-sm-9">
-                                        <template v-if="proposal.approval">
+                                        <template v-if="!startDateCanBeModified">
                                             {{ proposal.approval.start_date }} (Start date of the licence)
                                         </template>
                                         <template v-else>
@@ -41,7 +40,7 @@
                                         <label v-else class="control-label pull-left"  for="Name">Proposed Expiry Date</label>
                                     </div>
                                     <div class="col-sm-9">
-                                        <template v-if="proposal.approval">
+                                        <template v-if="!expiryDateCanBeModified">
                                             {{ proposal.approval.expiry_date }} (Expiry date of the licence)
                                         </template>
                                         <template v-else>
@@ -102,13 +101,27 @@
                         :show_col_checkbox="true"
                         :show_action_available_unavailable="false"
                         :key="component_site_selection_key"
+                        :can_modify="true"
                         ref="component_site_selection"
                         @apiary_sites_updated="apiarySitesUpdated"
+                        @featureGeometryUpdated="featureGeometryUpdated"
                     />
                 </template>
 
             </div>
-            <p v-if="can_preview">Click <a href="#" @click.prevent="preview">here</a> to preview the approval letter.</p>
+            <div v-if="can_preview">
+                <div v-if="siteTransferApplication">
+                    <div>
+                        Click <a href="#" @click.prevent="preview_originating_approval">here</a> to preview the originating approval letter.
+                    </div>
+                    <div>
+                        Click <a href="#" @click.prevent="preview_target_approval">here</a> to preview the target approval letter.
+                    </div>
+                </div>
+                <div v-else>
+                    Click <a href="#" @click.prevent="preview">here</a> to preview the approval letter.
+                </div>
+            </div>
             <div slot="footer">
                 <button type="button" v-if="issuingApproval" disabled class="btn btn-default" @click="ok"><i class="fa fa-spinner fa-spin"></i> Processing</button>
                 <button type="button" v-else class="btn btn-default" @click="ok">Ok</button>
@@ -197,6 +210,24 @@ export default {
         }
     },
     computed: {
+        startDateCanBeModified: function() {
+            let returnVal = false;
+            if (this.proposal && this.proposal.approval && this.proposal.approval.reissued) {
+                returnVal = true;
+            } else if (this.proposal && !this.proposal.approval) {
+                returnVal = true;
+            }
+            return returnVal;
+        },
+        expiryDateCanBeModified: function() {
+            let returnVal = false;
+            if (this.proposal && this.proposal.approval && this.proposal.approval.reissued) {
+                returnVal = true;
+            } else if (this.proposal && !this.proposal.approval) {
+                returnVal = true;
+            }
+            return returnVal;
+        },
         showError: function() {
             var vm = this;
             return vm.errors;
@@ -258,6 +289,15 @@ export default {
         },
     },
     methods:{
+        featureGeometryUpdated: function(feature){
+            console.log('issuance')
+            console.log(feature)
+            for (let i=0; i<this.apiary_sites_updated.length; i++){
+                if (this.apiary_sites_updated[i].id == feature.id){
+                    this.apiary_sites_updated[i].coordinates_moved = feature.coordinates
+                }
+            }
+        },
         apiarySitesUpdated: function(apiary_sites) {
             console.log('in proposed_apiary_issuance.vue')
             console.log('apiarySitesUpdated')
@@ -291,7 +331,7 @@ export default {
         preview:function () {
             let vm =this;
             let formData = new FormData(vm.form)
-            if (this.siteTransferApplication && this.proposal.approval) {
+            if (this.proposal.approval && this.proposal.approval.start_date && this.proposal.approval.expiry_date) {
                 formData.append('start_date', moment(this.proposal.approval.start_date, 'YYYY-MM-DD').format('DD/MM/YYYY'));
                 formData.append('due_date', moment(this.proposal.approval.expiry_date, 'YYYY-MM-DD').format('DD/MM/YYYY'));
             }
@@ -300,6 +340,36 @@ export default {
             for (const [key, value] of formData.entries()) {
                 jsonObject[key] = value;
             }
+            vm.post_and_redirect(vm.preview_licence_url, {'csrfmiddlewaretoken' : vm.csrf_token, 'formData': JSON.stringify(jsonObject)});
+        },
+        preview_originating_approval:function () {
+            let vm =this;
+            let formData = new FormData(vm.form)
+            if (this.proposal.approval && this.proposal.approval.start_date && this.proposal.approval.expiry_date) {
+                formData.append('start_date', moment(this.proposal.approval.start_date, 'YYYY-MM-DD').format('DD/MM/YYYY'));
+                formData.append('due_date', moment(this.proposal.approval.expiry_date, 'YYYY-MM-DD').format('DD/MM/YYYY'));
+            }
+            // convert formData to json
+            let jsonObject = {};
+            for (const [key, value] of formData.entries()) {
+                jsonObject[key] = value;
+            }
+            jsonObject['originating_approval_id'] = this.proposal.proposal_apiary.originating_approval_id;
+            vm.post_and_redirect(vm.preview_licence_url, {'csrfmiddlewaretoken' : vm.csrf_token, 'formData': JSON.stringify(jsonObject)});
+        },
+        preview_target_approval:function () {
+            let vm =this;
+            let formData = new FormData(vm.form)
+            if (this.proposal.approval && this.proposal.approval.start_date && this.proposal.approval.expiry_date) {
+                formData.append('start_date', moment(this.proposal.approval.start_date, 'YYYY-MM-DD').format('DD/MM/YYYY'));
+                formData.append('due_date', moment(this.proposal.approval.expiry_date, 'YYYY-MM-DD').format('DD/MM/YYYY'));
+            }
+            // convert formData to json
+            let jsonObject = {};
+            for (const [key, value] of formData.entries()) {
+                jsonObject[key] = value;
+            }
+            jsonObject['target_approval_id'] = this.proposal.proposal_apiary.target_approval_id;
             vm.post_and_redirect(vm.preview_licence_url, {'csrfmiddlewaretoken' : vm.csrf_token, 'formData': JSON.stringify(jsonObject)});
         },
         post_and_redirect: function(url, postData) {
@@ -360,9 +430,12 @@ export default {
             vm.errors = false;
             //vm.approval.apiary_sites = vm.proposal.proposal_apiary.apiary_sites
             vm.approval.apiary_sites = vm.apiary_sites_updated
-            if (this.proposal.approval){
+            if (!this.startDateCanBeModified){
                 // There is an existing licence. Therefore start_date and expiry_date are fixed to that dates
                 this.approval.start_date = moment(this.proposal.approval.start_date, 'YYYY-MM-DD').format('DD/MM/YYYY')
+            }
+            if (!this.expiryDateCanBeModified){
+                // There is an existing licence. Therefore start_date and expiry_date are fixed to that dates
                 this.approval.expiry_date = moment(this.proposal.approval.expiry_date, 'YYYY-MM-DD').format('DD/MM/YYYY')
             }
             let approval = JSON.parse(JSON.stringify(vm.approval)); // Deep copy
@@ -398,7 +471,6 @@ export default {
                         vm.errorString = helpers.apiVueResourceError(error);
                     });
             }
-            
         },
         addFormValidations: function() {
             let vm = this;

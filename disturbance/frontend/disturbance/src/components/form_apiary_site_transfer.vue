@@ -39,7 +39,20 @@
                     </div>
                 </div>
                 <div v-else>
-                    {{ transfereeName }}
+                    <div v-if="transfereeOrgName" class="col-sm-8">
+                        Organisation Name: {{ transfereeOrgName }}
+                    </div>
+                    <div v-else>
+                        <div class="col-sm-8">
+                            First Name: {{ transfereeFirstName }}
+                        </div>
+                        <div class="col-sm-8">
+                            Last Name: {{ transfereeFirstName }}
+                        </div>
+                    </div>
+                    <div class="col-sm-8">
+                        Licence: {{ targetApprovalLodgementNumber }}
+                    </div>
                 </div>
                 <!--/span-->
                 <div class="row col-sm-12">
@@ -53,8 +66,8 @@
                                 Licence: {{approval.lodgement_number}}
                             </div>
                         </div>
-                        <div v-else-if="receivingApprovalLodgementNumber">
-                            Licence: {{receivingApprovalLodgementNumber}}
+                        <div v-else-if="targetApprovalLodgementNumber">
+                            Licence: {{targetApprovalLodgementNumber}}
                         </div>
                     </div>
                 </div>
@@ -196,6 +209,26 @@
                     return this.proposal.proposal_apiary.transferee_name;
                 }
             },
+            transfereeOrgName: function() {
+                if (this.proposal && this.proposal.proposal_apiary) {
+                    return this.proposal.proposal_apiary.transferee_org_name;
+                }
+            },
+            transfereeFirstName: function() {
+                if (this.proposal && this.proposal.proposal_apiary) {
+                    return this.proposal.proposal_apiary.transferee_first_name;
+                }
+            },
+            transfereeLastName: function() {
+                if (this.proposal && this.proposal.proposal_apiary) {
+                    return this.proposal.proposal_apiary.transferee_last_name;
+                }
+            },
+            targetApprovalLodgementNumber: function() {
+                if (this.proposal && this.proposal.proposal_apiary) {
+                    return this.proposal.proposal_apiary.target_approval_lodgement_number;
+                }
+            },
             apiary_sections_classname: function() {
                 // For external page, we need 'col-md-9' classname
                 // but not for the internal.
@@ -260,6 +293,7 @@
                 }
                 return show;
             },
+            /*
             receivingApprovalLodgementNumber: function() {
                 let lodgement_number = '';
                 if (this.proposal && this.proposal.proposal_apiary && this.proposal.proposal_apiary.receiving_approval_lodgement_number) {
@@ -267,10 +301,11 @@
                 }
                 return lodgement_number;
             },
+            */
             selectedLicence: function() {
                 let licence = null;
-                if (this.proposal && this.proposal.proposal_apiary && this.proposal.proposal_apiary.receiving_approval_lodgement_number) {
-                    licence = this.proposal.proposal_apiary.receiving_approval_lodgement_number;
+                if (this.proposal && this.proposal.proposal_apiary && this.proposal.proposal_apiary.target_approval_lodgement_number) {
+                    licence = this.proposal.proposal_apiary.target_approval_lodgement_number;
                 } else if (this.proposal && this.proposal.proposal_apiary && this.proposal.proposal_apiary.selected_licence) {
                     licence = this.proposal.proposal_apiary.selected_licence;
                 }
@@ -313,7 +348,10 @@
                 Vue.http.post(helpers.add_endpoint_json(
                     api_endpoints.proposal_apiary,this.proposal.proposal_apiary.id+'/get_apiary_approvals'),
                     //data,{
-                    {'user_email': this.transfereeEmail}).then(res => {
+                    {
+                        'user_email': this.transfereeEmail,
+                        'originating_approval_id': this.proposal.proposal_apiary.originating_approval_id,
+                    }).then(res => {
                         console.log(res.body);
                         if (res.body && res.body.apiary_approvals) {
                             this.apiaryApprovals = res.body.apiary_approvals.approvals;

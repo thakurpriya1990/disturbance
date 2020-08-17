@@ -1,16 +1,17 @@
 <template id="proposal_requirements">
     <div>
-        proposal_approval.vue
         <template v-if="isFinalised">
             <div class="col-md-12 alert alert-success" v-if="proposal.processing_status == 'Approved'">
                 <div v-if="proposal.proposal_apiary">
                     <p>The licence has been issued and has been emailed to {{proposal.applicant.name}}</p>
+                    <p>Expiry date: {{approvalExpiryDate}}
+                    <p>Permit: <a target="_blank" :href="proposal.permit">licence.pdf</a></p>
                 </div>
                 <div v-else>
                     <p>The approval has been issued and has been emailed to {{proposal.applicant.name}}</p>
+                    <p>Expiry date: {{approvalExpiryDate}}
+                    <p>Permit: <a target="_blank" :href="proposal.permit">approval.pdf</a></p>
                 </div>
-                <p>Expiry date: {{proposal.proposed_issuance_approval.expiry_date}}
-                <p>Permit: <a target="_blank" :href="proposal.permit">approval.pdf</a></p>
             </div>
             <div v-else class="col-md-12 alert alert-warning">
                 <div v-if="proposal.proposal_apiary">
@@ -177,6 +178,22 @@ export default {
         ComponentSiteSelection,
     },
     computed:{
+        /*
+        approvalStartDate: function() {
+            let returnDate = null;
+            if (this.proposal && this.proposal.approval) {
+                returnDate = moment(this.proposal.approval.start_date, 'YYYY-MM-DD').format('DD/MM/YYYY');
+            }
+            return returnDate;
+        },
+        */
+        approvalExpiryDate: function() {
+            let returnDate = null;
+            if (this.proposal && this.proposal.approval) {
+                returnDate = moment(this.proposal.approval.expiry_date, 'YYYY-MM-DD').format('DD/MM/YYYY');
+            }
+            return returnDate;
+        },
         hasAssessorMode(){
             return this.proposal.assessor_mode.has_assessor_mode;
         },
@@ -214,6 +231,10 @@ export default {
 
     },
     methods:{
+        updateComponentSiteSelectionKey: function(){
+            console.log('in updateComponentSiteSelectionKey')
+            this.component_site_selection_key = uuid()
+        },
         readFile: function() {
             let vm = this;
             let _file = null;
@@ -285,7 +306,7 @@ export default {
     },
     mounted: function(){
         let vm = this;
-        this.component_site_selection_key = uuid()
+        this.updateComponentSiteSelectionKey()
     }
 }
 </script>

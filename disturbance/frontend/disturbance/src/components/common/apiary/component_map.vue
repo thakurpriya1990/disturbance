@@ -1,10 +1,31 @@
 <template lang="html">
     <div>
         <div :id="elem_id" class="map"></div>
+        
         <div :id="popup_id" class="ol-popup">
-            <a href="#" :id="popup_closer_id" class="ol-popup-closer"></a>
+            <a href="#" :id="popup_closer_id" class="ol-popup-closer">
+           <svg xmlns='http://www.w3.org/2000/svg' version='1.1' height='20' width='20' class="close-icon">
+
+               <g transform='scale(3)'>
+    <path d="M 5.2916667,2.6458333 A 2.6458333,2.6458333 0 0 1 2.6458335,5.2916667 2.6458333,2.6458333 0 0 1 0,2.6458333 2.6458333,2.6458333 0 0 1 2.6458335,0 2.6458333,2.6458333 0 0 1 5.2916667,2.6458333 Z" style="fill:#ffffff;fill-opacity:1;stroke-width:0.182031" id="path846" />
+    <path d="M 1.5581546,0.94474048 2.6457566,2.0324189 3.7334348,0.94474048 4.3469265,1.5581547 3.2592475,2.6458334 4.3469265,3.7334353 3.7334348,4.3469261 2.6457566,3.2593243 1.5581546,4.3469261 0.9447402,3.7334353 2.0323422,2.6458334 0.9447402,1.5581547 Z" style="fill:#f46464;fill-opacity:1;stroke:none;stroke-width:0.0512157" id="path2740-3" />
+  </g>
+  <!--
+  <g transform='matrix(0.51623652,0,0,0.51623652,-22,-22)'
+     >
+    <path
+       style='fill:#337ab7;fill-opacity:1;'
+       d='m 241.92578,171.51367 a 64.001904,64.001904 0 0 0 -63.70312,64.00195 64.001904,64.001904 0 0 0 64.00195,64.00196 64.001904,64.001904 0 0 0 64.00195,-64.00196 64.001904,64.001904 0 0 0 -64.00195,-64.00195 64.001904,64.001904 0 0 0 -0.29883,0 z m -27.33398,20.78516 27.63086,27.63281 27.63281,-27.63281 15.58594,15.58398 -27.63282,27.63281 27.63282,27.63086 -15.58594,15.58594 -27.63281,-27.63086 -27.63086,27.63086 -15.58399,-15.58594 27.63086,-27.63086 -27.63086,-27.63281 z'
+       transform='scale(0.26458333)' />
+  </g>
+  -->
+
+           </svg>
+
+            </a>
             <div :id="popup_content_id"></div>
         </div>
+
     </div>
 </template>
 
@@ -31,6 +52,8 @@
     import { getDistance } from 'ol/sphere';
     import { circular} from 'ol/geom/Polygon';
     import GeoJSON from 'ol/format/GeoJSON';
+    import Overlay from 'ol/Overlay';
+    import { getApiaryFeatureStyle } from '@/components/common/apiary/site_colours.js'
 
     export default {
         props:{
@@ -48,6 +71,10 @@
                     return []
                 }
             },
+            can_modify: {
+                type: Boolean,
+                default: false
+            }
         },
         watch: {
 
@@ -61,22 +88,9 @@
                 popup_id: uuid(),
                 popup_closer_id: uuid(),
                 popup_content_id: uuid(),
-                style_not_checked: 
-                    new Style({
-                        image: new CircleStyle({
-                            radius: 7,
-                            fill: new Fill({color: '#e0e0e0'}),
-                            stroke: new Stroke({color: '#616161', width: 2})
-                        })
-                    }),
-                style_checked:
-                    new Style({
-                        image: new CircleStyle({
-                        radius: 7,
-                        fill: new Fill({color: '#03a9f4'}),
-                        stroke: new Stroke({color: '#2e6da4', width: 2})
-                        })
-                    }),
+                overlay: null,
+                content_element: null,
+                modifyInProgressList: []
             }
         },
         created: function(){
@@ -100,32 +114,8 @@
             forceToRefreshMap: function() {
                 let vm = this
                 setTimeout(function(){
-                    console.log('updateResize()')
                     vm.map.updateSize();
                 }, 50)
-            },
-            drawStyle: function(feature, resolution){
-                return this.getStyle(feature.get('status'), feature.get('checked'))
-                //let fillObj = this.getFillColour(feature.get('status'))
-                //let strokeObj = this.getStrokeColour(feature.get('status'), feature.get('checked'))
-                //return new Style({
-                //            image: new CircleStyle({
-                //                radius: 7,
-                //                fill: fillObj,
-                //                stroke: strokeObj,
-                //            })
-                //        })
-            },
-            getStyle: function(status, checked){
-                let fillObj = this.getFillColour(status)
-                let strokeObj = this.getStrokeColour(status, checked)
-                return new Style({
-                            image: new CircleStyle({
-                                radius: 7,
-                                fill: fillObj,
-                                stroke: strokeObj,
-                            })
-                        })
             },
             initMap: function() {
                 let vm = this;
@@ -150,7 +140,10 @@
                 });
                 vm.apiarySitesQueryLayer = new VectorLayer({
                     source: vm.apiarySitesQuerySource,
-                    style: this.drawStyle
+                    //style: this.drawStyle
+                    style: function(feature, resolution){
+                        return getApiaryFeatureStyle(feature.get('status'), feature.get('checked'))
+                    },
                 });
                 vm.map.addLayer(vm.apiarySitesQueryLayer);
 
@@ -171,70 +164,128 @@
                 for (let i=0; i<vm.apiary_site_geojson_array.length; i++){
                     this.addApiarySite(vm.apiary_site_geojson_array[i])
                 }
+
+                let container = document.getElementById(vm.popup_id)
+                vm.content_element = document.getElementById(vm.popup_content_id)
+                let closer = document.getElementById(vm.popup_closer_id)
+
+                vm.overlay = new Overlay({
+                    element: container,
+                    autoPan: false,
+                    offest: [0, -10]
+                })
+
+                closer.onclick = function() {
+                    vm.overlay.setPosition(undefined)
+                    closer.blur()
+                    return false
+                }
+
+                vm.map.addOverlay(vm.overlay)
+
+                vm.map.on('click', function(evt){
+                    let feature = vm.map.forEachFeatureAtPixel(evt.pixel, function(feature, layer) {
+                        console.log(evt)
+                        console.log(feature)
+                        console.log(layer)
+                        return feature;
+                    });
+                    if (feature){
+                        if (!feature.id){
+                            // When the Modify object is used for the layer, 'feature' losts some of the attributes including 'id', 'status'...
+                            // Therefore try to get the correct feature by the coordinate
+                            let geometry = feature.getGeometry();
+                            let coord = geometry.getCoordinates();
+                            feature = vm.apiarySitesQuerySource.getFeaturesAtCoordinate(coord)
+                        }
+                        vm.showPopup(feature[0])
+                    }
+                })
+                vm.map.on('pointermove', function(e) {
+                    if (e.dragging) return;
+                    let pixel = vm.map.getEventPixel(e.originalEvent);
+                    let hit = vm.map.hasFeatureAtPixel(pixel);
+                    vm.map.getTargetElement().style.cursor = hit ? 'pointer' : '';
+                });
+                vm.map.on('moveend', function(e){
+                    let extent = vm.map.getView().calculateExtent(vm.map.getSize());
+                    let features = vm.apiarySitesQuerySource.getFeaturesInExtent(extent)
+                    vm.$emit('featuresDisplayed', features)
+                });
+                if (vm.can_modify){
+                    let modifyTool = new Modify({
+                        source: vm.apiarySitesQuerySource,
+                    });
+                    modifyTool.on("modifystart", function(attributes){
+                        console.log('modifystart')
+                        attributes.features.forEach(function(feature){
+                            console.log(feature)
+                        })
+                    });
+                    modifyTool.on("modifyend", function(attributes){
+                        console.log('modifyend')
+                        attributes.features.forEach(function(feature){
+                            let id = feature.getId();
+                            let index = vm.modifyInProgressList.indexOf(id);
+                            if (index != -1) {
+                                // feature has been modified
+                                vm.modifyInProgressList.splice(index, 1);
+                                let coords = feature.getGeometry().getCoordinates();
+                                vm.$emit('featureGeometryUpdated', {'id': id, 'coordinates': {'lng': coords[0], 'lat': coords[1]}})
+                            } 
+                        });
+                    });
+                    vm.map.addInteraction(modifyTool);
+                }
+            },
+            showPopup: function(feature){
+                console.log('** showPopup **')
+                let geometry = feature.getGeometry();
+                let coord = geometry.getCoordinates();
+                console.log(coord)
+                let svg_hexa = "<svg xmlns='http://www.w3.org/2000/svg' version='1.1' height='20' width='15'>" + 
+                '<g transform="translate(0, 4) scale(0.9)"><path d="M 14.3395,12.64426 7.5609998,16.557828 0.78249996,12.64426 0.7825,4.8171222 7.5609999,0.90355349 14.3395,4.8171223 Z" id="path837" style="fill:none;stroke:#ffffff;stroke-width:1.565;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" /></g></svg>'
+                let content = '<div style="padding: 0.25em;">' + 
+                '<div style="background: darkgray; color: white; text-align: center;" class="align-middle">' + svg_hexa + ' site: ' + feature.id_ + '</div>' + 
+                                  '<div style="font-size: 0.8em;">' + 
+                                      '<div>' + feature.get('status') + '</div>' + 
+                                      '<div>' + feature['values_']['geometry']['flatCoordinates'] + '</div>' + 
+                                  '</div>' + 
+                              '</div>'
+                this.content_element.innerHTML = content;
+                this.overlay.setPosition(coord);
             },
             getDegrees: function(coords){
                 return coords[0].toFixed(6) + ', ' + coords[1].toFixed(6);
             },
-            // This function is not used
-            getFillColour: function(status){
-                switch(status){
-                    case 'draft':
-                        return new Fill({color: '#e0e0e0'})
-                    case 'pending':
-                        return new Fill({color: '#fff59d'})
-                    case 'current':
-                        return new Fill({color: '#bbdefb'})
-                    case 'suspended':
-                        return new Fill({color: '#ffcc80'})
-                    case 'not_to_be_reissued':
-                        return new Fill({color: '#d1c4e9'})
-                    case 'denied':
-                        return new Fill({color: '#ffcdd2'})
-                    case 'vacant':
-                        return new Fill({color: '#7fcac3'})
-                }
-            },
-            // This function is not used
-            getStrokeColour: function(status, selected=false){
-                let stroke_width = selected ? 4 : 2
-                switch(status){
-                    case 'draft':
-                        return new Stroke({color: '#616161', width: stroke_width})
-                    case 'pending':
-                        return new Stroke({color: '#f2cb29', width: stroke_width})
-                    case 'current':
-                        return new Stroke({color: '#1a76d2', width: stroke_width})
-                    case 'suspended':
-                        return new Stroke({color: '#f57c01', width: stroke_width})
-                    case 'not_to_be_reissued':
-                        return new Stroke({color: '#512da8', width: stroke_width})
-                    case 'denied':
-                        return new Stroke({color: '#d2302f', width: stroke_width})
-                    case 'vacant':
-                        return new Stroke({color: '#00796b', width: stroke_width})
-                }
-            },
             addApiarySite: function(apiary_site_geojson) {
-                console.log('in addApiarySite')
-                console.log(apiary_site_geojson)
-                
+                let vm = this
                 let feature = (new GeoJSON()).readFeature(apiary_site_geojson)
-                let status = feature.get('status')
-                let checked_status = apiary_site_geojson.properties.hasOwnProperty('checked') ? apiary_site_geojson.properties.checked : false
-                console.log(checked_status)
-                //let style_applied = checked_status ? this.style_checked : this.style_not_checked
-                //feature.setStyle(style_applied)
+
+                feature.getGeometry().on("change", function() {
+                    let feature_id = feature.getId()
+                    if (vm.modifyInProgressList.indexOf(feature_id) == -1) {
+                        vm.modifyInProgressList.push(feature_id);
+                    }
+                })
+
                 this.apiarySitesQuerySource.addFeature(feature)
+            },
+            removeApiarySiteById: function(apiary_site_id){
+                let feature = this.apiarySitesQuerySource.getFeatureById(apiary_site_id)
+                this.apiarySitesQuerySource.removeFeature(feature)
             },
             zoomToApiarySiteById: function(apiary_site_id){
                 let feature = this.apiarySitesQuerySource.getFeatureById(apiary_site_id)
+                let geometry = feature.getGeometry()
+                let coord = geometry.getCoordinates()
                 let view = this.map.getView()
                 this.map.getView().animate({zoom: 16, center: feature['values_']['geometry']['flatCoordinates']})
+                this.showPopup(feature)
             },
             setApiarySiteSelectedStatus: function(apiary_site_id, selected) {
-                console.log('setApiarySiteSelectedStatus')
                 let feature = this.apiarySitesQuerySource.getFeatureById(apiary_site_id)
-                let style_applied = this.getStyle(feature.get('status'), selected)
+                let style_applied = getApiaryFeatureStyle(feature.get('status'), selected)
                 feature.setStyle(style_applied)
             },
             addEventListeners: function () {
@@ -257,4 +308,67 @@
 </script>
 
 <style lang="css" scoped>
+    .ol-popup {
+        position: absolute;
+        min-width: 95px;
+        background-color: white;
+        -webkit-filter: drop-shadow(0 1px 4px rgba(0,0,0,0.2));
+        filter: drop-shadow(0 1px 4px rgba(0,0,0,0.2));
+        padding: 2px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+        bottom: 12px;
+        left: -50px;
+    }
+    .ol-popup:after, .ol-popup:before {
+        top: 100%;
+        border: solid transparent;
+        content: " ";
+        height: 0;
+        width: 0;
+        position: absolute;
+        pointer-events: none;
+    }
+    .ol-popup:after {
+        border-top-color: white;
+        border-width: 10px;
+        left: 48px;
+        margin-left: -10px;
+    }
+    .ol-popup:before {
+        border-top-color: #cccccc;
+        border-width: 11px;
+        left: 48px;
+        margin-left: -11px;
+    }
+    .ol-popup-closer {
+        text-decoration: none;
+        position: absolute;
+        top: 2px;
+        right: 8px;
+    }
+    .ol-popup-closer:after {
+        /*
+        content: "✖";
+        */
+    }
+    .close-icon:hover {
+        filter: brightness(80%);
+    }
+    .close-icon {
+        position: absolute;
+        left: 1px;
+        top: -11px;
+        filter: drop-shadow(0 1px 4px rgba(0,0,0,0.2));
+    }
+    .popup-wrapper {
+        padding: 0.25em;
+    }
+    .popup-content-header {
+        background: darkgray;
+        color: white;
+    }
+    .popup-content {
+        font-size: small;
+    }
 </style>

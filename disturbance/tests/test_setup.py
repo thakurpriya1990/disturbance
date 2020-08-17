@@ -1,9 +1,11 @@
 from mixer.backend.django import mixer
 from django.conf import settings
 from importlib import import_module
+from django.utils import timezone
+from datetime import timedelta
 
-from .management.default_data_manager import DefaultDataManager
-from .models import *
+from disturbance.management.default_data_manager import DefaultDataManager
+#from .models import *
 from ledger.accounts.models import EmailUser, EmailUserManager
 import random
 import string
@@ -22,19 +24,24 @@ from requests.auth import HTTPBasicAuth
 from disturbance.components.proposals.models import (
         ProposalType,
         ApplicationType,
-        ApiaryApplicantChecklistQuestion,
-        ApiaryApplicantChecklistAnswer,
+        ApiaryChecklistQuestion,
+        ApiaryChecklistAnswer,
         ProposalAssessorGroup,
         ApiaryAssessorGroup,
         ApiaryApproverGroup,
         SiteCategory,
+        ProposalStandardRequirement,
         )
 from disturbance.components.approvals.models import (
         Approval,
         )
+from disturbance.components.main.models import (
+        GlobalSettings,
+        )
 
 
 class APITestSetup(APITestCase):
+    fixtures = ['countries.json']
 
     def setUp(self):
         print("setup method")
@@ -85,19 +92,9 @@ class APITestSetup(APITestCase):
         # customer1 UserAddress
         user1_address = UserAddress.objects.create(
                 country_id= 'AU',
-                #is_default_for_billing= True,
-                #is_default_for_shipping= True,
                 line1= '17 Dick Perry',
-                #line2: '',
-                #line3': u'',
-                #line4': u'BENTLEY DELIVERY CENTRE',
-                #notes': u'',
-                #num_orders': 0,
-                #phone_number': None,
                 postcode= '6151',
-                #'search_text': u'',
                 state= 'WA',
-                #title': u'',
                 user_id= self.customer1.id
                 )
 
@@ -112,19 +109,9 @@ class APITestSetup(APITestCase):
         # customer2 UserAddress
         user2_address = UserAddress.objects.create(
                 country_id= 'AU',
-                #is_default_for_billing= True,
-                #is_default_for_shipping= True,
                 line1= '17 Dick Perry',
-                #line2: '',
-                #line3': u'',
-                #line4': u'BENTLEY DELIVERY CENTRE',
-                #notes': u'',
-                #num_orders': 0,
-                #phone_number': None,
                 postcode= '6151',
-                #'search_text': u'',
                 state= 'WA',
-                #title': u'',
                 user_id= self.customer2.id
                 )
 
@@ -152,13 +139,42 @@ class APITestSetup(APITestCase):
         self.new_apiary_approver_group.members.add(self.adminUser)
 
         # Checklist questions/answers
-        #import ipdb; ipdb.set_trace()
-        self.apiary_qu_1 = ApiaryApplicantChecklistQuestion.objects.create(answer_type='yes_no', checklist_type="apiary", text="first_question")
-        self.apiary_qu_2 = ApiaryApplicantChecklistQuestion.objects.create(answer_type='yes_no', checklist_type="apiary", text="second_question")
-        self.apiary_qu_3 = ApiaryApplicantChecklistQuestion.objects.create(answer_type='yes_no', checklist_type="apiary", text="third_question")
-        self.apiary_site_transfer_qu_1 = ApiaryApplicantChecklistQuestion.objects.create(answer_type='yes_no', checklist_type="site_transfer", text="first_question")
-        self.apiary_site_transfer_qu_2 = ApiaryApplicantChecklistQuestion.objects.create(answer_type='yes_no', checklist_type="site_transfer", text="second_question")
-        self.apiary_site_transfer_qu_3 = ApiaryApplicantChecklistQuestion.objects.create(answer_type='yes_no', checklist_type="site_transfer", text="third_question")
+        self.apiary_qu_1 = ApiaryChecklistQuestion.objects.create(
+                answer_type='yes_no', 
+                checklist_type="apiary", 
+                text="first_question", 
+                checklist_role='applicant'
+                )
+        self.apiary_qu_2 = ApiaryChecklistQuestion.objects.create(
+                answer_type='yes_no', 
+                checklist_type="apiary", 
+                text="second_question",
+                checklist_role='applicant'
+                )
+        self.apiary_qu_3 = ApiaryChecklistQuestion.objects.create(
+                answer_type='yes_no', 
+                checklist_type="apiary", 
+                text="third_question",
+                checklist_role='applicant'
+                )
+        self.apiary_site_transfer_qu_1 = ApiaryChecklistQuestion.objects.create(
+                answer_type='yes_no', 
+                checklist_type="site_transfer", 
+                text="first_question",
+                checklist_role='applicant'
+                )
+        self.apiary_site_transfer_qu_2 = ApiaryChecklistQuestion.objects.create(
+                answer_type='yes_no', 
+                checklist_type="site_transfer", 
+                text="second_question",
+                checklist_role='applicant'
+                )
+        self.apiary_site_transfer_qu_3 = ApiaryChecklistQuestion.objects.create(
+                answer_type='yes_no', 
+                checklist_type="site_transfer", 
+                text="third_question",
+                checklist_role='applicant'
+                )
 
         # Create ProposalTypes
         ProposalType.objects.create(name='Apiary', schema='[{}]')
@@ -176,6 +192,23 @@ class APITestSetup(APITestCase):
         # Create SiteCategories
         SiteCategory.objects.create(name='south_west')
         SiteCategory.objects.create(name='remote')
+        # Create ProposalStandardRequirements
+        ProposalStandardRequirement.objects.create(
+                code='R1',
+                text='Standard requirement 1'
+                )
+        ProposalStandardRequirement.objects.create(
+                code='R2',
+                text='Standard requirement 2'
+                )
+        ProposalStandardRequirement.objects.create(
+                code='A1',
+                text='Standard Apiary requirement 1'
+                )
+        ProposalStandardRequirement.objects.create(
+                code='A2',
+                text='Standard Apiary requirement 2'
+                )
         ## create_proposal_data
         # Apiary applications
         self.apiary_application_type_id = ApplicationType.objects.get(name='Apiary').id
@@ -202,14 +235,25 @@ class APITestSetup(APITestCase):
             u'behalf_of': u'individual',
             }
         # submit_proposal_data
-        #with open('submit_schema.json', 'r') as submit_schema_file:
-         #   submit_schema = json.load(submit_schema_file)
-        with open('all_the_features.json', 'r') as features_file:
-            self.all_the_features = json.load(features_file)
-        with open('all_the_features_1.json', 'r') as features_file_1:
+        with open('disturbance/tests/all_the_features_1.json', 'r') as features_file_1:
             self.all_the_features_1 = json.load(features_file_1)
-        with open('all_the_features_2.json', 'r') as features_file_2:
+        with open('disturbance/tests/all_the_features_2.json', 'r') as features_file_2:
             self.all_the_features_2 = json.load(features_file_2)
+
+        # Dates
+        self.today = timezone.now().date()
+        self.today_str = self.today.strftime('%d/%m/%Y')
+        day_delta = timedelta(days=1)
+        week_delta = timedelta(weeks=1)
+        self.today_plus_1_day = self.today + day_delta
+        self.today_plus_1_week = self.today + day_delta
+        self.today_plus_26_weeks = self.today + (day_delta * 26)
+        self.today_plus_1_day_str = self.today_plus_1_day.strftime('%d/%m/%Y')
+        self.today_plus_1_week_str = self.today_plus_1_week.strftime('%d/%m/%Y')
+        self.today_plus_26_weeks_str = self.today_plus_26_weeks.strftime('%d/%m/%Y')
+
+        # Global settings
+        GlobalSettings.objects.create(key='oracle_code_apiary_site_annual_rental_fee', value='sample')
 
         # Get data ready
         temp = DefaultDataManager()

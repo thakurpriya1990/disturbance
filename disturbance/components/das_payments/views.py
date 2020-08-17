@@ -15,8 +15,13 @@ from datetime import datetime, timedelta, date
 from django.utils import timezone
 from dateutil.relativedelta import relativedelta
 from ledger.accounts.models import EmailUser
+from ledger.settings_base import PRODUCTION_EMAIL, DEBUG
 
-from disturbance.components.proposals.models import Proposal, ApiarySiteFeeRemainder, ApiarySiteFeeType, SiteCategory
+from disturbance.components.approvals.email import get_value_of_annual_rental_fee_awaiting_payment_confirmation, \
+    send_annual_rental_fee_invoice
+from disturbance.components.approvals.serializers import ApprovalLogEntrySerializer
+from disturbance.components.proposals.models import Proposal, ApiarySiteFeeRemainder, ApiarySiteFeeType, SiteCategory, \
+    ApiarySite
 from disturbance.components.compliances.models import Compliance
 from disturbance.components.main.models import ApplicationType
 from disturbance.components.organisations.models import Organisation
@@ -36,9 +41,10 @@ from disturbance.components.das_payments.utils import (
     delete_session_application_invoice,
     get_session_site_transfer_application_invoice,
     set_session_site_transfer_application_invoice,
-    delete_session_site_transfer_application_invoice,
-    #create_bpay_invoice,
-    #create_other_invoice,
+    delete_session_site_transfer_application_invoice, set_session_annual_rental_fee, get_session_annual_rental_fee,
+    delete_session_annual_rental_fee,
+    # create_bpay_invoice,
+    # create_other_invoice,
 )
 
 from disturbance.components.das_payments.models import ApplicationFee, ApplicationFeeInvoice, AnnualRentalFee
@@ -54,9 +60,57 @@ from ledger.payments.mixins import InvoiceOwnerMixin
 from oscar.apps.order.models import Order
 from disturbance.helpers import is_internal, is_disturbance_admin, is_in_organisation_contacts
 from ledger.payments.helpers import is_payment_admin
+from disturbance.context_processors import apiary_url, template_context
 
 import logging
 logger = logging.getLogger('payment_checkout')
+
+
+class AnnualRentalFeeView(TemplateView):
+    def get_object(self):
+        return get_object_or_404(AnnualRentalFee, id=self.kwargs['annual_rental_fee_id'])
+
+    def restore_original_format(self, lines):
+        for line in lines:
+            for key in line:
+                if key in ('price_incl_tax', 'price_excl_tax') and isinstance(line[key], (str, unicode)):
+                    amount_f = float(line[key])  # string to float
+                    if not DEBUG and PRODUCTION_EMAIL:
+                        round_f = round(amount_f, 2)  # Round to 2 decimal places
+                    else:
+                        # in Dev/UAT, avoid decimal amount, otherwise payment is declined
+                        round_f = round(amount_f)
+                    decimal_f = Decimal(str(round_f))  # Generate Decimal with 2 decimal places string
+                    line[key] = decimal_f
+        return lines
+
+    def get(self, request, *args, **kwargs):
+        annual_rental_fee = self.get_object()
+
+        try:
+            with transaction.atomic():
+                set_session_annual_rental_fee(request.session, annual_rental_fee)
+
+                lines = self.restore_original_format(annual_rental_fee.lines)
+                checkout_response = checkout(
+                    request,
+                    None,
+                    lines,
+                    return_url_ns='annual_rental_fee_success',
+                    return_preload_url_ns='annual_rental_fee_success',
+                    invoice_text='Annual Rental Fee'
+                )
+
+                logger.info('{} built payment line item {} for Annual Rental Fee and handing over to payment gateway'.format(
+                    'User {} with id {}'.format(
+                        request.user.get_full_name(), request.user.id
+                    ), annual_rental_fee.approval.lodgement_number
+                ))
+                return checkout_response
+
+        except Exception, e:
+            logger.error('Error Creating Annual Rental Fee: {}'.format(e))
+            raise
 
 
 class ApplicationFeeView(TemplateView):
@@ -232,12 +286,70 @@ class SiteTransferApplicationFeeSuccessView(TemplateView):
         return render(request, self.template_name, context)
 
 
+class AnnualRentalFeeSuccessView(TemplateView):
+    template_name = 'disturbance/payment/annual_rental_fee_success.html'
+
+    def get(self, request, *args, **kwargs):
+        invoice = None
+
+        try:
+            context = template_context(self.request)
+            basket = None
+
+            # When accessed first time, there is a annual_rental_fee in the session which was set at AnnualRentalFeeView()
+            # but when accessed sencond time, it is deleted therefore raise an error.
+            annual_rental_fee = get_session_annual_rental_fee(request.session)
+
+            if self.request.user.is_authenticated():
+                basket = Basket.objects.filter(status='Submitted', owner=request.user).order_by('-id')[:1]
+            else:
+                pass
+
+            order = Order.objects.get(basket=basket[0])
+            invoice = Invoice.objects.get(order_number=order.number)
+            annual_rental_fee.invoice_reference = invoice.reference
+            annual_rental_fee.save()
+
+            request.session['last_annual_rental_fee_id'] = annual_rental_fee.id
+            delete_session_annual_rental_fee(request.session)
+
+            # Send invoice
+            email_data = send_annual_rental_fee_invoice(annual_rental_fee.approval, invoice)
+
+            # Add comms log
+            email_data['approval'] = u'{}'.format(annual_rental_fee.approval.id)
+            serializer = ApprovalLogEntrySerializer(data=email_data)
+            serializer.is_valid(raise_exception=True)
+            comms = serializer.save()
+
+            context = {
+                'annual_rental_fee': annual_rental_fee,
+            }
+            return render(request, self.template_name, context)
+
+        except Exception as e:
+            if 'last_annual_rental_fee_id' in request.session and AnnualRentalFee.objects.filter(id=request.session['last_annual_rental_fee_id']).exists():
+                annual_rental_fee = AnnualRentalFee.objects.get(id=request.session['last_annual_rental_fee_id'])
+                del request.session['last_annual_rental_fee_id']
+                request.session.modified = True
+
+                # TODO: Display success screen
+                context = {
+                    'annual_rental_fee': annual_rental_fee,
+                }
+                return render(request, self.template_name, context)
+            else:
+                return redirect('home')
+
+        except AnnualRentalFee.DoesNotExist:
+            logger.error('AnnualRentalFee id:{} not found in the database'.format(request.session['last_annual_rental_fee_id']))
+            return redirect('home')
+
+
 class ApplicationFeeSuccessView(TemplateView):
     template_name = 'disturbance/payment/success_fee.html'
 
     def get(self, request, *args, **kwargs):
-        print (" APPLICATION FEE SUCCESS ")
-
         proposal = None
         submitter = None
         invoice = None
@@ -354,6 +466,14 @@ class ApplicationFeeSuccessView(TemplateView):
         return render(request, self.template_name, context)
 
     def adjust_db_operations(self, db_operations):
+        for item in db_operations['apiary_sites']:
+            apiary_site = ApiarySite.objects.get(id=item['id'])
+            if apiary_site.status != ApiarySite.STATUS_VACANT:
+                # If the apiary site in the proposal is in the 'vacant' status, which has been available site the applicant of this application picked up from the map
+                # In that case, we don't want to change the status from 'vacant' to 'pending'
+                apiary_site.status = ApiarySite.STATUS_PENDING
+                apiary_site.save()
+
         # Perform database operations to remove and/or store site remainders
         # site remainders used
         for item in db_operations['site_remainder_used']:
@@ -379,9 +499,18 @@ class ApplicationFeeSuccessView(TemplateView):
             )
 
 
+class AwaitingPaymentPDFView(View):
+    def get(self, request, *args, **kwargs):
+        annual_rental_fee = get_object_or_404(AnnualRentalFee, id=self.kwargs['annual_rental_fee_id'])
+        response = HttpResponse(content_type='application/pdf')
+        response.write(get_value_of_annual_rental_fee_awaiting_payment_confirmation(annual_rental_fee))
+        return response
+
+
 class InvoicePDFView(View):
     def get(self, request, *args, **kwargs):
         invoice = get_object_or_404(Invoice, reference=self.kwargs['reference'])
+        url_var = apiary_url(request)
 
         try:
             # Assume the invoice has been issued for the application(proposal)
@@ -391,25 +520,25 @@ class InvoicePDFView(View):
                 organisation = proposal.applicant.organisation.organisation_set.all()[0]
                 if self.check_owner(organisation):
                     response = HttpResponse(content_type='application/pdf')
-                    response.write(create_invoice_pdf_bytes('invoice.pdf', invoice, proposal))
+                    response.write(create_invoice_pdf_bytes('invoice.pdf', invoice, url_var, proposal))
                     return response
                 raise PermissionDenied
             else:
                 response = HttpResponse(content_type='application/pdf')
-                response.write(create_invoice_pdf_bytes('invoice.pdf', invoice, proposal))
+                response.write(create_invoice_pdf_bytes('invoice.pdf', invoice, url_var, proposal))
                 return response
         except Proposal.DoesNotExist:
             # The invoice might be issued for the annual rental fee
             annual_rental_fee = AnnualRentalFee.objects.get(invoice_reference=invoice.reference)
             approval = annual_rental_fee.approval
             response = HttpResponse(content_type='application/pdf')
-            response.write(create_invoice_pdf_bytes('invoice.pdf', invoice, None))
+            response.write(create_invoice_pdf_bytes('invoice.pdf', invoice, url_var, None))
             return response
         except:
             raise
 
     def get_object(self):
-        return  get_object_or_404(Invoice, reference=self.kwargs['reference'])
+        return get_object_or_404(Invoice, reference=self.kwargs['reference'])
 
     def check_owner(self, organisation):
         return is_in_organisation_contacts(self.request, organisation) or is_internal(self.request) or self.request.user.is_superuser

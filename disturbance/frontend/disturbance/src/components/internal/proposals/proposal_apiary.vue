@@ -147,9 +147,16 @@
                             </div>
                             <template v-if="proposal.processing_status == 'With Assessor (Requirements)' || proposal.processing_status == 'With Approver' || isFinalised">
                                 <div class="col-sm-12">
-                                    <strong>Proposal</strong><br/>
-                                    <a class="actionBtn" v-if="!showingProposal" @click.prevent="toggleProposal()">Show Proposal</a>
-                                    <a class="actionBtn" v-else @click.prevent="toggleProposal()">Hide Proposal</a>
+                                    <div v-if="proposal.proposal_apiary">
+                                        <strong>Application</strong><br/>
+                                        <a class="actionBtn" v-if="!showingProposal" @click.prevent="toggleProposal()">Show Application</a>
+                                        <a class="actionBtn" v-else @click.prevent="toggleProposal()">Hide Application</a>
+                                    </div>
+                                    <div v-else>
+                                        <strong>Proposal</strong><br/>
+                                        <a class="actionBtn" v-if="!showingProposal" @click.prevent="toggleProposal()">Show Proposal</a>
+                                        <a class="actionBtn" v-else @click.prevent="toggleProposal()">Hide Proposal</a>
+                                    </div>
                                 </div>
                                 <div class="col-sm-12">
                                     <div class="separator"></div>
@@ -251,7 +258,11 @@
                         <ApprovalScreenSiteTransferTemporaryUse :proposal="proposal" @refreshFromResponse="refreshFromResponse"/>
                     </div>
                     <div v-else>
-                        <ApprovalScreen :proposal="proposal" @refreshFromResponse="refreshFromResponse"/>
+                        <ApprovalScreen 
+                            :proposal="proposal" 
+                            ref="approval_screen"
+                            @refreshFromResponse="refreshFromResponse"
+                        />
                     </div>
                 </template>
                 <template v-if="proposal.processing_status == 'With Assessor (Requirements)' || ((proposal.processing_status == 'With Approver' || isFinalised) && showingRequirements)">
@@ -412,7 +423,6 @@
                         <div class="row">
                             <form :action="proposal_form_url" method="post" name="new_proposal" enctype="multipart/form-data">
                                 <div v-if="proposal && proposal.application_type=='Apiary'">
-
                                     <ApiaryForm
                                         v-if="proposal"
                                         :proposal="proposal"
@@ -714,14 +724,14 @@ export default {
         targetApprovalId: function() {
             let returnVal = null;
             if (this.proposal.application_type === 'Site Transfer') {
-                returnVal = this.proposal.approval.id;
+                returnVal = this.proposal.proposal_apiary.target_approval_id;
             }
             return returnVal;
         },
         targetApprovalLodgementNumber: function() {
             let returnVal = '';
             if (this.proposal.application_type === 'Site Transfer') {
-                returnVal = this.proposal.approval.lodgement_number;
+                returnVal = this.proposal.proposal_apiary.target_approval_lodgement_number;
             }
             return returnVal;
         },
@@ -925,6 +935,7 @@ export default {
             });
         },
         refreshFromResponse:function(response){
+            console.log('in refreshFromResponse')
             let vm = this;
             vm.original_proposal = helpers.copyObject(response.body);
             vm.proposal = helpers.copyObject(response.body);
@@ -933,6 +944,7 @@ export default {
                 vm.initialiseAssignedOfficerSelect(true);
                 vm.updateAssignedOfficerSelect();
             });
+            this.$refs.approval_screen.updateComponentSiteSelectionKey()
         },
         assignTo: function(){
             let vm = this;

@@ -60,10 +60,10 @@ export default {
         alert
     },
     props:{
-        approval_id: {
-            type: Number,
-            required: true
-        },
+        //approval_id: {
+        //    type: Number,
+        //    required: true
+        //},
     },
     data:function () {
         let vm = this;

@@ -82,6 +82,7 @@ class ListProposalSerializer(BaseProposalSerializer):
     assessor_process = serializers.SerializerMethodField(read_only=True)
     relevant_applicant_name = serializers.SerializerMethodField(read_only=True)
     apiary_group_application_type = serializers.SerializerMethodField(read_only=True)
+    template_group = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Proposal
@@ -119,6 +120,7 @@ class ListProposalSerializer(BaseProposalSerializer):
                 'fee_paid',
                 'relevant_applicant_name',
                 'apiary_group_application_type',
+                'template_group',
                 )
         # the serverSide functionality of datatables is such that only columns that have field 'data' defined are requested from the serializer. We
         # also require the following additional fields for some of the mRender functions
@@ -145,6 +147,7 @@ class ListProposalSerializer(BaseProposalSerializer):
                 'application_type',
                 'relevant_applicant_name',
                 'apiary_group_application_type',
+                'template_group',
                 )
     def get_relevant_applicant_name(self,obj):
         return obj.relevant_applicant_name
@@ -180,6 +183,9 @@ class ListProposalSerializer(BaseProposalSerializer):
 
     def get_apiary_group_application_type(self, obj):
         return obj.apiary_group_application_type
+
+    def get_template_group(self, obj):
+        return self.context.get('template_group')
 
 
 class ProposalSerializer(BaseProposalSerializer):
@@ -494,6 +500,7 @@ class DTReferralSerializer(serializers.ModelSerializer):
     referral = EmailUserSerializer()
     relevant_applicant_name = serializers.SerializerMethodField()
     #proposal_application_type = serializers.SerializerMethodField()
+    template_group = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Referral
@@ -514,6 +521,7 @@ class DTReferralSerializer(serializers.ModelSerializer):
             'proposal_lodgement_date',
             'proposal_lodgement_number',
             'referral_text',
+            'template_group',
         )
 
     def get_submitter(self,obj):
@@ -522,11 +530,15 @@ class DTReferralSerializer(serializers.ModelSerializer):
     def get_relevant_applicant_name(self,obj):
         return obj.proposal.relevant_applicant_name
 
+    def get_template_group(self, obj):
+        return self.context.get('template_group')
+
+
 class ProposalRequirementSerializer(serializers.ModelSerializer):
     due_date = serializers.DateField(input_formats=['%d/%m/%Y'],required=False,allow_null=True)
     class Meta:
         model = ProposalRequirement
-        fields = ('id','due_date','free_requirement','standard_requirement','standard','order','proposal','recurrence','recurrence_schedule','recurrence_pattern','requirement','is_deleted','copied_from')
+        fields = ('id','due_date','free_requirement','standard_requirement','standard','order','proposal','recurrence','recurrence_schedule','recurrence_pattern','requirement','is_deleted','copied_from', 'apiary_approval')
         read_only_fields = ('order','requirement', 'copied_from')
 
 class ProposalStandardRequirementSerializer(serializers.ModelSerializer):

@@ -224,10 +224,10 @@ def send_amendment_email_notification(amendment_request, request, proposal):
     }
 
     all_ccs = []
-    if proposal.applicant.email:
-        cc_list = proposal.applicant.email
-        if cc_list:
-            all_ccs = [cc_list]
+    if proposal.applicant and proposal.applicant.email != proposal.submitter.email:
+            cc_list = proposal.applicant.email
+            if cc_list:
+                all_ccs = [cc_list]
 
     msg = email.send(proposal.submitter.email, cc=all_ccs, context=context,  attachments=attachments)
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
@@ -270,7 +270,8 @@ def send_external_submit_email_notification(request, proposal):
     }
 
     all_ccs = []
-    if proposal.applicant and proposal.applicant.email:
+    #if proposal.applicant and proposal.applicant.email:
+    if proposal.applicant and proposal.applicant.email != proposal.submitter.email:
         cc_list = proposal.applicant.email
         if cc_list:
             all_ccs = [cc_list]
@@ -316,6 +317,7 @@ def send_approver_approve_email_notification(request, proposal):
     if proposal.applicant:
         _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
 
+
 def send_proposal_decline_email_notification(proposal,request,proposal_decline):
     email = ProposalDeclineSendNotificationEmail()
 
@@ -327,14 +329,17 @@ def send_proposal_decline_email_notification(proposal,request,proposal_decline):
     all_ccs = []
     if cc_list:
         all_ccs = cc_list.split(',')
-    if proposal.applicant.email:
-        all_ccs.append(proposal.applicant.email)
+    #if proposal.applicant:
+    if proposal.applicant and proposal.applicant.email != proposal.submitter.email:
+     #   if proposal.applicant.email:
+            all_ccs.append(proposal.applicant.email)
 
-    msg = email.send(proposal.submitter.email, bcc= all_ccs, context=context)
+    msg = email.send(proposal.submitter.email, bcc=all_ccs, context=context)
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     _log_proposal_email(msg, proposal, sender=sender)
     if proposal.applicant:
         _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
+
 
 def send_proposal_approver_sendback_email_notification(request, proposal):
     email = ApproverSendBackNotificationEmail()
@@ -352,7 +357,6 @@ def send_proposal_approver_sendback_email_notification(request, proposal):
         _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
 
 
-
 def send_proposal_approval_email_notification(proposal,request):
     email = ProposalApprovalSendNotificationEmail()
     if proposal.approval.reissued:
@@ -366,12 +370,10 @@ def send_proposal_approval_email_notification(proposal,request):
     all_ccs = []
     if cc_list:
         all_ccs = cc_list.split(',')
-    if proposal.applicant:
-        if proposal.applicant.email:
+    #if proposal.applicant:
+    if proposal.applicant and proposal.applicant.email != proposal.submitter.email:
+     #   if proposal.applicant.email:
             all_ccs.append(proposal.applicant.email)
-    else:
-        if proposal.proxy_applicant.email:
-            all_ccs.append(proposal.proxy_applicant.email)
 
     licence_document= proposal.approval.licence_document._file
     if licence_document is not None:
@@ -387,6 +389,36 @@ def send_proposal_approval_email_notification(proposal,request):
     if proposal.applicant:
         _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
 
+def send_site_transfer_approval_email_notification(proposal, request, approval):
+    email = ProposalApprovalSendNotificationEmail()
+    email.subject= 'Your Approval has been reissued.'
+
+    context = {
+        'approval': approval,
+        'proposal': proposal,
+    }
+    cc_list = proposal.proposed_issuance_approval['cc_email']
+    all_ccs = []
+    if cc_list:
+        all_ccs = cc_list.split(',')
+    #if proposal.applicant:
+    if proposal.applicant and proposal.applicant.email != proposal.submitter.email:
+     #   if proposal.applicant.email:
+            all_ccs.append(proposal.applicant.email)
+
+    licence_document= approval.licence_document._file
+    if licence_document is not None:
+        file_name = approval.licence_document.name
+        attachment = (file_name, licence_document.file.read(), 'application/pdf')
+        attachment = [attachment]
+    else:
+        attachment = []
+
+    msg = email.send(proposal.submitter.email, bcc= all_ccs, attachments=attachment, context=context)
+    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    _log_proposal_email(msg, proposal, sender=sender)
+    if proposal.applicant:
+        _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
 
 def send_assessment_reminder_email_notification(proposal):
     email = AssessmentReminderSendNotificationEmail()

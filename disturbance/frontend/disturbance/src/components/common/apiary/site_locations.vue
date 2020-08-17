@@ -1,67 +1,74 @@
 <template lang="html">
     <div>
 
-        <span class="row col-sm-12">
-            <div class="col-sm-4 form-group">
+        <div class="row col-sm-12">
+            <div class="form-group">
                 <label class="inline">Title:</label>
                 <input
                     type="text"
                     class="form-control"
                     v-model="proposal.proposal_apiary.title"
                     :readonly="readonly"
-                />
-            </div>
-        </span>
-
-        <span class="row col-sm-12">
-            Mark the location of the new proposed site either by entering the latitude and longitude or by clicking the location in the map.
-        </span>
-
-        <div class="row col-sm-12">
-            <div class="col-sm-4 form-group">
-                <label class="inline">Latitude:</label>
-                <input
-                    type="number"
-                    min="-90"
-                    max="90"
-                    class="form-control"
-                    v-model.number="proposal.proposal_apiary.latitude"
-                    :readonly="readonly"
+                    style="width: 100%;"
                 />
             </div>
         </div>
 
         <div class="row col-sm-12">
-            <div class="col-sm-4 form-group">
-                <label class="inline">Longitude:</label>
-                <input
-                    type="number"
-                    min="-180"
-                    max="180"
-                    class="form-control"
-                    v-model.number="proposal.proposal_apiary.longitude"
-                    :readonly="readonly"
-                />
-                <template v-if="!readonly">
-                    <input type="button" @click="tryCreateNewSiteFromForm" value="Add proposed site" class="btn btn-primary">
-                </template>
+            Mark the location of the new proposed site either by entering the latitude and longitude or by clicking the location in the map.
+        </div>
+
+        <div class="row">
+            <div class="col-sm-4">
+                <div class="form-group">
+                    <label class="inline">Latitude:</label>
+                    <input
+                        type="number"
+                        min="-90"
+                        max="90"
+                        class="form-control"
+                        v-model.number="proposal.proposal_apiary.latitude"
+                        :readonly="readonly"
+                    />
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-sm-4">
+                <div class="form-group">
+                    <label class="inline">Longitude:</label>
+                    <input
+                        type="number"
+                        min="-180"
+                        max="180"
+                        class="form-control"
+                        v-model.number="proposal.proposal_apiary.longitude"
+                        :readonly="readonly"
+                    />
+                    <template v-if="!readonly">
+                        <input type="button" @click="tryCreateNewSiteFromForm" value="Add proposed site" class="btn btn-primary" style="margin: 1em 0 0 0;">
+                    </template>
+                </div>
             </div>
         </div>
 
         <template v-if="proposal && proposal.proposal_apiary">
-            <div class="row col-sm-12 debug-info">
-                <div>
-                    Category:
-                    <select v-model="current_category" class="form-group">
-                        <option value="south_west">South West</option>
-                        <option value="remote">Remote</option>
-                    </select>
-                </div>
-
-                Remainders:
-                <div v-for="remainder in proposal.proposal_apiary.site_remainders" class="debug-remainders">
+            <div class="row debug-info">
+                <div class="col-sm-12">
                     <div>
-                        {{ remainder.category_name }}: {{ remainder.remainders }} left (${{ remainder.fee }}/site)
+                        Category:
+                        <select v-model="current_category" class="form-group">
+                            <option value="south_west">South West</option>
+                            <option value="remote">Remote</option>
+                        </select>
+                    </div>
+
+                    Remainders:
+                    <div v-for="remainder in proposal.proposal_apiary.site_remainders" class="debug-remainders">
+                        <div>
+                            {{ remainder.category_name }}: {{ remainder.remainders }} left (${{ remainder.fee }}/site)
+                        </div>
                     </div>
                 </div>
             </div>
@@ -69,9 +76,18 @@
 
         <div class="row col-sm-12">
             <datatable ref="site_locations_table" id="site-locations-table" :dtOptions="dtOptions" :dtHeaders="dtHeaders" />
+            <span class="view_all_button action_link" @click="displayAllFeatures">View All Proposed Sites On Map</span>
         </div>
 
         <div id="map" class="map"></div>
+
+        <div :id="popup_id" class="ol-popup">
+            <!--
+            <a href="#" :id="popup_closer_id" class="ol-popup-closer"></a>
+            -->
+            <div :id="popup_content_id" class="text-center"></div>
+        </div>
+
 
         <div class="row col-sm-12">
             <label>
@@ -87,7 +103,6 @@
 <script>
     import 'ol/ol.css';
     //import 'index.css';  // copy-and-pasted the contents of this file at the <style> section below in this file
-
     import Map from 'ol/Map';
     import View from 'ol/View';
     import WMTSCapabilities from 'ol/format/WMTSCapabilities';
@@ -95,10 +110,11 @@
     import OSM from 'ol/source/OSM';
     import WMTS, {optionsFromCapabilities} from 'ol/source/WMTS';
     import Collection from 'ol/Collection';
-    import {Draw, Modify, Snap} from 'ol/interaction';
+    import {Draw, Modify, Snap, Select} from 'ol/interaction';
+    import {pointerMove} from 'ol/events/condition';
     import VectorLayer from 'ol/layer/Vector';
     import VectorSource from 'ol/source/Vector'; 
-    import {Circle as CircleStyle, Fill, Stroke, Style} from 'ol/style';
+    import {Circle as CircleStyle, Fill, Stroke, Style, Icon} from 'ol/style';
     import {FullScreen as FullScreenControl, MousePosition as MousePositionControl} from 'ol/control';
     import Vue from 'vue/dist/vue';
     import { Feature } from 'ol';
@@ -111,6 +127,8 @@
     import datatable from '@vue-utils/datatable.vue'
     import uuid from 'uuid';
     import SiteLocationsModal from './site_locations_modal';
+    import { getApiaryFeatureStyle, drawingSiteRadius } from '@/components/common/apiary/site_colours.js'
+    import Overlay from 'ol/Overlay';
 
     export default {
         props:{
@@ -162,6 +180,14 @@
                 marker_lng: null,
                 marker_lat: null,
                 deed_poll_url: '',
+                buffer_radius: 3000, // [m]
+
+                // Popup
+                popup_id: uuid(),
+                //popup_closer_id: uuid(),
+                popup_content_id: uuid(),
+                content_element: null,
+                overlay: null,
 
                 // variables for the GIS
                 map: null,
@@ -173,11 +199,10 @@
                 bufferLayerSource: new VectorSource(),
                 bufferLayer: null,
                 existing_sites_feature_collection: null,
+                apiary_site_being_selected: null,
                 //
-
                 dtHeaders: [
                     'Id',
-                    'Guid',
                     'Latitude',
                     'Longitude',
                     'Action',
@@ -194,26 +219,12 @@
                     },
                     responsive: true,
                     processing: true,
-                //    "id": '',
-                //    "latitude": this.getDegrees(feature.getGeometry().getCoordinates()),
-                //    "longitude": this.getDegrees(feature.getGeometry().getCoordinates()),
-                //    "site_guid": feature.getId()
                     columns: [
                         {
-                            visible: true,
+                            visible: false,
                             mRender: function (data, type, full) {
                                 if (full.id) {
                                     return full.id;
-                                } else {
-                                    return '';
-                                }
-                            }
-                        },
-                        {
-                            mRender: function (data, type, full) {
-                                if (full.getId()) {
-                                    //return full.site_guid;
-                                    return full.getId();
                                 } else {
                                     return '';
                                 }
@@ -232,12 +243,19 @@
                             }
                         },
                         {
-                            mRender: function (data, type, full) {
-                                let ret_str = ''
+                            mRender: function (data, type, feature) {
+                                let action_list = []
+                                let ret_str_delete = '<span class="delete_button action_link" data-site-location-guid="' + feature.getId() + '">Delete</span>'
+                                let ret_str_view = '<span class="view_on_map action_link" data-apiary-site-id="' + feature.getId() + '"/>View on map</span>';
+
+                                let status = feature.get('status')
+                                console.log(status)
+
+                                action_list.push(ret_str_view)
                                 if (!vm.readonly){
-                                    ret_str = '<span class="delete_button" style="color:#347ab7; cursor: pointer;" data-site-location-guid="' + full.getId() + '">Delete</span>'
+                                    action_list.push(ret_str_delete)
                                 }
-                                return ret_str
+                                return action_list.join('<br />');
                             }
                         },
                     ],
@@ -259,8 +277,54 @@
             },
         },
         watch:{
+            apiary_site_being_selected: function() {
+                console.log(this.apiary_site_being_selected);
+                if (this.apiary_site_being_selected){
+                    this.showPopup(this.apiary_site_being_selected)
+                } else {
+                    this.closePopup()
+                }
+            }
         },
         methods:{
+            showPopup: function(feature){
+                console.log('** showPopup **')
+                let geometry = feature.getGeometry();
+                let coord = geometry.getCoordinates();
+                console.log(coord)
+                //let svg_hexa = "<svg xmlns='http://www.w3.org/2000/svg' version='1.1' height='20' width='15'>" + 
+                //'<g transform="translate(0, 4) scale(0.9)"><path d="M 14.3395,12.64426 7.5609998,16.557828 0.78249996,12.64426 0.7825,4.8171222 7.5609999,0.90355349 14.3395,4.8171223 Z" id="path837" style="fill:none;stroke:#ffffff;stroke-width:1.565;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" /></g></svg>'
+                let content = 'vacant'
+                this.content_element.innerHTML = content;
+                this.overlay.setPosition(coord);
+            },
+            closePopup: function(){
+                this.overlay.setPosition(undefined)
+                //closer.blur()
+                return false
+            },
+            displayAllFeatures: function() {
+                if (this.map){
+                    if (this.drawingLayerSource.getFeatures().length>0){
+                        let view = this.map.getView()
+
+                        let ext = this.drawingLayerSource.getExtent()
+                        let centre = [(ext[0] + ext[2])/2.0, (ext[1] + ext[3])/2.0]
+                        let resolution = view.getResolutionForExtent(ext);
+                        let z = view.getZoomForResolution(resolution) - 1
+                        view.animate({zoom: z, center: centre})
+                    }
+                }
+            },
+            zoomToApiarySiteById: function(apiary_site_id){
+                console.log(apiary_site_id)
+                let feature = this.drawingLayerSource.getFeatureById(apiary_site_id)
+                let geometry = feature.getGeometry()
+                let coord = geometry.getCoordinates()
+                let view = this.map.getView()
+                this.map.getView().animate({zoom: 16, center: feature['values_']['geometry']['flatCoordinates']})
+                //this.showPopup(feature)
+            },
             uuidv4: function () {
                 return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, 
                     function(c) {
@@ -297,13 +361,11 @@
                 }
                 return min;
             },
-            isNewPositionValid: function(coords){
-                let distance = this.metersToNearest(coords, null);
-                if (distance < 3000) {
-                    console.log('distance: ' + distance + ' NG');
+            isNewPositionValid: function(coords, filter=null){
+                let distance = this.metersToNearest(coords, filter);
+                if (distance < this.buffer_radius) {
                     return false;
                 }
-                console.log('distance: ' + distance + ' OK');
                 return true;
             },
             createBufferForSite: function(site){
@@ -315,7 +377,7 @@
                     coords = coords[0];
                 }
 
-                let buffer = new Feature(circular(coords, 3000, 16));
+                let buffer = new Feature(circular(coords, this.buffer_radius, 16));
                 buffer.setId(id)
                 this.bufferLayerSource.addFeature(buffer);
             },
@@ -323,11 +385,14 @@
                 let buffer = this.bufferLayerSource.getFeatureById(site.getId() + "_buffer");
                 this.bufferLayerSource.removeFeature(buffer);
             },
+            apiaryStyleFunction: function(feature) {
+                var status = feature.get("status");
+                return getApiaryFeatureStyle(status);
+            },
             existingSiteAvailableClicked: function() {
                 alert("TODO: open screen 45: External - Contact Holder of Available Site in a different tab page.");
             },
             calculateRemainders: function(features){
-                console.log('in calculateRemainders')
                 let remainders = this.proposal.proposal_apiary.site_remainders
                 let num_remain_south_west = 0
                 let num_remain_remote = 0
@@ -350,19 +415,14 @@
                     }
                 }
 
-                console.log('South West: ' + num_remain_south_west)
-                console.log('Remote: ' + num_remain_remote)
-
                 let button_text = 'Pay and submit'
                 if (num_remain_south_west >= 0 && num_remain_remote >=0){
                     button_text = 'Submit'
                 }
 
-                console.log('emit!!!')
                 this.$emit('button_text', button_text)
             },
             constructSiteLocationsTable: function(){
-                console.log('in constructSiteLocationTable')
 
                 if (this.drawingLayerSource){
                     // Clear table
@@ -370,12 +430,10 @@
 
                     // Get all the features drawn
                     let features = this.drawingLayerSource.getFeatures()
-                    console.log('features.length: ' + features.length)
 
                     // Insert data into the table
                     for(let i=0; i<features.length; i++){
                         this.$refs.site_locations_table.vmDataTable.row.add(features[i]).draw();
-                        console.log('site_category: ' + features[i].get('site_category'));
                     }
 
                     this.calculateRemainders(features)
@@ -390,22 +448,27 @@
             },
             addEventListeners: function(){
                 $("#site-locations-table").on("click", ".delete_button", this.removeSiteLocation);
+                $("#site-locations-table").on("click", ".view_on_map", this.zoomOnApiarySite)
+            },
+            zoomOnApiarySite: function(e) {
+                let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
+                this.zoomToApiarySiteById(apiary_site_id)
             },
             removeSiteLocation: function(e){
-                console.log('removeSiteLocation')
-
                 let site_location_guid = e.target.getAttribute("data-site-location-guid");
-                console.log('guid to delete');
-                console.log(site_location_guid);
-
                 let myFeature = this.drawingLayerSource.getFeatureById(site_location_guid)
 
-                // Remove buffer
-                this.removeBufferForSite(myFeature)
+                let myFeatureStatus = myFeature.get('status')
+                if (myFeatureStatus && myFeatureStatus != 'draft'){
+                    this.drawingLayerSource.removeFeature(myFeature);
+                } else {
+                    // Remove buffer
+                    this.removeBufferForSite(myFeature)
+                    this.drawingLayerSource.removeFeature(myFeature);
+                }
 
-                this.drawingLayerSource.removeFeature(myFeature);
-
-                this.constructSiteLocationsTable();
+                // Remove the row from the table
+                $(e.target).closest('tr').fadeOut('slow', function(){ })
             },
             initMap: function() {
                 console.log('initMap start')
@@ -427,6 +490,7 @@
                 });
                 vm.apiarySitesQueryLayer = new VectorLayer({
                     source: vm.apiarySitesQuerySource,
+                    style: vm.apiaryStyleFunction,
                 });
                 vm.map.addLayer(vm.apiarySitesQueryLayer);
 
@@ -454,8 +518,6 @@
                             cached++;
                         }
                     });
-
-                    console.log("zoom: " + zoom + ", fresh: " + fresh + ", cached: " + cached);
                 });
 
                 // In memory vector layer for digitization
@@ -477,7 +539,7 @@
                             width: 2
                         }),
                         image: new CircleStyle({
-                            radius: 7,
+                            radius: drawingSiteRadius,
                             fill: new Fill({
                                 color: '#ffcc33'
                             })
@@ -486,7 +548,20 @@
                 });
                 vm.map.addLayer(vm.drawingLayer);
 
-                // In memory vector layer for buffer
+                let container = document.getElementById(vm.popup_id)
+                vm.content_element = document.getElementById(vm.popup_content_id)
+                //let closer = document.getElementById(vm.popup_closer_id)
+                vm.overlay = new Overlay({
+                    element: container,
+                    autoPan: false,
+                    offest: [0, -10]
+                })
+                //closer.onclick = function() {
+                //    vm.overlay.setPosition(undefined)
+                //    closer.blur()
+                //    return false
+                //}
+                vm.map.addOverlay(vm.overlay)
 
                 //vm.bufferLayerSource = new VectorSource();
                 vm.bufferLayer = new VectorLayer({
@@ -522,9 +597,22 @@
                     });
                     drawTool.on("drawstart", function(attributes){
                         console.log('drawstart')
-
-                        if (!vm.isNewPositionValid(attributes.feature.getGeometry().getCoordinates())) {
+                        if (vm.apiary_site_being_selected){
+                            // Abort drawing, instead 'vacant' site is to be added
                             drawTool.abortDrawing();
+                            // Copy the 'id_' attribute, which should have the apiary_site.id in the database, to the 'id' attribute
+                            // This 'id' attribute is used to determine if it exists already in the database once posted.
+                            //vm.apiary_site_being_selected.id = vm.apiary_site_being_selected.id_
+                            vm.drawingLayerSource.addFeature(vm.apiary_site_being_selected);
+                            vm.apiary_site_being_selected.getGeometry().on("change", function() {
+                                if (modifyInProgressList.indexOf(vm.apiary_site_being_selected.getId()) == -1) {
+                                    modifyInProgressList.push(vm.apiary_site_being_selected.getId());
+                                }
+                            });
+                        } else {
+                            if (!vm.isNewPositionValid(attributes.feature.getGeometry().getCoordinates())) {
+                                drawTool.abortDrawing();
+                            }
                         }
                     });
                     drawTool.on('drawend', function(attributes){
@@ -532,15 +620,16 @@
 
                         if (!this.readoly){
                             let feature = attributes.feature;
-                            feature.setId(vm.uuidv4());
+                            let draw_id = vm.uuidv4();
+                            let draw_coords = feature.getGeometry().getCoordinates();
+                            feature.setId(draw_id);
                             feature.set("source", "draw");
+                            feature.set("stable_coords", draw_coords);
                             feature.set('site_category', vm.current_category) // For now, we add category, either south_west/remote to the feature 
                                                                               //according to the selection of the UI
                             feature.getGeometry().on("change", function() {
-                                console.log("Start Modify feature: " + feature.getId());
-
-                                if (modifyInProgressList.indexOf(feature) < 0) {
-                                    modifyInProgressList.push(feature);
+                                if (modifyInProgressList.indexOf(draw_id) == -1) {
+                                    modifyInProgressList.push(draw_id);
                                 }
                             });
                             vm.createBufferForSite(feature);
@@ -551,51 +640,142 @@
 
                     let modifyTool = new Modify({
                         source: vm.drawingLayerSource,
+                        condition: function(e){
+                            console.log(e)
+                            return true
+                        }
                     });
-                    //modifyTool.on("modifystart", function(attributes){
-                    //    console.log('modifystart')
-                    //    console.log(attributes)
-                    //});
+                    modifyTool.on("modifystart", function(attributes){
+                        attributes.features.forEach(function(feature){
+                        })
+                    });
                     modifyTool.on("modifyend", function(attributes){
                         console.log('modifyend')
                         // this will list all features in layer, not so useful without cross referencing
                         attributes.features.forEach(function(feature){
-                            let index = modifyInProgressList.indexOf(feature);
-                            if (index > -1) {
-                                console.log("End Modify Feature: " + index + "/" + modifyInProgressList.length + " " + feature.getId());
-
-                                let coords = feature.getGeometry().getCoordinates()
-                                console.log(coords)
-                                //let valid = vm.isNewPositionValid(coords, function(fe){
-                                //    console.log('filter function')
-                                //    console.log(fe)
-                                //    return true
-                                //})
-                                let valid = vm.isNewPositionValid(coords, vm.excludeFeature)
-                                console.log(valid)
-
+                            let id = feature.getId();
+                            let index = modifyInProgressList.indexOf(id);
+                            if (index != -1) {
                                 modifyInProgressList.splice(index, 1);
-                                //vm.updateVueFeature(feature);
-                                vm.removeBufferForSite(feature);
-                                vm.createBufferForSite(feature);
-
-                                vm.constructSiteLocationsTable()
+                                let coords = feature.getGeometry().getCoordinates();
+                                let filter = vm.excludeFeature(feature);
+                                let valid = vm.isNewPositionValid(coords, filter);
+                                if (!valid || feature.get('status')==='vacant') {
+                                    // rollback proposed modification
+                                    let c = feature.get("stable_coords");
+                                    feature.getGeometry().setCoordinates(c);
+                                    // setting coords will add the id to the modification list again, we don't need that so clear it now
+                                    index = modifyInProgressList.indexOf(id);
+                                    modifyInProgressList.splice(index, 1);
+                                }
+                                else {
+                                    // confirm proposed modification
+                                    feature.set("stable_coords", coords);
+                                    vm.removeBufferForSite(feature);
+                                    vm.createBufferForSite(feature);
+                                    vm.constructSiteLocationsTable();
+                                }
                             }
                         });
                     });
                     vm.map.addInteraction(modifyTool);
                 }
-                console.log('initMap end')
+
+                /////////////////////
+                // Test
+                ////////////////////
+                let hoverInteraction = new Select({
+                    condition: pointerMove,
+                    //condition: function(e){
+                    //    return true
+                    //},
+                    layers: [vm.apiarySitesQueryLayer]
+                });
+                vm.map.addInteraction(hoverInteraction);
+                hoverInteraction.on('select', function(evt){
+                    if(evt.selected.length > 0){
+                        if(evt.selected[0].get('status') === 'vacant'){
+                            // When mouse hover on the 'vacant' apiary site, temporarily store it 
+                            // so that it can be added to the new apiary site application when user clicking.
+                            vm.apiary_site_being_selected = evt.selected[0]
+
+                            let style_applied = getApiaryFeatureStyle(vm.apiary_site_being_selected.get('status'), true, 4)
+                            vm.apiary_site_being_selected.setStyle(style_applied)
+                        }
+                    } else {
+                        if (vm.apiary_site_being_selected){
+                            let style_applied = getApiaryFeatureStyle(vm.apiary_site_being_selected.get('status'), false)
+                            vm.apiary_site_being_selected.setStyle(style_applied)
+                        }
+
+                        vm.apiary_site_being_selected = null
+                    }
+                });
+                //if(false){
+                //    let snapInteraction = new Snap({
+                //        source: vm.apiarySitesQuerySource
+                //    })
+                //    vm.map.addInteraction(snapInteraction);
+                //}
+
+                //let selected = null
+                //vm.map.on('pointermove', function (e) {
+                //    let pixel = vm.map.getEventPixel(e.originalEvent);
+                //    //let hit = vm.map.hasFeatureAtPixel(pixel);
+                //    let hit = vm.map.hasFeatureAtPixel(e.pixel, {
+                //        layerFilter: function(layer) {
+                //            if (layer === vm.apiarySitesQueryLayer){
+                //                return true
+                //            }
+                //            return false
+                //            //return layer.get('layer_name') === 'jls';
+                //        }
+                //    });
+
+                //    if(hit){
+                //        //console.log('hit')
+                //    }
+
+
+                //    if (selected !== null) {
+                //        selected.setStyle(undefined);
+                //        selected = null;
+                //    }
+
+                //    vm.map.forEachFeatureAtPixel(e.pixel, function (f, layer) {
+                //        console.log(f.id)
+                //        if (f.id){
+                //            selected = f;
+                //        }
+                //        //f.setStyle(highlightStyle);
+                //        return true;
+                //    });
+
+                //    if (selected) {
+                //        console.log(selected)
+                //    }
+                //});
+
+                //vm.map.on('click', function(evt){
+                //    console.log('click')
+                //    let feature = vm.map.forEachFeatureAtPixel(evt.pixel, function(feature, layer) {
+                //        return feature;
+                //    });
+                //    if (feature){
+                //        console.log(feature)
+                //    }
+                //})
+                ////////////////////////
+                // END TEST
+                ////////////////////////
+
             },  // End: initMap()
-            excludeFeature: function(f) {
-                console.log('in excludeFeature')
-                console.log('TODO: implement this function')
-                console.log(f)
-                return true
+            excludeFeature: function(excludedFeature) {
+                return function(f) {
+                    return excludedFeature.getId() != f.getId();
+                };
             },
             tryCreateNewSiteFromForm: function(){
-                console.log('in tryCreateNewSiteFromForm')
-
                 let lat = this.proposal.proposal_apiary.latitude
                 let lon = this.proposal.proposal_apiary.longitude
                 // rough bounding box for preliminary check
@@ -613,20 +793,15 @@
                 feature.set('site_category', this.current_category) // For now, we add category, either south_west/remote to the feature according to the selection of the UI
                 this.drawingLayerSource.addFeature(feature);
 
-                console.log('new feature added to the layer')
-
                 this.createBufferForSite(feature);
                 return true;
             },
         },
         created: function() {
-            console.log('created start')
             let vm = this
             this.$http.get('/api/apiary_site/list_existing/?proposal_id=' + this.proposal.id)
             .then(
                 res => {
-                    console.log('existing: ')
-                    console.log(res.body)
                     vm.existing_sites_feature_collection = res.body
                     vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(vm.existing_sites_feature_collection))
                 },
@@ -634,10 +809,8 @@
 
                 }
             )
-            console.log('created end')
         },
         mounted: function() {
-            console.log('mounted start')
             let vm = this;
 
             this.$nextTick(() => {
@@ -647,29 +820,24 @@
 
             // Create feature and add it to the map, then reconstruct table
             // Don't forget add 'id' field to the feature which is used to determine if it is new feature or not
-            console.log('apiary_sites.length: ')
-            console.log(vm.proposal.proposal_apiary.apiary_sites.length)
 
             for (let i=0; i<vm.proposal.proposal_apiary.apiary_sites.length; i++){
                  let apiary_site = vm.proposal.proposal_apiary.apiary_sites[i]
 
-                 console.log('apiary_site')
-                 console.log(apiary_site)
+                 //let feature = new Feature(new Point([apiary_site.coordinates.lng, apiary_site.coordinates.lat]));
+                 //feature.setId(apiary_site.site_guid);
+                 //feature.id = apiary_site.id
+                 //feature.set("source", "form");
+                 //feature.set("site_category", apiary_site.site_category)
+                 //this.drawingLayerSource.addFeature(feature);
 
-                 let feature = new Feature(new Point([apiary_site.coordinates.lng, apiary_site.coordinates.lat]));
-                 feature.setId(apiary_site.site_guid);
-                 feature.id = apiary_site.id
-                 feature.set("source", "form");
-                 feature.set("site_category", apiary_site.site_category)
-                 this.drawingLayerSource.addFeature(feature);
-
-                 console.log('new feature added to the layer')
+                 let feature = (new GeoJSON).readFeature(apiary_site.as_geojson)
+                 this.drawingLayerSource.addFeature(feature)
 
                  this.createBufferForSite(feature);
             }
 
             this.constructSiteLocationsTable();
-            console.log('mounted end')
         }
     }
 </script>
@@ -690,7 +858,6 @@
     }
     .debug-info {
         background: #CCC;
-        padding: 1em;
         margin: 1em;
     }
     .debug-message {
@@ -718,4 +885,73 @@
         color: white;
         background-color: rgba(37, 45, 51, 0.7);
     }
+    .action_link {
+        color: #347ab7; 
+        cursor: pointer;
+    }
+
+    .ol-popup {
+        position: absolute;
+        min-width: 95px;
+        background-color: white;
+        -webkit-filter: drop-shadow(0 1px 4px rgba(0,0,0,0.2));
+        filter: drop-shadow(0 1px 4px rgba(0,0,0,0.2));
+        padding: 2px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+        bottom: 12px;
+        left: -50px;
+    }
+    .ol-popup:after, .ol-popup:before {
+        top: 100%;
+        border: solid transparent;
+        content: " ";
+        height: 0;
+        width: 0;
+        position: absolute;
+        pointer-events: none;
+    }
+    .ol-popup:after {
+        border-top-color: white;
+        border-width: 10px;
+        left: 48px;
+        margin-left: -10px;
+    }
+    .ol-popup:before {
+        border-top-color: #cccccc;
+        border-width: 11px;
+        left: 48px;
+        margin-left: -11px;
+    }
+    /*
+    .ol-popup-closer {
+        text-decoration: none;
+        position: absolute;
+        top: 2px;
+        right: 8px;
+    }
+    .ol-popup-closer:after {
+        content: "✖";
+    }
+    */
+    .close-icon:hover {
+        filter: brightness(80%);
+    }
+    .close-icon {
+        position: absolute;
+        left: 1px;
+        top: -11px;
+        filter: drop-shadow(0 1px 4px rgba(0,0,0,0.2));
+    }
+    .popup-wrapper {
+        padding: 0.25em;
+    }
+    .popup-content-header {
+        background: darkgray;
+        color: white;
+    }
+    .popup-content {
+        font-size: small;
+    }
+</style>
 </style>

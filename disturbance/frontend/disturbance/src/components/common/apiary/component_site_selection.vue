@@ -1,8 +1,46 @@
 <template lang="html">
     <div>
 
-        <div class="row col-sm-12">
-            <div class="col-sm-6">
+        <template v-if="table_and_map_in_a_row">
+            <div class="row col-sm-12">
+                <div class="col-sm-6">
+                    <datatable
+                        ref="table_apiary_site"
+                        :id="table_id"
+                        :dtOptions="dtOptions"
+                        :dtHeaders="dtHeaders"
+                    />
+                    <template v-if="show_view_all_features_button">
+                        <div class="button_row">
+                            <span class="view_all_button" @click="displayAllFeatures">View All On Map</span>
+                        </div>
+                    </template>
+                </div>
+
+                <div class="col-sm-6">
+                    <ComponentMap
+                        ref="component_map"
+                        :apiary_site_geojson_array="apiary_site_geojson_array"
+                        :key="component_map_key"
+                        @featuresDisplayed="updateTableByFeatures"
+                        :can_modify="can_modify"
+                        @featureGeometryUpdated="featureGeometryUpdated"
+                    />
+                </div>
+            </div>
+        </template>
+
+        <template v-else>
+            <div class="row col-sm-12">
+                <ComponentMap
+                    ref="component_map"
+                    :apiary_site_geojson_array="apiary_site_geojson_array"
+                    :key="component_map_key"
+                    @featuresDisplayed="updateTableByFeatures"
+                    :can_modify="can_modify"
+                />
+            </div>
+            <div class="row col-sm-12">
                 <datatable
                     ref="table_apiary_site"
                     :id="table_id"
@@ -15,15 +53,7 @@
                     </div>
                 </template>
             </div>
-
-            <div class="col-sm-6">
-                <ComponentMap 
-                    ref="component_map"
-                    :apiary_site_geojson_array="apiary_site_geojson_array"
-                    :key="component_map_key"
-                />
-            </div>
-        </div>
+        </template>
 
     </div>
 </template>
@@ -33,6 +63,7 @@
     import datatable from '@vue-utils/datatable.vue'
     import uuid from 'uuid'
     import ComponentMap from '@/components/common/apiary/component_map.vue'
+    import SiteColours from '@/components/common/apiary/site_colours.js'
 
     export default {
         props:{
@@ -49,6 +80,10 @@
             is_internal:{
                 type: Boolean,
                 default: false,
+            },
+            table_and_map_in_a_row: {
+                type: Boolean,
+                default: true,
             },
             show_col_id: {
                 type: Boolean,
@@ -97,6 +132,18 @@
             show_action_available_unavailable: {
                 type: Boolean,
                 default: true,
+            },
+            show_action_make_vacant: {
+                type: Boolean,
+                default: false,
+            },
+            show_action_contact_licence_holder: {
+                type: Boolean,
+                default: false,
+            },
+            can_modify: {
+                type: Boolean,
+                default: false,
             }
         },
         watch: {
@@ -107,12 +154,12 @@
             return{
                 apiary_sites_local: JSON.parse(JSON.stringify(this.apiary_sites)),  // Deep copy the array
                 component_map_key: '',
-                table_id: uuid(), 
+                table_id: uuid(),
                 apiary_site_geojson_array: [],  // This is passed to the ComponentMap as props
                 default_checkbox_checked: false,  // If checked property isn't set as a apiary_site's property, this default value is used
                 dtHeaders: [
                     'Id',
-                    'C',
+                    '',
                     'Site',
                     'Longitude',
                     'Latitude',
@@ -123,6 +170,7 @@
                 ],
                 dtOptions: {
                     serverSide: false,
+                    searching: false,
                     searchDelay: 1000,
                     lengthMenu: [ [10, 25, 50, 100, -1], [10, 25, 50, 100, "All"] ],
                     order: [
@@ -161,10 +209,10 @@
                             // Site
                             visible: vm.show_col_site,
                             mRender: function (data, type, apiary_site) {
-                                let fillColour = vm.getFillColour(apiary_site.status)
-                                let strokeColour = vm.getStrokeColour(apiary_site.status)
-                                return '<svg height="20" width="20">' + 
-                                            '<circle cx="10" cy="10" r="6" stroke="' + strokeColour + '" stroke-width="2" fill="' + fillColour + '" />' + 
+                                let fillColour = SiteColours[apiary_site.status.id].fill
+                                let strokeColour = SiteColours[apiary_site.status.id].stroke
+                                return '<svg height="20" width="20">' +
+                                            '<circle cx="10" cy="10" r="6" stroke="' + strokeColour + '" stroke-width="2" fill="' + fillColour + '" />' +
                                        '</svg> site: ' + apiary_site.id
                             }
                         },
@@ -193,14 +241,14 @@
                             // Status
                             visible: vm.show_col_status,
                             mRender: function (data, type, apiary_site){
-                                return apiary_site.status
+                                return apiary_site.status.name
                             }
                         },
                         {
                             // Previous Site Holder/Applicant
                             visible: vm.show_col_previous_site_holder,
                             mRender: function (data, type, apiary_site){
-                                return 'holder'
+                                return apiary_site.previous_site_holder_or_applicant
                             }
                         },
                         {
@@ -218,16 +266,16 @@
                                 if (vm.show_action_available_unavailable){
                                     // Mark as Available/Unavailable
                                     let display_text = ''
-                                    if (vm.is_external && ['Current', 'current'].includes(apiary_site.status)){
+                                    if (vm.is_external && ['Current', 'current'].includes(apiary_site.status.id)){
                                         if (apiary_site.available){
                                             display_text = 'Mark as unavailable';
                                         } else {
                                             display_text = 'Mark as available';
                                         }
-                                        let ret = '<a><span class="toggle_availability" data-apiary-site-id="' + apiary_site.id + 
+                                        let ret = '<a><span class="toggle_availability" data-apiary-site-id="' + apiary_site.id +
                                             '" data-apiary-site-available="' + apiary_site.available + '"/>' + display_text + '</span></a>';
                                         action_list.push(ret);
-                                    } else if (vm.is_internal && ['Current', 'current'].includes(apiary_site.status)){
+                                    } else if (vm.is_internal && ['Current', 'current'].includes(apiary_site.status.id)){
                                         if (apiary_site.available){
                                             display_text = 'Available';
                                         } else {
@@ -235,6 +283,16 @@
                                         }
                                         action_list.push(display_text);
                                     }
+                                }
+                                if (vm.show_action_make_vacant){
+                                    let display_text = 'Make Vacant'
+                                    let ret = '<a><span class="make_vacant" data-apiary-site-id="' + apiary_site.id + '"/>' + display_text + '</span></a>';
+                                    action_list.push(ret);
+                                }
+                                if (vm.show_action_contact_licence_holder){
+                                    let display_text = 'Contact licence holder'
+                                    let ret = '<a><span class="contact_licence_holder" data-apiary-site-id="' + apiary_site.id + '"/>' + display_text + '</span></a>';
+                                    action_list.push(ret);
                                 }
                                 return action_list.join('<br />');
                             }
@@ -250,7 +308,8 @@
             let vm = this;
             this.$nextTick(() => {
                 vm.addEventListeners();
-                vm.constructApiarySitesTable();
+                //vm.constructApiarySitesTable();
+                vm.constructApiarySitesTable(vm.apiary_sites);
                 vm.addApiarySitesToMap(vm.apiary_sites)
                 vm.ensureCheckedStatus();
             });
@@ -264,42 +323,22 @@
 
         },
         methods: {
-            getFillColour: function(status){
-                switch(status){
-                    case 'draft':
-                        return '#e0e0e0'
-                    case 'pending':
-                        return '#fff59d'
-                    case 'current':
-                        return '#bbdefb'
-                    case 'suspended':
-                        return '#ffcc80'
-                    case 'not_to_be_reissued':
-                        return '#d1c4e9'
-                    case 'denied':
-                        return '#ffcdd2'
-                    case 'vacant':
-                        return '#7fcac3'
-                }
+            featureGeometryUpdated: function(feature){
+                this.$emit('featureGeometryUpdated', feature)
             },
-            // This function is not used
-            getStrokeColour: function(status){
-                switch(status){
-                    case 'draft':
-                        return '#616161'
-                    case 'pending':
-                        return '#ffeb3b'
-                    case 'current':
-                        return '#1a76d2'
-                    case 'suspended':
-                        return '#f57c01'
-                    case 'not_to_be_reissued':
-                        return '#512da8'
-                    case 'denied':
-                        return '#d2302f'
-                    case 'vacant':
-                        return '#00796b'
-                }
+            updateTableByFeatures: function(features) {
+                // Generate a list of the feature ids displayed on the map
+                let ids = $.map(features, function(feature){
+                    return feature.id_
+                })
+
+                // Generate a list of apiary_sites whose ids are in the list generated above
+                let apiary_sites_filtered = this.apiary_sites_local.filter(function(apiary_site){
+                    return ids.includes(apiary_site.id)
+                })
+
+                // Update the table
+                this.constructApiarySitesTable(apiary_sites_filtered)
             },
             ensureCheckedStatus: function() {
                 console.log('in ensureCheckedStatus')
@@ -336,15 +375,28 @@
                 // Reload ComponentMap by assigning a new key value
                 this.component_map_key = uuid()
             },
-            constructApiarySitesTable: function() {
+            //constructApiarySitesTable: function() {
+            //    if (this.$refs.table_apiary_site){
+            //        // Clear table
+            //        this.$refs.table_apiary_site.vmDataTable.clear().draw();
+
+            //        // Construct table
+            //        if (this.apiary_sites.length > 0){
+            //            for(let i=0; i<this.apiary_sites.length; i++){
+            //                this.addApiarySiteToTable(this.apiary_sites[i]);
+            //            }
+            //        }
+            //    }
+            //},
+            constructApiarySitesTable: function(apiary_sites) {
                 if (this.$refs.table_apiary_site){
                     // Clear table
                     this.$refs.table_apiary_site.vmDataTable.clear().draw();
 
                     // Construct table
-                    if (this.apiary_sites.length > 0){
-                        for(let i=0; i<this.apiary_sites.length; i++){
-                            this.addApiarySiteToTable(this.apiary_sites[i]);
+                    if (apiary_sites.length > 0){
+                        for(let i=0; i<apiary_sites.length; i++){
+                            this.addApiarySiteToTable(apiary_sites[i]);
                         }
                     }
                 }
@@ -356,6 +408,8 @@
                 $("#" + this.table_id).on("click", ".view_on_map", this.zoomOnApiarySite)
                 $("#" + this.table_id).on("click", ".toggle_availability", this.toggleAvailability)
                 $("#" + this.table_id).on('click', 'input[type="checkbox"]', this.checkboxClicked)
+                $("#" + this.table_id).on('click', '.make_vacant', this.makeVacantClicked)
+                $("#" + this.table_id).on('click', '.contact_licence_holder', this.contactLicenceHolder)
             },
             updateApiarySite: function(site_updated) {
                 // Update internal apiary_site data
@@ -363,6 +417,19 @@
                     if (this.apiary_sites[i].id == site_updated.id){
                         this.apiary_sites[i].available = site_updated.available
                     }
+                }
+            },
+            removeApiarySiteById: function(site_id){
+                // Remove a site for the array which the table is created based on.
+                let array_index_removed = null
+                for (let i=0; i<this.apiary_sites.length; i++){
+                    if (this.apiary_sites[i].id == site_id){
+                        array_index_removed = i
+                        break
+                    }
+                }
+                if (array_index_removed >= 0){
+                    this.apiary_sites.splice(array_index_removed, 1)
                 }
             },
             checkboxClicked: function(e) {
@@ -377,6 +444,55 @@
                 this.$emit('apiary_sites_updated', this.apiary_sites_local)
                 this.$refs.component_map.setApiarySiteSelectedStatus(apiary_site_id, checked_status)
             },
+            contactLicenceHolder: function(e){
+                let vm = this;
+                let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
+
+                this.$emit('contact-licence-holder-clicked', apiary_site_id)
+            },
+            makeVacantClicked: function(e) {
+                let vm = this;
+                let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
+
+
+                swal({
+                    title: "Make Vacant",
+                    text: "Are you sure you want to make this apiary site: " + apiary_site_id + " vacant?",
+                    type: "question",
+                    showCancelButton: true,
+                    confirmButtonText: 'Yes, make vacant'
+                }).then(
+                    () => {
+                        vm.$http.patch('/api/apiary_site/' + apiary_site_id + '/', { 'status': 'vacant' }).then(
+                            async function(accept){
+                                // Update the site in the table
+                                let site_updated = accept.body
+
+                                // Remove the row from the table
+                                $(e.target).closest('tr').fadeOut('slow', function(){
+                                    // Remove the site table which the table is based on
+                                    vm.removeApiarySiteById(apiary_site_id)
+                                })
+
+                                // Remove the site from the map
+                                this.$refs.component_map.removeApiarySiteById(apiary_site_id)
+                                //vm.component_map_key = uuid()
+                            },
+                            reject=>{
+                                swal(
+                                    'Submit Error',
+                                    helpers.apiVueResourceError(err),
+                                    'error'
+                                )
+                            }
+                        );
+                    },
+                    err => {
+                        console.log(err)
+                    }
+                );
+
+            },
             toggleAvailability: function(e) {
                 let vm = this;
                 let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
@@ -387,8 +503,9 @@
                     async function(accept){
                         // Update the site in the table
                         let site_updated = accept.body
-                        this.updateApiarySite(site_updated)
-                        vm.constructApiarySitesTable();
+                        vm.updateApiarySite(site_updated)
+                       // vm.constructApiarySitesTable();
+                        vm.constructApiarySitesTable(vm.apiary_sites);
                     },
                     reject=>{
                         swal(

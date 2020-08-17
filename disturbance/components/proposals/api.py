@@ -6,6 +6,7 @@ import geojson
 import json
 
 import pytz
+from confy import env
 from ledger.settings_base import TIME_ZONE
 from six.moves.urllib.parse import urlparse
 from wsgiref.util import FileWrapper
@@ -31,6 +32,7 @@ from ledger.accounts.models import EmailUser, Address
 from ledger.address.models import Country
 from datetime import datetime, timedelta, date
 
+from disturbance.components.approvals.email import send_contact_licence_holder_email
 from disturbance.components.main.decorators import basic_exception_handler
 from disturbance.components.proposals.utils import (
     save_proponent_data,
@@ -38,7 +40,7 @@ from disturbance.components.proposals.utils import (
     save_apiary_assessor_data, update_proposal_apiary_temporary_use,
 )
 from disturbance.components.proposals.models import searchKeyWords, search_reference, ProposalUserAction, \
-    ProposalApiary, OnSiteInformation, ApiarySite, ApiaryApplicantChecklistQuestion, ApiaryApplicantChecklistAnswer, \
+    ProposalApiary, OnSiteInformation, ApiarySite, ApiaryChecklistQuestion, ApiaryChecklistAnswer, \
     ProposalApiaryTemporaryUse, TemporaryUseApiarySite
 from disturbance.utils import missing_required_fields, search_tenure, convert_moment_str_to_python_datetime_obj
 from disturbance.components.main.utils import check_db_connection, convert_utc_time_to_local
@@ -105,10 +107,10 @@ from disturbance.components.proposals.serializers_apiary import (
     DTApiaryReferralSerializer,
     FullApiaryReferralSerializer,
     ProposalHistorySerializer,
-    UserApiaryApprovalSerializer, ApiarySiteGeojsonSerializer,
+    UserApiaryApprovalSerializer, ApiarySiteGeojsonSerializer, ApiarySiteExportSerializer,
 )
 from disturbance.components.approvals.models import Approval
-from disturbance.components.approvals.serializers import ApprovalSerializer
+from disturbance.components.approvals.serializers import ApprovalSerializer, ApprovalLogEntrySerializer
 from disturbance.components.compliances.models import Compliance
 from disturbance.components.compliances.serializers import ComplianceSerializer
 
@@ -128,6 +130,14 @@ from copy import deepcopy
 import logging
 logger = logging.getLogger(__name__)
 
+def get_template_group(request):
+    web_url = request.META.get('HTTP_HOST', None)
+    template_group = None
+    if web_url in settings.APIARY_URL:
+       template_group = 'apiary'
+    else:
+       template_group = 'das'
+    return template_group
 
 class GetProposalType(views.APIView):
     renderer_classes = [JSONRenderer, ]
@@ -159,6 +169,7 @@ class ProposalFilterBackend(DatatablesFilterBackend):
     """
 
     def filter_queryset(self, request, queryset, view):
+        #import ipdb; ipdb.set_trace()
         total_count = queryset.count()
 
         def get_choice(status, choices=Proposal.PROCESSING_STATUS_CHOICES):
@@ -192,7 +203,32 @@ class ProposalFilterBackend(DatatablesFilterBackend):
 #            if queryset.model is Referral:
 #                #processing_status_id = [i for i in Proposal.PROCESSING_STATUS_CHOICES if i[1]==processing_status][0][0]
 #                queryset = queryset.filter(processing_status=processing_status)
-
+        application_type = request.GET.get('application_type')
+        if application_type and not application_type.lower() =='all':
+            if queryset.model is Referral or queryset.model is Compliance:
+                queryset = queryset.filter(proposal__application_type__name=application_type)
+            else:
+                queryset = queryset.filter(application_type__name=application_type)
+        proposal_activity = request.GET.get('proposal_activity')
+        if proposal_activity and not proposal_activity.lower() == 'all':
+            if queryset.model is Referral or queryset.model is Compliance:
+                queryset = queryset.filter(proposal__activity=proposal_activity)
+            else:
+                queryset = queryset.filter(activity=proposal_activity)
+        proposal_status = request.GET.get('proposal_status')
+        if proposal_status and not proposal_status.lower() == 'all':
+            #processing_status = get_choice(proposal_status, Proposal.PROCESSING_STATUS_CHOICES)
+            #queryset = queryset.filter(processing_status=processing_status)
+            if queryset.model is Referral or queryset.model is Compliance:
+                queryset = queryset.filter(proposal__processing_status=proposal_status)
+            else:
+                queryset = queryset.filter(processing_status=proposal_status)
+        submitter = request.GET.get('submitter')
+        if submitter and not submitter.lower() == 'all':
+            if queryset.model is Referral or queryset.model is Compliance:
+                queryset = queryset.filter(proposal__submitter__email=submitter)
+            else:
+                queryset = queryset.filter(submitter__email=submitter)
         date_from = request.GET.get('date_from')
         date_to = request.GET.get('date_to')
         #import ipdb; ipdb.set_trace()
@@ -228,8 +264,19 @@ class ProposalFilterBackend(DatatablesFilterBackend):
             if date_to:
                 queryset = queryset.filter(proposal__lodgement_date__lte=date_to)
 
+        getter = request.query_params.get
+        fields = self.get_fields(getter)
+        ordering = self.get_ordering(getter, fields)
+        queryset = queryset.order_by(*ordering)
+        if len(ordering):
+            #for num, item in enumerate(ordering):
+             #   if item == 'status__name':
+              #      ordering[num] = 'status'
+               # elif item == '-status__name':
+                #    ordering[num] = '-status'
+            queryset = queryset.order_by(*ordering)
 
-        queryset = super(ProposalFilterBackend, self).filter_queryset(request, queryset, view)
+        #queryset = super(ProposalFilterBackend, self).filter_queryset(request, queryset, view)
         setattr(view, '_datatables_total_count', total_count)
         return queryset
 
@@ -253,6 +300,7 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
     renderer_classes = (ProposalRenderer,)
     queryset = Proposal.objects.none()
     serializer_class = ListProposalSerializer
+    #serializer_class = DTProposalSerializer
     page_size = 10
 
 #    @method_decorator(cache_page(60))
@@ -263,11 +311,13 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         user = self.request.user
         #import ipdb; ipdb.set_trace()
         if is_internal(self.request): #user.is_authenticated():
+            #return Proposal.objects.all().order_by('-id')
             return Proposal.objects.all()
         elif is_customer(self.request):
             user_orgs = [org.id for org in user.disturbance_organisations.all()]
             #return  Proposal.objects.filter( Q(applicant_id__in = user_orgs) | Q(submitter = user) )
-            return  Proposal.objects.filter( Q(applicant_id__in = user_orgs) | Q(submitter = user) | Q(proxy_applicant = user))
+            #return Proposal.objects.filter( Q(applicant_id__in = user_orgs) | Q(submitter = user) | Q(proxy_applicant = user)).order_by('-id')
+            return Proposal.objects.filter( Q(applicant_id__in = user_orgs) | Q(submitter = user) | Q(proxy_applicant = user))
             #queryset =  Proposal.objects.filter(region__isnull=False).filter( Q(applicant_id__in = user_orgs) | Q(submitter = user) )
         return Proposal.objects.none()
 
@@ -289,9 +339,20 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
 
         http://localhost:8499/api/proposal_paginated/proposal_paginated_internal/?format=datatables&draw=1&length=2
         """
+        template_group = get_template_group(request)
         #import ipdb; ipdb.set_trace()
-        qs = self.get_queryset()
+        if template_group == 'apiary':
+            #qs = self.get_queryset().filter(application_type__apiary_group_application_type=True)
+            qs = self.get_queryset().filter(
+                    application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]
+                    ).exclude(processing_status='discarded')
+        else:
+            #qs = self.get_queryset().filter(application_type__apiary_group_application_type=False)
+            qs = self.get_queryset().exclude(
+                    application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]
+                    ).exclude(processing_status='discarded')
         #qs = self.filter_queryset(self.request, qs, self)
+        #qs = self.filter_queryset(qs).order_by('-id')
         qs = self.filter_queryset(qs)
 
         # on the internal organisations dashboard, filter the Proposal/Approval/Compliance datatables by applicant/organisation
@@ -300,9 +361,46 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
             qs = qs.filter(applicant_id=applicant_id)
 
         self.paginator.page_size = qs.count()
+        #import ipdb; ipdb.set_trace()
         result_page = self.paginator.paginate_queryset(qs, request)
-        serializer = ListProposalSerializer(result_page, context={'request':request}, many=True)
+        serializer = ListProposalSerializer(result_page, context={
+            'request':request,
+            'template_group': template_group
+            }, many=True)
+        #serializer = DTProposalSerializer(result_page, context={'request':request}, many=True)
         return self.paginator.get_paginated_response(serializer.data)
+
+    #@list_route(methods=['GET',])
+    #def referrals_internal(self, request, *args, **kwargs):
+    #    """
+    #    Used by the internal dashboard
+
+    #    http://localhost:8499/api/proposal_paginated/referrals_internal/?format=datatables&draw=1&length=2
+    #    """
+    #    #import ipdb; ipdb.set_trace()
+    #    #self.serializer_class = ReferralSerializer
+    #    template_group = get_template_group(request)
+    #    referral_id_list = []
+    #    qs_r = Referral.objects.filter(referral=request.user) if is_internal(self.request) else Referral.objects.none()
+    #    for r in qs_r:
+    #        referral_id_list.append(r.id)
+    #    #qs = self.filter_queryset(self.request, qs, self)
+    #    # Add Apiary Referrals
+    #    qs_ra = Referral.objects.filter(apiary_referral__referral_group__members=request.user)
+    #    #qs = qs_r.union(qs_ra) if qs_r else qs_ra
+    #    for ar in qs_ra:
+    #        if ar.id not in referral_id_list:
+    #            referral_id_list.append(ar.id)
+    #    qs = Referral.objects.filter(id__in=referral_id_list)
+    #    qs = self.filter_queryset(qs)
+
+    #    self.paginator.page_size = qs.count()
+    #    result_page = self.paginator.paginate_queryset(qs, request)
+    #    serializer = DTReferralSerializer(result_page, context={
+    #        'request':request,
+    #        'template_group': template_group
+    #        }, many=True)
+    #    return self.paginator.get_paginated_response(serializer.data)
 
     @list_route(methods=['GET',])
     def referrals_internal(self, request, *args, **kwargs):
@@ -313,24 +411,33 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         """
         #import ipdb; ipdb.set_trace()
         #self.serializer_class = ReferralSerializer
-        referral_id_list = []
-        qs_r = Referral.objects.filter(referral=request.user) if is_internal(self.request) else Referral.objects.none()
-        for r in qs_r:
-            referral_id_list.append(r.id)
+        template_group = get_template_group(request)
+        if template_group == 'apiary':
+            qs = Referral.objects.filter(apiary_referral__referral_group__members=request.user) \
+                    if is_internal(self.request) else Referral.objects.none()
+        #referral_id_list = []
+        else:
+            qs = Referral.objects.filter(referral=request.user) if is_internal(self.request) else Referral.objects.none()
+        #for r in qs_r:
+         #   referral_id_list.append(r.id)
         #qs = self.filter_queryset(self.request, qs, self)
         # Add Apiary Referrals
-        qs_ra = Referral.objects.filter(apiary_referral__referral_group__members=request.user)
+        #qs_ra = Referral.objects.filter(apiary_referral__referral_group__members=request.user)
         #qs = qs_r.union(qs_ra) if qs_r else qs_ra
-        for ar in qs_ra:
-            if ar.id not in referral_id_list:
-                referral_id_list.append(ar.id)
-        qs = Referral.objects.filter(id__in=referral_id_list)
+        #for ar in qs_ra:
+         #   if ar.id not in referral_id_list:
+          #      referral_id_list.append(ar.id)
+        #qs = Referral.objects.filter(id__in=referral_id_list)
         qs = self.filter_queryset(qs)
 
         self.paginator.page_size = qs.count()
         result_page = self.paginator.paginate_queryset(qs, request)
-        serializer = DTReferralSerializer(result_page, context={'request':request}, many=True)
+        serializer = DTReferralSerializer(result_page, context={
+            'request':request,
+            'template_group': template_group
+            }, many=True)
         return self.paginator.get_paginated_response(serializer.data)
+
 
     @list_route(methods=['GET',])
     def proposals_external(self, request, *args, **kwargs):
@@ -339,8 +446,21 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
 
         http://localhost:8499/api/proposal_paginated/proposal_paginated_external/?format=datatables&draw=1&length=2
         """
-        qs = self.get_queryset().exclude(processing_status='discarded')
+        template_group = get_template_group(request)
+        #import ipdb; ipdb.set_trace()
+        if template_group == 'apiary':
+            #qs = self.get_queryset().filter(application_type__apiary_group_application_type=True).exclude(processing_status='discarded')
+            qs = self.get_queryset().filter(
+                    application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]
+                    ).exclude(processing_status='discarded')
+        else:
+            qs = self.get_queryset().exclude(
+                    application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]
+                    ).exclude(processing_status='discarded')
+            #qs = self.get_queryset().filter(application_type__apiary_group_application_type=False).exclude(processing_status='discarded')
+        #qs = self.get_queryset().exclude(processing_status='discarded')
         #qs = self.filter_queryset(self.request, qs, self)
+        #qs = self.filter_queryset(qs).order_by('-id')
         qs = self.filter_queryset(qs)
 
         # on the internal organisations dashboard, filter the Proposal/Approval/Compliance datatables by applicant/organisation
@@ -351,13 +471,30 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         #import ipdb; ipdb.set_trace()
         self.paginator.page_size = qs.count()
         result_page = self.paginator.paginate_queryset(qs, request)
-        serializer = ListProposalSerializer(result_page, context={'request':request}, many=True)
+        serializer = ListProposalSerializer(result_page, context={
+            'request':request,
+            'template_group': template_group
+            }, many=True)
+        #serializer = DTProposalSerializer(result_page, context={'request':request}, many=True)
         return self.paginator.get_paginated_response(serializer.data)
 
 
 class OnSiteInformationViewSet(viewsets.ModelViewSet):
     queryset = OnSiteInformation.objects.filter(datetime_deleted=None)
     serializer_class = OnSiteInformationSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        qs = OnSiteInformation.objects.all()
+
+        # Only internal user is supposed to access here
+        if is_internal(self.request):  # user.is_authenticated():
+            qs = qs.filter(datetime_deleted=None)
+        else:
+            logger.warn("User is not internal user: {} <{}>".format(user.get_full_name(), user.email))
+            qs = OnSiteInformation.objects.none()
+
+        return qs
 
     @staticmethod
     def sanitize_date(data_dict, property_name):
@@ -432,6 +569,66 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
     queryset = ApiarySite.objects.all()
     serializer_class = ApiarySiteSerializer
 
+    def is_internal_system(self, request):
+        apiary_site_list_token = request.query_params.get('apiary_site_list_token', None)
+        if apiary_site_list_token:
+            APIARY_SITES_LIST_TOKEN = env('APIARY_SITES_LIST_TOKEN', 'APIARY_SITES_LIST_TOKEN_NOT_FOUND')
+            if apiary_site_list_token == APIARY_SITES_LIST_TOKEN:
+                return True
+        return False
+
+    def get_queryset(self):
+        user = self.request.user
+        qs = ApiarySite.objects.all()
+
+        # Only internal user is supposed to access here
+        if is_internal(self.request):  # user.is_authenticated():
+            pass
+        elif is_customer(self.request):
+            # qs = qs.exclude(status=ApiarySite.STATUS_DRAFT)
+            pass
+        else:
+            logger.warn("User is neither internal user nor customer: {} <{}>".format(user.get_full_name(), user.email))
+            qs = OnSiteInformation.objects.none()
+
+        return qs
+
+    @detail_route(methods=['POST',])
+    @basic_exception_handler
+    def contact_licence_holder(self, request, *args, **kwargs):
+        apiary_site = self.get_object()
+        comments = request.data.get('comments', '')
+        sender = request.user
+        email_data = send_contact_licence_holder_email(apiary_site, comments, sender)
+
+        email_data['approval'] = u'{}'.format(apiary_site.approval.id)
+        # request.data['staff'] = u'{}'.format(request.user.id)
+        serializer = ApprovalLogEntrySerializer(data=email_data)
+        serializer.is_valid(raise_exception=True)
+        comms = serializer.save()
+
+        return Response({})
+
+    # @list_route(methods=['GET',])
+    # @basic_exception_handler
+    # def export(self, request):
+    def list(self, request):
+        q_objects = Q()
+        exclude_status = request.query_params.get('exclude_status', '')
+        exclude_status_array = [x.strip() for x in exclude_status.split(',')]
+        q_objects |= Q(status__in=exclude_status_array)
+
+        qs = ApiarySite.objects.none()
+        if self.is_internal_system(request):
+            qs = ApiarySite.objects.all()
+        # q_objects |= Q(status__in=ApiarySite.NON_RESTRICTIVE_STATUSES)
+        # q_objects |= Q(wkb_geometry=None)
+        # q_objects |= Q(proposal_apiary=None)
+        qs = qs.exclude(q_objects)
+        serializer = ApiarySiteExportSerializer(qs, many=True)
+        return Response(serializer.data)
+
+
     @list_route(methods=['GET',])
     @basic_exception_handler
     def list_existing(self, request):
@@ -445,10 +642,31 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
             q_objects |= Q(proposal_apiary=proposal.proposal_apiary)
         q_objects |= Q(status__in=ApiarySite.NON_RESTRICTIVE_STATUSES)
         q_objects |= Q(wkb_geometry=None)
-        q_objects |= Q(proposal_apiary=None)
+        # q_objects |= Q(proposal_apiary=None)
 
-        qs = ApiarySite.objects.all().exclude(q_objects)
+        qs = self.get_queryset().exclude(q_objects)
         serializer = ApiarySiteGeojsonSerializer(qs, many=True)
+        return Response(serializer.data)
+
+    @list_route(methods=['GET',])
+    @basic_exception_handler
+    def available_sites(self, request):
+        q_objects = Q()
+        q_objects &= Q(available=True)
+        q_objects &= Q(status=ApiarySite.STATUS_CURRENT)
+
+        qs = self.get_queryset().filter(q_objects)
+        serializer = ApiarySiteSerializer(qs, many=True)
+        return Response(serializer.data)
+
+    @list_route(methods=['GET',])
+    @basic_exception_handler
+    def transitable_sites(self, request):
+        q_objects = Q()
+        q_objects |= Q(status__in=ApiarySite.TRANSITABLE_STATUSES)
+
+        qs = self.get_queryset().filter(q_objects)
+        serializer = ApiarySiteSerializer(qs, many=True)
         return Response(serializer.data)
 
     @basic_exception_handler
@@ -457,9 +675,13 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             request_data = request.data
 
-            serializer = ApiarySiteSerializer(instance, data=request_data, partial=True)
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
+            new_status = request.data.get('status', None)
+            all_statuses = list(map(lambda x: x[0], ApiarySite.STATUS_CHOICES))
+            if new_status and new_status in all_statuses:
+                instance.status = new_status
+                instance.save()
+
+            serializer = ApiarySiteSerializer(instance)
 
             return Response(serializer.data)
 
@@ -623,7 +845,7 @@ class ApiaryReferralViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if user.is_authenticated() and is_internal(self.request):
             #queryset =  Referral.objects.filter(referral=user)
-            queryset =  ApiaryReferral.objects.all()
+            queryset = ApiaryReferral.objects.all()
             return queryset
         return ApiaryReferral.objects.none()
 
@@ -819,7 +1041,8 @@ class ProposalViewSet(viewsets.ModelViewSet):
         #import ipdb; ipdb.set_trace()
         if is_internal(self.request): #user.is_authenticated():
             #return Proposal.objects.all()
-            return Proposal.objects.filter(region__isnull=False)
+            return Proposal.objects.filter(Q(region__isnull=False)|
+                    Q(application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]))
         elif is_customer(self.request):
             user_orgs = [org.id for org in user.disturbance_organisations.all()]
             #queryset =  Proposal.objects.filter( Q(applicant_id__in = user_orgs) | Q(submitter = user) )
@@ -907,17 +1130,40 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
     @list_route(methods=['GET',])
     def filter_list(self, request, *args, **kwargs):
+        #import ipdb; ipdb.set_trace()
         """ Used by the internal/external dashboard filters """
-        region_qs =  self.get_queryset().filter(region__isnull=False).values_list('region__name', flat=True).distinct()
-        #district_qs =  self.get_queryset().filter(district__isnull=False).values_list('district__name', flat=True).distinct()
-        activity_qs =  self.get_queryset().filter(activity__isnull=False).values_list('activity', flat=True).distinct()
-        submitter_qs = self.get_queryset().filter(submitter__isnull=False).distinct('submitter__email').values_list('submitter__first_name','submitter__last_name','submitter__email')
+        template_group = get_template_group(request)
+        region_qs = []
+        activity_qs = []
+        application_type_qs = []
+        if template_group == 'apiary':
+            qs = self.get_queryset().filter(
+                    application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]
+                    ).exclude(processing_status='discarded')
+            application_type_qs =  ApplicationType.objects.filter(
+                name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]).values_list(
+                    'name', flat=True).distinct()
+            submitter_qs = qs.filter(
+                    submitter__isnull=False).filter(
+                            application_type__name__in=[ApplicationType.APIARY,ApplicationType.SITE_TRANSFER,ApplicationType.TEMPORARY_USE]).distinct(
+                            'submitter__email').values_list('submitter__first_name','submitter__last_name','submitter__email')
+        else:
+            qs = self.get_queryset().exclude(
+                    application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]
+                    ).exclude(processing_status='discarded')
+            region_qs =  qs.filter(region__isnull=False).values_list('region__name', flat=True).distinct()
+            #district_qs =  self.get_queryset().filter(district__isnull=False).values_list('district__name', flat=True).distinct()
+            activity_qs =  qs.filter(activity__isnull=False).values_list('activity', flat=True).distinct()
+            submitter_qs = qs.filter(submitter__isnull=False).distinct(
+                            'submitter__email').values_list('submitter__first_name','submitter__last_name','submitter__email')
+
         submitters = [dict(email=i[2], search_term='{} {} ({})'.format(i[0], i[1], i[2])) for i in submitter_qs]
         data = dict(
             regions=region_qs,
             #districts=district_qs,
             activities=activity_qs,
             submitters=submitters,
+            application_types=application_type_qs,
             #processing_status_choices = [i[1] for i in Proposal.PROCESSING_STATUS_CHOICES],
             #processing_status_id_choices = [i[0] for i in Proposal.PROCESSING_STATUS_CHOICES],
             #customer_status_choices = [i[1] for i in Proposal.CUSTOMER_STATUS_CHOICES],
@@ -984,7 +1230,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
-
 
 #    def list(self, request, *args, **kwargs):
 #        #import ipdb; ipdb.set_trace()
@@ -1089,6 +1334,49 @@ class ProposalViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['GET',])
+    def apiary_site_transfer_originating_approval_requirements(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            #qs = instance.requirements.all()
+            #qs = instance.requirements.all().exclude(is_deleted=True)
+            approval = Approval.objects.get(id=instance.proposal_apiary.originating_approval_id)
+            qs = instance.apiary_requirements(approval).exclude(is_deleted=True)
+            #qs = instance.apiary_site_transfer_originatingrequirements(approval_id).exclude(is_deleted=True)
+            serializer = ProposalRequirementSerializer(qs,many=True)
+            return Response(serializer.data)
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['GET',])
+    def apiary_site_transfer_target_approval_requirements(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            #qs = instance.requirements.all()
+            #qs = instance.requirements.all().exclude(is_deleted=True)
+            approval = Approval.objects.get(id=instance.proposal_apiary.target_approval_id)
+            qs = instance.apiary_requirements(approval).exclude(is_deleted=True)
+            #qs = instance.apiary_site_transfer_originatingrequirements(approval_id).exclude(is_deleted=True)
+            serializer = ProposalRequirementSerializer(qs,many=True)
+            return Response(serializer.data)
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
 
     @detail_route(methods=['GET',])
     def amendment_request(self, request, *args, **kwargs):
@@ -1655,9 +1943,34 @@ class ProposalViewSet(viewsets.ModelViewSet):
                     serializer = SaveProposalApiarySerializer(data=details_data)
                     serializer.is_valid(raise_exception=True)
                     proposal_apiary = serializer.save()
-                    for question in ApiaryApplicantChecklistQuestion.objects.filter(checklist_type='apiary'):
-                        new_answer = ApiaryApplicantChecklistAnswer.objects.create(proposal = proposal_apiary,
+                    for question in ApiaryChecklistQuestion.objects.filter(
+                            checklist_type='apiary',
+                            checklist_role='applicant'
+                            ):
+                        new_answer = ApiaryChecklistAnswer.objects.create(proposal = proposal_apiary,
                                                                                    question = question)
+                    # Find relevant approval
+                    #import ipdb; ipdb.set_trace()
+                    approval = proposal_apiary.retrieve_approval
+                    if approval:
+                        # Copy requirements from approval.current_proposal
+                        #req = approval.current_proposal.apiary_requirements(approval).exclude(is_deleted=True)
+                        req = approval.proposalrequirement_set.exclude(is_deleted=True)
+                        from copy import deepcopy
+                        if req:
+                            for r in req:
+                                old_r = deepcopy(r)
+                                r.proposal = proposal_apiary.proposal
+                                #r.apiary_approval = approval
+                                r.copied_from=old_r
+                                r.id = None
+                                r.save()
+                        # Set previous_application to maintain proposal history
+                        proposal_apiary.proposal.previous_application = approval.current_proposal
+                        proposal_apiary.proposal.save()
+                        #proposal_apiary.proposal.proposal_type = 'amendment'
+                        #proposal_apiary.proposal.save()
+
                 elif application_type.name == ApplicationType.SITE_TRANSFER:
                     approval_id = request.data.get('originating_approval_id')
                     approval = Approval.objects.get(id=approval_id)
@@ -1672,8 +1985,11 @@ class ProposalViewSet(viewsets.ModelViewSet):
                         proposal_obj.proxy_applicant = approval.proxy_applicant
                     proposal_obj.save()
                     # Set up checklist questions
-                    for question in ApiaryApplicantChecklistQuestion.objects.filter(checklist_type='site_transfer'):
-                        new_answer = ApiaryApplicantChecklistAnswer.objects.create(proposal = proposal_apiary,
+                    for question in ApiaryChecklistQuestion.objects.filter(
+                            checklist_type='site_transfer',
+                            checklist_role='applicant'
+                            ):
+                        new_answer = ApiaryChecklistAnswer.objects.create(proposal = proposal_apiary,
                                                                                    question = question)
                     # Save approval apiary sites to site transfer proposal
                     for apiary_site in approval.apiary_sites.all():
@@ -1829,17 +2145,37 @@ class ReferralViewSet(viewsets.ModelViewSet):
     @list_route(methods=['GET',])
     def filter_list(self, request, *args, **kwargs):
         """ Used by the external dashboard filters """
-        qs =  self.get_queryset().filter(referral=request.user)
-        region_qs =  qs.filter(proposal__region__isnull=False).values_list('proposal__region__name', flat=True).distinct()
-        #district_qs =  qs.filter(proposal__district__isnull=False).values_list('proposal__district__name', flat=True).distinct()
-        activity_qs =  qs.filter(proposal__activity__isnull=False).order_by('proposal__activity').distinct('proposal__activity').values_list('proposal__activity', flat=True).distinct()
-        submitter_qs = qs.filter(proposal__submitter__isnull=False).order_by('proposal__submitter').distinct('proposal__submitter').values_list('proposal__submitter__first_name','proposal__submitter__last_name','proposal__submitter__email')
+        template_group = get_template_group(request)
+        region_qs = []
+        application_type_qs = []
+        activity_qs = []
+        if template_group == 'apiary':
+            qs = Referral.objects.filter(apiary_referral__referral_group__members=request.user) \
+                    if is_internal(self.request) else Referral.objects.none()
+            application_type_qs =  ApplicationType.objects.filter(
+                    name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, 
+                        #ApplicationType.TEMPORARY_USE
+                        ]).values_list(
+                        'name', flat=True).distinct()
+            submitter_qs = qs.filter(proposal__submitter__isnull=False).filter(proposal__application_type__name__in=[ApplicationType.APIARY,ApplicationType.SITE_TRANSFER]).order_by(
+                    'proposal__submitter').distinct('proposal__submitter').values_list(
+                            'proposal__submitter__first_name','proposal__submitter__last_name','proposal__submitter__email')
+        else:
+            qs =  self.get_queryset().filter(referral=request.user)
+            region_qs =  qs.filter(proposal__region__isnull=False).values_list('proposal__region__name', flat=True).distinct()
+            #district_qs =  qs.filter(proposal__district__isnull=False).values_list('proposal__district__name', flat=True).distinct()
+            activity_qs =  qs.filter(proposal__activity__isnull=False).order_by('proposal__activity').distinct('proposal__activity').values_list('proposal__activity', flat=True).distinct()
+            submitter_qs = qs.filter(proposal__submitter__isnull=False).order_by('proposal__submitter').distinct('proposal__submitter').values_list(
+                    'proposal__submitter__first_name','proposal__submitter__last_name','proposal__submitter__email')
+
+        #submitter_qs = qs.filter(proposal__submitter__isnull=False).order_by('proposal__submitter').distinct('proposal__submitter').values_list('proposal__submitter__first_name','proposal__submitter__last_name','proposal__submitter__email')
         submitters = [dict(email=i[2], search_term='{} {} ({})'.format(i[0], i[1], i[2])) for i in submitter_qs]
         processing_status_qs =  qs.filter(proposal__processing_status__isnull=False).order_by('proposal__processing_status').distinct('proposal__processing_status').values_list('proposal__processing_status', flat=True)
         processing_status = [dict(value=i, name='{}'.format(' '.join(i.split('_')).capitalize())) for i in processing_status_qs]
         data = dict(
             regions=region_qs,
             #districts=district_qs,
+            application_types=application_type_qs,
             activities=activity_qs,
             submitters=submitters,
             processing_status_choices=processing_status,
