@@ -2474,10 +2474,10 @@ class ProposalApiary(models.Model):
                 self.proposal.processing_status = 'approved'
                 self.proposal.customer_status = 'approved'
                 # Log proposal action
-                self.proposal.log_user_action(ProposalUserAction.ACTION_ISSUE_APPROVAL_.format(self.id),request)
+                self.proposal.log_user_action(ProposalUserAction.ACTION_ISSUE_APPROVAL_.format(self.propposal.id), request)
                 # Log entry for organisation
                 if self.proposal.applicant:
-                    self.proposal.applicant.log_user_action(ProposalUserAction.ACTION_ISSUE_APPROVAL_.format(self.proposal.id),request)
+                    self.proposal.applicant.log_user_action(ProposalUserAction.ACTION_ISSUE_APPROVAL_.format(self.proposal.id), request)
                 #import ipdb;ipdb.set_trace()
 
                 if self.proposal.processing_status == 'approved':
