@@ -1,11 +1,5 @@
 import os
 from django.conf import settings
-# from reportlab.lib import enums
-# from reportlab.lib.pagesizes import A4
-# from reportlab.platypus import BaseDocTemplate, PageTemplate, Frame, Paragraph, Table, TableStyle
-# from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-# from reportlab.lib.utils import ImageReader
-# from mooring.models import Booking
 import re
 from docx import Document
 from docxtpl import DocxTemplate
