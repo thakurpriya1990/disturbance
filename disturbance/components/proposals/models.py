@@ -1233,12 +1233,14 @@ class Proposal(RevisionedMixin):
                             my_site.save()
 
                             if apiary_site['checked'] and 'coordinates_moved' in apiary_site:
+                                prev_coordinates = my_site.wkb_geometry.get_coords()
                                 # Update coordinate (Assessor and Approver can move the proposed site location)
                                 geom_str = GEOSGeometry('POINT(' + str(apiary_site['coordinates_moved']['lng']) + ' ' + str(apiary_site['coordinates_moved']['lat']) + ')', srid=4326)
                                 from disturbance.components.proposals.serializers_apiary import ApiarySiteSavePointSerializer
                                 serializer = ApiarySiteSavePointSerializer(my_site, data={'wkb_geometry': geom_str}, context={'validate_distance': True})
                                 serializer.is_valid(raise_exception=True)
                                 serializer.save()
+                                self.log_user_action(ProposalUserAction.APIARY_SITE_MOVED.format(apiary_site['id'], prev_coordinates, (apiary_site['coordinates_moved']['lng'], apiary_site['coordinates_moved']['lat'])), request)
 
                     # Site transfer
                     elif self.application_type.name == ApplicationType.SITE_TRANSFER:
@@ -1955,6 +1957,7 @@ class ProposalUserAction(UserAction):
     APIARY_RECALL_REFERRAL = "Apiary Referral {} for application {} has been recalled"
     APIARY_CONCLUDE_REFERRAL = "Apiary Referral {} for application {} has been concluded by {}"
     APIARY_ACTION_SAVE_APPLICATION = "Save Apiary application {}"
+    APIARY_SITE_MOVED = "Apiary Site {} has been moved from {} to {}"
 
 
 
@@ -2615,7 +2618,7 @@ class ProposalApiary(models.Model):
                             if len(sites_approved) == 0:
                                 raise ValidationError("There must be at least one apiary site to approve")
 
-                            self.update_apiary_sites(approval, sites_received)
+                            self.update_apiary_sites(approval, sites_received, request)
 
                             # Check the current annual rental fee period
                             # Determine the start and end date of the annual rental fee, for which the invoices should be issued
@@ -2965,7 +2968,7 @@ class ProposalApiary(models.Model):
             except:
                 raise
 
-    def update_apiary_sites(self, approval, sites_approved):
+    def update_apiary_sites(self, approval, sites_approved, request):
         for my_site in sites_approved:
             a_site = ApiarySite.objects.get(id=my_site['id'])
             if my_site['checked']:
@@ -2979,11 +2982,13 @@ class ProposalApiary(models.Model):
 
             # Apiary Site can be moved by assessor and/or approver
             if 'coordinates_moved' in my_site:
+                prev_coordinates = a_site.wkb_geometry.get_coords()
                 geom_str = GEOSGeometry('POINT(' + str(my_site['coordinates_moved']['lng']) + ' ' + str(my_site['coordinates_moved']['lat']) + ')', srid=4326)
                 from disturbance.components.proposals.serializers_apiary import ApiarySiteSavePointSerializer
                 serializer = ApiarySiteSavePointSerializer(a_site, data={'wkb_geometry': geom_str}, context={'validate_distance': True})
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
+                a_site.proposal_apiary.proposal.log_user_action(ProposalUserAction.APIARY_SITE_MOVED.format(my_site['id'], prev_coordinates, (my_site['coordinates_moved']['lng'], my_site['coordinates_moved']['lat'])), request)
 
 
 class SiteCategory(models.Model):
