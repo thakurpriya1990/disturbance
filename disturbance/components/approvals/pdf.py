@@ -500,7 +500,8 @@ def _create_renewal(renewal_buffer, approval, proposal):
     delegation = []
     # proponent details
     delegation.append(Spacer(1, SECTION_BUFFER_HEIGHT))
-    address = proposal.applicant.organisation.postal_address
+    #address = proposal.applicant.organisation.postal_address
+    address = proposal.relevant_applicant_address
     address_paragraphs = [Paragraph(address.line1, styles['Left']), Paragraph(address.line2, styles['Left']),
                           Paragraph(address.line3, styles['Left']),
                           Paragraph('%s %s %s' % (address.locality, address.state, address.postcode), styles['Left']),
