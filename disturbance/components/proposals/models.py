@@ -2261,6 +2261,7 @@ def clone_apiary_proposal_with_status_reset(original_proposal):
         try:
             proposal = copy.deepcopy(original_proposal)
             proposal.id = None
+            proposal.application_type == ApplicationType.objects.filter(name=ApplicationType.APIARY)[0]
             proposal.save(no_revision=True)
             # create proposal_apiary and associate it with the proposal
             proposal_apiary = ProposalApiary.objects.create(proposal=proposal)
