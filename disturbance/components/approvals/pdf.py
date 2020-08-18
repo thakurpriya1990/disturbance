@@ -14,7 +14,6 @@ from reportlab.lib.colors import HexColor
 from django.core.files import File
 from django.conf import settings
 
-from disturbance.components.approvals.models import ApprovalDocument
 from disturbance.components.main.models import ApplicationType
 
 #BW_DPAW_HEADER_LOGO = os.path.join(settings.BASE_DIR, 'wildlifelicensing', 'static', 'wl', 'img',
@@ -94,6 +93,7 @@ styles.add(ParagraphStyle(name='Right', alignment=enums.TA_RIGHT))
 styles.add(ParagraphStyle(name='LetterLeft', fontSize=LARGE_FONTSIZE, alignment=enums.TA_LEFT))
 styles.add(ParagraphStyle(name='LetterBoldLeft', fontName=BOLD_FONTNAME, fontSize=LARGE_FONTSIZE, alignment=enums.TA_LEFT))
 
+
 def _create_approval_header(canvas, doc, draw_page_number=True):
     canvas.setFont(BOLD_FONTNAME, LARGE_FONTSIZE)
 
@@ -158,11 +158,6 @@ def _create_approval_header(canvas, doc, draw_page_number=True):
 
 
 def _create_approval(approval_buffer, approval, proposal, copied_to_permit, user):
-
-    # TODO: create licence pdf from doc file
-    pdf_contents = create_apiary_licence_pdf_contents(approval)
-    return pdf_contents
-
     site_url = settings.SITE_URL
     every_page_frame = Frame(PAGE_MARGIN, PAGE_MARGIN, PAGE_WIDTH - 2 * PAGE_MARGIN,
                              PAGE_HEIGHT - 160, id='EveryPagesFrame')
@@ -345,8 +340,10 @@ def _create_approval(approval_buffer, approval, proposal, copied_to_permit, user
 
     return approval_buffer
 
+
 def _format_name(org):
     return org.name
+
 
 def _layout_extracted_fields(extracted_fields):
     elements = []
@@ -436,13 +433,31 @@ def _layout_extracted_fields(extracted_fields):
     return elements
 
 
-def create_approval_doc(approval, proposal, copied_to_permit, user):
-    pdf_contents = create_apiary_licence_pdf_contents(approval)
+def create_approval_doc(approval,proposal, copied_to_permit, user):
+    approval_buffer = BytesIO()
+
+    _create_approval(approval_buffer, approval, proposal, copied_to_permit, user)
+    if proposal.apiary_group_application_type:
+        filename = 'approval-{}-{}.pdf'.format(approval.lodgement_number, proposal.lodgement_number)
+    else:
+        filename = 'approval-{}.pdf'.format(approval.lodgement_number)
+    from disturbance.components.approvals.models import ApprovalDocument
+    document = ApprovalDocument.objects.create(approval=approval,name=filename)
+    document._file.save(filename, File(approval_buffer), save=True)
+
+    approval_buffer.close()
+
+    return document
+
+
+def create_approval_document(approval, proposal, copied_to_permit, user):
+    pdf_contents = create_apiary_licence_pdf_contents(approval, proposal, copied_to_permit, user)
 
     if proposal.apiary_group_application_type:
         filename = 'approval-{}-{}.pdf'.format(approval.lodgement_number, proposal.lodgement_number)
     else:
         filename = 'approval-{}.pdf'.format(approval.lodgement_number)
+    from disturbance.components.approvals.models import ApprovalDocument
     document = ApprovalDocument.objects.create(approval=approval, name=filename)
     document._file.save(filename, ContentFile(pdf_contents), save=True)
 
@@ -452,8 +467,7 @@ def create_approval_doc(approval, proposal, copied_to_permit, user):
 def create_approval_pdf_bytes(approval, proposal, copied_to_permit, user):
     licence_buffer = BytesIO()
 
-    temp_buff = _create_approval(licence_buffer, approval, proposal, copied_to_permit, user)
-    return temp_buff
+    _create_approval(licence_buffer, approval, proposal, copied_to_permit, user)
 
     # Get the value of the BytesIO buffer
     value = licence_buffer.getvalue()
@@ -471,12 +485,14 @@ def create_renewal_doc(approval,proposal):
     else:
         filename = 'renewal-{}.pdf'.format(approval.lodgement_number)
     #filename = 'renewal-{}.pdf'.format(approval.id)
+    from disturbance.components.approvals.models import ApprovalDocument
     document = ApprovalDocument.objects.create(approval=approval,name=filename)
     document._file.save(filename, File(renewal_buffer), save=True)
 
     renewal_buffer.close()
 
     return document
+
 
 def _create_renewal(renewal_buffer, approval, proposal):
     site_url = settings.SITE_URL
