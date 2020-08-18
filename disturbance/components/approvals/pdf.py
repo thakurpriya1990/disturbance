@@ -2,6 +2,7 @@ import os
 from io import BytesIO
 from datetime import date
 
+from django.core.files.base import ContentFile
 from reportlab.lib import enums
 from reportlab.lib.pagesizes import A4
 from reportlab.platypus import BaseDocTemplate, PageTemplate, Frame, Paragraph, Spacer, Table, TableStyle, ListFlowable, \
@@ -18,7 +19,7 @@ from disturbance.components.main.models import ApplicationType
 
 #BW_DPAW_HEADER_LOGO = os.path.join(settings.BASE_DIR, 'wildlifelicensing', 'static', 'wl', 'img',
 #                                   'bw_dpaw_header_logo.png')
-from disturbance.doctopdf import create_apiary_licence_pdf
+from disturbance.doctopdf import create_apiary_licence_pdf_contents
 
 BW_DPAW_HEADER_LOGO = os.path.join(settings.BASE_DIR, 'disturbance', 'static', 'disturbance', 'img',
                                    'dbca-logo.jpg')
@@ -159,8 +160,8 @@ def _create_approval_header(canvas, doc, draw_page_number=True):
 def _create_approval(approval_buffer, approval, proposal, copied_to_permit, user):
 
     # TODO: create licence pdf from doc file
-    approval_buffer = create_apiary_licence_pdf(approval)
-    return approval_buffer
+    pdf_contents = create_apiary_licence_pdf_contents(approval)
+    return pdf_contents
 
     site_url = settings.SITE_URL
     every_page_frame = Frame(PAGE_MARGIN, PAGE_MARGIN, PAGE_WIDTH - 2 * PAGE_MARGIN,
@@ -434,18 +435,16 @@ def _layout_extracted_fields(extracted_fields):
 
     return elements
 
-def create_approval_doc(approval,proposal, copied_to_permit, user):
-    approval_buffer = BytesIO()
 
-    _create_approval(approval_buffer, approval, proposal, copied_to_permit, user)
+def create_approval_doc(approval, proposal, copied_to_permit, user):
+    pdf_contents = create_apiary_licence_pdf_contents(approval)
+
     if proposal.apiary_group_application_type:
         filename = 'approval-{}-{}.pdf'.format(approval.lodgement_number, proposal.lodgement_number)
     else:
         filename = 'approval-{}.pdf'.format(approval.lodgement_number)
-    document = ApprovalDocument.objects.create(approval=approval,name=filename)
-    document._file.save(filename, File(approval_buffer), save=True)
-
-    approval_buffer.close()
+    document = ApprovalDocument.objects.create(approval=approval, name=filename)
+    document._file.save(filename, ContentFile(pdf_contents), save=True)
 
     return document
 

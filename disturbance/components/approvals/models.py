@@ -26,7 +26,7 @@ from disturbance.components.approvals.email import (
     send_approval_reinstate_email_notification,
     send_approval_surrender_email_notification
 )
-from disturbance.doctopdf import create_apiary_licence_pdf
+from disturbance.doctopdf import create_apiary_licence_pdf_contents
 from disturbance.utils import search_keys, search_multiple_keys
 #from disturbance.components.approvals.email import send_referral_email_notification
 from disturbance.helpers import is_customer
@@ -265,7 +265,8 @@ class Approval(RevisionedMixin):
         from disturbance.components.approvals.pdf import create_approval_doc, create_approval_pdf_bytes
         copied_to_permit = self.copiedToPermit_fields(self.current_proposal) #Get data related to isCopiedToPermit tag
         if preview:
-            return create_approval_pdf_bytes(self, self.current_proposal, copied_to_permit, user)
+            pdf_contents = create_apiary_licence_pdf_contents(self)
+            return pdf_contents
         self.licence_document = create_approval_doc(self, self.current_proposal, copied_to_permit, user)
         self.save(version_comment='Created Approval PDF: {}'.format(self.licence_document.name))
         self.current_proposal.save(version_comment='Created Approval PDF: {}'.format(self.licence_document.name))

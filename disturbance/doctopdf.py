@@ -6,7 +6,7 @@ from docxtpl import DocxTemplate
 from disturbance.components.main.models import ApiaryGlobalSettings
 
 
-def create_apiary_licence_pdf(approval):
+def create_apiary_licence_pdf_contents(approval):
     # print ("Letter File")
     # confirmation_doc = None
     # if booking.annual_booking_period_group.letter:
@@ -56,10 +56,9 @@ def create_apiary_licence_pdf(approval):
     doc.save(new_doc_file)
     os.system("libreoffice --headless --convert-to pdf " + new_doc_file + " --outdir " + temp_directory)
 
-    confirmation_buffer = None
+    file_contents = None
     with open(new_pdf_file, 'rb') as f:
-        confirmation_buffer = f.read()
-        # confirmation_buffer = BytesIO(f.read())
-    # os.remove(new_doc_file)
-    # os.remove(new_pdf_file)
-    return confirmation_buffer
+        file_contents = f.read()
+    os.remove(new_doc_file)
+    os.remove(new_pdf_file)
+    return file_contents
