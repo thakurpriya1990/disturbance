@@ -253,8 +253,8 @@ class Approval(RevisionedMixin):
                     return False
 
     def generate_apiary_site_transfer_doc(self, user, site_transfer_proposal, preview=False):
-        self.generate_apiary_licence_doc(site_transfer_proposal, user, preview)
-        # copied_to_permit = self.copiedToPermit_fields(site_transfer_proposal) #Get data related to isCopiedToPermit tag
+        return self.generate_apiary_licence_doc(site_transfer_proposal, user, preview)
+        # copied_to_permit = self.copiedToPermit_fields(site_transfer_proposal)  # Get data related to isCopiedToPermit tag
         # if preview:
         #     pdf_contents = create_apiary_licence_pdf_contents(self, site_transfer_proposal, copied_to_permit, user)
         #     return pdf_contents
@@ -263,8 +263,8 @@ class Approval(RevisionedMixin):
         # self.current_proposal.save(version_comment='Created Approval PDF: {}'.format(self.licence_document.name))
 
     def generate_doc(self, user, preview=False):
-        self.generate_apiary_licence_doc(self.current_proposal, user, preview)
-        # copied_to_permit = self.copiedToPermit_fields(self.current_proposal) #Get data related to isCopiedToPermit tag
+        return self.generate_apiary_licence_doc(self.current_proposal, user, preview)
+        # copied_to_permit = self.copiedToPermit_fields(self.current_proposal)  # Get data related to isCopiedToPermit tag
         # if preview:
         #     pdf_contents = create_apiary_licence_pdf_contents(self, self.current_proposal, copied_to_permit, user)
         #     return pdf_contents

@@ -16,6 +16,12 @@ def create_apiary_licence_pdf_contents(approval, proposal, copied_to_permit, use
 
     licence_template = ApiaryGlobalSettings.objects.get(key=ApiaryGlobalSettings.KEY_APIARY_LICENCE_TEMPLATE_FILE)
 
+    if licence_template._file:
+        path_to_template = licence_template._file.path
+    else:
+        # Use default template file
+        path_to_template = os.path.join(settings.BASE_DIR, 'disturbance', 'static', 'disturbance', 'apiary_authority_template.docx')
+
     doc = DocxTemplate(licence_template._file.path)
     # address = ''
     # if len(booking.details.get('postal_address_line_2', '')) > 0:
