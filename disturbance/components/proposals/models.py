@@ -51,6 +51,7 @@ from disturbance.components.proposals.email import (
 from disturbance.ordered_model import OrderedModel
 import copy
 import subprocess
+from django.conf import settings
 
 import logging
 logger = logging.getLogger(__name__)
@@ -1212,27 +1213,37 @@ class Proposal(RevisionedMixin):
                 if self.processing_status != 'with_assessor_requirements':
                     raise ValidationError('You cannot propose for approval if it is not with assessor for requirements')
                 # Do not accept new start and expiry dates for Apiary group applications with a licence, unless the licence has been reissued
+                start_date = details.get('start_date').strftime('%d/%m/%Y') if details.get('start_date') else None
+                expiry_date = details.get('expiry_date').strftime('%d/%m/%Y') if details.get('expiry_date') else None
                 if self.apiary_group_application_type:
                     if self.approval and self.approval.reissued:
                         self.proposed_issuance_approval = {
-                            'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
-                            'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
+                            'start_date' : start_date,
+                            'expiry_date' : expiry_date,
                             'details' : details.get('details'),
                             'cc_email' : details.get('cc_email'),
+                        }
+                    elif self.proposed_issuance_approval:
+                        self.proposed_issuance_approval = {
+                                #'start_date' : self.proposed_issuance_approval.get('start_date') if self.proposed_issuance_approval.get('start_date') else details.get('start_date').strftime('%d/%m/%Y'),
+                                #'expiry_date' : self.proposed_issuance_approval.get('expiry_date') if self.proposed_issuance_approval.get('expiry_date') else details.get('expiry_date').strftime('%d/%m/%Y'),
+                                'details' : details.get('details'),
+                                'cc_email' : details.get('cc_email'),
                         }
                     else:
                         self.proposed_issuance_approval = {
-                            #'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
-                            #'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
-                            'details' : details.get('details'),
-                            'cc_email' : details.get('cc_email'),
+                                'start_date' : start_date,
+                                'expiry_date' : expiry_date,
+                                'details' : details.get('details'),
+                                'cc_email' : details.get('cc_email'),
                         }
+                # non-apiary Proposals
                 else:
                     self.proposed_issuance_approval = {
-                        'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
-                        'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
-                        'details' : details.get('details'),
-                        'cc_email' : details.get('cc_email'),
+                            'start_date' : start_date,
+                            'expiry_date' : expiry_date,
+                            'details' : details.get('details'),
+                            'cc_email' : details.get('cc_email'),
                     }
 
                 self.proposed_decline_status = False
@@ -1603,6 +1614,7 @@ class Proposal(RevisionedMixin):
                 raise
 
     def renew_approval(self,request):
+        #import ipdb; ipdb.set_trace()
         with transaction.atomic():
             previous_proposal = self
             try:
@@ -1610,12 +1622,15 @@ class Proposal(RevisionedMixin):
                 if proposal.customer_status=='with_assessor':
                     raise ValidationError('A renewal for this licence has already been lodged and is awaiting review.')
             except Proposal.DoesNotExist:
-                previous_proposal = Proposal.objects.get(id=self.id)
-                proposal = clone_proposal_with_status_reset(previous_proposal)
+                if previous_proposal.apiary_group_application_type:
+                    proposal = clone_apiary_proposal_with_status_reset(previous_proposal)
+                else:
+                    previous_proposal = Proposal.objects.get(id=self.id)
+                    proposal = clone_proposal_with_status_reset(previous_proposal)
+                    #proposal.schema = ProposalType.objects.first().schema
+                    ptype = ProposalType.objects.filter(name=proposal.application_type).latest('version')
+                    proposal.schema = ptype.schema
                 proposal.proposal_type = 'renewal'
-                #proposal.schema = ProposalType.objects.first().schema
-                ptype = ProposalType.objects.filter(name=proposal.application_type).latest('version')
-                proposal.schema = ptype.schema
                 proposal.submitter = request.user
                 proposal.previous_application = self
                 # Create a log entry for the proposal
@@ -2240,6 +2255,94 @@ def clone_proposal_with_status_reset(proposal):
             except:
                 raise
 
+def clone_apiary_proposal_with_status_reset(original_proposal):
+    #import ipdb; ipdb.set_trace()
+    with transaction.atomic():
+        try:
+            proposal = copy.deepcopy(original_proposal)
+            proposal.id = None
+            #proposal.application_type = ApplicationType.objects.filter(name=ApplicationType.APIARY)[0]
+            proposal.application_type = ApplicationType.objects.get(name=ApplicationType.APIARY)
+
+            proposal.save(no_revision=True)
+            # create proposal_apiary and associate it with the proposal
+            proposal_apiary = ProposalApiary.objects.create(proposal=proposal)
+            #proposal_apiary = proposal_apiary.proposal
+            proposal_apiary.save()
+
+            proposal.customer_status = 'draft'
+            proposal.processing_status = 'draft'
+            proposal.assessor_data = None
+            proposal.comment_data = None
+            proposal.lodgement_number = ''
+            proposal.lodgement_sequence = 0
+            proposal.lodgement_date = None
+
+            proposal.assigned_officer = None
+            proposal.assigned_approver = None
+
+            #proposal.approval = None
+
+            #original_proposal_id = proposal.id
+
+            #proposal.id = None
+            proposal.approval_level_document = None
+
+            proposal.save(no_revision=True)
+
+            ## clone documents
+            #for proposal_document in DeedPollDocument.objects.filter(proposal=original_proposal.id):
+
+            #    proposal_document.proposal = proposal
+            #    proposal_document.id = None
+            #    path = default_storage.save(
+            #        '{}/proposals/{}/deed_poll_documents/{}'.format(
+            #            settings.MEDIA_APIARY_DIR, proposal.id, proposal_document.name), ContentFile(
+            #            proposal_document._file.read()))
+
+            #    proposal_document._file = path
+            #    proposal_document.can_delete = True
+            #    proposal_document.save()
+
+            # copy documents on file system and reset can_delete flag
+            #subprocess.call('cp -pr media/proposals/{} media/proposals/{}'.format(original_proposal.id, proposal.id), shell=True)
+
+            # clone requirements
+            approval = original_proposal.proposal_apiary.retrieve_approval
+            req = approval.proposalrequirement_set.exclude(is_deleted=True)
+            #from copy import deepcopy
+            if req:
+                for r in req:
+                    old_r = copy.deepcopy(r)
+                    r.proposal = proposal
+                    r.copied_from=old_r
+                    r.id = None
+                    r.save()
+
+            # update apiary_sites with new proposal
+            for site in approval.apiary_sites.all():
+                site.proposal_apiary = proposal.proposal_apiary
+                site.save()
+
+            # Checklist questions
+            for question in ApiaryChecklistQuestion.objects.filter(
+                    checklist_type='apiary',
+                    checklist_role='applicant'
+                    ):
+                new_answer = ApiaryChecklistAnswer.objects.create(proposal = proposal.proposal_apiary,
+                                                                           question = question)
+
+            # update approval.current_proposal
+            #approval.current_proposal = proposal
+            #approval.save()
+            # Set previous_application to maintain proposal history
+            #proposal_apiary.proposal.previous_application = approval.current_proposal
+            #proposal_apiary.proposal.save()
+
+            return proposal
+        except:
+            raise
+
 def searchKeyWords(searchWords, searchProposal, searchApproval, searchCompliance, is_internal= True):
     from disturbance.utils import search, search_approval, search_compliance
     from disturbance.components.approvals.models import Approval
@@ -2484,21 +2587,14 @@ class ProposalApiary(models.Model):
                 #if not self.applicant.organisation.postal_address:
                 if not self.proposal.relevant_applicant_address:
                     raise ValidationError('The applicant needs to have set their postal address before approving this proposal.')
-                # Do not accept new start and expiry dates for Apiary group applications with a licence, unless the licence has been reissued
-                if self.proposal.approval and self.proposal.approval.reissued:
-                    self.proposal.proposed_issuance_approval = {
-                        'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
-                        'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
+                start_date = details.get('start_date').strftime('%d/%m/%Y') if details.get('start_date') else None
+                expiry_date = details.get('expiry_date').strftime('%d/%m/%Y') if details.get('expiry_date') else None
+                self.proposal.proposed_issuance_approval = {
+                        'start_date' : start_date,
+                        'expiry_date' : expiry_date,
                         'details' : details.get('details'),
                         'cc_email' : details.get('cc_email'),
-                    }
-                else:
-                    self.proposed_issuance_approval = {
-                        #'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
-                        #'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
-                        'details' : details.get('details'),
-                        'cc_email' : details.get('cc_email'),
-                    }
+                }
                 self.save()
 
                 self.proposal.proposed_decline_status = False

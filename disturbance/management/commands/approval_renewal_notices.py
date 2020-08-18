@@ -17,6 +17,7 @@ class Command(BaseCommand):
     help = 'Send Approval renewal notice when approval is due to expire in 30 days'
 
     def handle(self, *args, **options):
+        #import ipdb; ipdb.set_trace()
         try:
             user = EmailUser.objects.get(email=settings.CRON_EMAIL)
         except:
