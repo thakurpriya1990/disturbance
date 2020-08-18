@@ -36,8 +36,8 @@ from disturbance.components.approvals.models import (
         Approval,
         )
 from disturbance.components.main.models import (
-        GlobalSettings,
-        )
+    GlobalSettings, ApiaryGlobalSettings,
+)
 
 
 class APITestSetup(APITestCase):
@@ -253,7 +253,7 @@ class APITestSetup(APITestCase):
         self.today_plus_26_weeks_str = self.today_plus_26_weeks.strftime('%d/%m/%Y')
 
         # Global settings
-        GlobalSettings.objects.create(key='oracle_code_apiary_site_annual_rental_fee', value='sample')
+        ApiaryGlobalSettings.objects.create(key='oracle_code_apiary_site_annual_rental_fee', value='sample')
 
         # Get data ready
         temp = DefaultDataManager()

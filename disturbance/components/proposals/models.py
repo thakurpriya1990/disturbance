@@ -1253,12 +1253,14 @@ class Proposal(RevisionedMixin):
                             my_site.save()
 
                             if apiary_site['checked'] and 'coordinates_moved' in apiary_site:
+                                prev_coordinates = my_site.wkb_geometry.get_coords()
                                 # Update coordinate (Assessor and Approver can move the proposed site location)
                                 geom_str = GEOSGeometry('POINT(' + str(apiary_site['coordinates_moved']['lng']) + ' ' + str(apiary_site['coordinates_moved']['lat']) + ')', srid=4326)
                                 from disturbance.components.proposals.serializers_apiary import ApiarySiteSavePointSerializer
                                 serializer = ApiarySiteSavePointSerializer(my_site, data={'wkb_geometry': geom_str}, context={'validate_distance': True})
                                 serializer.is_valid(raise_exception=True)
                                 serializer.save()
+                                self.log_user_action(ProposalUserAction.APIARY_SITE_MOVED.format(apiary_site['id'], prev_coordinates, (apiary_site['coordinates_moved']['lng'], apiary_site['coordinates_moved']['lat'])), request)
 
                     # Site transfer
                     elif self.application_type.name == ApplicationType.SITE_TRANSFER:
@@ -1786,9 +1788,10 @@ class AmendmentRequest(ProposalRequest):
                         proposal.documents.all().update(can_hide=True)
 
                     # Create a log entry for the proposal
-                    proposal.log_user_action(ProposalUserAction.ACTION_ID_REQUEST_AMENDMENTS,request)
+                    proposal.log_user_action(ProposalUserAction.ACTION_ID_REQUEST_AMENDMENTS, request)
                     # Create a log entry for the organisation
-                    proposal.applicant.log_user_action(ProposalUserAction.ACTION_ID_REQUEST_AMENDMENTS,request)
+                    if proposal.applicant:
+                        proposal.applicant.log_user_action(ProposalUserAction.ACTION_ID_REQUEST_AMENDMENTS, request)
 
                     # send email
 
@@ -1995,6 +1998,7 @@ class ProposalUserAction(UserAction):
     APIARY_RECALL_REFERRAL = "Apiary Referral {} for application {} has been recalled"
     APIARY_CONCLUDE_REFERRAL = "Apiary Referral {} for application {} has been concluded by {}"
     APIARY_ACTION_SAVE_APPLICATION = "Save Apiary application {}"
+    APIARY_SITE_MOVED = "Apiary Site {} has been moved from {} to {}"
 
 
 
@@ -2505,10 +2509,10 @@ class ProposalApiary(models.Model):
                 self.proposal.processing_status = 'approved'
                 self.proposal.customer_status = 'approved'
                 # Log proposal action
-                self.proposal.log_user_action(ProposalUserAction.ACTION_ISSUE_APPROVAL_.format(self.id),request)
+                self.proposal.log_user_action(ProposalUserAction.ACTION_ISSUE_APPROVAL_.format(self.proposal.id), request)
                 # Log entry for organisation
                 if self.proposal.applicant:
-                    self.proposal.applicant.log_user_action(ProposalUserAction.ACTION_ISSUE_APPROVAL_.format(self.proposal.id),request)
+                    self.proposal.applicant.log_user_action(ProposalUserAction.ACTION_ISSUE_APPROVAL_.format(self.proposal.id), request)
                 #import ipdb;ipdb.set_trace()
 
                 if self.proposal.processing_status == 'approved':
@@ -2667,7 +2671,7 @@ class ProposalApiary(models.Model):
                             if len(sites_approved) == 0:
                                 raise ValidationError("There must be at least one apiary site to approve")
 
-                            self.update_apiary_sites(approval, sites_received)
+                            self.update_apiary_sites(approval, sites_received, request)
 
                             # Check the current annual rental fee period
                             # Determine the start and end date of the annual rental fee, for which the invoices should be issued
@@ -2940,7 +2944,7 @@ class ProposalApiary(models.Model):
             except:
                 raise
 
-    def update_apiary_sites(self, approval, sites_approved):
+    def update_apiary_sites(self, approval, sites_approved, request):
         for my_site in sites_approved:
             a_site = ApiarySite.objects.get(id=my_site['id'])
             if my_site['checked']:
@@ -2954,11 +2958,13 @@ class ProposalApiary(models.Model):
 
             # Apiary Site can be moved by assessor and/or approver
             if 'coordinates_moved' in my_site:
+                prev_coordinates = a_site.wkb_geometry.get_coords()
                 geom_str = GEOSGeometry('POINT(' + str(my_site['coordinates_moved']['lng']) + ' ' + str(my_site['coordinates_moved']['lat']) + ')', srid=4326)
                 from disturbance.components.proposals.serializers_apiary import ApiarySiteSavePointSerializer
                 serializer = ApiarySiteSavePointSerializer(a_site, data={'wkb_geometry': geom_str}, context={'validate_distance': True})
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
+                a_site.proposal_apiary.proposal.log_user_action(ProposalUserAction.APIARY_SITE_MOVED.format(my_site['id'], prev_coordinates, (my_site['coordinates_moved']['lng'], my_site['coordinates_moved']['lat'])), request)
 
 
 class SiteCategory(models.Model):
@@ -2998,12 +3004,13 @@ class SiteCategory(models.Model):
                 fee_application = self.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_APPLICATION)
                 # fee_amendment = self.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_AMENDMENT)
                 # fee_renewal = self.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_RENEWAL)
-                # fee_transfer = self.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_TRANSFER)
-                return '{} - application: {}'.format(item[1], fee_application)
+                fee_transfer = self.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_TRANSFER)
+                return '{} - new application: ${}, transfer: ${}'.format(item[1], fee_application, fee_transfer)
         return '---'
 
     class Meta:
         app_label = 'disturbance'
+        verbose_name = 'apiary site fee'
 
 
 class ApiarySiteFeeType(RevisionedMixin):
@@ -3146,15 +3153,33 @@ class ApiarySite(models.Model):
         return current_fee
 
     def period_valid_for_temporary_use(self, period):
+        detail = {}
         valid = True
 
+        # Check if the period sits in the approval valid period
+        if period[0] < self.approval.start_date or self.approval.expiry_date < period[1]:
+            valid = False
+            if not valid:
+                detail['period'] = {}
+                detail['period']['from_date'] = self.approval.start_date
+                detail['period']['to_date'] = self.approval.expiry_date
+                detail['reason'] = 'out_of_range_of_licence'
+                return valid, detail
+
+        # Check if the period submitted overlaps with the existing temprary use periods
         qs = TemporaryUseApiarySite.objects.filter(apiary_site=self, selected=True, proposal_apiary_temporary_use__proposal__processing_status=Proposal.PROCESSING_STATUS_APPROVED)
         for temp_site in qs:
             valid = (period[0] <= period[1] < temp_site.proposal_apiary_temporary_use.from_date) or (temp_site.proposal_apiary_temporary_use.to_date < period[0] <= period[1])
             if not valid:
-                break
+                detail['period'] = {}
+                detail['period']['from_date'] = temp_site.proposal_apiary_temporary_use.from_date
+                detail['period']['to_date'] = temp_site.proposal_apiary_temporary_use.to_date
+                detail['apiary_site'] = temp_site.apiary_site
+                detail['reason'] = 'overlap_existing'
+                return valid, detail
 
-        return valid
+        return valid, detail
+
 
     class Meta:
         app_label = 'disturbance'

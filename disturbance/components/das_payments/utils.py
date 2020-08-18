@@ -12,7 +12,7 @@ from dateutil.relativedelta import relativedelta
 from ledger.accounts.models import EmailUser
 from ledger.settings_base import TIME_ZONE
 
-from disturbance.components.main.models import ApplicationType, GlobalSettings
+from disturbance.components.main.models import ApplicationType, GlobalSettings, ApiaryGlobalSettings
 from disturbance.components.proposals.models import SiteCategory, ApiarySiteFeeType, \
     ApiarySiteFeeRemainder, ApiaryAnnualRentalFee, ApiarySite
 from disturbance.components.organisations.models import Organisation
@@ -446,7 +446,7 @@ def generate_line_items_for_annual_rental_fee(approval, today_now, period, apiar
     except:
         sites_str = ', '.join(['site: ' + str(site['id']) for site in apiary_sites])
 
-    oracle_code_obj = GlobalSettings.objects.get(key=GlobalSettings.KEY_ORACLE_CODE_APIARY_SITE_ANNUAL_RENTAL_FEE)
+    oracle_code_obj = ApiaryGlobalSettings.objects.get(key=ApiaryGlobalSettings.KEY_ORACLE_CODE_APIARY_SITE_ANNUAL_RENTAL_FEE)
 
     line_items = [
         {
