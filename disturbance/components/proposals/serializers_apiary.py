@@ -890,6 +890,7 @@ class ApiaryInternalApprovalSerializer(serializers.ModelSerializer):
                 'lodgement_number',
                 'start_date',
                 'expiry_date',
+                'reissued',
                 )
 
 # matches InternalProposalSerializer for apiary group proposals
