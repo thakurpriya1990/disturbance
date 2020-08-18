@@ -16,6 +16,7 @@ from ledger.accounts.models import Organisation as ledger_organisation
 from ledger.accounts.models import EmailUser, RevisionedMixin
 from ledger.licence.models import  Licence
 from disturbance import exceptions
+from disturbance.components.approvals.pdf import create_approval_document
 from disturbance.components.organisations.models import Organisation
 from disturbance.components.proposals.models import Proposal, ProposalUserAction, ApiarySite
 from disturbance.components.main.models import CommunicationsLogEntry, UserAction, Document
@@ -26,6 +27,7 @@ from disturbance.components.approvals.email import (
     send_approval_reinstate_email_notification,
     send_approval_surrender_email_notification
 )
+from disturbance.doctopdf import create_apiary_licence_pdf_contents
 from disturbance.utils import search_keys, search_multiple_keys
 #from disturbance.components.approvals.email import send_referral_email_notification
 from disturbance.helpers import is_customer
@@ -251,23 +253,34 @@ class Approval(RevisionedMixin):
                     return False
 
     def generate_apiary_site_transfer_doc(self, user, site_transfer_proposal, preview=False):
-        from disturbance.components.approvals.pdf import create_approval_doc, create_approval_pdf_bytes
-        # review this data
-        copied_to_permit = self.copiedToPermit_fields(site_transfer_proposal) #Get data related to isCopiedToPermit tag
+        self.generate_apiary_licence_doc(site_transfer_proposal, user, preview)
+        # copied_to_permit = self.copiedToPermit_fields(site_transfer_proposal) #Get data related to isCopiedToPermit tag
+        # if preview:
+        #     pdf_contents = create_apiary_licence_pdf_contents(self, site_transfer_proposal, copied_to_permit, user)
+        #     return pdf_contents
+        # self.licence_document = create_approval_document(self, site_transfer_proposal, copied_to_permit, user)
+        # self.save(version_comment='Created Approval PDF: {}'.format(self.licence_document.name))
+        # self.current_proposal.save(version_comment='Created Approval PDF: {}'.format(self.licence_document.name))
+
+    def generate_doc(self, user, preview=False):
+        self.generate_apiary_licence_doc(self.current_proposal, user, preview)
+        # copied_to_permit = self.copiedToPermit_fields(self.current_proposal) #Get data related to isCopiedToPermit tag
+        # if preview:
+        #     pdf_contents = create_apiary_licence_pdf_contents(self, self.current_proposal, copied_to_permit, user)
+        #     return pdf_contents
+        # self.licence_document = create_approval_document(self, self.current_proposal, copied_to_permit, user)
+        # self.save(version_comment='Created Approval PDF: {}'.format(self.licence_document.name))
+        # self.current_proposal.save(version_comment='Created Approval PDF: {}'.format(self.licence_document.name))
+
+    def generate_apiary_licence_doc(self, proposal, user, preview=False):
+        copied_to_permit = self.copiedToPermit_fields(proposal) #Get data related to isCopiedToPermit tag
         if preview:
-            return create_approval_pdf_bytes(self,site_transfer_proposal, copied_to_permit, user)
-        self.licence_document = create_approval_doc(self,site_transfer_proposal, copied_to_permit, user)
+            pdf_contents = create_apiary_licence_pdf_contents(self, proposal, copied_to_permit, user)
+            return pdf_contents
+        self.licence_document = create_approval_document(self, proposal, copied_to_permit, user)
         self.save(version_comment='Created Approval PDF: {}'.format(self.licence_document.name))
         self.current_proposal.save(version_comment='Created Approval PDF: {}'.format(self.licence_document.name))
 
-    def generate_doc(self, user, preview=False):
-        from disturbance.components.approvals.pdf import create_approval_doc, create_approval_pdf_bytes
-        copied_to_permit = self.copiedToPermit_fields(self.current_proposal) #Get data related to isCopiedToPermit tag
-        if preview:
-            return create_approval_pdf_bytes(self,self.current_proposal, copied_to_permit, user)
-        self.licence_document = create_approval_doc(self,self.current_proposal, copied_to_permit, user)
-        self.save(version_comment='Created Approval PDF: {}'.format(self.licence_document.name))
-        self.current_proposal.save(version_comment='Created Approval PDF: {}'.format(self.licence_document.name))
 
     def generate_renewal_doc(self):
         from disturbance.components.approvals.pdf import create_renewal_doc
