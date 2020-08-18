@@ -207,7 +207,19 @@ export default {
                 },
                 dom: 'lBfrtip',
                 buttons:[
-                'excel', 'csv',],
+                    {
+                        extend: 'excel',
+                        exportOptions: {
+                            columns: ':visible'
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        exportOptions: {
+                            columns: ':visible'
+                        }
+                    },
+                ],
                 columns: [
                     {
                         data: "id",
@@ -431,8 +443,24 @@ export default {
         		    }
                 },
                 dom: 'lBfrtip',
+                /*
                 buttons:[
                 'excel', 'csv', ],
+                */
+                buttons:[
+                    {
+                        extend: 'excel',
+                        exportOptions: {
+                            columns: ':visible'
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        exportOptions: {
+                            columns: ':visible'
+                        }
+                    },
+                ],
                 columns: [
                     /*
                     {
