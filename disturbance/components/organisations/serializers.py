@@ -96,6 +96,7 @@ class OrganisationSerializer(serializers.ModelSerializer):
                     'phone_number',
                     'pins',
                     'delegates',
+                    'template_group',
                 )
 
     def get_pins(self,obj):

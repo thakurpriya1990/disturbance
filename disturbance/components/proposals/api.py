@@ -43,7 +43,11 @@ from disturbance.components.proposals.models import searchKeyWords, search_refer
     ProposalApiary, OnSiteInformation, ApiarySite, ApiaryChecklistQuestion, ApiaryChecklistAnswer, \
     ProposalApiaryTemporaryUse, TemporaryUseApiarySite
 from disturbance.utils import missing_required_fields, search_tenure, convert_moment_str_to_python_datetime_obj
-from disturbance.components.main.utils import check_db_connection, convert_utc_time_to_local
+from disturbance.components.main.utils import (
+        check_db_connection, 
+        convert_utc_time_to_local,
+        get_template_group
+        )
 
 from django.urls import reverse
 from django.shortcuts import render, redirect, get_object_or_404
@@ -130,14 +134,14 @@ from copy import deepcopy
 import logging
 logger = logging.getLogger(__name__)
 
-def get_template_group(request):
-    web_url = request.META.get('HTTP_HOST', None)
-    template_group = None
-    if web_url in settings.APIARY_URL:
-       template_group = 'apiary'
-    else:
-       template_group = 'das'
-    return template_group
+#def get_template_group(request):
+#    web_url = request.META.get('HTTP_HOST', None)
+#    template_group = None
+#    if web_url in settings.APIARY_URL:
+#       template_group = 'apiary'
+#    else:
+#       template_group = 'das'
+#    return template_group
 
 class GetProposalType(views.APIView):
     renderer_classes = [JSONRenderer, ]
