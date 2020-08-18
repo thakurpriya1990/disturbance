@@ -1605,7 +1605,11 @@ class ProposalViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             instance = instance.renew_approval(request)
-            serializer = SaveProposalSerializer(instance,context={'request':request})
+            if instance.apiary_group_application_type:
+                serializer_class = self.internal_serializer_class()
+                serializer = serializer_class(instance,context={'request':request})
+            else:
+                serializer = SaveProposalSerializer(instance,context={'request':request})
             return Response(serializer.data)
         except Exception as e:
             print(traceback.print_exc())
