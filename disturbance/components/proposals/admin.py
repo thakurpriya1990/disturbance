@@ -183,7 +183,16 @@ class GlobalSettingsAdmin(admin.ModelAdmin):
 
 @admin.register(ApiaryGlobalSettings)
 class ApiaryGlobalSettingsAdmin(admin.ModelAdmin):
-    list_display = ['key', 'value']
+    def get_fields(self, request, obj=None):
+        if obj.key == ApiaryGlobalSettings.KEY_APIARY_LICENCE_TEMPLATE_FILE:
+            return ['key', '_file',]
+        else:
+            return ['key', 'value',]
+
+    def get_readonly_fields(self, request, obj=None):
+        return ['key',]
+
+    list_display = ['key', 'value', '_file',]
     ordering = ('key',)
 
 

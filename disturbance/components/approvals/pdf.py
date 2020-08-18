@@ -18,6 +18,7 @@ from disturbance.components.main.models import ApplicationType
 
 #BW_DPAW_HEADER_LOGO = os.path.join(settings.BASE_DIR, 'wildlifelicensing', 'static', 'wl', 'img',
 #                                   'bw_dpaw_header_logo.png')
+from disturbance.doctopdf import create_apiary_licence_pdf
 
 BW_DPAW_HEADER_LOGO = os.path.join(settings.BASE_DIR, 'disturbance', 'static', 'disturbance', 'img',
                                    'dbca-logo.jpg')
@@ -154,7 +155,13 @@ def _create_approval_header(canvas, doc, draw_page_number=True):
         canvas.drawString(current_x, current_y - (LARGE_FONTSIZE + HEADER_SMALL_BUFFER) * 2,
                           '{}'.format(doc.approval.lodgement_number))
 
+
 def _create_approval(approval_buffer, approval, proposal, copied_to_permit, user):
+
+    # TODO: create licence pdf from doc file
+    approval_buffer = create_apiary_licence_pdf(approval)
+    return approval_buffer
+
     site_url = settings.SITE_URL
     every_page_frame = Frame(PAGE_MARGIN, PAGE_MARGIN, PAGE_WIDTH - 2 * PAGE_MARGIN,
                              PAGE_HEIGHT - 160, id='EveryPagesFrame')
@@ -442,10 +449,12 @@ def create_approval_doc(approval,proposal, copied_to_permit, user):
 
     return document
 
-def create_approval_pdf_bytes(approval,proposal, copied_to_permit, user):
+
+def create_approval_pdf_bytes(approval, proposal, copied_to_permit, user):
     licence_buffer = BytesIO()
 
-    _create_approval(licence_buffer, approval, proposal, copied_to_permit, user)
+    temp_buff = _create_approval(licence_buffer, approval, proposal, copied_to_permit, user)
+    return temp_buff
 
     # Get the value of the BytesIO buffer
     value = licence_buffer.getvalue()
