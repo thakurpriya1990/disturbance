@@ -21,7 +21,7 @@ RUN apt-get update \
   python python-setuptools python-dev python-pip \
   imagemagick poppler-utils \
   libldap2-dev libssl-dev wget build-essential \
-  libmagic-dev binutils libproj-dev tzdata postgresql-client
+  libmagic-dev binutils libproj-dev tzdata postgresql-client libreoffice
 RUN pip install --upgrade pip
 #RUN apt-get install -yq vim
 
