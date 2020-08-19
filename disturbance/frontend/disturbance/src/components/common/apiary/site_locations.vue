@@ -95,8 +95,6 @@
             </label>
         </div>
 
-        <SiteLocationsModal ref="site_locations_modal" />
-
     </div>
 </template>
 
@@ -122,11 +120,9 @@
     import { getDistance } from 'ol/sphere';
     import { circular} from 'ol/geom/Polygon';
     import GeoJSON from 'ol/format/GeoJSON';
-    //import geo_data from "../../../assets/apiary_data.json"
     import TextField from '@/components/forms/text.vue'
     import datatable from '@vue-utils/datatable.vue'
     import uuid from 'uuid';
-    import SiteLocationsModal from './site_locations_modal';
     import { getApiaryFeatureStyle, drawingSiteRadius } from '@/components/common/apiary/site_colours.js'
     import Overlay from 'ol/Overlay';
 
@@ -200,6 +196,7 @@
                 bufferLayer: null,
                 existing_sites_feature_collection: null,
                 apiary_site_being_selected: null,
+                swZoneSource: null,
                 //
                 dtHeaders: [
                     'Id',
@@ -265,7 +262,6 @@
         components: {
             TextField,
             datatable,
-            SiteLocationsModal,
         },
         computed:{
             readonly: function() {
@@ -367,6 +363,13 @@
                     return false;
                 }
                 return true;
+            },
+            zoneForCoordinates: function(coords){
+                let zone = "remote";
+                this.swZoneSource.getFeaturesAtCoordinate(coords).forEach(function(feat) {
+                    zone = "south_west";
+                });
+                return zone;
             },
             createBufferForSite: function(site){
                 let id = site.getId() + "_buffer";
@@ -471,7 +474,6 @@
                 $(e.target).closest('tr').fadeOut('slow', function(){ })
             },
             initMap: function() {
-                console.log('initMap start')
                 let vm = this;
 
                 vm.map = new Map({
@@ -496,10 +498,7 @@
 
                 vm.bufferedSites = [];
                 vm.map.on("moveend", function(attributes){
-                    console.log('moveend')
-
                     let zoom = vm.map.getView().getZoom();
-                    console.log(zoom);
                     if (zoom < 11) {
                         return;
                     }
@@ -523,8 +522,6 @@
                 // In memory vector layer for digitization
                 //vm.drawingLayerSource = new VectorSource();
                 vm.drawingLayerSource.on('addfeature', function(e){
-                    console.log('in addfeature')
-                    console.log(e.feature)
                     //vm.proposal.proposal_apiary.apiary_sites.push(e.feature)
                     vm.constructSiteLocationsTable()
                 });
@@ -571,6 +568,18 @@
                 });
                 vm.map.addLayer(vm.bufferLayer);
 
+                vm.swZoneSource = new VectorSource({
+                    url: "/static/disturbance/gis/sw_apiary_zone.geojson",
+                    format: new GeoJSON(),
+                });
+                // a visible layer is required to trigger loading the data, the empty style will mean that the features are not drawn
+                let swZoneLayer = new VectorLayer({
+                    source: vm.swZoneSource,
+                    style: new Style(),
+                    visible: true,
+                });
+                vm.map.addLayer(swZoneLayer);
+
                 // Full screen toggle
                 vm.map.addControl(new FullScreenControl());
 
@@ -596,7 +605,6 @@
                         type: "Point"
                     });
                     drawTool.on("drawstart", function(attributes){
-                        console.log('drawstart')
                         if (vm.apiary_site_being_selected){
                             // Abort drawing, instead 'vacant' site is to be added
                             drawTool.abortDrawing();
@@ -616,8 +624,6 @@
                         }
                     });
                     drawTool.on('drawend', function(attributes){
-                        console.log('drawend')
-
                         if (!this.readoly){
                             let feature = attributes.feature;
                             let draw_id = vm.uuidv4();
@@ -625,8 +631,7 @@
                             feature.setId(draw_id);
                             feature.set("source", "draw");
                             feature.set("stable_coords", draw_coords);
-                            feature.set('site_category', vm.current_category) // For now, we add category, either south_west/remote to the feature 
-                                                                              //according to the selection of the UI
+                            feature.set('site_category', vm.zoneForCoordinates(draw_coords));
                             feature.getGeometry().on("change", function() {
                                 if (modifyInProgressList.indexOf(draw_id) == -1) {
                                     modifyInProgressList.push(draw_id);
@@ -641,7 +646,6 @@
                     let modifyTool = new Modify({
                         source: vm.drawingLayerSource,
                         condition: function(e){
-                            console.log(e)
                             return true
                         }
                     });
@@ -650,7 +654,6 @@
                         })
                     });
                     modifyTool.on("modifyend", function(attributes){
-                        console.log('modifyend')
                         // this will list all features in layer, not so useful without cross referencing
                         attributes.features.forEach(function(feature){
                             let id = feature.getId();
@@ -673,6 +676,7 @@
                                     feature.set("stable_coords", coords);
                                     vm.removeBufferForSite(feature);
                                     vm.createBufferForSite(feature);
+                                    feature.set('site_category', vm.zoneForCoordinates(coords));
                                     vm.constructSiteLocationsTable();
                                 }
                             }
@@ -778,19 +782,21 @@
             tryCreateNewSiteFromForm: function(){
                 let lat = this.proposal.proposal_apiary.latitude
                 let lon = this.proposal.proposal_apiary.longitude
+                let coords = [lon, lat];
                 // rough bounding box for preliminary check
                 if (isNaN(lon) || lon < 112 || lon > 130 ||
                     isNaN(lat) || lat < -35 || lat > -11) {
                     return false;
                 }
-                if(!this.isNewPositionValid([lon,lat]))
+                if(!this.isNewPositionValid(coords))
                 {
                     return false;
                 }
-                let feature = new Feature(new Point([lon,lat]));
+                
+                let feature = new Feature(new Point(coords));
                 feature.setId(this.uuidv4());
                 feature.set("source", "form");
-                feature.set('site_category', this.current_category) // For now, we add category, either south_west/remote to the feature according to the selection of the UI
+                feature.set('site_category', this.zoneForCoordinates(coords));
                 this.drawingLayerSource.addFeature(feature);
 
                 this.createBufferForSite(feature);
