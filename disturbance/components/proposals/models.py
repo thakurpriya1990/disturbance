@@ -417,7 +417,8 @@ class Proposal(RevisionedMixin):
 
     @property
     def fee_paid(self):
-        return True if self.fee_invoice_reference or self.proposal_type=='amendment' else False
+        #return True if self.fee_invoice_reference or self.proposal_type=='amendment' else False
+        return True if self.fee_invoice_reference else False
 
     @property
     def fee_amount(self):
@@ -2291,6 +2292,7 @@ def clone_apiary_proposal_with_status_reset(original_proposal):
 
             #proposal.id = None
             proposal.approval_level_document = None
+            fee_invoice_reference = None
 
             proposal.save(no_revision=True)
 
