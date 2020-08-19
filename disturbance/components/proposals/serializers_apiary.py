@@ -47,6 +47,7 @@ from reversion.models import Version
 from django.utils import timezone
 from django.contrib.contenttypes.models import ContentType
 from ledger.accounts.models import EmailUser
+from copy import deepcopy
 
 from disturbance.settings import RESTRICTED_RADIUS
 
@@ -92,11 +93,16 @@ class VersionSerializer(serializers.ModelSerializer):
                             ]:
                         continue
                     elif ContentType.objects.get(id=record.content_type_id).model == 'apiarysite':
-                        payload = record.field_dict
+                        #import ipdb;ipdb.set_trace()
+                        payload = deepcopy(record.field_dict)
                         # Exclude these fields from the result
                         payload.pop("wkb_geometry", None)
+                        payload.pop("wkb_geometry_applied", None)
                         payload.pop("objects", None)
                         payload.pop("site_guid", None)
+                        wkb_geometry = record.field_dict.get('wkb_geometry')
+                        if wkb_geometry:
+                            payload['coords'] = wkb_geometry.get_coords()
                         apiary_sites.append({record.object._meta.model_name: payload})
                     else:
                         #print("record.object._meta.model_name")

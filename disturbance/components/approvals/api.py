@@ -55,6 +55,7 @@ from disturbance.helpers import is_customer, is_internal
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 from rest_framework_datatables.filters import DatatablesFilterBackend
 from rest_framework_datatables.renderers import DatatablesRenderer
+from disturbance.components.main.utils import get_template_group
 #from disturbance.components.proposals.api import ProposalFilterBackend, ProposalRenderer
 
 
@@ -202,12 +203,12 @@ class ApprovalPaginatedViewSet(viewsets.ModelViewSet):
         #ids = self.get_queryset().distinct('lodgement_number').values_list('id', flat=True)
         ids = self.get_queryset().order_by('lodgement_number', '-issue_date').distinct('lodgement_number').values_list('id', flat=True)
         #qs = Approval.objects.filter(id__in=ids)
-        web_url = request.META.get('HTTP_HOST', None)
-        template_group = None
-        if web_url in settings.APIARY_URL:
-           template_group = 'apiary'
-        else:
-           template_group = 'das'
+        #web_url = request.META.get('HTTP_HOST', None)
+        template_group = get_template_group(request)
+        #if web_url in settings.APIARY_URL:
+         #  template_group = 'apiary'
+        #else:
+         #  template_group = 'das'
         if template_group == 'apiary':
             #qs = self.get_queryset().filter(application_type__apiary_group_application_type=True).exclude(processing_status='discarded')
             qs = self.get_queryset().filter(

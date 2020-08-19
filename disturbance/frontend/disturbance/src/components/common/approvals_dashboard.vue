@@ -333,7 +333,7 @@ export default {
                             let links = '';
                             if (!vm.is_external){
                                 if(full.can_approver_reissue && full.current_proposal && full.current_proposal.application_type !== 'Site Transfer'){
-                                        links +=  `<a href='#${full.id}' data-reissue-approval='${full.current_proposal.id}'>Reissue</a><br/>`;
+                                        links +=  `<a href='#${full.id}' data-reissue-approval='${full.current_proposal_id}'>Reissue</a><br/>`;
                                 }
                                 if(vm.check_assessor(full)){
                                     // if(full.can_approver_reissue){
@@ -370,11 +370,11 @@ export default {
                                     if(full.can_action){
                                         links +=  `<a href='#${full.id}' data-surrender-approval='${full.id}'>Surrender</a><br/>`;
                                         if(full.can_amend){
-                                           links +=  `<a href='#${full.id}' data-amend-approval='${full.current_proposal}'>Amend</a><br/>`;
+                                           links +=  `<a href='#${full.id}' data-amend-approval='${full.current_proposal_id}'>Amend</a><br/>`;
                                        }
                                     }
                                     if(full.renewal_document && full.renewal_sent && full.can_renew) {
-                                    links +=  `<a href='#${full.id}' data-renew-approval='${full.current_proposal}'>Renew</a><br/>`;
+                                    links +=  `<a href='#${full.id}' data-renew-approval='${full.current_proposal_id}'>Renew</a><br/>`;
                                     }
                                 }
                                 else {
