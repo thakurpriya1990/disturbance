@@ -6,6 +6,7 @@
 {% load utils %}
 {% is_internal as is_internal_login %}
 {% is_disturbance_admin as is_disturbance_admin_user %}
+{% is_apiary_admin as is_apiary_admin_user %}
 {% system_maintenance_due as system_maintenance_due %}
 {% system_name_short as short_name %}
 {% dept_name as department_name %}
@@ -29,7 +30,7 @@
             {% endblock %}
             <title>
                 {% block title %}
-                {{ short_name }} - {{ department_name }}
+                {{ DISPLAYED_SYSTEM_NAME }} - {{ department_name }}
                 {% endblock %}
             </title>
 
@@ -104,7 +105,7 @@
                                                 <span class="caret"></span>
                                             </a>
                                             <ul class="dropdown-menu">
-                                                {% if is_disturbance_admin_user or request.user.is_superuser %}
+                                                {% if is_disturbance_admin_user or is_apiary_admin_user or request.user.is_superuser %}
                                                     <li><a href="{% url 'admin:index' %}">Admin</a></li>
                                                     <li role="separator" class="divider"></li>
                                                 {% endif %}
