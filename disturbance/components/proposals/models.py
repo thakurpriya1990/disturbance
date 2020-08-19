@@ -2291,6 +2291,7 @@ def clone_apiary_proposal_with_status_reset(original_proposal):
 
             #proposal.id = None
             proposal.approval_level_document = None
+            fee_invoice_reference = None
 
             proposal.save(no_revision=True)
 
