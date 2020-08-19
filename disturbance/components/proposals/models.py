@@ -3296,7 +3296,8 @@ class ApiarySiteFeeRemainder(models.Model):
     date_used = models.DateField(null=True, blank=True)
 
     def __str__(self):
-        return 'Remainder: {} - {} - {} - {} site(s)'.format(self.applicant, self.site_category, self.apiary_site_fee_type, self.number_of_sites_left)
+        #return 'Remainder: {} - {} - {} - {} site(s)'.format(self.applicant, self.site_category, self.apiary_site_fee_type, self.number_of_sites_left)
+        return 'Remainder: {} - {} - {} - site(s)'.format(self.applicant, self.site_category, self.apiary_site_fee_type)
 
     class Meta:
         app_label = 'disturbance'
