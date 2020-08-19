@@ -4,7 +4,8 @@ from ledger.accounts.models import EmailUser
 import disturbance
 from disturbance.components.proposals import models
 from disturbance.components.proposals import forms
-from disturbance.components.main.models import ActivityMatrix, SystemMaintenance, ApplicationType, GlobalSettings
+from disturbance.components.main.models import ActivityMatrix, SystemMaintenance, ApplicationType, GlobalSettings, \
+    ApiaryGlobalSettings
 #from disturbance.components.main.models import Activity, SubActivityLevel1, SubActivityLevel2, SubCategory
 from reversion.admin import VersionAdmin
 from django.conf.urls import url
@@ -177,6 +178,21 @@ class ApplicationTypeAdmin(admin.ModelAdmin):
 @admin.register(GlobalSettings)
 class GlobalSettingsAdmin(admin.ModelAdmin):
     list_display = ['key', 'value']
+    ordering = ('key',)
+
+
+@admin.register(ApiaryGlobalSettings)
+class ApiaryGlobalSettingsAdmin(admin.ModelAdmin):
+    def get_fields(self, request, obj=None):
+        if obj.key == ApiaryGlobalSettings.KEY_APIARY_LICENCE_TEMPLATE_FILE:
+            return ['key', '_file',]
+        else:
+            return ['key', 'value',]
+
+    def get_readonly_fields(self, request, obj=None):
+        return ['key',]
+
+    list_display = ['key', 'value', '_file',]
     ordering = ('key',)
 
 

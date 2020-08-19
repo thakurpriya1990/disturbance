@@ -2,6 +2,8 @@ import re
 import traceback
 import os
 import base64
+from string import lower
+
 import geojson
 import json
 
@@ -47,7 +49,8 @@ from disturbance.components.main.utils import check_db_connection, convert_utc_t
 
 from django.urls import reverse
 from django.shortcuts import render, redirect, get_object_or_404
-from disturbance.components.main.models import Document, Region, District, Tenure, ApplicationType
+from disturbance.components.main.models import Document, Region, District, Tenure, ApplicationType, GlobalSettings, \
+    ApiaryGlobalSettings
 from disturbance.components.proposals.models import (
     ProposalType,
     Proposal,
@@ -572,8 +575,8 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
     def is_internal_system(self, request):
         apiary_site_list_token = request.query_params.get('apiary_site_list_token', None)
         if apiary_site_list_token:
-            APIARY_SITES_LIST_TOKEN = env('APIARY_SITES_LIST_TOKEN', 'APIARY_SITES_LIST_TOKEN_NOT_FOUND')
-            if apiary_site_list_token == APIARY_SITES_LIST_TOKEN:
+            token = ApiaryGlobalSettings.objects.get(key=ApiaryGlobalSettings.KEY_APIARY_SITES_LIST_TOKEN)
+            if apiary_site_list_token.lower() == token.value.lower():
                 return True
         return False
 
