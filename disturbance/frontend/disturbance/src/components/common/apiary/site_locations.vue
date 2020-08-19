@@ -56,14 +56,6 @@
         <template v-if="proposal && proposal.proposal_apiary">
             <div class="row debug-info">
                 <div class="col-sm-12">
-                    <div>
-                        Category:
-                        <select v-model="current_category" class="form-group">
-                            <option value="south_west">South West</option>
-                            <option value="remote">Remote</option>
-                        </select>
-                    </div>
-
                     Remainders:
                     <div v-for="remainder in proposal.proposal_apiary.site_remainders" class="debug-remainders">
                         <div>
