@@ -417,8 +417,7 @@ class Proposal(RevisionedMixin):
 
     @property
     def fee_paid(self):
-        #return True if self.fee_invoice_reference or self.proposal_type=='amendment' else False
-        return True if self.fee_invoice_reference else False
+        return True if self.fee_invoice_reference or self.proposal_type=='amendment' else False
 
     @property
     def fee_amount(self):
