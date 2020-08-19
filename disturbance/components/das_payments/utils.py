@@ -12,7 +12,7 @@ from dateutil.relativedelta import relativedelta
 from ledger.accounts.models import EmailUser
 from ledger.settings_base import TIME_ZONE
 
-from disturbance.components.main.models import ApplicationType, GlobalSettings
+from disturbance.components.main.models import ApplicationType, GlobalSettings, ApiaryGlobalSettings
 from disturbance.components.proposals.models import SiteCategory, ApiarySiteFeeType, \
     ApiarySiteFeeRemainder, ApiaryAnnualRentalFee, ApiarySite
 from disturbance.components.organisations.models import Organisation
@@ -158,13 +158,36 @@ def create_fee_lines_site_transfer(proposal):
     return line_items, None
 
 
+def get_site_fee_remainders(site_category, apiary_site_fee_type_name, applicant, proxy_applicant):
+    # Retrieve sites left
+    if not applicant and not proxy_applicant:
+        # Should not reach here
+        logger.error('No applicants are set to retrieve the remainders.')
+        return None
+
+    filter_site_category = Q(site_category=site_category)
+    filter_site_fee_type = Q( apiary_site_fee_type=ApiarySiteFeeType.objects.get(name=apiary_site_fee_type_name))
+    filter_applicant = Q(applicant=applicant)
+    filter_proxy_applicant = Q(proxy_applicant=proxy_applicant)
+    # filter_expiry = Q(date_expiry__gte=today_local)
+    filter_used = Q(date_used__isnull=True)
+    site_fee_remainders = ApiarySiteFeeRemainder.objects.filter(
+        filter_site_category &
+        filter_site_fee_type &
+        filter_applicant &
+        filter_proxy_applicant &
+        # filter_expiry &
+        filter_used
+    ).order_by('datetime_created')  # Older comes earlier
+
+    return site_fee_remainders
+
+
 def create_fee_lines_apiary(proposal):
     now = datetime.now().strftime('%Y-%m-%d %H:%M')
     today_local = datetime.now(pytz.timezone(TIME_ZONE)).date()
     MIN_NUMBER_OF_SITES_TO_APPLY = 5
     line_items = []
-
-    # applicant = EmailUser.objects.get(email='katsufumi.shibata@dbca.wa.gov.au')  # TODO: Get proper applicant
 
     # Once payment success, data is updated based on this variable
     # This variable is stored in the session
@@ -181,25 +204,9 @@ def create_fee_lines_apiary(proposal):
 
     # Calculate number of sites to calculate the fee
     for site_category_id, number_of_sites_applied in summary.items():
-
         site_category = SiteCategory.objects.get(id=site_category_id)
 
-
-        # Retrieve sites left
-        filter_site_category = Q(site_category=site_category)
-        filter_site_fee_type = Q(apiary_site_fee_type=ApiarySiteFeeType.objects.get(name=ApiarySiteFeeType.FEE_TYPE_APPLICATION))
-        filter_applicant = Q(applicant=proposal.applicant)
-        filter_proxy_applicant = Q(proxy_applicant=proposal.proxy_applicant)
-        # filter_expiry = Q(date_expiry__gte=today_local)
-        filter_used = Q(date_used__isnull=True)
-        site_fee_remainders = ApiarySiteFeeRemainder.objects.filter(
-            filter_site_category &
-            filter_site_fee_type &
-            filter_applicant &
-            filter_proxy_applicant &
-            # filter_expiry &
-            filter_used
-        ).order_by('datetime_created')  # Older comes earlier
+        site_fee_remainders = get_site_fee_remainders(site_category, ApiarySiteFeeType.FEE_TYPE_APPLICATION, proposal.applicant, proposal.proxy_applicant)
 
         # Calculate deduction and set date_used field
         number_of_sites_after_deduction = number_of_sites_applied
@@ -252,7 +259,12 @@ def create_fee_lines(proposal, invoice_text=None, vouchers=[], internal=False):
 
     db_processes_after_success = {}
 
-    if proposal.application_type.name == ApplicationType.APIARY:
+    if proposal.application_type.name == ApplicationType.APIARY and proposal.proposal_type == 'renewal':
+
+        # TODO:
+        line_items, db_processes_after_success = create_fee_lines_apiary_renewal(proposal)  # This function returns line items and db_processes as a tuple
+
+    elif proposal.application_type.name == ApplicationType.APIARY:
         line_items, db_processes_after_success = create_fee_lines_apiary(proposal)  # This function returns line items and db_processes as a tuple
     elif proposal.application_type.name == ApplicationType.SITE_TRANSFER:
         line_items, db_processes_after_success = create_fee_lines_site_transfer(proposal)  # This function returns line items and db_processes as a tuple
@@ -446,7 +458,7 @@ def generate_line_items_for_annual_rental_fee(approval, today_now, period, apiar
     except:
         sites_str = ', '.join(['site: ' + str(site['id']) for site in apiary_sites])
 
-    oracle_code_obj = GlobalSettings.objects.get(key=GlobalSettings.KEY_ORACLE_CODE_APIARY_SITE_ANNUAL_RENTAL_FEE)
+    oracle_code_obj = ApiaryGlobalSettings.objects.get(key=ApiaryGlobalSettings.KEY_ORACLE_CODE_APIARY_SITE_ANNUAL_RENTAL_FEE)
 
     line_items = [
         {
