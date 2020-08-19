@@ -51,6 +51,7 @@ from disturbance.components.proposals.email import (
 from disturbance.ordered_model import OrderedModel
 import copy
 import subprocess
+from django.conf import settings
 
 import logging
 logger = logging.getLogger(__name__)
@@ -1212,27 +1213,37 @@ class Proposal(RevisionedMixin):
                 if self.processing_status != 'with_assessor_requirements':
                     raise ValidationError('You cannot propose for approval if it is not with assessor for requirements')
                 # Do not accept new start and expiry dates for Apiary group applications with a licence, unless the licence has been reissued
+                start_date = details.get('start_date').strftime('%d/%m/%Y') if details.get('start_date') else None
+                expiry_date = details.get('expiry_date').strftime('%d/%m/%Y') if details.get('expiry_date') else None
                 if self.apiary_group_application_type:
                     if self.approval and self.approval.reissued:
                         self.proposed_issuance_approval = {
-                            'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
-                            'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
+                            'start_date' : start_date,
+                            'expiry_date' : expiry_date,
                             'details' : details.get('details'),
                             'cc_email' : details.get('cc_email'),
+                        }
+                    elif self.proposed_issuance_approval:
+                        self.proposed_issuance_approval = {
+                                #'start_date' : self.proposed_issuance_approval.get('start_date') if self.proposed_issuance_approval.get('start_date') else details.get('start_date').strftime('%d/%m/%Y'),
+                                #'expiry_date' : self.proposed_issuance_approval.get('expiry_date') if self.proposed_issuance_approval.get('expiry_date') else details.get('expiry_date').strftime('%d/%m/%Y'),
+                                'details' : details.get('details'),
+                                'cc_email' : details.get('cc_email'),
                         }
                     else:
                         self.proposed_issuance_approval = {
-                            #'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
-                            #'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
-                            'details' : details.get('details'),
-                            'cc_email' : details.get('cc_email'),
+                                'start_date' : start_date,
+                                'expiry_date' : expiry_date,
+                                'details' : details.get('details'),
+                                'cc_email' : details.get('cc_email'),
                         }
+                # non-apiary Proposals
                 else:
                     self.proposed_issuance_approval = {
-                        'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
-                        'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
-                        'details' : details.get('details'),
-                        'cc_email' : details.get('cc_email'),
+                            'start_date' : start_date,
+                            'expiry_date' : expiry_date,
+                            'details' : details.get('details'),
+                            'cc_email' : details.get('cc_email'),
                     }
 
                 self.proposed_decline_status = False
@@ -1253,12 +1264,14 @@ class Proposal(RevisionedMixin):
                             my_site.save()
 
                             if apiary_site['checked'] and 'coordinates_moved' in apiary_site:
+                                prev_coordinates = my_site.wkb_geometry.get_coords()
                                 # Update coordinate (Assessor and Approver can move the proposed site location)
                                 geom_str = GEOSGeometry('POINT(' + str(apiary_site['coordinates_moved']['lng']) + ' ' + str(apiary_site['coordinates_moved']['lat']) + ')', srid=4326)
                                 from disturbance.components.proposals.serializers_apiary import ApiarySiteSavePointSerializer
                                 serializer = ApiarySiteSavePointSerializer(my_site, data={'wkb_geometry': geom_str}, context={'validate_distance': True})
                                 serializer.is_valid(raise_exception=True)
                                 serializer.save()
+                                self.log_user_action(ProposalUserAction.APIARY_SITE_MOVED.format(apiary_site['id'], prev_coordinates, (apiary_site['coordinates_moved']['lng'], apiary_site['coordinates_moved']['lat'])), request)
 
                     # Site transfer
                     elif self.application_type.name == ApplicationType.SITE_TRANSFER:
@@ -1603,6 +1616,7 @@ class Proposal(RevisionedMixin):
                 raise
 
     def renew_approval(self,request):
+        #import ipdb; ipdb.set_trace()
         with transaction.atomic():
             previous_proposal = self
             try:
@@ -1610,12 +1624,15 @@ class Proposal(RevisionedMixin):
                 if proposal.customer_status=='with_assessor':
                     raise ValidationError('A renewal for this licence has already been lodged and is awaiting review.')
             except Proposal.DoesNotExist:
-                previous_proposal = Proposal.objects.get(id=self.id)
-                proposal = clone_proposal_with_status_reset(previous_proposal)
+                if previous_proposal.apiary_group_application_type:
+                    proposal = clone_apiary_proposal_with_status_reset(previous_proposal)
+                else:
+                    previous_proposal = Proposal.objects.get(id=self.id)
+                    proposal = clone_proposal_with_status_reset(previous_proposal)
+                    #proposal.schema = ProposalType.objects.first().schema
+                    ptype = ProposalType.objects.filter(name=proposal.application_type).latest('version')
+                    proposal.schema = ptype.schema
                 proposal.proposal_type = 'renewal'
-                #proposal.schema = ProposalType.objects.first().schema
-                ptype = ProposalType.objects.filter(name=proposal.application_type).latest('version')
-                proposal.schema = ptype.schema
                 proposal.submitter = request.user
                 proposal.previous_application = self
                 # Create a log entry for the proposal
@@ -1786,9 +1803,10 @@ class AmendmentRequest(ProposalRequest):
                         proposal.documents.all().update(can_hide=True)
 
                     # Create a log entry for the proposal
-                    proposal.log_user_action(ProposalUserAction.ACTION_ID_REQUEST_AMENDMENTS,request)
+                    proposal.log_user_action(ProposalUserAction.ACTION_ID_REQUEST_AMENDMENTS, request)
                     # Create a log entry for the organisation
-                    proposal.applicant.log_user_action(ProposalUserAction.ACTION_ID_REQUEST_AMENDMENTS,request)
+                    if proposal.applicant:
+                        proposal.applicant.log_user_action(ProposalUserAction.ACTION_ID_REQUEST_AMENDMENTS, request)
 
                     # send email
 
@@ -1995,6 +2013,7 @@ class ProposalUserAction(UserAction):
     APIARY_RECALL_REFERRAL = "Apiary Referral {} for application {} has been recalled"
     APIARY_CONCLUDE_REFERRAL = "Apiary Referral {} for application {} has been concluded by {}"
     APIARY_ACTION_SAVE_APPLICATION = "Save Apiary application {}"
+    APIARY_SITE_MOVED = "Apiary Site {} has been moved from {} to {}"
 
 
 
@@ -2240,6 +2259,94 @@ def clone_proposal_with_status_reset(proposal):
             except:
                 raise
 
+def clone_apiary_proposal_with_status_reset(original_proposal):
+    #import ipdb; ipdb.set_trace()
+    with transaction.atomic():
+        try:
+            proposal = copy.deepcopy(original_proposal)
+            proposal.id = None
+            #proposal.application_type = ApplicationType.objects.filter(name=ApplicationType.APIARY)[0]
+            proposal.application_type = ApplicationType.objects.get(name=ApplicationType.APIARY)
+
+            proposal.save(no_revision=True)
+            # create proposal_apiary and associate it with the proposal
+            proposal_apiary = ProposalApiary.objects.create(proposal=proposal)
+            #proposal_apiary = proposal_apiary.proposal
+            proposal_apiary.save()
+
+            proposal.customer_status = 'draft'
+            proposal.processing_status = 'draft'
+            proposal.assessor_data = None
+            proposal.comment_data = None
+            proposal.lodgement_number = ''
+            proposal.lodgement_sequence = 0
+            proposal.lodgement_date = None
+
+            proposal.assigned_officer = None
+            proposal.assigned_approver = None
+
+            #proposal.approval = None
+
+            #original_proposal_id = proposal.id
+
+            #proposal.id = None
+            proposal.approval_level_document = None
+
+            proposal.save(no_revision=True)
+
+            ## clone documents
+            #for proposal_document in DeedPollDocument.objects.filter(proposal=original_proposal.id):
+
+            #    proposal_document.proposal = proposal
+            #    proposal_document.id = None
+            #    path = default_storage.save(
+            #        '{}/proposals/{}/deed_poll_documents/{}'.format(
+            #            settings.MEDIA_APIARY_DIR, proposal.id, proposal_document.name), ContentFile(
+            #            proposal_document._file.read()))
+
+            #    proposal_document._file = path
+            #    proposal_document.can_delete = True
+            #    proposal_document.save()
+
+            # copy documents on file system and reset can_delete flag
+            #subprocess.call('cp -pr media/proposals/{} media/proposals/{}'.format(original_proposal.id, proposal.id), shell=True)
+
+            # clone requirements
+            approval = original_proposal.proposal_apiary.retrieve_approval
+            req = approval.proposalrequirement_set.exclude(is_deleted=True)
+            #from copy import deepcopy
+            if req:
+                for r in req:
+                    old_r = copy.deepcopy(r)
+                    r.proposal = proposal
+                    r.copied_from=old_r
+                    r.id = None
+                    r.save()
+
+            # update apiary_sites with new proposal
+            for site in approval.apiary_sites.all():
+                site.proposal_apiary = proposal.proposal_apiary
+                site.save()
+
+            # Checklist questions
+            for question in ApiaryChecklistQuestion.objects.filter(
+                    checklist_type='apiary',
+                    checklist_role='applicant'
+                    ):
+                new_answer = ApiaryChecklistAnswer.objects.create(proposal = proposal.proposal_apiary,
+                                                                           question = question)
+
+            # update approval.current_proposal
+            #approval.current_proposal = proposal
+            #approval.save()
+            # Set previous_application to maintain proposal history
+            #proposal_apiary.proposal.previous_application = approval.current_proposal
+            #proposal_apiary.proposal.save()
+
+            return proposal
+        except:
+            raise
+
 def searchKeyWords(searchWords, searchProposal, searchApproval, searchCompliance, is_internal= True):
     from disturbance.utils import search, search_approval, search_compliance
     from disturbance.components.approvals.models import Approval
@@ -2484,31 +2591,24 @@ class ProposalApiary(models.Model):
                 #if not self.applicant.organisation.postal_address:
                 if not self.proposal.relevant_applicant_address:
                     raise ValidationError('The applicant needs to have set their postal address before approving this proposal.')
-                # Do not accept new start and expiry dates for Apiary group applications with a licence, unless the licence has been reissued
-                if self.proposal.approval and self.proposal.approval.reissued:
-                    self.proposal.proposed_issuance_approval = {
-                        'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
-                        'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
+                start_date = details.get('start_date').strftime('%d/%m/%Y') if details.get('start_date') else None
+                expiry_date = details.get('expiry_date').strftime('%d/%m/%Y') if details.get('expiry_date') else None
+                self.proposal.proposed_issuance_approval = {
+                        'start_date' : start_date,
+                        'expiry_date' : expiry_date,
                         'details' : details.get('details'),
                         'cc_email' : details.get('cc_email'),
-                    }
-                else:
-                    self.proposed_issuance_approval = {
-                        #'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
-                        #'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
-                        'details' : details.get('details'),
-                        'cc_email' : details.get('cc_email'),
-                    }
+                }
                 self.save()
 
                 self.proposal.proposed_decline_status = False
                 self.proposal.processing_status = 'approved'
                 self.proposal.customer_status = 'approved'
                 # Log proposal action
-                self.proposal.log_user_action(ProposalUserAction.ACTION_ISSUE_APPROVAL_.format(self.id),request)
+                self.proposal.log_user_action(ProposalUserAction.ACTION_ISSUE_APPROVAL_.format(self.proposal.id), request)
                 # Log entry for organisation
                 if self.proposal.applicant:
-                    self.proposal.applicant.log_user_action(ProposalUserAction.ACTION_ISSUE_APPROVAL_.format(self.proposal.id),request)
+                    self.proposal.applicant.log_user_action(ProposalUserAction.ACTION_ISSUE_APPROVAL_.format(self.proposal.id), request)
                 #import ipdb;ipdb.set_trace()
 
                 if self.proposal.processing_status == 'approved':
@@ -2667,7 +2767,7 @@ class ProposalApiary(models.Model):
                             if len(sites_approved) == 0:
                                 raise ValidationError("There must be at least one apiary site to approve")
 
-                            self.update_apiary_sites(approval, sites_received)
+                            self.update_apiary_sites(approval, sites_received, request)
 
                             # Check the current annual rental fee period
                             # Determine the start and end date of the annual rental fee, for which the invoices should be issued
@@ -2940,7 +3040,7 @@ class ProposalApiary(models.Model):
             except:
                 raise
 
-    def update_apiary_sites(self, approval, sites_approved):
+    def update_apiary_sites(self, approval, sites_approved, request):
         for my_site in sites_approved:
             a_site = ApiarySite.objects.get(id=my_site['id'])
             if my_site['checked']:
@@ -2954,11 +3054,13 @@ class ProposalApiary(models.Model):
 
             # Apiary Site can be moved by assessor and/or approver
             if 'coordinates_moved' in my_site:
+                prev_coordinates = a_site.wkb_geometry.get_coords()
                 geom_str = GEOSGeometry('POINT(' + str(my_site['coordinates_moved']['lng']) + ' ' + str(my_site['coordinates_moved']['lat']) + ')', srid=4326)
                 from disturbance.components.proposals.serializers_apiary import ApiarySiteSavePointSerializer
                 serializer = ApiarySiteSavePointSerializer(a_site, data={'wkb_geometry': geom_str}, context={'validate_distance': True})
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
+                a_site.proposal_apiary.proposal.log_user_action(ProposalUserAction.APIARY_SITE_MOVED.format(my_site['id'], prev_coordinates, (my_site['coordinates_moved']['lng'], my_site['coordinates_moved']['lat'])), request)
 
 
 class SiteCategory(models.Model):
@@ -2998,23 +3100,24 @@ class SiteCategory(models.Model):
                 fee_application = self.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_APPLICATION)
                 # fee_amendment = self.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_AMENDMENT)
                 # fee_renewal = self.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_RENEWAL)
-                # fee_transfer = self.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_TRANSFER)
-                return '{} - application: {}'.format(item[1], fee_application)
+                fee_transfer = self.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_TRANSFER)
+                return '{} - new application: ${}, transfer: ${}'.format(item[1], fee_application, fee_transfer)
         return '---'
 
     class Meta:
         app_label = 'disturbance'
+        verbose_name = 'apiary site fee'
 
 
 class ApiarySiteFeeType(RevisionedMixin):
     FEE_TYPE_APPLICATION = 'new_application'
     # FEE_TYPE_AMENDMENT = 'amendment'
-    # FEE_TYPE_RENEWAL = 'renewal'
+    FEE_TYPE_RENEWAL = 'renewal'
     FEE_TYPE_TRANSFER = 'transfer'
     FEE_TYPE_CHOICES = (
         (FEE_TYPE_APPLICATION, 'New Application'),
         # (FEE_TYPE_AMENDMENT, 'Amendment'),
-        # (FEE_TYPE_RENEWAL, 'Renewal'),
+        (FEE_TYPE_RENEWAL, 'Renewal'),
         (FEE_TYPE_TRANSFER, 'Transfer'),
     )
     name = models.CharField(unique=True, max_length=50, choices=FEE_TYPE_CHOICES,)
@@ -3146,15 +3249,33 @@ class ApiarySite(models.Model):
         return current_fee
 
     def period_valid_for_temporary_use(self, period):
+        detail = {}
         valid = True
 
+        # Check if the period sits in the approval valid period
+        if period[0] < self.approval.start_date or self.approval.expiry_date < period[1]:
+            valid = False
+            if not valid:
+                detail['period'] = {}
+                detail['period']['from_date'] = self.approval.start_date
+                detail['period']['to_date'] = self.approval.expiry_date
+                detail['reason'] = 'out_of_range_of_licence'
+                return valid, detail
+
+        # Check if the period submitted overlaps with the existing temprary use periods
         qs = TemporaryUseApiarySite.objects.filter(apiary_site=self, selected=True, proposal_apiary_temporary_use__proposal__processing_status=Proposal.PROCESSING_STATUS_APPROVED)
         for temp_site in qs:
             valid = (period[0] <= period[1] < temp_site.proposal_apiary_temporary_use.from_date) or (temp_site.proposal_apiary_temporary_use.to_date < period[0] <= period[1])
             if not valid:
-                break
+                detail['period'] = {}
+                detail['period']['from_date'] = temp_site.proposal_apiary_temporary_use.from_date
+                detail['period']['to_date'] = temp_site.proposal_apiary_temporary_use.to_date
+                detail['apiary_site'] = temp_site.apiary_site
+                detail['reason'] = 'overlap_existing'
+                return valid, detail
 
-        return valid
+        return valid, detail
+
 
     class Meta:
         app_label = 'disturbance'

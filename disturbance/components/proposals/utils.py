@@ -659,9 +659,21 @@ def update_proposal_apiary_temporary_use(temp_use_obj, temp_use_data, action):
         for item in temp_use_data['temporary_use_apiary_sites']:
             if item['apiary_site']['checked']:
                 apiary_site = ApiarySite.objects.get(id=item['apiary_site']['id'])
-                if not apiary_site.period_valid_for_temporary_use((temp_use_data['from_date'], temp_use_data['to_date'])):
-                    non_field_errors.append('Temporary use period you submitted overlaps with the existing temporary use.')
-                    break
+                valid, details = apiary_site.period_valid_for_temporary_use((temp_use_data['from_date'], temp_use_data['to_date']))
+                if not valid:
+                    if details['reason'] == 'overlap_existing':
+                        non_field_errors.append('Temporary use period you submitted: {} to {} overlaps with the existing temporary use period: {} to {} for the apiary site: {}.'.format(
+                            temp_use_data['from_date'], temp_use_data['to_date'], details['period']['from_date'], details['period']['to_date'], details['apiary_site'].id
+                        ))
+                        break
+                    elif details['reason'] == 'out_of_range_of_licence':
+                        non_field_errors.append('Temporary use period you submitted: {} to {} is out of range of the period of validity of the licence: {} to {}.'.format(
+                            temp_use_data['from_date'], temp_use_data['to_date'], details['period']['from_date'], details['period']['to_date']
+                        ))
+                        break
+                    else:
+                        pass
+                        # Should not reach here
 
         if not num_of_sites > 0:
             non_field_errors.append('At least one apiary site must be selected.')

@@ -2,6 +2,7 @@ import os
 from io import BytesIO
 from datetime import date
 
+from django.core.files.base import ContentFile
 from reportlab.lib import enums
 from reportlab.lib.pagesizes import A4
 from reportlab.platypus import BaseDocTemplate, PageTemplate, Frame, Paragraph, Spacer, Table, TableStyle, ListFlowable, \
@@ -13,11 +14,11 @@ from reportlab.lib.colors import HexColor
 from django.core.files import File
 from django.conf import settings
 
-from disturbance.components.approvals.models import ApprovalDocument
 from disturbance.components.main.models import ApplicationType
 
 #BW_DPAW_HEADER_LOGO = os.path.join(settings.BASE_DIR, 'wildlifelicensing', 'static', 'wl', 'img',
 #                                   'bw_dpaw_header_logo.png')
+from disturbance.doctopdf import create_apiary_licence_pdf_contents
 
 BW_DPAW_HEADER_LOGO = os.path.join(settings.BASE_DIR, 'disturbance', 'static', 'disturbance', 'img',
                                    'dbca-logo.jpg')
@@ -92,6 +93,7 @@ styles.add(ParagraphStyle(name='Right', alignment=enums.TA_RIGHT))
 styles.add(ParagraphStyle(name='LetterLeft', fontSize=LARGE_FONTSIZE, alignment=enums.TA_LEFT))
 styles.add(ParagraphStyle(name='LetterBoldLeft', fontName=BOLD_FONTNAME, fontSize=LARGE_FONTSIZE, alignment=enums.TA_LEFT))
 
+
 def _create_approval_header(canvas, doc, draw_page_number=True):
     canvas.setFont(BOLD_FONTNAME, LARGE_FONTSIZE)
 
@@ -153,6 +155,7 @@ def _create_approval_header(canvas, doc, draw_page_number=True):
     if hasattr(doc, 'approval'):
         canvas.drawString(current_x, current_y - (LARGE_FONTSIZE + HEADER_SMALL_BUFFER) * 2,
                           '{}'.format(doc.approval.lodgement_number))
+
 
 def _create_approval(approval_buffer, approval, proposal, copied_to_permit, user):
     site_url = settings.SITE_URL
@@ -337,8 +340,10 @@ def _create_approval(approval_buffer, approval, proposal, copied_to_permit, user
 
     return approval_buffer
 
+
 def _format_name(org):
     return org.name
+
 
 def _layout_extracted_fields(extracted_fields):
     elements = []
@@ -427,6 +432,7 @@ def _layout_extracted_fields(extracted_fields):
 
     return elements
 
+
 def create_approval_doc(approval,proposal, copied_to_permit, user):
     approval_buffer = BytesIO()
 
@@ -435,6 +441,7 @@ def create_approval_doc(approval,proposal, copied_to_permit, user):
         filename = 'approval-{}-{}.pdf'.format(approval.lodgement_number, proposal.lodgement_number)
     else:
         filename = 'approval-{}.pdf'.format(approval.lodgement_number)
+    from disturbance.components.approvals.models import ApprovalDocument
     document = ApprovalDocument.objects.create(approval=approval,name=filename)
     document._file.save(filename, File(approval_buffer), save=True)
 
@@ -442,7 +449,22 @@ def create_approval_doc(approval,proposal, copied_to_permit, user):
 
     return document
 
-def create_approval_pdf_bytes(approval,proposal, copied_to_permit, user):
+
+def create_approval_document(approval, proposal, copied_to_permit, user):
+    pdf_contents = create_apiary_licence_pdf_contents(approval, proposal, copied_to_permit, user)
+
+    if proposal.apiary_group_application_type:
+        filename = 'approval-{}-{}.pdf'.format(approval.lodgement_number, proposal.lodgement_number)
+    else:
+        filename = 'approval-{}.pdf'.format(approval.lodgement_number)
+    from disturbance.components.approvals.models import ApprovalDocument
+    document = ApprovalDocument.objects.create(approval=approval, name=filename)
+    document._file.save(filename, ContentFile(pdf_contents), save=True)
+
+    return document
+
+
+def create_approval_pdf_bytes(approval, proposal, copied_to_permit, user):
     licence_buffer = BytesIO()
 
     _create_approval(licence_buffer, approval, proposal, copied_to_permit, user)
@@ -463,12 +485,14 @@ def create_renewal_doc(approval,proposal):
     else:
         filename = 'renewal-{}.pdf'.format(approval.lodgement_number)
     #filename = 'renewal-{}.pdf'.format(approval.id)
+    from disturbance.components.approvals.models import ApprovalDocument
     document = ApprovalDocument.objects.create(approval=approval,name=filename)
     document._file.save(filename, File(renewal_buffer), save=True)
 
     renewal_buffer.close()
 
     return document
+
 
 def _create_renewal(renewal_buffer, approval, proposal):
     site_url = settings.SITE_URL
@@ -500,7 +524,8 @@ def _create_renewal(renewal_buffer, approval, proposal):
     delegation = []
     # proponent details
     delegation.append(Spacer(1, SECTION_BUFFER_HEIGHT))
-    address = proposal.applicant.organisation.postal_address
+    #address = proposal.applicant.organisation.postal_address
+    address = proposal.relevant_applicant_address
     address_paragraphs = [Paragraph(address.line1, styles['Left']), Paragraph(address.line2, styles['Left']),
                           Paragraph(address.line3, styles['Left']),
                           Paragraph('%s %s %s' % (address.locality, address.state, address.postcode), styles['Left']),

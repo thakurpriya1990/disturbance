@@ -2,6 +2,8 @@ import re
 import traceback
 import os
 import base64
+from string import lower
+
 import geojson
 import json
 
@@ -43,11 +45,16 @@ from disturbance.components.proposals.models import searchKeyWords, search_refer
     ProposalApiary, OnSiteInformation, ApiarySite, ApiaryChecklistQuestion, ApiaryChecklistAnswer, \
     ProposalApiaryTemporaryUse, TemporaryUseApiarySite
 from disturbance.utils import missing_required_fields, search_tenure, convert_moment_str_to_python_datetime_obj
-from disturbance.components.main.utils import check_db_connection, convert_utc_time_to_local
+from disturbance.components.main.utils import (
+        check_db_connection, 
+        convert_utc_time_to_local,
+        get_template_group
+        )
 
 from django.urls import reverse
 from django.shortcuts import render, redirect, get_object_or_404
-from disturbance.components.main.models import Document, Region, District, Tenure, ApplicationType
+from disturbance.components.main.models import Document, Region, District, Tenure, ApplicationType, GlobalSettings, \
+    ApiaryGlobalSettings
 from disturbance.components.proposals.models import (
     ProposalType,
     Proposal,
@@ -130,14 +137,14 @@ from copy import deepcopy
 import logging
 logger = logging.getLogger(__name__)
 
-def get_template_group(request):
-    web_url = request.META.get('HTTP_HOST', None)
-    template_group = None
-    if web_url in settings.APIARY_URL:
-       template_group = 'apiary'
-    else:
-       template_group = 'das'
-    return template_group
+#def get_template_group(request):
+#    web_url = request.META.get('HTTP_HOST', None)
+#    template_group = None
+#    if web_url in settings.APIARY_URL:
+#       template_group = 'apiary'
+#    else:
+#       template_group = 'das'
+#    return template_group
 
 class GetProposalType(views.APIView):
     renderer_classes = [JSONRenderer, ]
@@ -572,8 +579,8 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
     def is_internal_system(self, request):
         apiary_site_list_token = request.query_params.get('apiary_site_list_token', None)
         if apiary_site_list_token:
-            APIARY_SITES_LIST_TOKEN = env('APIARY_SITES_LIST_TOKEN', 'APIARY_SITES_LIST_TOKEN_NOT_FOUND')
-            if apiary_site_list_token == APIARY_SITES_LIST_TOKEN:
+            token = ApiaryGlobalSettings.objects.get(key=ApiaryGlobalSettings.KEY_APIARY_SITES_LIST_TOKEN)
+            if apiary_site_list_token.lower() == token.value.lower():
                 return True
         return False
 
@@ -1605,7 +1612,11 @@ class ProposalViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             instance = instance.renew_approval(request)
-            serializer = SaveProposalSerializer(instance,context={'request':request})
+            if instance.apiary_group_application_type:
+                serializer_class = self.internal_serializer_class()
+                serializer = serializer_class(instance,context={'request':request})
+            else:
+                serializer = SaveProposalSerializer(instance,context={'request':request})
             return Response(serializer.data)
         except Exception as e:
             print(traceback.print_exc())
