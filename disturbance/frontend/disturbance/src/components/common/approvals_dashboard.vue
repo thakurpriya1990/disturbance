@@ -3,7 +3,7 @@
         <div class="col-sm-12">
             <div class="panel panel-default">
                 <div class="panel-heading">
-                    <h3 class="panel-title">{{dashboardTitle}} <small v-if="is_external">View existing approvals/licences and amend or renew them</small>
+                    <h3 class="panel-title">{{dashboardTitle}} <small v-if="is_external">{{dashboardDescription}}</small>
                         <a :href="'#'+pBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="pBody">
                             <span class="glyphicon glyphicon-chevron-up pull-right "></span>
                         </a>
@@ -152,6 +152,8 @@ export default {
             filterProposalLodgedFrom: '',
             filterProposalLodgedTo: '',
             filterProposalSubmitter: 'All',
+            dashboardTitle: '',
+            dashboardDescription: '',
             dateFormat: 'DD/MM/YYYY',
             datepickerOptions:{
                 format: 'DD/MM/YYYY',
@@ -167,10 +169,12 @@ export default {
             //template_group: '',
             dasTemplateGroup: false,
             apiaryTemplateGroup: false,
+            /*
             proposal_headers:[
                 "Number","Region","Activity","Title","Holder","Status","Start Date","Expiry Date","Approval","Action",""
                 //"LodgementNo","CanReissue","CanAction","CanReinstate","SetToCancel","SetToSuspend","SetToSurrender","CurrentProposal","RenewalDoc","RenewalSent","CanAmend","CanRenew"
             ],
+            */
             proposal_options:{
                 language: {
                     processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
@@ -509,34 +513,31 @@ export default {
         is_referral: function(){
             return this.level == 'referral';
         },
-        /*
-        apiaryTemplateGroup: function() {
-            let returnVal = false;
-            if (this.template_group == 'apiary'){
-                returnVal = true
-            }
-            return returnVal;
-        },
-        dasTemplateGroup: function() {
-            let returnVal = false;
-            if (this.template_group == 'das'){
-                returnVal = true
-            }
-            return returnVal;
-        },
-        */
-        dashboardTitle: function() {
-            let title = ''
+        proposal_headers: function() {
             if (this.apiaryTemplateGroup) {
-                title = 'Licences';
+                return [
+            "Number","Region","Activity","Title","Holder","Status","Start Date","Expiry Date","Licence","Action",""
+            ]
             } else {
-                title = 'Approvals';
+                return [
+            "Number","Region","Activity","Title","Holder","Status","Start Date","Expiry Date","Approval","Action",""
+            ]
             }
-            return title;
         },
-
     },
     methods:{
+        setDashboardText: function() {
+            //let title = ''
+            if (this.apiaryTemplateGroup) {
+                this.dashboardTitle = 'Licences';
+                this.dashboardDescription = 'View existing licences and amend or renew them';
+            } else {
+                this.dashboardTitle = 'Approvals';
+                this.dashboardDescription = 'View existing approvals and amend or renew them';
+            }
+            //return title;
+        },
+
         fetchFilterLists: function(){
             let vm = this;
 
@@ -942,6 +943,7 @@ export default {
         this.$nextTick(() => {
             this.initialiseSearch();
             this.addEventListeners();
+            this.setDashboardText();
         });
     },
     created: function() {
@@ -958,8 +960,6 @@ export default {
         },err=>{
         console.log(err);
         });
-
-        console.log("created: end")
     },
 
 }

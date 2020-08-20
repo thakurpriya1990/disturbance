@@ -3,7 +3,7 @@
         <div class="col-sm-12">
             <div class="panel panel-default">
                 <div class="panel-heading">
-                    <h3 class="panel-title">{{dashboardTitle}} <small v-if="is_external">View existing proposals and lodge new ones</small>
+                    <h3 class="panel-title">{{dashboardTitle}} <small v-if="is_external">{{dashboardDescription}}</small>
                         <a :href="'#'+pBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="pBody">
                             <span class="glyphicon glyphicon-chevron-up pull-right "></span>
                         </a>
@@ -51,7 +51,7 @@
                             </div>
                         </div>
                         <div v-if="is_external" class="col-md-3">
-                            <router-link  style="margin-top:25px;" class="btn btn-primary pull-right" :to="{ name: 'apply_proposal' }">New Proposal/Application</router-link>
+                            <router-link  style="margin-top:25px;" class="btn btn-primary pull-right" :to="{ name: 'apply_proposal' }">{{newProposalText}}</router-link>
                         </div>
                     </div>
                     <div class="row">
@@ -139,6 +139,9 @@ export default {
             filterProposalLodgedFrom: '',
             filterProposalLodgedTo: '',
             filterProposalSubmitter: 'All',
+            dashboardTitle: '',
+            dashboardDescription: '',
+            newProposalText: '',
             dateFormat: 'DD/MM/YYYY',
             datepickerOptions:{
                 format: 'DD/MM/YYYY',
@@ -805,18 +808,21 @@ export default {
             return returnVal;
         },
         */
-        dashboardTitle: function() {
-            let title = ''
-            if (this.apiaryTemplateGroup) {
-                title = 'Applications';
-            } else {
-                title = 'Proposals';
-            }
-            return title;
-        },
 
     },
     methods:{
+        setDashboardText: function() {
+            if (this.apiaryTemplateGroup) {
+                this.dashboardTitle = 'Applications';
+                this.dashboardDescription = 'View existing applications and lodge new ones';
+                this.newProposalText = 'New Application';
+            } else {
+                this.dashboardTitle = 'Proposals';
+                this.dashboardDescription = 'View existing proposals and lodge new ones';
+                this.newProposalText = 'New Proposal';
+            }
+        },
+
         fetchFilterLists: function(){
             let vm = this;
 
@@ -1051,6 +1057,7 @@ export default {
         this.$nextTick(() => {
             this.initialiseSearch();
             this.addEventListeners();
+            this.setDashboardText();
         });
     },
     created: function() {
