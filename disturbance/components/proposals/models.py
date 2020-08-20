@@ -2291,6 +2291,7 @@ def clone_apiary_proposal_with_status_reset(original_proposal):
 
             #proposal.id = None
             proposal.approval_level_document = None
+            fee_invoice_reference = None
 
             proposal.save(no_revision=True)
 
@@ -3296,7 +3297,8 @@ class ApiarySiteFeeRemainder(models.Model):
     date_used = models.DateField(null=True, blank=True)
 
     def __str__(self):
-        return 'Remainder: {} - {} - {} - {} site(s)'.format(self.applicant, self.site_category, self.apiary_site_fee_type, self.number_of_sites_left)
+        #return 'Remainder: {} - {} - {} - {} site(s)'.format(self.applicant, self.site_category, self.apiary_site_fee_type, self.number_of_sites_left)
+        return 'Remainder: {} - {} - {} - site(s)'.format(self.applicant, self.site_category, self.apiary_site_fee_type)
 
     class Meta:
         app_label = 'disturbance'
