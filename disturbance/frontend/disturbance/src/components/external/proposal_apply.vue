@@ -35,7 +35,7 @@
                                         </div>
                                         -->
                                     </div>
-                                    <div v-else-if="behalf_of !== 'individual'">
+                                    <div v-else-if="behalf_of !== 'individual' && dasTemplateGroup">
                                         <p style="color:red"> You cannot add a New Disturbance because you do not have an associated Organisation. First add an Organisation. </p>
                                     </div>
                                 </div>
@@ -246,6 +246,8 @@ export default {
         display_region_selectbox: false,
         display_activity_matrix_selectbox: false,
         site_url: (api_endpoints.site_url.endsWith("/")) ? (api_endpoints.site_url): (api_endpoints.site_url + "/"),
+        apiaryTemplateGroup: false,
+        dasTemplateGroup: false,
     }
   },
   components: {
@@ -646,7 +648,23 @@ export default {
         })
     })
     
-  }
+  },
+    created: function() {
+        // retrieve template group
+        this.$http.get('/template_group',{
+            emulateJSON:true
+            }).then(res=>{
+                //this.template_group = res.body.template_group;
+                if (res.body.template_group === 'apiary') {
+                    this.apiaryTemplateGroup = true;
+                } else {
+                    this.dasTemplateGroup = true;
+                }
+        },err=>{
+        console.log(err);
+        });
+    },
+
 }
 </script>
 
