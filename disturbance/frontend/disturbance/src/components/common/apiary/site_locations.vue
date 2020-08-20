@@ -388,7 +388,12 @@
                 alert("TODO: open screen 45: External - Contact Holder of Available Site in a different tab page.");
             },
             calculateRemainders: function(features){
-                let remainders = this.proposal.proposal_apiary.site_remainders
+                let remainders = null;
+                if (this.proposal.application_type === 'Apiary' && this.proposal.proposal_type === 'renewal') {
+                    remainders = this.proposal.proposal_apiary.renewal_site_remainders;
+                } else {
+                    remainders = this.proposal.proposal_apiary.site_remainders;
+                }
                 let num_remain_south_west = 0
                 let num_remain_remote = 0
 
@@ -403,15 +408,19 @@
                 }
 
                 for (let i=0; i<features.length; i++){
+                    console.log(features[i].get('site_category'))
                     if (features[i].get('site_category') == 'south_west'){
                         num_remain_south_west = num_remain_south_west - 1
                     } else if (features[i].get('site_category') == 'remote'){
                         num_remain_remote = num_remain_remote - 1
                     }
                 }
+                console.log(num_remain_south_west)
+                console.log(num_remain_remote)
 
                 let button_text = 'Pay and submit'
-                if (num_remain_south_west >= 0 && num_remain_remote >=0){
+                // TODO: improve this logic
+                if (num_remain_south_west >= 0 && num_remain_remote >=0 && !this.proposal.proposal_type === 'renewal'){
                     button_text = 'Submit'
                 }
 
