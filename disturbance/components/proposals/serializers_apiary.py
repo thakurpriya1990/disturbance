@@ -527,14 +527,27 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
                     filter_used
                 ).order_by('datetime_created')  # Older comes earlier
 
+                filter_site_fee_type = Q(apiary_site_fee_type=ApiarySiteFeeType.objects.get(name=ApiarySiteFeeType.FEE_TYPE_RENEWAL))
+                site_fee_remainders_renewal = ApiarySiteFeeRemainder.objects.filter(
+                    filter_site_category &
+                    filter_site_fee_type &
+                    filter_applicant &
+                    filter_proxy_applicant &
+                    # filter_expiry &
+                    filter_used
+                ).order_by('datetime_created')  # Older comes earlier
+
                 # Retrieve current fee
                 site_category = SiteCategory.objects.get(name=category[0])
                 fee = site_category.retrieve_fee_by_date_and_type(today_local, ApiarySiteFeeType.FEE_TYPE_APPLICATION)
+                fee_renewal = site_category.retrieve_fee_by_date_and_type(today_local, ApiarySiteFeeType.FEE_TYPE_RENEWAL)
 
                 remainder = {
                     'category_name': category[1],
                     'remainders': site_fee_remainders.count(),
+                    'remainders_renewal': site_fee_remainders_renewal.count(),
                     'fee': fee,
+                    'fee_renewal': fee_renewal,
                 }
                 ret_list.append(remainder)
             except:

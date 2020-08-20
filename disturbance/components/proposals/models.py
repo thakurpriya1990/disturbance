@@ -3099,9 +3099,9 @@ class SiteCategory(models.Model):
             if item[0] == self.name:
                 fee_application = self.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_APPLICATION)
                 # fee_amendment = self.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_AMENDMENT)
-                # fee_renewal = self.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_RENEWAL)
+                fee_renewal = self.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_RENEWAL)
                 fee_transfer = self.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_TRANSFER)
-                return '{} - new application: ${}, transfer: ${}'.format(item[1], fee_application, fee_transfer)
+                return '{} - new application: ${}, transfer: ${}, renewal: ${}'.format(item[1], fee_application, fee_transfer, fee_renewal)
         return '---'
 
     class Meta:
