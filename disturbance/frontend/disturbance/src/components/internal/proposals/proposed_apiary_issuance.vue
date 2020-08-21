@@ -225,6 +225,8 @@ export default {
                 returnVal = true;
             } else if (this.proposal && !this.proposal.approval) {
                 returnVal = true;
+            } else if (this.proposal && this.proposal.proposal_type === 'Renewal') {
+                returnVal = true;
             }
             return returnVal;
         },
@@ -517,10 +519,19 @@ export default {
             $(vm.$refs.due_date).datetimepicker(vm.datepickerOptions);
             $(vm.$refs.due_date).on('dp.change', function(e){
                 if ($(vm.$refs.due_date).data('DateTimePicker').date()) {
-                    if ($(vm.$refs.due_date).data('DateTimePicker').date() < $(vm.$refs.start_date).data('DateTimePicker').date()){
-                        vm.toDateError = true;
-                        vm.toDateErrorString = 'Please select Expiry date that is after Start date';
-                        vm.approval.expiry_date = ""
+                    //let proposalApprovalStartDate = moment(vm.proposal.approval.start_date, 'YYYY-MM-DD').format('DD/MM/YYYY')
+                    let proposalApprovalStartDate = vm.proposal.approval && vm.proposal.approval.start_date ?
+                        moment(vm.proposal.approval.start_date, 'YYYY-MM-DD') :
+                        null;
+                    let startDate = Object.keys($(vm.$refs.start_date)).length ? 
+                        $(vm.$refs.start_date).data('DateTimePicker').date() : 
+                        proposalApprovalStartDate;
+                    //console.log(startDate)
+                    //console.log($(vm.$refs.due_date).data('DateTimePicker').date())
+                    if ($(vm.$refs.due_date).data('DateTimePicker').date() < startDate) {
+                            vm.toDateError = true;
+                            vm.toDateErrorString = 'Please select Expiry date that is after Start date';
+                            vm.approval.expiry_date = ""
                     }
                     else{
                         vm.toDateError = false;
