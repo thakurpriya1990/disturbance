@@ -56,41 +56,29 @@
         <template v-if="proposal && proposal.proposal_apiary">
             <div class="row debug-info">
                 <div class="col-sm-12">
-                    <div><strong>This is {{ proposal_type_name }} application</strong></div>
-                    Remainders:
-                    <div v-for="remainder in proposal.proposal_apiary.site_remainders" class="debug-remainders">
-                        <div>
-                            <div>{{ remainder.category_name }}:</div>
-                            <div>New: {{ remainder.remainders }} left (${{ remainder.fee }}/site)</div>
-                            <div>Renewal: {{ remainder.remainders_renewal }} left (${{ remainder.fee_renewal }}/site)</div>
-                        </div>
-                    </div>
-                    Remainders(reactive)
                     <div>
-                        <div><strong>New</strong></div>
-                        <div>
-                            <div>Previously paid sites 'South West' region: {{ num_of_sites_remain_south_west_base }} (${{ fee_south_west }})</div>
-                            <div>Num of sites still remain: {{ num_of_sites_remain_south_west }}</div>
-                            <div>Num of sites which cost: {{ num_of_sites_south_west_after_deduction }}</div>
-                            <div>Quotient by 5: {{ quotient_south_west }}</div>
-                            <div>Remainder by 5: {{ remainder_south_west }}</div>
-                            <div>Num of sites to calculate total cost: {{ num_of_sites_south_west_calculate }}</div>
-                            <div>Num of sites to add as remainders: {{ num_of_sites_south_west_to_add_as_remainder }}</div>
-                            <div>Total fee: {{ total_fee_south_west }}</div>
-                        </div>
-                        <div>
-                            <div>Previously paid sites 'Remote' region: {{ num_of_sites_remain_remote_base }} (${{ fee_remote }})</div>
-                            <div>Remainder: {{ num_of_sites_remain_remote }}</div>
-                        </div>
-                        <div><strong>Renewal</strong></div>
-                        <div>
-                            <div>Previously paid sites 'South West' region: {{ num_of_sites_remain_south_west_renewal_base }} (${{ fee_south_west_renewal }})</div>
-                            <div>Remainder: {{ num_of_sites_remain_south_west_renewal }}</div>
-                        </div>
-                        <div>
-                            <div>Previously paid sites 'Remote' region: {{ num_of_sites_remain_remote_renewal_base }} (${{ fee_remote_renewal }})</div>
-                            <div>Remainder: {{ num_of_sites_remain_remote_renewal }}</div>
-                        </div>
+                        <template v-if='is_proposal_type_new'>
+                            <div><strong>New</strong></div>
+                            <div>
+                                <div>Previously paid sites 'South West' region: {{ num_of_sites_remain_south_west }} (${{ fee_south_west }})</div>
+                                <div>Total fee: {{ total_fee_south_west }}</div>
+                            </div>
+                            <div>
+                                <div>Previously paid sites 'Remote' region: {{ num_of_sites_remain_remote }} (${{ fee_remote }})</div>
+                                <div>Total fee: {{ total_fee_remote }}</div>
+                            </div>
+                        </template>
+                        <template v-if='is_proposal_type_renewal'>
+                            <div><strong>Renewal</strong></div>
+                            <div>
+                                <div>Previously paid sites 'South West' region: {{ num_of_sites_remain_south_west_renewal }} (${{ fee_south_west_renewal }})</div>
+                                <div>Total fee: {{ total_fee_south_west_renewal }}</div>
+                            </div>
+                            <div>
+                                <div>Previously paid sites 'Remote' region: {{ num_of_sites_remain_remote_renewal }} (${{ fee_remote_renewal }})</div>
+                                <div>Total fee: {{ total_fee_remote_renewal }}</div>
+                            </div>
+                        </template>
                     </div>
                 </div>
             </div>
@@ -200,7 +188,7 @@
                 deed_poll_url: '',
                 buffer_radius: 3000, // [m]
 
-                min_num_of_sites_for_renew: 5,
+                min_num_of_sites_for_renewal: 5,
                 min_num_of_sites_for_new: 5,
 
                 // Popup
@@ -246,6 +234,7 @@
                     'Id',
                     'Latitude',
                     'Longitude',
+                    'Category',
                     'Action',
                 ],
                 dtOptions: {
@@ -285,6 +274,13 @@
                         },
                         {
                             mRender: function (data, type, feature) {
+                                let cat = feature.get('site_category')
+                                cat = cat.replace('_', ' ')
+                                return cat.replace(/\w\S*/g, function(txt){return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();});
+                            }
+                        },
+                        {
+                            mRender: function (data, type, feature) {
                                 let action_list = []
                                 let ret_str_delete = '<span class="delete_button action_link" data-site-location-guid="' + feature.getId() + '">Delete</span>'
                                 let ret_str_view = '<span class="view_on_map action_link" data-apiary-site-id="' + feature.getId() + '"/>View on map</span>';
@@ -308,6 +304,18 @@
             datatable,
         },
         computed:{
+            is_proposal_type_new: function(){
+                if (this.proposal_type_name === 'new'){
+                    return true
+                }
+                return false
+            },
+            is_proposal_type_renewal: function(){
+                if (this.proposal_type_name === 'renewal'){
+                    return true
+                }
+                return false
+            },
             proposal_type_name: function() {
                 if (this.proposal.application_type === 'Apiary'){
                     if (this.proposal.proposal_type.toLowerCase() === 'renewal'){
@@ -327,10 +335,15 @@
                 return readonlyStatus;
             },
 
-            // South West (New)
+            
+            // 1. South West
+            // 1.1 New
             num_of_sites_remain_south_west: function(){
+                // Number of sites paid left
                 let value = this.num_of_sites_remain_south_west_base - this.num_of_sites_south_west_applied
-                return value >= 0 ? value : 0
+                value = value >= 0 ? value : 0
+                this.$emit('num_of_sites_remain_south_west', value)
+                return value
             },
             num_of_sites_south_west_after_deduction: function(){
                 let value = this.num_of_sites_south_west_applied - this.num_of_sites_remain_south_west_base
@@ -353,22 +366,108 @@
                 return this.num_of_sites_south_west_calculate - this.num_of_sites_south_west_after_deduction
             },
             total_fee_south_west: function() {
-                return this.num_of_sites_south_west_calculate * this.fee_south_west
+                let total_fee = this.num_of_sites_south_west_calculate * this.fee_south_west
+                this.$emit('total_fee_south_west', total_fee)
+                return total_fee
             },
-
-            // South West (Renewal)
+            // 1.2 Renewal
             num_of_sites_remain_south_west_renewal: function(){
-                return this.num_of_sites_remain_south_west_renewal_base - this.num_of_sites_south_west_renewal_applied
+                // Number of sites paid left
+                let value = this.num_of_sites_remain_south_west_renewal_base - this.num_of_sites_south_west_renewal_applied
+                value = value >= 0 ? value : 0
+                this.$emit('num_of_sites_remain_south_west_renewal', value)
+                return value
+            },
+            num_of_sites_south_west_renewal_after_deduction: function(){
+                let value = this.num_of_sites_south_west_renewal_applied - this.num_of_sites_remain_south_west_renewal_base
+                return value >= 0 ? value : 0
+            },
+            quotient_south_west_renewal: function(){
+                return Math.floor(this.num_of_sites_south_west_renewal_after_deduction / this.min_num_of_sites_for_renewal)
+            },
+            remainder_south_west_renewal: function(){
+                return this.num_of_sites_south_west_renewal_after_deduction % this.min_num_of_sites_for_renewal
+            },
+            num_of_sites_south_west_renewal_calculate: function(){
+                let ret_value = this.quotient_south_west_renewal * this.min_num_of_sites_for_renewal
+                if (this.remainder_south_west_renewal){
+                    ret_value =  ret_value + this.min_num_of_sites_for_renewal
+                }
+                return ret_value
+            },
+            num_of_sites_south_west_renewal_to_add_as_remainder: function(){
+                return this.num_of_sites_south_west_renewal_calculate - this.num_of_sites_south_west_renewal_after_deduction
+            },
+            total_fee_south_west_renewal: function() {
+                let total_fee = this.num_of_sites_south_west_renewal_calculate * this.fee_south_west_renewal
+                this.$emit('total_fee_south_west_renewal', total_fee)
+                return total_fee
             },
 
-            // Remote (New)
+            // 2. Remote
+            // 2.1 New
             num_of_sites_remain_remote: function(){
-                return this.num_of_sites_remain_remote_base - this.num_of_sites_remote_applied
+                let value = this.num_of_sites_remain_remote_base - this.num_of_sites_remote_applied
+                value = value >= 0 ? value : 0
+                this.$emit('num_of_sites_remain_remote', value)
+                return value
             },
-
-            // Remote (Renewal)
+            num_of_sites_remote_after_deduction: function(){
+                let value = this.num_of_sites_remote_applied - this.num_of_sites_remain_remote_base
+                return value >= 0 ? value : 0
+            },
+            quotient_remote: function(){
+                return Math.floor(this.num_of_sites_remote_after_deduction / this.min_num_of_sites_for_new)
+            },
+            remainder_remote: function(){
+                return this.num_of_sites_remote_after_deduction % this.min_num_of_sites_for_new
+            },
+            num_of_sites_remote_calculate: function(){
+                let ret_value = this.quotient_remote * this.min_num_of_sites_for_new
+                if (this.remainder_remote){
+                    ret_value =  ret_value + this.min_num_of_sites_for_new
+                }
+                return ret_value
+            },
+            num_of_sites_remote_to_add_as_remainder: function(){
+                return this.num_of_sites_remote_calculate - this.num_of_sites_remote_after_deduction
+            },
+            total_fee_remote: function() {
+                let total_fee = this.num_of_sites_remote_calculate * this.fee_remote
+                this.$emit('total_fee_remote', total_fee)
+                return total_fee
+            },
+            // 2.2 Renewal
             num_of_sites_remain_remote_renewal: function(){
-                return this.num_of_sites_remain_remote_renewal_base - this.num_of_sites_remote_renewal_applied
+                let value = this.num_of_sites_remain_remote_renewal_base - this.num_of_sites_remote_renewal_applied
+                value = value >= 0 ? value : 0
+                this.$emit('num_of_sites_remain_remote_renewal', value)
+                return value
+            },
+            num_of_sites_remote_renewal_after_deduction: function(){
+                let value = this.num_of_sites_remote_renewal_applied - this.num_of_sites_remain_remote_renewal_base
+                return value >= 0 ? value : 0
+            },
+            quotient_remote_renewal: function(){
+                return Math.floor(this.num_of_sites_remote_renewal_after_deduction / this.min_num_of_sites_for_renewal)
+            },
+            remainder_remote_renewal: function(){
+                return this.num_of_sites_remote_renewal_after_deduction % this.min_num_of_sites_for_renewal
+            },
+            num_of_sites_remote_renewal_calculate: function(){
+                let ret_value = this.quotient_remote_renewal * this.min_num_of_sites_for_renewal
+                if (this.remainder_remote_renewal){
+                    ret_value =  ret_value + this.min_num_of_sites_for_renewal
+                }
+                return ret_value
+            },
+            num_of_sites_remote_renewal_to_add_as_remainder: function(){
+                return this.num_of_sites_remote_renewal_calculate - this.num_of_sites_remote_renewal_after_deduction
+            },
+            total_fee_remote_renewal: function() {
+                let total_fee = this.num_of_sites_remote_renewal_calculate * this.fee_remote_renewal
+                this.$emit('total_fee_remote_renewal', total_fee)
+                return total_fee
             },
         },
         watch:{
@@ -382,6 +481,16 @@
             }
         },
         methods:{
+            is_feature_new_or_existing: function(feature){
+                let status = feature.get('status')
+                if (!status || status === 'draft'){
+                    // status is null when new apiary site is added but not saved yet
+                    return 'new'
+                } else {
+                    // status should have the status other than 'draft' status
+                    return 'existing'
+                }
+            },
             showPopup: function(feature){
                 console.log('** showPopup **')
                 let geometry = feature.getGeometry();
@@ -606,8 +715,25 @@
 
                 let site_location_guid = e.target.getAttribute("data-site-location-guid");
                 let myFeature = this.drawingLayerSource.getFeatureById(site_location_guid)
+                let site_category = myFeature.get('site_category')
 
                 console.log(myFeature)
+                console.log('site: ' + this.is_feature_new_or_existing(myFeature))
+
+                if (this.is_proposal_type_new){
+                    if (site_category === 'south_west'){
+                        this.num_of_sites_south_west_applied -= 1
+                    } else {
+                        this.num_of_sites_remote_applied -= 1
+                    }
+                }
+                if (this.is_proposal_type_renewal){
+                    if (site_category === 'south_west'){
+                        this.num_of_sites_south_west_renewal_applied -= 1
+                    } else {
+                        this.num_of_sites_remote_renewal_applied -= 1
+                    }
+                }
 
                 let myFeatureStatus = myFeature.get('status')
                 if (myFeatureStatus && myFeatureStatus != 'draft'){

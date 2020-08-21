@@ -352,7 +352,7 @@ class ApiarySiteExportSerializer(GeoFeatureModelSerializer):
 
 
 class ApiarySiteGeojsonSerializer(GeoFeatureModelSerializer):
-    site_category_name = serializers.CharField(source='site_category.name')
+    site_category = serializers.CharField(source='site_category.name')
     stable_coords = serializers.SerializerMethodField()
 
     class Meta:
@@ -364,7 +364,7 @@ class ApiarySiteGeojsonSerializer(GeoFeatureModelSerializer):
             'site_guid',
             'available',
             'wkb_geometry',
-            'site_category_name',
+            'site_category',
             'status',
             'workflow_selected_status',
             'stable_coords',
