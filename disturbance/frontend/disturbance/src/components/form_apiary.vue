@@ -21,6 +21,14 @@
                         :is_external="is_external"
                         :is_internal="is_internal"
                         @button_text="button_text"
+                        @total_fee_south_west="total_fee_south_west"
+                        @total_fee_remote="total_fee_remote"
+                        @total_fee_south_west_renewal="total_fee_south_west_renewal"
+                        @total_fee_remote_renewal="total_fee_remote_renewal"
+                        @num_of_sites_remain_south_west="num_of_sites_remain_south_west"
+                        @num_of_sites_remain_remote="num_of_sites_remain_remote"
+                        @num_of_sites_remain_south_west_renewal="num_of_sites_remain_south_west_renewal"
+                        @num_of_sites_remain_remote_renewal="num_of_sites_remain_remote_renewal"
                     />
 
                 </div>
@@ -315,6 +323,30 @@
         methods:{
             button_text: function(button_text) {
                 this.$emit('button_text', button_text)
+            },
+            total_fee_south_west: function(total_fee){
+                this.$emit('total_fee_south_west', total_fee)
+            },
+            total_fee_remote: function(total_fee){
+                this.$emit('total_fee_remote', total_fee)
+            },
+            total_fee_south_west_renewal: function(total_fee){
+                this.$emit('total_fee_south_west_renewal', total_fee)
+            },
+            total_fee_remote_renewal: function(total_fee){
+                this.$emit('total_fee_remote_renewal', total_fee)
+            },
+            num_of_sites_remain_south_west: function(value){
+                this.$emit('num_of_sites_remain_south_west', value)
+            },
+            num_of_sites_remain_remote: function(value){
+                this.$emit('num_of_sites_remain_remote', value)
+            },
+            num_of_sites_remain_south_west_renewal: function(value){
+                this.$emit('num_of_sites_remain_south_west_renewal', value)
+            },
+            num_of_sites_remain_remote_renewal: function(value){
+                this.$emit('num_of_sites_remain_remote_renewal', value)
             },
             /*
             getChecklistAnswers: function() {
