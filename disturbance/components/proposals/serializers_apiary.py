@@ -352,7 +352,7 @@ class ApiarySiteExportSerializer(GeoFeatureModelSerializer):
 
 
 class ApiarySiteGeojsonSerializer(GeoFeatureModelSerializer):
-    site_category_name = serializers.CharField(source='site_category.name')
+    site_category = serializers.CharField(source='site_category.name')
     stable_coords = serializers.SerializerMethodField()
 
     class Meta:
@@ -364,7 +364,7 @@ class ApiarySiteGeojsonSerializer(GeoFeatureModelSerializer):
             'site_guid',
             'available',
             'wkb_geometry',
-            'site_category_name',
+            'site_category',
             'status',
             'workflow_selected_status',
             'stable_coords',
@@ -415,7 +415,6 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
     assessor_checklist_answers = serializers.SerializerMethodField()
     referrer_checklist_answers = serializers.SerializerMethodField()
     site_remainders = serializers.SerializerMethodField()
-    renewal_site_remainders = serializers.SerializerMethodField()
     originating_approval_lodgement_number = serializers.SerializerMethodField()
     #target_approval_id = serializers.SerializerMethodField()
     target_approval_lodgement_number = serializers.SerializerMethodField()
@@ -441,7 +440,6 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
             'assessor_checklist_answers',
             'referrer_checklist_answers',
             'site_remainders',
-            'renewal_site_remainders',
             'originating_approval_id',
             'originating_approval_lodgement_number',
             'target_approval_id',
@@ -550,46 +548,6 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
                     'remainders_renewal': site_fee_remainders_renewal.count(),
                     'fee': fee,
                     'fee_renewal': fee_renewal,
-                }
-                ret_list.append(remainder)
-            except:
-                pass
-
-        return ret_list
-
-    def get_renewal_site_remainders(self, proposal_apiary):
-        today_local = datetime.now(pytz.timezone(TIME_ZONE)).date()
-
-        for site in proposal_apiary.apiary_sites.all():
-            print(site)
-
-        ret_list = []
-        for category in SiteCategory.CATEGORY_CHOICES:
-            try:
-                # Retrieve sites left
-                filter_site_category = Q(site_category__name=category[0])
-                filter_site_fee_type = Q(apiary_site_fee_type=ApiarySiteFeeType.objects.get(name=ApiarySiteFeeType.FEE_TYPE_RENEWAL))
-                filter_applicant = Q(applicant=proposal_apiary.proposal.applicant)
-                filter_proxy_applicant = Q(proxy_applicant=proposal_apiary.proposal.proxy_applicant)
-                # filter_expiry = Q(date_expiry__gte=today_local)
-                filter_used = Q(date_used__isnull=True)
-                site_fee_remainders = ApiarySiteFeeRemainder.objects.filter(
-                    filter_site_category &
-                    filter_site_fee_type &
-                    filter_applicant &
-                    filter_proxy_applicant &
-                    # filter_expiry &
-                    filter_used
-                ).order_by('datetime_created')  # Older comes earlier
-
-                # Retrieve current fee
-                site_category = SiteCategory.objects.get(name=category[0])
-                fee = site_category.retrieve_fee_by_date_and_type(today_local, ApiarySiteFeeType.FEE_TYPE_RENEWAL)
-
-                remainder = {
-                    'category_name': category[1],
-                    'remainders': site_fee_remainders.count(),
-                    'fee': fee,
                 }
                 ret_list.append(remainder)
             except:

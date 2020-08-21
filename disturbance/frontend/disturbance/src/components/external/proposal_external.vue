@@ -46,7 +46,14 @@
                     :showSections="sectionShow"
                     ref="proposal_apiary"
                     :is_external="true"
-                    @button_text="button_text"
+                    @total_fee_south_west="update_total_fee_south_west"
+                    @total_fee_remote="update_total_fee_remote"
+                    @total_fee_south_west_renewal="update_total_fee_south_west_renewal"
+                    @total_fee_remote_renewal="update_total_fee_remote_renewal"
+                    @num_of_sites_remain_south_west="update_num_of_sites_remain_south_west"
+                    @num_of_sites_remain_remote="update_num_of_sites_remain_remote"
+                    @num_of_sites_remain_south_west_renewal="update_num_of_sites_remain_south_west_renewal"
+                    @num_of_sites_remain_remote_renewal="update_num_of_sites_remain_remote_renewal"
                 />
             </div>
             <div v-else-if="proposal && proposal.application_type=='Site Transfer'">
@@ -75,33 +82,57 @@
                   <div class="navbar navbar-fixed-bottom" style="background-color: #f5f5f5 ">
                   <div class="navbar-inner">
                     <div v-if="proposal && !proposal.readonly" class="container">
+                        <!--
                       <p class="pull-right" style="margin-top:5px;">
+                        -->
                         <!--div v-if="proposal && !proposal.apiary_group_application_type"-->
                         <input
-                        id="sectionHide"
-                        v-if="proposal && !proposal.apiary_group_application_type"
-                        type="button"
-                        @click.prevent="sectionHide"
-                        class="btn btn-primary"
-                        value="Show/Hide Sections"/>
-                        <!--button id="sectionHide" @click.prevent="sectionHide" class="btn btn-primary">Show/Hide sections</button-->
+                            id="sectionHide"
+                            v-if="proposal && !proposal.apiary_group_application_type"
+                            type="button"
+                            @click.prevent="sectionHide"
+                            class="btn btn-primary"
+                            value="Show/Hide Sections"
+                        />
+                        <div class="row">
+                            <!--button id="sectionHide" @click.prevent="sectionHide" class="btn btn-primary">Show/Hide sections</button-->
+                            <!--
+                            <input type="button" @click.prevent="save_exit" class="btn btn-primary" value="Save and Exit"/>
+                            <input type="button" @click.prevent="save" class="btn btn-primary" value="Save and Continue"/>
+
+                            <input v-if="!isSubmitting" type="button" @click.prevent="submit" class="btn btn-primary" value="Submit"/>
+                            <button v-else disabled class="btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Submitting</button>
+
+                            <input id="save_and_continue_btn" type="hidden" @click.prevent="save_wo_confirm" class="btn btn-primary" value="Save Without Confirmation"/>
+                            -->
+                            <template v-if="is_proposal_type_new">
+                                <div class="col-sm-5 text-right">
+                                    <div>Previously paid sites south west region: {{ num_of_sites_remain_south_west }}</div>
+                                    <div>Previously paid sites remote region: {{ num_of_sites_remain_remote }}</div>
+                                </div>
+                            </template>
+                            <template v-if="is_proposal_type_renewal">
+                                <div class="col-sm-5 text-right">
+                                    <div>Previously paid sites south west region: {{ num_of_sites_remain_south_west_renewal }}</div>
+                                    <div>Previously paid sites remote region: {{ num_of_sites_remain_remote_renewal }}</div>
+                                </div>
+                            </template>
+                            <div class="col-sm-2 text-right">
+                                Application fee: ${{ sum_of_total_fees }}
+                            </div>
+                            <div class="col-sm-5 text-right">
+                                <input type="button" @click.prevent="save_exit" class="btn btn-primary" value="Save and Exit"/>
+                                <input type="button" @click.prevent="save(true)" class="btn btn-primary" value="Save and Continue"/>
+
+                                <input v-if="!isSubmitting" type="button" @click.prevent="submit" class="btn btn-primary" :value="submit_button_text"/>
+                                <button v-else disabled class="btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Submitting</button>
+
+                                <input id="save_and_continue_btn" type="hidden" @click.prevent="save(false)" class="btn btn-primary" value="Save Without Confirmation"/>
+                            </div>
+                        </div>
                         <!--
-                        <input type="button" @click.prevent="save_exit" class="btn btn-primary" value="Save and Exit"/>
-                        <input type="button" @click.prevent="save" class="btn btn-primary" value="Save and Continue"/>
-
-                        <input v-if="!isSubmitting" type="button" @click.prevent="submit" class="btn btn-primary" value="Submit"/>
-                        <button v-else disabled class="btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Submitting</button>
-
-                        <input id="save_and_continue_btn" type="hidden" @click.prevent="save_wo_confirm" class="btn btn-primary" value="Save Without Confirmation"/>
-                        -->
-                        <input type="button" @click.prevent="save_exit" class="btn btn-primary" value="Save and Exit"/>
-                        <input type="button" @click.prevent="save(true)" class="btn btn-primary" value="Save and Continue"/>
-
-                        <input v-if="!isSubmitting" type="button" @click.prevent="submit" class="btn btn-primary" :value="submit_button_text"/>
-                        <button v-else disabled class="btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Submitting</button>
-
-                        <input id="save_and_continue_btn" type="hidden" @click.prevent="save(false)" class="btn btn-primary" value="Save Without Confirmation"/>
                       </p>
+                        -->
                     </div>
                     <div v-else class="container">
                       <p class="pull-right" style="margin-top:5px;">
@@ -152,7 +183,18 @@ export default {
             pBody: 'pBody',
             missing_fields: [],
             sectionShow: true,
-            submit_button_text: 'Pay and submit',
+            //submit_button_text: 'Pay and submit',
+            submit_button_text: 'Submit',
+
+            // Fee
+            total_fee_south_west: null,
+            total_fee_remote: null,
+            total_fee_south_west_renewal: null,
+            total_fee_remote_renewal: null,
+            num_of_sites_remain_south_west: null,
+            num_of_sites_remain_remote: null,
+            num_of_sites_remain_south_west_renewal: null,
+            num_of_sites_remain_remote_renewal: null,
         }
     },
     components: {
@@ -188,8 +230,73 @@ export default {
         //        return 'Submit'
         //    }
         //}
+        sum_of_total_fees: function(){
+            let sum = this.total_fee_south_west + this.total_fee_remote + this.total_fee_south_west_renewal + this.total_fee_remote_renewal
+            return sum
+        },
+        is_proposal_type_new: function(){
+            if (this.proposal_type_name === 'new'){
+                return true
+            }
+            return false
+        },
+        is_proposal_type_renewal: function(){
+            if (this.proposal_type_name === 'renewal'){
+                return true
+            }
+            return false
+        },
+        proposal_type_name: function() {
+            if (this.proposal.application_type === 'Apiary'){
+                if (this.proposal.proposal_type.toLowerCase() === 'renewal'){
+                    return 'renewal'
+                } else {
+                    return 'new'
+                }
+            } else {
+                return '---'
+            }
+        },
+    },
+    watch: {
+        sum_of_total_fees: function(){
+            console.log('in sum_of_total_fees in watch')
+            if (this.sum_of_total_fees > 0){
+                this.submit_button_text = 'Pay and submit'
+            } else {
+                this.submit_button_text = 'Submit'
+            }
+        }
     },
     methods: {
+        update_num_of_sites_remain_south_west: function(value){
+            this.num_of_sites_remain_south_west = value
+        },
+        update_num_of_sites_remain_remote: function(value){
+            this.num_of_sites_remain_remote = value
+        },
+        update_num_of_sites_remain_south_west_renewal: function(value){
+            this.num_of_sites_remain_south_west_renewal = value
+        },
+        update_num_of_sites_remain_remote_renewal: function(value){
+            this.num_of_sites_remain_remote_renewal = value
+        },
+        update_total_fee_south_west: function(total_fee){
+            console.log('in update_total_fee_south_west: ' + total_fee)
+            this.total_fee_south_west = total_fee
+        },
+        update_total_fee_remote: function(total_fee){
+            console.log('in update_total_fee_remote: ' + total_fee)
+            this.total_fee_remote = total_fee
+        },
+        update_total_fee_south_west_renewal: function(total_fee){
+            console.log('in update_total_fee_south_west_renewal: ' + total_fee)
+            this.total_fee_south_west = total_fee
+        },
+        update_total_fee_remote_renewal: function(total_fee){
+            console.log('in update_total_fee_remote_renewal: ' + total_fee)
+            this.total_fee_remote_renewal = total_fee
+        },
         button_text: function(button_text){
             console.log('button text updated: ' + button_text)
             this.submit_button_text = button_text

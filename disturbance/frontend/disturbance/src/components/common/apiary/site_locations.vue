@@ -56,11 +56,29 @@
         <template v-if="proposal && proposal.proposal_apiary">
             <div class="row debug-info">
                 <div class="col-sm-12">
-                    Remainders:
-                    <div v-for="remainder in proposal.proposal_apiary.site_remainders" class="debug-remainders">
-                        <div>
-                            {{ remainder.category_name }}: {{ remainder.remainders }} left (${{ remainder.fee }}/site)
-                        </div>
+                    <div>
+                        <template v-if='is_proposal_type_new'>
+                            <div><strong>New</strong></div>
+                            <div>
+                                <div>Previously paid sites 'South West' region: {{ num_of_sites_remain_south_west }} (${{ fee_south_west }})</div>
+                                <div>Total fee: {{ total_fee_south_west }}</div>
+                            </div>
+                            <div>
+                                <div>Previously paid sites 'Remote' region: {{ num_of_sites_remain_remote }} (${{ fee_remote }})</div>
+                                <div>Total fee: {{ total_fee_remote }}</div>
+                            </div>
+                        </template>
+                        <template v-if='is_proposal_type_renewal'>
+                            <div><strong>Renewal</strong></div>
+                            <div>
+                                <div>Previously paid sites 'South West' region: {{ num_of_sites_remain_south_west_renewal }} (${{ fee_south_west_renewal }})</div>
+                                <div>Total fee: {{ total_fee_south_west_renewal }}</div>
+                            </div>
+                            <div>
+                                <div>Previously paid sites 'Remote' region: {{ num_of_sites_remain_remote_renewal }} (${{ fee_remote_renewal }})</div>
+                                <div>Total fee: {{ total_fee_remote_renewal }}</div>
+                            </div>
+                        </template>
                     </div>
                 </div>
             </div>
@@ -170,12 +188,34 @@
                 deed_poll_url: '',
                 buffer_radius: 3000, // [m]
 
+                min_num_of_sites_for_renewal: 5,
+                min_num_of_sites_for_new: 5,
+
                 // Popup
                 popup_id: uuid(),
                 //popup_closer_id: uuid(),
                 popup_content_id: uuid(),
                 content_element: null,
                 overlay: null,
+
+                // Remainders base
+                num_of_sites_remain_south_west_base: 0,
+                num_of_sites_remain_south_west_renewal_base: 0,
+                num_of_sites_remain_remote_base: 0,
+                num_of_sites_remain_remote_renewal_base: 0,
+
+                // Sites on the map
+                num_of_sites_south_west_applied: 0,
+                num_of_sites_south_west_renewal_applied: 0,
+                num_of_sites_remote_applied: 0,
+                num_of_sites_remote_renewal_applied: 0,
+
+                // Fee
+                fee_south_west: 0,
+                fee_remote: 0,
+                fee_south_west_renewal: 0,
+                fee_remote_renewal: 0,
+
 
                 // variables for the GIS
                 map: null,
@@ -194,6 +234,7 @@
                     'Id',
                     'Latitude',
                     'Longitude',
+                    'Category',
                     'Action',
                 ],
                 dtOptions: {
@@ -233,6 +274,13 @@
                         },
                         {
                             mRender: function (data, type, feature) {
+                                let cat = feature.get('site_category')
+                                cat = cat.replace('_', ' ')
+                                return cat.replace(/\w\S*/g, function(txt){return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();});
+                            }
+                        },
+                        {
+                            mRender: function (data, type, feature) {
                                 let action_list = []
                                 let ret_str_delete = '<span class="delete_button action_link" data-site-location-guid="' + feature.getId() + '">Delete</span>'
                                 let ret_str_view = '<span class="view_on_map action_link" data-apiary-site-id="' + feature.getId() + '"/>View on map</span>';
@@ -256,12 +304,170 @@
             datatable,
         },
         computed:{
+            is_proposal_type_new: function(){
+                if (this.proposal_type_name === 'new'){
+                    return true
+                }
+                return false
+            },
+            is_proposal_type_renewal: function(){
+                if (this.proposal_type_name === 'renewal'){
+                    return true
+                }
+                return false
+            },
+            proposal_type_name: function() {
+                if (this.proposal.application_type === 'Apiary'){
+                    if (this.proposal.proposal_type.toLowerCase() === 'renewal'){
+                        return 'renewal'
+                    } else {
+                        return 'new'
+                    }
+                } else {
+                    return '---'
+                }
+            },
             readonly: function() {
                 let readonlyStatus = true;
                 if (this.proposal.customer_status === 'Draft' && !this.is_internal) {
                     readonlyStatus = false;
                 }
                 return readonlyStatus;
+            },
+
+            
+            // 1. South West
+            // 1.1 New
+            num_of_sites_remain_south_west: function(){
+                // Number of sites paid left
+                let value = this.num_of_sites_remain_south_west_base - this.num_of_sites_south_west_applied
+                value = value >= 0 ? value : 0
+                this.$emit('num_of_sites_remain_south_west', value)
+                return value
+            },
+            num_of_sites_south_west_after_deduction: function(){
+                let value = this.num_of_sites_south_west_applied - this.num_of_sites_remain_south_west_base
+                return value >= 0 ? value : 0
+            },
+            quotient_south_west: function(){
+                return Math.floor(this.num_of_sites_south_west_after_deduction / this.min_num_of_sites_for_new)
+            },
+            remainder_south_west: function(){
+                return this.num_of_sites_south_west_after_deduction % this.min_num_of_sites_for_new
+            },
+            num_of_sites_south_west_calculate: function(){
+                let ret_value = this.quotient_south_west * this.min_num_of_sites_for_new
+                if (this.remainder_south_west){
+                    ret_value =  ret_value + this.min_num_of_sites_for_new
+                }
+                return ret_value
+            },
+            num_of_sites_south_west_to_add_as_remainder: function(){
+                return this.num_of_sites_south_west_calculate - this.num_of_sites_south_west_after_deduction
+            },
+            total_fee_south_west: function() {
+                let total_fee = this.num_of_sites_south_west_calculate * this.fee_south_west
+                this.$emit('total_fee_south_west', total_fee)
+                return total_fee
+            },
+            // 1.2 Renewal
+            num_of_sites_remain_south_west_renewal: function(){
+                // Number of sites paid left
+                let value = this.num_of_sites_remain_south_west_renewal_base - this.num_of_sites_south_west_renewal_applied
+                value = value >= 0 ? value : 0
+                this.$emit('num_of_sites_remain_south_west_renewal', value)
+                return value
+            },
+            num_of_sites_south_west_renewal_after_deduction: function(){
+                let value = this.num_of_sites_south_west_renewal_applied - this.num_of_sites_remain_south_west_renewal_base
+                return value >= 0 ? value : 0
+            },
+            quotient_south_west_renewal: function(){
+                return Math.floor(this.num_of_sites_south_west_renewal_after_deduction / this.min_num_of_sites_for_renewal)
+            },
+            remainder_south_west_renewal: function(){
+                return this.num_of_sites_south_west_renewal_after_deduction % this.min_num_of_sites_for_renewal
+            },
+            num_of_sites_south_west_renewal_calculate: function(){
+                let ret_value = this.quotient_south_west_renewal * this.min_num_of_sites_for_renewal
+                if (this.remainder_south_west_renewal){
+                    ret_value =  ret_value + this.min_num_of_sites_for_renewal
+                }
+                return ret_value
+            },
+            num_of_sites_south_west_renewal_to_add_as_remainder: function(){
+                return this.num_of_sites_south_west_renewal_calculate - this.num_of_sites_south_west_renewal_after_deduction
+            },
+            total_fee_south_west_renewal: function() {
+                let total_fee = this.num_of_sites_south_west_renewal_calculate * this.fee_south_west_renewal
+                this.$emit('total_fee_south_west_renewal', total_fee)
+                return total_fee
+            },
+
+            // 2. Remote
+            // 2.1 New
+            num_of_sites_remain_remote: function(){
+                let value = this.num_of_sites_remain_remote_base - this.num_of_sites_remote_applied
+                value = value >= 0 ? value : 0
+                this.$emit('num_of_sites_remain_remote', value)
+                return value
+            },
+            num_of_sites_remote_after_deduction: function(){
+                let value = this.num_of_sites_remote_applied - this.num_of_sites_remain_remote_base
+                return value >= 0 ? value : 0
+            },
+            quotient_remote: function(){
+                return Math.floor(this.num_of_sites_remote_after_deduction / this.min_num_of_sites_for_new)
+            },
+            remainder_remote: function(){
+                return this.num_of_sites_remote_after_deduction % this.min_num_of_sites_for_new
+            },
+            num_of_sites_remote_calculate: function(){
+                let ret_value = this.quotient_remote * this.min_num_of_sites_for_new
+                if (this.remainder_remote){
+                    ret_value =  ret_value + this.min_num_of_sites_for_new
+                }
+                return ret_value
+            },
+            num_of_sites_remote_to_add_as_remainder: function(){
+                return this.num_of_sites_remote_calculate - this.num_of_sites_remote_after_deduction
+            },
+            total_fee_remote: function() {
+                let total_fee = this.num_of_sites_remote_calculate * this.fee_remote
+                this.$emit('total_fee_remote', total_fee)
+                return total_fee
+            },
+            // 2.2 Renewal
+            num_of_sites_remain_remote_renewal: function(){
+                let value = this.num_of_sites_remain_remote_renewal_base - this.num_of_sites_remote_renewal_applied
+                value = value >= 0 ? value : 0
+                this.$emit('num_of_sites_remain_remote_renewal', value)
+                return value
+            },
+            num_of_sites_remote_renewal_after_deduction: function(){
+                let value = this.num_of_sites_remote_renewal_applied - this.num_of_sites_remain_remote_renewal_base
+                return value >= 0 ? value : 0
+            },
+            quotient_remote_renewal: function(){
+                return Math.floor(this.num_of_sites_remote_renewal_after_deduction / this.min_num_of_sites_for_renewal)
+            },
+            remainder_remote_renewal: function(){
+                return this.num_of_sites_remote_renewal_after_deduction % this.min_num_of_sites_for_renewal
+            },
+            num_of_sites_remote_renewal_calculate: function(){
+                let ret_value = this.quotient_remote_renewal * this.min_num_of_sites_for_renewal
+                if (this.remainder_remote_renewal){
+                    ret_value =  ret_value + this.min_num_of_sites_for_renewal
+                }
+                return ret_value
+            },
+            num_of_sites_remote_renewal_to_add_as_remainder: function(){
+                return this.num_of_sites_remote_renewal_calculate - this.num_of_sites_remote_renewal_after_deduction
+            },
+            total_fee_remote_renewal: function() {
+                let total_fee = this.num_of_sites_remote_renewal_calculate * this.fee_remote_renewal
+                this.$emit('total_fee_remote_renewal', total_fee)
+                return total_fee
             },
         },
         watch:{
@@ -275,6 +481,16 @@
             }
         },
         methods:{
+            is_feature_new_or_existing: function(feature){
+                let status = feature.get('status')
+                if (!status || status === 'draft'){
+                    // status is null when new apiary site is added but not saved yet
+                    return 'new'
+                } else {
+                    // status should have the status other than 'draft' status
+                    return 'existing'
+                }
+            },
             showPopup: function(feature){
                 console.log('** showPopup **')
                 let geometry = feature.getGeometry();
@@ -387,40 +603,76 @@
             existingSiteAvailableClicked: function() {
                 alert("TODO: open screen 45: External - Contact Holder of Available Site in a different tab page.");
             },
-            calculateRemainders: function(features){
+            make_remainders_reactive: function(){
                 let remainders = null;
-                if (this.proposal.application_type === 'Apiary' && this.proposal.proposal_type === 'renewal') {
-                    remainders = this.proposal.proposal_apiary.renewal_site_remainders;
-                } else {
+                if (this.proposal.application_type === 'Apiary') {
                     remainders = this.proposal.proposal_apiary.site_remainders;
                 }
-                let num_remain_south_west = 0
-                let num_remain_remote = 0
 
                 for (let i=0; i<remainders.length; i++){
                     if (remainders[i].category_name == 'South West'){
-                        num_remain_south_west = remainders[i].remainders
+                        this.num_of_sites_remain_south_west_base = remainders[i].remainders
+                        this.num_of_sites_remain_south_west_renewal_base = remainders[i].remainders_renewal
+                        this.fee_south_west = remainders[i].fee
+                        this.fee_south_west_renewal = remainders[i].fee_renewal
                     } else if (remainders[i].category_name == 'Remote'){
-                        num_remain_remote = remainders[i].remainders
+                        this.num_of_sites_remain_remote_base = remainders[i].remainders
+                        this.num_of_sites_remain_remote_renewal_base = remainders[i].remainders_renewal
+                        this.fee_remote = remainders[i].fee
+                        this.fee_remote_renewal = remainders[i].fee_renewal
                     } else {
                         console.log('should not reach here')
                     }
                 }
 
+
+            },
+            calculateRemainders: function(features){
+                console.log('in calculateRemainders')
+                console.log(features)
+
+                let remainders = null;
+                if (this.proposal.application_type === 'Apiary') {
+                    remainders = this.proposal.proposal_apiary.site_remainders;
+                }
+                //if (this.proposal.application_type === 'Apiary' && this.proposal.proposal_type === 'renewal') {
+                //    remainders = this.proposal.proposal_apiary.renewal_site_remainders;
+                //} else {
+                //    remainders = this.proposal.proposal_apiary.site_remainders;
+                //}
+                //let num_remain_south_west = 0
+                //let num_remain_remote = 0
+                //let num_remain_south_west_renewal = 0
+                //let num_remain_remote_renewal = 0
+
+                //for (let i=0; i<remainders.length; i++){
+                //    if (remainders[i].category_name == 'South West'){
+                //        num_remain_south_west = remainders[i].remainders
+                //        num_remain_south_west_renewal = remainders[i].remainders_renewal
+                //    } else if (remainders[i].category_name == 'Remote'){
+                //        num_remain_remote = remainders[i].remainders
+                //        num_remain_remote_renewal = remainders[i].remainders_renewal
+                //    } else {
+                //        console.log('should not reach here')
+                //    }
+                //}
+                this.num_of_sites_south_west_applied = 0
+                this.num_of_sites_remote_applied = 0
+                this.num_of_sites_south_west_renewal_applied = 0
+                this.num_of_sites_remote_renewal_applied = 0
+
                 for (let i=0; i<features.length; i++){
                     console.log(features[i].get('site_category'))
                     if (features[i].get('site_category') == 'south_west'){
-                        num_remain_south_west = num_remain_south_west - 1
+                        this.num_of_sites_south_west_applied += 1
                     } else if (features[i].get('site_category') == 'remote'){
-                        num_remain_remote = num_remain_remote - 1
+                        this.num_of_sites_remote_applied += 1
                     }
                 }
-                console.log(num_remain_south_west)
-                console.log(num_remain_remote)
 
                 let button_text = 'Pay and submit'
                 // TODO: improve this logic
-                if (num_remain_south_west >= 0 && num_remain_remote >=0 && !this.proposal.proposal_type === 'renewal'){
+                if (this.num_of_sites_remain_south_west >= 0 && this.num_of_sites_remain_remote >=0 && !this.proposal.proposal_type === 'renewal'){
                     button_text = 'Submit'
                 }
 
@@ -459,8 +711,29 @@
                 this.zoomToApiarySiteById(apiary_site_id)
             },
             removeSiteLocation: function(e){
+                console.log('in removeSiteLocation')
+
                 let site_location_guid = e.target.getAttribute("data-site-location-guid");
                 let myFeature = this.drawingLayerSource.getFeatureById(site_location_guid)
+                let site_category = myFeature.get('site_category')
+
+                console.log(myFeature)
+                console.log('site: ' + this.is_feature_new_or_existing(myFeature))
+
+                if (this.is_proposal_type_new){
+                    if (site_category === 'south_west'){
+                        this.num_of_sites_south_west_applied -= 1
+                    } else {
+                        this.num_of_sites_remote_applied -= 1
+                    }
+                }
+                if (this.is_proposal_type_renewal){
+                    if (site_category === 'south_west'){
+                        this.num_of_sites_south_west_renewal_applied -= 1
+                    } else {
+                        this.num_of_sites_remote_renewal_applied -= 1
+                    }
+                }
 
                 let myFeatureStatus = myFeature.get('status')
                 if (myFeatureStatus && myFeatureStatus != 'draft'){
@@ -816,6 +1089,7 @@
 
                 }
             )
+            this.make_remainders_reactive()
         },
         mounted: function() {
             let vm = this;
