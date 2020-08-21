@@ -53,7 +53,7 @@
             </div>
         </div>
 
-        <template v-if="proposal && proposal.proposal_apiary">
+        <template v-if="display_debug_info && proposal && proposal.proposal_apiary">
             <div class="row debug-info">
                 <div class="col-sm-12">
                     <div>
@@ -178,6 +178,7 @@
         data:function () {
             let vm=this;
             return{
+                display_debug_info: false,
                 current_category: 'south_west',
                 q: null,
                 values:null,
