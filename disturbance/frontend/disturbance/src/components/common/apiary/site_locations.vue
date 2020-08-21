@@ -56,10 +56,40 @@
         <template v-if="proposal && proposal.proposal_apiary">
             <div class="row debug-info">
                 <div class="col-sm-12">
+                    <div><strong>This is {{ proposal_type_name }} application</strong></div>
                     Remainders:
                     <div v-for="remainder in proposal.proposal_apiary.site_remainders" class="debug-remainders">
                         <div>
-                            {{ remainder.category_name }}: {{ remainder.remainders }} left (${{ remainder.fee }}/site)
+                            <div>{{ remainder.category_name }}:</div>
+                            <div>New: {{ remainder.remainders }} left (${{ remainder.fee }}/site)</div>
+                            <div>Renewal: {{ remainder.remainders_renewal }} left (${{ remainder.fee_renewal }}/site)</div>
+                        </div>
+                    </div>
+                    Remainders(reactive)
+                    <div>
+                        <div><strong>New</strong></div>
+                        <div>
+                            <div>Previously paid sites 'South West' region: {{ num_of_sites_remain_south_west_base }} (${{ fee_south_west }})</div>
+                            <div>Num of sites still remain: {{ num_of_sites_remain_south_west }}</div>
+                            <div>Num of sites which cost: {{ num_of_sites_south_west_after_deduction }}</div>
+                            <div>Quotient by 5: {{ quotient_south_west }}</div>
+                            <div>Remainder by 5: {{ remainder_south_west }}</div>
+                            <div>Num of sites to calculate total cost: {{ num_of_sites_south_west_calculate }}</div>
+                            <div>Num of sites to add as remainders: {{ num_of_sites_south_west_to_add_as_remainder }}</div>
+                            <div>Total fee: {{ total_fee_south_west }}</div>
+                        </div>
+                        <div>
+                            <div>Previously paid sites 'Remote' region: {{ num_of_sites_remain_remote_base }} (${{ fee_remote }})</div>
+                            <div>Remainder: {{ num_of_sites_remain_remote }}</div>
+                        </div>
+                        <div><strong>Renewal</strong></div>
+                        <div>
+                            <div>Previously paid sites 'South West' region: {{ num_of_sites_remain_south_west_renewal_base }} (${{ fee_south_west_renewal }})</div>
+                            <div>Remainder: {{ num_of_sites_remain_south_west_renewal }}</div>
+                        </div>
+                        <div>
+                            <div>Previously paid sites 'Remote' region: {{ num_of_sites_remain_remote_renewal_base }} (${{ fee_remote_renewal }})</div>
+                            <div>Remainder: {{ num_of_sites_remain_remote_renewal }}</div>
                         </div>
                     </div>
                 </div>
@@ -170,12 +200,34 @@
                 deed_poll_url: '',
                 buffer_radius: 3000, // [m]
 
+                min_num_of_sites_for_renew: 5,
+                min_num_of_sites_for_new: 5,
+
                 // Popup
                 popup_id: uuid(),
                 //popup_closer_id: uuid(),
                 popup_content_id: uuid(),
                 content_element: null,
                 overlay: null,
+
+                // Remainders base
+                num_of_sites_remain_south_west_base: 0,
+                num_of_sites_remain_south_west_renewal_base: 0,
+                num_of_sites_remain_remote_base: 0,
+                num_of_sites_remain_remote_renewal_base: 0,
+
+                // Sites on the map
+                num_of_sites_south_west_applied: 0,
+                num_of_sites_south_west_renewal_applied: 0,
+                num_of_sites_remote_applied: 0,
+                num_of_sites_remote_renewal_applied: 0,
+
+                // Fee
+                fee_south_west: 0,
+                fee_remote: 0,
+                fee_south_west_renewal: 0,
+                fee_remote_renewal: 0,
+
 
                 // variables for the GIS
                 map: null,
@@ -256,12 +308,67 @@
             datatable,
         },
         computed:{
+            proposal_type_name: function() {
+                if (this.proposal.application_type === 'Apiary'){
+                    if (this.proposal.proposal_type.toLowerCase() === 'renewal'){
+                        return 'renewal'
+                    } else {
+                        return 'new'
+                    }
+                } else {
+                    return '---'
+                }
+            },
             readonly: function() {
                 let readonlyStatus = true;
                 if (this.proposal.customer_status === 'Draft' && !this.is_internal) {
                     readonlyStatus = false;
                 }
                 return readonlyStatus;
+            },
+
+            // South West (New)
+            num_of_sites_remain_south_west: function(){
+                let value = this.num_of_sites_remain_south_west_base - this.num_of_sites_south_west_applied
+                return value >= 0 ? value : 0
+            },
+            num_of_sites_south_west_after_deduction: function(){
+                let value = this.num_of_sites_south_west_applied - this.num_of_sites_remain_south_west_base
+                return value >= 0 ? value : 0
+            },
+            quotient_south_west: function(){
+                return Math.floor(this.num_of_sites_south_west_after_deduction / this.min_num_of_sites_for_new)
+            },
+            remainder_south_west: function(){
+                return this.num_of_sites_south_west_after_deduction % this.min_num_of_sites_for_new
+            },
+            num_of_sites_south_west_calculate: function(){
+                let ret_value = this.quotient_south_west * this.min_num_of_sites_for_new
+                if (this.remainder_south_west){
+                    ret_value =  ret_value + this.min_num_of_sites_for_new
+                }
+                return ret_value
+            },
+            num_of_sites_south_west_to_add_as_remainder: function(){
+                return this.num_of_sites_south_west_calculate - this.num_of_sites_south_west_after_deduction
+            },
+            total_fee_south_west: function() {
+                return this.num_of_sites_south_west_calculate * this.fee_south_west
+            },
+
+            // South West (Renewal)
+            num_of_sites_remain_south_west_renewal: function(){
+                return this.num_of_sites_remain_south_west_renewal_base - this.num_of_sites_south_west_renewal_applied
+            },
+
+            // Remote (New)
+            num_of_sites_remain_remote: function(){
+                return this.num_of_sites_remain_remote_base - this.num_of_sites_remote_applied
+            },
+
+            // Remote (Renewal)
+            num_of_sites_remain_remote_renewal: function(){
+                return this.num_of_sites_remain_remote_renewal_base - this.num_of_sites_remote_renewal_applied
             },
         },
         watch:{
@@ -387,40 +494,76 @@
             existingSiteAvailableClicked: function() {
                 alert("TODO: open screen 45: External - Contact Holder of Available Site in a different tab page.");
             },
-            calculateRemainders: function(features){
+            make_remainders_reactive: function(){
                 let remainders = null;
-                if (this.proposal.application_type === 'Apiary' && this.proposal.proposal_type === 'renewal') {
-                    remainders = this.proposal.proposal_apiary.renewal_site_remainders;
-                } else {
+                if (this.proposal.application_type === 'Apiary') {
                     remainders = this.proposal.proposal_apiary.site_remainders;
                 }
-                let num_remain_south_west = 0
-                let num_remain_remote = 0
 
                 for (let i=0; i<remainders.length; i++){
                     if (remainders[i].category_name == 'South West'){
-                        num_remain_south_west = remainders[i].remainders
+                        this.num_of_sites_remain_south_west_base = remainders[i].remainders
+                        this.num_of_sites_remain_south_west_renewal_base = remainders[i].remainders_renewal
+                        this.fee_south_west = remainders[i].fee
+                        this.fee_south_west_renewal = remainders[i].fee_renewal
                     } else if (remainders[i].category_name == 'Remote'){
-                        num_remain_remote = remainders[i].remainders
+                        this.num_of_sites_remain_remote_base = remainders[i].remainders
+                        this.num_of_sites_remain_remote_renewal_base = remainders[i].remainders_renewal
+                        this.fee_remote = remainders[i].fee
+                        this.fee_remote_renewal = remainders[i].fee_renewal
                     } else {
                         console.log('should not reach here')
                     }
                 }
 
+
+            },
+            calculateRemainders: function(features){
+                console.log('in calculateRemainders')
+                console.log(features)
+
+                let remainders = null;
+                if (this.proposal.application_type === 'Apiary') {
+                    remainders = this.proposal.proposal_apiary.site_remainders;
+                }
+                //if (this.proposal.application_type === 'Apiary' && this.proposal.proposal_type === 'renewal') {
+                //    remainders = this.proposal.proposal_apiary.renewal_site_remainders;
+                //} else {
+                //    remainders = this.proposal.proposal_apiary.site_remainders;
+                //}
+                //let num_remain_south_west = 0
+                //let num_remain_remote = 0
+                //let num_remain_south_west_renewal = 0
+                //let num_remain_remote_renewal = 0
+
+                //for (let i=0; i<remainders.length; i++){
+                //    if (remainders[i].category_name == 'South West'){
+                //        num_remain_south_west = remainders[i].remainders
+                //        num_remain_south_west_renewal = remainders[i].remainders_renewal
+                //    } else if (remainders[i].category_name == 'Remote'){
+                //        num_remain_remote = remainders[i].remainders
+                //        num_remain_remote_renewal = remainders[i].remainders_renewal
+                //    } else {
+                //        console.log('should not reach here')
+                //    }
+                //}
+                this.num_of_sites_south_west_applied = 0
+                this.num_of_sites_remote_applied = 0
+                this.num_of_sites_south_west_renewal_applied = 0
+                this.num_of_sites_remote_renewal_applied = 0
+
                 for (let i=0; i<features.length; i++){
                     console.log(features[i].get('site_category'))
                     if (features[i].get('site_category') == 'south_west'){
-                        num_remain_south_west = num_remain_south_west - 1
+                        this.num_of_sites_south_west_applied += 1
                     } else if (features[i].get('site_category') == 'remote'){
-                        num_remain_remote = num_remain_remote - 1
+                        this.num_of_sites_remote_applied += 1
                     }
                 }
-                console.log(num_remain_south_west)
-                console.log(num_remain_remote)
 
                 let button_text = 'Pay and submit'
                 // TODO: improve this logic
-                if (num_remain_south_west >= 0 && num_remain_remote >=0 && !this.proposal.proposal_type === 'renewal'){
+                if (this.num_of_sites_remain_south_west >= 0 && this.num_of_sites_remain_remote >=0 && !this.proposal.proposal_type === 'renewal'){
                     button_text = 'Submit'
                 }
 
@@ -459,8 +602,12 @@
                 this.zoomToApiarySiteById(apiary_site_id)
             },
             removeSiteLocation: function(e){
+                console.log('in removeSiteLocation')
+
                 let site_location_guid = e.target.getAttribute("data-site-location-guid");
                 let myFeature = this.drawingLayerSource.getFeatureById(site_location_guid)
+
+                console.log(myFeature)
 
                 let myFeatureStatus = myFeature.get('status')
                 if (myFeatureStatus && myFeatureStatus != 'draft'){
@@ -816,6 +963,7 @@
 
                 }
             )
+            this.make_remainders_reactive()
         },
         mounted: function() {
             let vm = this;
