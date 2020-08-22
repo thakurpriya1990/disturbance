@@ -187,14 +187,14 @@ export default {
             submit_button_text: 'Submit',
 
             // Fee
-            total_fee_south_west: null,
-            total_fee_remote: null,
-            total_fee_south_west_renewal: null,
-            total_fee_remote_renewal: null,
-            num_of_sites_remain_south_west: null,
-            num_of_sites_remain_remote: null,
-            num_of_sites_remain_south_west_renewal: null,
-            num_of_sites_remain_remote_renewal: null,
+            total_fee_south_west: 0,
+            total_fee_remote: 0,
+            total_fee_south_west_renewal: 0,
+            total_fee_remote_renewal: 0,
+            num_of_sites_remain_south_west: 0,
+            num_of_sites_remain_remote: 0,
+            num_of_sites_remain_south_west_renewal: 0,
+            num_of_sites_remain_remote_renewal: 0,
         }
     },
     components: {
