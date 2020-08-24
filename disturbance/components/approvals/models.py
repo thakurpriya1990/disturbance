@@ -59,7 +59,7 @@ class RenewalDocument(Document):
 
     def delete(self):
         if self.can_delete:
-            return super(ApprovalDocument, self).delete()
+            return super(RenewalDocument, self).delete()
         logger.info('Cannot delete existing document object after Proposal has been submitted (including document submitted before Proposal pushback to status Draft): {}'.format(self.name))
 
     class Meta:
