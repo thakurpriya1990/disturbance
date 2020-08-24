@@ -105,18 +105,20 @@
 
                             <input id="save_and_continue_btn" type="hidden" @click.prevent="save_wo_confirm" class="btn btn-primary" value="Save Without Confirmation"/>
                             -->
-                            <div class="col-sm-5 text-right">
+                            <div class="col-sm-3 text-right">
                                 <div>New</div>
                                 <div>Previously paid sites south west region: {{ num_of_sites_remain_south_west }}</div>
                                 <div>Previously paid sites remote region: {{ num_of_sites_remain_remote }}</div>
-                                <template v-if="is_proposal_type_renewal">
+                            </div>
+                            <template v-if="is_proposal_type_renewal">
+                                <div class="col-sm-3 text-right">
                                     <div>Renewal</div>
                                     <div>Previously paid sites south west region: {{ num_of_sites_remain_south_west_renewal }}</div>
                                     <div>Previously paid sites remote region: {{ num_of_sites_remain_remote_renewal }}</div>
-                                </template>
-                            </div>
+                                </div>
+                            </template>
 
-                            <div class="col-sm-2 text-right">
+                            <div class="col-sm-1 text-right">
                                 Application fee: ${{ sum_of_total_fees }}
                             </div>
                             <div class="col-sm-5 text-right">
