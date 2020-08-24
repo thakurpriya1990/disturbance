@@ -477,13 +477,11 @@ def create_approval_pdf_bytes(approval, proposal, copied_to_permit, user):
 
 
 def create_renewal_doc(approval,proposal):
+    #import ipdb; ipdb.set_trace()
     renewal_buffer = BytesIO()
 
     _create_renewal(renewal_buffer, approval, proposal)
-    if proposal.apiary_group_application_type:
-        filename = 'renewal-{}-{}.pdf'.format(approval.lodgement_number, proposal.lodgement_number)
-    else:
-        filename = 'renewal-{}.pdf'.format(approval.lodgement_number)
+    filename = 'renewal-{}.pdf'.format(approval.lodgement_number)
     #filename = 'renewal-{}.pdf'.format(approval.id)
     from disturbance.components.approvals.models import ApprovalDocument
     document = ApprovalDocument.objects.create(approval=approval,name=filename)
@@ -493,6 +491,20 @@ def create_renewal_doc(approval,proposal):
 
     return document
 
+def create_apiary_renewal_doc(approval,proposal):
+    #import ipdb; ipdb.set_trace()
+    renewal_buffer = BytesIO()
+
+    _create_renewal(renewal_buffer, approval, proposal)
+    filename = 'renewal-{}-{}.pdf'.format(approval.lodgement_number, proposal.lodgement_number)
+    #filename = 'renewal-{}.pdf'.format(approval.id)
+    from disturbance.components.approvals.models import RenewalDocument
+    document = RenewalDocument.objects.create(approval=approval,name=filename)
+    document._file.save(filename, File(renewal_buffer), save=True)
+
+    renewal_buffer.close()
+
+    return document
 
 def _create_renewal(renewal_buffer, approval, proposal):
     site_url = settings.SITE_URL
