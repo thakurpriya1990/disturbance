@@ -57,17 +57,15 @@
             <div class="row debug-info">
                 <div class="col-sm-12">
                     <div>
-                        <template v-if='is_proposal_type_new'>
-                            <div><strong>New</strong></div>
-                            <div>
-                                <div>Previously paid sites 'South West' region: {{ num_of_sites_remain_south_west }} (${{ fee_south_west }})</div>
-                                <div>Total fee: {{ total_fee_south_west }}</div>
-                            </div>
-                            <div>
-                                <div>Previously paid sites 'Remote' region: {{ num_of_sites_remain_remote }} (${{ fee_remote }})</div>
-                                <div>Total fee: {{ total_fee_remote }}</div>
-                            </div>
-                        </template>
+                        <div><strong>New</strong></div>
+                        <div>
+                            <div>Previously paid sites 'South West' region: {{ num_of_sites_remain_south_west }} (${{ fee_south_west }})</div>
+                            <div>Total fee: {{ total_fee_south_west }}</div>
+                        </div>
+                        <div>
+                            <div>Previously paid sites 'Remote' region: {{ num_of_sites_remain_remote }} (${{ fee_remote }})</div>
+                            <div>Total fee: {{ total_fee_remote }}</div>
+                        </div>
                         <template v-if='is_proposal_type_renewal'>
                             <div><strong>Renewal</strong></div>
                             <div>
@@ -178,7 +176,6 @@
         data:function () {
             let vm=this;
             return{
-                display_debug_info: false,
                 current_category: 'south_west',
                 q: null,
                 values:null,
@@ -304,6 +301,12 @@
             datatable,
         },
         computed:{
+            display_debug_info: function(){
+                if (location.host === 'localhost:8071'){
+                    return true
+                }
+                return false
+            },
             is_proposal_type_new: function(){
                 if (this.proposal_type_name === 'new'){
                     return true
@@ -744,14 +747,15 @@
                 console.log(myFeature)
                 console.log('site: ' + this.is_feature_new_or_existing(myFeature))
 
-                if (this.is_proposal_type_new){
+                let new_or_existing = this.is_feature_new_or_existing(myFeature)
+                if (new_or_existing === 'new'){
                     if (site_category === 'south_west'){
                         this.num_of_sites_south_west_applied -= 1
                     } else {
                         this.num_of_sites_remote_applied -= 1
                     }
-                }
-                if (this.is_proposal_type_renewal){
+                } 
+                if (new_or_existing === 'existing'){
                     if (site_category === 'south_west'){
                         this.num_of_sites_south_west_renewal_applied -= 1
                     } else {

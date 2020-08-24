@@ -105,31 +105,15 @@
 
                             <input id="save_and_continue_btn" type="hidden" @click.prevent="save_wo_confirm" class="btn btn-primary" value="Save Without Confirmation"/>
                             -->
-<!--
-                            <template v-if="is_proposal_type_new">
-                                <div class="col-sm-5 text-right">
-                                    <div>New</div>
-                                    <div>Previously paid sites south west region: {{ num_of_sites_remain_south_west }}</div>
-                                    <div>Previously paid sites remote region: {{ num_of_sites_remain_remote }}</div>
-                                </div>
-                            </template>
-                            <template v-if="is_proposal_type_renewal">
-                                <div class="col-sm-5 text-right">
-                                    <div>Renewal</div>
-                                    <div>Previously paid sites south west region: {{ num_of_sites_remain_south_west_renewal }}</div>
-                                    <div>Previously paid sites remote region: {{ num_of_sites_remain_remote_renewal }}</div>
-                                </div>
-                            </template>
--->
                             <div class="col-sm-5 text-right">
                                 <div>New</div>
                                 <div>Previously paid sites south west region: {{ num_of_sites_remain_south_west }}</div>
                                 <div>Previously paid sites remote region: {{ num_of_sites_remain_remote }}</div>
-                            </div>
-                            <div class="col-sm-5 text-right">
-                                <div>Renewal</div>
-                                <div>Previously paid sites south west region: {{ num_of_sites_remain_south_west_renewal }}</div>
-                                <div>Previously paid sites remote region: {{ num_of_sites_remain_remote_renewal }}</div>
+                                <template v-if="is_proposal_type_renewal">
+                                    <div>Renewal</div>
+                                    <div>Previously paid sites south west region: {{ num_of_sites_remain_south_west_renewal }}</div>
+                                    <div>Previously paid sites remote region: {{ num_of_sites_remain_remote_renewal }}</div>
+                                </template>
                             </div>
 
                             <div class="col-sm-2 text-right">
