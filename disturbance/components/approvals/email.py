@@ -300,6 +300,7 @@ def send_approval_surrender_email_notification(approval, future_surrender=False)
 
 #approval renewal notice
 def send_approval_renewal_email_notification(approval):
+    #import ipdb; ipdb.set_trace()
     email = ApprovalRenewalNotificationEmail()
     proposal = approval.current_proposal
 
@@ -325,10 +326,15 @@ def send_approval_renewal_email_notification(approval):
         EmailUser.objects.create(email=sender, password='')
         sender_user = EmailUser.objects.get(email__icontains=sender)
     #attach renewal notice
-    renewal_document= approval.renewal_document._file
-    if renewal_document is not None:
+    #renewal_document= approval.renewal_document._file
+    if approval.apiary_renewal_document is not None:
+        file_name = approval.apiary_renewal_document.name
+        attachment = (file_name, approval.apiary_renewal_document._file.file.read(), 'application/pdf')
+        attachment = [attachment]
+    #renewal_document= approval.renewal_document._file
+    elif approval.renewal_document is not None:
         file_name = approval.renewal_document.name
-        attachment = (file_name, renewal_document.file.read(), 'application/pdf')
+        attachment = (file_name, approval.renewal_document._file.file.read(), 'application/pdf')
         attachment = [attachment]
     else:
         attachment = []   
