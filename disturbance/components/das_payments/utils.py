@@ -186,6 +186,16 @@ def _get_site_fee_remainders(site_category, apiary_site_fee_type_name, applicant
 def _sum_apiary_sites_per_category(apiary_sites):
     summary = {}
     sum = []
+    temp = {
+            SiteCategory.CATEGORY_SOUTH_WEST: {
+                ApiarySiteFeeType.FEE_TYPE_APPLICATION: [],
+                ApiarySiteFeeType.FEE_TYPE_RENEWAL: [],
+            },
+            SiteCategory.CATEGORY_REMOTE: {
+                ApiarySiteFeeType.FEE_TYPE_APPLICATION: [],
+                ApiarySiteFeeType.FEE_TYPE_RENEWAL: [],
+            },
+        }
 
     for apiary_site in apiary_sites:
         if apiary_site.site_category.id in summary:
@@ -194,7 +204,13 @@ def _sum_apiary_sites_per_category(apiary_sites):
             summary[apiary_site.site_category.id] = 1
         sum.append({'id': apiary_site.id})
 
-    return summary, sum
+        mySite = ApiarySite.objects.get(id=apiary_site.id)
+        if mySite.status in ApiarySite.RENEWABLE_STATUS:
+            temp[mySite.site_category.name][ApiarySiteFeeType.FEE_TYPE_RENEWAL].append(mySite)
+        else:
+            temp[mySite.site_category.name][ApiarySiteFeeType.FEE_TYPE_APPLICATION].append(mySite)
+
+    return summary, sum, temp
 
 
 def _get_remainders_obj(number_of_sites_to_add_as_remainder, site_category_id, proposal, apiary_site_fee_type_name):
@@ -225,48 +241,61 @@ def create_fee_lines_apiary_renewal(proposal):
     db_process_after_success = {'apiary_sites': [], 'site_remainder_used': [], 'site_remainder_to_be_added': []}
 
     # Calculate total number of sites applied per category
-    summary, db_process_after_success['apiary_sites'] = _sum_apiary_sites_per_category(proposal.proposal_apiary.apiary_sites.all())
+    summary, db_process_after_success['apiary_sites'], temp = _sum_apiary_sites_per_category(proposal.proposal_apiary.apiary_sites.all())
 
     # Calculate number of sites to calculate the fee
-    for site_category_id, number_of_sites_applied in summary.items():
-        site_category = SiteCategory.objects.get(id=site_category_id)
+    # for site_category_id, number_of_sites_applied in summary.items():
+    for site_category_name, data_in_category in temp.items():
+        site_category = SiteCategory.objects.get(name=site_category_name)
 
-        site_fee_remainders = _get_site_fee_remainders(site_category, ApiarySiteFeeType.FEE_TYPE_RENEWAL, proposal.applicant, proposal.proxy_applicant)
+        for new_or_renewal, apiary_sites in data_in_category.items():
+            if not len(apiary_sites) > 0:
+                # No apiary sites for this 'site_cateogyr' and 'new_or_renewal'
+                continue
 
-        # Calculate deduction and set date_used field
-        number_of_sites_after_deduction = number_of_sites_applied
-        for site_left in site_fee_remainders:
-            if number_of_sites_after_deduction == 0:
-                break
-            number_of_sites_after_deduction -= 1
-            site_remainder_used = {
-                'id': site_left.id,
-                'date_used': today_local.strftime('%Y-%m-%d')
+            site_fee_remainders = _get_site_fee_remainders(site_category, new_or_renewal, proposal.applicant, proposal.proxy_applicant)
+
+            # Calculate deduction and set date_used field
+            number_of_sites_after_deduction = len(apiary_sites)
+            for site_left in site_fee_remainders:
+                if number_of_sites_after_deduction == 0:
+                    break
+                number_of_sites_after_deduction -= 1
+                site_remainder_used = {
+                    'id': site_left.id,
+                    'date_used': today_local.strftime('%Y-%m-%d')
+                }
+                db_process_after_success['site_remainder_used'].append(site_remainder_used)
+
+            quotient, remainder = divmod(number_of_sites_after_deduction, MIN_NUMBER_OF_SITES_TO_RENEW)
+            number_of_sites_calculate = quotient * MIN_NUMBER_OF_SITES_TO_RENEW + MIN_NUMBER_OF_SITES_TO_RENEW if remainder else quotient * MIN_NUMBER_OF_SITES_TO_RENEW
+            number_of_sites_to_add_as_remainder = number_of_sites_calculate - number_of_sites_after_deduction
+            application_price = site_category.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_RENEWAL)
+
+            # Avoid ledger error
+            # ledger doesn't accept quantity=0). Alternatively, set quantity=1 and price=0
+            if number_of_sites_calculate == 0:
+                number_of_sites_calculate = 1
+                application_price = 0
+
+            if new_or_renewal == ApiarySiteFeeType.FEE_TYPE_APPLICATION:
+                ledger_desc = 'New Apiary Site Fee - {} - {} - {}'.format(now, proposal.lodgement_number, site_category.name)
+            elif new_or_renewal == ApiarySiteFeeType.FEE_TYPE_RENEWAL:
+                ledger_desc = 'Renewal Fee - {} - {} - {}'.format(now, proposal.lodgement_number, site_category.name)
+            else:
+                ledger_desc = ''
+
+            line_item = {
+                'ledger_description': ledger_desc,
+                'oracle_code': proposal.application_type.oracle_code_application,
+                'price_incl_tax': application_price,
+                'price_excl_tax': application_price if proposal.application_type.is_gst_exempt else calculate_excl_gst(application_price),
+                'quantity': number_of_sites_calculate,
             }
-            db_process_after_success['site_remainder_used'].append(site_remainder_used)
+            line_items.append(line_item)
 
-        quotient, remainder = divmod(number_of_sites_after_deduction, MIN_NUMBER_OF_SITES_TO_RENEW)
-        number_of_sites_calculate = quotient * MIN_NUMBER_OF_SITES_TO_RENEW + MIN_NUMBER_OF_SITES_TO_RENEW if remainder else quotient * MIN_NUMBER_OF_SITES_TO_RENEW
-        number_of_sites_to_add_as_remainder = number_of_sites_calculate - number_of_sites_after_deduction
-        application_price = site_category.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_RENEWAL)
-
-        # Avoid ledger error
-        # ledger doesn't accept quantity=0). Alternatively, set quantity=1 and price=0
-        if number_of_sites_calculate == 0:
-            number_of_sites_calculate = 1
-            application_price = 0
-
-        line_item = {
-            'ledger_description': 'Renewal Fee - {} - {} - {}'.format(now, proposal.lodgement_number, site_category.name),
-            'oracle_code': proposal.application_type.oracle_code_application,
-            'price_incl_tax': application_price,
-            'price_excl_tax': application_price if proposal.application_type.is_gst_exempt else calculate_excl_gst(application_price),
-            'quantity': number_of_sites_calculate,
-        }
-        line_items.append(line_item)
-
-        # Add remainders
-        db_process_after_success['site_remainder_to_be_added'] = _get_remainders_obj(number_of_sites_to_add_as_remainder, site_category.id, proposal, ApiarySiteFeeType.FEE_TYPE_RENEWAL)
+            # Add remainders
+            db_process_after_success['site_remainder_to_be_added'] = _get_remainders_obj(number_of_sites_to_add_as_remainder, site_category.id, proposal, new_or_renewal)
 
     return line_items, db_process_after_success
 
@@ -282,7 +311,7 @@ def create_fee_lines_apiary(proposal):
     db_process_after_success = {'apiary_sites': [], 'site_remainder_used': [], 'site_remainder_to_be_added': []}
 
     # Calculate total number of sites applied per category
-    summary, db_process_after_success['apiary_sites'] = _sum_apiary_sites_per_category(proposal.proposal_apiary.apiary_sites.all())
+    summary, db_process_after_success['apiary_sites'], temp = _sum_apiary_sites_per_category(proposal.proposal_apiary.apiary_sites.all())
 
     # Calculate the number of sites to calculate the fee
     for site_category_id, number_of_sites_applied in summary.items():
