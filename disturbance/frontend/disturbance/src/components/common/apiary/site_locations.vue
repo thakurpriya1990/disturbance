@@ -287,7 +287,6 @@
                                 let ret_str_view = '<span class="view_on_map action_link" data-apiary-site-id="' + feature.getId() + '"/>View on map</span>';
 
                                 let status = feature.get('status')
-                                console.log(status)
 
                                 action_list.push(ret_str_view)
                                 if (!vm.readonly){
@@ -336,14 +335,12 @@
                 return readonlyStatus;
             },
 
-            
             // 1. South West
             // 1.1 New
             num_of_sites_remain_south_west: function(){
                 // Number of sites paid left
                 let value = this.num_of_sites_remain_south_west_base - this.num_of_sites_south_west_applied
                 value = value >= 0 ? value : 0
-                this.$emit('num_of_sites_remain_south_west', value)
                 return value
             },
             num_of_sites_south_west_after_deduction: function(){
@@ -376,7 +373,6 @@
                 // Number of sites paid left
                 let value = this.num_of_sites_remain_south_west_renewal_base - this.num_of_sites_south_west_renewal_applied
                 value = value >= 0 ? value : 0
-                this.$emit('num_of_sites_remain_south_west_renewal', value)
                 return value
             },
             num_of_sites_south_west_renewal_after_deduction: function(){
@@ -410,7 +406,6 @@
             num_of_sites_remain_remote: function(){
                 let value = this.num_of_sites_remain_remote_base - this.num_of_sites_remote_applied
                 value = value >= 0 ? value : 0
-                this.$emit('num_of_sites_remain_remote', value)
                 return value
             },
             num_of_sites_remote_after_deduction: function(){
@@ -442,7 +437,6 @@
             num_of_sites_remain_remote_renewal: function(){
                 let value = this.num_of_sites_remain_remote_renewal_base - this.num_of_sites_remote_renewal_applied
                 value = value >= 0 ? value : 0
-                this.$emit('num_of_sites_remain_remote_renewal', value)
                 return value
             },
             num_of_sites_remote_renewal_after_deduction: function(){
@@ -472,6 +466,18 @@
             },
         },
         watch:{
+            num_of_sites_remain_south_west: function() {
+                this.$emit('num_of_sites_remain_south_west', this.num_of_sites_remain_south_west)
+            },
+            num_of_sites_remain_remote: function() {
+                this.$emit('num_of_sites_remain_remote', this.num_of_sites_remain_remote)
+            },
+            num_of_sites_remain_south_west_renewal: function() {
+                this.$emit('num_of_sites_remain_south_west_renewal', this.num_of_sites_remain_south_west_renewal)
+            },
+            num_of_sites_remain_remote_renewal: function() {
+                this.$emit('num_of_sites_remain_remote_renewal', this.num_of_sites_remain_remote_renewal)
+            },
             apiary_site_being_selected: function() {
                 console.log(this.apiary_site_being_selected);
                 if (this.apiary_site_being_selected){

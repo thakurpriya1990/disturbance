@@ -105,18 +105,33 @@
 
                             <input id="save_and_continue_btn" type="hidden" @click.prevent="save_wo_confirm" class="btn btn-primary" value="Save Without Confirmation"/>
                             -->
+<!--
                             <template v-if="is_proposal_type_new">
                                 <div class="col-sm-5 text-right">
+                                    <div>New</div>
                                     <div>Previously paid sites south west region: {{ num_of_sites_remain_south_west }}</div>
                                     <div>Previously paid sites remote region: {{ num_of_sites_remain_remote }}</div>
                                 </div>
                             </template>
                             <template v-if="is_proposal_type_renewal">
                                 <div class="col-sm-5 text-right">
+                                    <div>Renewal</div>
                                     <div>Previously paid sites south west region: {{ num_of_sites_remain_south_west_renewal }}</div>
                                     <div>Previously paid sites remote region: {{ num_of_sites_remain_remote_renewal }}</div>
                                 </div>
                             </template>
+-->
+                            <div class="col-sm-5 text-right">
+                                <div>New</div>
+                                <div>Previously paid sites south west region: {{ num_of_sites_remain_south_west }}</div>
+                                <div>Previously paid sites remote region: {{ num_of_sites_remain_remote }}</div>
+                            </div>
+                            <div class="col-sm-5 text-right">
+                                <div>Renewal</div>
+                                <div>Previously paid sites south west region: {{ num_of_sites_remain_south_west_renewal }}</div>
+                                <div>Previously paid sites remote region: {{ num_of_sites_remain_remote_renewal }}</div>
+                            </div>
+
                             <div class="col-sm-2 text-right">
                                 Application fee: ${{ sum_of_total_fees }}
                             </div>
@@ -187,14 +202,14 @@ export default {
             submit_button_text: 'Submit',
 
             // Fee
-            total_fee_south_west: null,
-            total_fee_remote: null,
-            total_fee_south_west_renewal: null,
-            total_fee_remote_renewal: null,
-            num_of_sites_remain_south_west: null,
-            num_of_sites_remain_remote: null,
-            num_of_sites_remain_south_west_renewal: null,
-            num_of_sites_remain_remote_renewal: null,
+            total_fee_south_west: 0,
+            total_fee_remote: 0,
+            total_fee_south_west_renewal: 0,
+            total_fee_remote_renewal: 0,
+            num_of_sites_remain_south_west: 0,
+            num_of_sites_remain_remote: 0,
+            num_of_sites_remain_south_west_renewal: 0,
+            num_of_sites_remain_remote_renewal: 0,
         }
     },
     components: {

@@ -325,27 +325,35 @@
                 this.$emit('button_text', button_text)
             },
             total_fee_south_west: function(total_fee){
+                console.log('in form_apiary: total_fee_south_west: ' + total_fee)
                 this.$emit('total_fee_south_west', total_fee)
             },
             total_fee_remote: function(total_fee){
+                console.log('in form_apiary: total_fee_remote: ' + total_fee)
                 this.$emit('total_fee_remote', total_fee)
             },
             total_fee_south_west_renewal: function(total_fee){
+                console.log('in form_apiary: total_fee_south_west_renewal: ' + total_fee)
                 this.$emit('total_fee_south_west_renewal', total_fee)
             },
             total_fee_remote_renewal: function(total_fee){
+                console.log('in form_apiary: total_fee_remote_renewal: ' + total_fee)
                 this.$emit('total_fee_remote_renewal', total_fee)
             },
             num_of_sites_remain_south_west: function(value){
+                console.log('in form_apiary: num_of_sites_remain_south_west: ' + value)
                 this.$emit('num_of_sites_remain_south_west', value)
             },
             num_of_sites_remain_remote: function(value){
+                console.log('in form_apiary: num_of_sites_remain_remote: ' + value)
                 this.$emit('num_of_sites_remain_remote', value)
             },
             num_of_sites_remain_south_west_renewal: function(value){
+                console.log('in form_apiary: num_of_sites_remain_south_west_renewal: ' + value)
                 this.$emit('num_of_sites_remain_south_west_renewal', value)
             },
             num_of_sites_remain_remote_renewal: function(value){
+                console.log('in form_apiary: num_of_sites_remain_remote_renewal: ' + value)
                 this.$emit('num_of_sites_remain_remote_renewal', value)
             },
             /*
