@@ -230,7 +230,7 @@ def _get_remainders_obj(number_of_sites_to_add_as_remainder, site_category_id, p
     return remainders_arr
 
 
-def create_fee_lines_apiary_renewal(proposal):
+def create_fee_lines_apiary(proposal):
     now = datetime.now().strftime('%Y-%m-%d %H:%M')
     today_local = datetime.now(pytz.timezone(TIME_ZONE)).date()
     MIN_NUMBER_OF_SITES_TO_RENEW = 5
@@ -306,72 +306,13 @@ def create_fee_lines_apiary_renewal(proposal):
     return line_items, db_process_after_success
 
 
-def create_fee_lines_apiary(proposal):
-    now = datetime.now().strftime('%Y-%m-%d %H:%M')
-    today_local = datetime.now(pytz.timezone(TIME_ZONE)).date()
-    MIN_NUMBER_OF_SITES_TO_APPLY = 5
-    line_items = []
-
-    # Once payment success, data is updated based on this variable
-    # This variable is stored in the session
-    db_process_after_success = {'apiary_sites': [], 'site_remainder_used': [], 'site_remainder_to_be_added': []}
-
-    # Calculate total number of sites applied per category
-    summary, db_process_after_success['apiary_sites'], temp = _sum_apiary_sites_per_category(proposal.proposal_apiary.apiary_sites.all())
-
-    # Calculate the number of sites to calculate the fee
-    for site_category_id, number_of_sites_applied in summary.items():
-        site_category = SiteCategory.objects.get(id=site_category_id)
-
-        site_fee_remainders = _get_site_fee_remainders(site_category, ApiarySiteFeeType.FEE_TYPE_APPLICATION, proposal.applicant, proposal.proxy_applicant)
-
-        # Calculate deduction and set date_used field
-        number_of_sites_after_deduction = number_of_sites_applied
-        for site_left in site_fee_remainders:
-            if number_of_sites_after_deduction == 0:
-                break
-            number_of_sites_after_deduction -= 1
-            site_remainder_used = {
-                'id': site_left.id,
-                'date_used': today_local.strftime('%Y-%m-%d')
-            }
-            db_process_after_success['site_remainder_used'].append(site_remainder_used)
-
-        quotient, remainder = divmod(number_of_sites_after_deduction, MIN_NUMBER_OF_SITES_TO_APPLY)
-        number_of_sites_calculate = quotient * MIN_NUMBER_OF_SITES_TO_APPLY + MIN_NUMBER_OF_SITES_TO_APPLY if remainder else quotient * MIN_NUMBER_OF_SITES_TO_APPLY
-        number_of_sites_to_add_as_remainder = number_of_sites_calculate - number_of_sites_after_deduction
-        application_price = site_category.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_APPLICATION)
-
-        # Avoid ledger error
-        # ledger doesn't accept quantity=0). Alternatively, set quantity=1 and price=0
-        if number_of_sites_calculate == 0:
-            number_of_sites_calculate = 1
-            application_price = 0
-
-        line_item = {
-            'ledger_description': 'Application Fee - {} - {} - {}'.format(now, proposal.lodgement_number, site_category.name),
-            'oracle_code': proposal.application_type.oracle_code_application,
-            'price_incl_tax': application_price,
-            'price_excl_tax': application_price if proposal.application_type.is_gst_exempt else calculate_excl_gst(application_price),
-            'quantity': number_of_sites_calculate,
-        }
-        line_items.append(line_item)
-
-        # Add remainders
-        db_process_after_success['site_remainder_to_be_added'] = _get_remainders_obj(number_of_sites_to_add_as_remainder, site_category.id, proposal, ApiarySiteFeeType.FEE_TYPE_APPLICATION)
-
-    return line_items, db_process_after_success
-
-
 def create_fee_lines(proposal, invoice_text=None, vouchers=[], internal=False):
     """ Create the ledger lines - line item for application fee sent to payment system """
 
     db_processes_after_success = {}
 
-    if proposal.application_type.name == ApplicationType.APIARY and proposal.proposal_type == 'renewal':
-        line_items, db_processes_after_success = create_fee_lines_apiary_renewal(proposal)  # This function returns line items and db_processes as a tuple
-    elif proposal.application_type.name == ApplicationType.APIARY:
-        line_items, db_processes_after_success = create_fee_lines_apiary_renewal(proposal)  # This function returns line items and db_processes as a tuple
+    if proposal.application_type.name == ApplicationType.APIARY:
+        line_items, db_processes_after_success = create_fee_lines_apiary(proposal)  # This function returns line items and db_processes as a tuple
         # line_items, db_processes_after_success = create_fee_lines_apiary(proposal)  # This function returns line items and db_processes as a tuple
     elif proposal.application_type.name == ApplicationType.SITE_TRANSFER:
         line_items, db_processes_after_success = create_fee_lines_site_transfer(proposal)  # This function returns line items and db_processes as a tuple
