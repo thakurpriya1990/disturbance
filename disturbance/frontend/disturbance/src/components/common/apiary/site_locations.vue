@@ -66,17 +66,15 @@
                             <div>Previously paid sites 'Remote' region: {{ num_of_sites_remain_remote }} (${{ fee_remote }})</div>
                             <div>Total fee: {{ total_fee_remote }}</div>
                         </div>
-                        <template v-if='is_proposal_type_renewal'>
-                            <div><strong>Renewal</strong></div>
-                            <div>
-                                <div>Previously paid sites 'South West' region: {{ num_of_sites_remain_south_west_renewal }} (${{ fee_south_west_renewal }})</div>
-                                <div>Total fee: {{ total_fee_south_west_renewal }}</div>
-                            </div>
-                            <div>
-                                <div>Previously paid sites 'Remote' region: {{ num_of_sites_remain_remote_renewal }} (${{ fee_remote_renewal }})</div>
-                                <div>Total fee: {{ total_fee_remote_renewal }}</div>
-                            </div>
-                        </template>
+                        <div><strong>Renewal</strong></div>
+                        <div>
+                            <div>Previously paid sites 'South West' region: {{ num_of_sites_remain_south_west_renewal }} (${{ fee_south_west_renewal }})</div>
+                            <div>Total fee: {{ total_fee_south_west_renewal }}</div>
+                        </div>
+                        <div>
+                            <div>Previously paid sites 'Remote' region: {{ num_of_sites_remain_remote_renewal }} (${{ fee_remote_renewal }})</div>
+                            <div>Total fee: {{ total_fee_remote_renewal }}</div>
+                        </div>
                     </div>
                 </div>
             </div>
