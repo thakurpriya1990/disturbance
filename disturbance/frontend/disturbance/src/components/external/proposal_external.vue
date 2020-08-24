@@ -306,7 +306,7 @@ export default {
         },
         update_total_fee_south_west_renewal: function(total_fee){
             console.log('in update_total_fee_south_west_renewal: ' + total_fee)
-            this.total_fee_south_west = total_fee
+            this.total_fee_south_west_renewal = total_fee
         },
         update_total_fee_remote_renewal: function(total_fee){
             console.log('in update_total_fee_remote_renewal: ' + total_fee)

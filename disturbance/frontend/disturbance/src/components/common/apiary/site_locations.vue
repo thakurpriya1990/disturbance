@@ -365,7 +365,6 @@
             },
             total_fee_south_west: function() {
                 let total_fee = this.num_of_sites_south_west_calculate * this.fee_south_west
-                this.$emit('total_fee_south_west', total_fee)
                 return total_fee
             },
             // 1.2 Renewal
@@ -397,7 +396,6 @@
             },
             total_fee_south_west_renewal: function() {
                 let total_fee = this.num_of_sites_south_west_renewal_calculate * this.fee_south_west_renewal
-                this.$emit('total_fee_south_west_renewal', total_fee)
                 return total_fee
             },
 
@@ -430,7 +428,6 @@
             },
             total_fee_remote: function() {
                 let total_fee = this.num_of_sites_remote_calculate * this.fee_remote
-                this.$emit('total_fee_remote', total_fee)
                 return total_fee
             },
             // 2.2 Renewal
@@ -461,7 +458,6 @@
             },
             total_fee_remote_renewal: function() {
                 let total_fee = this.num_of_sites_remote_renewal_calculate * this.fee_remote_renewal
-                this.$emit('total_fee_remote_renewal', total_fee)
                 return total_fee
             },
         },
@@ -477,6 +473,18 @@
             },
             num_of_sites_remain_remote_renewal: function() {
                 this.$emit('num_of_sites_remain_remote_renewal', this.num_of_sites_remain_remote_renewal)
+            },
+            total_fee_south_west: function(){
+                this.$emit('total_fee_south_west', this.total_fee_south_west)
+            },
+            total_fee_south_west_renewal: function(){
+                this.$emit('total_fee_south_west_renewal', this.total_fee_south_west_renewal)
+            },
+            total_fee_remote: function(){
+                this.$emit('total_fee_remote', this.total_fee_remote)
+            },
+            total_fee_remote_renewal: function(){
+                this.$emit('total_fee_remote_renewal', this.total_fee_remote_renewal)
             },
             apiary_site_being_selected: function() {
                 console.log(this.apiary_site_being_selected);
@@ -669,11 +677,20 @@
                 this.num_of_sites_remote_renewal_applied = 0
 
                 for (let i=0; i<features.length; i++){
-                    console.log(features[i].get('site_category'))
-                    if (features[i].get('site_category') == 'south_west'){
-                        this.num_of_sites_south_west_applied += 1
-                    } else if (features[i].get('site_category') == 'remote'){
-                        this.num_of_sites_remote_applied += 1
+                    let new_or_existing = this.is_feature_new_or_existing(features[i])
+                    if (new_or_existing === 'existing'){
+                        if (features[i].get('site_category') == 'south_west'){
+                            this.num_of_sites_south_west_renewal_applied += 1
+                        } else if (features[i].get('site_category') == 'remote'){
+                            this.num_of_sites_remote_renewal_applied += 1
+                        }
+                    }
+                    if (new_or_existing === 'new'){
+                        if (features[i].get('site_category') == 'south_west'){
+                            this.num_of_sites_south_west_applied += 1
+                        } else if (features[i].get('site_category') == 'remote'){
+                            this.num_of_sites_remote_applied += 1
+                        }
                     }
                 }
 
