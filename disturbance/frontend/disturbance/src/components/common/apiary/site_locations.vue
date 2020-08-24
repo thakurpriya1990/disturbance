@@ -470,13 +470,13 @@
                 this.$emit('num_of_sites_remain_south_west', this.num_of_sites_remain_south_west)
             },
             num_of_sites_remain_remote: function() {
-                this.$emit('num_of_sites_remain_remote', num_of_sites_remain_remote)
+                this.$emit('num_of_sites_remain_remote', this.num_of_sites_remain_remote)
             },
             num_of_sites_remain_south_west_renewal: function() {
-                this.$emit('num_of_sites_remain_south_west_renewal', num_of_sites_remain_south_west_renewal)
+                this.$emit('num_of_sites_remain_south_west_renewal', this.num_of_sites_remain_south_west_renewal)
             },
             num_of_sites_remain_remote_renewal: function() {
-                this.$emit('num_of_sites_remain_remote_renewal', num_of_sites_remain_remote_renewal)
+                this.$emit('num_of_sites_remain_remote_renewal', this.num_of_sites_remain_remote_renewal)
             },
             apiary_site_being_selected: function() {
                 console.log(this.apiary_site_being_selected);
