@@ -504,7 +504,6 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
 
                 # Handle ApiarySites here
                 ids = []
-                vacant_sites_nominated = []
                 for index, feature in enumerate(site_locations_received):
                     feature['proposal_apiary_id'] = proposal_obj.proposal_apiary.id
 
@@ -519,7 +518,6 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                         except ApiarySite.DoesNotExist:
                             # Try to get this apiary site assuming it is 'vacant' site (available site)
                             a_site = ApiarySite.objects.get(site_guid=feature['values_']['site_guid'])
-                            vacant_sites_nominated.append(a_site)
                             serializer = ApiarySiteSerializer(a_site, data=feature)
                             # serializer = None
                     except KeyError:  # when 'site_guid' is not defined above
