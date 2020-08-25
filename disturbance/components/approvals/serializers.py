@@ -265,8 +265,8 @@ class ApprovalSerializer(serializers.ModelSerializer):
         return address_serializer
 
     def get_renewal_document(self,obj):
-        if obj.renewal_document and obj.renewal_document._file:
-            return obj.renewal_document._file.url
+        if obj.relevant_renewal_document and obj.relevant_renewal_document._file:
+            return obj.relevant_renewal_document._file.url
         return None
 
     def get_can_approver_reissue(self,obj):

@@ -318,3 +318,32 @@ class ApiaryIntegrationTests(APITestSetup):
         compliance_a2 = Proposal.objects.get(id=proposal_id_2).approval.compliances.filter(requirement__standard_requirement__code="A2")[0]
         self.assertEqual(compliance_a2.processing_status, "due")
 
+        # Reissue approval with new expiry date
+        reissue_payload = {"status": "with_approver"}
+        #url = '/api/proposal_apiary/{}/reissue_approval.json'.format(final_proposal_proposal_apiary_id)
+        #import ipdb; ipdb.set_trace()
+        reissue_response = self.client.post(
+                '/api/proposal/{}/reissue_approval/'.format(final_proposal.id),
+                reissue_payload,
+                format='json'
+                )
+        self.assertEqual(reissue_response.status_code, 200)
+
+        reissue_final_approval_data = {
+                "details": "reissued details",
+                "expiry_date": self.today_plus_1_week_str,
+                "start_date": self.today_str,
+                "apiary_sites": apiary_sites
+                }
+        reissue_final_approval_response = self.client.post(
+                '/api/proposal_apiary/{}/final_approval/'.format(final_proposal.id),
+                #final_approval_data, 
+                reissue_final_approval_data,
+                format='json'
+                )
+        self.assertEqual(reissue_final_approval_response.status_code, 200)
+
+        # Renew approval
+        renewal_response = self.client.get('/api/proposal/{}/renew_approval/'.format(final_proposal.id))
+        self.assertEqual(renewal_response.status_code, 200)
+
