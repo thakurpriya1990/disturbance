@@ -1147,9 +1147,9 @@ class ProposalViewSet(viewsets.ModelViewSet):
             qs = self.get_queryset().filter(
                     application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]
                     ).exclude(processing_status='discarded')
-            application_type_qs =  ApplicationType.objects.filter(
-                name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]).values_list(
-                    'name', flat=True).distinct()
+            #application_type_qs =  ApplicationType.objects.filter(
+             #   name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]).values_list(
+              #      'name', flat=True).distinct()
             submitter_qs = qs.filter(
                     submitter__isnull=False).filter(
                             application_type__name__in=[ApplicationType.APIARY,ApplicationType.SITE_TRANSFER,ApplicationType.TEMPORARY_USE]).distinct(
@@ -1160,20 +1160,21 @@ class ProposalViewSet(viewsets.ModelViewSet):
                     ).exclude(processing_status='discarded')
             region_qs =  qs.filter(region__isnull=False).values_list('region__name', flat=True).distinct()
             #district_qs =  self.get_queryset().filter(district__isnull=False).values_list('district__name', flat=True).distinct()
-            activity_qs =  qs.filter(activity__isnull=False).values_list('activity', flat=True).distinct()
+            #activity_qs =  qs.filter(activity__isnull=False).values_list('activity', flat=True).distinct()
             submitter_qs = qs.filter(submitter__isnull=False).distinct(
                             'submitter__email').values_list('submitter__first_name','submitter__last_name','submitter__email')
 
+        activity_qs =  qs.filter(activity__isnull=False).values_list('activity', flat=True).distinct()
         submitters = [dict(email=i[2], search_term='{} {} ({})'.format(i[0], i[1], i[2])) for i in submitter_qs]
         data = dict(
             regions=region_qs,
             #districts=district_qs,
             activities=activity_qs,
             submitters=submitters,
-            application_types=application_type_qs,
-            #processing_status_choices = [i[1] for i in Proposal.PROCESSING_STATUS_CHOICES],
-            #processing_status_id_choices = [i[0] for i in Proposal.PROCESSING_STATUS_CHOICES],
-            #customer_status_choices = [i[1] for i in Proposal.CUSTOMER_STATUS_CHOICES],
+            #application_types=application_type_qs,
+            ##processing_status_choices = [i[1] for i in Proposal.PROCESSING_STATUS_CHOICES],
+            ##processing_status_id_choices = [i[0] for i in Proposal.PROCESSING_STATUS_CHOICES],
+            ##customer_status_choices = [i[1] for i in Proposal.CUSTOMER_STATUS_CHOICES],
             approval_status_choices = [i[1] for i in Approval.STATUS_CHOICES],
         )
         return Response(data)
