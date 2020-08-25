@@ -32,9 +32,6 @@
                     />
                 </div>
             </div>
-        </div>
-
-        <div class="row">
             <div class="col-sm-4">
                 <div class="form-group">
                     <label class="inline">Longitude:</label>
@@ -46,11 +43,13 @@
                         v-model.number="proposal.proposal_apiary.longitude"
                         :readonly="readonly"
                     />
-                    <template v-if="!readonly">
-                        <input type="button" @click="tryCreateNewSiteFromForm" value="Add proposed site" class="btn btn-primary" style="margin: 1em 0 0 0;">
-                    </template>
                 </div>
             </div>
+            <template v-if="!readonly">
+                <div class="col-sm-4">
+                    <input type="button" @click="tryCreateNewSiteFromForm" value="Add proposed site" class="btn btn-primary" style="margin: 1em 0 0 0;">
+                </div>
+            </template>
         </div>
 
         <template v-if="display_debug_info && proposal && proposal.proposal_apiary">

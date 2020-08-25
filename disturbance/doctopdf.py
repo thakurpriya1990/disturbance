@@ -6,7 +6,7 @@ from docxtpl import DocxTemplate
 from disturbance.components.main.models import ApiaryGlobalSettings
 
 
-def create_apiary_licence_pdf_contents(approval, proposal, copied_to_permit, user):
+def create_apiary_licence_pdf_contents(approval, proposal, copied_to_permit, approver):
     # print ("Letter File")
     # confirmation_doc = None
     # if booking.annual_booking_period_group.letter:
@@ -39,6 +39,16 @@ def create_apiary_licence_pdf_contents(approval, proposal, copied_to_permit, use
     context = {
         'approval': approval,
         'proposal': proposal,
+        'authority_holder': approval.relevant_applicant_name,
+        'trading_name': approval.applicant.trading_name if approval.applicant else '',
+        'registered_hive_brand': '',
+        'authority_number': approval.lodgement_number,
+        'licence_start_date': approval.start_date.strftime('%d %B %Y'),
+        'licence_expiry_date': approval.expiry_date.strftime('%d %B %Y'),
+        'issue_date': approval.issue_date.strftime('%d/%m/%Y'),
+        'approver': approver.get_full_name(),
+        'apiary_sites': ['aho', 'baka',],
+        'requirements': proposal.requirements.all(),
         # 'commence_date': approval.start_date,
         # 'expiry_date': approval.expiry_date,
         # 'customername': '{} {}'.format(booking.details.get('first_name', ''), booking.details.get('last_name', '')),
