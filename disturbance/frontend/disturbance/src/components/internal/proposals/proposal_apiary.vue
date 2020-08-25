@@ -2,7 +2,7 @@
     <div v-if="proposal" class="container" id="internalProposal">
       <div class="row">
         <h3>Application: {{ proposal.lodgement_number }}</h3>
-        <h4>Application Type: {{proposal.application_type }}</h4>
+        <h4>Application Type: {{proposal.activity }}</h4>
         <div v-if="!proposal.apiary_group_application_type">
             <h4>Approval Level: {{proposal.approval_level }}</h4>
         </div>
@@ -779,7 +779,11 @@ export default {
             this.$refs.proposed_decline.isModalOpen = true;
         },
         proposedApproval: function(){
-            this.$refs.proposed_approval.approval = this.proposal.proposed_issuance_approval != null ? helpers.copyObject(this.proposal.proposed_issuance_approval) : {};
+            let copiedProposedIssuanceApproval = helpers.copyObject(this.proposal.proposed_issuance_approval);
+            if (this.proposal.proposal_type == 'Renewal') {
+                copiedProposedIssuanceApproval.expiry_date = null;
+            }
+            this.$refs.proposed_approval.approval = this.proposal.proposed_issuance_approval != null ? copiedProposedIssuanceApproval : {};
             if(this.proposal.proposed_issuance_approval == null){
                 var test_approval={
                 'cc_email': this.proposal.referral_email_list

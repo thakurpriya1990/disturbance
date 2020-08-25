@@ -20,17 +20,17 @@
                                     </select>
                                 </div>
                             </div>
-                            <div class="col-md-3">
-                                <div class="form-group">
-                                    <label for="">Activity</label>
-                                    <select class="form-control" v-model="filterProposalActivity">
-                                        <option value="All">All</option>
-                                        <option v-for="a in proposal_activityTitles" :value="a">{{a}}</option>
-                                    </select>
-                                </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="">{{ activityFilterLabel }}</label>
+                                <select class="form-control" v-model="filterProposalActivity">
+                                    <option value="All">All</option>
+                                    <option v-for="a in proposal_activityTitles" :value="a">{{a}}</option>
+                                </select>
                             </div>
                         </div>
-                        <div v-else>
+                        <!--div v-else>
                             <div class="col-md-3">
                                 <div class="form-group">
                                     <label for="">Application Type</label>
@@ -40,7 +40,7 @@
                                     </select>
                                 </div>
                             </div>
-                        </div>
+                        </div-->
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="">Status</label>
@@ -748,6 +748,15 @@ export default {
         }
     },
     computed: {
+        activityFilterLabel: function() {
+            let label = ''
+            if (this.apiaryTemplateGroup) {
+                label = 'Application Type';
+            } else {
+                label = 'Activity';
+            }
+            return label;
+        },
         proposal_headers: function() {
             if (this.apiaryTemplateGroup) {
                 return [

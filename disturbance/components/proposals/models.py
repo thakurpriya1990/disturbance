@@ -2292,6 +2292,7 @@ def clone_apiary_proposal_with_status_reset(original_proposal):
             #proposal.id = None
             proposal.approval_level_document = None
             proposal.fee_invoice_reference = None
+            proposal.activity = 'Apiary Renewal'
 
             proposal.save(no_revision=True)
 

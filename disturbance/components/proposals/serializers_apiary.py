@@ -1030,7 +1030,7 @@ class ApiaryInternalProposalSerializer(BaseProposalSerializer):
                 'apiary_group_application_type',
                 'approval',
                 )
-        read_only_fields=('documents','requirements')
+        read_only_fields=('documents','requirements')\
 
     def get_approval(self, proposal):
         ret_appr = None
