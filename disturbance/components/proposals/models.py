@@ -2292,6 +2292,7 @@ def clone_apiary_proposal_with_status_reset(original_proposal):
             #proposal.id = None
             proposal.approval_level_document = None
             proposal.fee_invoice_reference = None
+            proposal.activity = 'Apiary Renewal'
 
             proposal.save(no_revision=True)
 
@@ -2684,6 +2685,7 @@ class ProposalApiary(models.Model):
                         if originating_approval.reissued:
                             originating_approval.expiry_date = details.get('expiry_date')
                             originating_approval.start_date = details.get('start_date')
+                        # always reset this flag
                         originating_approval.reissued = False
                         #self.proposal.proposed_issuance_approval['start_date'] = originating_approval.start_date.strftime('%d/%m/%Y')
                         #self.proposal.proposed_issuance_approval['expiry_date'] = originating_approval.expiry_date.strftime('%d/%m/%Y')
@@ -2721,6 +2723,9 @@ class ProposalApiary(models.Model):
                             if approval.reissued:
                                 approval.expiry_date = details.get('expiry_date')
                                 approval.start_date = details.get('start_date')
+                            elif self.proposal.proposal_type == 'renewal':
+                                approval.expiry_date = details.get('expiry_date')
+                            # always reset this flag
                             approval.reissued = False
                             #self.proposal.proposed_issuance_approval['start_date'] = approval.start_date.strftime('%d/%m/%Y')
                             #self.proposal.proposed_issuance_approval['expiry_date'] = approval.expiry_date.strftime('%d/%m/%Y')
