@@ -69,10 +69,10 @@
                 </div>
             </FormSection>
             <ApiaryChecklist 
-            :checklist="applicantChecklistAnswers"
-            section_title="Applicant Checklist"
-            :readonly="readonly"
-            ref="applicant_checklist"
+                :checklist="applicantChecklistAnswers"
+                section_title="Applicant Checklist"
+                :readonly="readonly"
+                ref="applicant_checklist"
             />
             <div v-if="assessorChecklistVisibility">
                 <ApiaryChecklist 
