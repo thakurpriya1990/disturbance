@@ -54,6 +54,10 @@
                     @num_of_sites_remain_remote="update_num_of_sites_remain_remote"
                     @num_of_sites_remain_south_west_renewal="update_num_of_sites_remain_south_west_renewal"
                     @num_of_sites_remain_remote_renewal="update_num_of_sites_remain_remote_renewal"
+                    @num_of_sites_south_west_to_add_as_remainder="update_num_of_sites_south_west_to_add_as_remainder"
+                    @num_of_sites_remote_to_add_as_remainder="update_num_of_sites_remote_to_add_as_remainder"
+                    @num_of_sites_south_west_renewal_to_add_as_remainder="update_num_of_sites_south_west_renewal_to_add_as_remainder"
+                    @num_of_sites_remote_renewal_to_add_as_remainder="update_num_of_sites_remote_renewal_to_add_as_remainder"
                 />
             </div>
             <div v-else-if="proposal && proposal.application_type=='Site Transfer'">
@@ -105,23 +109,34 @@
 
                             <input id="save_and_continue_btn" type="hidden" @click.prevent="save_wo_confirm" class="btn btn-primary" value="Save Without Confirmation"/>
                             -->
-                            <div class="col-sm-3 text-right">
-                                <div>New sites</div>
-                                <div>Previously paid sites south west region: {{ num_of_sites_remain_south_west }}</div>
-                                <div>Previously paid sites remote region: {{ num_of_sites_remain_remote }}</div>
-                            </div>
+                            <template v-if="is_proposal_type_new">
+                                <div class="col-sm-3 text-right">
+                                </div>
+                                <div class="col-sm-3 text-right">
+                                    <div class="text-center payment-description-title">New sites</div>
+                                    <div>{{ num_of_sites_south_west_remain_after_payment }}</div>
+                                    <div>{{ num_of_sites_remote_remain_after_payment }}</div>
+                                </div>
+
+                            </template>
                             <template v-if="is_proposal_type_renewal">
                                 <div class="col-sm-3 text-right">
-                                    <div>Renew sites</div>
-                                    <div>Previously paid sites south west region: {{ num_of_sites_remain_south_west_renewal }}</div>
-                                    <div>Previously paid sites remote region: {{ num_of_sites_remain_remote_renewal }}</div>
+                                    <div class="text-center payment-description-title">New sites</div>
+                                    <div>{{ num_of_sites_south_west_remain_after_payment }}</div>
+                                    <div>{{ num_of_sites_remote_remain_after_payment }}</div>
+                                </div>
+                                <div class="col-sm-3 text-right">
+                                    <div class="text-center payment-description-title">Renew sites</div>
+                                    <div>{{ num_of_sites_south_west_renewal_remain_after_payment }}</div>
+                                    <div>{{ num_of_sites_remote_renewal_remain_after_payment }}</div>
                                 </div>
                             </template>
 
-                            <div class="col-sm-1 text-right">
-                                Application fee: ${{ sum_of_total_fees }}
+                            <div class="col-sm-2 text-center">
+                                <div class="payment-description-title">Application fee</div>
+                                <div class="payment-description-total-fee">${{ sum_of_total_fees }}</div>
                             </div>
-                            <div class="col-sm-5 text-right">
+                            <div class="col-sm-4 text-right">
                                 <input type="button" @click.prevent="save_exit" class="btn btn-primary" value="Save and Exit"/>
                                 <input type="button" @click.prevent="save(true)" class="btn btn-primary" value="Save and Continue"/>
 
@@ -196,6 +211,10 @@ export default {
             num_of_sites_remain_remote: 0,
             num_of_sites_remain_south_west_renewal: 0,
             num_of_sites_remain_remote_renewal: 0,
+            num_of_sites_south_west_to_add_as_remainder: 0,
+            num_of_sites_remote_to_add_as_remainder: 0,
+            num_of_sites_south_west_renewal_to_add_as_remainder: 0,
+            num_of_sites_remote_renewal_to_add_as_remainder: 0,
         }
     },
     components: {
@@ -205,6 +224,38 @@ export default {
         ApiarySiteTransfer,
     },
     computed: {
+        num_of_sites_south_west_remain_after_payment: function() {
+            let total = this.num_of_sites_remain_south_west + this.num_of_sites_south_west_to_add_as_remainder
+            if (this.num_of_sites_south_west_to_add_as_remainder <= 0){
+                return 'Previously paid sites (south west): ' + total
+            } else {
+                return 'Paid sites (south west) after payment: ' + total
+            }
+        },
+        num_of_sites_remote_remain_after_payment: function() {
+            let total = this.num_of_sites_remain_remote + this.num_of_sites_remote_to_add_as_remainder
+            if (this.num_of_sites_remote_to_add_as_remainder <= 0){
+                return 'Previously paid sites (remote): ' + total
+            } else {
+                return 'Paid sites (remote) after payment: ' + total
+            }
+        },
+        num_of_sites_south_west_renewal_remain_after_payment: function() {
+            let total = this.num_of_sites_remain_south_west_renewal + this.num_of_sites_south_west_renewal_to_add_as_remainder
+            if (this.num_of_sites_south_west_renewal_to_add_as_remainder <= 0){
+                return 'Previously paid sites (south west): ' + total
+            } else {
+                return 'Paid sites (south west) after payment: ' + total
+            }
+        },
+        num_of_sites_remote_renewal_remain_after_payment: function() {
+            let total = this.num_of_sites_remain_remote_renewal + this.num_of_sites_remote_renewal_to_add_as_remainder
+            if (this.num_of_sites_remote_renewal_to_add_as_remainder <= 0){
+                return 'Previously paid sites (remote): ' + total
+            } else {
+                return 'Paid sites (remote) after payment: ' + total
+            }
+        },
         isLoading: function() {
           return this.loading.length > 0
         },
@@ -270,6 +321,18 @@ export default {
         }
     },
     methods: {
+        update_num_of_sites_south_west_to_add_as_remainder: function(value){
+            this.num_of_sites_south_west_to_add_as_remainder = value
+        },
+        update_num_of_sites_remote_to_add_as_remainder: function(value){
+            this.num_of_sites_remote_to_add_as_remainder = value
+        },
+        update_num_of_sites_south_west_renewal_to_add_as_remainder: function(value){
+            this.num_of_sites_south_west_renewal_to_add_as_remainder = value
+        },
+        update_num_of_sites_remote_renewal_to_add_as_remainder: function(value){
+            this.num_of_sites_remote_renewal_to_add_as_remainder = value
+        },
         update_num_of_sites_remain_south_west: function(value){
             this.num_of_sites_remain_south_west = value
         },
@@ -739,4 +802,11 @@ export default {
 </script>
 
 <style lang="css">
+.payment-description-total-fee {
+    font-weight: bold;
+    font-size: 1.3em;
+}
+.payment-description-title {
+    font-weight: bold;
+}
 </style>
