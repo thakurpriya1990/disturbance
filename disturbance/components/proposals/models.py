@@ -2772,7 +2772,7 @@ class ProposalApiary(models.Model):
                         if len(sites_approved) == 0:
                             raise ValidationError("There must be at least one apiary site to approve")
 
-                        self.update_apiary_sites(approval, sites_received, request)
+                        self._update_apiary_sites(approval, sites_received, request)
 
                         # Check the current annual rental fee period
                         # Determine the start and end date of the annual rental fee, for which the invoices should be issued
@@ -3045,16 +3045,16 @@ class ProposalApiary(models.Model):
             except:
                 raise
 
-    def update_apiary_sites(self, approval, sites_approved, request):
+    def _update_apiary_sites(self, approval, sites_approved, request):
         for my_site in sites_approved:
             a_site = ApiarySite.objects.get(id=my_site['id'])
             if my_site['checked']:
                 a_site.approval = approval
                 a_site.status = ApiarySite.STATUS_CURRENT
-                a_site.workflow_selected_status = True
             else:
                 a_site.status = ApiarySite.STATUS_DENIED
-                a_site.workflow_selected_status = False
+            # Reset selected status to make the checkboxes unticked when renewal or so
+            a_site.workflow_selected_status = False
             a_site.save()
 
             # Apiary Site can be moved by assessor and/or approver
