@@ -462,6 +462,18 @@
             },
         },
         watch:{
+            num_of_sites_south_west_to_add_as_remainder: function(){
+                this.$emit('num_of_sites_south_west_to_add_as_remainder', this.num_of_sites_south_west_to_add_as_remainder)
+            },
+            num_of_sites_remote_to_add_as_remainder: function(){
+                this.$emit('num_of_sites_remote_to_add_as_remainder', this.num_of_sites_remote_to_add_as_remainder)
+            },
+            num_of_sites_south_west_renewal_to_add_as_remainder: function(){
+                this.$emit('num_of_sites_south_west_renewal_to_add_as_remainder', this.num_of_sites_south_west_renewal_to_add_as_remainder)
+            },
+            num_of_sites_remote_renewal_to_add_as_remainder: function(){
+                this.$emit('num_of_sites_remote_renewal_to_add_as_remainder', this.num_of_sites_remote_renewal_to_add_as_remainder)
+            },
             num_of_sites_remain_south_west: function() {
                 this.$emit('num_of_sites_remain_south_west', this.num_of_sites_remain_south_west)
             },

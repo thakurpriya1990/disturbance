@@ -142,6 +142,7 @@ class ApiaryChecklistQuestionSerializer(serializers.ModelSerializer):
                 'order'
                 )
 
+
 class ApiaryChecklistAnswerSerializer(serializers.ModelSerializer):
     question = ApiaryChecklistQuestionSerializer()
 
@@ -154,6 +155,7 @@ class ApiaryChecklistAnswerSerializer(serializers.ModelSerializer):
                 'apiary_referral_id',
                 'text_answer',
                 )
+
 
 class ApplicantAddressSerializer(serializers.ModelSerializer):
     class Meta:
@@ -565,19 +567,19 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
 
     def get_applicant_checklist_answers(self, obj):
         return ApiaryChecklistAnswerSerializer(
-                obj.apiary_checklist.filter(question__checklist_role='applicant'), 
+                obj.apiary_checklist.filter(question__checklist_role='applicant').order_by('question__order'),
                 many=True).data
 
     def get_assessor_checklist_answers(self, obj):
         return ApiaryChecklistAnswerSerializer(
-                obj.apiary_checklist.filter(question__checklist_role='assessor'), 
+                obj.apiary_checklist.filter(question__checklist_role='assessor').order_by('question__order'),
                 many=True).data
 
     def get_referrer_checklist_answers(self, obj):
         referral_list = []
         for referral in obj.proposal.referrals.all():
             qs = ApiaryChecklistAnswerSerializer(
-                obj.apiary_checklist.filter(apiary_referral_id=referral.apiary_referral.id), 
+                obj.apiary_checklist.filter(apiary_referral_id=referral.apiary_referral.id).order_by('question__order'),
                 many=True).data
             referral_list.append({
                 "referral_id": referral.id, 
@@ -1047,7 +1049,7 @@ class ApiaryInternalProposalSerializer(BaseProposalSerializer):
         checklist = []
         if hasattr(obj, 'proposal_apiary'):
             if obj.proposal_apiary and obj.proposal_apiary.apiary_checklist.all():
-                for answer in obj.proposal_apiary.apiary_checklist.all():
+                for answer in obj.proposal_apiary.apiary_checklist.all().order_by('question__order'):
                     serialized_answer = ApiaryChecklistAnswerSerializer(answer)
                     checklist.append(serialized_answer.data)
         return checklist
