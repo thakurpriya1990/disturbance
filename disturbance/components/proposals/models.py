@@ -3475,6 +3475,7 @@ class ApiaryChecklistQuestion(models.Model):
 
     class Meta:
         app_label = 'disturbance'
+        ordering = ['order', 'id']
 
 
 class ApiaryChecklistAnswer(models.Model):
