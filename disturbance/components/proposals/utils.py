@@ -464,9 +464,6 @@ def save_proponent_data_apiary_site_transfer(proposal_obj, request, viewset):
 def save_proponent_data_apiary(proposal_obj, request, viewset):
     with transaction.atomic():
         try:
-            data = {
-            }
-
             try:
                 schema = request.data.get('schema')
             except:
