@@ -3231,6 +3231,10 @@ class ApiarySite(models.Model):
     TRANSITABLE_STATUSES = (STATUS_NOT_TO_BE_REISSUED, STATUS_DENIED,)
     RENEWABLE_STATUS = (STATUS_CURRENT, STATUS_SUSPENDED,)
 
+    GEOMETRY_CONDITION_APPROVED = 'approved'
+    GEOMETRY_CONDITION_APPLIED = 'applied'
+    GEOMETRY_CONDITION_PENDING = 'pending'
+
     #TODO - this should link to Proposal, not ProposalApiary
     #proposal = models.ForeignKey(Proposal, null=True, blank=True, related_name='apiary_sites')
     proposal_apiary = models.ForeignKey(ProposalApiary, null=True, blank=True, related_name='apiary_sites')
