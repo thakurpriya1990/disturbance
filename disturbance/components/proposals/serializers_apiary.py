@@ -292,11 +292,23 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
         return relevant_applicant_name
 
     def get_as_geojson(self, apiary_site):
-        return ApiarySiteGeojsonSerializer(apiary_site).data
+        geometry_condition = self.context.get('geometry_condition', ApiarySite.GEOMETRY_CONDITION_APPROVED)
+        if geometry_condition == ApiarySite.GEOMETRY_CONDITION_APPLIED:
+            return ApiarySiteAppliedGeojsonSerializer(apiary_site).data
+        elif geometry_condition == ApiarySite.GEOMETRY_CONDITION_PENDING:
+            return ApiarySitePendingGeojsonSerializer(apiary_site).data
+        else:
+            return ApiarySiteGeojsonSerializer(apiary_site).data
 
     def get_coordinates(self, apiary_site):
         try:
-            return {'lng': apiary_site.wkb_geometry.x, 'lat': apiary_site.wkb_geometry.y}
+            geometry_condition = self.context.get('geometry_condition', ApiarySite.GEOMETRY_CONDITION_APPROVED)
+            if geometry_condition == ApiarySite.GEOMETRY_CONDITION_APPLIED:
+                return {'lng': apiary_site.wkb_geometry_applied.x, 'lat': apiary_site.wkb_geometry_applied.y}
+            elif geometry_condition == ApiarySite.GEOMETRY_CONDITION_PENDING:
+                return {'lng': apiary_site.wkb_geometry_pending.x, 'lat': apiary_site.wkb_geometry_pending.y}
+            else:
+                return {'lng': apiary_site.wkb_geometry.x, 'lat': apiary_site.wkb_geometry.y}
         except:
             return {'lng': '', 'lat': ''}
 
@@ -351,6 +363,58 @@ class ApiarySiteExportSerializer(GeoFeatureModelSerializer):
             'tenure',
             'name',
         )
+
+
+class ApiarySiteAppliedGeojsonSerializer(GeoFeatureModelSerializer):
+    site_category = serializers.CharField(source='site_category.name')
+    stable_coords = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ApiarySite
+        geo_field = 'wkb_geometry_applied'
+
+        fields = (
+            'id',
+            'site_guid',
+            'available',
+            'wkb_geometry_applied',
+            'site_category',
+            'status',
+            'workflow_selected_status',
+            'stable_coords',
+        )
+
+    def get_stable_coords(self, obj):
+        if obj.wkb_geometry_applied and obj.wkb_geometry_applied.tuple:
+            return [obj.wkb_geometry_applied.tuple[0], obj.wkb_geometry_applied.tuple[1]]
+        else:
+            return []
+
+
+class ApiarySitePendingGeojsonSerializer(GeoFeatureModelSerializer):
+    site_category = serializers.CharField(source='site_category.name')
+    stable_coords = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ApiarySite
+        geo_field = 'wkb_geometry_pending'
+
+        fields = (
+            'id',
+            'site_guid',
+            'available',
+            'wkb_geometry_pending',
+            'site_category',
+            'status',
+            'workflow_selected_status',
+            'stable_coords',
+        )
+
+    def get_stable_coords(self, obj):
+        if obj.wkb_geometry_pending and obj.wkb_geometry_pending.tuple:
+            return [obj.wkb_geometry_pending.tuple[0], obj.wkb_geometry_pending.tuple[1]]
+        else:
+            return []
 
 
 class ApiarySiteGeojsonSerializer(GeoFeatureModelSerializer):

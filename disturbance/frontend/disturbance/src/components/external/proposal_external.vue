@@ -98,7 +98,7 @@
                             class="btn btn-primary"
                             value="Show/Hide Sections"
                         />
-                        <div class="row">
+                        <div class="row payment-details-buttons">
                             <!--button id="sectionHide" @click.prevent="sectionHide" class="btn btn-primary">Show/Hide sections</button-->
                             <!--
                             <input type="button" @click.prevent="save_exit" class="btn btn-primary" value="Save and Exit"/>
@@ -136,7 +136,7 @@
                                 <div class="payment-description-title">Application fee</div>
                                 <div class="payment-description-total-fee">${{ sum_of_total_fees }}</div>
                             </div>
-                            <div class="col-sm-4 text-right">
+                            <div class="col-sm-4 text-right no-padding">
                                 <input type="button" @click.prevent="save_exit" class="btn btn-primary" value="Save and Exit"/>
                                 <input type="button" @click.prevent="save(true)" class="btn btn-primary" value="Save and Continue"/>
 
@@ -808,5 +808,12 @@ export default {
 }
 .payment-description-title {
     font-weight: bold;
+}
+.no-padding {
+    padding: 0 !important;
+}
+.payment-details-buttons {
+    display: flex;
+    align-items: center;
 }
 </style>
