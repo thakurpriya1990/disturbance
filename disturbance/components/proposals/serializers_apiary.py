@@ -351,6 +351,9 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
                     if apiary_site.wkb_geometry_applied:
                         # Accessed probably for the renewal.  Already saved at lease once
                         return ApiarySiteAppliedGeojsonSerializer(apiary_site).data
+                    elif apiary_site.wkb_geometry_pending:
+                        # Accessed probably for the renewal.  Already submitted
+                        return ApiarySitePendingGeojsonSerializer(apiary_site).data
                     else:
                         # Accessed probably for the renewal for the first time
                         return ApiarySiteGeojsonSerializer(apiary_site).data
