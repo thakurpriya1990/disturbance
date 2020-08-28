@@ -1264,11 +1264,11 @@ class Proposal(RevisionedMixin):
                             my_site.save()
 
                             if apiary_site['checked'] and 'coordinates_moved' in apiary_site:
-                                prev_coordinates = my_site.wkb_geometry.get_coords()
+                                prev_coordinates = my_site.wkb_geometry_pending.get_coords()
                                 # Update coordinate (Assessor and Approver can move the proposed site location)
                                 geom_str = GEOSGeometry('POINT(' + str(apiary_site['coordinates_moved']['lng']) + ' ' + str(apiary_site['coordinates_moved']['lat']) + ')', srid=4326)
-                                from disturbance.components.proposals.serializers_apiary import ApiarySiteSavePointSerializer
-                                serializer = ApiarySiteSavePointSerializer(my_site, data={'wkb_geometry': geom_str}, context={'validate_distance': True})
+                                from disturbance.components.proposals.serializers_apiary import ApiarySiteSavePointPendingSerializer
+                                serializer = ApiarySiteSavePointPendingSerializer(my_site, data={'wkb_geometry_pending': geom_str}, context={'validate_distance': True})
                                 serializer.is_valid(raise_exception=True)
                                 serializer.save()
                                 self.log_user_action(ProposalUserAction.APIARY_SITE_MOVED.format(apiary_site['id'], prev_coordinates, (apiary_site['coordinates_moved']['lng'], apiary_site['coordinates_moved']['lat'])), request)
@@ -3055,17 +3055,21 @@ class ProposalApiary(models.Model):
                 a_site.status = ApiarySite.STATUS_DENIED
             # Reset selected status to make the checkboxes unticked when renewal or so
             a_site.workflow_selected_status = False
-            a_site.save()
 
             # Apiary Site can be moved by assessor and/or approver
             if 'coordinates_moved' in my_site:
-                prev_coordinates = a_site.wkb_geometry.get_coords()
+                prev_coordinates = a_site.wkb_geometry_pending.get_coords()
                 geom_str = GEOSGeometry('POINT(' + str(my_site['coordinates_moved']['lng']) + ' ' + str(my_site['coordinates_moved']['lat']) + ')', srid=4326)
-                from disturbance.components.proposals.serializers_apiary import ApiarySiteSavePointSerializer
-                serializer = ApiarySiteSavePointSerializer(a_site, data={'wkb_geometry': geom_str}, context={'validate_distance': True})
+                from disturbance.components.proposals.serializers_apiary import ApiarySiteSavePointPendingSerializer
+                serializer = ApiarySiteSavePointPendingSerializer(a_site, data={'wkb_geometry_pending': geom_str}, context={'validate_distance': True})
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
                 a_site.proposal_apiary.proposal.log_user_action(ProposalUserAction.APIARY_SITE_MOVED.format(my_site['id'], prev_coordinates, (my_site['coordinates_moved']['lng'], my_site['coordinates_moved']['lat'])), request)
+
+            # Because this is final approval, copy pending geometry to the geometry field (approved geometry field).
+            a_site.wkb_geometry = a_site.wkb_geometry_pending
+            a_site.wkb_geometry_pending = None
+            a_site.save()
 
 
 class SiteCategory(models.Model):

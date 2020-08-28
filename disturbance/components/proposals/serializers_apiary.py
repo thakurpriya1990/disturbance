@@ -244,24 +244,55 @@ class OnSiteInformationSerializer(serializers.ModelSerializer):
         return data
 
 
+def perform_validation(serializer, my_geometry):
+    validate_distance = serializer.context.get('validate_distance', True)
+
+    if validate_distance:
+        non_field_errors = []
+        qs_sites_within = ApiarySite.objects.filter(
+            wkb_geometry__distance_lte=(my_geometry, Distance(m=RESTRICTED_RADIUS))). \
+            exclude(status__in=ApiarySite.NON_RESTRICTIVE_STATUSES).exclude(id=serializer.instance.id)
+        if qs_sites_within:
+            # There is at least one existing apiary site which is too close to the site being created
+            non_field_errors.append(
+                'There is an existing apiary site which is too close to the apiary site you are adding at the coordinates: {}'.format(
+                    my_geometry.coords))
+
+        # Raise errors
+        if non_field_errors:
+            raise serializers.ValidationError(non_field_errors)
+
+    # return attrs
+
+
+class ApiarySiteSavePointPendingSerializer(GeoFeatureModelSerializer):
+
+    def validate(self, attrs):
+        perform_validation(self, attrs['wkb_geometry_pending'])
+        return attrs
+
+    class Meta:
+        model = ApiarySite
+        geo_field = 'wkb_geometry_pending'
+        fields = ('wkb_geometry_pending',)
+
+
+class ApiarySiteSavePointAppliedSerializer(GeoFeatureModelSerializer):
+
+    def validate(self, attrs):
+        perform_validation(self, attrs['wkb_geometry_applied'])
+        return attrs
+
+    class Meta:
+        model = ApiarySite
+        geo_field = 'wkb_geometry_applied'
+        fields = ('wkb_geometry_applied',)
+
+
 class ApiarySiteSavePointSerializer(GeoFeatureModelSerializer):
 
     def validate(self, attrs):
-        validate_distance = self.context.get('validate_distance', True)
-
-        if validate_distance:
-            non_field_errors = []
-            qs_sites_within = ApiarySite.objects.filter(wkb_geometry__distance_lte=(attrs['wkb_geometry'], Distance(m=RESTRICTED_RADIUS))).\
-                                                 exclude(status__in=ApiarySite.NON_RESTRICTIVE_STATUSES).exclude(id=self.instance.id)
-            if qs_sites_within:
-                # There is at least one existing apiary site which is too close to the site being created
-                non_field_errors.append('There is an existing apiary site which is too close to the apiary site you are adding at the coordinates: {}'.format(attrs['wkb_geometry'].coords))
-
-            # Raise errors
-            if non_field_errors:
-                raise serializers.ValidationError(non_field_errors)
-
-        return attrs
+        return perform_validation(self, attrs)
 
     class Meta:
         model = ApiarySite
@@ -292,11 +323,40 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
         return relevant_applicant_name
 
     def get_as_geojson(self, apiary_site):
-        geometry_condition = self.context.get('geometry_condition', ApiarySite.GEOMETRY_CONDITION_APPROVED)
-        if geometry_condition == ApiarySite.GEOMETRY_CONDITION_APPLIED:
+        # geometry_condition = self.context.get('geometry_condition', ApiarySite.GEOMETRY_CONDITION_APPROVED)
+        # if geometry_condition == ApiarySite.GEOMETRY_CONDITION_APPLIED:
+        #     return ApiarySiteAppliedGeojsonSerializer(apiary_site).data
+        # elif geometry_condition == ApiarySite.GEOMETRY_CONDITION_PENDING:
+        #     return ApiarySitePendingGeojsonSerializer(apiary_site).data
+        # else:
+        #     return ApiarySiteGeojsonSerializer(apiary_site).data
+
+        # TODO: return serialized data according to the apiary_site.status and/or the type of self.root (which is root Serializer)
+        if apiary_site.status == ApiarySite.STATUS_DRAFT:
             return ApiarySiteAppliedGeojsonSerializer(apiary_site).data
-        elif geometry_condition == ApiarySite.GEOMETRY_CONDITION_PENDING:
+        elif apiary_site.status == ApiarySite.STATUS_PENDING:
             return ApiarySitePendingGeojsonSerializer(apiary_site).data
+        elif apiary_site.status == ApiarySite.STATUS_CURRENT:
+            root_class = type(self.root)
+            root_class_name = root_class.__name__
+            if 'proposal' in root_class_name.lower():
+                if 'internal' in root_class_name.lower():
+                    if apiary_site.wkb_geometry_pending:
+                        # Accessed probably for the renewal.  Already saved at lease once
+                        return ApiarySitePendingGeojsonSerializer(apiary_site).data
+                    else:
+                        # Accessed probably for the renewal for the first time
+                        return ApiarySiteGeojsonSerializer(apiary_site).data
+                else:
+                    if apiary_site.wkb_geometry_applied:
+                        # Accessed probably for the renewal.  Already saved at lease once
+                        return ApiarySiteAppliedGeojsonSerializer(apiary_site).data
+                    else:
+                        # Accessed probably for the renewal for the first time
+                        return ApiarySiteGeojsonSerializer(apiary_site).data
+            else:
+                # Accessed not for proposal
+                return ApiarySiteGeojsonSerializer(apiary_site).data
         else:
             return ApiarySiteGeojsonSerializer(apiary_site).data
 
