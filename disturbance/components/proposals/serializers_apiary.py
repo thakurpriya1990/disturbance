@@ -292,7 +292,8 @@ class ApiarySiteSavePointAppliedSerializer(GeoFeatureModelSerializer):
 class ApiarySiteSavePointSerializer(GeoFeatureModelSerializer):
 
     def validate(self, attrs):
-        return perform_validation(self, attrs)
+        perform_validation(self, attrs['wkb_geometry'])
+        return attrs
 
     class Meta:
         model = ApiarySite
