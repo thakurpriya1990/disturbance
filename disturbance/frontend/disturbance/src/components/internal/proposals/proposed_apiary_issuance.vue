@@ -124,7 +124,7 @@
             </div>
             <div slot="footer">
                 <button type="button" v-if="issuingApproval" disabled class="btn btn-default" @click="ok"><i class="fa fa-spinner fa-spin"></i> Processing</button>
-                <button type="button" v-else class="btn btn-default" @click="ok">Ok</button>
+                <button type="button" v-else class="btn btn-default" @click="ok" :disabled="ok_button_disabled">Ok</button>
                 <button type="button" class="btn btn-default" @click="cancel">Cancel</button>
             </div>
         </modal>
@@ -207,9 +207,19 @@ export default {
             },
             warningString: 'Please attach Level of Approval document before issuing Approval',
             component_site_selection_key: '',
+            num_of_sites_selected: 0,
         }
     },
     computed: {
+        ok_button_disabled: function(){
+            console.log('ok button disabled')
+            if (this.num_of_sites_selected > 0){
+                console.log('false')
+                return false
+            }
+            console.log('true')
+            return true
+        },
         startDateCanBeModified: function() {
             let returnVal = false;
             if (this.proposal && this.proposal.approval && this.proposal.approval.reissued) {
@@ -290,6 +300,9 @@ export default {
             return siteTransfer;
         },
     },
+    watch: {
+
+    },
     methods:{
         featureGeometryUpdated: function(feature){
             console.log('issuance')
@@ -307,6 +320,15 @@ export default {
             this.apiary_sites_updated = apiary_sites
             //this.proposal.proposal_apiary.apiary_sites = JSON.parse(JSON.stringify(apiary_sites))
             //console.log(this.proposal.proposal_apiary.apiary_sites)
+
+            // Update this.num_of_sites_selected
+            let temp = 0
+            for (let i=0; i<apiary_sites.length; i++){
+                if (apiary_sites[i].checked){
+                    temp += 1
+                }
+            }
+            this.num_of_sites_selected = temp
         },
         setApiarySiteCheckedStatuses: function() {
             if(this.proposal && this.proposal.proposal_apiary){
