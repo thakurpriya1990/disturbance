@@ -579,7 +579,7 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                         raise serializers.ValidationError(['There are apiary sites in this proposal which are too close to each other.',])
 
                     if viewset.action == 'submit':
-                        site.wkb_geometry_pending = apiary_site_obj.wkb_geometry_applied
+                        site.wkb_geometry_pending = site.wkb_geometry_applied
                         # if proposal_obj.proposal_type != 'renewal':
                         #     site.wkb_geometry_applied = None
                         site.wkb_geometry_applied = None
