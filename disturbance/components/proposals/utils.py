@@ -2,6 +2,7 @@ import re
 
 from django.contrib.gis.measure import Distance
 from django.core.exceptions import ValidationError
+from django.db.models.query_utils import Q
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils import timezone
@@ -26,7 +27,7 @@ from disturbance.components.proposals.serializers_apiary import (
     ProposalApiarySerializer,
     ProposalApiaryTemporaryUseSerializer,
     ApiarySiteSerializer, TemporaryUseApiarySiteSerializer,
-    ApiarySiteSavePointSerializer,
+    ApiarySiteSavePointSerializer, ApiarySiteSavePointPendingSerializer, ApiarySiteSavePointAppliedSerializer,
 )
 from disturbance.components.proposals.email import send_submit_email_notification, send_external_submit_email_notification
 
@@ -532,7 +533,9 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                         serializer.is_valid(raise_exception=True)
                         apiary_site_obj = serializer.save()
 
+                        #################
                         # Save coordinate
+                        #################
                         geom_str = GEOSGeometry(
                             'POINT(' +
                             str(feature['values_']['geometry']['flatCoordinates'][0]) + ' ' +
@@ -540,30 +543,48 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                             ')',
                             srid=4326
                         )
-
                         # Perform validation to the existing apiary sites
-                        data = {'wkb_geometry': geom_str}
-                        serializer = ApiarySiteSavePointSerializer(apiary_site_obj, data=data)
+                        if apiary_site_obj.status == ApiarySite.STATUS_DRAFT:
+                            data = {'wkb_geometry_applied': geom_str}
+                            save_point_serializer = ApiarySiteSavePointAppliedSerializer
+                        elif apiary_site_obj.status == ApiarySite.STATUS_PENDING:
+                            data = {'wkb_geometry_pending': geom_str}
+                            save_point_serializer = ApiarySiteSavePointPendingSerializer
+                        elif apiary_site_obj.status == ApiarySite.STATUS_CURRENT:
+                            data = {'wkb_geometry_applied': geom_str}
+                            save_point_serializer = ApiarySiteSavePointAppliedSerializer
+                            # TODO ???
+                        else:
+                            data = {'wkb_geometry': geom_str}
+                            save_point_serializer = ApiarySiteSavePointSerializer
+                        serializer = save_point_serializer(apiary_site_obj, data=data)
                         serializer.is_valid(raise_exception=True)
                         serializer.save()
-                        if viewset.action == 'submit':
-                            # When submit, save apiary site location in the field below too in order to keep the original location
-                            apiary_site_obj.wkb_geometry_applied = apiary_site_obj.wkb_geometry
-                            apiary_site_obj.save()
 
                         ids.append(apiary_site_obj.id)
 
-                # Perform validation among the sites in this proposal
                 for id in ids:
                     site = ApiarySite.objects.get(id=id)
-                    qs_sites_within = ApiarySite.objects.filter(
-                        wkb_geometry__distance_lte=(site.wkb_geometry, Distance(m=RESTRICTED_RADIUS)),
-                        id__in=ids
-                    ).exclude(id=id)
+                    if site.status == ApiarySite.STATUS_DRAFT:
+                        q_objects = Q(wkb_geometry_applied__distance_lte=(site.wkb_geometry_applied, Distance(m=RESTRICTED_RADIUS)))
+                    elif site.status == ApiarySite.STATUS_PENDING:
+                        q_objects = Q(wkb_geometry_pending__distance_lte=(site.wkb_geometry_pending, Distance(m=RESTRICTED_RADIUS)))
+                    else:
+                        q_objects = Q(wkb_geometry__distance_lte=(site.wkb_geometry, Distance(m=RESTRICTED_RADIUS)))
+                    q_objects &= Q(id__in=ids)
+                    qs_sites_within = ApiarySite.objects.filter(q_objects).exclude(id=id)
 
                     if qs_sites_within:
                         # In this proposal, there are apiary sites which are too close to each other
                         raise serializers.ValidationError(['There are apiary sites in this proposal which are too close to each other.',])
+
+                    if viewset.action == 'submit':
+                        site.wkb_geometry_pending = site.wkb_geometry_applied
+                        # if proposal_obj.proposal_type != 'renewal':
+                        #     site.wkb_geometry_applied = None
+                        site.wkb_geometry_applied = None
+                        site.save()
+
                 # save applicant checklist answers
                 save_checklist_answers('applicant', site_location_data.get('applicant_checklist_answers'))
 

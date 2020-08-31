@@ -15,9 +15,9 @@ from disturbance.components.main.serializers import CommunicationLogEntrySeriali
 from rest_framework import serializers
 
 from disturbance.components.proposals.serializers_apiary import (
-    ApplicantAddressSerializer, 
+    ApplicantAddressSerializer,
     ApiarySiteSerializer,
-    ApiaryProposalRequirementSerializer,
+    ApiaryProposalRequirementSerializer, ApiarySiteExportSerializer,
 )
 
 
@@ -71,16 +71,25 @@ class ApprovalSerializerForLicenceDoc(serializers.ModelSerializer):
         return approver.get_full_name()
 
     def get_apiary_sites(self, approval):
-        return [
-            {'id': 1, 'category': 'remote', 'coords': (123, 456), 'region_district': 'TODO', 'tenure': 'TODO',},
-            {'id': 2, 'category': 'south west', 'coords': (789, 012), 'region_district': 'TODO', 'tenure': 'TODO',},
-        ]
+        ret_array = []
+        for apiary_site in approval.apiary_sites.all():
+            serializer = ApiarySiteExportSerializer(apiary_site)
+            ret_array.append(serializer.data)
+        return ret_array
 
     def get_requirements(self, approval):
-        return [
-            {'id': 1, 'text': 'this is text 1.'},
-            {'id': 2, 'text': 'this is text 2.'},
-        ]
+        ret_array = []
+        for req in approval.current_proposal.requirements.all():
+            ret_array.append({
+                'id': req.id,
+                'text': req.requirement,
+            })
+        return  ret_array
+
+        # return [
+        #     {'id': 1, 'text': 'this is text 1.'},
+        #     {'id': 2, 'text': 'this is text 2.'},
+        # ]
 
     class Meta:
         model = Approval
