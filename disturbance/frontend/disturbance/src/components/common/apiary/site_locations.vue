@@ -690,18 +690,29 @@
 
                 for (let i=0; i<features.length; i++){
                     let new_or_existing = this.is_feature_new_or_existing(features[i])
-                    if (new_or_existing === 'existing'){
-                        if (features[i].get('site_category') == 'south_west'){
-                            this.num_of_sites_south_west_renewal_applied += 1
-                        } else if (features[i].get('site_category') == 'remote'){
-                            this.num_of_sites_remote_renewal_applied += 1
-                        }
-                    }
-                    if (new_or_existing === 'new'){
-                        if (features[i].get('site_category') == 'south_west'){
+                    let site_status = features[i].get('status')
+                    let site_category = features[i].get('site_category')
+
+                    if (site_status === 'vacant'){
+                        if (site_category == 'south_west'){
                             this.num_of_sites_south_west_applied += 1
-                        } else if (features[i].get('site_category') == 'remote'){
+                        } else if (site_category == 'remote'){
                             this.num_of_sites_remote_applied += 1
+                        }
+                    } else {
+                        if (new_or_existing === 'existing'){
+                            if (site_category == 'south_west'){
+                                this.num_of_sites_south_west_renewal_applied += 1
+                            } else if (site_category == 'remote'){
+                                this.num_of_sites_remote_renewal_applied += 1
+                            }
+                        }
+                        if (new_or_existing === 'new'){
+                            if (site_category == 'south_west'){
+                                this.num_of_sites_south_west_applied += 1
+                            } else if (site_category == 'remote'){
+                                this.num_of_sites_remote_applied += 1
+                            }
                         }
                     }
                 }
