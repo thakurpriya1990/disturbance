@@ -32,9 +32,6 @@
                     />
                 </div>
             </div>
-        </div>
-
-        <div class="row">
             <div class="col-sm-4">
                 <div class="form-group">
                     <label class="inline">Longitude:</label>
@@ -46,11 +43,13 @@
                         v-model.number="proposal.proposal_apiary.longitude"
                         :readonly="readonly"
                     />
-                    <template v-if="!readonly">
-                        <input type="button" @click="tryCreateNewSiteFromForm" value="Add proposed site" class="btn btn-primary" style="margin: 1em 0 0 0;">
-                    </template>
                 </div>
             </div>
+            <template v-if="!readonly">
+                <div class="col-sm-4">
+                    <input type="button" @click="tryCreateNewSiteFromForm" value="Add proposed site" class="btn btn-primary" style="margin: 1em 0 0 0;">
+                </div>
+            </template>
         </div>
 
         <template v-if="display_debug_info && proposal && proposal.proposal_apiary">
@@ -463,6 +462,18 @@
             },
         },
         watch:{
+            num_of_sites_south_west_to_add_as_remainder: function(){
+                this.$emit('num_of_sites_south_west_to_add_as_remainder', this.num_of_sites_south_west_to_add_as_remainder)
+            },
+            num_of_sites_remote_to_add_as_remainder: function(){
+                this.$emit('num_of_sites_remote_to_add_as_remainder', this.num_of_sites_remote_to_add_as_remainder)
+            },
+            num_of_sites_south_west_renewal_to_add_as_remainder: function(){
+                this.$emit('num_of_sites_south_west_renewal_to_add_as_remainder', this.num_of_sites_south_west_renewal_to_add_as_remainder)
+            },
+            num_of_sites_remote_renewal_to_add_as_remainder: function(){
+                this.$emit('num_of_sites_remote_renewal_to_add_as_remainder', this.num_of_sites_remote_renewal_to_add_as_remainder)
+            },
             num_of_sites_remain_south_west: function() {
                 this.$emit('num_of_sites_remain_south_west', this.num_of_sites_remain_south_west)
             },
