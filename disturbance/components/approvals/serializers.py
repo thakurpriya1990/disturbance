@@ -15,9 +15,9 @@ from disturbance.components.main.serializers import CommunicationLogEntrySeriali
 from rest_framework import serializers
 
 from disturbance.components.proposals.serializers_apiary import (
-    ApplicantAddressSerializer, 
+    ApplicantAddressSerializer,
     ApiarySiteSerializer,
-    ApiaryProposalRequirementSerializer,
+    ApiaryProposalRequirementSerializer, ApiarySiteExportSerializer,
 )
 
 
@@ -36,6 +36,75 @@ class ApprovalWrapperSerializer(serializers.ModelSerializer):
             'apiary_approval',
             )
 
+
+class ApprovalSerializerForLicenceDoc(serializers.ModelSerializer):
+    authority_holder = serializers.SerializerMethodField()
+    trading_name = serializers.SerializerMethodField()
+    authority_number = serializers.SerializerMethodField()
+    licence_start_date = serializers.SerializerMethodField()
+    licence_expiry_date = serializers.SerializerMethodField()
+    issue_date = serializers.SerializerMethodField()
+    approver = serializers.SerializerMethodField()
+    apiary_sites = serializers.SerializerMethodField()
+    requirements = serializers.SerializerMethodField()
+
+    def get_authority_holder(self, approval):
+        return approval.relevant_applicant_name
+
+    def get_trading_name(self, approval):
+        return approval.applicant.trading_name if approval.applicant else ''
+
+    def get_authority_number(self, approval):
+        return approval.lodgement_number
+
+    def get_licence_start_date(self, approval):
+        return approval.start_date.strftime('%d %B %Y')
+
+    def get_licence_expiry_date(self, approval):
+        return approval.expiry_date.strftime('%d %B %Y')
+
+    def get_issue_date(self, approval):
+        return approval.issue_date.strftime('%d/%m/%Y')
+
+    def get_approver(self, approval):
+        approver = self.context.get('approver')
+        return approver.get_full_name()
+
+    def get_apiary_sites(self, approval):
+        ret_array = []
+        for apiary_site in approval.apiary_sites.all():
+            serializer = ApiarySiteExportSerializer(apiary_site)
+            ret_array.append(serializer.data)
+        return ret_array
+
+    def get_requirements(self, approval):
+        ret_array = []
+        for req in approval.current_proposal.requirements.all():
+            ret_array.append({
+                'id': req.id,
+                'text': req.requirement,
+            })
+        return  ret_array
+
+        # return [
+        #     {'id': 1, 'text': 'this is text 1.'},
+        #     {'id': 2, 'text': 'this is text 2.'},
+        # ]
+
+    class Meta:
+        model = Approval
+        fields = (
+            'id',
+            'authority_holder',
+            'trading_name',
+            'authority_number',
+            'licence_start_date',
+            'licence_expiry_date',
+            'issue_date',
+            'approver' ,
+            'apiary_sites',
+            'requirements',
+        )
 
 from disturbance.components.proposals.serializers import ProposalSerializer
 class ApprovalSerializer(serializers.ModelSerializer):

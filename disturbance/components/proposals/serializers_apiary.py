@@ -142,6 +142,7 @@ class ApiaryChecklistQuestionSerializer(serializers.ModelSerializer):
                 'order'
                 )
 
+
 class ApiaryChecklistAnswerSerializer(serializers.ModelSerializer):
     question = ApiaryChecklistQuestionSerializer()
 
@@ -154,6 +155,7 @@ class ApiaryChecklistAnswerSerializer(serializers.ModelSerializer):
                 'apiary_referral_id',
                 'text_answer',
                 )
+
 
 class ApplicantAddressSerializer(serializers.ModelSerializer):
     class Meta:
@@ -242,24 +244,55 @@ class OnSiteInformationSerializer(serializers.ModelSerializer):
         return data
 
 
+def perform_validation(serializer, my_geometry):
+    validate_distance = serializer.context.get('validate_distance', True)
+
+    if validate_distance:
+        non_field_errors = []
+        qs_sites_within = ApiarySite.objects.filter(
+            wkb_geometry__distance_lte=(my_geometry, Distance(m=RESTRICTED_RADIUS))). \
+            exclude(status__in=ApiarySite.NON_RESTRICTIVE_STATUSES).exclude(id=serializer.instance.id)
+        if qs_sites_within:
+            # There is at least one existing apiary site which is too close to the site being created
+            non_field_errors.append(
+                'There is an existing apiary site which is too close to the apiary site you are adding at the coordinates: {}'.format(
+                    my_geometry.coords))
+
+        # Raise errors
+        if non_field_errors:
+            raise serializers.ValidationError(non_field_errors)
+
+    # return attrs
+
+
+class ApiarySiteSavePointPendingSerializer(GeoFeatureModelSerializer):
+
+    def validate(self, attrs):
+        perform_validation(self, attrs['wkb_geometry_pending'])
+        return attrs
+
+    class Meta:
+        model = ApiarySite
+        geo_field = 'wkb_geometry_pending'
+        fields = ('wkb_geometry_pending',)
+
+
+class ApiarySiteSavePointAppliedSerializer(GeoFeatureModelSerializer):
+
+    def validate(self, attrs):
+        perform_validation(self, attrs['wkb_geometry_applied'])
+        return attrs
+
+    class Meta:
+        model = ApiarySite
+        geo_field = 'wkb_geometry_applied'
+        fields = ('wkb_geometry_applied',)
+
+
 class ApiarySiteSavePointSerializer(GeoFeatureModelSerializer):
 
     def validate(self, attrs):
-        validate_distance = self.context.get('validate_distance', True)
-
-        if validate_distance:
-            non_field_errors = []
-            qs_sites_within = ApiarySite.objects.filter(wkb_geometry__distance_lte=(attrs['wkb_geometry'], Distance(m=RESTRICTED_RADIUS))).\
-                                                 exclude(status__in=ApiarySite.NON_RESTRICTIVE_STATUSES).exclude(id=self.instance.id)
-            if qs_sites_within:
-                # There is at least one existing apiary site which is too close to the site being created
-                non_field_errors.append('There is an existing apiary site which is too close to the apiary site you are adding at the coordinates: {}'.format(attrs['wkb_geometry'].coords))
-
-            # Raise errors
-            if non_field_errors:
-                raise serializers.ValidationError(non_field_errors)
-
-        return attrs
+        return perform_validation(self, attrs)
 
     class Meta:
         model = ApiarySite
@@ -290,11 +323,55 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
         return relevant_applicant_name
 
     def get_as_geojson(self, apiary_site):
-        return ApiarySiteGeojsonSerializer(apiary_site).data
+        # geometry_condition = self.context.get('geometry_condition', ApiarySite.GEOMETRY_CONDITION_APPROVED)
+        # if geometry_condition == ApiarySite.GEOMETRY_CONDITION_APPLIED:
+        #     return ApiarySiteAppliedGeojsonSerializer(apiary_site).data
+        # elif geometry_condition == ApiarySite.GEOMETRY_CONDITION_PENDING:
+        #     return ApiarySitePendingGeojsonSerializer(apiary_site).data
+        # else:
+        #     return ApiarySiteGeojsonSerializer(apiary_site).data
+
+        # TODO: return serialized data according to the apiary_site.status and/or the type of self.root (which is root Serializer)
+        if apiary_site.status == ApiarySite.STATUS_DRAFT:
+            return ApiarySiteAppliedGeojsonSerializer(apiary_site).data
+        elif apiary_site.status == ApiarySite.STATUS_PENDING:
+            return ApiarySitePendingGeojsonSerializer(apiary_site).data
+        elif apiary_site.status == ApiarySite.STATUS_CURRENT:
+            root_class = type(self.root)
+            root_class_name = root_class.__name__
+            if 'proposal' in root_class_name.lower():
+                if 'internal' in root_class_name.lower():
+                    if apiary_site.wkb_geometry_pending:
+                        # Accessed probably for the renewal.  Already saved at lease once
+                        return ApiarySitePendingGeojsonSerializer(apiary_site).data
+                    else:
+                        # Accessed probably for the renewal for the first time
+                        return ApiarySiteGeojsonSerializer(apiary_site).data
+                else:
+                    if apiary_site.wkb_geometry_applied:
+                        # Accessed probably for the renewal.  Already saved at lease once
+                        return ApiarySiteAppliedGeojsonSerializer(apiary_site).data
+                    elif apiary_site.wkb_geometry_pending:
+                        # Accessed probably for the renewal.  Already submitted
+                        return ApiarySitePendingGeojsonSerializer(apiary_site).data
+                    else:
+                        # Accessed probably for the renewal for the first time
+                        return ApiarySiteGeojsonSerializer(apiary_site).data
+            else:
+                # Accessed not for proposal
+                return ApiarySiteGeojsonSerializer(apiary_site).data
+        else:
+            return ApiarySiteGeojsonSerializer(apiary_site).data
 
     def get_coordinates(self, apiary_site):
         try:
-            return {'lng': apiary_site.wkb_geometry.x, 'lat': apiary_site.wkb_geometry.y}
+            geometry_condition = self.context.get('geometry_condition', ApiarySite.GEOMETRY_CONDITION_APPROVED)
+            if geometry_condition == ApiarySite.GEOMETRY_CONDITION_APPLIED:
+                return {'lng': apiary_site.wkb_geometry_applied.x, 'lat': apiary_site.wkb_geometry_applied.y}
+            elif geometry_condition == ApiarySite.GEOMETRY_CONDITION_PENDING:
+                return {'lng': apiary_site.wkb_geometry_pending.x, 'lat': apiary_site.wkb_geometry_pending.y}
+            else:
+                return {'lng': apiary_site.wkb_geometry.x, 'lat': apiary_site.wkb_geometry.y}
         except:
             return {'lng': '', 'lat': ''}
 
@@ -349,6 +426,58 @@ class ApiarySiteExportSerializer(GeoFeatureModelSerializer):
             'tenure',
             'name',
         )
+
+
+class ApiarySiteAppliedGeojsonSerializer(GeoFeatureModelSerializer):
+    site_category = serializers.CharField(source='site_category.name')
+    stable_coords = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ApiarySite
+        geo_field = 'wkb_geometry_applied'
+
+        fields = (
+            'id',
+            'site_guid',
+            'available',
+            'wkb_geometry_applied',
+            'site_category',
+            'status',
+            'workflow_selected_status',
+            'stable_coords',
+        )
+
+    def get_stable_coords(self, obj):
+        if obj.wkb_geometry_applied and obj.wkb_geometry_applied.tuple:
+            return [obj.wkb_geometry_applied.tuple[0], obj.wkb_geometry_applied.tuple[1]]
+        else:
+            return []
+
+
+class ApiarySitePendingGeojsonSerializer(GeoFeatureModelSerializer):
+    site_category = serializers.CharField(source='site_category.name')
+    stable_coords = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ApiarySite
+        geo_field = 'wkb_geometry_pending'
+
+        fields = (
+            'id',
+            'site_guid',
+            'available',
+            'wkb_geometry_pending',
+            'site_category',
+            'status',
+            'workflow_selected_status',
+            'stable_coords',
+        )
+
+    def get_stable_coords(self, obj):
+        if obj.wkb_geometry_pending and obj.wkb_geometry_pending.tuple:
+            return [obj.wkb_geometry_pending.tuple[0], obj.wkb_geometry_pending.tuple[1]]
+        else:
+            return []
 
 
 class ApiarySiteGeojsonSerializer(GeoFeatureModelSerializer):
@@ -565,19 +694,19 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
 
     def get_applicant_checklist_answers(self, obj):
         return ApiaryChecklistAnswerSerializer(
-                obj.apiary_checklist.filter(question__checklist_role='applicant'), 
+                obj.apiary_checklist.filter(question__checklist_role='applicant').order_by('question__order'),
                 many=True).data
 
     def get_assessor_checklist_answers(self, obj):
         return ApiaryChecklistAnswerSerializer(
-                obj.apiary_checklist.filter(question__checklist_role='assessor'), 
+                obj.apiary_checklist.filter(question__checklist_role='assessor').order_by('question__order'),
                 many=True).data
 
     def get_referrer_checklist_answers(self, obj):
         referral_list = []
         for referral in obj.proposal.referrals.all():
             qs = ApiaryChecklistAnswerSerializer(
-                obj.apiary_checklist.filter(apiary_referral_id=referral.apiary_referral.id), 
+                obj.apiary_checklist.filter(apiary_referral_id=referral.apiary_referral.id).order_by('question__order'),
                 many=True).data
             referral_list.append({
                 "referral_id": referral.id, 
@@ -1047,7 +1176,7 @@ class ApiaryInternalProposalSerializer(BaseProposalSerializer):
         checklist = []
         if hasattr(obj, 'proposal_apiary'):
             if obj.proposal_apiary and obj.proposal_apiary.apiary_checklist.all():
-                for answer in obj.proposal_apiary.apiary_checklist.all():
+                for answer in obj.proposal_apiary.apiary_checklist.all().order_by('question__order'):
                     serialized_answer = ApiaryChecklistAnswerSerializer(answer)
                     checklist.append(serialized_answer.data)
         return checklist
