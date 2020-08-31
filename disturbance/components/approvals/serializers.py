@@ -75,9 +75,15 @@ class ApprovalSerializerForLicenceDoc(serializers.ModelSerializer):
 
     def get_apiary_sites(self, approval):
         ret_array = []
-        for apiary_site in approval.apiary_sites.all():
-            serializer = ApiarySiteLicenceDocSerializer(apiary_site)
-            ret_array.append(serializer.data)
+        if not approval.current_proposal.approval:
+            # Customer does not yet have a licence
+            for apiary_site in approval.current_proposal.proposal_apiary.apiary_sites.all():
+                serializer = ApiarySiteLicenceDocSerializer(apiary_site)
+                ret_array.append(serializer.data)
+        else:
+            for apiary_site in approval.current_proposal.approval.apiary_sites.all():
+                serializer = ApiarySiteLicenceDocSerializer(apiary_site)
+                ret_array.append(serializer.data)
         return ret_array
 
     def get_requirements(self, approval):
