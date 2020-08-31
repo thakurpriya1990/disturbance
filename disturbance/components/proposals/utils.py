@@ -580,6 +580,8 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
 
                     if viewset.action == 'submit':
                         site.wkb_geometry_pending = site.wkb_geometry_applied
+                        if site.status == ApiarySite.STATUS_VACANT:
+                            site.wkb_geometry_pending = site.wkb_geometry
                         # if proposal_obj.proposal_type != 'renewal':
                         #     site.wkb_geometry_applied = None
                         site.wkb_geometry_applied = None
