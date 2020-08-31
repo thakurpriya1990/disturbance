@@ -17,7 +17,9 @@ from rest_framework import serializers
 from disturbance.components.proposals.serializers_apiary import (
     ApplicantAddressSerializer,
     ApiarySiteSerializer,
-    ApiaryProposalRequirementSerializer, ApiarySiteExportSerializer,
+    ApiaryProposalRequirementSerializer, 
+    ApiarySiteExportSerializer,
+    ApiarySiteLicenceDocSerializer,
 )
 
 
@@ -46,6 +48,7 @@ class ApprovalSerializerForLicenceDoc(serializers.ModelSerializer):
     issue_date = serializers.SerializerMethodField()
     approver = serializers.SerializerMethodField()
     apiary_sites = serializers.SerializerMethodField()
+    #apiary_sites = ApiarySiteLicenceDocSerializer(many=True)
     requirements = serializers.SerializerMethodField()
 
     def get_authority_holder(self, approval):
@@ -73,7 +76,7 @@ class ApprovalSerializerForLicenceDoc(serializers.ModelSerializer):
     def get_apiary_sites(self, approval):
         ret_array = []
         for apiary_site in approval.apiary_sites.all():
-            serializer = ApiarySiteExportSerializer(apiary_site)
+            serializer = ApiarySiteLicenceDocSerializer(apiary_site)
             ret_array.append(serializer.data)
         return ret_array
 

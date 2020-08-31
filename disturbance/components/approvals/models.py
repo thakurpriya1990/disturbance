@@ -281,22 +281,25 @@ class Approval(RevisionedMixin):
         # self.current_proposal.save(version_comment='Created Approval PDF: {}'.format(self.licence_document.name))
 
     def generate_doc(self, request_user, preview=False):
+        #if self.current_proposal and self.current_proposal.apiary_group_application_type:
         if self.apiary_approval:
             return self.generate_apiary_licence_doc(self.current_proposal, request_user, preview)
         else:
             from disturbance.components.approvals.pdf import create_approval_doc, create_approval_pdf_bytes
             copied_to_permit = self.copiedToPermit_fields(self.current_proposal) #Get data related to isCopiedToPermit tag
             if preview:
-                return create_approval_pdf_bytes(self,self.current_proposal, copied_to_permit, user)
-            self.licence_document = create_approval_doc(self,self.current_proposal, copied_to_permit, user)
+                return create_approval_pdf_bytes(self,self.current_proposal, copied_to_permit, request_user)
+            self.licence_document = create_approval_doc(self,self.current_proposal, copied_to_permit, request_user)
             self.save(version_comment='Created Approval PDF: {}'.format(self.licence_document.name))
             self.current_proposal.save(version_comment='Created Approval PDF: {}'.format(self.licence_document.name))
 
     def generate_apiary_licence_doc(self, proposal, request_user, preview=False):
+        #import ipdb; ipdb.set_trace()
         copied_to_permit = self.copiedToPermit_fields(proposal) #Get data related to isCopiedToPermit tag
         if preview:
             pdf_contents = create_apiary_licence_pdf_contents(self, proposal, copied_to_permit, request_user)
             return pdf_contents
+        #self.licence_document = create_apiary_licence_pdf_contents(self, proposal, copied_to_permit, request_user)
         self.licence_document = create_approval_document(self, proposal, copied_to_permit, request_user)
         self.save(version_comment='Created Approval PDF: {}'.format(self.licence_document.name))
         self.current_proposal.save(version_comment='Created Approval PDF: {}'.format(self.licence_document.name))
