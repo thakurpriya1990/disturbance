@@ -438,7 +438,9 @@ class Organisation(models.Model):
             # send email
             send_organisation_reinstate_email_notification(user,request.user,self,request)
 
-
+    @property
+    def trading_name(self):
+        return self.organisation.trading_name
 
     @property
     def name(self):

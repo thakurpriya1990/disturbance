@@ -6,7 +6,7 @@ from docxtpl import DocxTemplate
 from disturbance.components.main.models import ApiaryGlobalSettings
 
 
-def create_apiary_licence_pdf_contents(approval, proposal, copied_to_permit, user):
+def create_apiary_licence_pdf_contents(approval, proposal, copied_to_permit, approver):
     # print ("Letter File")
     # confirmation_doc = None
     # if booking.annual_booking_period_group.letter:
@@ -35,22 +35,9 @@ def create_apiary_licence_pdf_contents(approval, proposal, copied_to_permit, use
     # if booking.sticker_created:
     #     sc = booking.sticker_created + timedelta(hours=8)
     #     stickercreated = sc.strftime('%d %B %Y')
-
-    context = {
-        'approval': approval,
-        'proposal': proposal,
-        # 'commence_date': approval.start_date,
-        # 'expiry_date': approval.expiry_date,
-        # 'customername': '{} {}'.format(booking.details.get('first_name', ''), booking.details.get('last_name', '')),
-        # 'customeraddress': address, "customersuburb": booking.details.get('suburb', ''),
-        # "customerstate": booking.details.get('state', ''), 'customerpostcode': booking.details.get('post_code', ''),
-        # 'bookingyear': '{}/{}'.format(booking.annual_booking_period_group.start_time.strftime('%Y'),
-        #                               booking.annual_booking_period_group.finish_time.strftime('%y')),
-        # 'admissionsexpiry': booking.annual_booking_period_group.finish_time.strftime('%d %B %Y'),
-        # 'vessel': booking.details.get('vessel_rego', ''), 'customerfirstname': booking.details.get('first_name', ''),
-        # 'bookingdate': booking.created.strftime('%d %B %Y'), 'todaydate': todaydate.strftime('%d %B %Y'),
-        # 'stickercreated': stickercreated}
-    }
+    from disturbance.components.approvals.serializers import ApprovalSerializerForLicenceDoc
+    context_obj = ApprovalSerializerForLicenceDoc(approval, context={'approver': approver})
+    context = context_obj.data
     doc.render(context)
 
     temp_directory = settings.BASE_DIR + "/tmp/"

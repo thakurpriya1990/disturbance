@@ -115,6 +115,7 @@ from disturbance.components.proposals.serializers_apiary import (
     FullApiaryReferralSerializer,
     ProposalHistorySerializer,
     UserApiaryApprovalSerializer, ApiarySiteGeojsonSerializer, ApiarySiteExportSerializer,
+    ApiarySitePendingGeojsonSerializer,
 )
 from disturbance.components.approvals.models import Approval
 from disturbance.components.approvals.serializers import ApprovalSerializer, ApprovalLogEntrySerializer
@@ -644,15 +645,35 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
         proposal_id = request.query_params.get('proposal_id', 0)
         if proposal_id:
             # WHen proposal_id is passed as a query_params, which is the one in the URL after the ?
-            # Exculde the apiary_sites under the proposal
+            # Exculde the apiary_sites in that proposal
             proposal = Proposal.objects.get(id=proposal_id)
             q_objects |= Q(proposal_apiary=proposal.proposal_apiary)
-        q_objects |= Q(status__in=ApiarySite.NON_RESTRICTIVE_STATUSES)
-        q_objects |= Q(wkb_geometry=None)
-        # q_objects |= Q(proposal_apiary=None)
 
-        qs = self.get_queryset().exclude(q_objects)
-        serializer = ApiarySiteGeojsonSerializer(qs, many=True)
+        # For the apiary sites in Current, Suspended, Vacant, Denied, NotToBeReissued statuses
+        qs = self.get_queryset().filter(status__in=(
+            ApiarySite.STATUS_CURRENT,
+            ApiarySite.STATUS_SUSPENDED,
+            ApiarySite.STATUS_VACANT,
+            ApiarySite.STATUS_DENIED,
+            ApiarySite.STATUS_NOT_TO_BE_REISSUED,
+        )).exclude(q_objects)
+        serializer = ApiarySiteGeojsonSerializer(qs, many=True)  # coordinate is stored in the wkb_geometry field
+
+        # For the apiary sites in Pending status
+        qs_pending = self.get_queryset().filter(status__in=(
+            ApiarySite.STATUS_PENDING,
+        )).exclude(q_objects)
+        serializer_pending = ApiarySitePendingGeojsonSerializer(qs_pending, many=True)  # coordinate is stored in the wkb_geometry_pending field
+
+        # Merge two
+        # ret_geojson = serializer.data
+        # ret_geojson_pending = serializer_pending.data
+        # dictMerge = ret_geojson.copy()
+        # dictMerge['features'].extend(ret_geojson_pending['features'])
+
+        serializer.data['features'].extend(serializer_pending.data['features'])
+
+        # ret_geojson.update(ret_geojson_pending)
         return Response(serializer.data)
 
     @list_route(methods=['GET',])
@@ -2059,6 +2080,9 @@ class ProposalViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
+
+    # def retrieve(self, request, *args, **kwargs):
+    #     pass
 
     def update(self, request, *args, **kwargs):
         """
