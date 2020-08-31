@@ -1264,11 +1264,11 @@ class Proposal(RevisionedMixin):
                             my_site.save()
 
                             if apiary_site['checked'] and 'coordinates_moved' in apiary_site:
-                                prev_coordinates = my_site.wkb_geometry.get_coords()
+                                prev_coordinates = my_site.wkb_geometry_pending.get_coords()
                                 # Update coordinate (Assessor and Approver can move the proposed site location)
                                 geom_str = GEOSGeometry('POINT(' + str(apiary_site['coordinates_moved']['lng']) + ' ' + str(apiary_site['coordinates_moved']['lat']) + ')', srid=4326)
-                                from disturbance.components.proposals.serializers_apiary import ApiarySiteSavePointSerializer
-                                serializer = ApiarySiteSavePointSerializer(my_site, data={'wkb_geometry': geom_str}, context={'validate_distance': True})
+                                from disturbance.components.proposals.serializers_apiary import ApiarySiteSavePointPendingSerializer
+                                serializer = ApiarySiteSavePointPendingSerializer(my_site, data={'wkb_geometry_pending': geom_str}, context={'validate_distance': True})
                                 serializer.is_valid(raise_exception=True)
                                 serializer.save()
                                 self.log_user_action(ProposalUserAction.APIARY_SITE_MOVED.format(apiary_site['id'], prev_coordinates, (apiary_site['coordinates_moved']['lng'], apiary_site['coordinates_moved']['lat'])), request)
@@ -2772,7 +2772,7 @@ class ProposalApiary(models.Model):
                         if len(sites_approved) == 0:
                             raise ValidationError("There must be at least one apiary site to approve")
 
-                        self.update_apiary_sites(approval, sites_received, request)
+                        self._update_apiary_sites(approval, sites_received, request)
 
                         # Check the current annual rental fee period
                         # Determine the start and end date of the annual rental fee, for which the invoices should be issued
@@ -3045,27 +3045,31 @@ class ProposalApiary(models.Model):
             except:
                 raise
 
-    def update_apiary_sites(self, approval, sites_approved, request):
+    def _update_apiary_sites(self, approval, sites_approved, request):
         for my_site in sites_approved:
             a_site = ApiarySite.objects.get(id=my_site['id'])
             if my_site['checked']:
                 a_site.approval = approval
                 a_site.status = ApiarySite.STATUS_CURRENT
-                a_site.workflow_selected_status = True
             else:
                 a_site.status = ApiarySite.STATUS_DENIED
-                a_site.workflow_selected_status = False
-            a_site.save()
+            # Reset selected status to make the checkboxes unticked when renewal or so
+            a_site.workflow_selected_status = False
 
             # Apiary Site can be moved by assessor and/or approver
             if 'coordinates_moved' in my_site:
-                prev_coordinates = a_site.wkb_geometry.get_coords()
+                prev_coordinates = a_site.wkb_geometry_pending.get_coords()
                 geom_str = GEOSGeometry('POINT(' + str(my_site['coordinates_moved']['lng']) + ' ' + str(my_site['coordinates_moved']['lat']) + ')', srid=4326)
-                from disturbance.components.proposals.serializers_apiary import ApiarySiteSavePointSerializer
-                serializer = ApiarySiteSavePointSerializer(a_site, data={'wkb_geometry': geom_str}, context={'validate_distance': True})
+                from disturbance.components.proposals.serializers_apiary import ApiarySiteSavePointPendingSerializer
+                serializer = ApiarySiteSavePointPendingSerializer(a_site, data={'wkb_geometry_pending': geom_str}, context={'validate_distance': True})
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
                 a_site.proposal_apiary.proposal.log_user_action(ProposalUserAction.APIARY_SITE_MOVED.format(my_site['id'], prev_coordinates, (my_site['coordinates_moved']['lng'], my_site['coordinates_moved']['lat'])), request)
+
+            # Because this is final approval, copy pending geometry to the geometry field (approved geometry field).
+            a_site.wkb_geometry = a_site.wkb_geometry_pending
+            a_site.wkb_geometry_pending = None
+            a_site.save()
 
 
 class SiteCategory(models.Model):
@@ -3231,6 +3235,10 @@ class ApiarySite(models.Model):
     TRANSITABLE_STATUSES = (STATUS_NOT_TO_BE_REISSUED, STATUS_DENIED,)
     RENEWABLE_STATUS = (STATUS_CURRENT, STATUS_SUSPENDED,)
 
+    GEOMETRY_CONDITION_APPROVED = 'approved'
+    GEOMETRY_CONDITION_APPLIED = 'applied'
+    GEOMETRY_CONDITION_PENDING = 'pending'
+
     #TODO - this should link to Proposal, not ProposalApiary
     #proposal = models.ForeignKey(Proposal, null=True, blank=True, related_name='apiary_sites')
     proposal_apiary = models.ForeignKey(ProposalApiary, null=True, blank=True, related_name='apiary_sites')
@@ -3243,8 +3251,9 @@ class ApiarySite(models.Model):
     district = models.ForeignKey(District, null=True, blank=True)
     status = models.CharField(max_length=40, choices=STATUS_CHOICES, default=STATUS_CHOICES[0][0])
     workflow_selected_status = models.BooleanField(default=False)  # This field is used only during approval process to select/deselect the site to be approved
-    wkb_geometry = PointField(srid=4326, blank=True, null=True)
-    wkb_geometry_applied = PointField(srid=4326, blank=True, null=True)
+    wkb_geometry = PointField(srid=4326, blank=True, null=True)  # store approved geometry
+    wkb_geometry_applied = PointField(srid=4326, blank=True, null=True)  # store original geometry
+    wkb_geometry_pending = PointField(srid=4326, blank=True, null=True)  # store the geometry moved by the assessor and/or approver during processing
     objects = GeoManager()
 
     def __str__(self):

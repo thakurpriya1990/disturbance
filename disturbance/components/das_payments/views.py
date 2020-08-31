@@ -468,9 +468,10 @@ class ApplicationFeeSuccessView(TemplateView):
     def adjust_db_operations(self, db_operations):
         for item in db_operations['apiary_sites']:
             apiary_site = ApiarySite.objects.get(id=item['id'])
-            if apiary_site.status != ApiarySite.STATUS_VACANT:
+            if apiary_site.status == ApiarySite.STATUS_DRAFT:
                 # If the apiary site in the proposal is in the 'vacant' status, which has been available site the applicant of this application picked up from the map
                 # In that case, we don't want to change the status from 'vacant' to 'pending'
+                # Only the apiary site in 'Draft' status can get 'Pending' status
                 apiary_site.status = ApiarySite.STATUS_PENDING
                 apiary_site.save()
 
