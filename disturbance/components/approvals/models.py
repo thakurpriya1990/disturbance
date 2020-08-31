@@ -281,14 +281,16 @@ class Approval(RevisionedMixin):
         # self.current_proposal.save(version_comment='Created Approval PDF: {}'.format(self.licence_document.name))
 
     def generate_doc(self, request_user, preview=False):
-        return self.generate_apiary_licence_doc(self.current_proposal, request_user, preview)
-        # copied_to_permit = self.copiedToPermit_fields(self.current_proposal)  # Get data related to isCopiedToPermit tag
-        # if preview:
-        #     pdf_contents = create_apiary_licence_pdf_contents(self, self.current_proposal, copied_to_permit, user)
-        #     return pdf_contents
-        # self.licence_document = create_approval_document(self, self.current_proposal, copied_to_permit, user)
-        # self.save(version_comment='Created Approval PDF: {}'.format(self.licence_document.name))
-        # self.current_proposal.save(version_comment='Created Approval PDF: {}'.format(self.licence_document.name))
+        if self.apiary_approval:
+            return self.generate_apiary_licence_doc(self.current_proposal, request_user, preview)
+        else:
+            from disturbance.components.approvals.pdf import create_approval_doc, create_approval_pdf_bytes
+            copied_to_permit = self.copiedToPermit_fields(self.current_proposal) #Get data related to isCopiedToPermit tag
+            if preview:
+                return create_approval_pdf_bytes(self,self.current_proposal, copied_to_permit, user)
+            self.licence_document = create_approval_doc(self,self.current_proposal, copied_to_permit, user)
+            self.save(version_comment='Created Approval PDF: {}'.format(self.licence_document.name))
+            self.current_proposal.save(version_comment='Created Approval PDF: {}'.format(self.licence_document.name))
 
     def generate_apiary_licence_doc(self, proposal, request_user, preview=False):
         copied_to_permit = self.copiedToPermit_fields(proposal) #Get data related to isCopiedToPermit tag
