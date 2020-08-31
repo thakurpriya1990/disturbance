@@ -1129,11 +1129,12 @@ class Proposal(RevisionedMixin):
                 self.save()
 
                 # Update apiary site status
-                proposal_id = request.data.get('proposal', 0)
-                proposal = Proposal.objects.get(id=int(proposal_id))
-                for apiary_site in proposal.proposal_apiary.apiary_sites.all():
-                    apiary_site.status = ApiarySite.STATUS_DENIED
-                    apiary_site.save()
+                # proposal_id = request.data.get('proposal', 0)
+                # proposal = Proposal.objects.get(id=int(proposal_id))
+                if self.proposal_apiary and self.proposal_apiary.apiary_sites:
+                    for apiary_site in self.proposal_apiary.apiary_sites.all():
+                        apiary_site.status = ApiarySite.STATUS_DENIED
+                        apiary_site.save()
 
                 # Log proposal action
                 self.log_user_action(ProposalUserAction.ACTION_DECLINE.format(self.id),request)
