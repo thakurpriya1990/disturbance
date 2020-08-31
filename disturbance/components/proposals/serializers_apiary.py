@@ -428,6 +428,31 @@ class ApiarySiteExportSerializer(GeoFeatureModelSerializer):
             'name',
         )
 
+class ApiarySiteLicenceDocSerializer(serializers.ModelSerializer):
+    site_category = serializers.CharField(source='site_category.name')
+    coords = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ApiarySite
+
+        fields = (
+            'id',
+            'coords',
+            'site_category',
+        )
+
+    def get_coords(self, apiary_site):
+        try:
+            geometry_condition = self.context.get('geometry_condition', ApiarySite.GEOMETRY_CONDITION_APPROVED)
+            if geometry_condition == ApiarySite.GEOMETRY_CONDITION_APPLIED:
+                return {'lng': apiary_site.wkb_geometry_applied.x, 'lat': apiary_site.wkb_geometry_applied.y}
+            elif geometry_condition == ApiarySite.GEOMETRY_CONDITION_PENDING:
+                return {'lng': apiary_site.wkb_geometry_pending.x, 'lat': apiary_site.wkb_geometry_pending.y}
+            else:
+                return {'lng': apiary_site.wkb_geometry.x, 'lat': apiary_site.wkb_geometry.y}
+        except:
+            return {'lng': '', 'lat': ''}
+
 
 class ApiarySiteAppliedGeojsonSerializer(GeoFeatureModelSerializer):
     site_category = serializers.CharField(source='site_category.name')
