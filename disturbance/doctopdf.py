@@ -7,6 +7,7 @@ from disturbance.components.main.models import ApiaryGlobalSettings
 
 
 def create_apiary_licence_pdf_contents(approval, proposal, copied_to_permit, approver):
+    #import ipdb; ipdb.set_trace()
     # print ("Letter File")
     # confirmation_doc = None
     # if booking.annual_booking_period_group.letter:
