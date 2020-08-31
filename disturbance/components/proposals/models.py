@@ -1192,6 +1192,7 @@ class Proposal(RevisionedMixin):
                         applicant = self.applicant,
                         proxy_applicant = self.proxy_applicant,
                         lodgement_number = lodgement_number,
+                        apiary_approval = self.apiary_group_application_type,
                     )
 
                     # Generate the preview document - get the value of the BytesIO buffer
