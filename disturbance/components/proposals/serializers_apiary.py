@@ -98,11 +98,15 @@ class VersionSerializer(serializers.ModelSerializer):
                         # Exclude these fields from the result
                         payload.pop("wkb_geometry", None)
                         payload.pop("wkb_geometry_applied", None)
+                        payload.pop("wkb_geometry_pending", None)
                         payload.pop("objects", None)
                         payload.pop("site_guid", None)
                         wkb_geometry = record.field_dict.get('wkb_geometry')
                         if wkb_geometry:
                             payload['coords'] = wkb_geometry.get_coords()
+                        wkb_geometry_pending = record.field_dict.get('wkb_geometry_pending')
+                        if wkb_geometry_pending:
+                            payload['pending_coords'] = wkb_geometry_pending.get_coords()
                         apiary_sites.append({record.object._meta.model_name: payload})
                     else:
                         #print("record.object._meta.model_name")
