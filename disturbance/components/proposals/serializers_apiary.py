@@ -277,18 +277,6 @@ class ApiarySiteSavePointPendingSerializer(GeoFeatureModelSerializer):
         fields = ('wkb_geometry_pending',)
 
 
-class ApiarySiteSavePointAppliedSerializer(GeoFeatureModelSerializer):
-
-    def validate(self, attrs):
-        perform_validation(self, attrs['wkb_geometry_applied'])
-        return attrs
-
-    class Meta:
-        model = ApiarySite
-        geo_field = 'wkb_geometry_applied'
-        fields = ('wkb_geometry_applied',)
-
-
 class ApiarySiteSavePointSerializer(GeoFeatureModelSerializer):
 
     def validate(self, attrs):
@@ -310,7 +298,6 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
     as_geojson = serializers.SerializerMethodField()
     previous_site_holder_or_applicant = serializers.SerializerMethodField()
     status = CustomChoiceField(read_only=True)
-    wkb_geometry_applied = serializers.SerializerMethodField()
 
     def validate(self, attrs):
         return attrs
@@ -333,33 +320,20 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
         #     return ApiarySiteGeojsonSerializer(apiary_site).data
 
         # TODO: return serialized data according to the apiary_site.status and/or the type of self.root (which is root Serializer)
-        if apiary_site.status == ApiarySite.STATUS_DRAFT:
-            return ApiarySiteAppliedGeojsonSerializer(apiary_site).data
-        elif apiary_site.status == ApiarySite.STATUS_PENDING:
+        if apiary_site.status in (ApiarySite.STATUS_DRAFT, ApiarySite.STATUS_PENDING,):
             return ApiarySitePendingGeojsonSerializer(apiary_site).data
         elif apiary_site.status == ApiarySite.STATUS_CURRENT:
             root_class = type(self.root)
             root_class_name = root_class.__name__
             if 'proposal' in root_class_name.lower():
-                if 'internal' in root_class_name.lower():
-                    if apiary_site.wkb_geometry_pending:
-                        # Accessed probably for the renewal.  Already saved at lease once
-                        return ApiarySitePendingGeojsonSerializer(apiary_site).data
-                    else:
-                        # Accessed probably for the renewal for the first time
-                        return ApiarySiteGeojsonSerializer(apiary_site).data
+                if apiary_site.wkb_geometry_pending:
+                    # Accessed probably for the renewal.  Already saved at lease once
+                    return ApiarySitePendingGeojsonSerializer(apiary_site).data
                 else:
-                    if apiary_site.wkb_geometry_applied:
-                        # Accessed probably for the renewal.  Already saved at lease once
-                        return ApiarySiteAppliedGeojsonSerializer(apiary_site).data
-                    elif apiary_site.wkb_geometry_pending:
-                        # Accessed probably for the renewal.  Already submitted
-                        return ApiarySitePendingGeojsonSerializer(apiary_site).data
-                    else:
-                        # Accessed probably for the renewal for the first time
-                        return ApiarySiteGeojsonSerializer(apiary_site).data
+                    # Accessed probably for the renewal for the first time
+                    return ApiarySiteGeojsonSerializer(apiary_site).data
             else:
-                # Accessed not for proposal
+                # Accessed not for proposal, which means for licence
                 return ApiarySiteGeojsonSerializer(apiary_site).data
         else:
             return ApiarySiteGeojsonSerializer(apiary_site).data
@@ -375,12 +349,6 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
                 return {'lng': apiary_site.wkb_geometry.x, 'lat': apiary_site.wkb_geometry.y}
         except:
             return {'lng': '', 'lat': ''}
-
-    def get_wkb_geometry_applied(self, obj):
-        if obj.wkb_geometry_applied:
-            return [obj.wkb_geometry_applied.tuple[0], obj.wkb_geometry_applied.tuple[1]]
-        else:
-            return None
 
     class Meta:
         model = ApiarySite
@@ -398,7 +366,6 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
             'status',
             'workflow_selected_status',
             'previous_site_holder_or_applicant',
-            'wkb_geometry_applied',
         )
 
 
@@ -428,6 +395,7 @@ class ApiarySiteExportSerializer(GeoFeatureModelSerializer):
             'name',
         )
 
+
 class ApiarySiteLicenceDocSerializer(serializers.ModelSerializer):
     site_category = serializers.CharField(source='site_category.name')
     coords = serializers.SerializerMethodField()
@@ -452,32 +420,6 @@ class ApiarySiteLicenceDocSerializer(serializers.ModelSerializer):
                 return {'lng': apiary_site.wkb_geometry.x, 'lat': apiary_site.wkb_geometry.y}
         except:
             return {'lng': '', 'lat': ''}
-
-
-class ApiarySiteAppliedGeojsonSerializer(GeoFeatureModelSerializer):
-    site_category = serializers.CharField(source='site_category.name')
-    stable_coords = serializers.SerializerMethodField()
-
-    class Meta:
-        model = ApiarySite
-        geo_field = 'wkb_geometry_applied'
-
-        fields = (
-            'id',
-            'site_guid',
-            'available',
-            'wkb_geometry_applied',
-            'site_category',
-            'status',
-            'workflow_selected_status',
-            'stable_coords',
-        )
-
-    def get_stable_coords(self, obj):
-        if obj.wkb_geometry_applied and obj.wkb_geometry_applied.tuple:
-            return [obj.wkb_geometry_applied.tuple[0], obj.wkb_geometry_applied.tuple[1]]
-        else:
-            return []
 
 
 class ApiarySitePendingGeojsonSerializer(GeoFeatureModelSerializer):
