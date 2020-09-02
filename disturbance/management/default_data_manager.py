@@ -1,9 +1,12 @@
 import datetime
+import json
 import logging
+import os
 
 import pytz
 from ledger.settings_base import TIME_ZONE
 
+from disturbance import settings
 from disturbance.components.main.models import ApplicationType, GlobalSettings, ApiaryGlobalSettings
 from disturbance.components.proposals.models import ApiarySiteFeeType, SiteCategory, ApiarySiteFee, ProposalType, \
     ApiaryAnnualRentalFeePeriodStartDate, ApiaryAnnualRentalFeeRunDate, ApiaryAnnualRentalFee
@@ -14,6 +17,14 @@ logger = logging.getLogger(__name__)
 class DefaultDataManager(object):
 
     def __init__(self):
+        # Region/District
+        path_to_regions = os.path.join(settings.BASE_DIR, 'disturbance', 'static', 'disturbance', 'DBCA_regions.geojson')
+        path_to_districts = os.path.join(settings.BASE_DIR, 'disturbance', 'static', 'disturbance', 'DBCA_districts.geojson')
+
+        with open(path_to_regions) as f:
+            data = json.load(f)
+            pass
+
         # Store
         for item in GlobalSettings.default_values:
             obj, created = GlobalSettings.objects.get_or_create(key=item[0])
