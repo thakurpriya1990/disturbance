@@ -5,6 +5,7 @@ import os
 import datetime
 
 import pytz
+import requests
 from django.contrib.gis.db.models.fields import PointField
 from django.contrib.gis.db.models.manager import GeoManager
 from django.contrib.gis.geos import GEOSGeometry
@@ -3263,6 +3264,42 @@ class ApiarySite(models.Model):
 
     def __str__(self):
         return '{} - status: {}'.format(self.id, self.status)
+
+    def get_tenure(self):
+        try:
+            URL = 'https://kmi.dpaw.wa.gov.au/geoserver/public/wms'
+            coords = self.wkb_geometry.get_coords()
+            PARAMS = {
+                'SERVICE': 'WMS',
+                'VERSION': '1.1.1',
+                'REQUEST': 'GetFeatureInfo',
+                'FORMAT': 'image/png',
+                'TRANSPARENT': True,
+                'QUERY_LAYERS': 'public:dpaw_lands_and_waters',
+                'STYLES': '',
+                'LAYERS': 'public:dpaw_lands_and_waters',
+                'INFO_FORMAT': 'application/json',
+                'FEATURE_COUNT': 1,  # Features should not be overwrapped
+                'X': 50,
+                'Y': 50,
+                'SRS': 'EPSG:4283',
+                'WIDTH': 101,
+                'HEIGHT': 101,
+                'BBOX': str(coords[0] - 0.0001) + ',' + str(coords[1] - 0.0001) + ',' + str(coords[0] + 0.0001) + ',' + str(coords[1] + 0.0001),
+            }
+            res = requests.get(url=URL, params=PARAMS)
+            geo_json = res.json()
+            tenure_name = ''
+            if len(geo_json['features']) > 0:
+                tenure_name = geo_json['features'][0]['properties']['tenure']
+            return tenure_name
+
+        except:
+            return ''
+
+    def get_region_district(self):
+        # TODO: get request
+        return 'TODO region/district'
 
     def get_current_application_fee_per_site(self):
         current_fee = self.site_category.current_application_fee_per_site
