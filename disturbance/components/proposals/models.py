@@ -3259,7 +3259,7 @@ class ApiarySite(models.Model):
     # When processing the proposal, an apiary site needs to keep two coordinates, one is approved coordinate and the other one is the coordinates being processed
     wkb_geometry = PointField(srid=4326, blank=True, null=True)  # store approved coordinates
     wkb_geometry_pending = PointField(srid=4326, blank=True, null=True)  # store the coordinates, which might be moved by the assessor and/or approver during processing
-    wkb_geometry_applied = PointField(srid=4328, blank=True, null=True)  # store original geometry.  But not used at the moment.
+    wkb_geometry_applied = PointField(srid=4326, blank=True, null=True)  # store original geometry.  But not used at the moment.
     objects = GeoManager()
 
     def __str__(self):
