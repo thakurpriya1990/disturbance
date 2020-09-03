@@ -9,6 +9,7 @@ import requests
 from django.contrib.gis.db.models.fields import PointField
 from django.contrib.gis.db.models.manager import GeoManager
 from django.contrib.gis.geos import GEOSGeometry
+from django.contrib.postgres.fields import ArrayField
 from django.db import models,transaction
 from django.contrib.gis.db import models as gis_models
 from django.db.models import Q
@@ -3244,6 +3245,7 @@ class ApiarySite(models.Model):
     GEOMETRY_CONDITION_PENDING = 'pending'
 
     proposal_apiary = models.ForeignKey(ProposalApiary, null=True, blank=True, related_name='apiary_sites')
+    proposal_apiaries = ArrayField(models.IntegerField(), blank=True, null=True)
     approval = models.ForeignKey('disturbance.Approval', null=True, blank=True, related_name='apiary_sites')
     site_guid = models.CharField(max_length=50, blank=True)
     available = models.BooleanField(default=False, )
