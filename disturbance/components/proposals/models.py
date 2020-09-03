@@ -31,7 +31,8 @@ from disturbance import exceptions
 # from disturbance.components.das_payments.models import AnnualRentalFee, AnnualRentalFeeApiarySite
 # from disturbance.components.das_payments.utils import create_other_invoice_for_annual_rental_fee
 from disturbance.components.organisations.models import Organisation
-from disturbance.components.main.models import CommunicationsLogEntry, UserAction, Document, Region, District, Tenure, ApplicationType
+from disturbance.components.main.models import CommunicationsLogEntry, UserAction, Document, Region, District, Tenure, \
+    ApplicationType, RegionDbca, DistrictDbca
 from disturbance.components.main.utils import get_department_user
 from disturbance.components.proposals.email import (
         send_referral_email_notification, 
@@ -3298,8 +3299,19 @@ class ApiarySite(models.Model):
             return ''
 
     def get_region_district(self):
-        # TODO: get request
-        return 'TODO region/district'
+        try:
+            regions = RegionDbca.objects.filter(wkb_geometry__contains=self.wkb_geometry)
+            districts = DistrictDbca.objects.filter(wkb_geometry__contains=self.wkb_geometry)
+            text_arr = []
+            if regions:
+                text_arr.append(regions.first().region_name)
+            if districts:
+                text_arr.append(districts.first().district_name)
+
+            ret_text = '/'.join(text_arr)
+            return ret_text
+        except:
+            return ''
 
     def get_current_application_fee_per_site(self):
         current_fee = self.site_category.current_application_fee_per_site
