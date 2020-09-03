@@ -308,12 +308,14 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
         return attrs
 
     def get_previous_site_holder_or_applicant(self, apiary_site):
-        if apiary_site.approval:
-            relevant_applicant_name = apiary_site.approval.relevant_applicant_name
-        else:
-            relevant_applicant_name = apiary_site.proposal_apiary.proposal.relevant_applicant_name
-
-        return relevant_applicant_name
+        try:
+            if apiary_site.approval:
+                relevant_applicant_name = apiary_site.approval.relevant_applicant_name
+            else:
+                relevant_applicant_name = apiary_site.proposal_apiary.proposal.relevant_applicant_name
+            return relevant_applicant_name
+        except:
+            return ''
 
     def get_as_geojson(self, apiary_site):
         # geometry_condition = self.context.get('geometry_condition', ApiarySite.GEOMETRY_CONDITION_APPROVED)
@@ -371,6 +373,7 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
             'status',
             'workflow_selected_status',
             'previous_site_holder_or_applicant',
+            'proposal_apiary_ids',
         )
 
 
@@ -526,6 +529,7 @@ class SiteTransferApiarySiteSerializer(serializers.ModelSerializer):
 
 class ProposalApiarySerializer(serializers.ModelSerializer):
     apiary_sites = ApiarySiteSerializer(read_only=True, many=True)
+    apiary_sites_2 = serializers.SerializerMethodField()
     #site_transfer_apiary_sites = SiteTransferApiarySiteSerializer(read_only=True, many=True)
     transfer_apiary_sites = serializers.SerializerMethodField()
     on_site_information_list = serializers.SerializerMethodField()  # This is used for displaying OnSite table at the frontend
@@ -550,6 +554,7 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
             'title',
             'proposal',
             'apiary_sites',
+            'apiary_sites_2',
             #'site_transfer_apiary_sites',
             'transfer_apiary_sites',
             'longitude',
@@ -569,6 +574,22 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
             'transferee_first_name',
             'transferee_last_name',
         )
+
+    def get_apiary_sites_2(self, proposal_apiary):
+        apiary_sites = ApiarySiteSerializer(proposal_apiary.apiary_sites, many=True)
+        list1 = apiary_sites.data
+
+        # 'vacant' sites
+        vacant_sites = ApiarySite.objects.filter(proposal_apiary_ids__contains=[proposal_apiary.id,])
+        if vacant_sites:
+            # There are 'vacant' sites
+            v_sites = ApiarySiteSerializer(vacant_sites, many=True)
+            # Merge them
+            list2 = v_sites.data
+            ret = list1 + list2
+            return ret
+
+        return list1
 
     def get_transfer_apiary_sites(self, obj):
         #import ipdb;ipdb.set_trace()

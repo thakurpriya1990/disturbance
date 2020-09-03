@@ -3245,7 +3245,7 @@ class ApiarySite(models.Model):
     GEOMETRY_CONDITION_PENDING = 'pending'
 
     proposal_apiary = models.ForeignKey(ProposalApiary, null=True, blank=True, related_name='apiary_sites')
-    proposal_apiaries = ArrayField(models.IntegerField(), blank=True, null=True)
+    proposal_apiary_ids = ArrayField(models.IntegerField(), blank=True, null=True)  # When this apiary site is 'vacant', store all the proposal_apiaries which have this apiary site
     approval = models.ForeignKey('disturbance.Approval', null=True, blank=True, related_name='apiary_sites')
     site_guid = models.CharField(max_length=50, blank=True)
     available = models.BooleanField(default=False, )
