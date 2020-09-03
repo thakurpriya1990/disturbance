@@ -38,6 +38,17 @@ class District(models.Model):
         return self.name
 
 
+class DistrictDbca(models.Model):
+    wkb_geometry = MultiPolygonField(srid=4326, blank=True, null=True)
+    district_name = models.CharField(max_length=200, blank=True, null=True)
+    office = models.CharField(max_length=200, blank=True, null=True)
+    object_id = models.PositiveIntegerField(blank=True, null=True)
+
+    class Meta:
+        ordering = ['object_id',]
+        app_label = 'disturbance'
+
+
 class RegionDbca(models.Model):
     wkb_geometry = MultiPolygonField(srid=4326, blank=True, null=True)
     region_name = models.CharField(max_length=200, blank=True, null=True)
