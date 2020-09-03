@@ -3241,8 +3241,6 @@ class ApiarySite(models.Model):
     GEOMETRY_CONDITION_APPLIED = 'applied'
     GEOMETRY_CONDITION_PENDING = 'pending'
 
-    #TODO - this should link to Proposal, not ProposalApiary
-    #proposal = models.ForeignKey(Proposal, null=True, blank=True, related_name='apiary_sites')
     proposal_apiary = models.ForeignKey(ProposalApiary, null=True, blank=True, related_name='apiary_sites')
     approval = models.ForeignKey('disturbance.Approval', null=True, blank=True, related_name='apiary_sites')
     site_guid = models.CharField(max_length=50, blank=True)
@@ -3258,7 +3256,7 @@ class ApiarySite(models.Model):
     # When processing the proposal, an apiary site needs to keep two coordinates, one is approved coordinate and the other one is the coordinates being processed
     wkb_geometry = PointField(srid=4326, blank=True, null=True)  # store approved coordinates
     wkb_geometry_pending = PointField(srid=4326, blank=True, null=True)  # store the coordinates, which might be moved by the assessor and/or approver during processing
-    wkb_geometry_applied = PointField(srid=4328, blank=True, null=True)  # store original geometry.  But not used at the moment.
+    wkb_geometry_applied = PointField(srid=4326, blank=True, null=True)  # store original geometry.  But not used at the moment.
     objects = GeoManager()
 
     def __str__(self):
