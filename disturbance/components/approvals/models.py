@@ -369,6 +369,13 @@ class Approval(RevisionedMixin):
                 site.status = ApiarySite.STATUS_NOT_TO_BE_REISSUED
             elif approval_status == Approval.STATUS_EXPIRED:
                 site.status = ApiarySite.STATUS_VACANT
+                site.approval = None
+                site.proposal_apiary = None
+                site.available = False
+                site.wkb_geometry_pending = None  # Just to make sure it is None
+                site.wkb_geometry_applied = None  # Just to make sure it is None
+                site.workflow_selected_status = False
+
             elif approval_status == Approval.STATUS_CURRENT:
                 site.status = ApiarySite.STATUS_CURRENT
 
