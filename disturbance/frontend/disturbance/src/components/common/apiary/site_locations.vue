@@ -1105,6 +1105,8 @@
 
             for (let i=0; i<vm.proposal.proposal_apiary.apiary_sites.length; i++){
                  let apiary_site = vm.proposal.proposal_apiary.apiary_sites[i]
+                 console.log('*** apiary site ***')
+                 console.log('apiary site')
 
                  //let feature = new Feature(new Point([apiary_site.coordinates.lng, apiary_site.coordinates.lat]));
                  //feature.setId(apiary_site.site_guid);
