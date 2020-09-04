@@ -504,7 +504,7 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                 ids = []
                 for index, feature in enumerate(site_locations_received):
                     feature['proposal_apiary_id'] = proposal_obj.proposal_apiary.id
-                    proposal_apiary_ids = []  # For 'vacant' site to have associations with multiple proposal apiaries
+                    # proposal_apiary_ids = []  # For 'vacant' site to have associations with multiple proposal apiaries
 
                     try:
                         # Update existing
@@ -519,9 +519,12 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                             a_site = ApiarySite.objects.get(site_guid=feature['values_']['site_guid'])
                             if a_site.status == ApiarySite.STATUS_VACANT:
                                 del feature['proposal_apiary_id']  # We use proposal_apiary_ids field instead for the 'vacant' apiary site
-                                proposal_apiary_ids = a_site.proposal_apiary_ids if a_site.proposal_apiary_ids else []
-                                proposal_apiary_ids.append(proposal_obj.proposal_apiary.id)
-                                proposal_apiary_ids = list(set(proposal_apiary_ids))
+                                # proposal_apiary_ids = a_site.proposal_apiary_ids if a_site.proposal_apiary_ids else []
+                                # proposal_apiary_ids.append(proposal_obj.proposal_apiary.id)
+                                # proposal_apiary_ids = list(set(proposal_apiary_ids))
+                                proposal_obj.proposal_apiary.vacant_apiary_site = a_site
+                                proposal_obj.proposal_apiary.save()
+
                             serializer = ApiarySiteSerializer(a_site, data=feature)
                             # serializer = None
                     except KeyError:  # when 'site_guid' is not defined above
@@ -563,9 +566,9 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                         serializer.save()
                         ids.append(apiary_site_obj.id)
 
-                        if len(proposal_apiary_ids):
-                            apiary_site_obj.proposal_apiary_ids = proposal_apiary_ids
-                            apiary_site_obj.save()
+                        # if len(proposal_apiary_ids):
+                        #     apiary_site_obj.proposal_apiary_ids = proposal_apiary_ids
+                        #     apiary_site_obj.save()
 
                 for id in ids:
                     site = ApiarySite.objects.get(id=id)

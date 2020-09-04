@@ -2464,7 +2464,7 @@ class ProposalApiary(models.Model):
     transferee = models.ForeignKey(EmailUser, blank=True, null=True, related_name='apiary_transferee')
     originating_approval = models.ForeignKey('disturbance.Approval', blank=True, null=True, related_name="site_transfer_originating_approval")
     target_approval = models.ForeignKey('disturbance.Approval', blank=True, null=True, related_name="site_transfer_target_approval")
-    vacant_apiary_site = models.ForeignKey('ApiarySite', blank=True, null=True, related_name='proposal_apiaries')
+    # vacant_apiary_site = models.ForeignKey('ApiarySite', blank=True, null=True, related_name='proposal_apiaries')
     ###
 
     # @property
@@ -3246,7 +3246,8 @@ class ApiarySite(models.Model):
     GEOMETRY_CONDITION_PENDING = 'pending'
 
     proposal_apiary = models.ForeignKey(ProposalApiary, null=True, blank=True, related_name='apiary_sites')
-    proposal_apiary_ids = ArrayField(models.IntegerField(), blank=True, null=True)  # When this apiary site is 'vacant', store all the proposal_apiaries which have this apiary site
+    proposal_apiaries = models.ManyToManyField(ProposalApiary, related_name='vacant_apiary_sites')
+    # proposal_apiary_ids = ArrayField(models.IntegerField(), blank=True, null=True)  # When this apiary site is 'vacant', store all the proposal_apiaries which have this apiary site
     approval = models.ForeignKey('disturbance.Approval', null=True, blank=True, related_name='apiary_sites')
     site_guid = models.CharField(max_length=50, blank=True)
     available = models.BooleanField(default=False, )
