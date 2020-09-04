@@ -528,8 +528,8 @@ class SiteTransferApiarySiteSerializer(serializers.ModelSerializer):
 
 
 class ProposalApiarySerializer(serializers.ModelSerializer):
-    apiary_sites = ApiarySiteSerializer(read_only=True, many=True)
-    apiary_sites_2 = serializers.SerializerMethodField()
+    # apiary_sites = ApiarySiteSerializer(read_only=True, many=True)
+    apiary_sites = serializers.SerializerMethodField()
     #site_transfer_apiary_sites = SiteTransferApiarySiteSerializer(read_only=True, many=True)
     transfer_apiary_sites = serializers.SerializerMethodField()
     on_site_information_list = serializers.SerializerMethodField()  # This is used for displaying OnSite table at the frontend
@@ -554,7 +554,7 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
             'title',
             'proposal',
             'apiary_sites',
-            'apiary_sites_2',
+            # 'apiary_sites_2',
             #'site_transfer_apiary_sites',
             'transfer_apiary_sites',
             'longitude',
@@ -575,7 +575,7 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
             'transferee_last_name',
         )
 
-    def get_apiary_sites_2(self, proposal_apiary):
+    def get_apiary_sites(self, proposal_apiary):
         apiary_sites = ApiarySiteSerializer(proposal_apiary.apiary_sites, many=True)
         list1 = apiary_sites.data
 
