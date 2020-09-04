@@ -1,4 +1,5 @@
 import pytz
+import requests
 from django.conf import settings
 from datetime import datetime, timedelta, date
 
@@ -403,6 +404,8 @@ class ApiarySiteExportSerializer(GeoFeatureModelSerializer):
 class ApiarySiteLicenceDocSerializer(serializers.ModelSerializer):
     site_category = serializers.CharField(source='site_category.name')
     coords = serializers.SerializerMethodField()
+    tenure = serializers.SerializerMethodField()
+    region_district = serializers.SerializerMethodField()
 
     class Meta:
         model = ApiarySite
@@ -411,7 +414,23 @@ class ApiarySiteLicenceDocSerializer(serializers.ModelSerializer):
             'id',
             'coords',
             'site_category',
+            'tenure',
+            'region_district',
         )
+
+    def get_tenure(self, apiary_site):
+        try:
+            res = apiary_site.get_tenure()
+            return res
+        except:
+            return ''
+
+    def get_region_district(self, apiary_site):
+        try:
+            res = apiary_site.get_region_district()
+            return res
+        except:
+            return ''
 
     def get_coords(self, apiary_site):
         try:
