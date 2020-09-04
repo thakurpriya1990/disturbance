@@ -21,7 +21,7 @@ from disturbance.components.approvals.email import get_value_of_annual_rental_fe
     send_annual_rental_fee_invoice
 from disturbance.components.approvals.serializers import ApprovalLogEntrySerializer
 from disturbance.components.proposals.models import Proposal, ApiarySiteFeeRemainder, ApiarySiteFeeType, SiteCategory, \
-    ApiarySite
+    ApiarySite, ProposalApiary
 from disturbance.components.compliances.models import Compliance
 from disturbance.components.main.models import ApplicationType
 from disturbance.components.organisations.models import Organisation
@@ -470,12 +470,6 @@ class ApplicationFeeSuccessView(TemplateView):
             apiary_site = ApiarySite.objects.get(id=item['id'])
             apiary_site.status = ApiarySite.STATUS_PENDING
             apiary_site.save()
-            # if apiary_site.status == ApiarySite.STATUS_DRAFT:
-            #    # If the apiary site in the proposal is in the 'vacant' status, which has been available site the applicant of this application picked up from the map
-            #    # In that case, we don't want to change the status from 'vacant' to 'pending'
-            #    # Only the apiary site in 'Draft' status can get 'Pending' status
-            #    apiary_site.status = ApiarySite.STATUS_PENDING
-            #    apiary_site.save()
 
         # Perform database operations to remove and/or store site remainders
         # site remainders used
@@ -498,8 +492,18 @@ class ApplicationFeeSuccessView(TemplateView):
                 apiary_site_fee_type=apiary_site_fee_type,
                 applicant=applicant,
                 proxy_applicant=proxy_applicant,
-                # date_expiry=date_expiry,
             )
+
+        for apiary_site_id in db_operations['vacant_apiary_site_ids']:
+            try:
+                apiary_site = ApiarySite.objects.get(id=apiary_site_id, status=ApiarySite.STATUS_VACANT)
+                proposal_apiary = ProposalApiary.objects.get(id=int(db_operations['proposal_apiary_id']))
+                apiary_site.proposal_apiaries.clear()
+                apiary_site.proposal_apiary = proposal_apiary
+                apiary_site.status = ApiarySite.STATUS_PENDING
+                apiary_site.save()
+            except Exception, e:
+                logger.error('Error handling vacant apiary site after the payment: {}'.format(e))
 
 
 class AwaitingPaymentPDFView(View):
