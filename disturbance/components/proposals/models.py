@@ -2464,6 +2464,7 @@ class ProposalApiary(models.Model):
     transferee = models.ForeignKey(EmailUser, blank=True, null=True, related_name='apiary_transferee')
     originating_approval = models.ForeignKey('disturbance.Approval', blank=True, null=True, related_name="site_transfer_originating_approval")
     target_approval = models.ForeignKey('disturbance.Approval', blank=True, null=True, related_name="site_transfer_target_approval")
+    vacant_apiary_site = models.ForeignKey('ApiarySite', blank=True, null=True, related_name='proposal_apiaries')
     ###
 
     # @property
