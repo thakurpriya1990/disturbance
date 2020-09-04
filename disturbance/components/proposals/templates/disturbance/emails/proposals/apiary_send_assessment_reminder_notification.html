@@ -1,7 +1,7 @@
-{%  extends 'disturbance/emails/base_email.html' %}
+{%  extends 'disturbance/emails/apiary_base_email.html' %}
 
 {%  block content %}
-	The Proposal {{ proposal.lodgement_number }} is waiting for assessment.
+	The Application {{ proposal.lodgement_number }} is waiting for assessment.
 
 	<p>
 	Title: {{proposal.title}}<br>
@@ -16,9 +16,9 @@
 
 
     <p>
-    You can access this Proposal using the following link:
+    You can access this Application using the following link:
     </p>
-    <a href="{{url}}">Access Proposal</a>
+    <a href="{{url}}">Access Application</a>
 
 
 {%  endblock %}

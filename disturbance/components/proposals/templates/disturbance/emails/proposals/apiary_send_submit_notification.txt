@@ -1,7 +1,7 @@
-{%  extends 'disturbance/emails/base_email.txt' %}
+{%  extends 'disturbance/emails/apiary_base_email.txt' %}
 
 {%  block content %}
-    The Proposal {{ proposal.lodgement_number }} has been submitted and can be assessed.
+    The Application {{ proposal.lodgement_number }} has been submitted and can be assessed.
 
     Activity: {{proposal.activity}}
 	Region: {{proposal.region}}<br>
@@ -11,7 +11,7 @@
 		District: -
 	{% endif %}
    
-    You can access this Proposal using the following link:
+    You can access this Application using the following link:
   
     {{url}}
 

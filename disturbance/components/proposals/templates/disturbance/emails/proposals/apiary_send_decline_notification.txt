@@ -1,10 +1,10 @@
-{%  extends 'disturbance/emails/base_email.txt' %}
+{%  extends 'disturbance/emails/apiary_base_email.txt' %}
 
 {%  block content %}
    
       
     
-        Proposal {{proposal.lodgement_number}} has been declined.
+        Application {{proposal.lodgement_number}} has been declined.
 
    
 

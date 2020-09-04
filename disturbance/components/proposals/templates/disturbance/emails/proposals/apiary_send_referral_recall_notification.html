@@ -1,8 +1,8 @@
-{%  extends 'disturbance/emails/base_email.html' %}
+{%  extends 'disturbance/emails/apiary_base_email.html' %}
 
 {%  block content %}
-        <p>A referral for Proposal <strong>{{proposal.lodgement_number}}</strong> has been recalled.</p>
+        <p>A referral for Application <strong>{{proposal.lodgement_number}}</strong> has been recalled.</p>
         
-    <p>You can access this Proposal using the following link:</p>
-    <a href="{{url}}">Access Proposal</a>
+    <p>You can access this Application using the following link:</p>
+    <a href="{{url}}">Access Application</a>
 {%  endblock %}
