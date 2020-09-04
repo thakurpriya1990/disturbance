@@ -498,7 +498,9 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                         except:
                             pass
                 site_ids_existing = [site.id for site in ApiarySite.objects.filter(proposal_apiary_id=site_location_data['id'])]
+                site_ids_existing_vacant = [site.id for site in proposal_obj.proposal_apiary.vacant_apiary_sites.all()]
                 site_ids_delete = [id for id in site_ids_existing if id not in site_ids_received]
+                site_ids_delete_vacant = [id for id in site_ids_existing_vacant if id not in site_ids_received]
 
                 # Handle ApiarySites here
                 ids = []
@@ -517,13 +519,13 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                         except ApiarySite.DoesNotExist:
                             # Try to get this apiary site assuming it is 'vacant' site (available site)
                             a_site = ApiarySite.objects.get(site_guid=feature['values_']['site_guid'])
-                            if a_site.status == ApiarySite.STATUS_VACANT:
-                                del feature['proposal_apiary_id']  # We use proposal_apiary_ids field instead for the 'vacant' apiary site
+                            # if a_site.status == ApiarySite.STATUS_VACANT:
+                            #     del feature['proposal_apiary_id']  # We use proposal_apiaries field
                                 # proposal_apiary_ids = a_site.proposal_apiary_ids if a_site.proposal_apiary_ids else []
                                 # proposal_apiary_ids.append(proposal_obj.proposal_apiary.id)
                                 # proposal_apiary_ids = list(set(proposal_apiary_ids))
-                                proposal_obj.proposal_apiary.vacant_apiary_site = a_site
-                                proposal_obj.proposal_apiary.save()
+                                # proposal_obj.proposal_apiary.vacant_apiary_site = a_site
+                                # proposal_obj.proposal_apiary.save()
 
                             serializer = ApiarySiteSerializer(a_site, data=feature)
                             # serializer = None
@@ -566,9 +568,10 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                         serializer.save()
                         ids.append(apiary_site_obj.id)
 
-                        # if len(proposal_apiary_ids):
-                        #     apiary_site_obj.proposal_apiary_ids = proposal_apiary_ids
-                        #     apiary_site_obj.save()
+                        if apiary_site_obj.status == ApiarySite.STATUS_VACANT:
+                            apiary_site_obj.proposal_apiary = None  # This should be already None
+                            apiary_site_obj.proposal_apiaries.add(proposal_obj.proposal_apiary)
+                            apiary_site_obj.save()
 
                 for id in ids:
                     site = ApiarySite.objects.get(id=id)
@@ -596,6 +599,11 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                 # Update the site(s) which is picked up as proposed site
                 sites_updated = ApiarySite.objects.filter(id__in=site_ids_delete)
                 sites_updated.update(proposal_apiary=None)
+
+                # Delete association with 'vacant' site
+                sites_remove = ApiarySite.objects.filter(id__in=site_ids_delete_vacant, status=ApiarySite.STATUS_VACANT)
+                for vacant_site in sites_remove:
+                    vacant_site.proposal_apiaries.remove(proposal_obj.proposal_apiary)
 
             #save Temporary Use data
             temporary_use_data = request.data.get('apiary_temporary_use', None)

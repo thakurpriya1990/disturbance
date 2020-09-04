@@ -373,7 +373,7 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
             'status',
             'workflow_selected_status',
             'previous_site_holder_or_applicant',
-            'proposal_apiary_ids',
+            # 'proposal_apiary_ids',
         )
 
 
@@ -577,19 +577,10 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
 
     def get_apiary_sites(self, proposal_apiary):
         apiary_sites = ApiarySiteSerializer(proposal_apiary.apiary_sites, many=True)
-        list1 = apiary_sites.data
+        vacant_apiary_sites = ApiarySiteSerializer(proposal_apiary.vacant_apiary_sites, many=True)
+        merged = apiary_sites.data + vacant_apiary_sites.data
+        return merged
 
-        # 'vacant' sites
-        vacant_sites = ApiarySite.objects.filter(proposal_apiary_ids__contains=[proposal_apiary.id,])
-        if vacant_sites:
-            # There are 'vacant' sites
-            v_sites = ApiarySiteSerializer(vacant_sites, many=True)
-            # Merge them
-            list2 = v_sites.data
-            ret = list1 + list2
-            return ret
-
-        return list1
 
     def get_transfer_apiary_sites(self, obj):
         #import ipdb;ipdb.set_trace()
