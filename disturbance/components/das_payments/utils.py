@@ -183,9 +183,9 @@ def _get_site_fee_remainders(site_category, apiary_site_fee_type_name, applicant
     return site_fee_remainders
 
 
-def _sum_apiary_sites_per_category(apiary_sites):
+def _sum_apiary_sites_per_category(apiary_sites, vacant_apiary_sites):
     summary = {}
-    sum = []
+    db_process_after_success = []
     temp = {
             SiteCategory.CATEGORY_SOUTH_WEST: {
                 ApiarySiteFeeType.FEE_TYPE_APPLICATION: [],
@@ -202,15 +202,26 @@ def _sum_apiary_sites_per_category(apiary_sites):
             summary[apiary_site.site_category.id] += 1
         else:
             summary[apiary_site.site_category.id] = 1
-        sum.append({'id': apiary_site.id})
+        db_process_after_success.append({'id': apiary_site.id})
 
-        mySite = ApiarySite.objects.get(id=apiary_site.id)
-        if mySite.status in ApiarySite.RENEWABLE_STATUS:
-            temp[mySite.site_category.name][ApiarySiteFeeType.FEE_TYPE_RENEWAL].append(mySite)
+        if apiary_site.status in ApiarySite.RENEWABLE_STATUS:
+            temp[apiary_site.site_category.name][ApiarySiteFeeType.FEE_TYPE_RENEWAL].append(apiary_site)
         else:
-            temp[mySite.site_category.name][ApiarySiteFeeType.FEE_TYPE_APPLICATION].append(mySite)
+            temp[apiary_site.site_category.name][ApiarySiteFeeType.FEE_TYPE_APPLICATION].append(apiary_site)
 
-    return summary, sum, temp
+    for apiary_site in vacant_apiary_sites:
+        if apiary_site.site_category.id in summary:
+            summary[apiary_site.site_category.id] += 1
+        else:
+            summary[apiary_site.site_category.id] = 1
+        # db_process_after_success.append({'id': apiary_site.id})
+
+        if apiary_site.status in ApiarySite.RENEWABLE_STATUS:
+            temp[apiary_site.site_category.name][ApiarySiteFeeType.FEE_TYPE_RENEWAL].append(apiary_site)
+        else:
+            temp[apiary_site.site_category.name][ApiarySiteFeeType.FEE_TYPE_APPLICATION].append(apiary_site)
+
+    return summary, db_process_after_success, temp
 
 
 def _get_remainders_obj(number_of_sites_to_add_as_remainder, site_category_id, proposal, apiary_site_fee_type_name):
@@ -242,7 +253,9 @@ def create_fee_lines_apiary(proposal):
     db_process_after_success = {'apiary_sites': [], 'site_remainder_used': [], 'site_remainder_to_be_added': []}
 
     # Calculate total number of sites applied per category
-    summary, db_process_after_success['apiary_sites'], temp = _sum_apiary_sites_per_category(proposal.proposal_apiary.apiary_sites.all())
+    summary, db_process_after_success['apiary_sites'], temp = _sum_apiary_sites_per_category(proposal.proposal_apiary.apiary_sites.all(), proposal.proposal_apiary.vacant_apiary_sites.all())
+    db_process_after_success['vacant_apiary_site_ids'] = [site.id for site in proposal.proposal_apiary.vacant_apiary_sites.all()]
+    db_process_after_success['proposal_apiary_id'] = proposal.proposal_apiary.id
 
     # Calculate number of sites to calculate the fee
     # for site_category_id, number_of_sites_applied in summary.items():
