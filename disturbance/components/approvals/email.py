@@ -50,6 +50,43 @@ class ApprovalRenewalNotificationEmail(TemplateEmailBase):
     html_template = 'disturbance/emails/approval_renewal_notification.html'
     txt_template = 'disturbance/emails/approval_renewal_notification.txt'
 
+### Apiary templates
+
+class ApiaryApprovalExpireNotificationEmail(TemplateEmailBase):
+    subject = 'Your Licence has expired.'
+    html_template = 'disturbance/emails/apiary_approval_expire_notification.html'
+    txt_template = 'disturbance/emails/apiary_approval_expire_notification.txt'
+
+
+class ApiaryApprovalCancelNotificationEmail(TemplateEmailBase):
+    subject = 'Your Licence has been cancelled.'
+    html_template = 'disturbance/emails/apiary_approval_cancel_notification.html'
+    txt_template = 'disturbance/emails/apiary_approval_cancel_notification.txt'
+
+
+class ApiaryApprovalSuspendNotificationEmail(TemplateEmailBase):
+    subject = 'Your Licence has been suspended.'
+    html_template = 'disturbance/emails/apiary_approval_suspend_notification.html'
+    txt_template = 'disturbance/emails/apiary_approval_suspend_notification.txt'
+
+
+class ApiaryApprovalSurrenderNotificationEmail(TemplateEmailBase):
+    subject = 'Your Licence has been surrendered.'
+    html_template = 'disturbance/emails/apiary_approval_surrender_notification.html'
+    txt_template = 'disturbance/emails/apiary_approval_surrender_notification.txt'
+
+
+class ApiaryApprovalReinstateNotificationEmail(TemplateEmailBase):
+    subject = 'Your Licence has been reinstated.'
+    html_template = 'disturbance/emails/apiary_approval_reinstate_notification.html'
+    txt_template = 'disturbance/emails/apiary_approval_reinstate_notification.txt'
+
+
+class ApiaryApprovalRenewalNotificationEmail(TemplateEmailBase):
+    subject = 'Your Licence is due for renewal.'
+    html_template = 'disturbance/emails/apiary_approval_renewal_notification.html'
+    txt_template = 'disturbance/emails/apiary_approval_renewal_notification.txt'
+
 
 class ApprovalAnnualRentalFeeInvoiceEmail(TemplateEmailBase):
     subject = 'Annual rental fee invoice for your licence has been issued.'
@@ -171,7 +208,10 @@ def send_annual_rental_fee_invoice(approval, invoice):
 
 
 def send_approval_expire_email_notification(approval):
-    email = ApprovalExpireNotificationEmail()
+    if approval.apiary_approval:
+        email = ApiaryApprovalExpireNotificationEmail()
+    else:
+        email = ApprovalExpireNotificationEmail()
     proposal = approval.current_proposal
 
     context = {
@@ -199,7 +239,10 @@ def send_approval_expire_email_notification(approval):
 
 
 def send_approval_cancel_email_notification(approval, future_cancel=False):
-    email = ApprovalCancelNotificationEmail()
+    if approval.apiary_approval:
+        email = ApiaryApprovalCancelNotificationEmail()
+    else:
+        email = ApprovalCancelNotificationEmail()
     proposal = approval.current_proposal
 
     context = {
@@ -233,7 +276,10 @@ def send_approval_cancel_email_notification(approval, future_cancel=False):
 
 
 def send_approval_suspend_email_notification(approval, future_suspend=False):
-    email = ApprovalSuspendNotificationEmail()
+    if approval.apiary_approval:
+        email = ApiaryApprovalSuspendNotificationEmail()
+    else:
+        email = ApprovalSuspendNotificationEmail()
     proposal = approval.current_proposal
 
     context = {
@@ -268,7 +314,10 @@ def send_approval_suspend_email_notification(approval, future_suspend=False):
 
 
 def send_approval_surrender_email_notification(approval, future_surrender=False):
-    email = ApprovalSurrenderNotificationEmail()
+    if approval.apiary_approval:
+        email = ApiaryApprovalSurrenderNotificationEmail()
+    else:
+        email = ApprovalSurrenderNotificationEmail()
     proposal = approval.current_proposal
 
     context = {
@@ -301,7 +350,10 @@ def send_approval_surrender_email_notification(approval, future_surrender=False)
 #approval renewal notice
 def send_approval_renewal_email_notification(approval):
     #import ipdb; ipdb.set_trace()
-    email = ApprovalRenewalNotificationEmail()
+    if approval.apiary_approval:
+        email = ApiaryApprovalRenewalNotificationEmail()
+    else:
+        email = ApprovalRenewalNotificationEmail()
     proposal = approval.current_proposal
 
     context = {
@@ -346,7 +398,10 @@ def send_approval_renewal_email_notification(approval):
 
 
 def send_approval_reinstate_email_notification(approval, request):
-    email = ApprovalReinstateNotificationEmail()
+    if approval.apiary_approval:
+        email = ApiaryApprovalReinstateNotificationEmail()
+    else:
+        email = ApprovalReinstateNotificationEmail()
     proposal = approval.current_proposal
 
     context = {
