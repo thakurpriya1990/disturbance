@@ -323,6 +323,31 @@
 
         },
         methods: {
+            testEvent: function(e){
+                console.log('in testEvent')
+                console.log(e)
+                if (e.target.tagName === "A"){
+                    let spans = e.target.getElementsByTagName('span')
+                    if (spans.length == 1){
+                        let className = spans[0].className
+                        console.log(className)
+                        switch(className){
+                            case 'view_on_map':
+                                this.zoomOnApiarySite(e)
+                                break;
+                            case 'toggle_availability':
+                                this.toggleAvailability(e)
+                                break;
+                            case 'make_vacant':
+                                this.makeVacantClicked(e)
+                                break;
+                            case 'contact_licence_holder':
+                                this.contactLicenceHolder(e)
+                                break;
+                        }
+                    } 
+                }
+            },
             featureGeometryUpdated: function(feature){
                 this.$emit('featureGeometryUpdated', feature)
             },
@@ -410,6 +435,7 @@
                 $("#" + this.table_id).on('click', 'input[type="checkbox"]', this.checkboxClicked)
                 $("#" + this.table_id).on('click', '.make_vacant', this.makeVacantClicked)
                 $("#" + this.table_id).on('click', '.contact_licence_holder', this.contactLicenceHolder)
+                $("#" + this.table_id).on('click', this.testEvent)
             },
             updateApiarySite: function(site_updated) {
                 // Update internal apiary_site data
@@ -443,17 +469,22 @@
                 }
                 this.$emit('apiary_sites_updated', this.apiary_sites_local)
                 this.$refs.component_map.setApiarySiteSelectedStatus(apiary_site_id, checked_status)
+                e.stopPropagation()
             },
             contactLicenceHolder: function(e){
+                console.log('in contactLicenceHolder')
                 let vm = this;
                 let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
 
                 this.$emit('contact-licence-holder-clicked', apiary_site_id)
+                e.stopPropagation()
             },
             makeVacantClicked: function(e) {
+                console.log('in makeVacantClicked')
+                console.log(e)
                 let vm = this;
                 let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
-
+                e.stopPropagation()
 
                 swal({
                     title: "Make Vacant",
@@ -494,10 +525,12 @@
 
             },
             toggleAvailability: function(e) {
+                console.log('in toggleAvailability')
                 let vm = this;
                 let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
                 let current_availability = e.target.getAttribute("data-apiary-site-available");
                 let requested_availability = current_availability === 'true' ? false : true
+                e.stopPropagation()
 
                 vm.$http.patch('/api/apiary_site/' + apiary_site_id + '/', { 'available': requested_availability }).then(
                     async function(accept){
@@ -517,9 +550,10 @@
                 );
             },
             zoomOnApiarySite: function(e) {
-                console.log(e)
+                console.log('in zoomOnApiarySite')
                 let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
                 this.$refs.component_map.zoomToApiarySiteById(apiary_site_id)
+                e.stopPropagation()
             },
         },
     }
