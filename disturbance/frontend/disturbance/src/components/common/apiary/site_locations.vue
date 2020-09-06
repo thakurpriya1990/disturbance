@@ -230,6 +230,7 @@
                     'Latitude',
                     'Longitude',
                     'Category',
+                    'Vacant',
                     'Action',
                 ],
                 dtOptions: {
@@ -246,6 +247,7 @@
                     processing: true,
                     columns: [
                         {
+                            // id
                             visible: false,
                             mRender: function (data, type, full) {
                                 if (full.id) {
@@ -256,18 +258,21 @@
                             }
                         },
                         {
+                            // Lat
                             mRender: function (data, type, full) {
                                 let coords = full.getGeometry().getCoordinates()
                                 return Number.parseFloat(coords[1]).toFixed(6)
                             }
                         },
                         {
+                            // Lng
                             mRender: function (data, type, full) {
                                 let coords = full.getGeometry().getCoordinates()
                                 return Number.parseFloat(coords[0]).toFixed(6)
                             }
                         },
                         {
+                            // Category
                             mRender: function (data, type, feature) {
                                 let cat = feature.get('site_category')
                                 cat = cat.replace('_', ' ')
@@ -275,6 +280,17 @@
                             }
                         },
                         {
+                            // Vacant
+                            mRender: function (data, type, feature) {
+                                let my_status = feature.get('status')
+                                if(my_status === 'vacant'){
+                                    return '<i class="fa fa-check" aria-hidden="true"></i>'
+                                }
+                                return ''
+                            }
+                        },
+                        {
+                            // Action
                             mRender: function (data, type, feature) {
                                 let action_list = []
                                 let ret_str_delete = '<span class="delete_button action_link" data-site-location-guid="' + feature.getId() + '">Delete</span>'
@@ -519,12 +535,8 @@
                 }
             },
             showPopup: function(feature){
-                console.log('** showPopup **')
                 let geometry = feature.getGeometry();
                 let coord = geometry.getCoordinates();
-                console.log(coord)
-                //let svg_hexa = "<svg xmlns='http://www.w3.org/2000/svg' version='1.1' height='20' width='15'>" + 
-                //'<g transform="translate(0, 4) scale(0.9)"><path d="M 14.3395,12.64426 7.5609998,16.557828 0.78249996,12.64426 0.7825,4.8171222 7.5609999,0.90355349 14.3395,4.8171223 Z" id="path837" style="fill:none;stroke:#ffffff;stroke-width:1.565;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" /></g></svg>'
                 let content = 'vacant'
                 this.content_element.innerHTML = content;
                 this.overlay.setPosition(coord);
@@ -651,8 +663,6 @@
                         console.log('should not reach here')
                     }
                 }
-
-
             },
             calculateRemainders: function(features){
                 console.log('in calculateRemainders')
@@ -933,6 +943,8 @@
                             // Copy the 'id_' attribute, which should have the apiary_site.id in the database, to the 'id' attribute
                             // This 'id' attribute is used to determine if it exists already in the database once posted.
                             //vm.apiary_site_being_selected.id = vm.apiary_site_being_selected.id_
+                            console.log('apiary_site_being_selected')
+                            console.log(vm.apiary_site_being_selected)
                             vm.drawingLayerSource.addFeature(vm.apiary_site_being_selected);
                             vm.apiary_site_being_selected.getGeometry().on("change", function() {
                                 if (modifyInProgressList.indexOf(vm.apiary_site_being_selected.getId()) == -1) {
@@ -1007,94 +1019,35 @@
                     vm.map.addInteraction(modifyTool);
                 }
 
-                /////////////////////
-                // Test
-                ////////////////////
                 let hoverInteraction = new Select({
                     condition: pointerMove,
-                    //condition: function(e){
-                    //    return true
-                    //},
                     layers: [vm.apiarySitesQueryLayer]
                 });
                 vm.map.addInteraction(hoverInteraction);
                 hoverInteraction.on('select', function(evt){
+                    console.log('hoverInteraction')
                     if(evt.selected.length > 0){
+                        // Mouse hover in
                         if(evt.selected[0].get('status') === 'vacant'){
                             // When mouse hover on the 'vacant' apiary site, temporarily store it 
                             // so that it can be added to the new apiary site application when user clicking.
                             vm.apiary_site_being_selected = evt.selected[0]
 
-                            let style_applied = getApiaryFeatureStyle(vm.apiary_site_being_selected.get('status'), true, 4)
+                            // Thicken border
+                            let style_applied = getApiaryFeatureStyle(vm.apiary_site_being_selected.get('status'), true, 5)
                             vm.apiary_site_being_selected.setStyle(style_applied)
                         }
                     } else {
+                        // Mouse hover out
                         if (vm.apiary_site_being_selected){
                             let style_applied = getApiaryFeatureStyle(vm.apiary_site_being_selected.get('status'), false)
                             vm.apiary_site_being_selected.setStyle(style_applied)
                         }
 
+                        // Release feature
                         vm.apiary_site_being_selected = null
                     }
                 });
-                //if(false){
-                //    let snapInteraction = new Snap({
-                //        source: vm.apiarySitesQuerySource
-                //    })
-                //    vm.map.addInteraction(snapInteraction);
-                //}
-
-                //let selected = null
-                //vm.map.on('pointermove', function (e) {
-                //    let pixel = vm.map.getEventPixel(e.originalEvent);
-                //    //let hit = vm.map.hasFeatureAtPixel(pixel);
-                //    let hit = vm.map.hasFeatureAtPixel(e.pixel, {
-                //        layerFilter: function(layer) {
-                //            if (layer === vm.apiarySitesQueryLayer){
-                //                return true
-                //            }
-                //            return false
-                //            //return layer.get('layer_name') === 'jls';
-                //        }
-                //    });
-
-                //    if(hit){
-                //        //console.log('hit')
-                //    }
-
-
-                //    if (selected !== null) {
-                //        selected.setStyle(undefined);
-                //        selected = null;
-                //    }
-
-                //    vm.map.forEachFeatureAtPixel(e.pixel, function (f, layer) {
-                //        console.log(f.id)
-                //        if (f.id){
-                //            selected = f;
-                //        }
-                //        //f.setStyle(highlightStyle);
-                //        return true;
-                //    });
-
-                //    if (selected) {
-                //        console.log(selected)
-                //    }
-                //});
-
-                //vm.map.on('click', function(evt){
-                //    console.log('click')
-                //    let feature = vm.map.forEachFeatureAtPixel(evt.pixel, function(feature, layer) {
-                //        return feature;
-                //    });
-                //    if (feature){
-                //        console.log(feature)
-                //    }
-                //})
-                ////////////////////////
-                // END TEST
-                ////////////////////////
-
             },  // End: initMap()
             excludeFeature: function(excludedFeature) {
                 return function(f) {
@@ -1152,6 +1105,8 @@
 
             for (let i=0; i<vm.proposal.proposal_apiary.apiary_sites.length; i++){
                  let apiary_site = vm.proposal.proposal_apiary.apiary_sites[i]
+                 console.log('*** apiary site ***')
+                 console.log('apiary site')
 
                  //let feature = new Feature(new Point([apiary_site.coordinates.lng, apiary_site.coordinates.lat]));
                  //feature.setId(apiary_site.site_guid);
