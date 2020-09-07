@@ -33,7 +33,12 @@ from disturbance.utils import search_keys, search_multiple_keys
 from disturbance.helpers import is_customer
 
 def update_approval_doc_filename(instance, filename):
-    return 'approvals/{}/documents/{}'.format(instance.approval.id,filename)
+    return_str = ''
+    if instance.approval.apiary_approval:
+        return_str = 'approvals/{}/documents/{}/{}'.format(instance.approval.id, instance.id, filename)
+    else:
+        return_str = 'approvals/{}/documents/{}'.format(instance.approval.id,filename)
+    return return_str
 
 def update_approval_comms_log_filename(instance, filename):
     return 'approvals/{}/communications/{}/{}'.format(instance.log_entry.approval.id,instance.id,filename)
