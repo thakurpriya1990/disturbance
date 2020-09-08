@@ -11,12 +11,14 @@ def apiary_url(request):
        PUBLIC_URL='https://apiary.dbca.wa.gov.au/'
        application_group = 'apiary'
        displayed_system_name = settings.APIARY_SYSTEM_NAME
+       support_email = settings.APIARY_SUPPORT_EMAIL
     else:
        template_group = 'das'
        #TERMS = "/know/online-mooring-site-booking-terms-and-conditions"
        PUBLIC_URL='https://das.dbca.wa.gov.au'
        application_group = 'das'
        displayed_system_name = settings.SYSTEM_NAME
+       support_email = settings.SUPPORT_EMAIL
 
 
     #is_officer = False
@@ -59,6 +61,7 @@ def apiary_url(request):
         #'MOORING_GROUP': mooring_group
         'APPLICATION_GROUP': application_group,
         'DISPLAYED_SYSTEM_NAME': displayed_system_name,
+        'SUPPORT_EMAIL': support_email,
         }
 
 
