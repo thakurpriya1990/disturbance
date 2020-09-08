@@ -40,7 +40,7 @@ export const SiteColours = {
         'stroke': '#00ff00'
     }
 }
-//export default SiteColours
+export default SiteColours
 export let existingSiteRadius = 5
 export let drawingSiteRadius = 7
 export function getApiaryFeatureStyle(status, selected=false, stroke_width_when_selected=2){

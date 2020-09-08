@@ -165,7 +165,7 @@
                     'Latitude',
                     'District',
                     'Status',
-                    'Previous Site Holder/Applicant',
+                    'Previous Site Holder<br>Applicant',
                     'Action',
                 ],
                 dtOptions: {
@@ -308,7 +308,6 @@
             let vm = this;
             this.$nextTick(() => {
                 vm.addEventListeners();
-                //vm.constructApiarySitesTable();
                 vm.constructApiarySitesTable(vm.apiary_sites);
                 vm.addApiarySitesToMap(vm.apiary_sites)
                 vm.ensureCheckedStatus();
