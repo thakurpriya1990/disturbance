@@ -5,7 +5,7 @@
                 <div v-if="proposal.proposal_apiary">
                     <p>The licence has been issued and has been emailed to {{proposal.applicant.name}}</p>
                     <p>Expiry date: {{approvalExpiryDate}}
-                    <p>Permit: <a target="_blank" :href="proposal.permit">licence.pdf</a></p>
+                    <p>Licence: <a target="_blank" :href="proposal.permit">licence.pdf</a></p>
                 </div>
                 <div v-else>
                     <p>The approval has been issued and has been emailed to {{proposal.applicant.name}}</p>
