@@ -255,21 +255,23 @@ class ProposalDocument(Document):
         app_label = 'disturbance'
 
 class Proposal(RevisionedMixin):
-#class Proposal(models.Model):
-
-    CUSTOMER_STATUS_CHOICES = (('temp', 'Temporary'), ('draft', 'Draft'),
-                               ('with_assessor', 'Under Review'),
-                               ('amendment_required', 'Amendment Required'),
-                               ('approved', 'Approved'),
-                               ('declined', 'Declined'),
-                               ('discarded', 'Discarded'),
+    CUSTOMER_STATUS_TEMP = 'temp'
+    CUSTOMER_STATUS_DRAFT = 'draft'
+    CUSTOMER_STATUS_WITH_ASSESSOR = 'with_assessor'
+    CUSTOMER_STATUS_AMENDMENT_REQUEST = 'amendment_required'
+    CUSTOMER_STATUS_APPROVED = 'approved'
+    CUSTOMER_STATUS_DECLINED = 'declined'
+    CUSTOMER_STATUS_DISCARDED = 'discarded'
+    CUSTOMER_STATUS_CHOICES = ((CUSTOMER_STATUS_TEMP, 'Temporary'),
+                               (CUSTOMER_STATUS_DRAFT, 'Draft'),
+                               (CUSTOMER_STATUS_WITH_ASSESSOR, 'Under Review'),
+                               (CUSTOMER_STATUS_AMENDMENT_REQUEST, 'Amendment Required'),
+                               (CUSTOMER_STATUS_APPROVED, 'Approved'),
+                               (CUSTOMER_STATUS_DECLINED, 'Declined'),
+                               (CUSTOMER_STATUS_DISCARDED, 'Discarded'),
                                )
-
     # List of statuses from above that allow a customer to edit an application.
-    CUSTOMER_EDITABLE_STATE = ['temp',
-                                'draft',
-                                'amendment_required',
-                            ]
+    CUSTOMER_EDITABLE_STATE = [CUSTOMER_STATUS_TEMP, CUSTOMER_STATUS_DRAFT, CUSTOMER_STATUS_AMENDMENT_REQUEST, ]
 
     APPLICANT_TYPE_ORGANISATION = 'organisation'
     APPLICANT_TYPE_PROXY = 'proxy' # proxy also represents an individual making an Apiary application
@@ -2466,9 +2468,11 @@ class ProposalApiary(models.Model):
     title = models.CharField('Title', max_length=200, null=True)
     location = gis_models.PointField(srid=4326, blank=True, null=True)
     proposal = models.OneToOneField(Proposal, related_name='proposal_apiary', null=True)
+
     # We don't use GIS field, because these are just fields user input into the <input> field
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+
     # required for Site Transfer applications
     transferee = models.ForeignKey(EmailUser, blank=True, null=True, related_name='apiary_transferee')
     originating_approval = models.ForeignKey('disturbance.Approval', blank=True, null=True, related_name="site_transfer_originating_approval")
@@ -2562,6 +2566,14 @@ class ProposalApiary(models.Model):
                 raise
 
     @property
+    def customer_status(self):
+        return self.proposal.customer_status
+
+    @property
+    def processing_status(self):
+        return self.proposal.processing_status
+
+    @property
     def retrieve_approval(self):
         from disturbance.components.approvals.models import Approval
         approval = None
@@ -2570,7 +2582,6 @@ class ProposalApiary(models.Model):
         elif self.proposal.proxy_applicant:
             approval = Approval.objects.filter(proxy_applicant=self.proposal.proxy_applicant, status=Approval.STATUS_CURRENT, apiary_approval=True).first()
         return approval
-
 
     # ProposalApiary final approval
     def final_approval(self,request,details):
@@ -3273,6 +3284,20 @@ class ApiarySite(models.Model):
     def __str__(self):
         return '{} - status: {}'.format(self.id, self.status)
 
+    def get_coordinate(self, obj, apiary_site):
+        from disturbance.components.approvals.models import Approval
+
+        if isinstance(obj, ProposalApiary):
+            if obj.customer_status in (Proposal.CUSTOMER_EDITABLE_STATE):
+                pass
+
+        elif isinstance(obj, Approval):
+            pass
+        else:
+            return None
+
+
+
     def get_tenure(self):
         try:
             URL = 'https://kmi.dpaw.wa.gov.au/geoserver/public/wms'
@@ -3352,7 +3377,6 @@ class ApiarySite(models.Model):
 
         return valid, detail
 
-
     class Meta:
         app_label = 'disturbance'
 
@@ -3371,6 +3395,8 @@ class ApiarySiteLocation(models.Model):
     apiary_site = models.ForeignKey('ApiarySite', blank=True, null=True)
     proposal_apiary = models.ForeignKey('ProposalApiary', blank=True, null=True)
     approval = models.ForeignKey('Approval', blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    modified_at = models.DateTimeField(auto_now=True)
     objects = GeoManager()
 
     class Meta:
