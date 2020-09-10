@@ -3357,6 +3357,26 @@ class ApiarySite(models.Model):
         app_label = 'disturbance'
 
 
+class ApiarySiteLocation(models.Model):
+    TYPE_DRAFT = 'draft'
+    TYPE_PROCESSED = 'processed'
+    TYPE_APPROVED = 'approved'
+    TYPE_CHOICES = (
+        (TYPE_DRAFT, 'Draft'),
+        (TYPE_PROCESSED, 'Processed'),
+        (TYPE_APPROVED, 'Approved'),
+    )
+    wkb_geometry = PointField(srid=4326, blank=True, null=True)
+    type = models.CharField(max_length=40, choices=TYPE_CHOICES, default=TYPE_CHOICES[0][0])
+    apiary_site = models.ForeignKey('ApiarySite', blank=True, null=True)
+    proposal_apiary = models.ForeignKey('ProposalApiary', blank=True, null=True)
+    approval = models.ForeignKey('Approval', blank=True, null=True)
+    objects = GeoManager()
+
+    class Meta:
+        app_label = 'disturbance'
+
+
 class ApiarySiteFeeRemainder(models.Model):
     '''
     A record of this model represents e site is left
