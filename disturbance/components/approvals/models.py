@@ -71,7 +71,14 @@ class RenewalDocument(Document):
         app_label = 'disturbance'
 
 
-#class Approval(models.Model):
+class ApiarySiteOnApproval(models.Model):
+    apiary_site = models.ForeignKey('ApiarySite',)
+    approval = models.ForeignKey('Approval',)
+
+    class Meta:
+        app_label = 'disturbance'
+
+
 class Approval(RevisionedMixin):
     STATUS_CURRENT = 'current'
     STATUS_EXPIRED = 'expired'
@@ -94,10 +101,6 @@ class Approval(RevisionedMixin):
     replaced_by = models.ForeignKey('self', blank=True, null=True)
     #current_proposal = models.ForeignKey(Proposal,related_name = '+')
     current_proposal = models.ForeignKey(Proposal,related_name='approvals')
-#    activity = models.CharField(max_length=255)
-#    region = models.CharField(max_length=255)
-#    tenure = models.CharField(max_length=255,null=True)
-#    title = models.CharField(max_length=255)
     renewal_document = models.ForeignKey(ApprovalDocument, blank=True, null=True, related_name='renewal_document')
     apiary_renewal_document = models.ForeignKey(RenewalDocument, blank=True, null=True, related_name='apiary_renewal_document')
     renewal_sent = models.BooleanField(default=False)
@@ -118,6 +121,7 @@ class Approval(RevisionedMixin):
     reissued= models.BooleanField(default=False)
     apiary_approval = models.BooleanField(default=False)
     no_annual_rental_fee_until = models.DateField(blank=True, null=True)
+    beehive_sites = models.ManyToManyField('ApiarySite', through=ApiarySiteOnApproval, related_name='approval_set')
 
     class Meta:
         app_label = 'disturbance'
