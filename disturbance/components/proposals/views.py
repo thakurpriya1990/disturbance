@@ -100,7 +100,8 @@ class PreviewLicencePDFView(View):
         proposal = self.get_object()
         details = json.loads(request.POST.get('formData'))
 
-        response.write(proposal.preview_approval(request, details))
+        #response.write(proposal.preview_approval(request, details))
+        response.content = proposal.preview_approval(request, details)
         return response
 
     def get_object(self):
