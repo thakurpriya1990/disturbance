@@ -506,7 +506,6 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                 ids = []
                 for index, feature in enumerate(site_locations_received):
                     feature['proposal_apiary_id'] = proposal_obj.proposal_apiary.id
-                    # proposal_apiary_ids = []  # For 'vacant' site to have associations with multiple proposal apiaries
 
                     try:
                         # Update existing
@@ -515,20 +514,12 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                         try:
                             # Try to get this apiary site assuming already saved as 'draft'
                             a_site = ApiarySite.objects.get(site_guid=feature['id_'])
-                            serializer = ApiarySiteSerializer(a_site, data=feature)
+
                         except ApiarySite.DoesNotExist:
                             # Try to get this apiary site assuming it is 'vacant' site (available site)
                             a_site = ApiarySite.objects.get(site_guid=feature['values_']['site_guid'])
-                            # if a_site.status == ApiarySite.STATUS_VACANT:
-                            #     del feature['proposal_apiary_id']  # We use proposal_apiaries field
-                                # proposal_apiary_ids = a_site.proposal_apiary_ids if a_site.proposal_apiary_ids else []
-                                # proposal_apiary_ids.append(proposal_obj.proposal_apiary.id)
-                                # proposal_apiary_ids = list(set(proposal_apiary_ids))
-                                # proposal_obj.proposal_apiary.vacant_apiary_site = a_site
-                                # proposal_obj.proposal_apiary.save()
 
-                            serializer = ApiarySiteSerializer(a_site, data=feature)
-                            # serializer = None
+                        serializer = ApiarySiteSerializer(a_site, data=feature)
                     except KeyError:  # when 'site_guid' is not defined above
                         # Create new apiary site when both of the above queries failed
                         if feature['values_']['site_category'] == 'south_west':
@@ -544,9 +535,7 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                         serializer.is_valid(raise_exception=True)
                         apiary_site_obj = serializer.save()
 
-                        #################
                         # Save coordinate
-                        #################
                         geom_str = GEOSGeometry(
                             'POINT(' +
                             str(feature['values_']['geometry']['flatCoordinates'][0]) + ' ' +
@@ -561,8 +550,6 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                         else:
                             # Should not reach here?
                             pass
-                            # data = {'wkb_geometry': geom_str}
-                            # save_point_serializer = ApiarySiteSavePointSerializer
                         serializer = save_point_serializer(apiary_site_obj, data=data)
                         serializer.is_valid(raise_exception=True)
                         serializer.save()

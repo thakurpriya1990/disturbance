@@ -256,7 +256,8 @@ def perform_validation(serializer, my_geometry):
         non_field_errors = []
         qs_sites_within = ApiarySite.objects.filter(
             wkb_geometry__distance_lte=(my_geometry, Distance(m=RESTRICTED_RADIUS))). \
-            exclude(status__in=ApiarySite.NON_RESTRICTIVE_STATUSES).exclude(id=serializer.instance.id)
+            exclude(status__in=ApiarySite.NON_RESTRICTIVE_STATUSES, pending_payment=False).\
+            exclude(id=serializer.instance.id)
         if qs_sites_within:
             # There is at least one existing apiary site which is too close to the site being created
             non_field_errors.append(
@@ -280,18 +281,6 @@ class ApiarySiteSavePointPendingSerializer(GeoFeatureModelSerializer):
         model = ApiarySite
         geo_field = 'wkb_geometry_pending'
         fields = ('wkb_geometry_pending',)
-
-
-class ApiarySiteSavePointSerializer(GeoFeatureModelSerializer):
-
-    def validate(self, attrs):
-        perform_validation(self, attrs['wkb_geometry'])
-        return attrs
-
-    class Meta:
-        model = ApiarySite
-        geo_field = 'wkb_geometry'
-        fields = ('wkb_geometry',)
 
 
 class ApiarySiteSerializer(serializers.ModelSerializer):
