@@ -1,0 +1,13 @@
+{%  extends 'disturbance/emails/apiary_base_email.html' %}
+
+{%  block content %}
+ 		{% if proposal.approval.reissued %}
+ 			<p>Licence <strong>{{proposal.approval.lodgement_number}} </strong>for Application <strong>{{proposal.lodgement_number}}</strong> has been reissued.</p>
+ 		{% else %}
+
+        	<p>Application <strong>{{proposal.lodgement_number}}</strong> has been issued</p>
+        	
+        {% endif%}
+   
+   
+{%  endblock %}

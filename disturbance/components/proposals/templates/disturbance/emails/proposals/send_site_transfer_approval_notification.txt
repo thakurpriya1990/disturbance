@@ -1,5 +1,0 @@
-{%  extends 'disturbance/emails/base_email.txt' %}
-
-{%  block content %}
-        Originating Approval {{originating_approval.lodgement_number}} and Target Approval {{target_approval.lodgement_number}} for Proposal {{proposal.lodgement_number}} have been reissued.
-{%  endblock %}
