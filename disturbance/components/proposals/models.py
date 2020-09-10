@@ -2462,6 +2462,7 @@ class ApiarySiteOnProposal(models.Model):
 
     class Meta:
         app_label = 'disturbance'
+        unique_together = ['apiary_site', 'proposal_apiary',]
 
 
 class ProposalApiary(models.Model):
@@ -3284,19 +3285,34 @@ class ApiarySite(models.Model):
     def __str__(self):
         return '{} - status: {}'.format(self.id, self.status)
 
-    def get_coordinate(self, obj, apiary_site):
+    def get_location(self, obj):
         from disturbance.components.approvals.models import Approval
 
+        apiary_site_location = None
         if isinstance(obj, ProposalApiary):
-            if obj.customer_status in (Proposal.CUSTOMER_EDITABLE_STATE):
-                pass
-
+            if obj.customer_status in Proposal.CUSTOMER_EDITABLE_STATE:
+                apiary_site_location = ApiarySiteLocation.objects.filter(type=ApiarySiteLocation.TYPE_DRAFT, apiary_site=self, proposal_apiary=obj).last()
+            else:
+                apiary_site_location = ApiarySiteLocation.objects.filter(type=ApiarySiteLocation.TYPE_PROCESSED, apiary_site=self, proposal_apiary=obj).last()
         elif isinstance(obj, Approval):
-            pass
-        else:
-            return None
+            apiary_site_location = ApiarySiteLocation.objects.filter(type=ApiarySiteLocation.TYPE_APPROVED, apiary_site=self, approval=obj).last()
 
+        return apiary_site_location
 
+    def get_status_when_submitted(self, proposal_apiary):
+        # Expect there is only one relation between apiary_site and proposal_apiary
+        record_on_proposal = ApiarySiteOnProposal.objects.get(apiary_site=self, proposal_apiary=proposal_apiary)
+        return record_on_proposal.apiary_site_status_when_submitted
+
+    def save_location(self, destination_type, proposal_apiary, lng, lat):
+        apiary_site_location, created = ApiarySiteLocation.objects.get_or_create(
+            type=destination_type,
+            apiary_site=self,
+            proposal_apiary=proposal_apiary
+        )
+        geom_str = GEOSGeometry('POINT(' + str(lng) + ' ' + str(lat) + ')', srid=4326)
+        apiary_site_location.wkb_geometry = geom_str
+        apiary_site_location.save()
 
     def get_tenure(self):
         try:
@@ -3401,6 +3417,7 @@ class ApiarySiteLocation(models.Model):
 
     class Meta:
         app_label = 'disturbance'
+        ordering = ['-modified_at', '-created_at',]
 
 
 class ApiarySiteFeeRemainder(models.Model):

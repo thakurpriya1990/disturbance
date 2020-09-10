@@ -77,6 +77,7 @@ class ApiarySiteOnApproval(models.Model):
 
     class Meta:
         app_label = 'disturbance'
+        unique_together = ['apiary_site', 'approval',]
 
 
 class Approval(RevisionedMixin):
