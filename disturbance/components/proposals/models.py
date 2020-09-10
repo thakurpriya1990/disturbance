@@ -3246,8 +3246,14 @@ class ApiarySite(models.Model):
     GEOMETRY_CONDITION_PENDING = 'pending'
 
     proposal_apiary = models.ForeignKey(ProposalApiary, null=True, blank=True, related_name='apiary_sites')
+
+    # When the status is 'vacant', an apiary site can have multiple associations with the ProposalApiary
     proposal_apiaries = models.ManyToManyField(ProposalApiary, related_name='vacant_apiary_sites')
-    # proposal_apiary_ids = ArrayField(models.IntegerField(), blank=True, null=True)  # When this apiary site is 'vacant', store all the proposal_apiaries which have this apiary site
+
+    # This status is set to True during the payment process.
+    # In other words, set to True by clicking on the 'Pay' button or so,
+    # then set back to False when payment success.
+    pending_payment = models.BooleanField(default=False)
     approval = models.ForeignKey('disturbance.Approval', null=True, blank=True, related_name='apiary_sites')
     site_guid = models.CharField(max_length=50, blank=True)
     available = models.BooleanField(default=False, )
