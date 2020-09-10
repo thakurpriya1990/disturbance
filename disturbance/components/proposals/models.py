@@ -2453,6 +2453,15 @@ class HelpPage(models.Model):
 # --------------------------------------------------------------------------------------
 # Apiary Models Start
 # --------------------------------------------------------------------------------------
+class ApiarySiteOnProposal(models.Model):
+    apiary_site = models.ForeignKey('ApiarySite',)
+    proposal_apiary = models.ForeignKey('ProposalApiary',)
+    apiary_site_status_when_submitted = models.CharField(max_length=40, blank=True)
+
+    class Meta:
+        app_label = 'disturbance'
+
+
 class ProposalApiary(models.Model):
     title = models.CharField('Title', max_length=200, null=True)
     location = gis_models.PointField(srid=4326, blank=True, null=True)
@@ -2464,16 +2473,7 @@ class ProposalApiary(models.Model):
     transferee = models.ForeignKey(EmailUser, blank=True, null=True, related_name='apiary_transferee')
     originating_approval = models.ForeignKey('disturbance.Approval', blank=True, null=True, related_name="site_transfer_originating_approval")
     target_approval = models.ForeignKey('disturbance.Approval', blank=True, null=True, related_name="site_transfer_target_approval")
-    # vacant_apiary_site = models.ForeignKey('ApiarySite', blank=True, null=True, related_name='proposal_apiaries')
-    ###
-
-    # @property
-    # def latitude(self):
-    #     return self.location.get_x()
-    #
-    # @property
-    # def longitude(self):
-    #     return self.location.get_y()
+    beehive_sites = models.ManyToManyField('ApiarySite', through=ApiarySiteOnProposal, related_name='proposal_apiary_set')
 
     def __str__(self):
         return 'id:{} - {}'.format(self.id, self.title)
@@ -2481,7 +2481,6 @@ class ProposalApiary(models.Model):
     class Meta:
         app_label = 'disturbance'
 
-    #def send_referral(self,request,referral_email,referral_text):
     def send_referral(self, request, group_id, referral_text):
         with transaction.atomic():
             try:
