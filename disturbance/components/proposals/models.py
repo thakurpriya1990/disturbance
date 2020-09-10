@@ -3285,34 +3285,35 @@ class ApiarySite(models.Model):
     def __str__(self):
         return '{} - status: {}'.format(self.id, self.status)
 
-    def get_location(self, obj):
-        from disturbance.components.approvals.models import Approval
-
-        apiary_site_location = None
-        if isinstance(obj, ProposalApiary):
-            if obj.customer_status in Proposal.CUSTOMER_EDITABLE_STATE:
-                apiary_site_location = ApiarySiteLocation.objects.filter(type=ApiarySiteLocation.TYPE_DRAFT, apiary_site=self, proposal_apiary=obj).last()
-            else:
-                apiary_site_location = ApiarySiteLocation.objects.filter(type=ApiarySiteLocation.TYPE_PROCESSED, apiary_site=self, proposal_apiary=obj).last()
-        elif isinstance(obj, Approval):
-            apiary_site_location = ApiarySiteLocation.objects.filter(type=ApiarySiteLocation.TYPE_APPROVED, apiary_site=self, approval=obj).last()
-
-        return apiary_site_location
+    # def get_location(self, obj):
+    #     Expect an obj parameter is either ProposalApiary or Approval
+    #     from disturbance.components.approvals.models import Approval
+    #
+    #     apiary_site_location = None
+    #     if isinstance(obj, ProposalApiary):
+    #         if obj.customer_status in Proposal.CUSTOMER_EDITABLE_STATE:
+    #             apiary_site_location = ApiarySiteLocation.objects.filter(type=ApiarySiteLocation.TYPE_DRAFT, apiary_site=self, proposal_apiary=obj).last()
+    #         else:
+    #             apiary_site_location = ApiarySiteLocation.objects.filter(type=ApiarySiteLocation.TYPE_PROCESSED, apiary_site=self, proposal_apiary=obj).last()
+    #     elif isinstance(obj, Approval):
+    #         apiary_site_location = ApiarySiteLocation.objects.filter(type=ApiarySiteLocation.TYPE_APPROVED, apiary_site=self, approval=obj).last()
+    #
+    #     return apiary_site_location
 
     def get_status_when_submitted(self, proposal_apiary):
         # Expect there is only one relation between apiary_site and proposal_apiary
         record_on_proposal = ApiarySiteOnProposal.objects.get(apiary_site=self, proposal_apiary=proposal_apiary)
         return record_on_proposal.apiary_site_status_when_submitted
 
-    def save_location(self, destination_type, proposal_apiary, lng, lat):
-        apiary_site_location, created = ApiarySiteLocation.objects.get_or_create(
-            type=destination_type,
-            apiary_site=self,
-            proposal_apiary=proposal_apiary
-        )
-        geom_str = GEOSGeometry('POINT(' + str(lng) + ' ' + str(lat) + ')', srid=4326)
-        apiary_site_location.wkb_geometry = geom_str
-        apiary_site_location.save()
+    # def save_location(self, destination_type, proposal_apiary, lng, lat):
+    #     apiary_site_location, created = ApiarySiteLocation.objects.get_or_create(
+    #         type=destination_type,
+    #         apiary_site=self,
+    #         proposal_apiary=proposal_apiary
+    #     )
+    #     geom_str = GEOSGeometry('POINT(' + str(lng) + ' ' + str(lat) + ')', srid=4326)
+    #     apiary_site_location.wkb_geometry = geom_str
+    #     apiary_site_location.save()
 
     def get_tenure(self):
         try:
@@ -3397,27 +3398,27 @@ class ApiarySite(models.Model):
         app_label = 'disturbance'
 
 
-class ApiarySiteLocation(models.Model):
-    TYPE_DRAFT = 'draft'
-    TYPE_PROCESSED = 'processed'
-    TYPE_APPROVED = 'approved'
-    TYPE_CHOICES = (
-        (TYPE_DRAFT, 'Draft'),
-        (TYPE_PROCESSED, 'Processed'),
-        (TYPE_APPROVED, 'Approved'),
-    )
-    wkb_geometry = PointField(srid=4326, blank=True, null=True)
-    type = models.CharField(max_length=40, choices=TYPE_CHOICES, default=TYPE_CHOICES[0][0])
-    apiary_site = models.ForeignKey('ApiarySite', blank=True, null=True)
-    proposal_apiary = models.ForeignKey('ProposalApiary', blank=True, null=True)
-    approval = models.ForeignKey('Approval', blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    modified_at = models.DateTimeField(auto_now=True)
-    objects = GeoManager()
-
-    class Meta:
-        app_label = 'disturbance'
-        ordering = ['-modified_at', '-created_at',]
+# class ApiarySiteLocation(models.Model):
+#     TYPE_DRAFT = 'draft'
+#     TYPE_PROCESSED = 'processed'
+#     TYPE_APPROVED = 'approved'
+#     TYPE_CHOICES = (
+#         (TYPE_DRAFT, 'Draft'),
+#         (TYPE_PROCESSED, 'Processed'),
+#         (TYPE_APPROVED, 'Approved'),
+#     )
+#     wkb_geometry = PointField(srid=4326, blank=True, null=True)
+#     type = models.CharField(max_length=40, choices=TYPE_CHOICES, default=TYPE_CHOICES[0][0])
+#     apiary_site = models.ForeignKey('ApiarySite', blank=True, null=True)
+#     proposal_apiary = models.ForeignKey('ProposalApiary', blank=True, null=True)
+#     approval = models.ForeignKey('Approval', blank=True, null=True)
+#     created_at = models.DateTimeField(auto_now_add=True)
+#     modified_at = models.DateTimeField(auto_now=True)
+#     objects = GeoManager()
+#
+#     class Meta:
+#         app_label = 'disturbance'
+#         ordering = ['-modified_at', '-created_at',]
 
 
 class ApiarySiteFeeRemainder(models.Model):

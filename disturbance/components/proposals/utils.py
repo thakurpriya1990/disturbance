@@ -13,7 +13,7 @@ from ledger.accounts.models import EmailUser, Document
 from rest_framework import serializers
 
 from disturbance.components.proposals.models import ProposalDocument, ProposalUserAction, ApiarySite, SiteCategory, \
-    ProposalApiaryTemporaryUse, TemporaryUseApiarySite, ApiaryChecklistAnswer, ApiarySiteLocation
+    ProposalApiaryTemporaryUse, TemporaryUseApiarySite
 from disturbance.components.proposals.serializers import SaveProposalSerializer
 
 from disturbance.components.main.models import ApplicationType
@@ -557,12 +557,12 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                         serializer.save()
 
                         # New location
-                        destination_type = ApiarySiteLocation.TYPE_PROCESSED if viewset.action == 'submit' else ApiarySiteLocation.TYPE_DRAFT
-                        apiary_site_obj.save_location(
-                            destination_type,
-                            proposal_obj.proposal_apiary,
-                            feature['values_']['geometry']['flatCoordinates'][0],
-                            feature['values_']['geometry']['flatCoordinates'][1])
+                        # destination_type = ApiarySiteLocation.TYPE_PROCESSED if viewset.action == 'submit' else ApiarySiteLocation.TYPE_DRAFT
+                        # apiary_site_obj.save_location(
+                        #     destination_type,
+                        #     proposal_obj.proposal_apiary,
+                        #     feature['values_']['geometry']['flatCoordinates'][0],
+                        #     feature['values_']['geometry']['flatCoordinates'][1])
                         ###########
                         # End: Save coordinate
                         ###########
