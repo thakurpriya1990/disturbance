@@ -32,12 +32,12 @@ from disturbance.components.proposals.models import (
     TemporaryUseApiarySite,
     SiteTransferApiarySite,
     ApiaryReferral,
-    Referral, 
-    ApiarySiteFeeType, 
-    ApiarySiteFeeRemainder, 
+    Referral,
+    ApiarySiteFeeType,
+    ApiarySiteFeeRemainder,
     SiteCategory,
     ProposalRequirement,
-    )
+)
 from disturbance.components.approvals.models import (
         Approval,
         )
@@ -440,6 +440,7 @@ class ApiarySiteLicenceDocSerializer(serializers.ModelSerializer):
 class ApiarySitePendingGeojsonSerializer(GeoFeatureModelSerializer):
     site_category = serializers.CharField(source='site_category.name')
     stable_coords = serializers.SerializerMethodField()
+    # wkb_geometry_pending = serializers.SerializerMethodField()
 
     class Meta:
         model = ApiarySite
@@ -456,11 +457,14 @@ class ApiarySitePendingGeojsonSerializer(GeoFeatureModelSerializer):
             'stable_coords',
         )
 
-    def get_stable_coords(self, obj):
-        if obj.wkb_geometry_pending and obj.wkb_geometry_pending.tuple:
-            return [obj.wkb_geometry_pending.tuple[0], obj.wkb_geometry_pending.tuple[1]]
+    def get_stable_coords(self, apiary_site):
+        if apiary_site.wkb_geometry_pending and apiary_site.wkb_geometry_pending.tuple:
+            return [apiary_site.wkb_geometry_pending.tuple[0], apiary_site.wkb_geometry_pending.tuple[1]]
         else:
             return []
+
+    # def get_wkb_geometry_pending(self, apiary_site):
+    #     location_obj = apiary_site.get_location()
 
 
 class ApiarySiteGeojsonSerializer(GeoFeatureModelSerializer):
@@ -896,12 +900,6 @@ class ProposalApiaryDocumentSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProposalApiaryDocument
         fields = ('id', 'name', '_file')
-
-
-class SaveProposalApiarySiteLocationSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ProposalApiary
-        fields = ('id', 'title', 'proposal')
 
 
 class ProposalApiaryTypeSerializer(serializers.ModelSerializer):
