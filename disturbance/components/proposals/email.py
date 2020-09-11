@@ -71,6 +71,68 @@ class ApproverSendBackNotificationEmail(TemplateEmailBase):
     html_template = 'disturbance/emails/proposals/send_approver_sendback_notification.html'
     txt_template = 'disturbance/emails/proposals/send_approver_sendback_notification.txt'
 
+## Apiary Templates
+class ApiaryReferralSendNotificationEmail(TemplateEmailBase):
+    subject = 'A referral for an application has been sent to you.'
+    html_template = 'disturbance/emails/proposals/apiary_send_referral_notification.html'
+    txt_template = 'disturbance/emails/proposals/apiary_send_referral_notification.txt'
+
+class ApiaryReferralCompleteNotificationEmail(TemplateEmailBase):
+    subject = 'A referral for an application has been completed.'
+    html_template = 'disturbance/emails/proposals/apiary_send_referral_complete_notification.html'
+    txt_template = 'disturbance/emails/proposals/apiary_send_referral_complete_notification.txt'
+
+class ApiaryReferralRecallNotificationEmail(TemplateEmailBase):
+    subject = 'A referral for an application has been recalled.'
+    html_template = 'disturbance/emails/proposals/apiary_send_referral_recall_notification.html'
+    txt_template = 'disturbance/emails/proposals/apiary_send_referral_recall_notification.txt'    
+
+class ApiaryProposalDeclineSendNotificationEmail(TemplateEmailBase):
+    subject = 'Your Application has been declined.'
+    html_template = 'disturbance/emails/proposals/apiary_send_decline_notification.html'
+    txt_template = 'disturbance/emails/proposals/apiary_send_decline_notification.txt'
+
+class ApiaryProposalApprovalSendNotificationEmail(TemplateEmailBase):
+    subject = 'Your Application has been approved.'
+    html_template = 'disturbance/emails/proposals/apiary_send_approval_notification.html'
+    txt_template = 'disturbance/emails/proposals/apiary_send_approval_notification.txt'
+
+class ApiaryAmendmentRequestSendNotificationEmail(TemplateEmailBase):
+    subject = 'An amendment to your Application is required.'
+    html_template = 'disturbance/emails/proposals/apiary_send_amendment_notification.html'
+    txt_template = 'disturbance/emails/proposals/apiary_send_amendment_notification.txt'
+
+class ApiarySubmitSendNotificationEmail(TemplateEmailBase):
+    subject = 'A new Application has been submitted.'
+    html_template = 'disturbance/emails/proposals/apiary_send_submit_notification.html'
+    txt_template = 'disturbance/emails/proposals/apiary_send_submit_notification.txt'
+
+class ApiaryAssessmentReminderSendNotificationEmail(TemplateEmailBase):
+    subject = 'An Application is waiting for assessment.'
+    html_template = 'disturbance/emails/proposals/apiary_send_assessment_reminder_notification.html'
+    txt_template = 'disturbance/emails/proposals/apiary_send_assessment_reminder_notification.txt'
+
+class ApiaryExternalSubmitSendNotificationEmail(TemplateEmailBase):
+    subject = 'A new Application has been submitted.'
+    html_template = 'disturbance/emails/proposals/apiary_send_external_submit_notification.html'
+    txt_template = 'disturbance/emails/proposals/apiary_send_external_submit_notification.txt'
+
+class ApiaryApproverDeclineSendNotificationEmail(TemplateEmailBase):
+    subject = 'An Application has been recommended for decline.'
+    html_template = 'disturbance/emails/proposals/apiary_send_approver_decline_notification.html'
+    txt_template = 'disturbance/emails/proposals/apiary_send_approver_decline_notification.txt'
+
+class ApiaryApproverApproveSendNotificationEmail(TemplateEmailBase):
+    subject = 'An Application has been recommended for approval.'
+    html_template = 'disturbance/emails/proposals/apiary_send_approver_approve_notification.html'
+    txt_template = 'disturbance/emails/proposals/apiary_send_approver_approve_notification.txt'
+
+class ApiaryApproverSendBackNotificationEmail(TemplateEmailBase):
+    subject = 'An Application has been sent back by approver.'
+    html_template = 'disturbance/emails/proposals/apiary_send_approver_sendback_notification.html'
+    txt_template = 'disturbance/emails/proposals/apiary_send_approver_sendback_notification.txt'
+
+
 def send_referral_email_notification(referral,request,reminder=False):
     email = ReferralSendNotificationEmail()
     url = request.build_absolute_uri(reverse('internal-referral-detail',kwargs={'proposal_pk':referral.proposal.id,'referral_pk':referral.id}))
@@ -121,7 +183,7 @@ def send_referral_complete_email_notification(referral,request):
         _log_org_email(msg, referral.proposal.applicant, referral.referral, sender=sender)
 
 def send_apiary_referral_email_notification(referral,recipients,request,reminder=False):
-    email = ReferralSendNotificationEmail()
+    email = ApiaryReferralSendNotificationEmail()
     url = request.build_absolute_uri(reverse('internal-referral-detail',kwargs={'proposal_pk':referral.proposal.id,'referral_pk':referral.id}))
 
     context = {
@@ -170,7 +232,7 @@ def send_apiary_referral_email_notification(referral,recipients,request,reminder
 
 
 def send_apiary_referral_complete_email_notification(referral,request, completed_by):
-    email = ReferralCompleteNotificationEmail()
+    email = ApiaryReferralCompleteNotificationEmail()
     email.subject = referral.sent_by.email + ': ' + email.subject
     url = request.build_absolute_uri(reverse('internal-proposal-detail',kwargs={'proposal_pk': referral.proposal.id}))
 
@@ -198,7 +260,10 @@ def send_apiary_referral_complete_email_notification(referral,request, completed
         _log_user_email(email_message=msg, emailuser=referral.proposal.submitter, customer=None, sender=sender)
 
 def send_amendment_email_notification(amendment_request, request, proposal):
-    email = AmendmentRequestSendNotificationEmail()
+    if proposal.apiary_group_application_type:
+        email = ApiaryAmendmentRequestSendNotificationEmail()
+    else:
+        email = AmendmentRequestSendNotificationEmail()
     #reason = amendment_request.get_reason_display()
     reason = amendment_request.reason.reason
     url = request.build_absolute_uri(reverse('external-proposal-detail',kwargs={'proposal_pk': proposal.id}))
@@ -236,7 +301,10 @@ def send_amendment_email_notification(amendment_request, request, proposal):
         _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
 
 def send_submit_email_notification(request, proposal):
-    email = SubmitSendNotificationEmail()
+    if proposal.apiary_group_application_type:
+        email = ApiarySubmitSendNotificationEmail()
+    else:
+        email = SubmitSendNotificationEmail()
     url = request.build_absolute_uri(reverse('internal-proposal-detail',kwargs={'proposal_pk': proposal.id}))
     if "-internal" not in url:
         # add it. This email is for internal staff (assessors)
@@ -256,7 +324,10 @@ def send_submit_email_notification(request, proposal):
     return msg
 
 def send_external_submit_email_notification(request, proposal):
-    email = ExternalSubmitSendNotificationEmail()
+    if proposal.apiary_group_application_type:
+        email = ApiaryExternalSubmitSendNotificationEmail()
+    else:
+        email = ExternalSubmitSendNotificationEmail()
     url = request.build_absolute_uri(reverse('external-proposal-detail',kwargs={'proposal_pk': proposal.id}))
 
     if "-internal" in url:
@@ -286,7 +357,10 @@ def send_external_submit_email_notification(request, proposal):
 
 #send email when Proposal is 'proposed to decline' by assessor.
 def send_approver_decline_email_notification(reason, request, proposal):
-    email = ApproverDeclineSendNotificationEmail()
+    if proposal.apiary_group_application_type:
+        email = ApiaryApproverDeclineSendNotificationEmail()
+    else:
+        email = ApproverDeclineSendNotificationEmail()
     url = request.build_absolute_uri(reverse('internal-proposal-detail',kwargs={'proposal_pk': proposal.id}))
     context = {
         'proposal': proposal,
@@ -301,7 +375,10 @@ def send_approver_decline_email_notification(reason, request, proposal):
         _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
 
 def send_approver_approve_email_notification(request, proposal):
-    email = ApproverApproveSendNotificationEmail()
+    if proposal.apiary_group_application_type:
+        email = ApiaryApproverApproveSendNotificationEmail()
+    else:
+        email = ApproverApproveSendNotificationEmail()
     url = request.build_absolute_uri(reverse('internal-proposal-detail',kwargs={'proposal_pk': proposal.id}))
     context = {
         'start_date' : proposal.proposed_issuance_approval.get('start_date'),
@@ -319,7 +396,10 @@ def send_approver_approve_email_notification(request, proposal):
 
 
 def send_proposal_decline_email_notification(proposal,request,proposal_decline):
-    email = ProposalDeclineSendNotificationEmail()
+    if proposal.apiary_group_application_type:
+        email = ApiaryProposalDeclineSendNotificationEmail()
+    else:
+        email = ProposalDeclineSendNotificationEmail()
 
     context = {
         'proposal': proposal,
@@ -342,7 +422,10 @@ def send_proposal_decline_email_notification(proposal,request,proposal_decline):
 
 
 def send_proposal_approver_sendback_email_notification(request, proposal):
-    email = ApproverSendBackNotificationEmail()
+    if proposal.apiary_group_application_type:
+        email = ApiaryApproverSendBackNotificationEmail()
+    else:
+        email = ApproverSendBackNotificationEmail()
     url = request.build_absolute_uri(reverse('internal-proposal-detail',kwargs={'proposal_pk': proposal.id}))
     context = {
         'proposal': proposal,
@@ -358,7 +441,10 @@ def send_proposal_approver_sendback_email_notification(request, proposal):
 
 
 def send_proposal_approval_email_notification(proposal,request):
-    email = ProposalApprovalSendNotificationEmail()
+    if proposal.apiary_group_application_type:
+        email = ApiaryProposalApprovalSendNotificationEmail()
+    else:
+        email = ProposalApprovalSendNotificationEmail()
     if proposal.approval.reissued:
         email.subject= 'Your Approval has been reissued.'
 
@@ -390,7 +476,7 @@ def send_proposal_approval_email_notification(proposal,request):
         _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
 
 def send_site_transfer_approval_email_notification(proposal, request, approval):
-    email = ProposalApprovalSendNotificationEmail()
+    email = ApiaryProposalApprovalSendNotificationEmail()
     email.subject= 'Your Approval has been reissued.'
 
     context = {
@@ -421,7 +507,10 @@ def send_site_transfer_approval_email_notification(proposal, request, approval):
         _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
 
 def send_assessment_reminder_email_notification(proposal):
-    email = AssessmentReminderSendNotificationEmail()
+    if proposal.apiary_group_application_type:
+        email = ApiaryAssessmentReminderSendNotificationEmail()
+    else:
+        email = AssessmentReminderSendNotificationEmail()
     #url = request.build_absolute_uri(reverse('internal-proposal-detail',kwargs={'proposal_pk': proposal.id}))
     url=settings.SITE_URL if settings.SITE_URL else ''
     url+=reverse('internal-proposal-detail',kwargs={'proposal_pk': proposal.id})

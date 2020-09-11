@@ -168,7 +168,7 @@
                 
                 <div class="panel panel-default">
                   <div class="panel-heading">
-                    <h3 class="panel-title">Approval Details 
+                    <h3 class="panel-title">Licence Details 
                         <a class="panelClicker" :href="'#'+oBody" data-toggle="collapse" expanded="true"  data-parent="#userInfo" :aria-controls="oBody">
                             <span class="glyphicon glyphicon-chevron-down pull-right "></span>
                         </a>
@@ -203,7 +203,7 @@
                             <div class="col-sm-4">
                                 <!-- <p><a target="_blank" :href="approval.licence_document" class="control-label pull-left">Approval.pdf</a></p> -->
                                 <!--p><a :href="'#'+approval.id" class="control-label pull-left" @click="viewApprovalPDF(approval.id, approval.latest_apiary_licence_document)">Approval.pdf</a></p-->
-                                <p><a target="_blank" :href="approval.latest_apiary_licence_document" class="control-label pull-left">Approval.pdf</a></p>
+                                <p><a target="_blank" :href="approval.latest_apiary_licence_document" class="control-label pull-left">Licence.pdf</a></p>
                             </div>
                           </div>
                           <div class="form-group">

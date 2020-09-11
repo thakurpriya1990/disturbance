@@ -19,7 +19,7 @@ ENV APIARY_SUPPORT_EMAIL="apiary@example.com"
 ENV SUPPORT_EMAIL="test@example.com"
 ENV SYSTEM_NAME_SHORT="apiary"
 ENV SITE_DOMAIN="localhost"
-ENV APIARY_URL=[u'apiary-uat-internal.dbca.wa.gov.au', u'apiary-uat.dbca.wa.gov.au', u'localhost:8071']
+ENV APIARY_URL=[u'apiary-uat-internal.dbca.wa.gov.au',u'apiary-uat.dbca.wa.gov.au',u'localhost:8071']
 ENV SYSTEM_NAME="Disturbance Assessment System"
 ENV APIARY_SYSTEM_NAME="Apiary System"
 RUN apt-get update \
