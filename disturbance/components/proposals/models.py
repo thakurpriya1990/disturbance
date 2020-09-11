@@ -2459,6 +2459,9 @@ class ApiarySiteOnProposal(models.Model):
     apiary_site = models.ForeignKey('ApiarySite',)
     proposal_apiary = models.ForeignKey('ProposalApiary',)
     apiary_site_status_when_submitted = models.CharField(max_length=40, blank=True)
+    wkb_geometry_draft = PointField(srid=4326, blank=True, null=True)  # store approved coordinates
+    wkb_geometry_processed = PointField(srid=4326, blank=True, null=True)  # store approved coordinates
+    objects = GeoManager()
 
     class Meta:
         app_label = 'disturbance'
