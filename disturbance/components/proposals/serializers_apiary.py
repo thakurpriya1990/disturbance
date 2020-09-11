@@ -32,12 +32,12 @@ from disturbance.components.proposals.models import (
     TemporaryUseApiarySite,
     SiteTransferApiarySite,
     ApiaryReferral,
-    Referral, 
-    ApiarySiteFeeType, 
-    ApiarySiteFeeRemainder, 
+    Referral,
+    ApiarySiteFeeType,
+    ApiarySiteFeeRemainder,
     SiteCategory,
     ProposalRequirement,
-    )
+)
 from disturbance.components.approvals.models import (
         Approval,
         )
@@ -256,7 +256,8 @@ def perform_validation(serializer, my_geometry):
         non_field_errors = []
         qs_sites_within = ApiarySite.objects.filter(
             wkb_geometry__distance_lte=(my_geometry, Distance(m=RESTRICTED_RADIUS))). \
-            exclude(status__in=ApiarySite.NON_RESTRICTIVE_STATUSES).exclude(id=serializer.instance.id)
+            exclude(status__in=ApiarySite.NON_RESTRICTIVE_STATUSES, pending_payment=False).\
+            exclude(id=serializer.instance.id)
         if qs_sites_within:
             # There is at least one existing apiary site which is too close to the site being created
             non_field_errors.append(
@@ -280,18 +281,6 @@ class ApiarySiteSavePointPendingSerializer(GeoFeatureModelSerializer):
         model = ApiarySite
         geo_field = 'wkb_geometry_pending'
         fields = ('wkb_geometry_pending',)
-
-
-class ApiarySiteSavePointSerializer(GeoFeatureModelSerializer):
-
-    def validate(self, attrs):
-        perform_validation(self, attrs['wkb_geometry'])
-        return attrs
-
-    class Meta:
-        model = ApiarySite
-        geo_field = 'wkb_geometry'
-        fields = ('wkb_geometry',)
 
 
 class ApiarySiteSerializer(serializers.ModelSerializer):
@@ -451,6 +440,7 @@ class ApiarySiteLicenceDocSerializer(serializers.ModelSerializer):
 class ApiarySitePendingGeojsonSerializer(GeoFeatureModelSerializer):
     site_category = serializers.CharField(source='site_category.name')
     stable_coords = serializers.SerializerMethodField()
+    # wkb_geometry_pending = serializers.SerializerMethodField()
 
     class Meta:
         model = ApiarySite
@@ -467,11 +457,14 @@ class ApiarySitePendingGeojsonSerializer(GeoFeatureModelSerializer):
             'stable_coords',
         )
 
-    def get_stable_coords(self, obj):
-        if obj.wkb_geometry_pending and obj.wkb_geometry_pending.tuple:
-            return [obj.wkb_geometry_pending.tuple[0], obj.wkb_geometry_pending.tuple[1]]
+    def get_stable_coords(self, apiary_site):
+        if apiary_site.wkb_geometry_pending and apiary_site.wkb_geometry_pending.tuple:
+            return [apiary_site.wkb_geometry_pending.tuple[0], apiary_site.wkb_geometry_pending.tuple[1]]
         else:
             return []
+
+    # def get_wkb_geometry_pending(self, apiary_site):
+    #     location_obj = apiary_site.get_location()
 
 
 class ApiarySiteGeojsonSerializer(GeoFeatureModelSerializer):
@@ -907,12 +900,6 @@ class ProposalApiaryDocumentSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProposalApiaryDocument
         fields = ('id', 'name', '_file')
-
-
-class SaveProposalApiarySiteLocationSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ProposalApiary
-        fields = ('id', 'title', 'proposal')
 
 
 class ProposalApiaryTypeSerializer(serializers.ModelSerializer):

@@ -255,21 +255,23 @@ class ProposalDocument(Document):
         app_label = 'disturbance'
 
 class Proposal(RevisionedMixin):
-#class Proposal(models.Model):
-
-    CUSTOMER_STATUS_CHOICES = (('temp', 'Temporary'), ('draft', 'Draft'),
-                               ('with_assessor', 'Under Review'),
-                               ('amendment_required', 'Amendment Required'),
-                               ('approved', 'Approved'),
-                               ('declined', 'Declined'),
-                               ('discarded', 'Discarded'),
+    CUSTOMER_STATUS_TEMP = 'temp'
+    CUSTOMER_STATUS_DRAFT = 'draft'
+    CUSTOMER_STATUS_WITH_ASSESSOR = 'with_assessor'
+    CUSTOMER_STATUS_AMENDMENT_REQUEST = 'amendment_required'
+    CUSTOMER_STATUS_APPROVED = 'approved'
+    CUSTOMER_STATUS_DECLINED = 'declined'
+    CUSTOMER_STATUS_DISCARDED = 'discarded'
+    CUSTOMER_STATUS_CHOICES = ((CUSTOMER_STATUS_TEMP, 'Temporary'),
+                               (CUSTOMER_STATUS_DRAFT, 'Draft'),
+                               (CUSTOMER_STATUS_WITH_ASSESSOR, 'Under Review'),
+                               (CUSTOMER_STATUS_AMENDMENT_REQUEST, 'Amendment Required'),
+                               (CUSTOMER_STATUS_APPROVED, 'Approved'),
+                               (CUSTOMER_STATUS_DECLINED, 'Declined'),
+                               (CUSTOMER_STATUS_DISCARDED, 'Discarded'),
                                )
-
     # List of statuses from above that allow a customer to edit an application.
-    CUSTOMER_EDITABLE_STATE = ['temp',
-                                'draft',
-                                'amendment_required',
-                            ]
+    CUSTOMER_EDITABLE_STATE = [CUSTOMER_STATUS_TEMP, CUSTOMER_STATUS_DRAFT, CUSTOMER_STATUS_AMENDMENT_REQUEST, ]
 
     APPLICANT_TYPE_ORGANISATION = 'organisation'
     APPLICANT_TYPE_PROXY = 'proxy' # proxy also represents an individual making an Apiary application
@@ -2453,27 +2455,33 @@ class HelpPage(models.Model):
 # --------------------------------------------------------------------------------------
 # Apiary Models Start
 # --------------------------------------------------------------------------------------
+class ApiarySiteOnProposal(models.Model):
+    apiary_site = models.ForeignKey('ApiarySite',)
+    proposal_apiary = models.ForeignKey('ProposalApiary',)
+    apiary_site_status_when_submitted = models.CharField(max_length=40, blank=True)
+    wkb_geometry_draft = PointField(srid=4326, blank=True, null=True)  # store approved coordinates
+    wkb_geometry_processed = PointField(srid=4326, blank=True, null=True)  # store approved coordinates
+    objects = GeoManager()
+
+    class Meta:
+        app_label = 'disturbance'
+        unique_together = ['apiary_site', 'proposal_apiary',]
+
+
 class ProposalApiary(models.Model):
     title = models.CharField('Title', max_length=200, null=True)
     location = gis_models.PointField(srid=4326, blank=True, null=True)
     proposal = models.OneToOneField(Proposal, related_name='proposal_apiary', null=True)
+
     # We don't use GIS field, because these are just fields user input into the <input> field
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+
     # required for Site Transfer applications
     transferee = models.ForeignKey(EmailUser, blank=True, null=True, related_name='apiary_transferee')
     originating_approval = models.ForeignKey('disturbance.Approval', blank=True, null=True, related_name="site_transfer_originating_approval")
     target_approval = models.ForeignKey('disturbance.Approval', blank=True, null=True, related_name="site_transfer_target_approval")
-    # vacant_apiary_site = models.ForeignKey('ApiarySite', blank=True, null=True, related_name='proposal_apiaries')
-    ###
-
-    # @property
-    # def latitude(self):
-    #     return self.location.get_x()
-    #
-    # @property
-    # def longitude(self):
-    #     return self.location.get_y()
+    beehive_sites = models.ManyToManyField('ApiarySite', through=ApiarySiteOnProposal, related_name='proposal_apiary_set')
 
     def __str__(self):
         return 'id:{} - {}'.format(self.id, self.title)
@@ -2481,7 +2489,6 @@ class ProposalApiary(models.Model):
     class Meta:
         app_label = 'disturbance'
 
-    #def send_referral(self,request,referral_email,referral_text):
     def send_referral(self, request, group_id, referral_text):
         with transaction.atomic():
             try:
@@ -2563,6 +2570,14 @@ class ProposalApiary(models.Model):
                 raise
 
     @property
+    def customer_status(self):
+        return self.proposal.customer_status
+
+    @property
+    def processing_status(self):
+        return self.proposal.processing_status
+
+    @property
     def retrieve_approval(self):
         from disturbance.components.approvals.models import Approval
         approval = None
@@ -2571,7 +2586,6 @@ class ProposalApiary(models.Model):
         elif self.proposal.proxy_applicant:
             approval = Approval.objects.filter(proxy_applicant=self.proposal.proxy_applicant, status=Approval.STATUS_CURRENT, apiary_approval=True).first()
         return approval
-
 
     # ProposalApiary final approval
     def final_approval(self,request,details):
@@ -3246,8 +3260,14 @@ class ApiarySite(models.Model):
     GEOMETRY_CONDITION_PENDING = 'pending'
 
     proposal_apiary = models.ForeignKey(ProposalApiary, null=True, blank=True, related_name='apiary_sites')
+
+    # When the status is 'vacant', an apiary site can have multiple associations with the ProposalApiary
     proposal_apiaries = models.ManyToManyField(ProposalApiary, related_name='vacant_apiary_sites')
-    # proposal_apiary_ids = ArrayField(models.IntegerField(), blank=True, null=True)  # When this apiary site is 'vacant', store all the proposal_apiaries which have this apiary site
+
+    # This status is set to True during the payment process.
+    # In other words, set to True by clicking on the 'Pay' button or so,
+    # then set back to False when payment success.
+    pending_payment = models.BooleanField(default=False)
     approval = models.ForeignKey('disturbance.Approval', null=True, blank=True, related_name='apiary_sites')
     site_guid = models.CharField(max_length=50, blank=True)
     available = models.BooleanField(default=False, )
@@ -3267,6 +3287,36 @@ class ApiarySite(models.Model):
 
     def __str__(self):
         return '{} - status: {}'.format(self.id, self.status)
+
+    # def get_location(self, obj):
+    #     Expect an obj parameter is either ProposalApiary or Approval
+    #     from disturbance.components.approvals.models import Approval
+    #
+    #     apiary_site_location = None
+    #     if isinstance(obj, ProposalApiary):
+    #         if obj.customer_status in Proposal.CUSTOMER_EDITABLE_STATE:
+    #             apiary_site_location = ApiarySiteLocation.objects.filter(type=ApiarySiteLocation.TYPE_DRAFT, apiary_site=self, proposal_apiary=obj).last()
+    #         else:
+    #             apiary_site_location = ApiarySiteLocation.objects.filter(type=ApiarySiteLocation.TYPE_PROCESSED, apiary_site=self, proposal_apiary=obj).last()
+    #     elif isinstance(obj, Approval):
+    #         apiary_site_location = ApiarySiteLocation.objects.filter(type=ApiarySiteLocation.TYPE_APPROVED, apiary_site=self, approval=obj).last()
+    #
+    #     return apiary_site_location
+
+    def get_status_when_submitted(self, proposal_apiary):
+        # Expect there is only one relation between apiary_site and proposal_apiary
+        record_on_proposal = ApiarySiteOnProposal.objects.get(apiary_site=self, proposal_apiary=proposal_apiary)
+        return record_on_proposal.apiary_site_status_when_submitted
+
+    # def save_location(self, destination_type, proposal_apiary, lng, lat):
+    #     apiary_site_location, created = ApiarySiteLocation.objects.get_or_create(
+    #         type=destination_type,
+    #         apiary_site=self,
+    #         proposal_apiary=proposal_apiary
+    #     )
+    #     geom_str = GEOSGeometry('POINT(' + str(lng) + ' ' + str(lat) + ')', srid=4326)
+    #     apiary_site_location.wkb_geometry = geom_str
+    #     apiary_site_location.save()
 
     def get_tenure(self):
         try:
@@ -3347,9 +3397,31 @@ class ApiarySite(models.Model):
 
         return valid, detail
 
-
     class Meta:
         app_label = 'disturbance'
+
+
+# class ApiarySiteLocation(models.Model):
+#     TYPE_DRAFT = 'draft'
+#     TYPE_PROCESSED = 'processed'
+#     TYPE_APPROVED = 'approved'
+#     TYPE_CHOICES = (
+#         (TYPE_DRAFT, 'Draft'),
+#         (TYPE_PROCESSED, 'Processed'),
+#         (TYPE_APPROVED, 'Approved'),
+#     )
+#     wkb_geometry = PointField(srid=4326, blank=True, null=True)
+#     type = models.CharField(max_length=40, choices=TYPE_CHOICES, default=TYPE_CHOICES[0][0])
+#     apiary_site = models.ForeignKey('ApiarySite', blank=True, null=True)
+#     proposal_apiary = models.ForeignKey('ProposalApiary', blank=True, null=True)
+#     approval = models.ForeignKey('Approval', blank=True, null=True)
+#     created_at = models.DateTimeField(auto_now_add=True)
+#     modified_at = models.DateTimeField(auto_now=True)
+#     objects = GeoManager()
+#
+#     class Meta:
+#         app_label = 'disturbance'
+#         ordering = ['-modified_at', '-created_at',]
 
 
 class ApiarySiteFeeRemainder(models.Model):
