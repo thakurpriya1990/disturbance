@@ -83,8 +83,8 @@
                             <div class="form-group">
                                 <div class="row">
                                     <div class="col-sm-12">
-                                        <label v-if="submitter_email && applicant_email" class="control-label pull-left"  for="Name">After approving this proposal, approval will be emailed to {{submitter_email}} and {{applicant_email}}.</label>
-                                        <label v-else class="control-label pull-left"  for="Name">After approving this proposal, approval will be emailed to {{submitter_email}}.</label>
+                                        <label v-if="submitter_email && applicant_email" class="control-label pull-left"  for="Name">After approving this application, licence will be emailed to {{proposalNotificationList}}.</label>
+                                        <label v-else class="control-label pull-left"  for="Name">After approving this application, licence will be emailed to {{submitter_email}}.</label>
                                     </div>
                                     
                                 </div>
@@ -112,19 +112,22 @@
             <div v-if="can_preview">
                 <div v-if="siteTransferApplication">
                     <div>
-                        Click <a href="#" @click.prevent="preview_originating_approval">here</a> to preview the originating approval letter.
+                        Click <a href="#" @click.prevent="preview_originating_approval">here</a> to preview the originating licence letter.
                     </div>
                     <div>
-                        Click <a href="#" @click.prevent="preview_target_approval">here</a> to preview the target approval letter.
+                        Click <a href="#" @click.prevent="preview_target_approval">here</a> to preview the target licence letter.
                     </div>
                 </div>
                 <div v-else>
-                    Click <a href="#" @click.prevent="preview">here</a> to preview the approval letter.
+                    Click <a href="#" @click.prevent="preview">here</a> to preview the licence letter.
                 </div>
             </div>
             <div slot="footer">
                 <button type="button" v-if="issuingApproval" disabled class="btn btn-default" @click="ok"><i class="fa fa-spinner fa-spin"></i> Processing</button>
-                <button type="button" v-else class="btn btn-default" @click="ok" :disabled="ok_button_disabled">Ok</button>
+                <span v-else-if="ok_button_disabled" class="d-inline-block" tabindex="0" data-toggle="tooltip" title="Please select at least one site to issue">
+                    <button type="button" style="pointer-events: none;" class="btn btn-default" @click="ok" disabled>Ok</button>
+                </span>
+                <button v-else type="button" class="btn btn-default" @click="ok" >Ok</button>
                 <button type="button" class="btn btn-default" @click="cancel">Cancel</button>
             </div>
         </modal>
@@ -211,6 +214,13 @@ export default {
         }
     },
     computed: {
+        proposalNotificationList: function (){
+            let returnVal = `${this.submitter_email} and ${this.applicant_email}.`
+            if (this.submitter_email === this.applicant_email){
+                returnVal = `${this.submitter_email}.`
+            }
+            return returnVal;
+        },
         ok_button_disabled: function(){
             console.log('ok button disabled')
             if (this.num_of_sites_selected > 0){
@@ -253,7 +263,7 @@ export default {
             return vm.startDateError;
         },
         title: function(){
-            return this.processing_status == 'With Approver' ? 'Issue Proposal' : 'Propose to issue licence';
+            return this.processing_status == 'With Approver' ? 'Issue Application' : 'Propose to issue licence';
         },
         is_amendment: function(){
             return this.proposal_type == 'Amendment' ? true : false;
@@ -587,6 +597,11 @@ export default {
                     vm.approval.start_date = "";
                 }
              });
+             /*
+             $(document).ready(function() {
+                 $('[data-toggle="tooltip"]').tooltip();
+             });
+             */
        }
    },
     mounted:function () {
