@@ -2455,7 +2455,7 @@ class HelpPage(models.Model):
 # --------------------------------------------------------------------------------------
 # Apiary Models Start
 # --------------------------------------------------------------------------------------
-class ApiarySiteOnProposal(models.Model):
+class ApiarySiteOnProposal(RevisionedMixin):
     apiary_site = models.ForeignKey('ApiarySite',)
     proposal_apiary = models.ForeignKey('ProposalApiary',)
     apiary_site_status_when_submitted = models.CharField(max_length=40, blank=True)
@@ -2468,7 +2468,7 @@ class ApiarySiteOnProposal(models.Model):
         unique_together = ['apiary_site', 'proposal_apiary',]
 
 
-class ProposalApiary(models.Model):
+class ProposalApiary(RevisionedMixin):
     title = models.CharField('Title', max_length=200, null=True)
     location = gis_models.PointField(srid=4326, blank=True, null=True)
     proposal = models.OneToOneField(Proposal, related_name='proposal_apiary', null=True)
@@ -4054,7 +4054,8 @@ reversion.register(Assessment)
 reversion.register(Referral)
 reversion.register(HelpPage)
 reversion.register(ApplicationType)
-reversion.register(ProposalApiary, follow=['apiary_sites'])
+# reversion.register(ProposalApiary, follow=['apiary_sites'])
+reversion.register(ProposalApiary)
 #reversion.register(ProposalApiary)
 reversion.register(ApiarySite)
 
