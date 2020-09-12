@@ -67,6 +67,8 @@ class RenewalDocument(Document):
 class ApiarySiteOnApproval(models.Model):
     apiary_site = models.ForeignKey('ApiarySite',)
     approval = models.ForeignKey('Approval',)
+    status = models.CharField(max_length=40, choices=ApiarySite.STATUS_CHOICES, default=ApiarySite.STATUS_CHOICES[0][0])
+    available = models.BooleanField(default=False, )
     wkb_geometry = PointField(srid=4326, blank=True, null=True)  # store approved coordinates
     objects = GeoManager()
 
@@ -117,11 +119,11 @@ class Approval(RevisionedMixin):
     reissued= models.BooleanField(default=False)
     apiary_approval = models.BooleanField(default=False)
     no_annual_rental_fee_until = models.DateField(blank=True, null=True)
-    beehive_sites = models.ManyToManyField('ApiarySite', through=ApiarySiteOnApproval, related_name='approval_set')
+    apiary_sites = models.ManyToManyField('ApiarySite', through=ApiarySiteOnApproval, related_name='approval_set')
 
     class Meta:
         app_label = 'disturbance'
-        unique_together= ('lodgement_number', 'issue_date')
+        unique_together = ('lodgement_number', 'issue_date')
 
     @property
     def relevant_renewal_document(self):

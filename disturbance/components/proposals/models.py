@@ -254,6 +254,7 @@ class ProposalDocument(Document):
     class Meta:
         app_label = 'disturbance'
 
+
 class Proposal(RevisionedMixin):
     CUSTOMER_STATUS_TEMP = 'temp'
     CUSTOMER_STATUS_DRAFT = 'draft'
@@ -2456,9 +2457,12 @@ class HelpPage(models.Model):
 # Apiary Models Start
 # --------------------------------------------------------------------------------------
 class ApiarySiteOnProposal(RevisionedMixin):
+    workflow_selected_status = models.BooleanField(default=False)  # This field is used only during approval process to select/deselect the site to be approved
+    pending_payment = models.BooleanField(default=False)
     apiary_site = models.ForeignKey('ApiarySite',)
     proposal_apiary = models.ForeignKey('ProposalApiary',)
     apiary_site_status_when_submitted = models.CharField(max_length=40, blank=True)
+    status = models.CharField(max_length=40, choices=ApiarySite.STATUS_CHOICES, default=ApiarySite.STATUS_CHOICES[0][0])
     wkb_geometry_draft = PointField(srid=4326, blank=True, null=True)  # store approved coordinates
     wkb_geometry_processed = PointField(srid=4326, blank=True, null=True)  # store approved coordinates
     objects = GeoManager()
@@ -2481,7 +2485,7 @@ class ProposalApiary(RevisionedMixin):
     transferee = models.ForeignKey(EmailUser, blank=True, null=True, related_name='apiary_transferee')
     originating_approval = models.ForeignKey('disturbance.Approval', blank=True, null=True, related_name="site_transfer_originating_approval")
     target_approval = models.ForeignKey('disturbance.Approval', blank=True, null=True, related_name="site_transfer_target_approval")
-    beehive_sites = models.ManyToManyField('ApiarySite', through=ApiarySiteOnProposal, related_name='proposal_apiary_set')
+    apiary_sites = models.ManyToManyField('ApiarySite', through=ApiarySiteOnProposal, related_name='proposal_apiary_set')
 
     def __str__(self):
         return 'id:{} - {}'.format(self.id, self.title)
@@ -3259,24 +3263,24 @@ class ApiarySite(models.Model):
     GEOMETRY_CONDITION_APPLIED = 'applied'
     GEOMETRY_CONDITION_PENDING = 'pending'
 
-    proposal_apiary = models.ForeignKey(ProposalApiary, null=True, blank=True, related_name='apiary_sites')
+    # proposal_apiary = models.ForeignKey(ProposalApiary, null=True, blank=True, related_name='apiary_sites')
 
     # When the status is 'vacant', an apiary site can have multiple associations with the ProposalApiary
-    proposal_apiaries = models.ManyToManyField(ProposalApiary, related_name='vacant_apiary_sites')
+    # proposal_apiaries = models.ManyToManyField(ProposalApiary, related_name='vacant_apiary_sites')
 
     # This status is set to True during the payment process.
     # In other words, set to True by clicking on the 'Pay' button or so,
     # then set back to False when payment success.
-    pending_payment = models.BooleanField(default=False)
-    approval = models.ForeignKey('disturbance.Approval', null=True, blank=True, related_name='apiary_sites')
+    # pending_payment = models.BooleanField(default=False)
+    # approval = models.ForeignKey('disturbance.Approval', null=True, blank=True, related_name='apiary_sites')
     site_guid = models.CharField(max_length=50, blank=True)
-    available = models.BooleanField(default=False, )
+    # available = models.BooleanField(default=False, )
     site_category = models.ForeignKey(SiteCategory, null=True, blank=True)
     # Region and District may be included in the api response from the GIS server
-    region = models.ForeignKey(Region, null=True, blank=True)
-    district = models.ForeignKey(District, null=True, blank=True)
-    status = models.CharField(max_length=40, choices=STATUS_CHOICES, default=STATUS_CHOICES[0][0])
-    workflow_selected_status = models.BooleanField(default=False)  # This field is used only during approval process to select/deselect the site to be approved
+    # region = models.ForeignKey(Region, null=True, blank=True)
+    # district = models.ForeignKey(District, null=True, blank=True)
+    # status = models.CharField(max_length=40, choices=STATUS_CHOICES, default=STATUS_CHOICES[0][0])
+    # workflow_selected_status = models.BooleanField(default=False)  # This field is used only during approval process to select/deselect the site to be approved
 
     # Store coordinates
     # When processing the proposal, an apiary site needs to keep two coordinates, one is approved coordinate and the other one is the coordinates being processed
