@@ -25,6 +25,10 @@ from disturbance.doctopdf import create_apiary_licence_pdf_contents
 from disturbance.utils import search_keys, search_multiple_keys
 from disturbance.helpers import is_customer
 
+import logging
+logger = logging.getLogger(__name__)
+
+
 def update_approval_doc_filename(instance, filename):
     return_str = ''
     if instance.approval.apiary_approval:
@@ -32,6 +36,7 @@ def update_approval_doc_filename(instance, filename):
     else:
         return_str = 'approvals/{}/documents/{}'.format(instance.approval.id,filename)
     return return_str
+
 
 def update_approval_comms_log_filename(instance, filename):
     return 'approvals/{}/communications/{}/{}'.format(instance.log_entry.approval.id,instance.id,filename)
@@ -50,6 +55,7 @@ class ApprovalDocument(Document):
     class Meta:
         app_label = 'disturbance'
 
+
 class RenewalDocument(Document):
     approval = models.ForeignKey('Approval',related_name='renewal_documents')
     _file = models.FileField(upload_to=update_approval_doc_filename)
@@ -65,10 +71,22 @@ class RenewalDocument(Document):
 
 
 class ApiarySiteOnApproval(models.Model):
+    SITE_STATUS_CURRENT = 'current'
+    SITE_STATUS_NOT_TO_BE_REISSUED = 'not_to_be_reissued'
+    SITE_STATUS_SUSPENDED = 'suspended'
+    SITE_STATUS_CHOICES = (
+        (SITE_STATUS_CURRENT, 'Current'),
+        (SITE_STATUS_NOT_TO_BE_REISSUED, 'Not to be reissued'),
+        (SITE_STATUS_SUSPENDED, 'Suspended'),
+    )
+
     apiary_site = models.ForeignKey('ApiarySite',)
     approval = models.ForeignKey('Approval',)
-    status = models.CharField(max_length=40, choices=ApiarySite.STATUS_CHOICES, default=ApiarySite.STATUS_CHOICES[0][0])
-    available = models.BooleanField(default=False, )
+    link_connected = models.BooleanField(default=True)
+    site_status = models.CharField(choices=SITE_STATUS_CHOICES, default=SITE_STATUS_CHOICES[0][0], max_length=20)
+    site_available = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    modified_at = models.DateTimeField(auto_now=True)
     wkb_geometry = PointField(srid=4326, blank=True, null=True)  # store approved coordinates
     objects = GeoManager()
 

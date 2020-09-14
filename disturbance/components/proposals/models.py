@@ -2457,13 +2457,28 @@ class HelpPage(models.Model):
 # Apiary Models Start
 # --------------------------------------------------------------------------------------
 class ApiarySiteOnProposal(RevisionedMixin):
-    workflow_selected_status = models.BooleanField(default=False)  # This field is used only during approval process to select/deselect the site to be approved
-    pending_payment = models.BooleanField(default=False)
+    SITE_STATUS_DRAFT = 'draft'
+    SITE_STATUS_PENDING = 'pending'
+    SITE_STATUS_PENDING_PAYMENT = 'pending_payment'
+    SITE_STATUS_APPROVED = 'approved'
+    SITE_STATUS_DENIED = 'denied'
+    SITE_STATUS_CHOICES = (
+        (SITE_STATUS_DRAFT, 'Draft'),
+        (SITE_STATUS_PENDING, 'Pending'),
+        (SITE_STATUS_PENDING_PAYMENT, 'Pending payment'),
+        (SITE_STATUS_APPROVED, 'Approved'),
+        (SITE_STATUS_DENIED, 'Denied'),
+    )
+
     apiary_site = models.ForeignKey('ApiarySite',)
     proposal_apiary = models.ForeignKey('ProposalApiary',)
     apiary_site_status_when_submitted = models.CharField(max_length=40, blank=True)
-    status = models.CharField(max_length=40, choices=ApiarySite.STATUS_CHOICES, default=ApiarySite.STATUS_CHOICES[0][0])
-    wkb_geometry_draft = PointField(srid=4326, blank=True, null=True)  # store approved coordinates
+    site_status = models.CharField(choices=SITE_STATUS_CHOICES, default=SITE_STATUS_CHOICES[0][0], max_length=20)
+    link_connected = models.BooleanField(default=True)
+    workflow_selected_status = models.BooleanField(default=False)  # This field is used only during approval process to select/deselect the site to be approved
+    created_at = models.DateTimeField(auto_now_add=True)
+    modified_at = models.DateTimeField(auto_now=True)
+    wkb_geometry_draft = PointField(srid=4326, blank=True, null=True)  # store the coordinates before submit
     wkb_geometry_processed = PointField(srid=4326, blank=True, null=True)  # store approved coordinates
     objects = GeoManager()
 
