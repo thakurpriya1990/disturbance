@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
 
 import json
-import os
 import datetime
 
 import pytz
@@ -9,7 +8,6 @@ import requests
 from django.contrib.gis.db.models.fields import PointField
 from django.contrib.gis.db.models.manager import GeoManager
 from django.contrib.gis.geos import GEOSGeometry
-from django.contrib.postgres.fields import ArrayField
 from django.db import models,transaction
 from django.contrib.gis.db import models as gis_models
 from django.db.models import Q
@@ -19,20 +17,13 @@ from django.utils.encoding import python_2_unicode_compatible
 from django.core.exceptions import ValidationError
 from django.contrib.postgres.fields.jsonb import JSONField
 from django.utils import timezone
-from django.contrib.sites.models import Site
 from ledger.settings_base import TIME_ZONE
-from taggit.managers import TaggableManager
 from taggit.models import TaggedItemBase
-from ledger.accounts.models import Organisation as ledger_organisation
 from ledger.accounts.models import EmailUser, RevisionedMixin
-from ledger.licence.models import  Licence
 from ledger.payments.models import Invoice
 from disturbance import exceptions
-# from disturbance.components.das_payments.models import AnnualRentalFeePeriod
-# from disturbance.components.das_payments.models import AnnualRentalFee, AnnualRentalFeeApiarySite
-# from disturbance.components.das_payments.utils import create_other_invoice_for_annual_rental_fee
 from disturbance.components.organisations.models import Organisation
-from disturbance.components.main.models import CommunicationsLogEntry, UserAction, Document, Region, District, Tenure, \
+from disturbance.components.main.models import CommunicationsLogEntry, UserAction, Document, Region, District, \
     ApplicationType, RegionDbca, DistrictDbca
 from disturbance.components.main.utils import get_department_user
 from disturbance.components.proposals.email import (
@@ -54,7 +45,6 @@ from disturbance.components.proposals.email import (
 from disturbance.ordered_model import OrderedModel
 import copy
 import subprocess
-from django.conf import settings
 
 import logging
 logger = logging.getLogger(__name__)
@@ -3289,6 +3279,8 @@ class ApiarySite(models.Model):
     # pending_payment = models.BooleanField(default=False)
     # approval = models.ForeignKey('disturbance.Approval', null=True, blank=True, related_name='apiary_sites')
     site_guid = models.CharField(max_length=50, blank=True)
+    latest_proposal_link = models.ForeignKey('disturbance.ApiarySiteOnProposal', blank=True, null=True)
+    latest_approval_link = models.ForeignKey('disturbance.ApiarySiteOnApproval', blank=True, null=True)
     # available = models.BooleanField(default=False, )
     # site_category = models.ForeignKey(SiteCategory, null=True, blank=True)
     # Region and District may be included in the api response from the GIS server
