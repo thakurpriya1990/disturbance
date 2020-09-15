@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
 
 import json
-import os
 import datetime
 
 import pytz
@@ -9,31 +8,23 @@ import requests
 from django.contrib.gis.db.models.fields import PointField
 from django.contrib.gis.db.models.manager import GeoManager
 from django.contrib.gis.geos import GEOSGeometry
-from django.contrib.postgres.fields import ArrayField
 from django.db import models,transaction
 from django.contrib.gis.db import models as gis_models
 from django.db.models import Q
 from django.dispatch import receiver
-from django.db.models.signals import pre_delete
+from django.db.models.signals import pre_delete, post_save
 from django.utils.encoding import python_2_unicode_compatible
 from django.core.exceptions import ValidationError
 from django.contrib.postgres.fields.jsonb import JSONField
 from django.utils import timezone
-from django.contrib.sites.models import Site
 from ledger.settings_base import TIME_ZONE
-from taggit.managers import TaggableManager
 from taggit.models import TaggedItemBase
-from ledger.accounts.models import Organisation as ledger_organisation
 from ledger.accounts.models import EmailUser, RevisionedMixin
-from ledger.licence.models import  Licence
 from ledger.payments.models import Invoice
 from disturbance import exceptions
-# from disturbance.components.das_payments.models import AnnualRentalFeePeriod
-# from disturbance.components.das_payments.models import AnnualRentalFee, AnnualRentalFeeApiarySite
-# from disturbance.components.das_payments.utils import create_other_invoice_for_annual_rental_fee
 from disturbance.components.organisations.models import Organisation
-from disturbance.components.main.models import CommunicationsLogEntry, UserAction, Document, Region, District, Tenure, \
-    ApplicationType, RegionDbca, DistrictDbca
+from disturbance.components.main.models import CommunicationsLogEntry, UserAction, Document, Region, District, \
+    ApplicationType, RegionDbca, DistrictDbca, CategoryDbca
 from disturbance.components.main.utils import get_department_user
 from disturbance.components.proposals.email import (
         send_referral_email_notification, 
@@ -54,7 +45,6 @@ from disturbance.components.proposals.email import (
 from disturbance.ordered_model import OrderedModel
 import copy
 import subprocess
-from django.conf import settings
 
 import logging
 logger = logging.getLogger(__name__)
@@ -2474,7 +2464,7 @@ class ApiarySiteOnProposal(RevisionedMixin):
     proposal_apiary = models.ForeignKey('ProposalApiary',)
     apiary_site_status_when_submitted = models.CharField(max_length=40, blank=True)
     site_status = models.CharField(choices=SITE_STATUS_CHOICES, default=SITE_STATUS_CHOICES[0][0], max_length=20)
-    link_connected = models.BooleanField(default=True)
+    # link_connected = models.BooleanField(default=True)
     workflow_selected_status = models.BooleanField(default=False)  # This field is used only during approval process to select/deselect the site to be approved
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
@@ -3278,69 +3268,24 @@ class ApiarySite(models.Model):
     GEOMETRY_CONDITION_APPLIED = 'applied'
     GEOMETRY_CONDITION_PENDING = 'pending'
 
-    # proposal_apiary = models.ForeignKey(ProposalApiary, null=True, blank=True, related_name='apiary_sites')
-
-    # When the status is 'vacant', an apiary site can have multiple associations with the ProposalApiary
-    # proposal_apiaries = models.ManyToManyField(ProposalApiary, related_name='vacant_apiary_sites')
-
-    # This status is set to True during the payment process.
-    # In other words, set to True by clicking on the 'Pay' button or so,
-    # then set back to False when payment success.
-    # pending_payment = models.BooleanField(default=False)
-    # approval = models.ForeignKey('disturbance.Approval', null=True, blank=True, related_name='apiary_sites')
     site_guid = models.CharField(max_length=50, blank=True)
-    # available = models.BooleanField(default=False, )
-    site_category = models.ForeignKey(SiteCategory, null=True, blank=True)
-    # Region and District may be included in the api response from the GIS server
-    # region = models.ForeignKey(Region, null=True, blank=True)
-    # district = models.ForeignKey(District, null=True, blank=True)
-    # status = models.CharField(max_length=40, choices=STATUS_CHOICES, default=STATUS_CHOICES[0][0])
-    # workflow_selected_status = models.BooleanField(default=False)  # This field is used only during approval process to select/deselect the site to be approved
-
-    # Store coordinates
-    # When processing the proposal, an apiary site needs to keep two coordinates, one is approved coordinate and the other one is the coordinates being processed
-    wkb_geometry = PointField(srid=4326, blank=True, null=True)  # store approved coordinates
-    wkb_geometry_pending = PointField(srid=4326, blank=True, null=True)  # store the coordinates, which might be moved by the assessor and/or approver during processing
-    wkb_geometry_applied = PointField(srid=4326, blank=True, null=True)  # store original geometry.  But not used at the moment.
-    objects = GeoManager()
+    latest_proposal_link = models.ForeignKey('disturbance.ApiarySiteOnProposal', blank=True, null=True)
+    latest_approval_link = models.ForeignKey('disturbance.ApiarySiteOnApproval', blank=True, null=True)
+    is_vacant = models.BooleanField(default=False)
 
     def __str__(self):
-        return '{} - status: {}'.format(self.id, self.status)
-
-    # def get_location(self, obj):
-    #     Expect an obj parameter is either ProposalApiary or Approval
-    #     from disturbance.components.approvals.models import Approval
-    #
-    #     apiary_site_location = None
-    #     if isinstance(obj, ProposalApiary):
-    #         if obj.customer_status in Proposal.CUSTOMER_EDITABLE_STATE:
-    #             apiary_site_location = ApiarySiteLocation.objects.filter(type=ApiarySiteLocation.TYPE_DRAFT, apiary_site=self, proposal_apiary=obj).last()
-    #         else:
-    #             apiary_site_location = ApiarySiteLocation.objects.filter(type=ApiarySiteLocation.TYPE_PROCESSED, apiary_site=self, proposal_apiary=obj).last()
-    #     elif isinstance(obj, Approval):
-    #         apiary_site_location = ApiarySiteLocation.objects.filter(type=ApiarySiteLocation.TYPE_APPROVED, apiary_site=self, approval=obj).last()
-    #
-    #     return apiary_site_location
+        return '{}'.format(self.id,)
 
     def get_status_when_submitted(self, proposal_apiary):
         # Expect there is only one relation between apiary_site and proposal_apiary
         record_on_proposal = ApiarySiteOnProposal.objects.get(apiary_site=self, proposal_apiary=proposal_apiary)
         return record_on_proposal.apiary_site_status_when_submitted
 
-    # def save_location(self, destination_type, proposal_apiary, lng, lat):
-    #     apiary_site_location, created = ApiarySiteLocation.objects.get_or_create(
-    #         type=destination_type,
-    #         apiary_site=self,
-    #         proposal_apiary=proposal_apiary
-    #     )
-    #     geom_str = GEOSGeometry('POINT(' + str(lng) + ' ' + str(lat) + ')', srid=4326)
-    #     apiary_site_location.wkb_geometry = geom_str
-    #     apiary_site_location.save()
-
-    def get_tenure(self):
+    @staticmethod
+    def get_tenure(wkb_geometry):
         try:
             URL = 'https://kmi.dpaw.wa.gov.au/geoserver/public/wms'
-            coords = self.wkb_geometry.get_coords()
+            coords = wkb_geometry.get_coords()
             PARAMS = {
                 'SERVICE': 'WMS',
                 'VERSION': '1.1.1',
@@ -3369,10 +3314,21 @@ class ApiarySite(models.Model):
         except:
             return ''
 
-    def get_region_district(self):
+    @staticmethod
+    def get_category(wkb_geometry):
+        category = 'remote'
+        zones = CategoryDbca.objects.filter(wkb_geometry__contains=wkb_geometry)
+        if zones:
+            category_name = zones[0].category_name.lower()
+            if 'south' in category_name and 'west' in category_name:
+                category = 'south_west'
+        return category
+
+    @staticmethod
+    def get_region_district(wkb_geometry):
         try:
-            regions = RegionDbca.objects.filter(wkb_geometry__contains=self.wkb_geometry)
-            districts = DistrictDbca.objects.filter(wkb_geometry__contains=self.wkb_geometry)
+            regions = RegionDbca.objects.filter(wkb_geometry__contains=wkb_geometry)
+            districts = DistrictDbca.objects.filter(wkb_geometry__contains=wkb_geometry)
             text_arr = []
             if regions:
                 text_arr.append(regions.first().region_name)

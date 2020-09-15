@@ -284,14 +284,14 @@ class ApiarySiteSavePointPendingSerializer(GeoFeatureModelSerializer):
 
 
 class ApiarySiteSerializer(serializers.ModelSerializer):
-    proposal_apiary_id = serializers.IntegerField(write_only=True, required=False)
-    site_category_id = serializers.IntegerField(write_only=True, required=False)
-    site_category = serializers.CharField(source='site_category.name', read_only=True)
-    onsiteinformation_set = OnSiteInformationSerializer(read_only=True, many=True,)
+    # proposal_apiary_id = serializers.IntegerField(write_only=True, required=False)
+    # site_category_id = serializers.IntegerField(write_only=True, required=False)
+    # site_category = serializers.CharField(source='site_category.name', read_only=True)
+    # onsiteinformation_set = OnSiteInformationSerializer(read_only=True, many=True,)
     # coordinates = serializers.SerializerMethodField()
-    as_geojson = serializers.SerializerMethodField()
-    previous_site_holder_or_applicant = serializers.SerializerMethodField()
-    status = CustomChoiceField(read_only=True)
+    # as_geojson = serializers.SerializerMethodField()
+    # previous_site_holder_or_applicant = serializers.SerializerMethodField()
+    # status = CustomChoiceField(read_only=True)
 
     def validate(self, attrs):
         return attrs
@@ -350,18 +350,18 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
         model = ApiarySite
         fields = (
             'id',
-            'available',
+            # 'available',
             # 'temporary_used',
             'site_guid',
-            'proposal_apiary_id',
-            'site_category_id',
-            'site_category',
-            'onsiteinformation_set',
+            # 'proposal_apiary_id',
+            # 'site_category_id',
+            # 'site_category',
+            # 'onsiteinformation_set',
             # 'coordinates',
-            'as_geojson',
-            'status',
-            'workflow_selected_status',
-            'previous_site_holder_or_applicant',
+            # 'as_geojson',
+            # 'status',
+            # 'workflow_selected_status',
+            # 'previous_site_holder_or_applicant',
             # 'proposal_apiary_ids',
         )
 
@@ -525,7 +525,7 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
     apiary_sites = serializers.SerializerMethodField()
     #site_transfer_apiary_sites = SiteTransferApiarySiteSerializer(read_only=True, many=True)
     transfer_apiary_sites = serializers.SerializerMethodField()
-    on_site_information_list = serializers.SerializerMethodField()  # This is used for displaying OnSite table at the frontend
+    # on_site_information_list = serializers.SerializerMethodField()  # This is used for displaying OnSite table at the frontend
 
     #checklist_questions = serializers.SerializerMethodField()
     applicant_checklist_answers = serializers.SerializerMethodField()
@@ -552,7 +552,7 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
             'transfer_apiary_sites',
             'longitude',
             'latitude',
-            'on_site_information_list',
+            # 'on_site_information_list',
             #'checklist_questions',
             'applicant_checklist_answers',
             'assessor_checklist_answers',
@@ -570,9 +570,10 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
 
     def get_apiary_sites(self, proposal_apiary):
         apiary_sites = ApiarySiteSerializer(proposal_apiary.apiary_sites, many=True)
-        vacant_apiary_sites = ApiarySiteSerializer(proposal_apiary.vacant_apiary_sites, many=True)
-        merged = apiary_sites.data + vacant_apiary_sites.data
-        return merged
+        return apiary_sites.data
+        # vacant_apiary_sites = ApiarySiteSerializer(proposal_apiary.vacant_apiary_sites, many=True)
+        # merged = apiary_sites.data + vacant_apiary_sites.data
+        # return merged
 
 
     def get_transfer_apiary_sites(self, obj):
@@ -680,13 +681,13 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
 
         return ret_list
 
-    def get_on_site_information_list(self, obj):
-        on_site_information_list = OnSiteInformation.objects.filter(
-            apiary_site__in=ApiarySite.objects.filter(proposal_apiary=obj),
-            datetime_deleted=None,
-        ).order_by('-period_from')
-        ret = OnSiteInformationSerializer(on_site_information_list, many=True).data
-        return ret
+    # def get_on_site_information_list(self, obj):
+    #     on_site_information_list = OnSiteInformation.objects.filter(
+    #         apiary_site__in=ApiarySite.objects.filter(proposal_apiary=obj),
+    #         datetime_deleted=None,
+    #     ).order_by('-period_from')
+    #     ret = OnSiteInformationSerializer(on_site_information_list, many=True).data
+    #     return ret
 
     def get_applicant_checklist_answers(self, obj):
         return ApiaryChecklistAnswerSerializer(

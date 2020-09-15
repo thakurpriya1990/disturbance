@@ -9,7 +9,7 @@ from ledger.settings_base import TIME_ZONE
 
 from disturbance import settings
 from disturbance.components.main.models import ApplicationType, GlobalSettings, ApiaryGlobalSettings, RegionDbca, \
-    DistrictDbca
+    DistrictDbca, CategoryDbca
 from disturbance.components.proposals.models import ApiarySiteFeeType, SiteCategory, ApiarySiteFee, ProposalType, \
     ApiaryAnnualRentalFeePeriodStartDate, ApiaryAnnualRentalFeeRunDate, ApiaryAnnualRentalFee
 
@@ -26,6 +26,23 @@ def construct_name_values(mul):
 class DefaultDataManager(object):
 
     def __init__(self):
+        # Category: store south west apiary zone
+        path_to_zones = os.path.join(settings.BASE_DIR, 'disturbance', 'static', 'disturbance', 'gis', 'sw_apiary_zone.geojson')
+        count = CategoryDbca.objects.all().count()
+        if not count > 0:
+            with open(path_to_zones) as f:
+                data = json.load(f)
+
+                for area in data['features']:
+                    json_str = json.dumps(area['geometry'])
+                    geom = GEOSGeometry(json_str)
+                    region_obj = CategoryDbca.objects.create(
+                        wkb_geometry=geom,
+                        category_name='south_west',  # We only define 'south west' area.  The others are 'remote' category
+                    )
+                    region_obj.save()
+                    logger.info("Category 'south west' created")
+
         # Region: store geometries
         path_to_regions = os.path.join(settings.BASE_DIR, 'disturbance', 'static', 'disturbance', 'DBCA_regions.geojson')
         count = RegionDbca.objects.all().count()

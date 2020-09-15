@@ -1,11 +1,10 @@
 from django.db.models.signals import post_delete, pre_save, post_save, m2m_changed
-from django.core.exceptions import ValidationError
 from django.dispatch import receiver
 from ledger.accounts.models import EmailUser
 from disturbance.components.proposals.models import (
     ProposalAssessorGroup,
     Referral,
-    Proposal
+    Proposal, ApiarySiteOnProposal
 )
 
 import logging
@@ -38,6 +37,7 @@ class ProposalAssessorGroupListener(object):
                     logger.info('{0} deleted from assessors group. {0} is currently assigned to proposal_id__in={1}'.format(o.email, proposals))
                     #raise ValidationError('{} is currently assigned to a proposal(s)'.format(o.email))
 
+
 class ReferralListener(object):
     """
     Event listener for Referral
@@ -63,4 +63,17 @@ class ReferralListener(object):
             if len(outstanding) == 0:
                 instance.proposal.processing_status = 'with_assessor'
                 instance.proposal.save()
+
+
+class ApiarySiteOnProposalListener(object):
+    """
+    Event listener for the ApiarySiteOnProposal
+    """
+    @staticmethod
+    @receiver(post_save, sender=ApiarySiteOnProposal)
+    def _post_save(sender, instance, **kwargs):
+
+        # TODO: update apairy_site.latest_proposal_link
+
+        pass
 

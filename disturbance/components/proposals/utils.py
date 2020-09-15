@@ -473,15 +473,15 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
             sc = json.loads(schema) if schema else {}
 
             #save Site Locations data
-            site_location_data = sc.get('proposal_apiary', None)
+            proposal_apiary_data = sc.get('proposal_apiary', None)
 
-            if site_location_data:
+            if proposal_apiary_data:
                 # New apairy site application
-                serializer = ProposalApiarySerializer(proposal_obj.proposal_apiary, data=site_location_data)
+                serializer = ProposalApiarySerializer(proposal_obj.proposal_apiary, data=proposal_apiary_data)
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
 
-                # site_locations_received = site_location_data['apiary_sites']
+                # site_locations_received = proposal_apiary_data['apiary_sites']
                 site_locations_received = json.loads(request.data.get('all_the_features'))
 
                 # Feature object doesn't have a field named 'id' originally unless manually added
@@ -497,10 +497,13 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                             site_ids_received.append(site_already_saved.id)
                         except:
                             pass
-                site_ids_existing = [site.id for site in ApiarySite.objects.filter(proposal_apiary_id=site_location_data['id'])]
-                site_ids_existing_vacant = [site.id for site in proposal_obj.proposal_apiary.vacant_apiary_sites.all()]
+                # site_ids_existing = [site.id for site in ApiarySite.objects.filter(proposal_apiary_id=proposal_apiary_data['id'])]
+                site_ids_existing = [site.id for site in proposal_obj.proposal_apiary.apiary_sites.all()]
+                # site_ids_existing_vacant = [site.id for site in proposal_obj.proposal_apiary.vacant_apiary_sites.all()]
+                site_ids_existing_vacant = []  # TODO implement
                 site_ids_delete = [id for id in site_ids_existing if id not in site_ids_received]
-                site_ids_delete_vacant = [id for id in site_ids_existing_vacant if id not in site_ids_received]
+                # site_ids_delete_vacant = [id for id in site_ids_existing_vacant if id not in site_ids_received] # TODO implement
+                site_ids_delete_vacant = []
 
                 # Handle ApiarySites here
                 ids = []
@@ -522,14 +525,15 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                         serializer = ApiarySiteSerializer(a_site, data=feature)
                     except KeyError:  # when 'site_guid' is not defined above
                         # Create new apiary site when both of the above queries failed
-                        if feature['values_']['site_category'] == 'south_west':
-                            category_obj = SiteCategory.objects.get(name='south_west')
-                        else:
-                            category_obj = SiteCategory.objects.get(name='remote')
-                        feature['site_category_id'] = category_obj.id
+                        # if feature['values_']['site_category'] == 'south_west':
+                        #     category_obj = SiteCategory.objects.get(name='south_west')
+                        # else:
+                        #     category_obj = SiteCategory.objects.get(name='remote')
+                        # feature['site_category_id'] = category_obj.id
                         feature['site_guid'] = feature['id_']
 
                         serializer = ApiarySiteSerializer(data=feature)
+                        # This is test line for gitpush
 
                     if serializer:
                         serializer.is_valid(raise_exception=True)
@@ -592,7 +596,7 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                         raise serializers.ValidationError(['There are apiary sites in this proposal which are too close to each other.',])
 
                 # save applicant checklist answers
-                save_checklist_answers('applicant', site_location_data.get('applicant_checklist_answers'))
+                save_checklist_answers('applicant', proposal_apiary_data.get('applicant_checklist_answers'))
 
                 # Delete existing
                 sites_delete = ApiarySite.objects.filter(id__in=site_ids_delete, status=ApiarySite.STATUS_DRAFT)
