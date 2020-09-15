@@ -1,6 +1,6 @@
 import {Circle as CircleStyle, Fill, Stroke, Style, Icon} from 'ol/style';
 
-const SiteColours = {
+export const SiteColours = {
     'draft': {
         'fill': '#e0e0e0',
         'stroke': '#616161',

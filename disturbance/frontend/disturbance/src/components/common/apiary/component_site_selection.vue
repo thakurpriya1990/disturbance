@@ -165,7 +165,7 @@
                     'Latitude',
                     'District',
                     'Status',
-                    'Previous Site Holder/Applicant',
+                    'Previous Site Holder<br>Applicant',
                     'Action',
                 ],
                 dtOptions: {
@@ -308,7 +308,6 @@
             let vm = this;
             this.$nextTick(() => {
                 vm.addEventListeners();
-                //vm.constructApiarySitesTable();
                 vm.constructApiarySitesTable(vm.apiary_sites);
                 vm.addApiarySitesToMap(vm.apiary_sites)
                 vm.ensureCheckedStatus();
@@ -460,7 +459,8 @@
             },
             checkboxClicked: function(e) {
                 let vm = this;
-                let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
+                //let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
+                let apiary_site_id = this.getApiarySiteIdFromEvent(e)
                 let checked_status = e.target.checked
                 for (let i=0; i<this.apiary_sites_local.length; i++){
                     if (this.apiary_sites_local[i].id == apiary_site_id){
@@ -474,7 +474,8 @@
             contactLicenceHolder: function(e){
                 console.log('in contactLicenceHolder')
                 let vm = this;
-                let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
+                //let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
+                let apiary_site_id = this.getApiarySiteIdFromEvent(e)
 
                 this.$emit('contact-licence-holder-clicked', apiary_site_id)
                 e.stopPropagation()
@@ -483,7 +484,8 @@
                 console.log('in makeVacantClicked')
                 console.log(e)
                 let vm = this;
-                let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
+                //let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
+                let apiary_site_id = this.getApiarySiteIdFromEvent(e)
                 e.stopPropagation()
 
                 swal({
@@ -522,13 +524,14 @@
                         console.log(err)
                     }
                 );
-
             },
             toggleAvailability: function(e) {
                 console.log('in toggleAvailability')
                 let vm = this;
-                let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
-                let current_availability = e.target.getAttribute("data-apiary-site-available");
+                //let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
+                let apiary_site_id = this.getApiarySiteIdFromEvent(e)
+                //let current_availability = e.target.getAttribute("data-apiary-site-available");
+                let current_availability = this.getApiarySiteAvailableFromEvent(e)
                 let requested_availability = current_availability === 'true' ? false : true
                 e.stopPropagation()
 
@@ -551,10 +554,25 @@
             },
             zoomOnApiarySite: function(e) {
                 console.log('in zoomOnApiarySite')
-                let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
+                //let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
+                let apiary_site_id = this.getApiarySiteIdFromEvent(e)
                 this.$refs.component_map.zoomToApiarySiteById(apiary_site_id)
                 e.stopPropagation()
             },
+            getApiarySiteIdFromEvent(e){
+                let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
+                if (!(apiary_site_id)){
+                    apiary_site_id = e.target.getElementsByTagName('span')[0].getAttribute('data-apiary-site-id')
+                }
+                return apiary_site_id
+            },
+            getApiarySiteAvailableFromEvent(e){
+                let apiary_site_available = e.target.getAttribute("data-apiary-site-available");
+                if (!(apiary_site_available)){
+                    apiary_site_available = e.target.getElementsByTagName('span')[0].getAttribute('data-apiary-site-available')
+                }
+                return apiary_site_available
+            }
         },
     }
 </script>
