@@ -3,7 +3,7 @@
 {%  block content %}
     Annual rental fee invoice has been issued:
 
-    Approval : {{ approval.lodgement_number}}
+    Licence : {{ approval.lodgement_number}}
 
     Please find the attached annual rental fee invoice.
 

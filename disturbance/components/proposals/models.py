@@ -1866,6 +1866,11 @@ class ProposalDeclinedDetails(models.Model):
 @python_2_unicode_compatible
 #class ProposalStandardRequirement(models.Model):
 class ProposalStandardRequirement(RevisionedMixin):
+    SYSTEM_CHOICES = (
+            ('disturbance', 'Disturbance'), 
+            ('apiary', 'Apiary'),
+                      )
+    system = models.CharField('System', max_length=20, choices=SYSTEM_CHOICES, default=SYSTEM_CHOICES[0][0])
     text = models.TextField()
     code = models.CharField(max_length=10, unique=True)
     obsolete = models.BooleanField(default=False)
