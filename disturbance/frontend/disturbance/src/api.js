@@ -17,6 +17,8 @@ module.exports = {
     referrals:"/api/referrals.json",
     compliances:"/api/compliances.json",
     proposal_standard_requirements:"/api/proposal_standard_requirements.json",
+    disturbance_standard_requirements:"/api/proposal_standard_requirements/disturbance_standard_requirements.json",
+    apiary_standard_requirements:"/api/proposal_standard_requirements/apiary_standard_requirements.json",
     proposal_requirements:"/api/proposal_requirements.json",
     amendment_request:"/api/amendment_request.json",
     regions:"/api/regions.json",

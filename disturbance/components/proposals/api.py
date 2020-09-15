@@ -122,7 +122,7 @@ from disturbance.components.approvals.serializers import ApprovalSerializer, App
 from disturbance.components.compliances.models import Compliance
 from disturbance.components.compliances.serializers import ComplianceSerializer
 
-from disturbance.helpers import is_customer, is_internal
+from disturbance.helpers import is_customer, is_internal, is_das_apiary_admin
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from rest_framework.pagination import PageNumberPagination, LimitOffsetPagination
@@ -355,10 +355,12 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
                     application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]
                     ).exclude(processing_status='discarded')
         else:
-            #qs = self.get_queryset().filter(application_type__apiary_group_application_type=False)
-            qs = self.get_queryset().exclude(
-                    application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]
-                    ).exclude(processing_status='discarded')
+            if is_das_apiary_admin(self.request):
+                qs = self.get_queryset()
+            else:
+                qs = self.get_queryset().exclude(
+                        application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]
+                        ).exclude(processing_status='discarded')
         #qs = self.filter_queryset(self.request, qs, self)
         #qs = self.filter_queryset(qs).order_by('-id')
         qs = self.filter_queryset(qs)
@@ -2423,6 +2425,30 @@ class ProposalStandardRequirementViewSet(viewsets.ReadOnlyModelViewSet):
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
+        search = request.GET.get('search')
+        if search:
+            queryset = queryset.filter(text__icontains=search)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @list_route(methods=['GET',])
+    def disturbance_standard_requirements(self, request, *args, **kwargs):
+        # Only Disturbance standard requirements
+        queryset = self.get_queryset().filter(system='disturbance')
+        #queryset = self.get_queryset()
+        search = request.GET.get('search')
+        if search:
+            queryset = queryset.filter(text__icontains=search)
+        # Only Disturbance standard requirements
+        queryset = queryset.filter(system='disturbance')
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @list_route(methods=['GET',])
+    def apiary_standard_requirements(self, request, *args, **kwargs):
+        # Only Apiary standard requirements
+        queryset = self.get_queryset().filter(system='apiary')
+        #queryset = self.get_queryset()
         search = request.GET.get('search')
         if search:
             queryset = queryset.filter(text__icontains=search)
