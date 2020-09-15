@@ -2464,7 +2464,7 @@ class ApiarySiteOnProposal(RevisionedMixin):
     proposal_apiary = models.ForeignKey('ProposalApiary',)
     apiary_site_status_when_submitted = models.CharField(max_length=40, blank=True)
     site_status = models.CharField(choices=SITE_STATUS_CHOICES, default=SITE_STATUS_CHOICES[0][0], max_length=20)
-    link_connected = models.BooleanField(default=True)
+    # link_connected = models.BooleanField(default=True)
     workflow_selected_status = models.BooleanField(default=False)  # This field is used only during approval process to select/deselect the site to be approved
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
@@ -3268,66 +3268,18 @@ class ApiarySite(models.Model):
     GEOMETRY_CONDITION_APPLIED = 'applied'
     GEOMETRY_CONDITION_PENDING = 'pending'
 
-    # proposal_apiary = models.ForeignKey(ProposalApiary, null=True, blank=True, related_name='apiary_sites')
-
-    # When the status is 'vacant', an apiary site can have multiple associations with the ProposalApiary
-    # proposal_apiaries = models.ManyToManyField(ProposalApiary, related_name='vacant_apiary_sites')
-
-    # This status is set to True during the payment process.
-    # In other words, set to True by clicking on the 'Pay' button or so,
-    # then set back to False when payment success.
-    # pending_payment = models.BooleanField(default=False)
-    # approval = models.ForeignKey('disturbance.Approval', null=True, blank=True, related_name='apiary_sites')
     site_guid = models.CharField(max_length=50, blank=True)
     latest_proposal_link = models.ForeignKey('disturbance.ApiarySiteOnProposal', blank=True, null=True)
     latest_approval_link = models.ForeignKey('disturbance.ApiarySiteOnApproval', blank=True, null=True)
-    # available = models.BooleanField(default=False, )
-    # site_category = models.ForeignKey(SiteCategory, null=True, blank=True)
-    # Region and District may be included in the api response from the GIS server
-    # region = models.ForeignKey(Region, null=True, blank=True)
-    # district = models.ForeignKey(District, null=True, blank=True)
-    # status = models.CharField(max_length=40, choices=STATUS_CHOICES, default=STATUS_CHOICES[0][0])
-    # workflow_selected_status = models.BooleanField(default=False)  # This field is used only during approval process to select/deselect the site to be approved
-
-    # Store coordinates
-    # When processing the proposal, an apiary site needs to keep two coordinates, one is approved coordinate and the other one is the coordinates being processed
-    # wkb_geometry = PointField(srid=4326, blank=True, null=True)  # store approved coordinates
-    # wkb_geometry_pending = PointField(srid=4326, blank=True, null=True)  # store the coordinates, which might be moved by the assessor and/or approver during processing
-    # wkb_geometry_applied = PointField(srid=4326, blank=True, null=True)  # store original geometry.  But not used at the moment.
-    # objects = GeoManager()
+    is_vacant = models.BooleanField(default=False)
 
     def __str__(self):
         return '{} - status: {}'.format(self.id, self.status)
-
-    # def get_location(self, obj):
-    #     Expect an obj parameter is either ProposalApiary or Approval
-    #     from disturbance.components.approvals.models import Approval
-    #
-    #     apiary_site_location = None
-    #     if isinstance(obj, ProposalApiary):
-    #         if obj.customer_status in Proposal.CUSTOMER_EDITABLE_STATE:
-    #             apiary_site_location = ApiarySiteLocation.objects.filter(type=ApiarySiteLocation.TYPE_DRAFT, apiary_site=self, proposal_apiary=obj).last()
-    #         else:
-    #             apiary_site_location = ApiarySiteLocation.objects.filter(type=ApiarySiteLocation.TYPE_PROCESSED, apiary_site=self, proposal_apiary=obj).last()
-    #     elif isinstance(obj, Approval):
-    #         apiary_site_location = ApiarySiteLocation.objects.filter(type=ApiarySiteLocation.TYPE_APPROVED, apiary_site=self, approval=obj).last()
-    #
-    #     return apiary_site_location
 
     def get_status_when_submitted(self, proposal_apiary):
         # Expect there is only one relation between apiary_site and proposal_apiary
         record_on_proposal = ApiarySiteOnProposal.objects.get(apiary_site=self, proposal_apiary=proposal_apiary)
         return record_on_proposal.apiary_site_status_when_submitted
-
-    # def save_location(self, destination_type, proposal_apiary, lng, lat):
-    #     apiary_site_location, created = ApiarySiteLocation.objects.get_or_create(
-    #         type=destination_type,
-    #         apiary_site=self,
-    #         proposal_apiary=proposal_apiary
-    #     )
-    #     geom_str = GEOSGeometry('POINT(' + str(lng) + ' ' + str(lat) + ')', srid=4326)
-    #     apiary_site_location.wkb_geometry = geom_str
-    #     apiary_site_location.save()
 
     @staticmethod
     def get_tenure(wkb_geometry):
@@ -3371,7 +3323,6 @@ class ApiarySite(models.Model):
             if 'south' in category_name and 'west' in category_name:
                 category = 'south_west'
         return category
-
 
     @staticmethod
     def get_region_district(wkb_geometry):

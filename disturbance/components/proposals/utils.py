@@ -525,11 +525,11 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                         serializer = ApiarySiteSerializer(a_site, data=feature)
                     except KeyError:  # when 'site_guid' is not defined above
                         # Create new apiary site when both of the above queries failed
-                        if feature['values_']['site_category'] == 'south_west':
-                            category_obj = SiteCategory.objects.get(name='south_west')
-                        else:
-                            category_obj = SiteCategory.objects.get(name='remote')
-                        feature['site_category_id'] = category_obj.id
+                        # if feature['values_']['site_category'] == 'south_west':
+                        #     category_obj = SiteCategory.objects.get(name='south_west')
+                        # else:
+                        #     category_obj = SiteCategory.objects.get(name='remote')
+                        # feature['site_category_id'] = category_obj.id
                         feature['site_guid'] = feature['id_']
 
                         serializer = ApiarySiteSerializer(data=feature)
