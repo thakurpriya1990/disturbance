@@ -3274,7 +3274,7 @@ class ApiarySite(models.Model):
     is_vacant = models.BooleanField(default=False)
 
     def __str__(self):
-        return '{} - status: {}'.format(self.id, self.status)
+        return '{}'.format(self.id,)
 
     def get_status_when_submitted(self, proposal_apiary):
         # Expect there is only one relation between apiary_site and proposal_apiary

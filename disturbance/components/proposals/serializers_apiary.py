@@ -284,14 +284,14 @@ class ApiarySiteSavePointPendingSerializer(GeoFeatureModelSerializer):
 
 
 class ApiarySiteSerializer(serializers.ModelSerializer):
-    proposal_apiary_id = serializers.IntegerField(write_only=True, required=False)
-    site_category_id = serializers.IntegerField(write_only=True, required=False)
-    site_category = serializers.CharField(source='site_category.name', read_only=True)
-    onsiteinformation_set = OnSiteInformationSerializer(read_only=True, many=True,)
+    # proposal_apiary_id = serializers.IntegerField(write_only=True, required=False)
+    # site_category_id = serializers.IntegerField(write_only=True, required=False)
+    # site_category = serializers.CharField(source='site_category.name', read_only=True)
+    # onsiteinformation_set = OnSiteInformationSerializer(read_only=True, many=True,)
     # coordinates = serializers.SerializerMethodField()
-    as_geojson = serializers.SerializerMethodField()
-    previous_site_holder_or_applicant = serializers.SerializerMethodField()
-    status = CustomChoiceField(read_only=True)
+    # as_geojson = serializers.SerializerMethodField()
+    # previous_site_holder_or_applicant = serializers.SerializerMethodField()
+    # status = CustomChoiceField(read_only=True)
 
     def validate(self, attrs):
         return attrs
@@ -350,18 +350,18 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
         model = ApiarySite
         fields = (
             'id',
-            'available',
+            # 'available',
             # 'temporary_used',
             'site_guid',
-            'proposal_apiary_id',
-            'site_category_id',
-            'site_category',
-            'onsiteinformation_set',
+            # 'proposal_apiary_id',
+            # 'site_category_id',
+            # 'site_category',
+            # 'onsiteinformation_set',
             # 'coordinates',
-            'as_geojson',
-            'status',
-            'workflow_selected_status',
-            'previous_site_holder_or_applicant',
+            # 'as_geojson',
+            # 'status',
+            # 'workflow_selected_status',
+            # 'previous_site_holder_or_applicant',
             # 'proposal_apiary_ids',
         )
 
