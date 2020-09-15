@@ -3,7 +3,7 @@
 {%  block content %}
     Annual rental fee awaiting payment confirmation has been issued:
 
-    Approval : {{ approval.lodgement_number}}
+    Licence : {{ approval.lodgement_number}}
 
     Please find the attached annual rental fee awaiting payment confirmation.
 
