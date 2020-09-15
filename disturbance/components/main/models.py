@@ -60,6 +60,17 @@ class RegionDbca(models.Model):
         app_label = 'disturbance'
 
 
+class CategoryDbca(models.Model):
+    '''
+    This model is used for defining the categories
+    '''
+    wkb_geometry = MultiPolygonField(srid=4326, blank=True, null=True)
+    category_name = models.CharField(max_length=20, blank=True, null=True)
+
+    class Meta:
+        app_label = 'disturbance'
+
+
 @python_2_unicode_compatible
 class ApplicationType(models.Model):
 
