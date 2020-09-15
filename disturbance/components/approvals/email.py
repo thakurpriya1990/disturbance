@@ -89,15 +89,18 @@ class ApiaryApprovalRenewalNotificationEmail(TemplateEmailBase):
 
 
 class ApprovalAnnualRentalFeeInvoiceEmail(TemplateEmailBase):
-    subject = 'Annual rental fee invoice for your licence has been issued.'
+    subject = 'Annual rental fee invoice for your licensed apiary sites.'
     html_template = 'disturbance/emails/approval_annual_rental_fee_invoice.html'
     txt_template = 'disturbance/emails/approval_annual_rental_fee_invoice.txt'
 
 
 class ApprovalAnnualRentalFeeAwaitingPaymentConfirmationEmail(TemplateEmailBase):
-    subject = 'Annual rental fee awaiting payment confirmation for your licence has been issued.'
-    html_template = 'disturbance/emails/approval_annual_rental_fee_awaiting_payment_confirmation.html'
-    txt_template = 'disturbance/emails/approval_annual_rental_fee_awaiting_payment_confirmation.txt'
+    #subject = 'Annual rental fee awaiting payment confirmation for your licence has been issued.'
+    subject = 'Annual rental fee invoice for your licensed apiary sites.'
+    #html_template = 'disturbance/emails/approval_annual_rental_fee_awaiting_payment_confirmation.html'
+    #txt_template = 'disturbance/emails/approval_annual_rental_fee_awaiting_payment_confirmation.txt'
+    html_template = 'disturbance/emails/approval_annual_rental_fee_invoice.html'
+    txt_template = 'disturbance/emails/approval_annual_rental_fee_invoice.txt'
 
 
 class ContactLicenceHolderEmail(TemplateEmailBase):
