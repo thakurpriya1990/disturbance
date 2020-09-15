@@ -36,7 +36,7 @@ from disturbance.components.proposals.models import (
     ApiarySiteFeeType,
     ApiarySiteFeeRemainder,
     SiteCategory,
-    ProposalRequirement,
+    ProposalRequirement, ApiarySiteOnProposal,
 )
 from disturbance.components.approvals.models import (
         Approval,
@@ -269,6 +269,20 @@ def perform_validation(serializer, my_geometry):
             raise serializers.ValidationError(non_field_errors)
 
     # return attrs
+
+
+class ApiarySiteOnProposalSaveDraftGeometrySerializer(GeoFeatureModelSerializer):
+
+    def validate(self, attrs):
+
+        # TODO: validate 3km radius, etc
+
+        return attrs
+
+    class Meta:
+        model = ApiarySiteOnProposal
+        geo_field = 'wkb_geometry_draft'
+        fields = ('wkb_geometry_draft',)
 
 
 class ApiarySiteSavePointPendingSerializer(GeoFeatureModelSerializer):

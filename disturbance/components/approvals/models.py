@@ -82,7 +82,6 @@ class ApiarySiteOnApproval(models.Model):
 
     apiary_site = models.ForeignKey('ApiarySite',)
     approval = models.ForeignKey('Approval',)
-    # link_connected = models.BooleanField(default=True)
     site_status = models.CharField(choices=SITE_STATUS_CHOICES, default=SITE_STATUS_CHOICES[0][0], max_length=20)
     site_available = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
