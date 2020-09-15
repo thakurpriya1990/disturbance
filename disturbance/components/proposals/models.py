@@ -3290,7 +3290,7 @@ class ApiarySite(models.Model):
     # approval = models.ForeignKey('disturbance.Approval', null=True, blank=True, related_name='apiary_sites')
     site_guid = models.CharField(max_length=50, blank=True)
     # available = models.BooleanField(default=False, )
-    site_category = models.ForeignKey(SiteCategory, null=True, blank=True)
+    # site_category = models.ForeignKey(SiteCategory, null=True, blank=True)
     # Region and District may be included in the api response from the GIS server
     # region = models.ForeignKey(Region, null=True, blank=True)
     # district = models.ForeignKey(District, null=True, blank=True)
@@ -3299,10 +3299,10 @@ class ApiarySite(models.Model):
 
     # Store coordinates
     # When processing the proposal, an apiary site needs to keep two coordinates, one is approved coordinate and the other one is the coordinates being processed
-    wkb_geometry = PointField(srid=4326, blank=True, null=True)  # store approved coordinates
-    wkb_geometry_pending = PointField(srid=4326, blank=True, null=True)  # store the coordinates, which might be moved by the assessor and/or approver during processing
-    wkb_geometry_applied = PointField(srid=4326, blank=True, null=True)  # store original geometry.  But not used at the moment.
-    objects = GeoManager()
+    # wkb_geometry = PointField(srid=4326, blank=True, null=True)  # store approved coordinates
+    # wkb_geometry_pending = PointField(srid=4326, blank=True, null=True)  # store the coordinates, which might be moved by the assessor and/or approver during processing
+    # wkb_geometry_applied = PointField(srid=4326, blank=True, null=True)  # store original geometry.  But not used at the moment.
+    # objects = GeoManager()
 
     def __str__(self):
         return '{} - status: {}'.format(self.id, self.status)
