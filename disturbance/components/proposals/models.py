@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
 
 import json
-import os
 import datetime
 
 import pytz
@@ -9,31 +8,23 @@ import requests
 from django.contrib.gis.db.models.fields import PointField
 from django.contrib.gis.db.models.manager import GeoManager
 from django.contrib.gis.geos import GEOSGeometry
-from django.contrib.postgres.fields import ArrayField
 from django.db import models,transaction
 from django.contrib.gis.db import models as gis_models
 from django.db.models import Q
 from django.dispatch import receiver
-from django.db.models.signals import pre_delete
+from django.db.models.signals import pre_delete, post_save
 from django.utils.encoding import python_2_unicode_compatible
 from django.core.exceptions import ValidationError
 from django.contrib.postgres.fields.jsonb import JSONField
 from django.utils import timezone
-from django.contrib.sites.models import Site
 from ledger.settings_base import TIME_ZONE
-from taggit.managers import TaggableManager
 from taggit.models import TaggedItemBase
-from ledger.accounts.models import Organisation as ledger_organisation
 from ledger.accounts.models import EmailUser, RevisionedMixin
-from ledger.licence.models import  Licence
 from ledger.payments.models import Invoice
 from disturbance import exceptions
-# from disturbance.components.das_payments.models import AnnualRentalFeePeriod
-# from disturbance.components.das_payments.models import AnnualRentalFee, AnnualRentalFeeApiarySite
-# from disturbance.components.das_payments.utils import create_other_invoice_for_annual_rental_fee
 from disturbance.components.organisations.models import Organisation
-from disturbance.components.main.models import CommunicationsLogEntry, UserAction, Document, Region, District, Tenure, \
-    ApplicationType, RegionDbca, DistrictDbca
+from disturbance.components.main.models import CommunicationsLogEntry, UserAction, Document, Region, District, \
+    ApplicationType, RegionDbca, DistrictDbca, CategoryDbca
 from disturbance.components.main.utils import get_department_user
 from disturbance.components.proposals.email import (
         send_referral_email_notification, 
@@ -54,7 +45,6 @@ from disturbance.components.proposals.email import (
 from disturbance.ordered_model import OrderedModel
 import copy
 import subprocess
-from django.conf import settings
 
 import logging
 logger = logging.getLogger(__name__)
@@ -254,22 +244,25 @@ class ProposalDocument(Document):
     class Meta:
         app_label = 'disturbance'
 
+
 class Proposal(RevisionedMixin):
-#class Proposal(models.Model):
-
-    CUSTOMER_STATUS_CHOICES = (('temp', 'Temporary'), ('draft', 'Draft'),
-                               ('with_assessor', 'Under Review'),
-                               ('amendment_required', 'Amendment Required'),
-                               ('approved', 'Approved'),
-                               ('declined', 'Declined'),
-                               ('discarded', 'Discarded'),
+    CUSTOMER_STATUS_TEMP = 'temp'
+    CUSTOMER_STATUS_DRAFT = 'draft'
+    CUSTOMER_STATUS_WITH_ASSESSOR = 'with_assessor'
+    CUSTOMER_STATUS_AMENDMENT_REQUEST = 'amendment_required'
+    CUSTOMER_STATUS_APPROVED = 'approved'
+    CUSTOMER_STATUS_DECLINED = 'declined'
+    CUSTOMER_STATUS_DISCARDED = 'discarded'
+    CUSTOMER_STATUS_CHOICES = ((CUSTOMER_STATUS_TEMP, 'Temporary'),
+                               (CUSTOMER_STATUS_DRAFT, 'Draft'),
+                               (CUSTOMER_STATUS_WITH_ASSESSOR, 'Under Review'),
+                               (CUSTOMER_STATUS_AMENDMENT_REQUEST, 'Amendment Required'),
+                               (CUSTOMER_STATUS_APPROVED, 'Approved'),
+                               (CUSTOMER_STATUS_DECLINED, 'Declined'),
+                               (CUSTOMER_STATUS_DISCARDED, 'Discarded'),
                                )
-
     # List of statuses from above that allow a customer to edit an application.
-    CUSTOMER_EDITABLE_STATE = ['temp',
-                                'draft',
-                                'amendment_required',
-                            ]
+    CUSTOMER_EDITABLE_STATE = [CUSTOMER_STATUS_TEMP, CUSTOMER_STATUS_DRAFT, CUSTOMER_STATUS_AMENDMENT_REQUEST, ]
 
     APPLICANT_TYPE_ORGANISATION = 'organisation'
     APPLICANT_TYPE_PROXY = 'proxy' # proxy also represents an individual making an Apiary application
@@ -2458,27 +2451,51 @@ class HelpPage(models.Model):
 # --------------------------------------------------------------------------------------
 # Apiary Models Start
 # --------------------------------------------------------------------------------------
-class ProposalApiary(models.Model):
+class ApiarySiteOnProposal(RevisionedMixin):
+    SITE_STATUS_DRAFT = 'draft'
+    SITE_STATUS_PENDING = 'pending'
+    SITE_STATUS_PENDING_PAYMENT = 'pending_payment'
+    SITE_STATUS_APPROVED = 'approved'
+    SITE_STATUS_DENIED = 'denied'
+    SITE_STATUS_CHOICES = (
+        (SITE_STATUS_DRAFT, 'Draft'),
+        (SITE_STATUS_PENDING, 'Pending'),
+        (SITE_STATUS_PENDING_PAYMENT, 'Pending payment'),
+        (SITE_STATUS_APPROVED, 'Approved'),
+        (SITE_STATUS_DENIED, 'Denied'),
+    )
+
+    apiary_site = models.ForeignKey('ApiarySite',)
+    proposal_apiary = models.ForeignKey('ProposalApiary',)
+    apiary_site_status_when_submitted = models.CharField(max_length=40, blank=True)
+    site_status = models.CharField(choices=SITE_STATUS_CHOICES, default=SITE_STATUS_CHOICES[0][0], max_length=20)
+    # link_connected = models.BooleanField(default=True)
+    workflow_selected_status = models.BooleanField(default=False)  # This field is used only during approval process to select/deselect the site to be approved
+    created_at = models.DateTimeField(auto_now_add=True)
+    modified_at = models.DateTimeField(auto_now=True)
+    wkb_geometry_draft = PointField(srid=4326, blank=True, null=True)  # store the coordinates before submit
+    wkb_geometry_processed = PointField(srid=4326, blank=True, null=True)  # store approved coordinates
+    objects = GeoManager()
+
+    class Meta:
+        app_label = 'disturbance'
+        unique_together = ['apiary_site', 'proposal_apiary',]
+
+
+class ProposalApiary(RevisionedMixin):
     title = models.CharField('Title', max_length=200, null=True)
     location = gis_models.PointField(srid=4326, blank=True, null=True)
     proposal = models.OneToOneField(Proposal, related_name='proposal_apiary', null=True)
+
     # We don't use GIS field, because these are just fields user input into the <input> field
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+
     # required for Site Transfer applications
     transferee = models.ForeignKey(EmailUser, blank=True, null=True, related_name='apiary_transferee')
     originating_approval = models.ForeignKey('disturbance.Approval', blank=True, null=True, related_name="site_transfer_originating_approval")
     target_approval = models.ForeignKey('disturbance.Approval', blank=True, null=True, related_name="site_transfer_target_approval")
-    # vacant_apiary_site = models.ForeignKey('ApiarySite', blank=True, null=True, related_name='proposal_apiaries')
-    ###
-
-    # @property
-    # def latitude(self):
-    #     return self.location.get_x()
-    #
-    # @property
-    # def longitude(self):
-    #     return self.location.get_y()
+    apiary_sites = models.ManyToManyField('ApiarySite', through=ApiarySiteOnProposal, related_name='proposal_apiary_set')
 
     def __str__(self):
         return 'id:{} - {}'.format(self.id, self.title)
@@ -2486,7 +2503,6 @@ class ProposalApiary(models.Model):
     class Meta:
         app_label = 'disturbance'
 
-    #def send_referral(self,request,referral_email,referral_text):
     def send_referral(self, request, group_id, referral_text):
         with transaction.atomic():
             try:
@@ -2568,6 +2584,14 @@ class ProposalApiary(models.Model):
                 raise
 
     @property
+    def customer_status(self):
+        return self.proposal.customer_status
+
+    @property
+    def processing_status(self):
+        return self.proposal.processing_status
+
+    @property
     def retrieve_approval(self):
         from disturbance.components.approvals.models import Approval
         approval = None
@@ -2576,7 +2600,6 @@ class ProposalApiary(models.Model):
         elif self.proposal.proxy_applicant:
             approval = Approval.objects.filter(proxy_applicant=self.proposal.proxy_applicant, status=Approval.STATUS_CURRENT, apiary_approval=True).first()
         return approval
-
 
     # ProposalApiary final approval
     def final_approval(self,request,details):
@@ -3250,33 +3273,24 @@ class ApiarySite(models.Model):
     GEOMETRY_CONDITION_APPLIED = 'applied'
     GEOMETRY_CONDITION_PENDING = 'pending'
 
-    proposal_apiary = models.ForeignKey(ProposalApiary, null=True, blank=True, related_name='apiary_sites')
-    proposal_apiaries = models.ManyToManyField(ProposalApiary, related_name='vacant_apiary_sites')
-    # proposal_apiary_ids = ArrayField(models.IntegerField(), blank=True, null=True)  # When this apiary site is 'vacant', store all the proposal_apiaries which have this apiary site
-    approval = models.ForeignKey('disturbance.Approval', null=True, blank=True, related_name='apiary_sites')
     site_guid = models.CharField(max_length=50, blank=True)
-    available = models.BooleanField(default=False, )
-    site_category = models.ForeignKey(SiteCategory, null=True, blank=True)
-    # Region and District may be included in the api response from the GIS server
-    region = models.ForeignKey(Region, null=True, blank=True)
-    district = models.ForeignKey(District, null=True, blank=True)
-    status = models.CharField(max_length=40, choices=STATUS_CHOICES, default=STATUS_CHOICES[0][0])
-    workflow_selected_status = models.BooleanField(default=False)  # This field is used only during approval process to select/deselect the site to be approved
-
-    # Store coordinates
-    # When processing the proposal, an apiary site needs to keep two coordinates, one is approved coordinate and the other one is the coordinates being processed
-    wkb_geometry = PointField(srid=4326, blank=True, null=True)  # store approved coordinates
-    wkb_geometry_pending = PointField(srid=4326, blank=True, null=True)  # store the coordinates, which might be moved by the assessor and/or approver during processing
-    wkb_geometry_applied = PointField(srid=4326, blank=True, null=True)  # store original geometry.  But not used at the moment.
-    objects = GeoManager()
+    latest_proposal_link = models.ForeignKey('disturbance.ApiarySiteOnProposal', blank=True, null=True)
+    latest_approval_link = models.ForeignKey('disturbance.ApiarySiteOnApproval', blank=True, null=True)
+    is_vacant = models.BooleanField(default=False)
 
     def __str__(self):
-        return '{} - status: {}'.format(self.id, self.status)
+        return '{}'.format(self.id,)
 
-    def get_tenure(self):
+    def get_status_when_submitted(self, proposal_apiary):
+        # Expect there is only one relation between apiary_site and proposal_apiary
+        record_on_proposal = ApiarySiteOnProposal.objects.get(apiary_site=self, proposal_apiary=proposal_apiary)
+        return record_on_proposal.apiary_site_status_when_submitted
+
+    @staticmethod
+    def get_tenure(wkb_geometry):
         try:
             URL = 'https://kmi.dpaw.wa.gov.au/geoserver/public/wms'
-            coords = self.wkb_geometry.get_coords()
+            coords = wkb_geometry.get_coords()
             PARAMS = {
                 'SERVICE': 'WMS',
                 'VERSION': '1.1.1',
@@ -3305,10 +3319,21 @@ class ApiarySite(models.Model):
         except:
             return ''
 
-    def get_region_district(self):
+    @staticmethod
+    def get_category(wkb_geometry):
+        category = 'remote'
+        zones = CategoryDbca.objects.filter(wkb_geometry__contains=wkb_geometry)
+        if zones:
+            category_name = zones[0].category_name.lower()
+            if 'south' in category_name and 'west' in category_name:
+                category = 'south_west'
+        return category
+
+    @staticmethod
+    def get_region_district(wkb_geometry):
         try:
-            regions = RegionDbca.objects.filter(wkb_geometry__contains=self.wkb_geometry)
-            districts = DistrictDbca.objects.filter(wkb_geometry__contains=self.wkb_geometry)
+            regions = RegionDbca.objects.filter(wkb_geometry__contains=wkb_geometry)
+            districts = DistrictDbca.objects.filter(wkb_geometry__contains=wkb_geometry)
             text_arr = []
             if regions:
                 text_arr.append(regions.first().region_name)
@@ -3352,9 +3377,31 @@ class ApiarySite(models.Model):
 
         return valid, detail
 
-
     class Meta:
         app_label = 'disturbance'
+
+
+# class ApiarySiteLocation(models.Model):
+#     TYPE_DRAFT = 'draft'
+#     TYPE_PROCESSED = 'processed'
+#     TYPE_APPROVED = 'approved'
+#     TYPE_CHOICES = (
+#         (TYPE_DRAFT, 'Draft'),
+#         (TYPE_PROCESSED, 'Processed'),
+#         (TYPE_APPROVED, 'Approved'),
+#     )
+#     wkb_geometry = PointField(srid=4326, blank=True, null=True)
+#     type = models.CharField(max_length=40, choices=TYPE_CHOICES, default=TYPE_CHOICES[0][0])
+#     apiary_site = models.ForeignKey('ApiarySite', blank=True, null=True)
+#     proposal_apiary = models.ForeignKey('ProposalApiary', blank=True, null=True)
+#     approval = models.ForeignKey('Approval', blank=True, null=True)
+#     created_at = models.DateTimeField(auto_now_add=True)
+#     modified_at = models.DateTimeField(auto_now=True)
+#     objects = GeoManager()
+#
+#     class Meta:
+#         app_label = 'disturbance'
+#         ordering = ['-modified_at', '-created_at',]
 
 
 class ApiarySiteFeeRemainder(models.Model):
@@ -3987,7 +4034,8 @@ reversion.register(Assessment)
 reversion.register(Referral)
 reversion.register(HelpPage)
 reversion.register(ApplicationType)
-reversion.register(ProposalApiary, follow=['apiary_sites'])
+# reversion.register(ProposalApiary, follow=['apiary_sites'])
+reversion.register(ProposalApiary)
 #reversion.register(ProposalApiary)
 reversion.register(ApiarySite)
 

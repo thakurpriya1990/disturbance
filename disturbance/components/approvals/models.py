@@ -1,21 +1,15 @@
 from __future__ import unicode_literals
 
-import json
 import datetime
 from django.db import models,transaction
 from django.dispatch import receiver
 from django.db.models.signals import pre_delete
-from django.utils.encoding import python_2_unicode_compatible
 from django.core.exceptions import ValidationError
 from django.contrib.postgres.fields.jsonb import JSONField
 from django.utils import timezone
-from django.contrib.sites.models import Site
-from taggit.managers import TaggableManager
-from taggit.models import TaggedItemBase
-from ledger.accounts.models import Organisation as ledger_organisation
+from django.contrib.gis.db.models.fields import PointField
+from django.contrib.gis.db.models.manager import GeoManager
 from ledger.accounts.models import EmailUser, RevisionedMixin
-from ledger.licence.models import  Licence
-from disturbance import exceptions
 from disturbance.components.approvals.pdf import create_approval_document
 from disturbance.components.organisations.models import Organisation
 from disturbance.components.proposals.models import Proposal, ProposalUserAction, ApiarySite
@@ -29,8 +23,11 @@ from disturbance.components.approvals.email import (
 )
 from disturbance.doctopdf import create_apiary_licence_pdf_contents
 from disturbance.utils import search_keys, search_multiple_keys
-#from disturbance.components.approvals.email import send_referral_email_notification
 from disturbance.helpers import is_customer
+
+import logging
+logger = logging.getLogger(__name__)
+
 
 def update_approval_doc_filename(instance, filename):
     return_str = ''
@@ -39,6 +36,7 @@ def update_approval_doc_filename(instance, filename):
     else:
         return_str = 'approvals/{}/documents/{}'.format(instance.approval.id,filename)
     return return_str
+
 
 def update_approval_comms_log_filename(instance, filename):
     return 'approvals/{}/communications/{}/{}'.format(instance.log_entry.approval.id,instance.id,filename)
@@ -57,6 +55,7 @@ class ApprovalDocument(Document):
     class Meta:
         app_label = 'disturbance'
 
+
 class RenewalDocument(Document):
     approval = models.ForeignKey('Approval',related_name='renewal_documents')
     _file = models.FileField(upload_to=update_approval_doc_filename)
@@ -71,7 +70,31 @@ class RenewalDocument(Document):
         app_label = 'disturbance'
 
 
-#class Approval(models.Model):
+class ApiarySiteOnApproval(models.Model):
+    SITE_STATUS_CURRENT = 'current'
+    SITE_STATUS_NOT_TO_BE_REISSUED = 'not_to_be_reissued'
+    SITE_STATUS_SUSPENDED = 'suspended'
+    SITE_STATUS_CHOICES = (
+        (SITE_STATUS_CURRENT, 'Current'),
+        (SITE_STATUS_NOT_TO_BE_REISSUED, 'Not to be reissued'),
+        (SITE_STATUS_SUSPENDED, 'Suspended'),
+    )
+
+    apiary_site = models.ForeignKey('ApiarySite',)
+    approval = models.ForeignKey('Approval',)
+    # link_connected = models.BooleanField(default=True)
+    site_status = models.CharField(choices=SITE_STATUS_CHOICES, default=SITE_STATUS_CHOICES[0][0], max_length=20)
+    site_available = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    modified_at = models.DateTimeField(auto_now=True)
+    wkb_geometry = PointField(srid=4326, blank=True, null=True)  # store approved coordinates
+    objects = GeoManager()
+
+    class Meta:
+        app_label = 'disturbance'
+        unique_together = ['apiary_site', 'approval',]
+
+
 class Approval(RevisionedMixin):
     STATUS_CURRENT = 'current'
     STATUS_EXPIRED = 'expired'
@@ -94,10 +117,6 @@ class Approval(RevisionedMixin):
     replaced_by = models.ForeignKey('self', blank=True, null=True)
     #current_proposal = models.ForeignKey(Proposal,related_name = '+')
     current_proposal = models.ForeignKey(Proposal,related_name='approvals')
-#    activity = models.CharField(max_length=255)
-#    region = models.CharField(max_length=255)
-#    tenure = models.CharField(max_length=255,null=True)
-#    title = models.CharField(max_length=255)
     renewal_document = models.ForeignKey(ApprovalDocument, blank=True, null=True, related_name='renewal_document')
     apiary_renewal_document = models.ForeignKey(RenewalDocument, blank=True, null=True, related_name='apiary_renewal_document')
     renewal_sent = models.BooleanField(default=False)
@@ -118,10 +137,11 @@ class Approval(RevisionedMixin):
     reissued= models.BooleanField(default=False)
     apiary_approval = models.BooleanField(default=False)
     no_annual_rental_fee_until = models.DateField(blank=True, null=True)
+    apiary_sites = models.ManyToManyField('ApiarySite', through=ApiarySiteOnApproval, related_name='approval_set')
 
     class Meta:
         app_label = 'disturbance'
-        unique_together= ('lodgement_number', 'issue_date')
+        unique_together = ('lodgement_number', 'issue_date')
 
     @property
     def relevant_renewal_document(self):
