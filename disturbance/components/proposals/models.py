@@ -24,7 +24,7 @@ from ledger.payments.models import Invoice
 from disturbance import exceptions
 from disturbance.components.organisations.models import Organisation
 from disturbance.components.main.models import CommunicationsLogEntry, UserAction, Document, Region, District, \
-    ApplicationType, RegionDbca, DistrictDbca
+    ApplicationType, RegionDbca, DistrictDbca, CategoryDbca
 from disturbance.components.main.utils import get_department_user
 from disturbance.components.proposals.email import (
         send_referral_email_notification, 
@@ -3361,6 +3361,17 @@ class ApiarySite(models.Model):
 
         except:
             return ''
+
+    @staticmethod
+    def get_category(wkb_geometry):
+        category = 'remote'
+        zones = CategoryDbca.objects.filter(wkb_geometry__contains=wkb_geometry)
+        if zones:
+            category_name = zones[0].category_name.lower()
+            if 'south' in category_name and 'west' in category_name:
+                category = 'south_west'
+        return category
+
 
     @staticmethod
     def get_region_district(wkb_geometry):
