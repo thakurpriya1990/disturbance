@@ -3337,10 +3337,11 @@ class ApiarySite(models.Model):
     #     apiary_site_location.wkb_geometry = geom_str
     #     apiary_site_location.save()
 
-    def get_tenure(self):
+    @staticmethod
+    def get_tenure(wkb_geometry):
         try:
             URL = 'https://kmi.dpaw.wa.gov.au/geoserver/public/wms'
-            coords = self.wkb_geometry.get_coords()
+            coords = wkb_geometry.get_coords()
             PARAMS = {
                 'SERVICE': 'WMS',
                 'VERSION': '1.1.1',
@@ -3369,10 +3370,11 @@ class ApiarySite(models.Model):
         except:
             return ''
 
-    def get_region_district(self):
+    @staticmethod
+    def get_region_district(wkb_geometry):
         try:
-            regions = RegionDbca.objects.filter(wkb_geometry__contains=self.wkb_geometry)
-            districts = DistrictDbca.objects.filter(wkb_geometry__contains=self.wkb_geometry)
+            regions = RegionDbca.objects.filter(wkb_geometry__contains=wkb_geometry)
+            districts = DistrictDbca.objects.filter(wkb_geometry__contains=wkb_geometry)
             text_arr = []
             if regions:
                 text_arr.append(regions.first().region_name)
