@@ -594,18 +594,23 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                 save_checklist_answers('applicant', proposal_apiary_data.get('applicant_checklist_answers'))
 
                 # Delete existing
-                sites_delete = ApiarySite.objects.filter(id__in=site_ids_delete, status=ApiarySite.STATUS_DRAFT)
-                sites_delete.delete()
+                sites_delete = ApiarySite.objects.filter(id__in=site_ids_delete)
+                for site_to_delete in sites_delete:
+                    proposal_obj.proposal_apiary.delete_relation(site_to_delete)
+
+
+                # sites_delete.delete()
+
                 # Update the site(s) which is picked up as proposed site
-                sites_updated = ApiarySite.objects.filter(id__in=site_ids_delete)
-                sites_updated.update(proposal_apiary=None)
+                # sites_updated = ApiarySite.objects.filter(id__in=site_ids_delete)
+                # sites_updated.update(proposal_apiary=None)
 
                 # Delete association with 'vacant' site
                 sites_remove = ApiarySite.objects.filter(id__in=site_ids_delete_vacant, status=ApiarySite.STATUS_VACANT)
                 for vacant_site in sites_remove:
                     vacant_site.proposal_apiaries.remove(proposal_obj.proposal_apiary)
 
-            #save Temporary Use data
+            # Save Temporary Use data
             temporary_use_data = request.data.get('apiary_temporary_use', None)
             if temporary_use_data:
                 # Temporary Use Application
@@ -621,13 +626,6 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                     proposal_obj.save()
 
                 # return redirect(reverse('external-proposal-temporary-use-submit-success', kwargs={'proposal_pk': proposal_obj.id}))
-
-            #save Site Transfer data
-            #site_transfer_data = request.data.get('apiary_site_transfer', None)
-            #if site_transfer_data:
-            #    serializer = ProposalApiarySiteTransferSerializer(proposal_obj.apiary_site_transfer, data=site_transfer_data)
-            #    serializer.is_valid(raise_exception=True)
-            #    serializer.save()
 
             # save/update any additonal special propoerties here
             proposal_obj.title = proposal_obj.proposal_apiary.title if hasattr(proposal_obj, 'proposal_apiary') else proposal_obj.title
