@@ -2469,7 +2469,6 @@ class ApiarySiteOnProposal(RevisionedMixin):
     proposal_apiary = models.ForeignKey('ProposalApiary',)
     apiary_site_status_when_submitted = models.CharField(max_length=40, blank=True)
     site_status = models.CharField(choices=SITE_STATUS_CHOICES, default=SITE_STATUS_CHOICES[0][0], max_length=20)
-    # link_connected = models.BooleanField(default=True)
     workflow_selected_status = models.BooleanField(default=False)  # This field is used only during approval process to select/deselect the site to be approved
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
