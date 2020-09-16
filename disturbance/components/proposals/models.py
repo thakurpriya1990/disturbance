@@ -2502,6 +2502,13 @@ class ProposalApiary(RevisionedMixin):
     class Meta:
         app_label = 'disturbance'
 
+    def delete_relation(self, apiary_site):
+        status_to_remove = apiary_site.get_status(self)
+        self.apiary_sites.remove(apiary_site)
+        if status_to_remove == ApiarySiteOnProposal.SITE_STATUS_DRAFT:
+            # When removing the relation to the draft site, we don't need both the relation to the site and the site itself
+            apiary_site.delete()
+
     def send_referral(self, request, group_id, referral_text):
         with transaction.atomic():
             try:
@@ -3282,8 +3289,12 @@ class ApiarySite(models.Model):
 
     def get_status_when_submitted(self, proposal_apiary):
         # Expect there is only one relation between apiary_site and proposal_apiary
-        record_on_proposal = ApiarySiteOnProposal.objects.get(apiary_site=self, proposal_apiary=proposal_apiary)
-        return record_on_proposal.apiary_site_status_when_submitted
+        site_on_proposal = ApiarySiteOnProposal.objects.get(apiary_site=self, proposal_apiary=proposal_apiary)
+        return site_on_proposal.apiary_site_status_when_submitted
+
+    def get_status(self, proposal_apiary):
+        site_on_proposal = ApiarySiteOnProposal.objects.get(apiary_site=self, proposal_apiary=proposal_apiary)
+        return site_on_proposal.site_status
 
     @staticmethod
     def get_tenure(wkb_geometry):
