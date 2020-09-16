@@ -549,7 +549,10 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                         # Get apiary_site_on_proposal obj
                         apiary_site_on_proposal, created = ApiarySiteOnProposal.objects.get_or_create(apiary_site=apiary_site_obj, proposal_apiary=proposal_obj.proposal_apiary)
                         # Save the coordinate as 'draft' coordinate
-                        serializer = ApiarySiteOnProposalSaveDraftGeometrySerializer(apiary_site_on_proposal, data={'wkb_geometry_draft': geom_str})
+                        serializer = ApiarySiteOnProposalSaveDraftGeometrySerializer(apiary_site_on_proposal, data={
+                            'wkb_geometry_draft': geom_str,
+                            # 'workflow_selected_status': False,
+                        })
                         serializer.is_valid(raise_exception=True)
                         serializer.save()
 
@@ -606,9 +609,9 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                 # sites_updated.update(proposal_apiary=None)
 
                 # Delete association with 'vacant' site
-                sites_remove = ApiarySite.objects.filter(id__in=site_ids_delete_vacant, status=ApiarySite.STATUS_VACANT)
-                for vacant_site in sites_remove:
-                    vacant_site.proposal_apiaries.remove(proposal_obj.proposal_apiary)
+                # sites_remove = ApiarySite.objects.filter(id__in=site_ids_delete_vacant, status=ApiarySite.STATUS_VACANT)
+                # for vacant_site in sites_remove:
+                #     vacant_site.proposal_apiaries.remove(proposal_obj.proposal_apiary)
 
             # Save Temporary Use data
             temporary_use_data = request.data.get('apiary_temporary_use', None)
@@ -632,6 +635,7 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
             proposal_obj.save()
         except Exception as e:
             raise
+
 
 def save_checklist_answers(checklist_type, checklist_answers=None):
     if checklist_answers and checklist_type == 'referrer':
