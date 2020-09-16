@@ -22,7 +22,7 @@ from taggit.models import TaggedItemBase
 from ledger.accounts.models import EmailUser, RevisionedMixin
 from ledger.payments.models import Invoice
 from disturbance import exceptions
-from disturbance.components.approvals.models import ApiarySiteOnApproval
+# from disturbance.components.approvals.models import ApiarySiteOnApproval
 from disturbance.components.organisations.models import Organisation
 from disturbance.components.main.models import CommunicationsLogEntry, UserAction, Document, Region, District, \
     ApplicationType, RegionDbca, DistrictDbca, CategoryDbca
@@ -3304,6 +3304,7 @@ class ApiarySite(models.Model):
                 return site_on_proposal.site_status
             else:
                 # Expect the type of proposal_apiary_or_approval is Approval type
+                from disturbance.components.approvals.models import ApiarySiteOnApproval
                 site_on_approval = ApiarySiteOnApproval.objects.get(apiary_site=self, approval=proposal_apiary_or_approval)
                 return site_on_approval.site_status
         except:
