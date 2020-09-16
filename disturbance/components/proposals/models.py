@@ -22,6 +22,7 @@ from taggit.models import TaggedItemBase
 from ledger.accounts.models import EmailUser, RevisionedMixin
 from ledger.payments.models import Invoice
 from disturbance import exceptions
+# from disturbance.components.approvals.models import ApiarySiteOnApproval
 from disturbance.components.organisations.models import Organisation
 from disturbance.components.main.models import CommunicationsLogEntry, UserAction, Document, Region, District, \
     ApplicationType, RegionDbca, DistrictDbca, CategoryDbca
@@ -2502,6 +2503,17 @@ class ProposalApiary(RevisionedMixin):
     class Meta:
         app_label = 'disturbance'
 
+    def delete_relation(self, apiary_site):
+        status_to_remove = apiary_site.get_status(self)
+        self.apiary_sites.remove(apiary_site)
+        if status_to_remove == ApiarySiteOnProposal.SITE_STATUS_DRAFT:
+            if apiary_site.is_vacant:
+                # 'vacant' site should not be deleted, the process should not reach here though
+                pass
+            else:
+                # When removing the relation to the draft site, we don't need both the relation to the site and the site itself
+                apiary_site.delete()
+
     def send_referral(self, request, group_id, referral_text):
         with transaction.atomic():
             try:
@@ -3282,8 +3294,21 @@ class ApiarySite(models.Model):
 
     def get_status_when_submitted(self, proposal_apiary):
         # Expect there is only one relation between apiary_site and proposal_apiary
-        record_on_proposal = ApiarySiteOnProposal.objects.get(apiary_site=self, proposal_apiary=proposal_apiary)
-        return record_on_proposal.apiary_site_status_when_submitted
+        site_on_proposal = ApiarySiteOnProposal.objects.get(apiary_site=self, proposal_apiary=proposal_apiary)
+        return site_on_proposal.apiary_site_status_when_submitted
+
+    def get_status(self, proposal_apiary_or_approval):
+        try:
+            if isinstance(proposal_apiary_or_approval, ProposalApiary):
+                site_on_proposal = ApiarySiteOnProposal.objects.get(apiary_site=self, proposal_apiary=proposal_apiary_or_approval)
+                return site_on_proposal.site_status
+            else:
+                # Expect the type of proposal_apiary_or_approval is Approval type
+                from disturbance.components.approvals.models import ApiarySiteOnApproval
+                site_on_approval = ApiarySiteOnApproval.objects.get(apiary_site=self, approval=proposal_apiary_or_approval)
+                return site_on_approval.site_status
+        except:
+            return ''
 
     @staticmethod
     def get_tenure(wkb_geometry):

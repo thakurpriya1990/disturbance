@@ -282,7 +282,10 @@ class ApiarySiteOnProposalSaveDraftGeometrySerializer(GeoFeatureModelSerializer)
     class Meta:
         model = ApiarySiteOnProposal
         geo_field = 'wkb_geometry_draft'
-        fields = ('wkb_geometry_draft',)
+        fields = (
+            'wkb_geometry_draft',
+            'workflow_selected_status',
+        )
 
 
 class ApiarySiteSavePointPendingSerializer(GeoFeatureModelSerializer):
