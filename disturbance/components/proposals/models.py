@@ -2454,8 +2454,8 @@ class HelpPage(models.Model):
 # --------------------------------------------------------------------------------------
 class ApiarySiteOnProposal(RevisionedMixin):
     SITE_STATUS_DRAFT = 'draft'
-    SITE_STATUS_PENDING = 'pending'
     SITE_STATUS_PENDING_PAYMENT = 'pending_payment'
+    SITE_STATUS_PENDING = 'pending'
     SITE_STATUS_APPROVED = 'approved'
     SITE_STATUS_DENIED = 'denied'
     SITE_STATUS_CHOICES = (
@@ -2465,6 +2465,8 @@ class ApiarySiteOnProposal(RevisionedMixin):
         (SITE_STATUS_APPROVED, 'Approved'),
         (SITE_STATUS_DENIED, 'Denied'),
     )
+    SITE_STATUSES_FOR_GEOMETRY_DRAFT = (SITE_STATUS_DRAFT, SITE_STATUS_PENDING_PAYMENT,)
+    SITE_STATUSES_FOR_GEOMETRY_PROCESSED = (SITE_STATUS_PENDING, SITE_STATUS_APPROVED, SITE_STATUS_DENIED,)
 
     apiary_site = models.ForeignKey('ApiarySite',)
     proposal_apiary = models.ForeignKey('ProposalApiary',)
@@ -3299,16 +3301,27 @@ class ApiarySite(models.Model):
 
     def get_status(self, proposal_apiary_or_approval):
         try:
-            if isinstance(proposal_apiary_or_approval, ProposalApiary):
-                site_on_proposal = ApiarySiteOnProposal.objects.get(apiary_site=self, proposal_apiary=proposal_apiary_or_approval)
-                return site_on_proposal.site_status
-            else:
-                # Expect the type of proposal_apiary_or_approval is Approval type
-                from disturbance.components.approvals.models import ApiarySiteOnApproval
-                site_on_approval = ApiarySiteOnApproval.objects.get(apiary_site=self, approval=proposal_apiary_or_approval)
-                return site_on_approval.site_status
+            intermediate_obj = self.get_intermediate(proposal_apiary_or_approval)
+            return intermediate_obj.site_status
         except:
             return ''
+
+    def get_geometry(self, proposal_apiary_or_approval):
+        inter_obj = self.get_intermediate(proposal_apiary_or_approval)
+        if inter_obj.site_status in ApiarySiteOnProposal.SITE_STATUSES_FOR_GEOMETRY_DRAFT:
+            return inter_obj.wkb_geometry_draft
+        elif inter_obj.site_status in ApiarySiteOnProposal.SITE_STATUSES_FOR_GEOMETRY_PROCESSED:
+            return inter_obj.wkb_geometry_processed
+        else:
+            # Should not reach here
+            return None
+
+    def get_intermediate(self, proposal_apiary_or_approval):
+        if isinstance(proposal_apiary_or_approval, ProposalApiary):
+            return ApiarySiteOnProposal.objects.get(apiary_site=self, proposal_apiary=proposal_apiary_or_approval)
+        else:
+            from disturbance.components.approvals.models import ApiarySiteOnApproval
+            return ApiarySiteOnApproval.objects.get(apiary_site=self, approval=proposal_apiary_or_approval)
 
     @staticmethod
     def get_tenure(wkb_geometry):
