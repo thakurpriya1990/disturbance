@@ -2477,6 +2477,8 @@ class ApiarySiteOnProposal(RevisionedMixin):
     modified_at = models.DateTimeField(auto_now=True)
     wkb_geometry_draft = PointField(srid=4326, blank=True, null=True)  # store the coordinates before submit
     wkb_geometry_processed = PointField(srid=4326, blank=True, null=True)  # store approved coordinates
+    site_category_draft = models.ForeignKey('SiteCategory', null=True, blank=True, related_name='intermediate_draft')
+    site_category_processed = models.ForeignKey('SiteCategory', null=True, blank=True, related_name='intermediate_processed')
     objects = GeoManager()
 
     class Meta:
