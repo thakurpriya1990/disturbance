@@ -1,4 +1,3 @@
-from django.conf import settings
 from ledger.accounts.models import EmailUser,Address
 
 from disturbance.components.approvals.models import (
@@ -18,7 +17,6 @@ from disturbance.components.proposals.serializers_apiary import (
     ApplicantAddressSerializer,
     ApiarySiteSerializer,
     ApiaryProposalRequirementSerializer, 
-    ApiarySiteExportSerializer,
     ApiarySiteLicenceDocSerializer,
 )
 
@@ -371,20 +369,24 @@ class ApprovalCancellationSerializer(serializers.Serializer):
     cancellation_date = serializers.DateField(input_formats=['%d/%m/%Y'])
     cancellation_details = serializers.CharField()
 
+
 class ApprovalSuspensionSerializer(serializers.Serializer):
     from_date = serializers.DateField(input_formats=['%d/%m/%Y'])
     to_date = serializers.DateField(input_formats=['%d/%m/%Y'], required=False, allow_null=True)
     suspension_details = serializers.CharField()
 
+
 class ApprovalSurrenderSerializer(serializers.Serializer):
     surrender_date = serializers.DateField(input_formats=['%d/%m/%Y'])
     surrender_details = serializers.CharField()
+
 
 class ApprovalUserActionSerializer(serializers.ModelSerializer):
     who = serializers.CharField(source='who.get_full_name')
     class Meta:
         model = ApprovalUserAction
         fields = '__all__'
+
 
 class ApprovalLogEntrySerializer(CommunicationLogEntrySerializer):
     documents = serializers.SerializerMethodField()
@@ -397,3 +399,5 @@ class ApprovalLogEntrySerializer(CommunicationLogEntrySerializer):
 
     def get_documents(self,obj):
         return [[d.name,d._file.url] for d in obj.documents.all()]
+
+

@@ -2454,8 +2454,8 @@ class HelpPage(models.Model):
 # --------------------------------------------------------------------------------------
 class ApiarySiteOnProposal(RevisionedMixin):
     SITE_STATUS_DRAFT = 'draft'
-    SITE_STATUS_PENDING = 'pending'
     SITE_STATUS_PENDING_PAYMENT = 'pending_payment'
+    SITE_STATUS_PENDING = 'pending'
     SITE_STATUS_APPROVED = 'approved'
     SITE_STATUS_DENIED = 'denied'
     SITE_STATUS_CHOICES = (
@@ -2465,6 +2465,8 @@ class ApiarySiteOnProposal(RevisionedMixin):
         (SITE_STATUS_APPROVED, 'Approved'),
         (SITE_STATUS_DENIED, 'Denied'),
     )
+    SITE_STATUSES_FOR_GEOMETRY_DRAFT = (SITE_STATUS_DRAFT, SITE_STATUS_PENDING_PAYMENT,)
+    SITE_STATUSES_FOR_GEOMETRY_PROCESSED = (SITE_STATUS_PENDING, SITE_STATUS_APPROVED, SITE_STATUS_DENIED,)
 
     apiary_site = models.ForeignKey('ApiarySite',)
     proposal_apiary = models.ForeignKey('ProposalApiary',)
@@ -2475,6 +2477,8 @@ class ApiarySiteOnProposal(RevisionedMixin):
     modified_at = models.DateTimeField(auto_now=True)
     wkb_geometry_draft = PointField(srid=4326, blank=True, null=True)  # store the coordinates before submit
     wkb_geometry_processed = PointField(srid=4326, blank=True, null=True)  # store approved coordinates
+    site_category_draft = models.ForeignKey('SiteCategory', null=True, blank=True, related_name='intermediate_draft')
+    site_category_processed = models.ForeignKey('SiteCategory', null=True, blank=True, related_name='intermediate_processed')
     objects = GeoManager()
 
     class Meta:
@@ -2504,9 +2508,14 @@ class ProposalApiary(RevisionedMixin):
         app_label = 'disturbance'
 
     def delete_relation(self, apiary_site):
-        status_to_remove = apiary_site.get_status(self)
-        self.apiary_sites.remove(apiary_site)
-        if status_to_remove == ApiarySiteOnProposal.SITE_STATUS_DRAFT:
+        site_status_to_remove = apiary_site.get_status(self)
+
+        # Remove the relationship to the apiary_site
+        inter_obj = ApiarySiteOnProposal.objects.get(apiary_site=apiary_site, proposal_apiary=self)
+        inter_obj.delete()
+
+        # Delete the apiary site itself if the status of it is 'draft'
+        if site_status_to_remove == ApiarySiteOnProposal.SITE_STATUS_DRAFT:
             if apiary_site.is_vacant:
                 # 'vacant' site should not be deleted, the process should not reach here though
                 pass
@@ -3299,16 +3308,27 @@ class ApiarySite(models.Model):
 
     def get_status(self, proposal_apiary_or_approval):
         try:
-            if isinstance(proposal_apiary_or_approval, ProposalApiary):
-                site_on_proposal = ApiarySiteOnProposal.objects.get(apiary_site=self, proposal_apiary=proposal_apiary_or_approval)
-                return site_on_proposal.site_status
-            else:
-                # Expect the type of proposal_apiary_or_approval is Approval type
-                from disturbance.components.approvals.models import ApiarySiteOnApproval
-                site_on_approval = ApiarySiteOnApproval.objects.get(apiary_site=self, approval=proposal_apiary_or_approval)
-                return site_on_approval.site_status
+            intermediate_obj = self.get_intermediate(proposal_apiary_or_approval)
+            return intermediate_obj.site_status
         except:
             return ''
+
+    def get_geometry(self, proposal_apiary_or_approval):
+        inter_obj = self.get_intermediate(proposal_apiary_or_approval)
+        if inter_obj.site_status in ApiarySiteOnProposal.SITE_STATUSES_FOR_GEOMETRY_DRAFT:
+            return inter_obj.wkb_geometry_draft
+        elif inter_obj.site_status in ApiarySiteOnProposal.SITE_STATUSES_FOR_GEOMETRY_PROCESSED:
+            return inter_obj.wkb_geometry_processed
+        else:
+            # Should not reach here
+            return None
+
+    def get_intermediate(self, proposal_apiary_or_approval):
+        if isinstance(proposal_apiary_or_approval, ProposalApiary):
+            return ApiarySiteOnProposal.objects.get(apiary_site=self, proposal_apiary=proposal_apiary_or_approval)
+        else:
+            from disturbance.components.approvals.models import ApiarySiteOnApproval
+            return ApiarySiteOnApproval.objects.get(apiary_site=self, approval=proposal_apiary_or_approval)
 
     @staticmethod
     def get_tenure(wkb_geometry):
@@ -3343,15 +3363,6 @@ class ApiarySite(models.Model):
         except:
             return ''
 
-    @staticmethod
-    def get_category(wkb_geometry):
-        category = 'remote'
-        zones = CategoryDbca.objects.filter(wkb_geometry__contains=wkb_geometry)
-        if zones:
-            category_name = zones[0].category_name.lower()
-            if 'south' in category_name and 'west' in category_name:
-                category = 'south_west'
-        return category
 
     @staticmethod
     def get_region_district(wkb_geometry):
