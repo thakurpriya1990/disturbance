@@ -8,6 +8,7 @@ from django.db.models import Q
 from ledger.settings_base import TIME_ZONE
 from rest_framework_gis.serializers import GeoFeatureModelSerializer
 
+from disturbance.components.main.utils import get_category
 from disturbance.components.organisations.serializers import OrganisationSerializer
 from disturbance.components.organisations.models import UserDelegation
 from disturbance.components.proposals.serializers_base import (
@@ -325,7 +326,11 @@ class ApiarySiteOnProposalDraftGeometrySaveSerializer(GeoFeatureModelSerializer)
     For saving as 'draft'
     """
     def validate(self, attrs):
+
         # TODO: validate 3km radius, etc
+
+        site_category = get_category(attrs['wkb_geometry_draft'])
+        attrs['site_category_draft'] = site_category
         return attrs
 
     class Meta:
@@ -334,6 +339,7 @@ class ApiarySiteOnProposalDraftGeometrySaveSerializer(GeoFeatureModelSerializer)
         fields = (
             'wkb_geometry_draft',
             'workflow_selected_status',
+            'site_category_draft',
         )
 
 
@@ -342,7 +348,11 @@ class ApiarySiteOnProposalProcessedGeometrySaveSerializer(GeoFeatureModelSeriali
     For saving as 'processed'
     """
     def validate(self, attrs):
+
         # TODO: validate 3km radius, etc
+
+        site_category = get_category(attrs['wkb_geometry_processed'])
+        attrs['site_category_processed'] = site_category
         return attrs
 
     class Meta:
@@ -351,6 +361,7 @@ class ApiarySiteOnProposalProcessedGeometrySaveSerializer(GeoFeatureModelSeriali
         fields = (
             'wkb_geometry_processed',
             'workflow_selected_status',
+            'site_category_processed',
         )
 
 

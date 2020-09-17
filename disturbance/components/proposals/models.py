@@ -3363,15 +3363,6 @@ class ApiarySite(models.Model):
         except:
             return ''
 
-    @staticmethod
-    def get_category(wkb_geometry):
-        category = 'remote'
-        zones = CategoryDbca.objects.filter(wkb_geometry__contains=wkb_geometry)
-        if zones:
-            category_name = zones[0].category_name.lower()
-            if 'south' in category_name and 'west' in category_name:
-                category = 'south_west'
-        return category
 
     @staticmethod
     def get_region_district(wkb_geometry):

@@ -1,6 +1,8 @@
 from django.db.models.signals import post_delete, pre_save, post_save, m2m_changed
 from django.dispatch import receiver
 from ledger.accounts.models import EmailUser
+
+from disturbance.components.main.utils import get_category
 from disturbance.components.proposals.models import (
     ProposalAssessorGroup,
     Referral,
@@ -74,6 +76,9 @@ class ApiarySiteOnProposalListener(object):
     def _post_save(sender, instance, **kwargs):
         instance.apiary_site.latest_proposal_link = instance
         instance.apiary_site.save()
-        pass
-
+        # site_category_draft = get_category(instance.wkb_geometry_draft)
+        # site_category_processed = get_category(instance.wkb_geometry_processed)
+        # instance.site_category_draft = site_category_draft
+        # instance.site_category_processed = site_category_processed
+        # instance.save()
 
