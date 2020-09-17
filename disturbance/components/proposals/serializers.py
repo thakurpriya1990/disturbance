@@ -49,6 +49,20 @@ class ProposalWrapperSerializer(serializers.ModelSerializer):
         return obj.application_type.name
 
 
+class ApprovalDTProposalSerializer(serializers.ModelSerializer):
+    application_type = serializers.CharField(source='application_type.name', read_only=True)
+    region = serializers.CharField(source='region.name', read_only=True)
+    class Meta:
+        model = Proposal
+        fields = (
+            'id',
+            'application_type',
+            'region',
+            'activity',
+            'title',
+        )
+
+
 class DTProposalSerializer(BaseProposalSerializer):
     submitter = EmailUserSerializer()
     applicant = serializers.CharField(source='applicant.organisation.name')
