@@ -627,9 +627,11 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
 
         # 1.4. Issue query
         qs_on_proposal = ApiarySiteOnProposal.objects.filter(q_include_proposal).exclude(q_exclude_proposal)  #######################
+        # qs_on_proposal = ApiarySiteOnProposal.objects.filter(q_include_proposal)  # for debug
 
         # 1.5. serialize
         serializer_proposal = ApiarySiteOnProposalProcessedGeometrySerializer(qs_on_proposal, many=True)  ##########################
+        # serializer_proposal = ApiarySiteOnProposalDraftGeometrySerializer(qs_on_proposal, many=True)  # for debug
 
         # 2. ApiarySiteOnApproval
         q_include_approval = Q()

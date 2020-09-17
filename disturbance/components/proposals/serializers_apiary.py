@@ -667,8 +667,19 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
         )
 
     def get_apiary_sites(self, proposal_apiary):
-        apiary_sites = ApiarySiteSerializer(proposal_apiary.apiary_sites, many=True, context={'proposal_apiary_or_approval': proposal_apiary})
-        return apiary_sites.data
+        # apiary_sites = ApiarySiteSerializer(proposal_apiary.apiary_sites, many=True, context={'proposal_apiary_or_approval': proposal_apiary})
+        # return apiary_sites.data
+
+        ret = []
+        for apiary_site in proposal_apiary.apiary_sites.all():
+            inter_obj = ApiarySiteOnProposal.objects.get(apiary_site=apiary_site, proposal_apiary=proposal_apiary)
+            if inter_obj.site_status == ApiarySiteOnProposal.SITE_STATUS_DRAFT:
+                serializer = ApiarySiteOnProposalDraftGeometrySerializer
+            else:
+                serializer = ApiarySiteOnProposalProcessedGeometrySerializer
+            ret.append(serializer(inter_obj).data)
+        return ret
+
         # vacant_apiary_sites = ApiarySiteSerializer(proposal_apiary.vacant_apiary_sites, many=True)
         # merged = apiary_sites.data + vacant_apiary_sites.data
         # return merged
