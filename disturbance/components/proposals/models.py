@@ -2506,9 +2506,14 @@ class ProposalApiary(RevisionedMixin):
         app_label = 'disturbance'
 
     def delete_relation(self, apiary_site):
-        status_to_remove = apiary_site.get_status(self)
-        self.apiary_sites.remove(apiary_site)
-        if status_to_remove == ApiarySiteOnProposal.SITE_STATUS_DRAFT:
+        site_status_to_remove = apiary_site.get_status(self)
+
+        # Remove the relationship to the apiary_site
+        inter_obj = ApiarySiteOnProposal.objects.get(apiary_site=apiary_site, proposal_apiary=self)
+        inter_obj.delete()
+
+        # Delete the apiary site itself if the status of it is 'draft'
+        if site_status_to_remove == ApiarySiteOnProposal.SITE_STATUS_DRAFT:
             if apiary_site.is_vacant:
                 # 'vacant' site should not be deleted, the process should not reach here though
                 pass

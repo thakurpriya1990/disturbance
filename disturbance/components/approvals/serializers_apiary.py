@@ -3,7 +3,7 @@ from rest_framework_gis.serializers import GeoFeatureModelSerializer
 from disturbance.components.approvals.models import ApiarySiteOnApproval
 
 
-class ApiarySiteOnApprovalSerializer(GeoFeatureModelSerializer):
+class ApiarySiteOnApprovalGeometrySerializer(GeoFeatureModelSerializer):
     """
     For reading
     """
@@ -13,11 +13,11 @@ class ApiarySiteOnApprovalSerializer(GeoFeatureModelSerializer):
         geo_field = 'wkb_geometry'
         fields = (
             'wkb_geometry',
-            'site_status'
+            'site_status',
         )
 
 
-class ApiarySiteOnApprovalSaveSerializer(GeoFeatureModelSerializer):
+class ApiarySiteOnApprovalGeometrySaveSerializer(GeoFeatureModelSerializer):
     """
     For saving
     """
@@ -26,7 +26,7 @@ class ApiarySiteOnApprovalSaveSerializer(GeoFeatureModelSerializer):
         model = ApiarySiteOnApproval
         geo_field = 'wkb_geometry'
         fields = (
-            'wkb_geometry'
+            'wkb_geometry',
         )
 
 

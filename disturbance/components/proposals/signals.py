@@ -72,7 +72,8 @@ class ApiarySiteOnProposalListener(object):
     @staticmethod
     @receiver(post_save, sender=ApiarySiteOnProposal)
     def _post_save(sender, instance, **kwargs):
-        instance.apiary_site.latest_propposal_link = instance
+        instance.apiary_site.latest_proposal_link = instance
         instance.apiary_site.save()
+        pass
 
 

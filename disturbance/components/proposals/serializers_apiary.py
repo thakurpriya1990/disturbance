@@ -272,28 +272,52 @@ class ApiarySiteOnProposalDraftGeometrySerializer(GeoFeatureModelSerializer):
     """
     For reading as 'draft'
     """
+    id = serializers.IntegerField(source='apiary_site.id')
+    site_guid = serializers.CharField(source='apiary_site.site_guid')
+    status = serializers.SerializerMethodField()
+
     class Meta:
         model = ApiarySiteOnProposal
         geo_field = 'wkb_geometry_draft'
         fields = (
+            'id',
+            'site_guid',
+            # 'available',
             'wkb_geometry_draft',
+            # 'site_category',
+            'status',
             'workflow_selected_status',
-            'site_status',
+            # 'stable_coords',
         )
+
+    def get_status(self, obj):
+        return obj.site_status
 
 
 class ApiarySiteOnProposalProcessedGeometrySerializer(GeoFeatureModelSerializer):
     """
     For reading as 'processed'
     """
+    id = serializers.IntegerField(source='apiary_site.id')
+    site_guid = serializers.CharField(source='apiary_site.site_guid')
+    status = serializers.SerializerMethodField()
+
     class Meta:
         model = ApiarySiteOnProposal
         geo_field = 'wkb_geometry_processed'
         fields = (
+            'id',
+            'site_guid',
+            # 'available',
             'wkb_geometry_processed',
-            # 'workflow_selected_status',
-            # 'site_status',
+            # 'site_category',
+            'status',
+            'workflow_selected_status',
+            # 'stable_coords',
         )
+
+    def get_status(self, obj):
+        return obj.site_status
 
 
 class ApiarySiteOnProposalDraftGeometrySaveSerializer(GeoFeatureModelSerializer):
@@ -375,8 +399,8 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
         elif inter_obj.site_status in ApiarySiteOnProposal.SITE_STATUSES_FOR_GEOMETRY_PROCESSED:
             serializer = ApiarySiteOnProposalProcessedGeometrySerializer
         else:
-            from disturbance.components.approvals.serializers_apiary import ApiarySiteOnApprovalSerializer
-            serializer = ApiarySiteOnApprovalSerializer
+            from disturbance.components.approvals.serializers_apiary import ApiarySiteOnApprovalGeometrySerializer
+            serializer = ApiarySiteOnApprovalGeometrySerializer
 
         ret = serializer(inter_obj)
         return ret.data
