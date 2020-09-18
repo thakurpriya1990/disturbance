@@ -7,6 +7,8 @@ from django.conf import settings
 from django.core.cache import cache
 from django.db import connection
 
+from disturbance.components.main.models import CategoryDbca
+
 
 def retrieve_department_users():
     try:
@@ -57,6 +59,7 @@ def convert_utc_time_to_local(utc_time_str_with_z):
     else:
         return utc_time_str_with_z
 
+
 def get_template_group(request):
     web_url = request.META.get('HTTP_HOST', None)
     template_group = None
@@ -67,3 +70,12 @@ def get_template_group(request):
     return template_group
 
 
+def get_category(wkb_geometry):
+    from disturbance.components.proposals.models import SiteCategory
+    category = SiteCategory.objects.get(name=SiteCategory.CATEGORY_REMOTE)
+    zones = CategoryDbca.objects.filter(wkb_geometry__contains=wkb_geometry)
+    if zones:
+        category_name = zones[0].category_name.lower()
+        if 'south' in category_name and 'west' in category_name:
+            category = SiteCategory.objects.get(name=SiteCategory.CATEGORY_SOUTH_WEST)
+    return category

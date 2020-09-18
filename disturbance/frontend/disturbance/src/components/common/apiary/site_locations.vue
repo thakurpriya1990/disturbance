@@ -286,8 +286,12 @@
                             // Category
                             mRender: function (data, type, feature) {
                                 let cat = feature.get('site_category')
-                                cat = cat.replace('_', ' ')
-                                return cat.replace(/\w\S*/g, function(txt){return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();});
+                                if (cat){
+                                    cat = cat.replace('_', ' ')
+                                    return cat.replace(/\w\S*/g, function(txt){return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();});
+                                } else {
+                                    return '---'
+                                }
                             }
                         },
                         {
@@ -547,7 +551,7 @@
                 for (let i=0; i<vm.proposal.proposal_apiary.apiary_sites.length; i++){
                      let apiary_site = vm.proposal.proposal_apiary.apiary_sites[i]
 
-                    if (apiary_site.status.id === 'vacant'){
+                    if (apiary_site.properties.status === 'vacant'){
                         // apiary_site is 'vacant' site
                         let feature = vm.apiarySitesQuerySource.getFeatureById(apiary_site.id)
                         // Set new attribute to apply a specific style for the 'vacant' selected site
@@ -555,7 +559,7 @@
 
                         vm.drawingLayerSource.addFeature(feature);
                     } else {
-                        let feature = (new GeoJSON).readFeature(apiary_site.as_geojson)
+                        let feature = (new GeoJSON).readFeature(apiary_site)
                         this.drawingLayerSource.addFeature(feature)
                         this.createBufferForSite(feature);
                     }
