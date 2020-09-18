@@ -34,6 +34,7 @@ from disturbance.components.approvals.models import (
 )
 from disturbance.components.approvals.serializers import (
     ApprovalSerializer,
+    DTApprovalSerializer,
     ApprovalCancellationSerializer,
     ApprovalSuspensionSerializer,
     ApprovalSurrenderSerializer,
@@ -234,7 +235,8 @@ class ApprovalPaginatedViewSet(viewsets.ModelViewSet):
 
         self.paginator.page_size = qs.count()
         result_page = self.paginator.paginate_queryset(qs, request)
-        serializer = ApprovalSerializer(result_page, context={
+        #import ipdb; ipdb.set_trace()
+        serializer = DTApprovalSerializer(result_page, context={
             'request':request,
             'template_group': template_group
             }, many=True)
