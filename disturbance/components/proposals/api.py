@@ -1,64 +1,44 @@
 import re
 import traceback
 import os
-import base64
-from string import lower
 
-import geojson
 import json
 
 import pytz
-from confy import env
 from ledger.settings_base import TIME_ZONE
-from six.moves.urllib.parse import urlparse
-from wsgiref.util import FileWrapper
-from django.db.models import Q, Min
+from django.db.models import Q
 from django.db import transaction
-from django.http import HttpResponse
-from django.core.files.base import ContentFile
 from django.core.exceptions import ValidationError
-from django.conf import settings
-from django.contrib import messages
-from django.views.decorators.http import require_http_methods
-from django.views.decorators.csrf import csrf_exempt
-from django.utils import timezone
-from rest_framework import viewsets, serializers, status, generics, views
-from rest_framework.decorators import detail_route, list_route, renderer_classes, parser_classes
+from rest_framework import viewsets, serializers, status, views
+from rest_framework.decorators import detail_route, list_route, renderer_classes
 from rest_framework.response import Response
 from rest_framework.renderers import JSONRenderer
-from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser, BasePermission
-from rest_framework.pagination import PageNumberPagination
-from collections import OrderedDict
-from django.core.cache import cache
-from ledger.accounts.models import EmailUser, Address
-from ledger.address.models import Country
-from datetime import datetime, timedelta, date
+from ledger.accounts.models import EmailUser
+from datetime import datetime
 
 from disturbance.components.approvals.email import send_contact_licence_holder_email
+from disturbance.components.approvals.serializers_apiary import ApiarySiteOnApprovalGeometrySerializer
 from disturbance.components.main.decorators import basic_exception_handler
 from disturbance.components.proposals.utils import (
     save_proponent_data,
     save_assessor_data,
     save_apiary_assessor_data, update_proposal_apiary_temporary_use,
 )
-from disturbance.components.proposals.models import searchKeyWords, search_reference, ProposalUserAction, \
-    ProposalApiary, OnSiteInformation, ApiarySite, ApiaryChecklistQuestion, ApiaryChecklistAnswer, \
-    ProposalApiaryTemporaryUse, TemporaryUseApiarySite
-from disturbance.utils import missing_required_fields, search_tenure, convert_moment_str_to_python_datetime_obj
+from disturbance.components.proposals.models import searchKeyWords, search_reference, \
+    OnSiteInformation, ApiarySite, ApiaryChecklistQuestion, ApiaryChecklistAnswer, \
+    ProposalApiaryTemporaryUse, ApiarySiteOnProposal
+from disturbance.utils import search_tenure
 from disturbance.components.main.utils import (
         check_db_connection, 
-        convert_utc_time_to_local,
         get_template_group
         )
 
 from django.urls import reverse
-from django.shortcuts import render, redirect, get_object_or_404
-from disturbance.components.main.models import Document, Region, District, Tenure, ApplicationType, GlobalSettings, \
-    ApiaryGlobalSettings
+from django.shortcuts import redirect, get_object_or_404
+from disturbance.components.main.models import ApplicationType, ApiaryGlobalSettings
 from disturbance.components.proposals.models import (
     ProposalType,
     Proposal,
-    ProposalDocument,
     Referral,
     ProposalRequirement,
     ProposalStandardRequirement,
@@ -76,12 +56,10 @@ from disturbance.components.proposals.serializers import (
     ProposalSerializer,
     InternalProposalSerializer,
     SaveProposalSerializer,
-    DTProposalSerializer,
     ProposalUserActionSerializer,
     ProposalLogEntrySerializer,
     DTReferralSerializer,
     ReferralSerializer,
-    ReferralProposalSerializer,
     ProposalRequirementSerializer,
     ProposalStandardRequirementSerializer,
     ProposedApprovalSerializer,
@@ -96,7 +74,6 @@ from disturbance.components.proposals.serializers import (
     ProposalWrapperSerializer,
     ReferralWrapperSerializer,
 )
-from disturbance.components.proposals.serializers_base import ProposalReferralSerializer
 from disturbance.components.proposals.serializers_apiary import (
     ProposalApiaryTypeSerializer,
     ApiaryInternalProposalSerializer,
@@ -104,7 +81,6 @@ from disturbance.components.proposals.serializers_apiary import (
     SaveProposalApiarySerializer,
     CreateProposalApiarySiteTransferSerializer,
     ProposalApiaryTemporaryUseSerializer,
-    ProposalApiarySiteTransferSerializer,
     OnSiteInformationSerializer,
     ApiaryReferralGroupSerializer,
     ApiarySiteSerializer,
@@ -114,38 +90,27 @@ from disturbance.components.proposals.serializers_apiary import (
     DTApiaryReferralSerializer,
     FullApiaryReferralSerializer,
     ProposalHistorySerializer,
-    UserApiaryApprovalSerializer, ApiarySiteGeojsonSerializer, ApiarySiteExportSerializer,
-    ApiarySitePendingGeojsonSerializer,
+    UserApiaryApprovalSerializer,
+    ApiarySiteExportSerializer,
+    ApiarySiteOnProposalProcessedGeometrySerializer, ApiarySiteOnProposalDraftGeometrySerializer,
 )
-from disturbance.components.approvals.models import Approval
-from disturbance.components.approvals.serializers import ApprovalSerializer, ApprovalLogEntrySerializer
+from disturbance.components.approvals.models import Approval, ApiarySiteOnApproval
+from disturbance.components.approvals.serializers import ApprovalLogEntrySerializer
 from disturbance.components.compliances.models import Compliance
-from disturbance.components.compliances.serializers import ComplianceSerializer
 
 from disturbance.helpers import is_customer, is_internal, is_das_apiary_admin
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
-from rest_framework.pagination import PageNumberPagination, LimitOffsetPagination
+from rest_framework.pagination import PageNumberPagination
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 from rest_framework_datatables.filters import DatatablesFilterBackend
 from rest_framework_datatables.renderers import DatatablesRenderer
-from rest_framework.filters import BaseFilterBackend
 from disturbance.components.main.process_document import (
         process_generic_document, 
-        #save_comms_log_document_obj
         )
-from copy import deepcopy
 import logging
 logger = logging.getLogger(__name__)
 
-#def get_template_group(request):
-#    web_url = request.META.get('HTTP_HOST', None)
-#    template_group = None
-#    if web_url in settings.APIARY_URL:
-#       template_group = 'apiary'
-#    else:
-#       template_group = 'das'
-#    return template_group
 
 class GetProposalType(views.APIView):
     renderer_classes = [JSONRenderer, ]
@@ -642,42 +607,78 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
     @list_route(methods=['GET',])
     @basic_exception_handler
     def list_existing(self, request):
+        # 1. ApiarySiteOnProposal
+        q_include_proposal = Q()
+        q_exclude_proposal = Q()
 
-        q_objects = Q()
+        # 1.1. Include only the intermediate objects which are on the ApiarySite.latest_proposal_links
+        q_include_proposal &= Q(id__in=(ApiarySite.objects.all().values('latest_proposal_link__id')))
 
+        # 1.2. Exclude 'draft' apiary site
+        q_exclude_proposal |= Q(site_status__in=(ApiarySiteOnProposal.SITE_STATUS_DRAFT,))
+
+        # 1.3. Exculde the apairy sites which are on the proposal apiary currently being accessed
         proposal_id = request.query_params.get('proposal_id', 0)
         if proposal_id:
-            # WHen proposal_id is passed as a query_params, which is the one in the URL after the ?
-            # Exculde the apiary_sites in that proposal
+            # When proposal_id is passed as a query_params, which is the one in the URL after the ?
+            # Exculde the apiary_sites included in that proposal
             proposal = Proposal.objects.get(id=proposal_id)
-            q_objects |= Q(proposal_apiary=proposal.proposal_apiary)
+            q_exclude_proposal |= Q(proposal_apiary=proposal.proposal_apiary)
 
-        # For the apiary sites in Current, Suspended, Vacant, Denied, NotToBeReissued statuses
-        qs = self.get_queryset().filter(status__in=(
-            ApiarySite.STATUS_CURRENT,
-            ApiarySite.STATUS_SUSPENDED,
-            ApiarySite.STATUS_VACANT,
-            ApiarySite.STATUS_DENIED,
-            ApiarySite.STATUS_NOT_TO_BE_REISSUED,
-        )).exclude(q_objects)
-        serializer = ApiarySiteGeojsonSerializer(qs, many=True)  # coordinate is stored in the wkb_geometry field
+        # 1.4. Issue query
+        qs_on_proposal = ApiarySiteOnProposal.objects.filter(q_include_proposal).exclude(q_exclude_proposal)  #######################
+        # qs_on_proposal = ApiarySiteOnProposal.objects.filter(q_include_proposal)  # for debug
 
-        # For the apiary sites in Pending status
-        qs_pending = self.get_queryset().filter(status__in=(
-            ApiarySite.STATUS_PENDING,
-        )).exclude(q_objects)
-        serializer_pending = ApiarySitePendingGeojsonSerializer(qs_pending, many=True)  # coordinate is stored in the wkb_geometry_pending field
+        # 1.5. serialize
+        serializer_proposal = ApiarySiteOnProposalProcessedGeometrySerializer(qs_on_proposal, many=True)  ##########################
+        # serializer_proposal = ApiarySiteOnProposalDraftGeometrySerializer(qs_on_proposal, many=True)  # for debug
 
-        # Merge two
-        # ret_geojson = serializer.data
-        # ret_geojson_pending = serializer_pending.data
-        # dictMerge = ret_geojson.copy()
-        # dictMerge['features'].extend(ret_geojson_pending['features'])
+        # 2. ApiarySiteOnApproval
+        q_include_approval = Q()
+        q_exclude_approval = Q()
 
-        serializer.data['features'].extend(serializer_pending.data['features'])
+        # 2.1. Include only the intermediate objects which are on the ApiarySite.latest_approval_links
+        q_include_approval &= Q(id__in=(ApiarySite.objects.all().values('latest_approval_link__id')))
 
-        # ret_geojson.update(ret_geojson_pending)
-        return Response(serializer.data)
+        # 2.2.
+        qs_on_approval = ApiarySiteOnApproval.objects.filter(q_include_approval)
+
+        # 2.5. serialize
+        serializer_approval = ApiarySiteOnApprovalGeometrySerializer(qs_on_approval, many=True)
+
+        # 3. Merge sites form the serializer_proposal with the ones from the serializer_approval
+        serializer_proposal.data['features'].extend(serializer_approval.data['features'])
+
+        return Response(serializer_proposal.data)
+
+
+
+#        # For the apiary sites in Current, Suspended, Vacant, Denied, NotToBeReissued statuses
+#        qs = self.get_queryset().filter(status__in=(
+#            ApiarySite.STATUS_CURRENT,
+#            ApiarySite.STATUS_SUSPENDED,
+#            ApiarySite.STATUS_VACANT,
+#            ApiarySite.STATUS_DENIED,
+#            ApiarySite.STATUS_NOT_TO_BE_REISSUED,
+#        )).exclude(q_objects)
+#        serializer = ApiarySiteGeojsonSerializer(qs, many=True)  # coordinate is stored in the wkb_geometry field
+#
+#        # For the apiary sites in Pending status
+#        qs_pending = self.get_queryset().filter(status__in=(
+#            ApiarySite.STATUS_PENDING,
+#        )).exclude(q_objects)
+#        serializer_pending = ApiarySitePendingGeojsonSerializer(qs_pending, many=True)  # coordinate is stored in the wkb_geometry_pending field
+#
+#        # Merge two
+#        # ret_geojson = serializer.data
+#        # ret_geojson_pending = serializer_pending.data
+#        # dictMerge = ret_geojson.copy()
+#        # dictMerge['features'].extend(ret_geojson_pending['features'])
+#
+#        serializer.data['features'].extend(serializer_pending.data['features'])
+#
+#        # ret_geojson.update(ret_geojson_pending)
+#        return Response(serializer.data)
 
     @list_route(methods=['GET',])
     @basic_exception_handler

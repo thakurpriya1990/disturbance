@@ -27,7 +27,7 @@ from disturbance.components.proposals.serializers_apiary import (
     ProposalApiarySerializer,
     ProposalApiaryTemporaryUseSerializer,
     ApiarySiteSerializer, TemporaryUseApiarySiteSerializer,
-    ApiarySiteSavePointPendingSerializer, ApiarySiteOnProposalSaveDraftGeometrySerializer
+    ApiarySiteSavePointPendingSerializer, ApiarySiteOnProposalDraftGeometrySaveSerializer
 )
 from disturbance.components.proposals.email import send_submit_email_notification, send_external_submit_email_notification
 
@@ -549,7 +549,7 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                         # Get apiary_site_on_proposal obj
                         apiary_site_on_proposal, created = ApiarySiteOnProposal.objects.get_or_create(apiary_site=apiary_site_obj, proposal_apiary=proposal_obj.proposal_apiary)
                         # Save the coordinate as 'draft' coordinate
-                        serializer = ApiarySiteOnProposalSaveDraftGeometrySerializer(apiary_site_on_proposal, data={
+                        serializer = ApiarySiteOnProposalDraftGeometrySaveSerializer(apiary_site_on_proposal, data={
                             'wkb_geometry_draft': geom_str,
                             # 'workflow_selected_status': False,
                         })
