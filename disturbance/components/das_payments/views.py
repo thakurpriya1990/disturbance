@@ -468,10 +468,18 @@ class ApplicationFeeSuccessView(TemplateView):
     def adjust_db_operations(self, db_operations):
         proposal_apiary = ProposalApiary.objects.get(id=db_operations['proposal_apiary_id'])
 
+        proposal_apiary.post_payment_success()
         # non vacant site
-        for site_id in db_operations['apiary_site_ids']:
-            apiary_site = ApiarySite.objects.get(id=site_id)
-            proposal_apiary.set_status(apiary_site, ApiarySiteOnProposal.SITE_STATUS_PENDING)
+        # for site_id in db_operations['apiary_site_ids']:
+        #     apiary_site = ApiarySite.objects.get(id=site_id)
+        #     proposal_apiary.set_status(apiary_site, ApiarySiteOnProposal.SITE_STATUS_PENDING)
+
+        # vacant site
+        # for site_id in db_operations['vacant_apiary_site_ids']:
+        #     apiary_site = ApiarySite.objects.get(id=site_id,)
+        #     apiary_site.is_vacant = False
+        #     apiary_site.save()
+        #     proposal_apiary.set_status(apiary_site, ApiarySiteOnProposal.SITE_STATUS_PENDING)
 
         # Perform database operations to remove and/or store site remainders
         # site remainders used
@@ -495,16 +503,6 @@ class ApplicationFeeSuccessView(TemplateView):
                 applicant=applicant,
                 proxy_applicant=proxy_applicant,
             )
-
-        # vacant site
-        for site_id in db_operations['vacant_apiary_site_ids']:
-            try:
-                apiary_site = ApiarySite.objects.get(id=site_id,)
-                apiary_site.is_vacant = False
-                apiary_site.save()
-                proposal_apiary.set_status(apiary_site, ApiarySiteOnProposal.SITE_STATUS_PENDING)
-            except Exception, e:
-                logger.error('Error handling vacant apiary site after the payment: {}'.format(e))
 
 
 class AwaitingPaymentPDFView(View):

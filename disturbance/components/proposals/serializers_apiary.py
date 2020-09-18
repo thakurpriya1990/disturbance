@@ -278,6 +278,7 @@ class ApiarySiteOnProposalDraftGeometrySerializer(GeoFeatureModelSerializer):
     site_guid = serializers.CharField(source='apiary_site.site_guid')
     status = serializers.SerializerMethodField()
     site_category = serializers.SerializerMethodField()
+    previous_site_holder_or_applicant = serializers.SerializerMethodField()
 
     class Meta:
         model = ApiarySiteOnProposal
@@ -291,6 +292,7 @@ class ApiarySiteOnProposalDraftGeometrySerializer(GeoFeatureModelSerializer):
             'status',
             'workflow_selected_status',
             # 'stable_coords',
+            'previous_site_holder_or_applicant',
         )
 
     def get_status(self, obj):
@@ -298,6 +300,13 @@ class ApiarySiteOnProposalDraftGeometrySerializer(GeoFeatureModelSerializer):
 
     def get_site_category(self, obj):
         return obj.site_category_draft.name
+
+    def get_previous_site_holder_or_applicant(self, obj):
+        try:
+            relevant_applicant_name = obj.proposal_apiary.proposal.relevant_applicant_name
+            return relevant_applicant_name
+        except:
+            return ''
 
 
 class ApiarySiteOnProposalProcessedGeometrySerializer(GeoFeatureModelSerializer):
@@ -308,6 +317,7 @@ class ApiarySiteOnProposalProcessedGeometrySerializer(GeoFeatureModelSerializer)
     site_guid = serializers.CharField(source='apiary_site.site_guid')
     status = serializers.SerializerMethodField()
     site_category = serializers.SerializerMethodField()
+    previous_site_holder_or_applicant = serializers.SerializerMethodField()
 
     class Meta:
         model = ApiarySiteOnProposal
@@ -321,6 +331,7 @@ class ApiarySiteOnProposalProcessedGeometrySerializer(GeoFeatureModelSerializer)
             'status',
             'workflow_selected_status',
             # 'stable_coords',
+            'previous_site_holder_or_applicant',
         )
 
     def get_status(self, obj):
@@ -328,6 +339,13 @@ class ApiarySiteOnProposalProcessedGeometrySerializer(GeoFeatureModelSerializer)
 
     def get_site_category(self, obj):
         return obj.site_category_draft.name
+
+    def get_previous_site_holder_or_applicant(self, obj):
+        try:
+            relevant_applicant_name = obj.proposal_apiary.proposal.relevant_applicant_name
+            return relevant_applicant_name
+        except:
+            return ''
 
 
 class ApiarySiteOnProposalDraftGeometrySaveSerializer(GeoFeatureModelSerializer):

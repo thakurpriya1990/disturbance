@@ -2515,6 +2515,19 @@ class ProposalApiary(RevisionedMixin):
     class Meta:
         app_label = 'disturbance'
 
+    def post_payment_success(self):
+        """
+        Run this function just after the payment success
+        """
+        for relation in self.get_relations():
+            if relation.apiary_site.is_vacant:
+                relation.apiary_site.is_vacant = False
+            relation.apiary_site_status_when_submitted = relation.site_status
+            relation.wkb_geometry_processed = relation.wkb_geometry_draft
+            relation.site_category_processed = relation.site_category_draft
+            relation.site_status = ApiarySiteOnProposal.SITE_STATUS_PENDING
+            relation.save()
+
     def get_status(self, apiary_site):
         relation_obj = self.get_relation(apiary_site)
         return relation_obj.site_status

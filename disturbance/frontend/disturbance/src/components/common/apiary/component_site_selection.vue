@@ -209,8 +209,8 @@
                             // Site
                             visible: vm.show_col_site,
                             mRender: function (data, type, apiary_site) {
-                                let fillColour = SiteColours[apiary_site.status.id].fill
-                                let strokeColour = SiteColours[apiary_site.status.id].stroke
+                                let fillColour = SiteColours[apiary_site.properties.status].fill
+                                let strokeColour = SiteColours[apiary_site.properties.status].stroke
                                 return '<svg height="20" width="20">' +
                                             '<circle cx="10" cy="10" r="6" stroke="' + strokeColour + '" stroke-width="2" fill="' + fillColour + '" />' +
                                        '</svg> site: ' + apiary_site.id
@@ -241,14 +241,14 @@
                             // Status
                             visible: vm.show_col_status,
                             mRender: function (data, type, apiary_site){
-                                return apiary_site.status.name
+                                return apiary_site.properties.status
                             }
                         },
                         {
                             // Previous Site Holder/Applicant
                             visible: vm.show_col_previous_site_holder,
                             mRender: function (data, type, apiary_site){
-                                return apiary_site.previous_site_holder_or_applicant
+                                return apiary_site.properties.previous_site_holder_or_applicant
                             }
                         },
                         {
@@ -266,7 +266,8 @@
                                 if (vm.show_action_available_unavailable){
                                     // Mark as Available/Unavailable
                                     let display_text = ''
-                                    if (vm.is_external && ['Current', 'current'].includes(apiary_site.status.id)){
+                                    //if (vm.is_external && ['Current', 'current'].includes(apiary_site.status.id)){
+                                    if (vm.is_external && ['Current', 'current'].includes(apiary_site.properties.status)){
                                         if (apiary_site.available){
                                             display_text = 'Mark as unavailable';
                                         } else {
@@ -275,7 +276,8 @@
                                         let ret = '<a><span class="toggle_availability" data-apiary-site-id="' + apiary_site.id +
                                             '" data-apiary-site-available="' + apiary_site.available + '"/>' + display_text + '</span></a>';
                                         action_list.push(ret);
-                                    } else if (vm.is_internal && ['Current', 'current'].includes(apiary_site.status.id)){
+                                    //} else if (vm.is_internal && ['Current', 'current'].includes(apiary_site.status.id)){
+                                    } else if (vm.is_internal && ['Current', 'current'].includes(apiary_site.properties.status)){
                                         if (apiary_site.available){
                                             display_text = 'Available';
                                         } else {
@@ -391,9 +393,11 @@
                     console.log(apiary_sites[i])
                     if (apiary_sites[i].hasOwnProperty('checked')){
                         //apiary_sites[i].as_geojson['properties']['checked'] = apiary_sites[i].checked
-                        apiary_sites[i].as_geojson.properties.checked = apiary_sites[i].checked
+                        //apiary_sites[i].as_geojson.properties.checked = apiary_sites[i].checked
+                        apiary_sites[i].properties.checked = apiary_sites[i].checked
                     }
-                    this.apiary_site_geojson_array.push(apiary_sites[i].as_geojson)
+                    //this.apiary_site_geojson_array.push(apiary_sites[i].as_geojson)
+                    this.apiary_site_geojson_array.push(apiary_sites[i])
                 }
 
                 // Reload ComponentMap by assigning a new key value
