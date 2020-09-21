@@ -3188,16 +3188,13 @@ class ProposalApiary(RevisionedMixin):
                 # Log it
                 self.proposal.log_user_action(ProposalUserAction.APIARY_SITE_MOVED.format(my_site['id'], prev_coordinates, (my_site['coordinates_moved']['lng'], my_site['coordinates_moved']['lat'])), request)
 
-            # Because this is final approval, copy pending geometry to the geometry field (approved geometry field).
-            # a_site.wkb_geometry = a_site.wkb_geometry_pending
-            # a_site.wkb_geometry_pending = None
-            # a_site.save()
+            # Because this is final approval, copy the data from the proposal to the approval
             from disturbance.components.approvals.models import ApiarySiteOnApproval
             if apiary_site_on_proposal.site_status == ApiarySiteOnProposal.SITE_STATUS_APPROVED:
                 # Create a relation between the approved apairy site and the approval
                 apiary_site_on_approval, created = ApiarySiteOnApproval.objects.get_or_create(apiary_site=a_site, approval=approval)
                 apiary_site_on_approval.wkb_geometry = apiary_site_on_proposal.wkb_geometry_processed
-                apiary_site_on_approval.site_category = apiary_site_on_proposal.site_category
+                apiary_site_on_approval.site_category = apiary_site_on_proposal.site_category_processed
                 apiary_site_on_approval.site_status = ApiarySiteOnApproval.SITE_STATUS_CURRENT
                 apiary_site_on_approval.save()
 
