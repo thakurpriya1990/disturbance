@@ -615,7 +615,8 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
         q_include_proposal &= Q(id__in=(ApiarySite.objects.all().values('latest_proposal_link__id')))
 
         # 1.2. Exclude 'draft' apiary site
-        q_exclude_proposal |= Q(site_status__in=(ApiarySiteOnProposal.SITE_STATUS_DRAFT,))
+        q_exclude_proposal |= Q(site_status__in=(ApiarySiteOnProposal.SITE_STATUS_DRAFT,)) & Q(making_payment=False)
+        q_exclude_proposal |= Q(site_status__in=(ApiarySiteOnProposal.SITE_STATUS_APPROVED,))
 
         # 1.3. Exculde the apairy sites which are on the proposal apiary currently being accessed
         proposal_id = request.query_params.get('proposal_id', 0)
