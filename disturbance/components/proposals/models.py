@@ -2461,27 +2461,24 @@ class HelpPage(models.Model):
 # --------------------------------------------------------------------------------------
 class ApiarySiteOnProposal(RevisionedMixin):
     SITE_STATUS_DRAFT = 'draft'
-    SITE_STATUS_PENDING_PAYMENT = 'pending_payment'
     SITE_STATUS_PENDING = 'pending'
     SITE_STATUS_APPROVED = 'approved'
     SITE_STATUS_DENIED = 'denied'
-    SITE_STATUS_CURRENT = 'current'
     SITE_STATUS_SUSPENDED = 'suspended'
     SITE_STATUS_CHOICES = (
         (SITE_STATUS_DRAFT, 'Draft'),
         (SITE_STATUS_PENDING, 'Pending'),
-        (SITE_STATUS_PENDING_PAYMENT, 'Pending payment'),
         (SITE_STATUS_APPROVED, 'Approved'),
         (SITE_STATUS_DENIED, 'Denied'),
-        (SITE_STATUS_CURRENT, 'Current'),
         (SITE_STATUS_SUSPENDED, 'Suspended'),
     )
 
-    SITE_STATUSES_FOR_GEOMETRY_DRAFT = (SITE_STATUS_DRAFT, SITE_STATUS_PENDING_PAYMENT,)
+    # SITE_STATUSES_FOR_GEOMETRY_DRAFT = (SITE_STATUS_DRAFT, SITE_STATUS_PENDING_PAYMENT,)
+    SITE_STATUSES_FOR_GEOMETRY_DRAFT = (SITE_STATUS_DRAFT,)
     SITE_STATUSES_FOR_GEOMETRY_PROCESSED = (SITE_STATUS_PENDING, SITE_STATUS_APPROVED, SITE_STATUS_DENIED,)
 
     NON_RESTRICTIVE_STATUSES = (SITE_STATUS_DRAFT, )
-    RENEWABLE_STATUS = (SITE_STATUS_CURRENT, SITE_STATUS_SUSPENDED,)
+    RENEWABLE_STATUS = (SITE_STATUS_APPROVED, SITE_STATUS_SUSPENDED,)
 
     apiary_site = models.ForeignKey('ApiarySite',)
     proposal_apiary = models.ForeignKey('ProposalApiary',)
@@ -2534,6 +2531,7 @@ class ProposalApiary(RevisionedMixin):
             relation.wkb_geometry_processed = relation.wkb_geometry_draft
             relation.site_category_processed = relation.site_category_draft
             relation.site_status = ApiarySiteOnProposal.SITE_STATUS_PENDING
+            relation.making_payment = False  # This should replace the above line
             relation.save()
 
     def set_workflow_selected_status(self, apiary_site, selected_status):
