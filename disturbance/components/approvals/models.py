@@ -143,6 +143,10 @@ class Approval(RevisionedMixin):
         app_label = 'disturbance'
         unique_together = ('lodgement_number', 'issue_date')
 
+    def get_relations(self):
+        relation_objs = ApiarySiteOnApproval.objects.filter(apiary_site__in=self.apiary_sites.all(), approval=self)
+        return relation_objs
+
     @property
     def relevant_renewal_document(self):
         return self.apiary_renewal_document if self.apiary_renewal_document else self.renewal_document

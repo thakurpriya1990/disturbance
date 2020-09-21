@@ -3,8 +3,10 @@ from ledger.accounts.models import EmailUser,Address
 from disturbance.components.approvals.models import (
     Approval,
     ApprovalLogEntry,
-    ApprovalUserAction
+    ApprovalUserAction, ApiarySiteOnApproval
 )
+from disturbance.components.approvals.serializers_apiary import ApiarySiteOnApprovalLicenceDocSerializer, \
+    ApiarySiteOnApprovalGeometrySerializer
 from disturbance.components.das_payments.models import AnnualRentalFeePeriod, AnnualRentalFee
 from disturbance.components.das_payments.serializers import AnnualRentalFeeSerializer, AnnualRentalFeePeriodSerializer
 from disturbance.components.organisations.models import (
@@ -16,8 +18,8 @@ from rest_framework import serializers
 from disturbance.components.proposals.serializers_apiary import (
     ApplicantAddressSerializer,
     ApiarySiteSerializer,
-    ApiaryProposalRequirementSerializer, 
-    ApiarySiteLicenceDocSerializer,
+    ApiaryProposalRequirementSerializer,
+    ApiarySiteLicenceDocSerializer, ApiarySiteOnProposalLicenceDocSerializer,
 )
 
 
@@ -73,14 +75,17 @@ class ApprovalSerializerForLicenceDoc(serializers.ModelSerializer):
 
     def get_apiary_sites(self, approval):
         ret_array = []
+
         if not approval.current_proposal.approval:
             # Customer does not yet have a licence
-            for apiary_site in approval.current_proposal.proposal_apiary.apiary_sites.all():
-                serializer = ApiarySiteLicenceDocSerializer(apiary_site)
+            apiary_site_on_proposals = approval.current_proposal.proposal_apiary.get_relations()
+            for relation in apiary_site_on_proposals:
+                serializer = ApiarySiteOnProposalLicenceDocSerializer(relation)
                 ret_array.append(serializer.data)
         else:
-            for apiary_site in approval.current_proposal.approval.apiary_sites.all():
-                serializer = ApiarySiteLicenceDocSerializer(apiary_site)
+            apiary_site_on_approvals = approval.get_relations()
+            for relation in apiary_site_on_approvals:
+                serializer = ApiarySiteOnApprovalLicenceDocSerializer(relation)
                 ret_array.append(serializer.data)
         return ret_array
 
@@ -142,7 +147,8 @@ class ApprovalSerializer(serializers.ModelSerializer):
     applicant_first_name = serializers.SerializerMethodField()
     applicant_last_name = serializers.SerializerMethodField()
     applicant_address = serializers.SerializerMethodField()
-    apiary_sites = ApiarySiteSerializer(many=True, read_only=True)
+    # apiary_sites = ApiarySiteSerializer(many=True, read_only=True)
+    apiary_sites = serializers.SerializerMethodField()
     annual_rental_fee_periods = serializers.SerializerMethodField()
     latest_apiary_licence_document = serializers.SerializerMethodField()
     apiary_licence_document_history = serializers.SerializerMethodField()
@@ -240,6 +246,14 @@ class ApprovalSerializer(serializers.ModelSerializer):
             'latest_apiary_licence_document',
             'template_group',
         )
+
+    def get_apiary_sites(self, approval):
+        ret = []
+        for apiary_site in approval.apiary_sites.all():
+            inter_obj = ApiarySiteOnApproval.objects.get(apiary_site=apiary_site, approval=approval)
+            serializer = ApiarySiteOnApprovalGeometrySerializer
+            ret.append(serializer(inter_obj).data)
+        return ret
 
     def get_activity(self, approval):
         activity_text = None
