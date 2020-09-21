@@ -1148,6 +1148,9 @@
             this.$http.get('/api/apiary_site/list_existing/?proposal_id=' + this.proposal.id)
             .then(
                 res => {
+                    console.log('res.body: ')
+                    console.log(res.body)
+
                     vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
                     vm.existing_sites_loaded = true
                 },
