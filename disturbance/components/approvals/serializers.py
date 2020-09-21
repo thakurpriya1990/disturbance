@@ -378,6 +378,95 @@ class ApprovalSerializer(serializers.ModelSerializer):
     #     else:
     #         return ''
 
+from disturbance.components.proposals.serializers import ApprovalDTProposalSerializer
+class DTApprovalSerializer(serializers.ModelSerializer):
+    current_proposal = ApprovalDTProposalSerializer(read_only=True)
+    allowed_assessors = EmailUserSerializer(many=True)
+    licence_document = serializers.CharField(source='licence_document._file.url')
+    #allowed_assessors = serializers.SerializerMethodField(read_only=True)
+    can_approver_reissue = serializers.SerializerMethodField(read_only=True)
+    latest_apiary_licence_document = serializers.SerializerMethodField()
+    template_group = serializers.SerializerMethodField()
+    applicant = serializers.SerializerMethodField(read_only=True)
+    status = serializers.CharField(source='get_status_display')
+    region = serializers.CharField(source='current_proposal.region')
+    activity = serializers.SerializerMethodField(read_only=True)
+    title = serializers.CharField(source='current_proposal.title')
+
+    class Meta:
+        model = Approval
+        fields = (
+            'id',
+            'activity',
+            'region',
+            'title',
+            'status',
+            'reference',
+            'lodgement_number',
+            'licence_document',
+            'start_date',
+            'expiry_date',
+            'applicant',
+            'can_reissue',
+            'can_action',
+            'can_reinstate',
+            'can_amend',
+            'can_renew',
+            'set_to_cancel',
+            'set_to_suspend',
+            'set_to_surrender',
+            'current_proposal',
+            'current_proposal_id',
+            'renewal_document',
+            'renewal_sent',
+            'allowed_assessors',
+            'can_approver_reissue',
+            'apiary_approval',
+            'latest_apiary_licence_document',
+            'template_group',
+            )
+
+    def get_allowed_assessors(self, obj):
+        #import ipdb;ipdb.set_trace()
+        return EmailUserSerializer(obj.current_proposal.compliance_assessors, many=True).data
+
+    def get_template_group(self, obj):
+        return self.context.get('template_group')
+
+    def get_latest_apiary_licence_document(self, obj):
+        return obj.documents.order_by('-uploaded_date')[0]._file.url
+
+    def get_renewal_document(self,obj):
+        if obj.relevant_renewal_document and obj.relevant_renewal_document._file:
+            return obj.relevant_renewal_document._file.url
+        return None
+
+    def get_can_approver_reissue(self,obj):
+        # Check if currently logged in user has access to process the proposal
+        request = self.context['request']
+        user = request.user
+        if obj.can_reissue:
+            if user in obj.allowed_approvers:
+                return True
+        return False
+
+    def get_applicant(self,obj):
+        try:
+            if obj.proxy_applicant and obj.proxy_applicant.get_full_name():
+                return obj.proxy_applicant.get_full_name()
+            else:
+                return obj.applicant.name if isinstance(obj.applicant, Organisation) else obj.applicant
+        except:
+            return None
+
+    def get_activity(self, approval):
+        activity_text = None
+        if approval.apiary_approval:
+            activity_text = 'Apiary'
+        else:
+            activity_text = approval.current_proposal.activity
+        return activity_text
+
 
 class ApprovalCancellationSerializer(serializers.Serializer):
     cancellation_date = serializers.DateField(input_formats=['%d/%m/%Y'])
