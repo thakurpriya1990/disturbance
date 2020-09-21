@@ -10,6 +10,7 @@ from django.core.exceptions import ValidationError
 from ledger.accounts.models import EmailUser, Document, RevisionedMixin
 from django.contrib.postgres.fields.jsonb import JSONField
 
+
 @python_2_unicode_compatible
 class Region(models.Model):
     name = models.CharField(max_length=200, unique=True)

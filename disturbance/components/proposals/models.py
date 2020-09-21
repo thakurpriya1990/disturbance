@@ -1257,19 +1257,26 @@ class Proposal(RevisionedMixin):
                     if self.application_type.name == ApplicationType.APIARY:
                         for apiary_site in apiary_sites:
                             my_site = ApiarySite.objects.get(id=apiary_site['id'])
-                            my_site.workflow_selected_status = apiary_site['checked']
+                            # my_site.workflow_selected_status = apiary_site['checked']
+                            self.proposal_apiary.set_workflow_selected_status(my_site, apiary_site.get('checked'))
                             if apiary_site.get('checked'):
                                 apiary_sites_list.append(apiary_site.get('id'))
-                            my_site.save()
+                            # my_site.save()
 
-                            if apiary_site['checked'] and 'coordinates_moved' in apiary_site:
-                                prev_coordinates = my_site.wkb_geometry_pending.get_coords()
+                            if apiary_site.get('checked') and 'coordinates_moved' in apiary_site:
+                                relation = self.proposal_apiary.get_relation(my_site)
+                                prev_coordinates = relation.wkb_geometry_processed.get_coords()
+
                                 # Update coordinate (Assessor and Approver can move the proposed site location)
                                 geom_str = GEOSGeometry('POINT(' + str(apiary_site['coordinates_moved']['lng']) + ' ' + str(apiary_site['coordinates_moved']['lat']) + ')', srid=4326)
-                                from disturbance.components.proposals.serializers_apiary import ApiarySiteSavePointPendingSerializer
-                                serializer = ApiarySiteSavePointPendingSerializer(my_site, data={'wkb_geometry_pending': geom_str}, context={'validate_distance': True})
+                                # from disturbance.components.proposals.serializers_apiary import ApiarySiteSavePointPendingSerializer
+                                # serializer = ApiarySiteSavePointPendingSerializer(my_site, data={'wkb_geometry_pending': geom_str}, context={'validate_distance': True})
+                                from disturbance.components.proposals.serializers_apiary import ApiarySiteOnProposalProcessedGeometrySaveSerializer
+                                serializer = ApiarySiteOnProposalProcessedGeometrySaveSerializer(relation, data={'wkb_geometry_processed': geom_str})
                                 serializer.is_valid(raise_exception=True)
                                 serializer.save()
+
+                                # Log it
                                 self.log_user_action(ProposalUserAction.APIARY_SITE_MOVED.format(apiary_site['id'], prev_coordinates, (apiary_site['coordinates_moved']['lng'], apiary_site['coordinates_moved']['lat'])), request)
 
                     # Site transfer
@@ -2458,15 +2465,23 @@ class ApiarySiteOnProposal(RevisionedMixin):
     SITE_STATUS_PENDING = 'pending'
     SITE_STATUS_APPROVED = 'approved'
     SITE_STATUS_DENIED = 'denied'
+    SITE_STATUS_CURRENT = 'current'
+    SITE_STATUS_SUSPENDED = 'suspended'
     SITE_STATUS_CHOICES = (
         (SITE_STATUS_DRAFT, 'Draft'),
         (SITE_STATUS_PENDING, 'Pending'),
         (SITE_STATUS_PENDING_PAYMENT, 'Pending payment'),
         (SITE_STATUS_APPROVED, 'Approved'),
         (SITE_STATUS_DENIED, 'Denied'),
+        (SITE_STATUS_CURRENT, 'Current'),
+        (SITE_STATUS_SUSPENDED, 'Suspended'),
     )
+
     SITE_STATUSES_FOR_GEOMETRY_DRAFT = (SITE_STATUS_DRAFT, SITE_STATUS_PENDING_PAYMENT,)
     SITE_STATUSES_FOR_GEOMETRY_PROCESSED = (SITE_STATUS_PENDING, SITE_STATUS_APPROVED, SITE_STATUS_DENIED,)
+
+    NON_RESTRICTIVE_STATUSES = (SITE_STATUS_DRAFT, )
+    RENEWABLE_STATUS = (SITE_STATUS_CURRENT, SITE_STATUS_SUSPENDED,)
 
     apiary_site = models.ForeignKey('ApiarySite',)
     proposal_apiary = models.ForeignKey('ProposalApiary',)
@@ -2507,12 +2522,61 @@ class ProposalApiary(RevisionedMixin):
     class Meta:
         app_label = 'disturbance'
 
+    def post_payment_success(self):
+        """
+        Run this function just after the payment success
+        """
+        for relation in self.get_relations():
+            if relation.apiary_site.is_vacant:
+                relation.apiary_site.is_vacant = False
+            relation.apiary_site_status_when_submitted = relation.site_status
+            relation.wkb_geometry_processed = relation.wkb_geometry_draft
+            relation.site_category_processed = relation.site_category_draft
+            relation.site_status = ApiarySiteOnProposal.SITE_STATUS_PENDING
+            relation.save()
+
+    def set_workflow_selected_status(self, apiary_site, selected_status):
+        relation_obj = self.get_relation(apiary_site)
+        relation_obj.workflow_selected_status = selected_status
+        relation_obj.save()
+
+    def get_wkb_geometry_processed(self, apiary_site):
+        relation_obj = self.get_relation(apiary_site)
+        return relation_obj.wkb_geometry_processed
+
+    def get_wkb_geometry_draft(self, apiary_site):
+        relation_obj = self.get_relation(apiary_site)
+        return relation_obj.wkb_geometry_draft
+
+    def get_workflow_selected_status(self, apiary_site):
+        relation_obj = self.get_relation(apiary_site)
+        return relation_obj.workflow_selected_status
+
+    def get_status(self, apiary_site):
+        relation_obj = self.get_relation(apiary_site)
+        return relation_obj.site_status
+
+    def set_status(self, apiary_site, status):
+        relation_obj = self.get_relation(apiary_site)
+        relation_obj.site_status = status
+        relation_obj.save()
+
+    def get_relation(self, apiary_site):
+        if isinstance(apiary_site, dict):
+            apiary_site = ApiarySite.objects.get(id=apiary_site['id'])
+        relation_obj = ApiarySiteOnProposal.objects.get(apiary_site=apiary_site, proposal_apiary=self)
+        return relation_obj
+
+    def get_relations(self):
+        relation_objs = ApiarySiteOnProposal.objects.filter(apiary_site__in=self.apiary_sites.all(), proposal_apiary=self)
+        return relation_objs
+
     def delete_relation(self, apiary_site):
-        site_status_to_remove = apiary_site.get_status(self)
+        relation_obj = self.get_relation(apiary_site)
+        site_status_to_remove = relation_obj.site_status
 
         # Remove the relationship to the apiary_site
-        inter_obj = ApiarySiteOnProposal.objects.get(apiary_site=apiary_site, proposal_apiary=self)
-        inter_obj.delete()
+        relation_obj.delete()
 
         # Delete the apiary site itself if the status of it is 'draft'
         if site_status_to_remove == ApiarySiteOnProposal.SITE_STATUS_DRAFT:
@@ -3102,28 +3166,40 @@ class ProposalApiary(RevisionedMixin):
     def _update_apiary_sites(self, approval, sites_approved, request):
         for my_site in sites_approved:
             a_site = ApiarySite.objects.get(id=my_site['id'])
+            apiary_site_on_proposal = self.get_relation(a_site)
+
             if my_site['checked']:
-                a_site.approval = approval
-                a_site.status = ApiarySite.STATUS_CURRENT
+                # relation.approval = approval
+                apiary_site_on_proposal.site_status = ApiarySiteOnProposal.SITE_STATUS_APPROVED
             else:
-                a_site.status = ApiarySite.STATUS_DENIED
+                apiary_site_on_proposal.site_status = ApiarySiteOnProposal.SITE_STATUS_DENIED
             # Reset selected status to make the checkboxes unticked when renewal or so
-            a_site.workflow_selected_status = False
+            apiary_site_on_proposal.workflow_selected_status = False
 
             # Apiary Site can be moved by assessor and/or approver
             if 'coordinates_moved' in my_site:
-                prev_coordinates = a_site.wkb_geometry_pending.get_coords()
+                prev_coordinates = apiary_site_on_proposal.wkb_geometry_processed.get_coords()
                 geom_str = GEOSGeometry('POINT(' + str(my_site['coordinates_moved']['lng']) + ' ' + str(my_site['coordinates_moved']['lat']) + ')', srid=4326)
-                from disturbance.components.proposals.serializers_apiary import ApiarySiteSavePointPendingSerializer
-                serializer = ApiarySiteSavePointPendingSerializer(a_site, data={'wkb_geometry_pending': geom_str}, context={'validate_distance': True})
+                from disturbance.components.proposals.serializers_apiary import ApiarySiteOnProposalProcessedGeometrySaveSerializer
+                serializer = ApiarySiteOnProposalProcessedGeometrySaveSerializer(apiary_site_on_proposal, data={'wkb_geometry_processed': geom_str})
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
-                a_site.proposal_apiary.proposal.log_user_action(ProposalUserAction.APIARY_SITE_MOVED.format(my_site['id'], prev_coordinates, (my_site['coordinates_moved']['lng'], my_site['coordinates_moved']['lat'])), request)
+
+                # Log it
+                self.proposal.log_user_action(ProposalUserAction.APIARY_SITE_MOVED.format(my_site['id'], prev_coordinates, (my_site['coordinates_moved']['lng'], my_site['coordinates_moved']['lat'])), request)
 
             # Because this is final approval, copy pending geometry to the geometry field (approved geometry field).
-            a_site.wkb_geometry = a_site.wkb_geometry_pending
-            a_site.wkb_geometry_pending = None
-            a_site.save()
+            # a_site.wkb_geometry = a_site.wkb_geometry_pending
+            # a_site.wkb_geometry_pending = None
+            # a_site.save()
+            from disturbance.components.approvals.models import ApiarySiteOnApproval
+            if apiary_site_on_proposal.site_status == ApiarySiteOnProposal.SITE_STATUS_APPROVED:
+                # Create a relation between the approved apairy site and the approval
+                apiary_site_on_approval, created = ApiarySiteOnApproval.objects.get_or_create(apiary_site=a_site, approval=approval)
+                apiary_site_on_approval.wkb_geometry = apiary_site_on_proposal.wkb_geometry_processed
+                apiary_site_on_approval.site_category = apiary_site_on_proposal.site_category
+                apiary_site_on_approval.site_status = ApiarySiteOnApproval.SITE_STATUS_CURRENT
+                apiary_site_on_approval.save()
 
 
 class SiteCategory(models.Model):
@@ -3270,6 +3346,7 @@ class ApiaryAnnualRentalFeeRunDate(RevisionedMixin):
 
 class ApiarySite(models.Model):
     STATUS_DRAFT = 'draft'
+    STATUS_PENDING_PAYMENT = 'pending_payment'
     STATUS_PENDING = 'pending'
     STATUS_CURRENT = 'current'
     STATUS_SUSPENDED = 'suspended'
@@ -3278,6 +3355,7 @@ class ApiarySite(models.Model):
     STATUS_VACANT = 'vacant'
     STATUS_CHOICES = (
         (STATUS_DRAFT, 'Draft'),
+        (STATUS_PENDING_PAYMENT, 'Pending payment'),
         (STATUS_PENDING, 'Pending'),
         (STATUS_CURRENT, 'Current'),
         (STATUS_SUSPENDED, 'Suspended'),
@@ -3308,13 +3386,13 @@ class ApiarySite(models.Model):
 
     def get_status(self, proposal_apiary_or_approval):
         try:
-            intermediate_obj = self.get_intermediate(proposal_apiary_or_approval)
+            intermediate_obj = self.get_relation(proposal_apiary_or_approval)
             return intermediate_obj.site_status
         except:
             return ''
 
     def get_geometry(self, proposal_apiary_or_approval):
-        inter_obj = self.get_intermediate(proposal_apiary_or_approval)
+        inter_obj = self.get_relation(proposal_apiary_or_approval)
         if inter_obj.site_status in ApiarySiteOnProposal.SITE_STATUSES_FOR_GEOMETRY_DRAFT:
             return inter_obj.wkb_geometry_draft
         elif inter_obj.site_status in ApiarySiteOnProposal.SITE_STATUSES_FOR_GEOMETRY_PROCESSED:
@@ -3323,62 +3401,12 @@ class ApiarySite(models.Model):
             # Should not reach here
             return None
 
-    def get_intermediate(self, proposal_apiary_or_approval):
+    def get_relation(self, proposal_apiary_or_approval):
         if isinstance(proposal_apiary_or_approval, ProposalApiary):
             return ApiarySiteOnProposal.objects.get(apiary_site=self, proposal_apiary=proposal_apiary_or_approval)
         else:
             from disturbance.components.approvals.models import ApiarySiteOnApproval
             return ApiarySiteOnApproval.objects.get(apiary_site=self, approval=proposal_apiary_or_approval)
-
-    @staticmethod
-    def get_tenure(wkb_geometry):
-        try:
-            URL = 'https://kmi.dpaw.wa.gov.au/geoserver/public/wms'
-            coords = wkb_geometry.get_coords()
-            PARAMS = {
-                'SERVICE': 'WMS',
-                'VERSION': '1.1.1',
-                'REQUEST': 'GetFeatureInfo',
-                'FORMAT': 'image/png',
-                'TRANSPARENT': True,
-                'QUERY_LAYERS': 'public:dpaw_lands_and_waters',
-                'STYLES': '',
-                'LAYERS': 'public:dpaw_lands_and_waters',
-                'INFO_FORMAT': 'application/json',
-                'FEATURE_COUNT': 1,  # Features should not be overwrapped
-                'X': 50,
-                'Y': 50,
-                'SRS': 'EPSG:4283',
-                'WIDTH': 101,
-                'HEIGHT': 101,
-                'BBOX': str(coords[0] - 0.0001) + ',' + str(coords[1] - 0.0001) + ',' + str(coords[0] + 0.0001) + ',' + str(coords[1] + 0.0001),
-            }
-            res = requests.get(url=URL, params=PARAMS)
-            geo_json = res.json()
-            tenure_name = ''
-            if len(geo_json['features']) > 0:
-                tenure_name = geo_json['features'][0]['properties']['tenure']
-            return tenure_name
-
-        except:
-            return ''
-
-
-    @staticmethod
-    def get_region_district(wkb_geometry):
-        try:
-            regions = RegionDbca.objects.filter(wkb_geometry__contains=wkb_geometry)
-            districts = DistrictDbca.objects.filter(wkb_geometry__contains=wkb_geometry)
-            text_arr = []
-            if regions:
-                text_arr.append(regions.first().region_name)
-            if districts:
-                text_arr.append(districts.first().district_name)
-
-            ret_text = '/'.join(text_arr)
-            return ret_text
-        except:
-            return ''
 
     def get_current_application_fee_per_site(self):
         current_fee = self.site_category.current_application_fee_per_site
