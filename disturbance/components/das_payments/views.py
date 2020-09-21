@@ -21,7 +21,7 @@ from disturbance.components.approvals.email import get_value_of_annual_rental_fe
     send_annual_rental_fee_invoice
 from disturbance.components.approvals.serializers import ApprovalLogEntrySerializer
 from disturbance.components.proposals.models import Proposal, ApiarySiteFeeRemainder, ApiarySiteFeeType, SiteCategory, \
-    ApiarySite, ProposalApiary
+    ApiarySite, ProposalApiary, ApiarySiteOnProposal
 from disturbance.components.compliances.models import Compliance
 from disturbance.components.main.models import ApplicationType
 from disturbance.components.organisations.models import Organisation
@@ -466,10 +466,20 @@ class ApplicationFeeSuccessView(TemplateView):
         return render(request, self.template_name, context)
 
     def adjust_db_operations(self, db_operations):
-        for item in db_operations['apiary_sites']:
-            apiary_site = ApiarySite.objects.get(id=item['id'])
-            apiary_site.status = ApiarySite.STATUS_PENDING
-            apiary_site.save()
+        proposal_apiary = ProposalApiary.objects.get(id=db_operations['proposal_apiary_id'])
+
+        proposal_apiary.post_payment_success()
+        # non vacant site
+        # for site_id in db_operations['apiary_site_ids']:
+        #     apiary_site = ApiarySite.objects.get(id=site_id)
+        #     proposal_apiary.set_status(apiary_site, ApiarySiteOnProposal.SITE_STATUS_PENDING)
+
+        # vacant site
+        # for site_id in db_operations['vacant_apiary_site_ids']:
+        #     apiary_site = ApiarySite.objects.get(id=site_id,)
+        #     apiary_site.is_vacant = False
+        #     apiary_site.save()
+        #     proposal_apiary.set_status(apiary_site, ApiarySiteOnProposal.SITE_STATUS_PENDING)
 
         # Perform database operations to remove and/or store site remainders
         # site remainders used
@@ -493,17 +503,6 @@ class ApplicationFeeSuccessView(TemplateView):
                 applicant=applicant,
                 proxy_applicant=proxy_applicant,
             )
-
-        for apiary_site_id in db_operations['vacant_apiary_site_ids']:
-            try:
-                apiary_site = ApiarySite.objects.get(id=apiary_site_id, status=ApiarySite.STATUS_VACANT)
-                proposal_apiary = ProposalApiary.objects.get(id=int(db_operations['proposal_apiary_id']))
-                apiary_site.proposal_apiaries.clear()
-                apiary_site.proposal_apiary = proposal_apiary
-                apiary_site.status = ApiarySite.STATUS_PENDING
-                apiary_site.save()
-            except Exception, e:
-                logger.error('Error handling vacant apiary site after the payment: {}'.format(e))
 
 
 class AwaitingPaymentPDFView(View):
