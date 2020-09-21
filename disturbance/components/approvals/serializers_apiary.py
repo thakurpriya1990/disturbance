@@ -13,6 +13,7 @@ class ApiarySiteOnApprovalGeometrySerializer(GeoFeatureModelSerializer):
     site_guid = serializers.CharField(source='apiary_site.site_guid')
     status = serializers.SerializerMethodField()
     site_category = serializers.SerializerMethodField()
+    previous_site_holder_or_applicant = serializers.SerializerMethodField()
 
     class Meta:
         model = ApiarySiteOnApproval
@@ -25,6 +26,7 @@ class ApiarySiteOnApprovalGeometrySerializer(GeoFeatureModelSerializer):
             'site_category',
             'status',
             # 'stable_coords',
+            'previous_site_holder_or_applicant',
         )
 
     def get_status(self, obj):
@@ -32,6 +34,13 @@ class ApiarySiteOnApprovalGeometrySerializer(GeoFeatureModelSerializer):
 
     def get_site_category(self, obj):
         return obj.site_category.name
+
+    def get_previous_site_holder_or_applicant(self, obj):
+        try:
+            relevant_applicant_name = obj.approval.relevant_applicant_name
+            return relevant_applicant_name
+        except:
+            return ''
 
 
 class ApiarySiteOnApprovalGeometrySaveSerializer(GeoFeatureModelSerializer):

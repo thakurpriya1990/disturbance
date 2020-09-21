@@ -1257,19 +1257,26 @@ class Proposal(RevisionedMixin):
                     if self.application_type.name == ApplicationType.APIARY:
                         for apiary_site in apiary_sites:
                             my_site = ApiarySite.objects.get(id=apiary_site['id'])
-                            my_site.workflow_selected_status = apiary_site['checked']
+                            # my_site.workflow_selected_status = apiary_site['checked']
+                            self.proposal_apiary.set_workflow_selected_status(my_site, apiary_site.get('checked'))
                             if apiary_site.get('checked'):
                                 apiary_sites_list.append(apiary_site.get('id'))
-                            my_site.save()
+                            # my_site.save()
 
-                            if apiary_site['checked'] and 'coordinates_moved' in apiary_site:
-                                prev_coordinates = my_site.wkb_geometry_pending.get_coords()
+                            if apiary_site.get('checked') and 'coordinates_moved' in apiary_site:
+                                relation = self.proposal_apiary.get_relation(my_site)
+                                prev_coordinates = relation.wkb_geometry_processed.get_coords()
+
                                 # Update coordinate (Assessor and Approver can move the proposed site location)
                                 geom_str = GEOSGeometry('POINT(' + str(apiary_site['coordinates_moved']['lng']) + ' ' + str(apiary_site['coordinates_moved']['lat']) + ')', srid=4326)
-                                from disturbance.components.proposals.serializers_apiary import ApiarySiteSavePointPendingSerializer
-                                serializer = ApiarySiteSavePointPendingSerializer(my_site, data={'wkb_geometry_pending': geom_str}, context={'validate_distance': True})
+                                # from disturbance.components.proposals.serializers_apiary import ApiarySiteSavePointPendingSerializer
+                                # serializer = ApiarySiteSavePointPendingSerializer(my_site, data={'wkb_geometry_pending': geom_str}, context={'validate_distance': True})
+                                from disturbance.components.proposals.serializers_apiary import ApiarySiteOnProposalProcessedGeometrySaveSerializer
+                                serializer = ApiarySiteOnProposalProcessedGeometrySaveSerializer(relation, data={'wkb_geometry_processed': geom_str})
                                 serializer.is_valid(raise_exception=True)
                                 serializer.save()
+
+                                # Log it
                                 self.log_user_action(ProposalUserAction.APIARY_SITE_MOVED.format(apiary_site['id'], prev_coordinates, (apiary_site['coordinates_moved']['lng'], apiary_site['coordinates_moved']['lat'])), request)
 
                     # Site transfer
@@ -2515,6 +2522,36 @@ class ProposalApiary(RevisionedMixin):
     class Meta:
         app_label = 'disturbance'
 
+    def post_payment_success(self):
+        """
+        Run this function just after the payment success
+        """
+        for relation in self.get_relations():
+            if relation.apiary_site.is_vacant:
+                relation.apiary_site.is_vacant = False
+            relation.apiary_site_status_when_submitted = relation.site_status
+            relation.wkb_geometry_processed = relation.wkb_geometry_draft
+            relation.site_category_processed = relation.site_category_draft
+            relation.site_status = ApiarySiteOnProposal.SITE_STATUS_PENDING
+            relation.save()
+
+    def set_workflow_selected_status(self, apiary_site, selected_status):
+        relation_obj = self.get_relation(apiary_site)
+        relation_obj.workflow_selected_status = selected_status
+        relation_obj.save()
+
+    def get_wkb_geometry_processed(self, apiary_site):
+        relation_obj = self.get_relation(apiary_site)
+        return relation_obj.wkb_geometry_processed
+
+    def get_wkb_geometry_draft(self, apiary_site):
+        relation_obj = self.get_relation(apiary_site)
+        return relation_obj.wkb_geometry_draft
+
+    def get_workflow_selected_status(self, apiary_site):
+        relation_obj = self.get_relation(apiary_site)
+        return relation_obj.workflow_selected_status
+
     def get_status(self, apiary_site):
         relation_obj = self.get_relation(apiary_site)
         return relation_obj.site_status
@@ -2525,6 +2562,8 @@ class ProposalApiary(RevisionedMixin):
         relation_obj.save()
 
     def get_relation(self, apiary_site):
+        if isinstance(apiary_site, dict):
+            apiary_site = ApiarySite.objects.get(id=apiary_site['id'])
         relation_obj = ApiarySiteOnProposal.objects.get(apiary_site=apiary_site, proposal_apiary=self)
         return relation_obj
 
@@ -3127,28 +3166,40 @@ class ProposalApiary(RevisionedMixin):
     def _update_apiary_sites(self, approval, sites_approved, request):
         for my_site in sites_approved:
             a_site = ApiarySite.objects.get(id=my_site['id'])
+            apiary_site_on_proposal = self.get_relation(a_site)
+
             if my_site['checked']:
-                a_site.approval = approval
-                a_site.status = ApiarySite.STATUS_CURRENT
+                # relation.approval = approval
+                apiary_site_on_proposal.site_status = ApiarySiteOnProposal.SITE_STATUS_APPROVED
             else:
-                a_site.status = ApiarySite.STATUS_DENIED
+                apiary_site_on_proposal.site_status = ApiarySiteOnProposal.SITE_STATUS_DENIED
             # Reset selected status to make the checkboxes unticked when renewal or so
-            a_site.workflow_selected_status = False
+            apiary_site_on_proposal.workflow_selected_status = False
 
             # Apiary Site can be moved by assessor and/or approver
             if 'coordinates_moved' in my_site:
-                prev_coordinates = a_site.wkb_geometry_pending.get_coords()
+                prev_coordinates = apiary_site_on_proposal.wkb_geometry_processed.get_coords()
                 geom_str = GEOSGeometry('POINT(' + str(my_site['coordinates_moved']['lng']) + ' ' + str(my_site['coordinates_moved']['lat']) + ')', srid=4326)
-                from disturbance.components.proposals.serializers_apiary import ApiarySiteSavePointPendingSerializer
-                serializer = ApiarySiteSavePointPendingSerializer(a_site, data={'wkb_geometry_pending': geom_str}, context={'validate_distance': True})
+                from disturbance.components.proposals.serializers_apiary import ApiarySiteOnProposalProcessedGeometrySaveSerializer
+                serializer = ApiarySiteOnProposalProcessedGeometrySaveSerializer(apiary_site_on_proposal, data={'wkb_geometry_processed': geom_str})
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
-                a_site.proposal_apiary.proposal.log_user_action(ProposalUserAction.APIARY_SITE_MOVED.format(my_site['id'], prev_coordinates, (my_site['coordinates_moved']['lng'], my_site['coordinates_moved']['lat'])), request)
+
+                # Log it
+                self.proposal.log_user_action(ProposalUserAction.APIARY_SITE_MOVED.format(my_site['id'], prev_coordinates, (my_site['coordinates_moved']['lng'], my_site['coordinates_moved']['lat'])), request)
 
             # Because this is final approval, copy pending geometry to the geometry field (approved geometry field).
-            a_site.wkb_geometry = a_site.wkb_geometry_pending
-            a_site.wkb_geometry_pending = None
-            a_site.save()
+            # a_site.wkb_geometry = a_site.wkb_geometry_pending
+            # a_site.wkb_geometry_pending = None
+            # a_site.save()
+            from disturbance.components.approvals.models import ApiarySiteOnApproval
+            if apiary_site_on_proposal.site_status == ApiarySiteOnProposal.SITE_STATUS_APPROVED:
+                # Create a relation between the approved apairy site and the approval
+                apiary_site_on_approval, created = ApiarySiteOnApproval.objects.get_or_create(apiary_site=a_site, approval=approval)
+                apiary_site_on_approval.wkb_geometry = apiary_site_on_proposal.wkb_geometry_processed
+                apiary_site_on_approval.site_category = apiary_site_on_proposal.site_category
+                apiary_site_on_approval.site_status = ApiarySiteOnApproval.SITE_STATUS_CURRENT
+                apiary_site_on_approval.save()
 
 
 class SiteCategory(models.Model):
