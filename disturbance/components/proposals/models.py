@@ -3376,28 +3376,6 @@ class ApiarySite(models.Model):
     def __str__(self):
         return '{}'.format(self.id,)
 
-    def get_status_when_submitted(self, proposal_apiary):
-        # Expect there is only one relation between apiary_site and proposal_apiary
-        site_on_proposal = ApiarySiteOnProposal.objects.get(apiary_site=self, proposal_apiary=proposal_apiary)
-        return site_on_proposal.apiary_site_status_when_submitted
-
-    def get_status(self, proposal_apiary_or_approval):
-        try:
-            intermediate_obj = self.get_relation(proposal_apiary_or_approval)
-            return intermediate_obj.site_status
-        except:
-            return ''
-
-    def get_geometry(self, proposal_apiary_or_approval):
-        inter_obj = self.get_relation(proposal_apiary_or_approval)
-        if inter_obj.site_status in ApiarySiteOnProposal.SITE_STATUSES_FOR_GEOMETRY_DRAFT:
-            return inter_obj.wkb_geometry_draft
-        elif inter_obj.site_status in ApiarySiteOnProposal.SITE_STATUSES_FOR_GEOMETRY_PROCESSED:
-            return inter_obj.wkb_geometry_processed
-        else:
-            # Should not reach here
-            return None
-
     def get_relation(self, proposal_apiary_or_approval):
         if isinstance(proposal_apiary_or_approval, ProposalApiary):
             return ApiarySiteOnProposal.objects.get(apiary_site=self, proposal_apiary=proposal_apiary_or_approval)
