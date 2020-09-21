@@ -2458,15 +2458,23 @@ class ApiarySiteOnProposal(RevisionedMixin):
     SITE_STATUS_PENDING = 'pending'
     SITE_STATUS_APPROVED = 'approved'
     SITE_STATUS_DENIED = 'denied'
+    SITE_STATUS_CURRENT = 'current'
+    SITE_STATUS_SUSPENDED = 'suspended'
     SITE_STATUS_CHOICES = (
         (SITE_STATUS_DRAFT, 'Draft'),
         (SITE_STATUS_PENDING, 'Pending'),
         (SITE_STATUS_PENDING_PAYMENT, 'Pending payment'),
         (SITE_STATUS_APPROVED, 'Approved'),
         (SITE_STATUS_DENIED, 'Denied'),
+        (SITE_STATUS_CURRENT, 'Current'),
+        (SITE_STATUS_SUSPENDED, 'Suspended'),
     )
+
     SITE_STATUSES_FOR_GEOMETRY_DRAFT = (SITE_STATUS_DRAFT, SITE_STATUS_PENDING_PAYMENT,)
     SITE_STATUSES_FOR_GEOMETRY_PROCESSED = (SITE_STATUS_PENDING, SITE_STATUS_APPROVED, SITE_STATUS_DENIED,)
+
+    NON_RESTRICTIVE_STATUSES = (SITE_STATUS_DRAFT, )
+    RENEWABLE_STATUS = (SITE_STATUS_CURRENT, SITE_STATUS_SUSPENDED,)
 
     apiary_site = models.ForeignKey('ApiarySite',)
     proposal_apiary = models.ForeignKey('ProposalApiary',)
@@ -2507,12 +2515,29 @@ class ProposalApiary(RevisionedMixin):
     class Meta:
         app_label = 'disturbance'
 
+    def get_status(self, apiary_site):
+        relation_obj = self.get_relation(apiary_site)
+        return relation_obj.site_status
+
+    def set_status(self, apiary_site, status):
+        relation_obj = self.get_relation(apiary_site)
+        relation_obj.site_status = status
+        relation_obj.save()
+
+    def get_relation(self, apiary_site):
+        relation_obj = ApiarySiteOnProposal.objects.get(apiary_site=apiary_site, proposal_apiary=self)
+        return relation_obj
+
+    def get_relations(self):
+        relation_objs = ApiarySiteOnProposal.objects.filter(apiary_site__in=self.apiary_sites.all(), proposal_apiary=self)
+        return relation_objs
+
     def delete_relation(self, apiary_site):
-        site_status_to_remove = apiary_site.get_status(self)
+        relation_obj = self.get_relation(apiary_site)
+        site_status_to_remove = relation_obj.site_status
 
         # Remove the relationship to the apiary_site
-        inter_obj = ApiarySiteOnProposal.objects.get(apiary_site=apiary_site, proposal_apiary=self)
-        inter_obj.delete()
+        relation_obj.delete()
 
         # Delete the apiary site itself if the status of it is 'draft'
         if site_status_to_remove == ApiarySiteOnProposal.SITE_STATUS_DRAFT:
@@ -3270,6 +3295,7 @@ class ApiaryAnnualRentalFeeRunDate(RevisionedMixin):
 
 class ApiarySite(models.Model):
     STATUS_DRAFT = 'draft'
+    STATUS_PENDING_PAYMENT = 'pending_payment'
     STATUS_PENDING = 'pending'
     STATUS_CURRENT = 'current'
     STATUS_SUSPENDED = 'suspended'
@@ -3278,6 +3304,7 @@ class ApiarySite(models.Model):
     STATUS_VACANT = 'vacant'
     STATUS_CHOICES = (
         (STATUS_DRAFT, 'Draft'),
+        (STATUS_PENDING_PAYMENT, 'Pending payment'),
         (STATUS_PENDING, 'Pending'),
         (STATUS_CURRENT, 'Current'),
         (STATUS_SUSPENDED, 'Suspended'),
@@ -3308,13 +3335,13 @@ class ApiarySite(models.Model):
 
     def get_status(self, proposal_apiary_or_approval):
         try:
-            intermediate_obj = self.get_intermediate(proposal_apiary_or_approval)
+            intermediate_obj = self.get_relation(proposal_apiary_or_approval)
             return intermediate_obj.site_status
         except:
             return ''
 
     def get_geometry(self, proposal_apiary_or_approval):
-        inter_obj = self.get_intermediate(proposal_apiary_or_approval)
+        inter_obj = self.get_relation(proposal_apiary_or_approval)
         if inter_obj.site_status in ApiarySiteOnProposal.SITE_STATUSES_FOR_GEOMETRY_DRAFT:
             return inter_obj.wkb_geometry_draft
         elif inter_obj.site_status in ApiarySiteOnProposal.SITE_STATUSES_FOR_GEOMETRY_PROCESSED:
@@ -3323,62 +3350,12 @@ class ApiarySite(models.Model):
             # Should not reach here
             return None
 
-    def get_intermediate(self, proposal_apiary_or_approval):
+    def get_relation(self, proposal_apiary_or_approval):
         if isinstance(proposal_apiary_or_approval, ProposalApiary):
             return ApiarySiteOnProposal.objects.get(apiary_site=self, proposal_apiary=proposal_apiary_or_approval)
         else:
             from disturbance.components.approvals.models import ApiarySiteOnApproval
             return ApiarySiteOnApproval.objects.get(apiary_site=self, approval=proposal_apiary_or_approval)
-
-    @staticmethod
-    def get_tenure(wkb_geometry):
-        try:
-            URL = 'https://kmi.dpaw.wa.gov.au/geoserver/public/wms'
-            coords = wkb_geometry.get_coords()
-            PARAMS = {
-                'SERVICE': 'WMS',
-                'VERSION': '1.1.1',
-                'REQUEST': 'GetFeatureInfo',
-                'FORMAT': 'image/png',
-                'TRANSPARENT': True,
-                'QUERY_LAYERS': 'public:dpaw_lands_and_waters',
-                'STYLES': '',
-                'LAYERS': 'public:dpaw_lands_and_waters',
-                'INFO_FORMAT': 'application/json',
-                'FEATURE_COUNT': 1,  # Features should not be overwrapped
-                'X': 50,
-                'Y': 50,
-                'SRS': 'EPSG:4283',
-                'WIDTH': 101,
-                'HEIGHT': 101,
-                'BBOX': str(coords[0] - 0.0001) + ',' + str(coords[1] - 0.0001) + ',' + str(coords[0] + 0.0001) + ',' + str(coords[1] + 0.0001),
-            }
-            res = requests.get(url=URL, params=PARAMS)
-            geo_json = res.json()
-            tenure_name = ''
-            if len(geo_json['features']) > 0:
-                tenure_name = geo_json['features'][0]['properties']['tenure']
-            return tenure_name
-
-        except:
-            return ''
-
-
-    @staticmethod
-    def get_region_district(wkb_geometry):
-        try:
-            regions = RegionDbca.objects.filter(wkb_geometry__contains=wkb_geometry)
-            districts = DistrictDbca.objects.filter(wkb_geometry__contains=wkb_geometry)
-            text_arr = []
-            if regions:
-                text_arr.append(regions.first().region_name)
-            if districts:
-                text_arr.append(districts.first().district_name)
-
-            ret_text = '/'.join(text_arr)
-            return ret_text
-        except:
-            return ''
 
     def get_current_application_fee_per_site(self):
         current_fee = self.site_category.current_application_fee_per_site

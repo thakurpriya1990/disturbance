@@ -407,7 +407,7 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
 
     def get_as_geojson(self, apiary_site):
         proposal_apiary_or_approval = self.context.get('proposal_apiary_or_approval', None)
-        inter_obj = apiary_site.get_intermediate(proposal_apiary_or_approval)
+        inter_obj = apiary_site.get_relation(proposal_apiary_or_approval)
 
         # Determine the serializer
         if inter_obj.site_status in ApiarySiteOnProposal.SITE_STATUSES_FOR_GEOMETRY_DRAFT:

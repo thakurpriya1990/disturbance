@@ -558,8 +558,9 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
 
                         if viewset.action == 'submit':
                             # When submit, copy the coordinates from draft to the processed
-                            apiary_site_on_proposal.wkb_geometry_processed = apiary_site_on_proposal.wkb_geometry_draft
-                            apiary_sites_on_proposal.save()
+                            # apiary_site_on_proposal.wkb_geometry_processed = apiary_site_on_proposal.wkb_geometry_draft
+                            apiary_site_on_proposal.site_status = ApiarySiteOnProposal.SITE_STATUS_PENDING_PAYMENT
+                            apiary_site_on_proposal.save()
 
 #                        if apiary_site_obj.status in (ApiarySite.STATUS_DRAFT, ApiarySite.STATUS_PENDING, ApiarySite.STATUS_VACANT, ApiarySite.STATUS_CURRENT,):
 #                            data = {'wkb_geometry_pending': geom_str}
