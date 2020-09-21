@@ -2461,32 +2461,30 @@ class HelpPage(models.Model):
 # --------------------------------------------------------------------------------------
 class ApiarySiteOnProposal(RevisionedMixin):
     SITE_STATUS_DRAFT = 'draft'
-    SITE_STATUS_PENDING_PAYMENT = 'pending_payment'
     SITE_STATUS_PENDING = 'pending'
     SITE_STATUS_APPROVED = 'approved'
     SITE_STATUS_DENIED = 'denied'
-    SITE_STATUS_CURRENT = 'current'
     SITE_STATUS_SUSPENDED = 'suspended'
     SITE_STATUS_CHOICES = (
         (SITE_STATUS_DRAFT, 'Draft'),
         (SITE_STATUS_PENDING, 'Pending'),
-        (SITE_STATUS_PENDING_PAYMENT, 'Pending payment'),
         (SITE_STATUS_APPROVED, 'Approved'),
         (SITE_STATUS_DENIED, 'Denied'),
-        (SITE_STATUS_CURRENT, 'Current'),
         (SITE_STATUS_SUSPENDED, 'Suspended'),
     )
 
-    SITE_STATUSES_FOR_GEOMETRY_DRAFT = (SITE_STATUS_DRAFT, SITE_STATUS_PENDING_PAYMENT,)
+    # SITE_STATUSES_FOR_GEOMETRY_DRAFT = (SITE_STATUS_DRAFT, SITE_STATUS_PENDING_PAYMENT,)
+    SITE_STATUSES_FOR_GEOMETRY_DRAFT = (SITE_STATUS_DRAFT,)
     SITE_STATUSES_FOR_GEOMETRY_PROCESSED = (SITE_STATUS_PENDING, SITE_STATUS_APPROVED, SITE_STATUS_DENIED,)
 
     NON_RESTRICTIVE_STATUSES = (SITE_STATUS_DRAFT, )
-    RENEWABLE_STATUS = (SITE_STATUS_CURRENT, SITE_STATUS_SUSPENDED,)
+    RENEWABLE_STATUS = (SITE_STATUS_APPROVED, SITE_STATUS_SUSPENDED,)
 
     apiary_site = models.ForeignKey('ApiarySite',)
     proposal_apiary = models.ForeignKey('ProposalApiary',)
     apiary_site_status_when_submitted = models.CharField(max_length=40, blank=True)
     site_status = models.CharField(choices=SITE_STATUS_CHOICES, default=SITE_STATUS_CHOICES[0][0], max_length=20)
+    making_payment = models.BooleanField(default=False)
     workflow_selected_status = models.BooleanField(default=False)  # This field is used only during approval process to select/deselect the site to be approved
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
@@ -2533,6 +2531,7 @@ class ProposalApiary(RevisionedMixin):
             relation.wkb_geometry_processed = relation.wkb_geometry_draft
             relation.site_category_processed = relation.site_category_draft
             relation.site_status = ApiarySiteOnProposal.SITE_STATUS_PENDING
+            relation.making_payment = False  # This should replace the above line
             relation.save()
 
     def set_workflow_selected_status(self, apiary_site, selected_status):
@@ -3188,16 +3187,13 @@ class ProposalApiary(RevisionedMixin):
                 # Log it
                 self.proposal.log_user_action(ProposalUserAction.APIARY_SITE_MOVED.format(my_site['id'], prev_coordinates, (my_site['coordinates_moved']['lng'], my_site['coordinates_moved']['lat'])), request)
 
-            # Because this is final approval, copy pending geometry to the geometry field (approved geometry field).
-            # a_site.wkb_geometry = a_site.wkb_geometry_pending
-            # a_site.wkb_geometry_pending = None
-            # a_site.save()
+            # Because this is final approval, copy the data from the proposal to the approval
             from disturbance.components.approvals.models import ApiarySiteOnApproval
             if apiary_site_on_proposal.site_status == ApiarySiteOnProposal.SITE_STATUS_APPROVED:
                 # Create a relation between the approved apairy site and the approval
                 apiary_site_on_approval, created = ApiarySiteOnApproval.objects.get_or_create(apiary_site=a_site, approval=approval)
                 apiary_site_on_approval.wkb_geometry = apiary_site_on_proposal.wkb_geometry_processed
-                apiary_site_on_approval.site_category = apiary_site_on_proposal.site_category
+                apiary_site_on_approval.site_category = apiary_site_on_proposal.site_category_processed
                 apiary_site_on_approval.site_status = ApiarySiteOnApproval.SITE_STATUS_CURRENT
                 apiary_site_on_approval.save()
 
@@ -3378,28 +3374,6 @@ class ApiarySite(models.Model):
 
     def __str__(self):
         return '{}'.format(self.id,)
-
-    def get_status_when_submitted(self, proposal_apiary):
-        # Expect there is only one relation between apiary_site and proposal_apiary
-        site_on_proposal = ApiarySiteOnProposal.objects.get(apiary_site=self, proposal_apiary=proposal_apiary)
-        return site_on_proposal.apiary_site_status_when_submitted
-
-    def get_status(self, proposal_apiary_or_approval):
-        try:
-            intermediate_obj = self.get_relation(proposal_apiary_or_approval)
-            return intermediate_obj.site_status
-        except:
-            return ''
-
-    def get_geometry(self, proposal_apiary_or_approval):
-        inter_obj = self.get_relation(proposal_apiary_or_approval)
-        if inter_obj.site_status in ApiarySiteOnProposal.SITE_STATUSES_FOR_GEOMETRY_DRAFT:
-            return inter_obj.wkb_geometry_draft
-        elif inter_obj.site_status in ApiarySiteOnProposal.SITE_STATUSES_FOR_GEOMETRY_PROCESSED:
-            return inter_obj.wkb_geometry_processed
-        else:
-            # Should not reach here
-            return None
 
     def get_relation(self, proposal_apiary_or_approval):
         if isinstance(proposal_apiary_or_approval, ProposalApiary):
