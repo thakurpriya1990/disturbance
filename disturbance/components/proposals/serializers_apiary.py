@@ -383,7 +383,6 @@ class ApiarySiteOnProposalProcessedGeometrySaveSerializer(GeoFeatureModelSeriali
         geo_field = 'wkb_geometry_processed'
         fields = (
             'wkb_geometry_processed',
-            'workflow_selected_status',
             'site_category_processed',
         )
 
