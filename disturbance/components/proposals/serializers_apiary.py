@@ -9,7 +9,7 @@ from ledger.settings_base import TIME_ZONE
 from rest_framework_gis.serializers import GeoFeatureModelSerializer
 
 from disturbance.components.main.fields import CustomChoiceField
-from disturbance.components.main.utils import get_category
+from disturbance.components.main.utils import get_category, get_tenure, get_region_district
 from disturbance.components.organisations.serializers import OrganisationSerializer
 from disturbance.components.organisations.models import UserDelegation
 from disturbance.components.proposals.serializers_base import (
@@ -438,32 +438,7 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
         ret = serializer(inter_obj)
         return ret.data
 
-        # geometry_condition = self.context.get('geometry_condition', ApiarySite.GEOMETRY_CONDITION_APPROVED)
-        # if geometry_condition == ApiarySite.GEOMETRY_CONDITION_APPLIED:
-        #     return ApiarySiteAppliedGeojsonSerializer(apiary_site).data
-        # elif geometry_condition == ApiarySite.GEOMETRY_CONDITION_PENDING:
-        #     return ApiarySitePendingGeojsonSerializer(apiary_site).data
-        # else:
-        #     return ApiarySiteGeojsonSerializer(apiary_site).data
-
         # TODO: return serialized data according to the apiary_site.status and/or the type of self.root (which is root Serializer)
-#        if apiary_site.status in (ApiarySite.STATUS_DRAFT, ApiarySite.STATUS_PENDING,):
-#            return ApiarySitePendingGeojsonSerializer(apiary_site).data
-#        elif apiary_site.status == ApiarySite.STATUS_CURRENT:
-#            root_class = type(self.root)
-#            root_class_name = root_class.__name__
-#            if 'proposal' in root_class_name.lower():
-#                if apiary_site.wkb_geometry_pending:
-#                    # Accessed probably for the renewal.  Already saved at lease once
-#                    return ApiarySitePendingGeojsonSerializer(apiary_site).data
-#                else:
-#                    # Accessed probably for the renewal for the first time
-#                    return ApiarySiteGeojsonSerializer(apiary_site).data
-#            else:
-#                # Accessed not for proposal, which means for licence
-#                return ApiarySiteGeojsonSerializer(apiary_site).data
-#        else:
-#            return ApiarySiteGeojsonSerializer(apiary_site).data
 
     def get_coordinates(self, apiary_site):
         try:
@@ -700,9 +675,6 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
         )
 
     def get_apiary_sites(self, proposal_apiary):
-        # apiary_sites = ApiarySiteSerializer(proposal_apiary.apiary_sites, many=True, context={'proposal_apiary_or_approval': proposal_apiary})
-        # return apiary_sites.data
-
         ret = []
         for apiary_site in proposal_apiary.apiary_sites.all():
             inter_obj = ApiarySiteOnProposal.objects.get(apiary_site=apiary_site, proposal_apiary=proposal_apiary)
@@ -712,10 +684,6 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
                 serializer = ApiarySiteOnProposalProcessedGeometrySerializer
             ret.append(serializer(inter_obj).data)
         return ret
-
-        # vacant_apiary_sites = ApiarySiteSerializer(proposal_apiary.vacant_apiary_sites, many=True)
-        # merged = apiary_sites.data + vacant_apiary_sites.data
-        # return merged
 
     def get_transfer_apiary_sites(self, obj):
         #import ipdb;ipdb.set_trace()
@@ -1547,3 +1515,48 @@ class ApiaryProposalRequirementSerializer(serializers.ModelSerializer):
         fields = ('id','due_date','free_requirement','standard_requirement','standard','order','proposal','recurrence','recurrence_schedule','recurrence_pattern','requirement','is_deleted','copied_from')
         read_only_fields = ('order','requirement', 'copied_from')
 
+
+class ApiarySiteOnProposalLicenceDocSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='apiary_site.id')
+    site_category = serializers.CharField(source='site_category_processed.name')
+    coords = serializers.SerializerMethodField()
+    tenure = serializers.SerializerMethodField()
+    region_district = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ApiarySiteOnProposal
+
+        fields = (
+            'id',
+            'coords',
+            'site_category',
+            'tenure',
+            'region_district',
+        )
+
+    def get_tenure(self, apiary_site_on_proposal):
+        try:
+            res = get_tenure(apiary_site_on_proposal.wkb_geometry_processed)
+            return res
+        except:
+            return ''
+
+    def get_region_district(self, apiary_site_on_proposal):
+        try:
+            res = get_region_district(apiary_site_on_proposal.wkb_geometry_processed)
+            return res
+        except:
+            return ''
+
+    def get_coords(self, apiary_site_on_proposal):
+        try:
+            # geometry_condition = self.context.get('geometry_condition', ApiarySite.GEOMETRY_CONDITION_APPROVED)
+            # if geometry_condition == ApiarySite.GEOMETRY_CONDITION_APPLIED:
+            #     return {'lng': apiary_site.wkb_geometry_applied.x, 'lat': apiary_site.wkb_geometry_applied.y}
+            # elif geometry_condition == ApiarySite.GEOMETRY_CONDITION_PENDING:
+            #     return {'lng': apiary_site.wkb_geometry_pending.x, 'lat': apiary_site.wkb_geometry_pending.y}
+            # else:
+            #     return {'lng': apiary_site.wkb_geometry.x, 'lat': apiary_site.wkb_geometry.y}
+            return {'lng': apiary_site_on_proposal.wkb_geometry_processed.x, 'lat': apiary_site_on_proposal.wkb_geometry_processed.y}
+        except:
+            return {'lng': '', 'lat': ''}

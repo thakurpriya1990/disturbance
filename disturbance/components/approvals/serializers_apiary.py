@@ -2,7 +2,7 @@ from rest_framework import serializers
 from rest_framework_gis.serializers import GeoFeatureModelSerializer
 
 from disturbance.components.approvals.models import ApiarySiteOnApproval
-from disturbance.components.main.utils import get_category
+from disturbance.components.main.utils import get_category, get_tenure, get_region_district
 
 
 class ApiarySiteOnApprovalGeometrySerializer(GeoFeatureModelSerializer):
@@ -62,3 +62,47 @@ class ApiarySiteOnApprovalGeometrySaveSerializer(GeoFeatureModelSerializer):
         )
 
 
+class ApiarySiteOnApprovalLicenceDocSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='apiary_site.id')
+    site_category = serializers.CharField(source='site_category.name')
+    coords = serializers.SerializerMethodField()
+    tenure = serializers.SerializerMethodField()
+    region_district = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ApiarySiteOnApproval
+
+        fields = (
+            'id',
+            'coords',
+            'site_category',
+            'tenure',
+            'region_district',
+        )
+
+    def get_tenure(self, apiary_site_on_approval):
+        try:
+            res = get_tenure(apiary_site_on_approval.wkb_geometry)
+            return res
+        except:
+            return ''
+
+    def get_region_district(self, apiary_site_on_approval):
+        try:
+            res = get_region_district(apiary_site_on_approval.wkb_geometry)
+            return res
+        except:
+            return ''
+
+    def get_coords(self, apiary_site_on_approval):
+        try:
+            # geometry_condition = self.context.get('geometry_condition', ApiarySite.GEOMETRY_CONDITION_APPROVED)
+            # if geometry_condition == ApiarySite.GEOMETRY_CONDITION_APPLIED:
+            #     return {'lng': apiary_site.wkb_geometry_applied.x, 'lat': apiary_site.wkb_geometry_applied.y}
+            # elif geometry_condition == ApiarySite.GEOMETRY_CONDITION_PENDING:
+            #     return {'lng': apiary_site.wkb_geometry_pending.x, 'lat': apiary_site.wkb_geometry_pending.y}
+            # else:
+            #     return {'lng': apiary_site.wkb_geometry.x, 'lat': apiary_site.wkb_geometry.y}
+            return {'lng': apiary_site_on_approval.wkb_geometry.x, 'lat': apiary_site_on_approval.wkb_geometry.y}
+        except:
+            return {'lng': '', 'lat': ''}

@@ -13,6 +13,10 @@ export const SiteColours = {
         'fill': '#00ff00', 
         'stroke': '#000000',
     },
+    'approved': {
+        'fill': '#00ff00', 
+        'stroke': '#000000',
+    },
     'suspended': {
         'fill': '#ffffff',
         'stroke': '#000000',
@@ -44,6 +48,7 @@ export default SiteColours
 export let existingSiteRadius = 5
 export let drawingSiteRadius = 7
 export function getApiaryFeatureStyle(status, selected=false, stroke_width_when_selected=2){
+    console.log('in getApiaryFeatureStyle')
     let additional_width = selected ? stroke_width_when_selected : 0
     switch(status){
         case 'pending':
@@ -61,6 +66,21 @@ export function getApiaryFeatureStyle(status, selected=false, stroke_width_when_
             });
             break;
         case 'current':
+            return new Style({
+                image: new CircleStyle({
+                    radius: existingSiteRadius,
+                    fill: new Fill({
+                        color: SiteColours.current.fill
+                    }),
+                    stroke: new Stroke({
+                        color: SiteColours.current.stroke,
+                        width: 1 + additional_width
+                    })
+                })
+            });
+            break;
+        case 'approved':
+            // Apiary site can be 'approved' status on a proposal
             return new Style({
                 image: new CircleStyle({
                     radius: existingSiteRadius,
