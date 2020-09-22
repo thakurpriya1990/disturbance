@@ -112,7 +112,7 @@ class ApiaryLicenceReader():
         #self.org_lines = self._read_organisation_data()
         self.apiary_licence_lines = self._read_organisation_data()
 
-    def write_to_db(self):
+    def write_to_migrated_apiary_licence_model(self):
         try:
             with transaction.atomic():
                 for row in self.apiary_licence_lines:
@@ -155,7 +155,7 @@ class ApiaryLicenceReader():
                                 }
                             )
                     else:
-                        print(row)
+                        #print(row)
                         #raise ImportException("Entry is not a valid organisation or individual licence record")
                         raise ImportException(row)
 
