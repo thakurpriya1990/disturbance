@@ -76,17 +76,22 @@ class ApprovalSerializerForLicenceDoc(serializers.ModelSerializer):
     def get_apiary_sites(self, approval):
         ret_array = []
 
-        if not approval.current_proposal.approval:
-            # Customer does not yet have a licence
-            apiary_site_on_proposals = approval.current_proposal.proposal_apiary.get_relations()
-            for relation in apiary_site_on_proposals:
-                serializer = ApiarySiteOnProposalLicenceDocSerializer(relation)
-                ret_array.append(serializer.data)
-        else:
-            apiary_site_on_approvals = approval.get_relations()
-            for relation in apiary_site_on_approvals:
-                serializer = ApiarySiteOnApprovalLicenceDocSerializer(relation)
-                ret_array.append(serializer.data)
+        # if not approval.current_proposal.approval:
+        #     apiary_site_on_proposals = approval.current_proposal.proposal_apiary.get_relations()
+        #     for relation in apiary_site_on_proposals:
+        #         serializer = ApiarySiteOnProposalLicenceDocSerializer(relation)
+        #         ret_array.append(serializer.data)
+        # else:
+        #     apiary_site_on_approvals = approval.get_relations()
+        #     for relation in apiary_site_on_approvals:
+        #         serializer = ApiarySiteOnApprovalLicenceDocSerializer(relation)
+        #         ret_array.append(serializer.data)
+
+        apiary_site_on_approvals = approval.get_relations()
+        for relation in apiary_site_on_approvals:
+            serializer = ApiarySiteOnApprovalLicenceDocSerializer(relation)
+            ret_array.append(serializer.data)
+
         return ret_array
 
     def get_requirements(self, approval):
