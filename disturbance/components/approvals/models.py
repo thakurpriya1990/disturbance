@@ -22,6 +22,7 @@ from disturbance.components.approvals.email import (
     send_approval_surrender_email_notification
 )
 from disturbance.doctopdf import create_apiary_licence_pdf_contents
+from disturbance.settings import SITE_STATUS_CURRENT
 from disturbance.utils import search_keys, search_multiple_keys
 from disturbance.helpers import is_customer
 
@@ -71,18 +72,19 @@ class RenewalDocument(Document):
 
 
 class ApiarySiteOnApproval(models.Model):
-    SITE_STATUS_CURRENT = 'current'
-    SITE_STATUS_NOT_TO_BE_REISSUED = 'not_to_be_reissued'
-    SITE_STATUS_SUSPENDED = 'suspended'
-    SITE_STATUS_CHOICES = (
-        (SITE_STATUS_CURRENT, 'Current'),
-        (SITE_STATUS_NOT_TO_BE_REISSUED, 'Not to be reissued'),
-        (SITE_STATUS_SUSPENDED, 'Suspended'),
-    )
+    # SITE_STATUS_CURRENT = 'current'
+    # SITE_STATUS_NOT_TO_BE_REISSUED = 'not_to_be_reissued'
+    # SITE_STATUS_SUSPENDED = 'suspended'
+    # SITE_STATUS_CHOICES = (
+    #     (SITE_STATUS_CURRENT, 'Current'),
+    #     (SITE_STATUS_NOT_TO_BE_REISSUED, 'Not to be reissued'),
+    #     (SITE_STATUS_SUSPENDED, 'Suspended'),
+    # )
 
     apiary_site = models.ForeignKey('ApiarySite',)
     approval = models.ForeignKey('Approval',)
-    site_status = models.CharField(choices=SITE_STATUS_CHOICES, default=SITE_STATUS_CHOICES[0][0], max_length=20)
+    # site_status = models.CharField(choices=SITE_STATUS_CHOICES, default=SITE_STATUS_CHOICES[0][0], max_length=20)
+    site_status = models.CharField(default=SITE_STATUS_CURRENT, max_length=20)
     site_available = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
