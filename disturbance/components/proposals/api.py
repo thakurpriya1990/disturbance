@@ -28,7 +28,8 @@ from disturbance.components.proposals.utils import (
 from disturbance.components.proposals.models import searchKeyWords, search_reference, \
     OnSiteInformation, ApiarySite, ApiaryChecklistQuestion, ApiaryChecklistAnswer, \
     ProposalApiaryTemporaryUse, ApiarySiteOnProposal
-from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_APPROVED, SITE_STATUS_CURRENT
+from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_APPROVED, SITE_STATUS_CURRENT, SITE_STATUS_DENIED, \
+    SITE_STATUS_NOT_TO_BE_REISSUED
 from disturbance.utils import search_tenure
 from disturbance.components.main.utils import (
         check_db_connection, 
@@ -668,19 +669,32 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
     @list_route(methods=['GET',])
     @basic_exception_handler
     def available_sites(self, request):
-        qs_on_approval = ApiarySiteOnApproval.objects.filter(site_status=SITE_STATUS_CURRENT, available=True).distinct('apiary_site')
+        # Construct conditions
+        q_include = Q(id__in=(ApiarySite.objects.all().values('latest_approval_link__id')))
+        q_include &= Q(site_status=SITE_STATUS_CURRENT)
+        q_include &= Q(available=True)
+
+        qs_on_approval = ApiarySiteOnApproval.objects.filter(q_include).distinct('apiary_site')
         serializer = ApiarySiteOnApprovalGeometrySerializer(qs_on_approval, many=True)
         return Response(serializer.data)
 
     @list_route(methods=['GET',])
     @basic_exception_handler
     def transitable_sites(self, request):
-        q_objects = Q()
-        q_objects |= Q(status__in=ApiarySite.TRANSITABLE_STATUSES)
+        # For 'denied' sites
+        q_include_proposal = Q(id__in=(ApiarySite.objects.all().values('latest_proposal_link__id')))
+        q_include_proposal &= Q(site_status=SITE_STATUS_DENIED)
+        qs_on_proposal = ApiarySiteOnProposal.objects.filter(q_include_proposal).distinct('apiary_site')
+        serializer_proposal = ApiarySiteOnProposalProcessedGeometrySerializer(qs_on_proposal, many=True)
 
-        qs = self.get_queryset().filter(q_objects)
-        serializer = ApiarySiteSerializer(qs, many=True)
-        return Response(serializer.data)
+        # For 'not_to_be_reissued' sites
+        q_include_approval = Q(id__in=(ApiarySite.objects.all().values('latest_approval_link__id')))
+        q_include_approval &= Q(site_status=SITE_STATUS_NOT_TO_BE_REISSUED)
+        qs_on_approval = ApiarySiteOnApproval.objects.filter(q_include_approval).distinct('apiary_site')
+        serializer_approval = ApiarySiteOnApprovalGeometrySerializer(qs_on_approval, many=True)
+
+        serializer_proposal.data['features'].extend(serializer_approval.data['features'])
+        return Response(serializer_proposal.data)
 
     @basic_exception_handler
     def partial_update(self, request, *args, **kwargs):
