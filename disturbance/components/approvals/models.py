@@ -24,6 +24,7 @@ from disturbance.components.approvals.email import (
 from disturbance.doctopdf import create_apiary_licence_pdf_contents
 from disturbance.utils import search_keys, search_multiple_keys
 from disturbance.helpers import is_customer
+from django_countries.fields import CountryField
 
 import logging
 logger = logging.getLogger(__name__)
@@ -604,6 +605,43 @@ class ApprovalUserAction(UserAction):
         )
 
     approval= models.ForeignKey(Approval, related_name='action_logs')
+
+class MigratedApiaryLicences(models.Model):
+# Records imported from CSV
+    permit_number = models.IntegerField()
+    start_date = models.DateField()
+    expiry_date = models.DateField()
+    issue_date = models.DateField()
+    status = models.CharField(max_length=40, choices=Approval.STATUS_CHOICES,
+                                       default=Approval.STATUS_CHOICES[0][0])
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    trading_name = models.CharField(max_length=256, null=True, blank=True)
+    licencee = models.CharField(max_length=256, null=True, blank=True)
+    abn = models.CharField(max_length=50, null=True, blank=True, verbose_name='ABN')
+    first_name = models.CharField(max_length=128, blank=False, verbose_name='Given name(s)')
+    last_name = models.CharField(max_length=128, blank=False)
+    #data.update({'other_contact': row[12].strip()})
+    address_line1 = models.CharField('Line 1', max_length=255)
+    address_line2 = models.CharField('Line 2', max_length=255, blank=True)
+    address_line3 = models.CharField('Line 3', max_length=255, blank=True)
+    #locality = models.CharField('Suburb / Town', max_length=255)
+    suburb = models.CharField('Suburb / Town', max_length=255)
+    state = models.CharField(max_length=255, default='WA', blank=True)
+    country = CountryField(default='AU')
+    postcode = models.CharField(max_length=10)
+    phone_number1 = models.CharField(max_length=50, null=True, blank=True,
+                                    verbose_name="phone number", help_text='')
+    phone_number2 = models.CharField(max_length=50, null=True, blank=True,
+                                    verbose_name="phone number", help_text='')
+    mobile_number = models.CharField(max_length=50, null=True, blank=True,
+                                    verbose_name="mobile number", help_text='')
+    email = models.EmailField(blank=True, null=True,)
+
+    class Meta:
+        app_label = 'disturbance'
+        #ordering = ('-when',)
+
 
 @receiver(pre_delete, sender=Approval)
 def delete_documents(sender, instance, *args, **kwargs):
