@@ -4,10 +4,10 @@ from ledger.accounts.models import EmailUser
 from disturbance.components.organisations.models import Organisation, OrganisationContact, UserDelegation
 #from commercialoperator.components.main.models import ApplicationType, Park
 from disturbance.components.proposals.models import Proposal#, ProposalType, ProposalOtherDetails, ProposalPark
-from disturbance.components.approvals.models import Approval
+from disturbance.components.approvals.models import Approval, MigratedApiaryLicence
 #from commercialoperator.components.bookings.models import ApplicationFee, ParkBooking, Booking
 from django.core.exceptions import MultipleObjectsReturned
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from ledger.address.models import Country
 
 import csv
@@ -88,6 +88,9 @@ def clear_applications():
 #            missing_park_names = list(park_obj.values_list('name', flat=True)) if park_obj else []
 #            print '{}, {}'.format(park, missing_park_names)
 
+class ImportException(Exception):
+    pass
+
 class ApiaryLicenceReader():
     """
     Reads csv file and creates Licensees (Organisations or individuals)
@@ -109,6 +112,56 @@ class ApiaryLicenceReader():
         #self.org_lines = self._read_organisation_data()
         self.apiary_licence_lines = self._read_organisation_data()
 
+    def write_to_db(self):
+        try:
+            with transaction.atomic():
+                for row in self.apiary_licence_lines:
+                    #print(row)
+                    #import ipdb;ipdb.set_trace()
+                    if row.get('permit_number') and row.get('licencee_type'):
+                            #and (
+                            #(row.get('licencee') and row.get('abn')) or 
+                            #not row.get('licencee')
+                            #):
+                        licence, created = MigratedApiaryLicence.objects.update_or_create(
+                            #**row_values
+                            permit_number = row['permit_number'],
+                            defaults = {
+                                'start_date': row['start_date'],
+                                'expiry_date': row['expiry_date'],
+                                'issue_date': row['issue_date'],
+                                'status': row['status'],
+                                'latitude': row['latitude'],
+                                'longitude': row['longitude'],
+                                'trading_name': row['trading_name'],
+                                'licencee': row['licencee'],
+                                'abn': row['abn'],
+                                'first_name': row['first_name'],
+                                'last_name': row['last_name'],
+                                #data.update({'other_contact': row[12].strip()})
+                                'address_line1': row['address_line1'],
+                                'address_line2': row['address_line2'],
+                                'address_line3': row['address_line3'],
+                                #locality = models.CharField('Suburb / Town', max_length=255)
+                                'suburb': row['suburb'],
+                                'state': row['state'],
+                                #country = row['country'],
+                                'postcode': row['postcode'],
+                                'phone_number1': row['phone_number1'],
+                                'phone_number2': row['phone_number2'],
+                                'mobile_number': row['mobile_number'],
+                                'email': row['email'],
+                                'licencee_type': row['licencee_type']
+                                }
+                            )
+                    else:
+                        print(row)
+                        #raise ImportException("Entry is not a valid organisation or individual licence record")
+                        raise ImportException(row)
+
+        except Exception as e:
+            import ipdb; ipdb.set_trace()
+            print e
 
     def add_users(self):
 
@@ -571,9 +624,21 @@ class ApiaryLicenceReader():
                 for row in reader:
                     data={}
                     data.update({'permit_number': row[0].strip()})
-                    data.update({'start_date': row[1].strip()})
-                    data.update({'expiry_date': row[2].strip()})
-                    data.update({'issue_date': row[3].strip()})
+                    start_date_raw = row[1].strip()
+                    if start_date_raw:
+                        start_date = datetime.datetime.strptime(start_date_raw, '%d/%m/%Y').date()
+                        data.update({'start_date': start_date})
+                    expiry_date_raw = row[2].strip()
+                    if expiry_date_raw:
+                        expiry_date = datetime.datetime.strptime(row[2].strip(), '%d/%m/%Y').date()
+                        data.update({'expiry_date': expiry_date})
+                    issue_date_raw = row[3].strip()
+                    if issue_date_raw:
+                        issue_date = datetime.datetime.strptime(row[3].strip(), '%d/%m/%Y').date()
+                        data.update({'issue_date': issue_date})
+                    # set issue_date to start_date
+                    else:
+                        data.update({'issue_date': start_date})
                     data.update({'status': row[4].strip().capitalize()})
                     data.update({'latitude': row[5].translate(None, string.whitespace)})
                     data.update({'longitude': row[6].translate(None, string.whitespace)})
@@ -587,19 +652,26 @@ class ApiaryLicenceReader():
                     data.update({'licencee': row[8].strip()})
                     data.update({'abn': row[9].translate(None, string.whitespace)})
                     #data.update({'title': row[10].strip()})
-                    data.update({'first_name': row[10].strip().capitalize()})
-                    data.update({'last_name': row[11].strip().capitalize()})
-                    data.update({'other_contact': row[12].strip()})
+                    first_name_raw = row[10].strip()
+                    if first_name_raw:
+                        first_name_split = first_name_raw.split('&')
+                        data.update({'first_name': first_name_split[0].strip().capitalize()})
+                    #data.update({'first_name': row[10].strip().capitalize()})
+                    last_name_raw = row[11].strip()
+                    if last_name_raw:
+                        last_name_split = last_name_raw.split('&')
+                        data.update({'last_name': last_name_raw.strip().capitalize()})
+                    #data.update({'other_contact': row[12].strip()})
                     data.update({'address_line1': row[13].strip()})
                     data.update({'address_line2': row[14].strip()})
                     data.update({'address_line3': row[15].strip()})
                     data.update({'suburb': row[16].strip().capitalize()})
                     data.update({'state': row[17].strip()})
 
-                    country = ' '.join([i.lower().capitalize() for i in row[18].strip().split()])
-                    if country == 'A':
-                        country = 'Australia'
-                    data.update({'country': country})
+                    #country = ' '.join([i.lower().capitalize() for i in row[18].strip().split()])
+                    #if country == 'A':
+                    #    country = 'Australia'
+                    #data.update({'country': country})
 
                     data.update({'postcode': row[19].translate(None, string.whitespace)})
                     data.update({'phone_number1': row[20].translate(None, b' -()')})
@@ -607,8 +679,17 @@ class ApiaryLicenceReader():
                     data.update({'mobile_number': row[22].translate(None, b' -()')})
 
                     emails = row[23].translate(None, b' -()').replace(';', ',').split(',')
-                    for num, email in enumerate(emails, 1):
-                        data.update({'email{}'.format(num): email.lower()})
+                    #for num, email in enumerate(emails, 1):
+                     #   data.update({'email{}'.format(num): email.lower()})
+                    if emails:
+                        data.update({'email': emails[0].lower()})
+                    # Org or individual record
+                    if data.get('licencee') and data.get('abn'):
+                        data.update({'licencee_type': 'organisation'})
+                    elif not data.get('licencee'):
+                        data.update({'licencee_type': 'individual'})
+                    else:
+                        raise ImportException("Entry is not a valid organisation or individual licence record")
 
                     #data.update({'t_handbooks': row[22].strip()})
                     #data.update({'m_handbooks': row[23].strip()})

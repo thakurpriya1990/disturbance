@@ -608,9 +608,16 @@ class ApprovalUserAction(UserAction):
 
     approval= models.ForeignKey(Approval, related_name='action_logs')
 
-class MigratedApiaryLicences(models.Model):
+class MigratedApiaryLicence(models.Model):
 # Records imported from CSV
-    permit_number = models.IntegerField()
+    LICENCEE_TYPE_ORGANISATION = 'organisation'
+    LICENCEE_TYPE_INDIVIDUAL = 'individual'
+    LICENCEE_TYPE_CHOICES = (
+        (LICENCEE_TYPE_ORGANISATION, 'Organisation'),
+        (LICENCEE_TYPE_INDIVIDUAL, 'Individual'),
+    )
+
+    permit_number = models.IntegerField(unique=True)
     start_date = models.DateField()
     expiry_date = models.DateField()
     issue_date = models.DateField()
@@ -639,6 +646,11 @@ class MigratedApiaryLicences(models.Model):
     mobile_number = models.CharField(max_length=50, null=True, blank=True,
                                     verbose_name="mobile number", help_text='')
     email = models.EmailField(blank=True, null=True,)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    modified_at = models.DateTimeField(auto_now=True)
+    migrated = models.BooleanField(default=False)
+    licencee_type = models.CharField(max_length=40, choices=LICENCEE_TYPE_CHOICES)
 
     class Meta:
         app_label = 'disturbance'
