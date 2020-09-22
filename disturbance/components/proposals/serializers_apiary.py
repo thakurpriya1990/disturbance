@@ -49,7 +49,7 @@ from django.contrib.contenttypes.models import ContentType
 from ledger.accounts.models import EmailUser
 from copy import deepcopy
 
-from disturbance.settings import RESTRICTED_RADIUS
+from disturbance.settings import RESTRICTED_RADIUS, SITE_STATUS_DRAFT
 
 
 class VersionSerializer(serializers.ModelSerializer):
@@ -678,7 +678,7 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
         ret = []
         for apiary_site in proposal_apiary.apiary_sites.all():
             inter_obj = ApiarySiteOnProposal.objects.get(apiary_site=apiary_site, proposal_apiary=proposal_apiary)
-            if inter_obj.site_status == ApiarySiteOnProposal.SITE_STATUS_DRAFT:
+            if inter_obj.site_status == SITE_STATUS_DRAFT:
                 serializer = ApiarySiteOnProposalDraftGeometrySerializer
             else:
                 serializer = ApiarySiteOnProposalProcessedGeometrySerializer

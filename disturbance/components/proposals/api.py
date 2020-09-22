@@ -16,6 +16,7 @@ from rest_framework.renderers import JSONRenderer
 from ledger.accounts.models import EmailUser
 from datetime import datetime
 
+from disturbance import settings
 from disturbance.components.approvals.email import send_contact_licence_holder_email
 from disturbance.components.approvals.serializers_apiary import ApiarySiteOnApprovalGeometrySerializer
 from disturbance.components.main.decorators import basic_exception_handler
@@ -27,6 +28,7 @@ from disturbance.components.proposals.utils import (
 from disturbance.components.proposals.models import searchKeyWords, search_reference, \
     OnSiteInformation, ApiarySite, ApiaryChecklistQuestion, ApiaryChecklistAnswer, \
     ProposalApiaryTemporaryUse, ApiarySiteOnProposal
+from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_APPROVED
 from disturbance.utils import search_tenure
 from disturbance.components.main.utils import (
         check_db_connection, 
@@ -614,9 +616,9 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
         # 1.1. Include only the intermediate objects which are on the ApiarySite.latest_proposal_links
         q_include_proposal &= Q(id__in=(ApiarySite.objects.all().values('latest_proposal_link__id')))
 
-        # 1.2. Exclude 'draft' apiary site
-        q_exclude_proposal |= Q(site_status__in=(ApiarySiteOnProposal.SITE_STATUS_DRAFT,)) & Q(making_payment=False)
-        q_exclude_proposal |= Q(site_status__in=(ApiarySiteOnProposal.SITE_STATUS_APPROVED,))
+        # 1.2. Exclude 'draft' and not 'making_payment' apiary site
+        q_exclude_proposal |= Q(site_status__in=(SITE_STATUS_DRAFT,)) & Q(making_payment=False)  # Purely 'draft' site
+        q_exclude_proposal |= Q(site_status__in=(SITE_STATUS_APPROVED,))  # 'approved' site in the proposal should be included in the approval as a 'current'
 
         # 1.3. Exculde the apairy sites which are on the proposal apiary currently being accessed
         proposal_id = request.query_params.get('proposal_id', 0)
