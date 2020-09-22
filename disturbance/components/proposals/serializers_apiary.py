@@ -38,8 +38,8 @@ from disturbance.components.proposals.models import (
     ProposalRequirement, ApiarySiteOnProposal,
 )
 from disturbance.components.approvals.models import (
-        Approval,
-        )
+    Approval, ApiarySiteOnApproval,
+)
 
 from rest_framework import serializers
 from ledger.accounts.models import Address
@@ -49,7 +49,7 @@ from django.contrib.contenttypes.models import ContentType
 from ledger.accounts.models import EmailUser
 from copy import deepcopy
 
-from disturbance.settings import RESTRICTED_RADIUS
+from disturbance.settings import RESTRICTED_RADIUS, SITE_STATUS_DRAFT, SITE_STATUS_VACANT
 
 
 class VersionSerializer(serializers.ModelSerializer):
@@ -309,6 +309,33 @@ class ApiarySiteOnProposalDraftGeometrySerializer(GeoFeatureModelSerializer):
             return ''
 
 
+class ApiarySiteVacantSerializer(GeoFeatureModelSerializer):
+    wkb_geometry = serializers.SerializerMethodField()
+    status = serializers.ReadOnlyField(default='vacant')
+    workflow_selected_status = serializers.ReadOnlyField(default=False)
+    previous_site_holder_or_applicant = serializers.ReadOnlyField(default='')
+
+    class Meta:
+        model = ApiarySite
+        geo_field = 'wkb_geometry'
+        fields = (
+            'id',
+            'site_guid',
+            'wkb_geometry',
+            'status',
+            'workflow_selected_status',
+            'previous_site_holder_or_applicant',
+        )
+
+    def get_wkb_geometry(self, apiary_site):
+        if apiary_site.latest_approval_link:
+            # This apiary site became 'vacant' from the 'not_to_be_reissued' or the 'current' status
+            return apiary_site.latest_approval_link.wkb_geometry
+        else:
+            # This apiary site became 'vacant' form the 'denied' status
+            return apiary_site.latest_proposal_link.wkb_geometry_processed
+
+
 class ApiarySiteOnProposalProcessedGeometrySerializer(GeoFeatureModelSerializer):
     """
     For reading as 'processed'
@@ -334,15 +361,17 @@ class ApiarySiteOnProposalProcessedGeometrySerializer(GeoFeatureModelSerializer)
             'previous_site_holder_or_applicant',
         )
 
-    def get_status(self, obj):
-        return obj.site_status
+    def get_status(self, apiary_site_on_proposal):
+        if apiary_site_on_proposal.apiary_site.is_vacant:
+            return SITE_STATUS_VACANT
+        return apiary_site_on_proposal.site_status
 
-    def get_site_category(self, obj):
-        return obj.site_category_draft.name
+    def get_site_category(self, apiary_site_on_proposal):
+        return apiary_site_on_proposal.site_category_draft.name
 
-    def get_previous_site_holder_or_applicant(self, obj):
+    def get_previous_site_holder_or_applicant(self, apiary_site_on_proposal):
         try:
-            relevant_applicant_name = obj.proposal_apiary.proposal.relevant_applicant_name
+            relevant_applicant_name = apiary_site_on_proposal.proposal_apiary.proposal.relevant_applicant_name
             return relevant_applicant_name
         except:
             return ''
@@ -678,7 +707,7 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
         ret = []
         for apiary_site in proposal_apiary.apiary_sites.all():
             inter_obj = ApiarySiteOnProposal.objects.get(apiary_site=apiary_site, proposal_apiary=proposal_apiary)
-            if inter_obj.site_status == ApiarySiteOnProposal.SITE_STATUS_DRAFT:
+            if inter_obj.site_status == SITE_STATUS_DRAFT:
                 serializer = ApiarySiteOnProposalDraftGeometrySerializer
             else:
                 serializer = ApiarySiteOnProposalProcessedGeometrySerializer
