@@ -635,9 +635,12 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
 
         # 1.4. Issue query
         qs_on_proposal = ApiarySiteOnProposal.objects.filter(q_include_proposal).exclude(q_exclude_proposal).distinct('apiary_site')
+        qs_on_proposal_processed = qs_on_proposal.exclude(wkb_geometry_processed=None)
+        qs_on_proposal_draft = qs_on_proposal.filter(wkb_geometry_processed=None)  # For the 'draft' apiary sites with the making_payment=True attribute
 
         # 1.5. serialize
-        serializer_proposal = ApiarySiteOnProposalProcessedGeometrySerializer(qs_on_proposal, many=True)
+        serializer_proposal_processed = ApiarySiteOnProposalProcessedGeometrySerializer(qs_on_proposal_processed, many=True)
+        serializer_proposal_draft = ApiarySiteOnProposalDraftGeometrySerializer(qs_on_proposal_draft, many=True)
 
         # 2. ApiarySiteOnApproval
         q_include_approval = Q()
@@ -656,39 +659,11 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
         serializer_approval = ApiarySiteOnApprovalGeometrySerializer(qs_on_approval, many=True)
 
         # 3. Merge all the data above
-        serializer_proposal.data['features'].extend(serializer_approval.data['features'])
-        serializer_proposal.data['features'].extend(serializer_vacant.data['features'])
+        serializer_approval.data['features'].extend(serializer_proposal_draft.data['features'])
+        serializer_approval.data['features'].extend(serializer_proposal_processed.data['features'])
+        serializer_approval.data['features'].extend(serializer_vacant.data['features'])
 
-        return Response(serializer_proposal.data)
-
-
-
-#        # For the apiary sites in Current, Suspended, Vacant, Denied, NotToBeReissued statuses
-#        qs = self.get_queryset().filter(status__in=(
-#            ApiarySite.STATUS_CURRENT,
-#            ApiarySite.STATUS_SUSPENDED,
-#            ApiarySite.STATUS_VACANT,
-#            ApiarySite.STATUS_DENIED,
-#            ApiarySite.STATUS_NOT_TO_BE_REISSUED,
-#        )).exclude(q_objects)
-#        serializer = ApiarySiteGeojsonSerializer(qs, many=True)  # coordinate is stored in the wkb_geometry field
-#
-#        # For the apiary sites in Pending status
-#        qs_pending = self.get_queryset().filter(status__in=(
-#            ApiarySite.STATUS_PENDING,
-#        )).exclude(q_objects)
-#        serializer_pending = ApiarySitePendingGeojsonSerializer(qs_pending, many=True)  # coordinate is stored in the wkb_geometry_pending field
-#
-#        # Merge two
-#        # ret_geojson = serializer.data
-#        # ret_geojson_pending = serializer_pending.data
-#        # dictMerge = ret_geojson.copy()
-#        # dictMerge['features'].extend(ret_geojson_pending['features'])
-#
-#        serializer.data['features'].extend(serializer_pending.data['features'])
-#
-#        # ret_geojson.update(ret_geojson_pending)
-#        return Response(serializer.data)
+        return Response(serializer_approval.data)
 
     @list_route(methods=['GET',])
     @basic_exception_handler

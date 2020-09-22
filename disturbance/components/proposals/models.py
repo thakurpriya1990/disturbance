@@ -3177,6 +3177,7 @@ class ProposalApiary(RevisionedMixin):
                 apiary_site_on_proposal.site_status = SITE_STATUS_DENIED
             # Reset selected status to make the checkboxes unticked when renewal or so
             apiary_site_on_proposal.workflow_selected_status = False
+            apiary_site_on_proposal.save()
 
             # Apiary Site can be moved by assessor and/or approver
             if 'coordinates_moved' in my_site:
@@ -3199,6 +3200,8 @@ class ProposalApiary(RevisionedMixin):
                 apiary_site_on_approval.site_category = apiary_site_on_proposal.site_category_processed
                 apiary_site_on_approval.site_status = SITE_STATUS_CURRENT
                 apiary_site_on_approval.save()
+
+
 
 
 class SiteCategory(models.Model):
