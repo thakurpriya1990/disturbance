@@ -48,6 +48,10 @@ import copy
 import subprocess
 
 import logging
+
+from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_PENDING, SITE_STATUS_APPROVED, SITE_STATUS_DENIED, \
+    SITE_STATUS_CURRENT
+
 logger = logging.getLogger(__name__)
 
 
@@ -2460,30 +2464,29 @@ class HelpPage(models.Model):
 # Apiary Models Start
 # --------------------------------------------------------------------------------------
 class ApiarySiteOnProposal(RevisionedMixin):
-    SITE_STATUS_DRAFT = 'draft'
-    SITE_STATUS_PENDING = 'pending'
-    SITE_STATUS_APPROVED = 'approved'
-    SITE_STATUS_DENIED = 'denied'
-    SITE_STATUS_SUSPENDED = 'suspended'
-    SITE_STATUS_CHOICES = (
-        (SITE_STATUS_DRAFT, 'Draft'),
-        (SITE_STATUS_PENDING, 'Pending'),
-        (SITE_STATUS_APPROVED, 'Approved'),
-        (SITE_STATUS_DENIED, 'Denied'),
-        (SITE_STATUS_SUSPENDED, 'Suspended'),
-    )
+    # SITE_STATUS_DRAFT = 'draft'
+    # SITE_STATUS_PENDING = 'pending'
+    # SITE_STATUS_APPROVED = 'approved'
+    # SITE_STATUS_DENIED = 'denied'
+    # SITE_STATUS_CHOICES = (
+    #     (SITE_STATUS_DRAFT, 'Draft'),
+    #     (SITE_STATUS_PENDING, 'Pending'),
+    #     (SITE_STATUS_APPROVED, 'Approved'),
+    #     (SITE_STATUS_DENIED, 'Denied'),
+    # )
 
     # SITE_STATUSES_FOR_GEOMETRY_DRAFT = (SITE_STATUS_DRAFT, SITE_STATUS_PENDING_PAYMENT,)
     SITE_STATUSES_FOR_GEOMETRY_DRAFT = (SITE_STATUS_DRAFT,)
     SITE_STATUSES_FOR_GEOMETRY_PROCESSED = (SITE_STATUS_PENDING, SITE_STATUS_APPROVED, SITE_STATUS_DENIED,)
 
     NON_RESTRICTIVE_STATUSES = (SITE_STATUS_DRAFT, )
-    RENEWABLE_STATUS = (SITE_STATUS_APPROVED, SITE_STATUS_SUSPENDED,)
+    RENEWABLE_STATUS = (SITE_STATUS_APPROVED,)
 
     apiary_site = models.ForeignKey('ApiarySite',)
     proposal_apiary = models.ForeignKey('ProposalApiary',)
     apiary_site_status_when_submitted = models.CharField(max_length=40, blank=True)
-    site_status = models.CharField(choices=SITE_STATUS_CHOICES, default=SITE_STATUS_CHOICES[0][0], max_length=20)
+    # site_status = models.CharField(choices=SITE_STATUS_CHOICES, default=SITE_STATUS_CHOICES[0][0], max_length=20)
+    site_status = models.CharField(default=SITE_STATUS_DRAFT, max_length=20)
     making_payment = models.BooleanField(default=False)
     workflow_selected_status = models.BooleanField(default=False)  # This field is used only during approval process to select/deselect the site to be approved
     created_at = models.DateTimeField(auto_now_add=True)
@@ -2530,7 +2533,7 @@ class ProposalApiary(RevisionedMixin):
             relation.apiary_site_status_when_submitted = relation.site_status
             relation.wkb_geometry_processed = relation.wkb_geometry_draft
             relation.site_category_processed = relation.site_category_draft
-            relation.site_status = ApiarySiteOnProposal.SITE_STATUS_PENDING
+            relation.site_status = SITE_STATUS_PENDING
             relation.making_payment = False  # This should replace the above line
             relation.save()
 
@@ -2578,7 +2581,7 @@ class ProposalApiary(RevisionedMixin):
         relation_obj.delete()
 
         # Delete the apiary site itself if the status of it is 'draft'
-        if site_status_to_remove == ApiarySiteOnProposal.SITE_STATUS_DRAFT:
+        if site_status_to_remove == SITE_STATUS_DRAFT:
             if apiary_site.is_vacant:
                 # 'vacant' site should not be deleted, the process should not reach here though
                 pass
@@ -3169,9 +3172,9 @@ class ProposalApiary(RevisionedMixin):
 
             if my_site['checked']:
                 # relation.approval = approval
-                apiary_site_on_proposal.site_status = ApiarySiteOnProposal.SITE_STATUS_APPROVED
+                apiary_site_on_proposal.site_status = SITE_STATUS_APPROVED
             else:
-                apiary_site_on_proposal.site_status = ApiarySiteOnProposal.SITE_STATUS_DENIED
+                apiary_site_on_proposal.site_status = SITE_STATUS_DENIED
             # Reset selected status to make the checkboxes unticked when renewal or so
             apiary_site_on_proposal.workflow_selected_status = False
 
@@ -3189,12 +3192,12 @@ class ProposalApiary(RevisionedMixin):
 
             # Because this is final approval, copy the data from the proposal to the approval
             from disturbance.components.approvals.models import ApiarySiteOnApproval
-            if apiary_site_on_proposal.site_status == ApiarySiteOnProposal.SITE_STATUS_APPROVED:
+            if apiary_site_on_proposal.site_status == SITE_STATUS_APPROVED:
                 # Create a relation between the approved apairy site and the approval
                 apiary_site_on_approval, created = ApiarySiteOnApproval.objects.get_or_create(apiary_site=a_site, approval=approval)
                 apiary_site_on_approval.wkb_geometry = apiary_site_on_proposal.wkb_geometry_processed
                 apiary_site_on_approval.site_category = apiary_site_on_proposal.site_category_processed
-                apiary_site_on_approval.site_status = ApiarySiteOnApproval.SITE_STATUS_CURRENT
+                apiary_site_on_approval.site_status = SITE_STATUS_CURRENT
                 apiary_site_on_approval.save()
 
 
