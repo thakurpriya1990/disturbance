@@ -213,45 +213,45 @@ def _sum_apiary_sites_per_category2(proposal_apiary):
     return site_ids, vacant_site_ids, site_per_category_per_feetype
 
 
-def _sum_apiary_sites_per_category(apiary_sites, vacant_apiary_sites):
-    num_of_sites_per_category = {}
-    db_process_after_success = []
-    site_per_category_per_feetype = {
-            SiteCategory.CATEGORY_SOUTH_WEST: {
-                ApiarySiteFeeType.FEE_TYPE_APPLICATION: [],
-                ApiarySiteFeeType.FEE_TYPE_RENEWAL: [],
-            },
-            SiteCategory.CATEGORY_REMOTE: {
-                ApiarySiteFeeType.FEE_TYPE_APPLICATION: [],
-                ApiarySiteFeeType.FEE_TYPE_RENEWAL: [],
-            },
-        }
-
-    for apiary_site in apiary_sites:
-        if apiary_site.site_category.id in num_of_sites_per_category:
-            num_of_sites_per_category[apiary_site.site_category.id] += 1
-        else:
-            num_of_sites_per_category[apiary_site.site_category.id] = 1
-        db_process_after_success.append({'id': apiary_site.id})
-
-        if apiary_site.status in ApiarySite.RENEWABLE_STATUS:
-            site_per_category_per_feetype[apiary_site.site_category.name][ApiarySiteFeeType.FEE_TYPE_RENEWAL].append(apiary_site)
-        else:
-            site_per_category_per_feetype[apiary_site.site_category.name][ApiarySiteFeeType.FEE_TYPE_APPLICATION].append(apiary_site)
-
-    for apiary_site in vacant_apiary_sites:
-        if apiary_site.site_category.id in num_of_sites_per_category:
-            num_of_sites_per_category[apiary_site.site_category.id] += 1
-        else:
-            num_of_sites_per_category[apiary_site.site_category.id] = 1
-        # db_process_after_success.append({'id': apiary_site.id})
-
-        if apiary_site.status in ApiarySite.RENEWABLE_STATUS:
-            site_per_category_per_feetype[apiary_site.site_category.name][ApiarySiteFeeType.FEE_TYPE_RENEWAL].append(apiary_site)
-        else:
-            site_per_category_per_feetype[apiary_site.site_category.name][ApiarySiteFeeType.FEE_TYPE_APPLICATION].append(apiary_site)
-
-    return num_of_sites_per_category, db_process_after_success, site_per_category_per_feetype
+# def _sum_apiary_sites_per_category(apiary_sites, vacant_apiary_sites):
+#     num_of_sites_per_category = {}
+#     db_process_after_success = []
+#     site_per_category_per_feetype = {
+#             SiteCategory.CATEGORY_SOUTH_WEST: {
+#                 ApiarySiteFeeType.FEE_TYPE_APPLICATION: [],
+#                 ApiarySiteFeeType.FEE_TYPE_RENEWAL: [],
+#             },
+#             SiteCategory.CATEGORY_REMOTE: {
+#                 ApiarySiteFeeType.FEE_TYPE_APPLICATION: [],
+#                 ApiarySiteFeeType.FEE_TYPE_RENEWAL: [],
+#             },
+#         }
+#
+#     for apiary_site in apiary_sites:
+#         if apiary_site.site_category.id in num_of_sites_per_category:
+#             num_of_sites_per_category[apiary_site.site_category.id] += 1
+#         else:
+#             num_of_sites_per_category[apiary_site.site_category.id] = 1
+#         db_process_after_success.append({'id': apiary_site.id})
+#
+#         if apiary_site.status in ApiarySite.RENEWABLE_STATUS:
+#             site_per_category_per_feetype[apiary_site.site_category.name][ApiarySiteFeeType.FEE_TYPE_RENEWAL].append(apiary_site)
+#         else:
+#             site_per_category_per_feetype[apiary_site.site_category.name][ApiarySiteFeeType.FEE_TYPE_APPLICATION].append(apiary_site)
+#
+#     for apiary_site in vacant_apiary_sites:
+#         if apiary_site.site_category.id in num_of_sites_per_category:
+#             num_of_sites_per_category[apiary_site.site_category.id] += 1
+#         else:
+#             num_of_sites_per_category[apiary_site.site_category.id] = 1
+#        # db_process_after_success.append({'id': apiary_site.id})
+#
+#         if apiary_site.status in ApiarySite.RENEWABLE_STATUS:
+#             site_per_category_per_feetype[apiary_site.site_category.name][ApiarySiteFeeType.FEE_TYPE_RENEWAL].append(apiary_site)
+#         else:
+#             site_per_category_per_feetype[apiary_site.site_category.name][ApiarySiteFeeType.FEE_TYPE_APPLICATION].append(apiary_site)
+#
+#     return num_of_sites_per_category, db_process_after_success, site_per_category_per_feetype
 
 
 def _get_remainders_obj(number_of_sites_to_add_as_remainder, site_category_id, proposal, apiary_site_fee_type_name):
