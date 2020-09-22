@@ -1060,7 +1060,6 @@ class Proposal(RevisionedMixin):
         else:
             raise ValidationError('The provided status cannot be found.')
 
-
     def reissue_approval(self,request,status):
         if not self.processing_status=='approved' :
             raise ValidationError('You cannot change the current status at this time')
@@ -1084,7 +1083,6 @@ class Proposal(RevisionedMixin):
                 raise ValidationError('Cannot reissue Approval')
         else:
             raise ValidationError('Cannot reissue Approval')
-
 
     def proposed_decline(self,request,details):
         with transaction.atomic():
@@ -1129,13 +1127,9 @@ class Proposal(RevisionedMixin):
                 self.customer_status = 'declined'
                 self.save()
 
-                # Update apiary site status
-                # proposal_id = request.data.get('proposal', 0)
-                # proposal = Proposal.objects.get(id=int(proposal_id))
-                if self.proposal_apiary and self.proposal_apiary.apiary_sites:
-                    for apiary_site in self.proposal_apiary.apiary_sites.all():
-                        apiary_site.status = ApiarySite.STATUS_DENIED
-                        apiary_site.save()
+                if self.proposal_apiary:
+                    # Update apiary site status
+                    self.proposal_apiary.final_decline()
 
                 # Log proposal action
                 self.log_user_action(ProposalUserAction.ACTION_DECLINE.format(self.id),request)
@@ -2522,6 +2516,10 @@ class ProposalApiary(RevisionedMixin):
 
     class Meta:
         app_label = 'disturbance'
+
+    def final_decline(self):
+        relations = self.get_relations()
+        relations.update(site_status=SITE_STATUS_DENIED)
 
     def post_payment_success(self):
         """
