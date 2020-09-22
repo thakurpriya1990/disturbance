@@ -28,7 +28,7 @@ from disturbance.components.proposals.utils import (
 from disturbance.components.proposals.models import searchKeyWords, search_reference, \
     OnSiteInformation, ApiarySite, ApiaryChecklistQuestion, ApiaryChecklistAnswer, \
     ProposalApiaryTemporaryUse, ApiarySiteOnProposal
-from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_APPROVED
+from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_APPROVED, SITE_STATUS_CURRENT
 from disturbance.utils import search_tenure
 from disturbance.components.main.utils import (
         check_db_connection, 
@@ -668,12 +668,8 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
     @list_route(methods=['GET',])
     @basic_exception_handler
     def available_sites(self, request):
-        q_objects = Q()
-        q_objects &= Q(available=True)
-        q_objects &= Q(status=ApiarySite.STATUS_CURRENT)
-
-        qs = self.get_queryset().filter(q_objects)
-        serializer = ApiarySiteSerializer(qs, many=True)
+        qs_on_approval = ApiarySiteOnApproval.objects.filter(site_status=SITE_STATUS_CURRENT, available=True).distinct('apiary_site')
+        serializer = ApiarySiteOnApprovalGeometrySerializer(qs_on_approval, many=True)
         return Response(serializer.data)
 
     @list_route(methods=['GET',])
