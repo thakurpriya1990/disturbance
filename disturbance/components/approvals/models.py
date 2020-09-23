@@ -22,7 +22,7 @@ from disturbance.components.approvals.email import (
     send_approval_surrender_email_notification
 )
 from disturbance.doctopdf import create_apiary_licence_pdf_contents
-from disturbance.settings import SITE_STATUS_CURRENT
+from disturbance.settings import SITE_STATUS_CURRENT, SITE_STATUS_NOT_TO_BE_REISSUED
 from disturbance.utils import search_keys, search_multiple_keys
 from disturbance.helpers import is_customer
 from django_countries.fields import CountryField
@@ -391,22 +391,30 @@ class Approval(RevisionedMixin):
                 raise
 
     def change_apiary_site_status(self, approval_status):
-        for site in self.apiary_sites.all():
-            if approval_status in (Approval.STATUS_CANCELLED, Approval.STATUS_SUSPENDED, Approval.STATUS_SURRENDERED,):
-                site.status = ApiarySite.STATUS_NOT_TO_BE_REISSUED
-            elif approval_status == Approval.STATUS_EXPIRED:
-                site.status = ApiarySite.STATUS_VACANT
-                site.approval = None
-                site.proposal_apiary = None
-                site.available = False
-                site.wkb_geometry_pending = None  # Just to make sure it is None
-                site.wkb_geometry_applied = None  # Just to make sure it is None
-                site.workflow_selected_status = False
+        relations = self.get_relations()
+        if approval_status in (Approval.STATUS_CANCELLED, Approval.STATUS_SUSPENDED, Approval.STATUS_SURRENDERED,):
+            relations.update(site_status=SITE_STATUS_NOT_TO_BE_REISSUED)
+        elif approval_status == Approval.STATUS_EXPIRED:
+            self.apiary_sites.update(is_vacant=True)
+            relations.update(available=False)
+        elif approval_status == Approval.STATUS_CURRENT:
+            relations.update(site_status=SITE_STATUS_CURRENT)
 
-            elif approval_status == Approval.STATUS_CURRENT:
-                site.status = ApiarySite.STATUS_CURRENT
-
-            site.save()
+        # for site in self.apiary_sites.all():
+        #     if approval_status in (Approval.STATUS_CANCELLED, Approval.STATUS_SUSPENDED, Approval.STATUS_SURRENDERED,):
+        #         site.status = ApiarySite.STATUS_NOT_TO_BE_REISSUED
+        #     elif approval_status == Approval.STATUS_EXPIRED:
+        #         site.status = ApiarySite.STATUS_VACANT
+        #         site.approval = None
+        #         site.proposal_apiary = None
+        #         site.available = False
+        #         site.wkb_geometry_pending = None  # Just to make sure it is None
+        #         site.wkb_geometry_applied = None  # Just to make sure it is None
+        #         site.workflow_selected_status = False
+        #     elif approval_status == Approval.STATUS_CURRENT:
+        #         site.status = ApiarySite.STATUS_CURRENT
+        #
+        #     site.save()
 
     def approval_cancellation(self,request,details):
         with transaction.atomic():
