@@ -5,12 +5,6 @@
 
     Title: {{proposal.title}}
     Activity: {{proposal.activity}}
-	Region: {{proposal.region}}
-	{% if proposal.district %}
-		District:{{proposal.district}}
-	{% else %}
-		District: -
-	{% endif %}
 
 	{% if proposal.proposed_issuance_approval %}
         <p>
