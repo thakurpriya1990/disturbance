@@ -3374,7 +3374,9 @@ class ApiarySite(models.Model):
     site_guid = models.CharField(max_length=50, blank=True)
     latest_proposal_link = models.ForeignKey('disturbance.ApiarySiteOnProposal', blank=True, null=True)
     latest_approval_link = models.ForeignKey('disturbance.ApiarySiteOnApproval', blank=True, null=True)
+    # Store the proposal link intermediate object this apiary site transitioned from when got the 'vacant' status
     proposal_link_for_vacant = models.ForeignKey('disturbance.ApiarySiteOnProposal', blank=True, null=True, related_name='vacant_apiary_site')
+    # Store the approval link intermediate object this apiary site transitioned from when got the 'vacant' status
     approval_link_for_vacant = models.ForeignKey('disturbance.ApiarySiteOnApproval', blank=True, null=True, related_name='vacant_apiary_site')
     is_vacant = models.BooleanField(default=False)
 
