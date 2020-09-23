@@ -52,9 +52,6 @@
                 let vm = this
 
                 Vue.http.get('/api/apiary_site/transitable_sites/').then(re => {
-                    console.log('in loadSites()')
-                    console.log(re.body)
-
                     vm.apiary_sites = re.body.features
                     this.component_site_selection_key = uuid()
 

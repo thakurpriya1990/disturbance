@@ -21,7 +21,7 @@ class ApiarySiteOnApprovalGeometrySerializer(GeoFeatureModelSerializer):
         fields = (
             'id',
             'site_guid',
-            # 'available',
+            'available',
             'wkb_geometry',
             'site_category',
             'status',

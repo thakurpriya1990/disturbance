@@ -505,9 +505,6 @@
                     () => {
                         vm.$http.patch('/api/apiary_site/' + apiary_site_id + '/', { 'status': 'vacant' }).then(
                             async function(accept){
-                                // Update the site in the table
-                                let site_updated = accept.body
-
                                 // Remove the row from the table
                                 $(e.target).closest('tr').fadeOut('slow', function(){
                                     // Remove the site table which the table is based on
