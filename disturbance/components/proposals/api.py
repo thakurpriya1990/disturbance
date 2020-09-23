@@ -713,7 +713,7 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
             elif new_availability:
                 apiary_site_on_approval = apiary_site.latest_approval_link
                 if apiary_site_on_approval.site_status == SITE_STATUS_CURRENT:
-                    apiary_site_on_approval.available == new_availability
+                    apiary_site_on_approval.available = new_availability
                     apiary_site_on_approval.save()
             else:
                 # No parameters passed, do nothing

@@ -353,6 +353,9 @@
                 this.$emit('featureGeometryUpdated', feature)
             },
             updateTableByFeatures: function(features) {
+                console.log('in updateTableByFeatures')
+                console.log(features)
+
                 // Generate a list of the feature ids displayed on the map
                 let ids = $.map(features, function(feature){
                     return feature.id_
