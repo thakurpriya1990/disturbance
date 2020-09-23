@@ -6,6 +6,7 @@
  		{% else %}
 
         	Application {{proposal.lodgement_number}} has been approved.
+            Details: {{proposal.proposed_issuance_approval.details}} 
         {% endif %}
 
 {%  endblock %}
