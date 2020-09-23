@@ -309,32 +309,41 @@ class ApiarySiteOnProposalDraftGeometrySerializer(GeoFeatureModelSerializer):
             return ''
 
 
-class ApiarySiteVacantSerializer(GeoFeatureModelSerializer):
-    wkb_geometry = serializers.SerializerMethodField()
-    status = serializers.ReadOnlyField(default='vacant')
-    workflow_selected_status = serializers.ReadOnlyField(default=False)
-    previous_site_holder_or_applicant = serializers.ReadOnlyField(default='')
-
-    class Meta:
-        model = ApiarySite
-        geo_field = 'wkb_geometry'
-        fields = (
-            'id',
-            'site_guid',
-            'wkb_geometry',
-            'status',
-            'workflow_selected_status',
-            'previous_site_holder_or_applicant',
-        )
-
-    def get_wkb_geometry(self, apiary_site):
-        if apiary_site.latest_approval_link:
+# class ApiarySiteVacantDeniedSerializer(GeoFeatureModelSerializer):
+#     wkb_geometry = serializers.SerializerMethodField()
+#     status = serializers.SerializerMethodField()
+#     workflow_selected_status = serializers.SerializerMethodField()
+#     previous_site_holder_or_applicant = serializers.SerializerMethodField()
+#
+#     class Meta:
+#         model = ApiarySite
+#         geo_field = 'wkb_geometry'
+#         fields = (
+#             'id',
+#             'site_guid',
+#             'wkb_geometry',
+#             'status',
+#             'workflow_selected_status',
+#             'previous_site_holder_or_applicant',
+#         )
+#
+#     def get_wkb_geometry(self, apiary_site):
+#         if apiary_site.latest_approval_link:
             # This apiary site became 'vacant' from the 'not_to_be_reissued' or the 'current' status
-            return apiary_site.latest_approval_link.wkb_geometry
-        else:
+            # return apiary_site.latest_approval_link.wkb_geometry
+        # else:
             # This apiary site became 'vacant' form the 'denied' status
-            return apiary_site.latest_proposal_link.wkb_geometry_processed
-
+            # return apiary_site.latest_proposal_link.wkb_geometry_processed
+    #
+    # def get_status(self, apiary_site):
+    #     return 'vacant'
+    #
+    # def get_workflow_selected_status(self, apiary_site):
+    #     return False
+    #
+    # def get_previous_site_holder_or_applicant(self, apiary_site):
+    #     return ''
+#
 
 class ApiarySiteOnProposalProcessedGeometrySerializer(GeoFeatureModelSerializer):
     """
