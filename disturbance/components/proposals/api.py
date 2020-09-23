@@ -29,7 +29,7 @@ from disturbance.components.proposals.models import searchKeyWords, search_refer
     OnSiteInformation, ApiarySite, ApiaryChecklistQuestion, ApiaryChecklistAnswer, \
     ProposalApiaryTemporaryUse, ApiarySiteOnProposal
 from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_APPROVED, SITE_STATUS_CURRENT, SITE_STATUS_DENIED, \
-    SITE_STATUS_NOT_TO_BE_REISSUED
+    SITE_STATUS_NOT_TO_BE_REISSUED, SITE_STATUS_VACANT
 from disturbance.utils import search_tenure
 from disturbance.components.main.utils import (
         check_db_connection, 
@@ -699,18 +699,39 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
     @basic_exception_handler
     def partial_update(self, request, *args, **kwargs):
         with transaction.atomic():
-            instance = self.get_object()
-            request_data = request.data
-
+            apiary_site = self.get_object()
             new_status = request.data.get('status', None)
-            all_statuses = list(map(lambda x: x[0], ApiarySite.STATUS_CHOICES))
-            if new_status and new_status in all_statuses:
-                instance.status = new_status
-                instance.save()
+            new_availability = request.data.get('available', None)
 
-            serializer = ApiarySiteSerializer(instance)
+            if new_status:
+                if new_status == SITE_STATUS_VACANT:
+                    apiary_site.is_vacant = True
+                    apiary_site.save()
+                else:
+                    # For now, this function is only used to change the status to the 'vacant'
+                    pass
+            elif new_availability:
+                apiary_site_on_approval = apiary_site.latest_approval_link
+                if apiary_site_on_approval.site_status == SITE_STATUS_CURRENT:
+                    apiary_site_on_approval.available == new_availability
+                    apiary_site_on_approval.save()
+            else:
+                # No parameters passed, do nothing
+                pass
 
-            return Response(serializer.data)
+            # TODO: return correct value.  Refer to below
+
+            # instance = self.get_object()
+            #
+            # new_status = request.data.get('status', None)
+            # all_statuses = list(map(lambda x: x[0], ApiarySite.STATUS_CHOICES))
+            # if new_status and new_status in all_statuses:
+            #     instance.status = new_status
+            #     instance.save()
+            #
+            # serializer = ApiarySiteSerializer(instance)
+            #
+            # return Response(serializer.data)
 
 
 class ProposalApiaryViewSet(viewsets.ModelViewSet):
