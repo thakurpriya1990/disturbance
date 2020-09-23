@@ -611,14 +611,15 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
     def list_existing(self, request):
         # 0. Retrieve 'vacant' sites
         qs_vacant_site = ApiarySite.objects.filter(is_vacant=True).exclude(apiarysiteonproposal__in=ApiarySiteOnProposal.objects.filter(making_payment=True)).distinct()
-        apiary_site_proposal_ids = qs_vacant_site.filter(latest_proposal_link__site_status=SITE_STATUS_DENIED).values('latest_proposal_link__id')
-        apiary_site_approval_ids = qs_vacant_site.filter(latest_approval_link__site_status=SITE_STATUS_NOT_TO_BE_REISSUED).values('latest_approval_link__id')
+        # apiary_site_proposal_ids = qs_vacant_site.filter(latest_proposal_link__site_status=SITE_STATUS_DENIED).values('latest_proposal_link__id')
+        apiary_site_proposal_ids = qs_vacant_site.all().values('latest_proposal_link__id')
+        # apiary_site_approval_ids = qs_vacant_site.filter(latest_approval_link__site_status=SITE_STATUS_NOT_TO_BE_REISSUED).values('latest_approval_link__id')
 
         qs_vacant_site_proposal = ApiarySiteOnProposal.objects.filter(id__in=apiary_site_proposal_ids)
-        qs_vacant_site_approval = ApiarySiteOnApproval.objects.filter(id__in=apiary_site_approval_ids)
+        # qs_vacant_site_approval = ApiarySiteOnApproval.objects.filter(id__in=apiary_site_approval_ids)
 
         serializer_vacant_proposal = ApiarySiteOnProposalProcessedGeometrySerializer(qs_vacant_site_proposal, many=True)
-        serializer_vacant_approval = ApiarySiteOnApprovalGeometrySerializer(qs_vacant_site_approval, many=True)
+        # serializer_vacant_approval = ApiarySiteOnApprovalGeometrySerializer(qs_vacant_site_approval, many=True)
 
         # 1. ApiarySiteOnProposal
         q_include_proposal = Q()
@@ -669,7 +670,7 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
         serializer_approval.data['features'].extend(serializer_proposal_draft.data['features'])
         serializer_approval.data['features'].extend(serializer_proposal_processed.data['features'])
         serializer_approval.data['features'].extend(serializer_vacant_proposal.data['features'])
-        serializer_approval.data['features'].extend(serializer_vacant_approval.data['features'])
+        # serializer_approval.data['features'].extend(serializer_vacant_approval.data['features'])
 
         return Response(serializer_approval.data)
 
