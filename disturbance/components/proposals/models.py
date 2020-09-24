@@ -3383,16 +3383,16 @@ class ApiarySite(models.Model):
     def __str__(self):
         return '{}'.format(self.id,)
 
-    def make_vacant(self, vacant, obj):
+    def make_vacant(self, vacant, relation):
         from disturbance.components.approvals.models import ApiarySiteOnApproval
-        if isinstance(obj, ApiarySiteOnProposal):
+        if isinstance(relation, ApiarySiteOnProposal):
             self.is_vacant = vacant
-            self.proposal_link_for_vacant = obj if vacant else None
-            self.approval_link_for_vacant = None  # Make sure this is None
-        elif isinstance(obj, ApiarySiteOnApproval):
+            self.proposal_link_for_vacant = relation if vacant else None
+            self.approval_link_for_vacant = None
+        elif isinstance(relation, ApiarySiteOnApproval):
             self.is_vacant = vacant
-            self.proposal_link_for_vacant = None  # Make sure this is None
-            self.approval_link_for_vacant = obj if vacant else None
+            self.proposal_link_for_vacant = None
+            self.approval_link_for_vacant = relation if vacant else None
         self.save()
 
     def get_relation(self, proposal_apiary_or_approval):
