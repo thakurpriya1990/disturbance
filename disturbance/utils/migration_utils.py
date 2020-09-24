@@ -3,7 +3,7 @@ from ledger.accounts.models import OrganisationAddress
 from ledger.accounts.models import EmailUser
 from disturbance.components.organisations.models import Organisation, OrganisationContact, UserDelegation
 from disturbance.components.main.models import ApplicationType
-from disturbance.components.proposals.models import Proposal#, ProposalType, ProposalOtherDetails, ProposalPark
+from disturbance.components.proposals.models import Proposal, ProposalType#, ProposalOtherDetails, ProposalPark
 from disturbance.components.approvals.models import Approval, MigratedApiaryLicence
 #from commercialoperator.components.bookings.models import ApplicationFee, ParkBooking, Booking
 from django.core.exceptions import MultipleObjectsReturned
@@ -209,14 +209,16 @@ class ApiaryLicenceReader():
             user, created_user = EmailUser.objects.get_or_create(email=data['email'],
                     defaults={'first_name': data['first_name'], 'last_name': data['last_name'], 'phone_number': data['phone_number1'], 'mobile_number': data['mobile_number']}
                 )
+            return user
             #print '{} {} {}'.format(data['first_name'], data['last_name'], EmailUser.objects.filter(first_name=data['first_name'], last_name=data['last_name']))
             #print data['email1']
         except Exception:
             #print 'user: {}   *********** 1 *********** FAILED'.format(data['email'])
-            logger.error('user: {}   *********** 1 *********** FAILED'.format(data['email'])
-        return user
+            logger.error('user: {}   *********** 1 *********** FAILED'.format(data['email']))
 
     def _create_organisation(self, data, count, debug=False):
+        if debug:
+            import ipdb; ipdb.set_trace()
         try:
             #if data['email1'] == 'info@safaris.net.au':
             #    import ipdb; ipdb.set_trace()
@@ -227,7 +229,7 @@ class ApiaryLicenceReader():
             #print data['email1']
         except Exception:
             print 'user: {}   *********** 1 *********** FAILED'.format(data['email'])
-            return
+            #return
 
         lo=ledger_organisation.objects.filter(abn=data['abn'])
         if lo.count() > 0:
@@ -235,7 +237,10 @@ class ApiaryLicenceReader():
         else:
             try:
                 #print 'Country: {}'.format(data['country'])
-                country=Country.objects.get(printable_name__icontains=data['country'])
+                #country_str = 'Australia' if country_raw.lower().startswith('a') else country_raw
+                country=Country.objects.get(iso_3166_1_a2=data.get('country'))
+
+                #country=Country.objects.get(printable_name__icontains=data['country'])
                 oa, created = OrganisationAddress.objects.get_or_create(
                     line1=data['address_line1'],
                     locality=data['suburb'],
@@ -291,8 +296,9 @@ class ApiaryLicenceReader():
 
         try:
             #print 'Country: {}'.format(data['country'])
-            country_str = 'Australia' if data['country'].lower().startswith('a') else data['country']
-            country=Country.objects.get(printable_name__icontains=country_str)
+            #country_str = 'Australia' if data['country'].lower().startswith('a') else data['country']
+            #country=Country.objects.get(printable_name__icontains=country_str)
+            country=Country.objects.get(iso_3166_1_a2=data.get('country'))
             oa, created = OrganisationAddress.objects.get_or_create(
                 line1=data['address_line1'],
                 locality=data['suburb'],
@@ -396,9 +402,9 @@ class ApiaryLicenceReader():
         from disturbance.components.approvals.models import Approval
         #applicant = None
         #proxy_applicant = None
-        submitter=None
-        try:
+        #submitter=None
 
+        #try:
             #if data['email']:
             #    #try:
             #    #    submitter = EmailUser.objects.get(email__icontains=data['email1'])
@@ -431,7 +437,9 @@ class ApiaryLicenceReader():
         #    return None
 
         #application_type=ApplicationType.objects.get(name=data['application_type'])
-        application_type=ApplicationType.APIARY
+        application_type=ApplicationType.objects.get(name=ApplicationType.APIARY)
+        qs_proposal_type = ProposalType.objects.all().order_by('name', '-version').distinct('name')
+        proposal_type = qs_proposal_type.get(name=application_type.name)
         #application_name = application_type.name
         try:
             #if data['licence_class'].startswith('T'):
@@ -442,13 +450,11 @@ class ApiaryLicenceReader():
             #application_name = 'T Class'
             # Get most recent versions of the Proposal Types
             if applicant:
-                #s_proposal_type = ProposalType.objects.all().order_by('name', '-version').distinct('name')
-                #roposal_type = qs_proposal_type.get(name=application_type.name)
                 proposal= Proposal.objects.create(
                                 application_type=application_type,
                                 submitter=submitter,
                                 applicant=applicant,
-                                #chema=proposal_type.schema,
+                                schema=proposal_type.schema,
                                 migrated=True
                             )
 
@@ -457,7 +463,7 @@ class ApiaryLicenceReader():
                                 expiry_date=data['expiry_date'],
                                 start_date=data['start_date'],
                                 applicant=applicant,
-                                submitter=submitter,
+                                #submitter=submitter,
                                 current_proposal=proposal,
                                 migrated=True
                             )
@@ -466,7 +472,7 @@ class ApiaryLicenceReader():
                                 application_type=application_type,
                                 submitter=submitter,
                                 applicant=applicant,
-                                #schema=proposal_type.schema,
+                                schema=proposal_type.schema,
                                 migrated=True
                             )
 
@@ -475,7 +481,7 @@ class ApiaryLicenceReader():
                                 expiry_date=data['expiry_date'],
                                 start_date=data['start_date'],
                                 applicant=applicant,
-                                submitter=submitter,
+                                #submitter=submitter,
                                 current_proposal=proposal,
                                 migrated=True
                             )
@@ -501,16 +507,17 @@ class ApiaryLicenceReader():
             #result_qs = MigratedApiaryLicence.objects.filter(permit_number=data['permit_number'])
             #import ipdb; ipdb.set_trace()
             # do not run if row has already been processed in a previous migration
-            if not data['previously_migrated']:
-                if data['licencee_type'] == 'organisation':
+            if not data.get('previously_migrated'):
+                if data.get('licencee_type') == 'organisation':
                     #new, existing = self._create_organisation(data, count)
+                    #org, submitter = self._create_organisation(data, count, debug=True)
                     org, submitter = self._create_organisation(data, count)
                     self._migrate_approval(data=data, applicant=org, proxy_applicant=None, submitter=submitter)
-                    print("Permit number {} migrated".format(data['permit_number']))
-                elif data['licencee_type'] == 'individual':
+                    print("Permit number {} migrated".format(data.get('permit_number')))
+                elif data.get('licencee_type') == 'individual':
                     user = self._create_individual(data, count)
                     self._migrate_approval(data=data, applicant=None, proxy_applicant=user, submitter=user)
-                    print("Permit number {} migrated".format(data['permit_number']))
+                    print("Permit number {} migrated".format(data.get('permit_number')))
             count += 1
 
     #def create_licences(self):
