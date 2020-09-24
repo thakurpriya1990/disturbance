@@ -73,15 +73,6 @@ class RenewalDocument(Document):
 
 
 class ApiarySiteOnApproval(models.Model):
-    # SITE_STATUS_CURRENT = 'current'
-    # SITE_STATUS_NOT_TO_BE_REISSUED = 'not_to_be_reissued'
-    # SITE_STATUS_SUSPENDED = 'suspended'
-    # SITE_STATUS_CHOICES = (
-    #     (SITE_STATUS_CURRENT, 'Current'),
-    #     (SITE_STATUS_NOT_TO_BE_REISSUED, 'Not to be reissued'),
-    #     (SITE_STATUS_SUSPENDED, 'Suspended'),
-    # )
-
     apiary_site = models.ForeignKey('ApiarySite',)
     approval = models.ForeignKey('Approval',)
     available = models.BooleanField(default=False)
@@ -92,6 +83,9 @@ class ApiarySiteOnApproval(models.Model):
     wkb_geometry = PointField(srid=4326, blank=True, null=True)  # store approved coordinates
     site_category = models.ForeignKey('SiteCategory', null=True, blank=True,)
     objects = GeoManager()
+
+    def __str__(self):
+        return 'id:{}: apiary_site: {}, approval: {}'.format(self.id, self.apiary_site.id, self.approval.id)
 
     class Meta:
         app_label = 'disturbance'

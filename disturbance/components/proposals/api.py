@@ -629,7 +629,7 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
         # 1.2. Exclude
         q_exclude_proposal |= Q(site_status__in=(SITE_STATUS_DRAFT,)) & Q(making_payment=False)  # Purely 'draft' site
         q_exclude_proposal |= Q(site_status__in=(SITE_STATUS_APPROVED,))  # 'approved' site should be included in the approval as a 'current'
-        q_exclude_proposal |= Q(apiary_site__in=qs_vacant_site)  # We don't want to pick up the vacant sites already retrieved above
+        q_exclude_proposal |= Q(apiary_site__in=ApiarySite.objects.filter(is_vacant=True))  # Vacant sites are already picked up above
 
         # 1.3. Exculde the apairy sites which are on the proposal apiary currently being accessed
         proposal_id = request.query_params.get('proposal_id', 0)
@@ -713,19 +713,11 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
                 if new_status == SITE_STATUS_VACANT:
                     if apiary_site.latest_proposal_link.site_status == SITE_STATUS_DENIED:
                         apiary_site.make_vacant(True, apiary_site.latest_proposal_link)
-                        # apiary_site.is_vacant = True
-                        # apiary_site.proposal_link_for_vacant = apiary_site.latest_proposal_link  # proposal_link_for_vacant is used to retrieve the geometry
-                        # apiary_site.approval_link_for_vacant = None  # Make sure this is None
-                        # apiary_site.save()
                         # This apiary site must have been in the 'denied' status
                         serializer = ApiarySiteOnProposalProcessedGeometrySerializer(apiary_site.latest_proposal_link)
                         return Response(serializer.data)
                     elif apiary_site.latest_approval_link.site_status == SITE_STATUS_NOT_TO_BE_REISSUED:
                         apiary_site.make_vacant(True, apiary_site.latest_approval_link)
-                        # apiary_site.is_vacant = True
-                        # apiary_site.approval_link_for_vacant = apiary_site.latest_approval_link  # approval_link_for_vacant is used to retrieve the geometry
-                        # apiary_site.proposal_link_for_vacant = None  # Make sure this is None
-                        # apiary_site.save()
                         # This apiary site must have been in the 'not_to_be_reissued' status
                         serializer = ApiarySiteOnApprovalGeometrySerializer(apiary_site.latest_approval_link)
                         return Response(serializer.data)

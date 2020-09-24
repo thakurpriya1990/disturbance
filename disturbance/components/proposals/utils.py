@@ -1,14 +1,9 @@
 import re
 
-from django.contrib.gis.measure import Distance
 from django.core.exceptions import ValidationError
-from django.db.models.query_utils import Q
-from django.shortcuts import redirect
-from django.urls import reverse
 from django.utils import timezone
 from django.db import transaction
 from django.contrib.gis.geos import Point, GEOSGeometry
-from preserialize.serialize import serialize
 from ledger.accounts.models import EmailUser, Document
 from rest_framework import serializers
 
@@ -16,7 +11,6 @@ from disturbance.components.proposals.models import ProposalDocument, ProposalUs
     ProposalApiaryTemporaryUse, TemporaryUseApiarySite, ApiarySiteOnProposal
 from disturbance.components.proposals.serializers import SaveProposalSerializer
 
-from disturbance.components.main.models import ApplicationType
 from disturbance.components.approvals.models import Approval
 from disturbance.components.proposals.models import (
     SiteTransferApiarySite,
@@ -27,7 +21,7 @@ from disturbance.components.proposals.serializers_apiary import (
     ProposalApiarySerializer,
     ProposalApiaryTemporaryUseSerializer,
     ApiarySiteSerializer, TemporaryUseApiarySiteSerializer,
-    ApiarySiteSavePointPendingSerializer, ApiarySiteOnProposalDraftGeometrySaveSerializer
+    ApiarySiteOnProposalDraftGeometrySaveSerializer
 )
 from disturbance.components.proposals.email import send_submit_email_notification, send_external_submit_email_notification
 
@@ -506,7 +500,6 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                 site_ids_delete_vacant = []
 
                 # Handle ApiarySites here
-                apiary_sites_on_proposal = []
                 for index, feature in enumerate(site_locations_received):
                     feature['proposal_apiary_id'] = proposal_obj.proposal_apiary.id
 
@@ -573,29 +566,14 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
 #                        serializer.is_valid(raise_exception=True)
 #                        serializer.save()
 
-                        apiary_sites_on_proposal.append(apiary_site_on_proposal)
-
                         # if apiary_site_obj.is_vacant:
                         #     apiary_site_obj.proposal_apiary = None  # This should be already None
                         #     apiary_site_obj.proposal_apiaries.add(proposal_obj.proposal_apiary)
                         #     apiary_site_obj.save()
 
                 if viewset.action == 'submit':
-                    for apiary_site_on_proposal in apiary_sites_on_proposal:
+                    proposal_obj.proposal_apiary.validate_apiary_sites(raise_exception=True)
 
-                        # TODO: validate among the apiary sites requested
-
-                        pass
-
-                        # apiary_site_on_proposal = ApiarySiteOnProposal.objects.get(apiary_site=apiary_site, proposal_apiary=proposal_obj.proposal_apiary)
-                        # q_objects = Q(id__in=apiary_sites)
-                        # q_objects &= Q(wkb_geometry_pending__distance_lte=(site.wkb_geometry_pending, Distance(m=RESTRICTED_RADIUS)))
-                        # qs_sites_within = ApiarySite.objects.filter(q_objects).exclude(id=id)  # Exclude itself from the queryset compared to
-                        # if qs_sites_within:
-                            # In this proposal, there are apiary sites which are too close to each other
-                        #   raise serializers.ValidationError(['There are apiary sites in this proposal which are too close to each other.',])
-
-                # save applicant checklist answers
                 save_checklist_answers('applicant', proposal_apiary_data.get('applicant_checklist_answers'))
 
                 # Delete existing
