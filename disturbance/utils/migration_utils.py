@@ -465,7 +465,8 @@ class ApiaryLicenceReader():
                                 applicant=applicant,
                                 #submitter=submitter,
                                 current_proposal=proposal,
-                                migrated=True
+                                migrated=True,
+                                apiary_approval=True
                             )
             else:
                 proposal= Proposal.objects.create(
@@ -483,7 +484,8 @@ class ApiaryLicenceReader():
                                 applicant=applicant,
                                 #submitter=submitter,
                                 current_proposal=proposal,
-                                migrated=True
+                                migrated=True,
+                                apiary_approval=True
                             )
 
             #proposal.lodgement_number = proposal.lodgement_number.replace('A', 'AM') # Application Migrated
