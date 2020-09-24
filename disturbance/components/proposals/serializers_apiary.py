@@ -279,6 +279,7 @@ class ApiarySiteOnProposalDraftGeometrySerializer(GeoFeatureModelSerializer):
     status = serializers.SerializerMethodField()
     site_category = serializers.SerializerMethodField()
     previous_site_holder_or_applicant = serializers.SerializerMethodField()
+    is_vacant = serializers.SerializerMethodField()
 
     class Meta:
         model = ApiarySiteOnProposal
@@ -286,7 +287,7 @@ class ApiarySiteOnProposalDraftGeometrySerializer(GeoFeatureModelSerializer):
         fields = (
             'id',
             'site_guid',
-            # 'available',
+            'is_vacant',
             'wkb_geometry_draft',
             'site_category',
             'status',
@@ -294,6 +295,9 @@ class ApiarySiteOnProposalDraftGeometrySerializer(GeoFeatureModelSerializer):
             # 'stable_coords',
             'previous_site_holder_or_applicant',
         )
+
+    def get_is_vacant(self, obj):
+        return obj.apiary_site.is_vacant
 
     def get_status(self, obj):
         return obj.site_status
@@ -354,6 +358,7 @@ class ApiarySiteOnProposalProcessedGeometrySerializer(GeoFeatureModelSerializer)
     status = serializers.SerializerMethodField()
     site_category = serializers.SerializerMethodField()
     previous_site_holder_or_applicant = serializers.SerializerMethodField()
+    is_vacant = serializers.SerializerMethodField()
 
     class Meta:
         model = ApiarySiteOnProposal
@@ -361,7 +366,7 @@ class ApiarySiteOnProposalProcessedGeometrySerializer(GeoFeatureModelSerializer)
         fields = (
             'id',
             'site_guid',
-            # 'available',
+            'is_vacant',
             'wkb_geometry_processed',
             'site_category',
             'status',
@@ -369,6 +374,9 @@ class ApiarySiteOnProposalProcessedGeometrySerializer(GeoFeatureModelSerializer)
             # 'stable_coords',
             'previous_site_holder_or_applicant',
         )
+
+    def get_is_vacant(self, obj):
+        return obj.apiary_site.is_vacant
 
     def get_status(self, apiary_site_on_proposal):
         if apiary_site_on_proposal.apiary_site.is_vacant:

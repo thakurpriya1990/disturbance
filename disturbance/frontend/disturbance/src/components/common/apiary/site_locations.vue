@@ -297,8 +297,13 @@
                         {
                             // Vacant
                             mRender: function (data, type, feature) {
+                                console.log('in mRender for Vacant')
+                                console.log(feature)
+
                                 let my_status = feature.get('status')
-                                if(my_status === 'vacant'){
+                                let is_vacant = feature.get('is_vacant')
+                                if(my_status === 'vacant' || is_vacant === true){
+                                    // Once saved, 'vacant' site status gets 'draft' therefore we have to check another attribute 'is_vacant', too
                                     return '<i class="fa fa-check" aria-hidden="true"></i>'
                                 }
                                 return ''
