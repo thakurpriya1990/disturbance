@@ -73,15 +73,6 @@ class RenewalDocument(Document):
 
 
 class ApiarySiteOnApproval(models.Model):
-    # SITE_STATUS_CURRENT = 'current'
-    # SITE_STATUS_NOT_TO_BE_REISSUED = 'not_to_be_reissued'
-    # SITE_STATUS_SUSPENDED = 'suspended'
-    # SITE_STATUS_CHOICES = (
-    #     (SITE_STATUS_CURRENT, 'Current'),
-    #     (SITE_STATUS_NOT_TO_BE_REISSUED, 'Not to be reissued'),
-    #     (SITE_STATUS_SUSPENDED, 'Suspended'),
-    # )
-
     apiary_site = models.ForeignKey('ApiarySite',)
     approval = models.ForeignKey('Approval',)
     available = models.BooleanField(default=False)
@@ -92,6 +83,9 @@ class ApiarySiteOnApproval(models.Model):
     wkb_geometry = PointField(srid=4326, blank=True, null=True)  # store approved coordinates
     site_category = models.ForeignKey('SiteCategory', null=True, blank=True,)
     objects = GeoManager()
+
+    def __str__(self):
+        return 'id:{}: apiary_site: {}, approval: {}'.format(self.id, self.apiary_site.id, self.approval.id)
 
     class Meta:
         app_label = 'disturbance'
@@ -368,7 +362,6 @@ class Approval(RevisionedMixin):
                     raise
         return copied_data
 
-
     def log_user_action(self, action, request):
        return ApprovalUserAction.log_action(self, action, request.user)
 
@@ -395,26 +388,11 @@ class Approval(RevisionedMixin):
         if approval_status in (Approval.STATUS_CANCELLED, Approval.STATUS_SUSPENDED, Approval.STATUS_SURRENDERED,):
             relations.update(site_status=SITE_STATUS_NOT_TO_BE_REISSUED)
         elif approval_status == Approval.STATUS_EXPIRED:
-            self.apiary_sites.update(is_vacant=True)
+            for apiary_site in self.apiary_sites.all():
+                apiary_site.make_vacant(True, apiary_site.latest_approval_link)
             relations.update(available=False)
         elif approval_status == Approval.STATUS_CURRENT:
             relations.update(site_status=SITE_STATUS_CURRENT)
-
-        # for site in self.apiary_sites.all():
-        #     if approval_status in (Approval.STATUS_CANCELLED, Approval.STATUS_SUSPENDED, Approval.STATUS_SURRENDERED,):
-        #         site.status = ApiarySite.STATUS_NOT_TO_BE_REISSUED
-        #     elif approval_status == Approval.STATUS_EXPIRED:
-        #         site.status = ApiarySite.STATUS_VACANT
-        #         site.approval = None
-        #         site.proposal_apiary = None
-        #         site.available = False
-        #         site.wkb_geometry_pending = None  # Just to make sure it is None
-        #         site.wkb_geometry_applied = None  # Just to make sure it is None
-        #         site.workflow_selected_status = False
-        #     elif approval_status == Approval.STATUS_CURRENT:
-        #         site.status = ApiarySite.STATUS_CURRENT
-        #
-        #     site.save()
 
     def approval_cancellation(self,request,details):
         with transaction.atomic():

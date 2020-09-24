@@ -717,11 +717,25 @@ export default {
                 formData.append('apiary_sites_local', JSON.stringify(this.$refs.apiary_site_transfer.apiary_sites_local));
             }
 
-            vm.$http.post(vm.proposal_submit_url,formData).then(res=>{
-                /* after the above save, redirect to the Django post() method in ApplicationFeeView */
-                vm.post_and_redirect(vm.application_fee_url, {'csrfmiddlewaretoken' : vm.csrf_token});
-            },err=>{
-            });
+            vm.$http.post(vm.proposal_submit_url, formData).then(
+                res=>{
+                    /* after the above save, redirect to the Django post() method in ApplicationFeeView */
+                    vm.post_and_redirect(vm.application_fee_url, {'csrfmiddlewaretoken' : vm.csrf_token});
+                },
+                err=>{
+                    if (err.body.type === 'site_no_longer_available'){
+                        swal({
+                            title: "Vacant site no longer available",
+                            text: err.body.message,
+                            type: "warning",
+                            confirmButtonText: 'Remove the site from the application',
+                            allowOutsideClick: false
+                        }).then(function(){
+                            vm.$refs.proposal_apiary.remove_apiary_site(err.body.apiary_site_id)
+                        });
+                    }
+                }
+            );
         },
         post_and_redirect: function(url, postData) {
             /* http.post and ajax do not allow redirect from Django View (post method),

@@ -14,6 +14,7 @@ class ApiarySiteOnApprovalGeometrySerializer(GeoFeatureModelSerializer):
     status = serializers.SerializerMethodField()
     site_category = serializers.SerializerMethodField()
     previous_site_holder_or_applicant = serializers.SerializerMethodField()
+    is_vacant = serializers.SerializerMethodField()
 
     class Meta:
         model = ApiarySiteOnApproval
@@ -21,13 +22,17 @@ class ApiarySiteOnApprovalGeometrySerializer(GeoFeatureModelSerializer):
         fields = (
             'id',
             'site_guid',
-            # 'available',
+            'available',
             'wkb_geometry',
             'site_category',
             'status',
+            'is_vacant',
             # 'stable_coords',
             'previous_site_holder_or_applicant',
         )
+
+    def get_is_vacant(self, obj):
+        return obj.apiary_site.is_vacant
 
     def get_status(self, obj):
         return obj.site_status

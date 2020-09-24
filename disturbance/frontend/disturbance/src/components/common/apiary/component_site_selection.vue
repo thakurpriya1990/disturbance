@@ -353,6 +353,9 @@
                 this.$emit('featureGeometryUpdated', feature)
             },
             updateTableByFeatures: function(features) {
+                console.log('in updateTableByFeatures')
+                console.log(features)
+
                 // Generate a list of the feature ids displayed on the map
                 let ids = $.map(features, function(feature){
                     return feature.id_
@@ -502,9 +505,6 @@
                     () => {
                         vm.$http.patch('/api/apiary_site/' + apiary_site_id + '/', { 'status': 'vacant' }).then(
                             async function(accept){
-                                // Update the site in the table
-                                let site_updated = accept.body
-
                                 // Remove the row from the table
                                 $(e.target).closest('tr').fadeOut('slow', function(){
                                     // Remove the site table which the table is based on
