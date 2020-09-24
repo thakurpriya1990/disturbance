@@ -19,6 +19,7 @@ from django.core.exceptions import ValidationError
 from django.contrib.postgres.fields.jsonb import JSONField
 from django.utils import timezone
 from ledger.settings_base import TIME_ZONE
+from rest_framework import serializers
 from taggit.models import TaggedItemBase
 from ledger.accounts.models import EmailUser, RevisionedMixin
 from ledger.payments.models import Invoice
@@ -2527,16 +2528,20 @@ class ProposalApiary(RevisionedMixin):
                 others = ApiarySiteOnProposal.objects.filter(apiary_site=apiary_site, making_payment=True).exclude(proposal_apiary=self)
                 if others:
                     # Someone has been making payment for this apiary site
-                    if raise_exception:
-                        raise ValidationError('The apiary site {} is no longer available'.format(apiary_site.id))
                     validity = False
             else:
-                # The site is not 'vadant'
-                if self != apiary_site.latest_proposal_link:
+                # The site is not 'vacant'
+                relation = self.get_relation(apiary_site)
+                if relation != apiary_site.latest_proposal_link:
                     # This site was 'vacant' site when selected, but it's already taken by someone else
-                    if raise_exception:
-                        raise ValidationError('The apiary site {} is no longer available'.format(apiary_site.id))
                     validity = False
+
+            if not validity and raise_exception:
+                # raise ValidationError(message='The vacant apiary site: {} is no longer available.'.format(apiary_site.id), params={'apiary_site_id': apiary_site.id})
+                raise serializers.ValidationError({
+                    'type': 'site_no_longer_available',
+                    'message': 'The vacant apiary site: {} is no longer available.'.format(apiary_site.id),
+                    'apiary_site_id': apiary_site.id})
 
         # Check the distance between the requested sites
         for apiary_site in self.apiary_sites.all():

@@ -629,7 +629,7 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
         # 1.2. Exclude
         q_exclude_proposal |= Q(site_status__in=(SITE_STATUS_DRAFT,)) & Q(making_payment=False)  # Purely 'draft' site
         q_exclude_proposal |= Q(site_status__in=(SITE_STATUS_APPROVED,))  # 'approved' site should be included in the approval as a 'current'
-        q_exclude_proposal |= Q(apiary_site__in=qs_vacant_site)  # We don't want to pick up the vacant sites already retrieved above
+        q_exclude_proposal |= Q(apiary_site__in=ApiarySite.objects.filter(is_vacant=True))  # Vacant sites are already picked up above
 
         # 1.3. Exculde the apairy sites which are on the proposal apiary currently being accessed
         proposal_id = request.query_params.get('proposal_id', 0)
