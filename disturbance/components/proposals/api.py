@@ -713,19 +713,11 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
                 if new_status == SITE_STATUS_VACANT:
                     if apiary_site.latest_proposal_link.site_status == SITE_STATUS_DENIED:
                         apiary_site.make_vacant(True, apiary_site.latest_proposal_link)
-                        # apiary_site.is_vacant = True
-                        # apiary_site.proposal_link_for_vacant = apiary_site.latest_proposal_link  # proposal_link_for_vacant is used to retrieve the geometry
-                        # apiary_site.approval_link_for_vacant = None  # Make sure this is None
-                        # apiary_site.save()
                         # This apiary site must have been in the 'denied' status
                         serializer = ApiarySiteOnProposalProcessedGeometrySerializer(apiary_site.latest_proposal_link)
                         return Response(serializer.data)
                     elif apiary_site.latest_approval_link.site_status == SITE_STATUS_NOT_TO_BE_REISSUED:
                         apiary_site.make_vacant(True, apiary_site.latest_approval_link)
-                        # apiary_site.is_vacant = True
-                        # apiary_site.approval_link_for_vacant = apiary_site.latest_approval_link  # approval_link_for_vacant is used to retrieve the geometry
-                        # apiary_site.proposal_link_for_vacant = None  # Make sure this is None
-                        # apiary_site.save()
                         # This apiary site must have been in the 'not_to_be_reissued' status
                         serializer = ApiarySiteOnApprovalGeometrySerializer(apiary_site.latest_approval_link)
                         return Response(serializer.data)

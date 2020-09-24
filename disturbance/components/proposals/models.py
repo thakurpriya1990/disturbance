@@ -8,6 +8,7 @@ import requests
 from django.contrib.gis.db.models.fields import PointField
 from django.contrib.gis.db.models.manager import GeoManager
 from django.contrib.gis.geos import GEOSGeometry
+from django.contrib.gis.measure import Distance
 from django.db import models,transaction
 from django.contrib.gis.db import models as gis_models
 from django.db.models import Q
@@ -50,7 +51,7 @@ import subprocess
 import logging
 
 from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_PENDING, SITE_STATUS_APPROVED, SITE_STATUS_DENIED, \
-    SITE_STATUS_CURRENT
+    SITE_STATUS_CURRENT, RESTRICTED_RADIUS
 
 logger = logging.getLogger(__name__)
 
@@ -2458,17 +2459,6 @@ class HelpPage(models.Model):
 # Apiary Models Start
 # --------------------------------------------------------------------------------------
 class ApiarySiteOnProposal(RevisionedMixin):
-    # SITE_STATUS_DRAFT = 'draft'
-    # SITE_STATUS_PENDING = 'pending'
-    # SITE_STATUS_APPROVED = 'approved'
-    # SITE_STATUS_DENIED = 'denied'
-    # SITE_STATUS_CHOICES = (
-    #     (SITE_STATUS_DRAFT, 'Draft'),
-    #     (SITE_STATUS_PENDING, 'Pending'),
-    #     (SITE_STATUS_APPROVED, 'Approved'),
-    #     (SITE_STATUS_DENIED, 'Denied'),
-    # )
-
     # SITE_STATUSES_FOR_GEOMETRY_DRAFT = (SITE_STATUS_DRAFT, SITE_STATUS_PENDING_PAYMENT,)
     SITE_STATUSES_FOR_GEOMETRY_DRAFT = (SITE_STATUS_DRAFT,)
     SITE_STATUSES_FOR_GEOMETRY_PROCESSED = (SITE_STATUS_PENDING, SITE_STATUS_APPROVED, SITE_STATUS_DENIED,)
@@ -2490,6 +2480,16 @@ class ApiarySiteOnProposal(RevisionedMixin):
     site_category_draft = models.ForeignKey('SiteCategory', null=True, blank=True, related_name='intermediate_draft')
     site_category_processed = models.ForeignKey('SiteCategory', null=True, blank=True, related_name='intermediate_processed')
     objects = GeoManager()
+
+    def __str__(self):
+        return 'id:{}: apiary_site: {}, proposal_apiary: {}'.format(self.id, self.apiary_site.id, self.proposal_apiary.id)
+
+    def apiary_site_not_under_payment(self):
+        value = True
+        if self.apiary_site.is_vacant:
+            qs = ApiarySiteOnProposal.objects
+
+        return value
 
     class Meta:
         app_label = 'disturbance'
@@ -2516,6 +2516,43 @@ class ProposalApiary(RevisionedMixin):
 
     class Meta:
         app_label = 'disturbance'
+
+    def validate_apiary_sites(self, raise_exception=False):
+        validity = True
+
+        # Check if the site has been already taken by someone else
+        for apiary_site in self.apiary_sites.all():
+            if apiary_site.is_vacant:
+                # The site is 'vacant'
+                others = ApiarySiteOnProposal.objects.filter(apiary_site=apiary_site, making_payment=True).exclude(proposal_apiary=self)
+                if others:
+                    # Someone has been making payment for this apiary site
+                    if raise_exception:
+                        raise ValidationError('The apiary site {} is no longer available'.format(apiary_site.id))
+                    validity = False
+            else:
+                # The site is not 'vadant'
+                if self != apiary_site.latest_proposal_link:
+                    # This site was 'vacant' site when selected, but it's already taken by someone else
+                    if raise_exception:
+                        raise ValidationError('The apiary site {} is no longer available'.format(apiary_site.id))
+                    validity = False
+
+        # Check the distance between the requested sites
+        for apiary_site in self.apiary_sites.all():
+            relation = self.get_relation(apiary_site)
+            # Check among the apiary sites in this proposal except current one of the loop
+            q_objects = Q(apiary_site__in=self.apiary_sites.all())
+            q_objects &= Q(wkb_geometry_draft__distance_lte=(relation.wkb_geometry_draft, Distance(m=RESTRICTED_RADIUS)))
+            qs_sites_within = ApiarySiteOnProposal.objects.filter(q_objects).exclude(apiary_site=apiary_site)
+            if qs_sites_within:
+                # In this proposal, there are apiary sites which are too close to each other
+                if raise_exception:
+                    # raise serializers.ValidationError(['There are apiary sites in this proposal which are too close to each other.',])
+                    raise ValidationError('There are apiary sites in this proposal which are too close to each other.')
+                validity = False
+
+        return validity
 
     def final_decline(self):
         relations = self.get_relations()
