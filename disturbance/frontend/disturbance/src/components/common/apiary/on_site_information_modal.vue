@@ -261,11 +261,12 @@
                 let payload = {}
                 Object.assign(payload, this.on_site_information);
 
-                // Django only needs apiary_site.id
                 try {
                     payload.apiary_site_id = payload.apiary_site.id;
+                    payload.approval_id = this.approval_id
                 } catch(err) {
                     payload.apiary_site_id = 0
+                    payload.approval_id = 0
                 }
 
                 let res = '';

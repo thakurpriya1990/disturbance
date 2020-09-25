@@ -201,16 +201,18 @@ class ApiarySiteOptimisedSerializer(serializers.ModelSerializer):
 
 
 class OnSiteInformationSerializer(serializers.ModelSerializer):
-    apiary_site_id = serializers.IntegerField(required=False)
-    apiary_site = ApiarySiteOptimisedSerializer(read_only=True)
+    apiary_site_id = serializers.IntegerField(required=False, source='apiary_site_on_approval.apiary_site.id')
+    # apiary_site = ApiarySiteOptimisedSerializer(read_only=True)
+    apiary_site_on_approval_id = serializers.IntegerField(required=False)
     datetime_deleted = serializers.DateTimeField(write_only=True, required=False)
 
     class Meta:
         model = OnSiteInformation
         fields = (
             'id',
-            'apiary_site',
+            # 'apiary_site',
             'apiary_site_id',
+            'apiary_site_on_approval_id',
             'period_from',
             'period_to',
             'comments',
@@ -226,8 +228,8 @@ class OnSiteInformationSerializer(serializers.ModelSerializer):
                 field_errors['Period from'] = ['Please select a date.',]
             if not data['period_to']:
                 field_errors['Period to'] = ['Please select a date.',]
-            if not data['apiary_site_id'] and not data['apiary_site_id'] > 0:
-                field_errors['Site'] = ['Please select a site',]
+            # if not data['apiary_site_id'] and not data['apiary_site_id'] > 0:
+            #     field_errors['Site'] = ['Please select a site',]
             if not data['comments']:
                 field_errors['comments'] = ['Please enter comments.',]
 

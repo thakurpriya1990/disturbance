@@ -351,7 +351,7 @@ class ApprovalViewSet(viewsets.ModelViewSet):
     def on_site_information(self, request, *args, **kwargs):
         instance = self.get_object()
         on_site_info_qs = OnSiteInformation.objects.filter(
-            apiary_site__in=instance.apiary_sites.all(),
+            apiary_site_on_approval__in=instance.get_relations(),
             datetime_deleted=None
         )
         serializers = OnSiteInformationSerializer(on_site_info_qs, many=True)

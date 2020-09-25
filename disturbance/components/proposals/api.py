@@ -515,14 +515,26 @@ class OnSiteInformationViewSet(viewsets.ModelViewSet):
 
             return Response({})
 
+    def _construct_data(self, request):
+        request_data = request.data
+
+        apiary_site_id = request.data.get('apiary_site_id')
+        approval_id = request.data.get('approval_id')
+        apiary_site = ApiarySite.objects.get(id=apiary_site_id)
+        approval = Approval.objects.get(id=approval_id)
+        apiary_site_on_approval = ApiarySiteOnApproval.objects.get(apiary_site=apiary_site, approval=approval)
+        request_data['apiary_site_on_approval_id'] = apiary_site_on_approval.id
+
+        self.sanitize_date(request_data, 'period_from')
+        self.sanitize_date(request_data, 'period_to')
+
+        return request_data
+
     @basic_exception_handler
     def update(self, request, *args, **kwargs):
         with transaction.atomic():
             instance = self.get_object()
-            request_data = request.data
-
-            self.sanitize_date(request_data, 'period_from')
-            self.sanitize_date(request_data, 'period_to')
+            request_data = self._construct_data(request)
 
             serializer = OnSiteInformationSerializer(instance, data=request_data)
             serializer.is_valid(raise_exception=True)
@@ -532,10 +544,7 @@ class OnSiteInformationViewSet(viewsets.ModelViewSet):
     @basic_exception_handler
     def create(self, request, *args, **kwargs):
         with transaction.atomic():
-            request_data = request.data
-
-            self.sanitize_date(request_data, 'period_from')
-            self.sanitize_date(request_data, 'period_to')
+            request_data = self._construct_data(request)
 
             serializer = OnSiteInformationSerializer(data=request_data)
             serializer.is_valid(raise_exception=True)
