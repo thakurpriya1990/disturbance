@@ -136,7 +136,6 @@
                     </template>
                 </FormSection>
             </div>
-
             <div class="row">
                 <FormSection :formCollapse="false" label="Annual Rental Fee" Index="annual_rental_fee">
                     <template v-if="approval && approval.id">
@@ -191,7 +190,6 @@ import FormSection from "@/components/forms/section_toggle.vue"
 import { api_endpoints, helpers } from '@/utils/hooks'
 import OnSiteInformation from '@/components/common/apiary/section_on_site_information.vue'
 import TemporaryUse from '@/components/common/apiary/section_temporary_use.vue'
-import ComponentSiteSelection from '@/components/common/apiary/component_site_selection.vue'
 import SiteAvailability from '@/components/common/apiary/section_site_availability.vue'
 import SectionAnnualRentalFee from '@/components/common/apiary/section_annual_rental_fee.vue'
 
@@ -229,7 +227,7 @@ export default {
             },
 
             // variables passed to the child component
-            on_site_information_list: [],
+            //on_site_information_list: [],
             // Filters
 
         }
@@ -242,13 +240,17 @@ export default {
 
                 // Construct the array, which is passed to the child component, SiteAvailability
                 // Construct the array, which is passed to the child component, OnSiteInformation
-                this.on_site_information_list = []
+                //this.on_site_information_list = []
 
-                for (let i=0; i<this.approval.apiary_sites.length; i++){
-                    for (let j=0; j<this.approval.apiary_sites[i].onsiteinformation_set.length; j++){
-                        this.on_site_information_list.push(this.approval.apiary_sites[i].onsiteinformation_set[j])
-                    }
-                }
+                console.log(this.approval)
+
+                //for (let i=0; i<this.approval.apiary_sites.length; i++){
+                    //console.log('in apiary_sites.length')
+                    //for (let j=0; j<this.approval.apiary_sites[i].onsiteinformation_set.length; j++){
+                        //console.log('in onsiteinformation_setgt.length')
+                        //this.on_site_information_list.push(this.approval.apiary_sites[i].onsiteinformation_set[j])
+                    //}
+                //}
 
                 // Construct the array, which is passed to the child component, TemporaryUse
 
@@ -281,7 +283,6 @@ export default {
     //},
     components: {
         SectionAnnualRentalFee,
-        ComponentSiteSelection,
         datatable,
         CommsLogs,
         FormSection,
