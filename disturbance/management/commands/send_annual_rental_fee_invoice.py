@@ -11,12 +11,13 @@ from django.db.models import Q, Min
 from ledger.settings_base import TIME_ZONE
 
 from disturbance.components.approvals.email import send_annual_rental_fee_awaiting_payment_confirmation
-from disturbance.components.approvals.models import Approval
+from disturbance.components.approvals.models import Approval, ApiarySiteOnApproval
 from disturbance.components.das_payments.models import AnnualRentalFee, AnnualRentalFeePeriod, AnnualRentalFeeApiarySite
 from disturbance.components.das_payments.utils import create_other_invoice_for_annual_rental_fee, \
     generate_line_items_for_annual_rental_fee
 from disturbance.components.proposals.models import ApiaryAnnualRentalFeeRunDate, ApiaryAnnualRentalFeePeriodStartDate, \
     ApiarySite
+from disturbance.settings import SITE_STATUS_CURRENT
 
 logger = logging.getLogger(__name__)
 
@@ -80,9 +81,8 @@ def get_apiary_sites_to_be_charged(approval, annual_rental_fee_period):
     #       sites_exclude = ApiarySite.objects.filter(annualrentalfeeapiarysite__in=annual_rental_fee_apiary_sites)
 
     # Combine the queries above
-    apiary_sites = approval.apiary_sites.filter(
-        # ApiarySite must be the 'current' status
-        status=ApiarySite.STATUS_CURRENT
+    apiary_sites = ApiarySite.objects.filter(
+        id__in=(ApiarySiteOnApproval.objects.filter(approval=approval, site_status=SITE_STATUS_CURRENT).values_list('apiary_site_id', flat=True))
     ).exclude(
         # Exclude the apiaries for which the invoices have been issued for this period
         annualrentalfeeapiarysite__in=AnnualRentalFeeApiarySite.objects.filter(
@@ -92,6 +92,18 @@ def get_apiary_sites_to_be_charged(approval, annual_rental_fee_period):
             )
         )
     )
+#    apiary_sites = approval.apiary_sites.filter(
+#        # ApiarySite must be the 'current' status
+#        status=ApiarySite.STATUS_CURRENT
+#    ).exclude(
+#        # Exclude the apiaries for which the invoices have been issued for this period
+#        annualrentalfeeapiarysite__in=AnnualRentalFeeApiarySite.objects.filter(
+#            annual_rental_fee__in=AnnualRentalFee.objects.filter(
+#                approval=approval,
+#                annual_rental_fee_period=annual_rental_fee_period
+#            )
+#        )
+#    )
     return apiary_sites
 
 
