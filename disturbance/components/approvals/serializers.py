@@ -305,7 +305,10 @@ class ApprovalSerializer(serializers.ModelSerializer):
         return history
 
     def get_latest_apiary_licence_document(self, obj):
-        return obj.documents.order_by('-uploaded_date')[0]._file.url
+        url = ''
+        if obj.documents.order_by('-uploaded_date'):
+            url = obj.documents.order_by('-uploaded_date')[0]._file.url
+        return url
 
     def get_application_type(self,obj):
         if obj.current_proposal.application_type:
@@ -439,7 +442,13 @@ class DTApprovalSerializer(serializers.ModelSerializer):
         return self.context.get('template_group')
 
     def get_latest_apiary_licence_document(self, obj):
-        return obj.documents.order_by('-uploaded_date')[0]._file.url
+        url = ''
+        if obj.documents.order_by('-uploaded_date'):
+            url = obj.documents.order_by('-uploaded_date')[0]._file.url
+        return url
+
+    #def get_latest_apiary_licence_document(self, obj):
+     #   return obj.documents.order_by('-uploaded_date')[0]._file.url
 
     def get_renewal_document(self,obj):
         if obj.relevant_renewal_document and obj.relevant_renewal_document._file:

@@ -3,6 +3,7 @@ from ledger.accounts.models import OrganisationAddress
 from ledger.accounts.models import EmailUser
 from disturbance.components.organisations.models import Organisation, OrganisationContact, UserDelegation
 from disturbance.components.main.models import ApplicationType
+from disturbance.components.main.utils import get_category
 from disturbance.components.proposals.models import Proposal, ProposalType, ApiarySite#, ProposalOtherDetails, ProposalPark
 from disturbance.components.approvals.models import Approval, MigratedApiaryLicence, ApiarySiteOnApproval
 #from commercialoperator.components.bookings.models import ApplicationFee, ParkBooking, Booking
@@ -464,7 +465,7 @@ class ApiaryLicenceReader():
                                 applicant=applicant,
                                 schema=proposal_type.schema,
                             )
-                approval = Approval.objects.update_or_create(
+                approval, approval_created = Approval.objects.update_or_create(
                                 applicant=applicant,
                                 status=Approval.STATUS_CURRENT,
                                 apiary_approval=True,
@@ -472,7 +473,7 @@ class ApiaryLicenceReader():
                                     'issue_date':data['issue_date'],
                                     'expiry_date':data['expiry_date'],
                                     'start_date':data['start_date'],
-                                    'submitter':submitter,
+                                    #'submitter':submitter,
                                     'current_proposal':proposal,
                                     }
                             )
@@ -483,7 +484,7 @@ class ApiaryLicenceReader():
                                 applicant=applicant,
                                 schema=proposal_type.schema,
                             )
-                approval = Approval.objects.update_or_create(
+                approval, approval_created = Approval.objects.update_or_create(
                                 proxy_applicant=proxy_applicant,
                                 status=Approval.STATUS_CURRENT,
                                 apiary_approval=True,
@@ -491,7 +492,7 @@ class ApiaryLicenceReader():
                                     'issue_date':data['issue_date'],
                                     'expiry_date':data['expiry_date'],
                                     'start_date':data['start_date'],
-                                    'submitter':submitter,
+                                    #'submitter':submitter,
                                     'current_proposal':proposal,
                                     }
                             )
@@ -505,12 +506,16 @@ class ApiaryLicenceReader():
             approval.save()
             # create apiary sites and intermediate table entries
             geometry = GEOSGeometry('POINT(' + str(data['latitude']) + ' ' + str(data['longitude']) + ')', srid=4326)
-            apiary_site = ApiarySite.objects.create(latest_approval_link=approval)
+            apiary_site = ApiarySite.objects.create()
+            site_category = get_category(geometry)
             intermediary_site = ApiarySiteOnApproval.objects.create(
                                             apiary_site=apiary_site,
                                             approval=approval,
-                                            wkb_geometry=geometry
+                                            wkb_geometry=geometry,
+                                            site_category = site_category
                                             )
+            apiary_site.latest_approval_link=intermediary_site
+            apiary_site.save()
 
         except Exception, e:
             logger.error('{}'.format(e))
@@ -529,7 +534,7 @@ class ApiaryLicenceReader():
                 if data.get('licencee_type') == 'organisation':
                     #new, existing = self._create_organisation(data, count)
                     #org, submitter = self._create_organisation(data, count, debug=True)
-                    submitter = self._create_organisation(data, count)
+                    org, submitter = self._create_organisation(data, count)
                     self._migrate_approval(data=data, submitter=submitter, applicant=org, proxy_applicant=None)
                     print("Permit number {} migrated".format(data.get('permit_number')))
                 elif data.get('licencee_type') == 'individual':
