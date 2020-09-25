@@ -850,6 +850,9 @@
             removeApiarySiteById: function(apiary_site_id){
                 let myFeature = this.drawingLayerSource.getFeatureById(apiary_site_id)
                 this.deleteApiarySite(myFeature)
+
+                // TODO: remove a row
+                this.constructSiteLocationsTable()
             },
             deleteApiarySite: function(myFeature){
                 console.log('in deleteApiarySite()')
@@ -892,34 +895,35 @@
 
                 let site_location_guid = e.target.getAttribute("data-site-location-guid");
                 let myFeature = this.drawingLayerSource.getFeatureById(site_location_guid)
-                let site_category = myFeature.get('site_category')
+                this.deleteApiarySite(myFeature)
+                //let site_category = myFeature.get('site_category')
 
-                let new_or_existing = this.is_feature_new_or_existing(myFeature)
-                if (new_or_existing === 'new'){
-                    if (site_category === 'south_west'){
-                        this.num_of_sites_south_west_applied -= 1
-                    } else {
-                        this.num_of_sites_remote_applied -= 1
-                    }
-                } 
-                if (new_or_existing === 'existing'){
-                    if (site_category === 'south_west'){
-                        this.num_of_sites_south_west_renewal_applied -= 1
-                    } else {
-                        this.num_of_sites_remote_renewal_applied -= 1
-                    }
-                }
+                //let new_or_existing = this.is_feature_new_or_existing(myFeature)
+                //if (new_or_existing === 'new'){
+                //    if (site_category === 'south_west'){
+                //        this.num_of_sites_south_west_applied -= 1
+                //    } else {
+                //        this.num_of_sites_remote_applied -= 1
+                //    }
+                //} 
+                //if (new_or_existing === 'existing'){
+                //    if (site_category === 'south_west'){
+                //        this.num_of_sites_south_west_renewal_applied -= 1
+                //    } else {
+                //        this.num_of_sites_remote_renewal_applied -= 1
+                //    }
+                //}
 
-                let myFeatureStatus = myFeature.get('status')
-                if (myFeatureStatus && myFeatureStatus != 'draft'){
-                    this.drawingLayerSource.removeFeature(myFeature);
-                } else {
-                    // Remove buffer
-                    this.removeBufferForSite(myFeature)
-                    this.drawingLayerSource.removeFeature(myFeature);
-                }
-                // Remove vacant_selected attribute from the feature
-                myFeature.unset('vacant_selected')
+                //let myFeatureStatus = myFeature.get('status')
+                //if (myFeatureStatus && myFeatureStatus != 'draft'){
+                //    this.drawingLayerSource.removeFeature(myFeature);
+                //} else {
+                //    // Remove buffer
+                //    this.removeBufferForSite(myFeature)
+                //    this.drawingLayerSource.removeFeature(myFeature);
+                //}
+                //// Remove vacant_selected attribute from the feature
+                //myFeature.unset('vacant_selected')
 
                 // Remove the row from the table
                 $(e.target).closest('tr').fadeOut('slow', function(){ })

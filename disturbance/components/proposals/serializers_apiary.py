@@ -720,6 +720,10 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
             'transferee_last_name',
         )
 
+    def validate(self, attrs):
+        self.instance.validate_apiary_sites(raise_exception=True)
+        return attrs
+
     def get_apiary_sites(self, proposal_apiary):
         ret = []
         for apiary_site in proposal_apiary.apiary_sites.all():
@@ -763,12 +767,6 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
         if obj.proposal.approval and obj.proposal.approval.proxy_applicant:
             name = obj.proposal.approval.proxy_applicant.last_name
         return name
-
-    #def get_target_approval_id(self, obj):
-    #    target_id = None
-    #    if obj.proposal.approval:
-    #        target_id = obj.proposal.approval.id
-    #    return target_id
 
     def get_target_approval_lodgement_number(self, obj):
         lodgement_number = None
@@ -835,14 +833,6 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
                 pass
 
         return ret_list
-
-    # def get_on_site_information_list(self, obj):
-    #     on_site_information_list = OnSiteInformation.objects.filter(
-    #         apiary_site__in=ApiarySite.objects.filter(proposal_apiary=obj),
-    #         datetime_deleted=None,
-    #     ).order_by('-period_from')
-    #     ret = OnSiteInformationSerializer(on_site_information_list, many=True).data
-    #     return ret
 
     def get_applicant_checklist_answers(self, obj):
         return ApiaryChecklistAnswerSerializer(

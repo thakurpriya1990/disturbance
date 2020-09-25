@@ -629,7 +629,7 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
         # 1.2. Exclude
         q_exclude_proposal |= Q(site_status__in=(SITE_STATUS_DRAFT,)) & Q(making_payment=False)  # Purely 'draft' site
         q_exclude_proposal |= Q(site_status__in=(SITE_STATUS_APPROVED,))  # 'approved' site should be included in the approval as a 'current'
-        q_exclude_proposal |= Q(apiary_site__in=ApiarySite.objects.filter(is_vacant=True))  # Vacant sites are already picked up above
+        q_exclude_proposal |= Q(apiary_site__in=ApiarySite.objects.filter(is_vacant=True))  # Vacant sites are already picked up above.  We don't want to pick up them again here.
 
         # 1.3. Exculde the apairy sites which are on the proposal apiary currently being accessed
         proposal_id = request.query_params.get('proposal_id', 0)
@@ -1868,6 +1868,18 @@ class ProposalViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['post'])
+    @basic_exception_handler
+    def remove_apiary_site(self, request, *args, **kwargs):
+        proposal_obj = self.get_object()
+        apiary_site_id = request.data.get('apiary_site_id')
+
+        apiary_site = ApiarySite.objects.get(id=apiary_site_id)
+        apiary_site_on_proposal = ApiarySiteOnProposal.objects.get(apiary_site=apiary_site, proposal_apiary=proposal_obj.proposal_apiary)
+        apiary_site_on_proposal.delete()
+
+        return Response({'removed': 'success'})
 
     @detail_route(methods=['post'])
     @renderer_classes((JSONRenderer,))
