@@ -3,13 +3,13 @@ from ledger.accounts.models import OrganisationAddress
 from ledger.accounts.models import EmailUser
 from disturbance.components.organisations.models import Organisation, OrganisationContact, UserDelegation
 from disturbance.components.main.models import ApplicationType
-from disturbance.components.proposals.models import Proposal, ProposalType#, ProposalOtherDetails, ProposalPark
-from disturbance.components.approvals.models import Approval, MigratedApiaryLicence
+from disturbance.components.proposals.models import Proposal, ProposalType, ApiarySite#, ProposalOtherDetails, ProposalPark
+from disturbance.components.approvals.models import Approval, MigratedApiaryLicence, ApiarySiteOnApproval
 #from commercialoperator.components.bookings.models import ApplicationFee, ParkBooking, Booking
 from django.core.exceptions import MultipleObjectsReturned
 from django.db import IntegrityError, transaction
 from ledger.address.models import Country
-
+from django.contrib.gis.geos import GEOSGeometry
 import csv
 import os
 import datetime
@@ -398,7 +398,7 @@ class ApiaryLicenceReader():
         return org, user
 
 
-    def _migrate_approval(self, data, applicant=None, proxy_applicant=None, submitter=None):
+    def _migrate_approval(self, data, submitter, applicant=None, proxy_applicant=None):
         from disturbance.components.approvals.models import Approval
         #applicant = None
         #proxy_applicant = None
@@ -437,6 +437,14 @@ class ApiaryLicenceReader():
         #    return None
 
         #application_type=ApplicationType.objects.get(name=data['application_type'])
+
+        # Retrieve existing licence for applicant/proxy_applicant
+        #approval = None
+        #if applicant:
+        #    approval = Approval.objects.filter(applicant=applicant, status=Approval.STATUS_CURRENT, apiary_approval=True).first()
+        #elif proxy_applicant:
+        #    approval = Approval.objects.filter(proxy_applicant=proxy_applicant, status=Approval.STATUS_CURRENT, apiary_approval=True).first()
+
         application_type=ApplicationType.objects.get(name=ApplicationType.APIARY)
         qs_proposal_type = ProposalType.objects.all().order_by('name', '-version').distinct('name')
         proposal_type = qs_proposal_type.get(name=application_type.name)
@@ -455,18 +463,18 @@ class ApiaryLicenceReader():
                                 submitter=submitter,
                                 applicant=applicant,
                                 schema=proposal_type.schema,
-                                migrated=True
                             )
-
-                approval = Approval.objects.create(
-                                issue_date=data['issue_date'],
-                                expiry_date=data['expiry_date'],
-                                start_date=data['start_date'],
+                approval = Approval.objects.update_or_create(
                                 applicant=applicant,
-                                #submitter=submitter,
-                                current_proposal=proposal,
-                                migrated=True,
-                                apiary_approval=True
+                                status=Approval.STATUS_CURRENT,
+                                apiary_approval=True,
+                                defaults = {
+                                    'issue_date':data['issue_date'],
+                                    'expiry_date':data['expiry_date'],
+                                    'start_date':data['start_date'],
+                                    'submitter':submitter,
+                                    'current_proposal':proposal,
+                                    }
                             )
             else:
                 proposal= Proposal.objects.create(
@@ -474,20 +482,19 @@ class ApiaryLicenceReader():
                                 submitter=submitter,
                                 applicant=applicant,
                                 schema=proposal_type.schema,
-                                migrated=True
                             )
-
-                approval = Approval.objects.create(
-                                issue_date=data['issue_date'],
-                                expiry_date=data['expiry_date'],
-                                start_date=data['start_date'],
-                                applicant=applicant,
-                                #submitter=submitter,
-                                current_proposal=proposal,
-                                migrated=True,
-                                apiary_approval=True
+                approval = Approval.objects.update_or_create(
+                                proxy_applicant=proxy_applicant,
+                                status=Approval.STATUS_CURRENT,
+                                apiary_approval=True,
+                                defaults = {
+                                    'issue_date':data['issue_date'],
+                                    'expiry_date':data['expiry_date'],
+                                    'start_date':data['start_date'],
+                                    'submitter':submitter,
+                                    'current_proposal':proposal,
+                                    }
                             )
-
             #proposal.lodgement_number = proposal.lodgement_number.replace('A', 'AM') # Application Migrated
             proposal.approval= approval
             proposal.processing_status='approved'
@@ -497,6 +504,14 @@ class ApiaryLicenceReader():
             proposal.save()
             approval.save()
             # create apiary sites and intermediate table entries
+            geometry = GEOSGeometry('POINT(' + str(data['latitude']) + ' ' + str(data['longitude']) + ')', srid=4326)
+            apiary_site = ApiarySite.objects.create(latest_approval_link=approval)
+            intermediary_site = ApiarySiteOnApproval.objects.create(
+                                            apiary_site=apiary_site,
+                                            approval=approval,
+                                            wkb_geometry=geometry
+                                            )
+
         except Exception, e:
             logger.error('{}'.format(e))
             import ipdb; ipdb.set_trace()
@@ -514,12 +529,12 @@ class ApiaryLicenceReader():
                 if data.get('licencee_type') == 'organisation':
                     #new, existing = self._create_organisation(data, count)
                     #org, submitter = self._create_organisation(data, count, debug=True)
-                    org, submitter = self._create_organisation(data, count)
-                    self._migrate_approval(data=data, applicant=org, proxy_applicant=None, submitter=submitter)
+                    submitter = self._create_organisation(data, count)
+                    self._migrate_approval(data=data, submitter=submitter, applicant=org, proxy_applicant=None)
                     print("Permit number {} migrated".format(data.get('permit_number')))
                 elif data.get('licencee_type') == 'individual':
                     user = self._create_individual(data, count)
-                    self._migrate_approval(data=data, applicant=None, proxy_applicant=user, submitter=user)
+                    self._migrate_approval(data=data, submitter=user, applicant=None, proxy_applicant=user)
                     print("Permit number {} migrated".format(data.get('permit_number')))
             count += 1
 
