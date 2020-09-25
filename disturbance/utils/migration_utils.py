@@ -4,7 +4,7 @@ from ledger.accounts.models import EmailUser
 from disturbance.components.organisations.models import Organisation, OrganisationContact, UserDelegation
 from disturbance.components.main.models import ApplicationType
 from disturbance.components.main.utils import get_category
-from disturbance.components.proposals.models import Proposal, ProposalType, ApiarySite#, ProposalOtherDetails, ProposalPark
+from disturbance.components.proposals.models import Proposal, ProposalType, ApiarySite, ApiarySiteOnProposal#, ProposalOtherDetails, ProposalPark
 from disturbance.components.approvals.models import Approval, MigratedApiaryLicence, ApiarySiteOnApproval
 #from commercialoperator.components.bookings.models import ApplicationFee, ParkBooking, Booking
 from django.core.exceptions import MultipleObjectsReturned
@@ -496,7 +496,7 @@ class ApiaryLicenceReader():
                                     'current_proposal':proposal,
                                     }
                             )
-            #proposal.lodgement_number = proposal.lodgement_number.replace('A', 'AM') # Application Migrated
+            proposal.lodgement_number = proposal.lodgement_number.replace('P', 'PM') # Application Migrated
             proposal.approval= approval
             proposal.processing_status='approved'
             proposal.customer_status='approved'
@@ -508,13 +508,22 @@ class ApiaryLicenceReader():
             geometry = GEOSGeometry('POINT(' + str(data['latitude']) + ' ' + str(data['longitude']) + ')', srid=4326)
             apiary_site = ApiarySite.objects.create()
             site_category = get_category(geometry)
-            intermediary_site = ApiarySiteOnApproval.objects.create(
+            intermediary_approval_site = ApiarySiteOnApproval.objects.create(
                                             apiary_site=apiary_site,
                                             approval=approval,
                                             wkb_geometry=geometry,
                                             site_category = site_category
                                             )
-            apiary_site.latest_approval_link=intermediary_site
+            intermediary_proposal_site = ApiarySiteOnProposal.objects.create(
+                                            apiary_site=apiary_site,
+                                            #approval=approval,
+                                            proposal=proposal,
+                                            wkb_geometry=geometry,
+                                            site_category = site_category
+                                            )
+
+            apiary_site.latest_approval_link=intermediary_approval_site
+            apiary_site.latest_proposal_link=intermediary_proposal_site
             apiary_site.save()
 
         except Exception, e:
@@ -541,6 +550,9 @@ class ApiaryLicenceReader():
                     user = self._create_individual(data, count)
                     self._migrate_approval(data=data, submitter=user, applicant=None, proxy_applicant=user)
                     print("Permit number {} migrated".format(data.get('permit_number')))
+                else:
+                    # declined and not to be reissued
+                    status = data['status']
             count += 1
 
     #def create_licences(self):
