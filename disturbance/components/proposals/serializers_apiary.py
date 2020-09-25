@@ -177,9 +177,9 @@ class ApplicantAddressSerializer(serializers.ModelSerializer):
 
 
 class ApiarySiteOptimisedSerializer(serializers.ModelSerializer):
-    proposal_apiary_id = serializers.IntegerField(write_only=True,)
-    site_category_id = serializers.IntegerField(write_only=True,)
-    coordinates = serializers.SerializerMethodField()
+    # proposal_apiary_id = serializers.IntegerField(write_only=True,)
+    # site_category_id = serializers.IntegerField(write_only=True,)
+    # coordinates = serializers.SerializerMethodField()
 
     def get_coordinates(self, apiary_site):
         try:
@@ -191,12 +191,12 @@ class ApiarySiteOptimisedSerializer(serializers.ModelSerializer):
         model = ApiarySite
         fields = (
             'id',
-            'available',
+            # 'available',
             'site_guid',
-            'proposal_apiary_id',
-            'site_category_id',
-            'coordinates',
-            'status'
+            # 'proposal_apiary_id',
+            # 'site_category_id',
+            # 'coordinates',
+            # 'status'
         )
 
 

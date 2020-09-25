@@ -45,11 +45,9 @@ from disturbance.components.approvals.serializers import (
 from disturbance.components.main.decorators import basic_exception_handler
 from disturbance.components.proposals.models import ApiarySite, OnSiteInformation
 from disturbance.components.proposals.serializers_apiary import (
-        ApiarySiteSerializer, 
         OnSiteInformationSerializer,
         ApiarySiteOptimisedSerializer, 
         ProposalApiaryTemporaryUseSerializer, 
-        ApiarySiteGeojsonSerializer,
         ApiaryProposalRequirementSerializer,
         )
 from disturbance.helpers import is_customer, is_internal
@@ -57,7 +55,6 @@ from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 from rest_framework_datatables.filters import DatatablesFilterBackend
 from rest_framework_datatables.renderers import DatatablesRenderer
 from disturbance.components.main.utils import get_template_group
-#from disturbance.components.proposals.api import ProposalFilterBackend, ProposalRenderer
 
 
 class ApprovalFilterBackend(DatatablesFilterBackend):

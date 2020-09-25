@@ -3526,7 +3526,8 @@ class ApiarySiteFeeRemainder(models.Model):
 
 
 class OnSiteInformation(models.Model):
-    apiary_site = models.ForeignKey(ApiarySite, null=True, blank=True)
+    # apiary_site = models.ForeignKey(ApiarySite, null=True, blank=True)
+    apiary_site_on_approval = models.ForeignKey('ApiarySiteOnApproval', blank=True, null=True)
     period_from = models.DateField(null=True, blank=True)
     period_to = models.DateField(null=True, blank=True)
     comments = models.TextField(blank=True)
