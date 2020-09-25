@@ -30,7 +30,7 @@ from datetime import datetime, timedelta, date
 from django.urls import reverse
 from django.shortcuts import render, redirect, get_object_or_404
 from disturbance.components.approvals.models import (
-    Approval, ApprovalUserAction
+    Approval, ApprovalUserAction, ApiarySiteOnApproval
 )
 from disturbance.components.approvals.serializers import (
     ApprovalSerializer,
@@ -387,18 +387,19 @@ class ApprovalViewSet(viewsets.ModelViewSet):
     def apiary_site(self, request, *args, **kwargs):
         instance = self.get_object()
         optimised = request.query_params.get('optimised', False)
-        geojson = request.query_params.get('geojson', False)
         apiary_site_qs = instance.apiary_sites.all()
+
         if optimised:
+            # TODO: fix/replace following serializers
             # No on-site-information attached
             serializers = ApiarySiteOptimisedSerializer(apiary_site_qs, many=True)
+            return Response(serializers.data)
         else:
-            if geojson:
-                serializers = ApiarySiteGeojsonSerializer(apiary_site_qs, many=True)
-            else:
-                # With on-site-information
-                serializers = ApiarySiteSerializer(apiary_site_qs, many=True)
-        return Response(serializers.data)
+            from disturbance.components.approvals.serializers_apiary import ApiarySiteOnApprovalGeometrySerializer
+            serializer = ApiarySiteOnApprovalGeometrySerializer(instance.get_relations(), many=True)
+            return Response(serializer.data['features'])
+            # With on-site-information
+            # serializers = ApiarySiteSerializer(apiary_site_qs, many=True)
 
     @detail_route(methods=['POST',])
     @basic_exception_handler
