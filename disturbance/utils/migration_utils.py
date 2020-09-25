@@ -496,6 +496,7 @@ class ApiaryLicenceReader():
             approval.migrated=True
             proposal.save()
             approval.save()
+            # create apiary sites and intermediate table entries
         except Exception, e:
             logger.error('{}'.format(e))
             import ipdb; ipdb.set_trace()

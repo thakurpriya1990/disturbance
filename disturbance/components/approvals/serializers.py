@@ -447,6 +447,7 @@ class DTApprovalSerializer(serializers.ModelSerializer):
         return None
 
     def get_can_approver_reissue(self,obj):
+        #import ipdb;ipdb.set_trace()
         # Check if currently logged in user has access to process the proposal
         request = self.context['request']
         user = request.user
