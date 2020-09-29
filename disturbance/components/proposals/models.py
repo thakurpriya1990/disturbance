@@ -2270,6 +2270,7 @@ def clone_proposal_with_status_reset(proposal):
             except:
                 raise
 
+
 def clone_apiary_proposal_with_status_reset(original_proposal):
     #import ipdb; ipdb.set_trace()
     with transaction.atomic():
@@ -2338,8 +2339,10 @@ def clone_apiary_proposal_with_status_reset(original_proposal):
 
             # update apiary_sites with new proposal
             for site in approval.apiary_sites.all():
-                site.proposal_apiary = proposal.proposal_apiary
-                site.save()
+                # Create new relations between the ApiarySite and the ProposalApiary
+                ApiarySiteOnProposal.objects.create(apiary_site=site, proposal_apiary=proposal.proposal_apiary)
+                # site.proposal_apiary = proposal.proposal_apiary
+                # site.save()
 
             # Checklist questions
             for question in ApiaryChecklistQuestion.objects.filter(
