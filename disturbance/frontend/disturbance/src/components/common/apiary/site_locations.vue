@@ -683,10 +683,20 @@
                 this.bufferLayerSource.removeFeature(buffer);
             },
             apiaryStyleFunction: function(feature) {
-                var status = feature.get("status");
+                console.log('in apiaryStyleFunction')
+                console.log(feature)
+
+                let status = feature.get("status");
+                let is_vacant = feature.get('is_vacant')
+                if (is_vacant){
+                    status = 'vacant'
+                }
                 return getApiaryFeatureStyle(status);
             },
             apiaryStyleFunctionExisting: function(feature){
+                console.log('in apiaryStyleFunctionExisting')
+                console.log(feature)
+
                 let vacant_selected = feature.get('vacant_selected')
                 if (vacant_selected){
                     return this.style_for_vacant_selected
