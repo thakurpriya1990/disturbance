@@ -686,11 +686,7 @@
                 console.log('in apiaryStyleFunction')
                 console.log(feature)
 
-                let status = feature.get("status");
-                let is_vacant = feature.get('is_vacant')
-                if (is_vacant){
-                    status = 'vacant'
-                }
+                let status = this.get_status_from_feature(feature)
                 return getApiaryFeatureStyle(status);
             },
             apiaryStyleFunctionExisting: function(feature){
@@ -1102,10 +1098,15 @@
                         }
                     });
                     modifyTool.on("modifystart", function(attributes){
+                        console.log('in modifystart')
+
                         attributes.features.forEach(function(feature){
+
                         })
                     });
                     modifyTool.on("modifyend", function(attributes){
+                        console.log('in modifyend')
+
                         // this will list all features in layer, not so useful without cross referencing
                         attributes.features.forEach(function(feature){
                             let id = feature.getId();
@@ -1158,7 +1159,8 @@
                     } else {
                         // Mouse hover out
                         if (vm.apiary_site_being_selected){
-                            let style_applied = getApiaryFeatureStyle(vm.apiary_site_being_selected.get('status'), false)
+                            let status = vm.get_status_from_feature(vm.apiary_site_being_selected)
+                            let style_applied = getApiaryFeatureStyle(status, false)
 
                             let vacant_selected = vm.apiary_site_being_selected.get('vacant_selected')
                             if (vacant_selected){
@@ -1173,6 +1175,14 @@
                     }
                 });
             },  // End: initMap()
+            get_status_from_feature: function(feature){
+                let status = feature.get("status");
+                let is_vacant = feature.get('is_vacant')
+                if (is_vacant){
+                    status = 'vacant'
+                }
+                return status
+            },
             excludeFeature: function(excludedFeature) {
                 return function(f) {
                     return excludedFeature.getId() != f.getId();

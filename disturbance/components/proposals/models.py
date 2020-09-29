@@ -3420,13 +3420,16 @@ class ApiarySite(models.Model):
     latest_proposal_link = models.ForeignKey('disturbance.ApiarySiteOnProposal', blank=True, null=True)
     latest_approval_link = models.ForeignKey('disturbance.ApiarySiteOnApproval', blank=True, null=True)
     # Store the proposal link intermediate object this apiary site transitioned from when got the 'vacant' status
-    proposal_link_for_vacant = models.ForeignKey('disturbance.ApiarySiteOnProposal', blank=True, null=True, related_name='vacant_apiary_site')
+    proposal_link_for_vacant = models.ForeignKey('disturbance.ApiarySiteOnProposal', blank=True, null=True, related_name='vacant_apiary_site', on_delete=models.SET_NULL)
     # Store the approval link intermediate object this apiary site transitioned from when got the 'vacant' status
-    approval_link_for_vacant = models.ForeignKey('disturbance.ApiarySiteOnApproval', blank=True, null=True, related_name='vacant_apiary_site')
+    approval_link_for_vacant = models.ForeignKey('disturbance.ApiarySiteOnApproval', blank=True, null=True, related_name='vacant_apiary_site', on_delete=models.SET_NULL)
     is_vacant = models.BooleanField(default=False)
 
     def __str__(self):
         return '{}'.format(self.id,)
+    
+    def delete(self, using=None, keep_parents=False):
+        super(ApiarySite, self).delete(using, keep_parents)
 
     def make_vacant(self, vacant, relation):
         from disturbance.components.approvals.models import ApiarySiteOnApproval
