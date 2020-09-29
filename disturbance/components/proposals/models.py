@@ -2338,9 +2338,10 @@ def clone_apiary_proposal_with_status_reset(original_proposal):
                     r.save()
 
             # update apiary_sites with new proposal
-            for site in approval.apiary_sites.all():
+            approval.add_apiary_sites_to_proposal_apiary_for_renewal(proposal_apiary)
+            # for site in approval.apiary_sites.all():
                 # Create new relations between the ApiarySite and the ProposalApiary
-                ApiarySiteOnProposal.objects.create(apiary_site=site, proposal_apiary=proposal.proposal_apiary)
+                # ApiarySiteOnProposal.objects.create(apiary_site=site, proposal_apiary=proposal.proposal_apiary)
                 # site.proposal_apiary = proposal.proposal_apiary
                 # site.save()
 
@@ -2473,6 +2474,7 @@ class ApiarySiteOnProposal(RevisionedMixin):
     apiary_site = models.ForeignKey('ApiarySite',)
     proposal_apiary = models.ForeignKey('ProposalApiary',)
     apiary_site_status_when_submitted = models.CharField(max_length=40, blank=True)
+    for_renewal = models.BooleanField(default=False)
     # site_status = models.CharField(choices=SITE_STATUS_CHOICES, default=SITE_STATUS_CHOICES[0][0], max_length=20)
     site_status = models.CharField(default=SITE_STATUS_DRAFT, max_length=20)
     making_payment = models.BooleanField(default=False)
