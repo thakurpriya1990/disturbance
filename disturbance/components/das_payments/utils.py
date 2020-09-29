@@ -198,7 +198,7 @@ def _sum_apiary_sites_per_category2(proposal_apiary):
     }
 
     for relation in proposal_apiary.get_relations():
-        if relation.site_status in ApiarySiteOnProposal.RENEWABLE_STATUS:
+        if relation.for_renewal:
             fee_type = ApiarySiteFeeType.FEE_TYPE_RENEWAL
         else:
             fee_type = ApiarySiteFeeType.FEE_TYPE_APPLICATION
