@@ -397,6 +397,7 @@ class DTApprovalSerializer(serializers.ModelSerializer):
     region = serializers.CharField(source='current_proposal.region')
     activity = serializers.SerializerMethodField(read_only=True)
     title = serializers.CharField(source='current_proposal.title')
+    renewal_document = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Approval
