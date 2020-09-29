@@ -381,8 +381,8 @@ class ApiarySiteOnProposalProcessedGeometrySerializer(GeoFeatureModelSerializer)
         return obj.apiary_site.is_vacant
 
     def get_status(self, apiary_site_on_proposal):
-        if apiary_site_on_proposal.apiary_site.is_vacant:
-            return SITE_STATUS_VACANT
+        # if apiary_site_on_proposal.apiary_site.is_vacant:
+        #     return SITE_STATUS_VACANT
         return apiary_site_on_proposal.site_status
 
     def get_site_category(self, apiary_site_on_proposal):
