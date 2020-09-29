@@ -294,6 +294,7 @@ class ApiarySiteOnProposalDraftGeometrySerializer(GeoFeatureModelSerializer):
             'site_category',
             'status',
             'workflow_selected_status',
+            'for_renewal',
             # 'stable_coords',
             'previous_site_holder_or_applicant',
         )
@@ -373,6 +374,7 @@ class ApiarySiteOnProposalProcessedGeometrySerializer(GeoFeatureModelSerializer)
             'site_category',
             'status',
             'workflow_selected_status',
+            'for_renewal',
             # 'stable_coords',
             'previous_site_holder_or_applicant',
         )

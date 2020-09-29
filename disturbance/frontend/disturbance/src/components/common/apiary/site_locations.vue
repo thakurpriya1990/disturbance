@@ -572,16 +572,10 @@
                 this.constructSiteLocationsTable();
             },
             is_feature_new_or_existing: function(feature){
-                console.log('in is_feature_new_or_existing')
-                console.log(feature)
-
-                let status = feature.get('status')
-                if (!status || status === 'draft'){
-                    // status is null when new apiary site is added but not saved yet
-                    return 'new'
-                } else {
-                    // status should have the status other than 'draft' status
+                if (feature.get('for_renewal')){
                     return 'existing'
+                } else {
+                    return 'new'
                 }
             },
             showPopup: function(feature){

@@ -148,6 +148,7 @@ class Approval(RevisionedMixin):
                 proposal_apiary=proposal_apiary,
                 wkb_geometry_draft=relation.wkb_geometry,
                 site_category_draft=relation.site_category,
+                for_renewal=True,
             )
 
     def get_relation(self, apiary_site):
