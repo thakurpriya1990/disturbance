@@ -383,18 +383,18 @@ class ApprovalViewSet(viewsets.ModelViewSet):
     @basic_exception_handler
     def apiary_site(self, request, *args, **kwargs):
         instance = self.get_object()
-        optimised = request.query_params.get('optimised', False)
-        apiary_site_qs = instance.apiary_sites.all()
+        # optimised = request.query_params.get('optimised', False)
+        # apiary_site_qs = instance.apiary_sites.all()
 
-        if optimised:
-            # TODO: fix/replace following serializers
+        from disturbance.components.approvals.serializers_apiary import ApiarySiteOnApprovalGeometrySerializer
+        serializer = ApiarySiteOnApprovalGeometrySerializer(instance.get_relations(), many=True)
+        return Response(serializer.data['features'])
+
+        # if optimised:
             # No on-site-information attached
-            serializers = ApiarySiteOptimisedSerializer(apiary_site_qs, many=True)
-            return Response(serializers.data)
-        else:
-            from disturbance.components.approvals.serializers_apiary import ApiarySiteOnApprovalGeometrySerializer
-            serializer = ApiarySiteOnApprovalGeometrySerializer(instance.get_relations(), many=True)
-            return Response(serializer.data['features'])
+            # serializers = ApiarySiteOptimisedSerializer(apiary_site_qs, many=True)
+            # return Response(serializers.data)
+        # else:
             # With on-site-information
             # serializers = ApiarySiteSerializer(apiary_site_qs, many=True)
 

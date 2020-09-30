@@ -19,7 +19,6 @@ from disturbance.components.proposals.serializers_apiary import (
     ApplicantAddressSerializer,
     ApiarySiteSerializer,
     ApiaryProposalRequirementSerializer,
-    ApiarySiteLicenceDocSerializer, ApiarySiteOnProposalLicenceDocSerializer,
 )
 
 

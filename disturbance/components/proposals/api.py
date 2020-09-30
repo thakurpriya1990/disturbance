@@ -464,14 +464,13 @@ class OnSiteInformationViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         qs = OnSiteInformation.objects.all()
+        qs = qs.filter(datetime_deleted=None)
 
-        # Only internal user is supposed to access here
-        if is_internal(self.request):  # user.is_authenticated():
-            qs = qs.filter(datetime_deleted=None)
-        else:
-            logger.warn("User is not internal user: {} <{}>".format(user.get_full_name(), user.email))
-            qs = OnSiteInformation.objects.none()
-
+        #if is_internal(self.request):  # user.is_authenticated():
+        #    qs = OnSiteInformation.objects.none()
+        #else:
+        #    logger.warn("User is not internal user: {} <{}>".format(user.get_full_name(), user.email))
+        #    qs = OnSiteInformation.objects.none()
         return qs
 
     @staticmethod

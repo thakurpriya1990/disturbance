@@ -31,11 +31,13 @@
                     <div class="form-group"><div class="row">
                         <label class="col-sm-3">Site</label>
                         <div class="col-sm-3">
-                            <select class="form-control" v-model="on_site_information.apiary_site">
+                            <!-- select class="form-control" v-model="on_site_information.apiary_site" -->
+                            <select class="form-control" v-model="on_site_information.apiary_site_id">
                                 <option value=""></option>
-                                <option v-for="site in apiary_sites_options" :value="site" :key="site.id">
+                                <!-- option v-for="site in apiary_sites_options" :value="site" :key="site.id" -->
+                                <option v-for="site in apiary_sites_options" :value="site.id" :key="site.id">
                                     <span>
-                                        {{ site }}
+                                        Site: {{ site.id }}
                                     </span>
                                 </option>
                             </select>
@@ -99,8 +101,6 @@
         },
         watch:{
             isModalOpen: function() {
-                console.log('in isModalOpen');
-                console.log(this.isModalOpen);
             }
         },
         computed: {
@@ -114,26 +114,23 @@
             });
         },
         created: function() {
-            console.log('in created')
-            console.log('approval_id: ' + this.approval_id)
             this.loadApiarySites()
         },
         methods: {
             openMe: function () {
-                console.log('in openMe')
                 this.isModalOpen = true
             },
             loadApiarySites: async function(){
-                console.log('loadApiarySites');
+                console.log('in loadApiarySites')
 
-                await this.$http.get('/api/approvals/' + this.approval_id + '/apiary_site/?optimised=true').then(
+                await this.$http.get('/api/approvals/' + this.approval_id + '/apiary_site/').then(
                     (accept)=>{
-                        console.log('accept')
+                        console.log('accept.body')
                         console.log(accept.body)
+
                         this.apiary_sites_options = accept.body
                     },
                     (reject)=>{
-                        console.log('reject')
                     },
                 )
             },
@@ -222,8 +219,6 @@
                 }
             },
             processError: async function(err) {
-                console.log('in processError');
-                console.log(err);
                 let errorText = '';
                 if (err.body.non_field_errors) {
                     // When non field errors raised
@@ -261,13 +256,7 @@
                 let payload = {}
                 Object.assign(payload, this.on_site_information);
 
-                try {
-                    payload.apiary_site_id = payload.apiary_site.id;
-                    payload.approval_id = this.approval_id
-                } catch(err) {
-                    payload.apiary_site_id = 0
-                    payload.approval_id = 0
-                }
+                payload.approval_id = this.approval_id
 
                 let res = '';
                 if (this.on_site_information.id){

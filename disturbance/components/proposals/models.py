@@ -3392,28 +3392,6 @@ class ApiaryAnnualRentalFeeRunDate(RevisionedMixin):
 
 
 class ApiarySite(models.Model):
-    STATUS_DRAFT = 'draft'
-    STATUS_PENDING_PAYMENT = 'pending_payment'
-    STATUS_PENDING = 'pending'
-    STATUS_CURRENT = 'current'
-    STATUS_SUSPENDED = 'suspended'
-    STATUS_NOT_TO_BE_REISSUED = 'not_to_be_reissued'
-    STATUS_DENIED = 'denied'
-    STATUS_VACANT = 'vacant'
-    STATUS_CHOICES = (
-        (STATUS_DRAFT, 'Draft'),
-        (STATUS_PENDING_PAYMENT, 'Pending payment'),
-        (STATUS_PENDING, 'Pending'),
-        (STATUS_CURRENT, 'Current'),
-        (STATUS_SUSPENDED, 'Suspended'),
-        (STATUS_NOT_TO_BE_REISSUED, 'Not to be Reissued'),
-        (STATUS_DENIED, 'Denied'),
-        (STATUS_VACANT, 'Vacant'),
-    )
-    # NON_RESTRICTIVE_STATUSES = (STATUS_DRAFT, )
-    # TRANSITABLE_STATUSES = (STATUS_NOT_TO_BE_REISSUED, STATUS_DENIED,)
-    # RENEWABLE_STATUS = (STATUS_CURRENT, STATUS_SUSPENDED,)
-
     GEOMETRY_CONDITION_APPROVED = 'approved'
     GEOMETRY_CONDITION_APPLIED = 'applied'
     GEOMETRY_CONDITION_PENDING = 'pending'

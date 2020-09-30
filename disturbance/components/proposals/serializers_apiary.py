@@ -179,7 +179,7 @@ class ApplicantAddressSerializer(serializers.ModelSerializer):
 class ApiarySiteOptimisedSerializer(serializers.ModelSerializer):
     # proposal_apiary_id = serializers.IntegerField(write_only=True,)
     # site_category_id = serializers.IntegerField(write_only=True,)
-    # coordinates = serializers.SerializerMethodField()
+    coordinates = serializers.SerializerMethodField()
 
     def get_coordinates(self, apiary_site):
         try:
@@ -201,7 +201,7 @@ class ApiarySiteOptimisedSerializer(serializers.ModelSerializer):
 
 
 class OnSiteInformationSerializer(serializers.ModelSerializer):
-    apiary_site_id = serializers.IntegerField(required=False, source='apiary_site_on_approval.apiary_site.id')
+    apiary_site_id = serializers.IntegerField(read_only=True, source='apiary_site_on_approval.apiary_site.id')
     # apiary_site = ApiarySiteOptimisedSerializer(read_only=True)
     apiary_site_on_approval_id = serializers.IntegerField(required=False)
     datetime_deleted = serializers.DateTimeField(write_only=True, required=False)
@@ -316,42 +316,6 @@ class ApiarySiteOnProposalDraftGeometrySerializer(GeoFeatureModelSerializer):
             return ''
 
 
-# class ApiarySiteVacantDeniedSerializer(GeoFeatureModelSerializer):
-#     wkb_geometry = serializers.SerializerMethodField()
-#     status = serializers.SerializerMethodField()
-#     workflow_selected_status = serializers.SerializerMethodField()
-#     previous_site_holder_or_applicant = serializers.SerializerMethodField()
-#
-#     class Meta:
-#         model = ApiarySite
-#         geo_field = 'wkb_geometry'
-#         fields = (
-#             'id',
-#             'site_guid',
-#             'wkb_geometry',
-#             'status',
-#             'workflow_selected_status',
-#             'previous_site_holder_or_applicant',
-#         )
-#
-#     def get_wkb_geometry(self, apiary_site):
-#         if apiary_site.latest_approval_link:
-            # This apiary site became 'vacant' from the 'not_to_be_reissued' or the 'current' status
-            # return apiary_site.latest_approval_link.wkb_geometry
-        # else:
-            # This apiary site became 'vacant' form the 'denied' status
-            # return apiary_site.latest_proposal_link.wkb_geometry_processed
-    #
-    # def get_status(self, apiary_site):
-    #     return 'vacant'
-    #
-    # def get_workflow_selected_status(self, apiary_site):
-    #     return False
-    #
-    # def get_previous_site_holder_or_applicant(self, apiary_site):
-    #     return ''
-#
-
 class ApiarySiteOnProposalProcessedGeometrySerializer(GeoFeatureModelSerializer):
     """
     For reading as 'processed'
@@ -435,18 +399,6 @@ class ApiarySiteOnProposalProcessedGeometrySaveSerializer(GeoFeatureModelSeriali
             'wkb_geometry_processed',
             'site_category_processed',
         )
-
-
-# class ApiarySiteSavePointPendingSerializer(GeoFeatureModelSerializer):
-#
-#     def validate(self, attrs):
-#         perform_validation(self, attrs['wkb_geometry_pending'])
-#         return attrs
-#
-#     class Meta:
-#         model = ApiarySite
-#         geo_field = 'wkb_geometry_pending'
-#         fields = ('wkb_geometry_pending',)
 
 
 class ApiarySiteSerializer(serializers.ModelSerializer):
@@ -547,106 +499,6 @@ class ApiarySiteExportSerializer(GeoFeatureModelSerializer):
             'tenure',
             'name',
         )
-
-
-class ApiarySiteLicenceDocSerializer(serializers.ModelSerializer):
-    site_category = serializers.CharField(source='site_category.name')
-    coords = serializers.SerializerMethodField()
-    tenure = serializers.SerializerMethodField()
-    region_district = serializers.SerializerMethodField()
-
-    class Meta:
-        model = ApiarySite
-
-        fields = (
-            'id',
-            'coords',
-            'site_category',
-            'tenure',
-            'region_district',
-        )
-
-    def get_tenure(self, apiary_site):
-        try:
-            res = apiary_site.get_tenure()
-            return res
-        except:
-            return ''
-
-    def get_region_district(self, apiary_site):
-        try:
-            res = apiary_site.get_region_district()
-            return res
-        except:
-            return ''
-
-    def get_coords(self, apiary_site):
-        try:
-            geometry_condition = self.context.get('geometry_condition', ApiarySite.GEOMETRY_CONDITION_APPROVED)
-            if geometry_condition == ApiarySite.GEOMETRY_CONDITION_APPLIED:
-                return {'lng': apiary_site.wkb_geometry_applied.x, 'lat': apiary_site.wkb_geometry_applied.y}
-            elif geometry_condition == ApiarySite.GEOMETRY_CONDITION_PENDING:
-                return {'lng': apiary_site.wkb_geometry_pending.x, 'lat': apiary_site.wkb_geometry_pending.y}
-            else:
-                return {'lng': apiary_site.wkb_geometry.x, 'lat': apiary_site.wkb_geometry.y}
-        except:
-            return {'lng': '', 'lat': ''}
-
-
-class ApiarySitePendingGeojsonSerializer(GeoFeatureModelSerializer):
-    site_category = serializers.CharField(source='site_category.name')
-    stable_coords = serializers.SerializerMethodField()
-    # wkb_geometry_pending = serializers.SerializerMethodField()
-
-    class Meta:
-        model = ApiarySite
-        geo_field = 'wkb_geometry_pending'
-
-        fields = (
-            'id',
-            'site_guid',
-            'available',
-            'wkb_geometry_pending',
-            'site_category',
-            'status',
-            'workflow_selected_status',
-            'stable_coords',
-        )
-
-    def get_stable_coords(self, apiary_site):
-        if apiary_site.wkb_geometry_pending and apiary_site.wkb_geometry_pending.tuple:
-            return [apiary_site.wkb_geometry_pending.tuple[0], apiary_site.wkb_geometry_pending.tuple[1]]
-        else:
-            return []
-
-    # def get_wkb_geometry_pending(self, apiary_site):
-    #     location_obj = apiary_site.get_location()
-
-
-class ApiarySiteGeojsonSerializer(GeoFeatureModelSerializer):
-    site_category = serializers.CharField(source='site_category.name')
-    stable_coords = serializers.SerializerMethodField()
-
-    class Meta:
-        model = ApiarySite
-        geo_field = 'wkb_geometry'
-
-        fields = (
-            'id',
-            'site_guid',
-            'available',
-            'wkb_geometry',
-            'site_category',
-            'status',
-            'workflow_selected_status',
-            'stable_coords',
-        )
-
-    def get_stable_coords(self, obj):
-        if obj.wkb_geometry and obj.wkb_geometry.tuple:
-            return [obj.wkb_geometry.tuple[0], obj.wkb_geometry.tuple[1]]
-        else:
-            return []
 
 
 class SiteTransferApiarySiteSerializer(serializers.ModelSerializer):
