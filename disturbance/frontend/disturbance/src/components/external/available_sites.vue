@@ -57,11 +57,9 @@
         },
         methods: {
             contactLicenceHolderClicked: function(apiary_site_id){
-                console.log(apiary_site_id)
                 this.openOnSiteInformationModal(apiary_site_id)
             },
             contactLicenceHolder: function(obj){
-                console.log('contactLicenceHolder')
                 this.$http.post('/api/apiary_site/' + obj.apiary_site_id + '/contact_licence_holder/', obj).then(
                     res => {
                         this.$refs.contact_licence_holder_modal.close();
@@ -86,13 +84,11 @@
                 }
             },
             apiarySitesUpdated: function(apiary_sites){
-                console.log(apiary_sites)
             },
             loadSites: async function() {
                 let vm = this
 
                 Vue.http.get('/api/apiary_site/available_sites/').then(re => {
-                    console.log(re.body)
 
                     vm.apiary_sites = re.body
                     this.component_site_selection_key = uuid()
@@ -100,14 +96,10 @@
                     ////let temp_use = re.body.apiary_temporary_use
                     //vm.apiary_temporary_use = re.body.apiary_temporary_use
                     //if (vm.apiary_temporary_use.from_date){
-                    //    console.log(vm.apiary_temporary_use.from_date);
                     //    vm.apiary_temporary_use.from_date = moment(vm.apiary_temporary_use.from_date, 'YYYY-MM-DD');
-                    //    console.log(vm.apiary_temporary_use.from_date);
                     //}
                     //if (vm.apiary_temporary_use.to_date){
-                    //    console.log(vm.apiary_temporary_use.to_date);
                     //    vm.apiary_temporary_use.to_date = moment(vm.apiary_temporary_use.to_date, 'YYYY-MM-DD');
-                    //    console.log(vm.apiary_temporary_use.to_date);
                     //}
 
                     //// Update PeriodAndSites component

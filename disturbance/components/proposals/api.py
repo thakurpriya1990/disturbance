@@ -690,7 +690,7 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
 
         qs_on_approval = ApiarySiteOnApproval.objects.filter(q_include).distinct('apiary_site')
         serializer = ApiarySiteOnApprovalGeometrySerializer(qs_on_approval, many=True)
-        return Response(serializer.data)
+        return Response(serializer.data['features'])
 
     @list_route(methods=['GET',])
     @basic_exception_handler
@@ -735,16 +735,14 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
                 else:
                     # For now, this function is only used to change the status to the 'vacant'
                     return Response({})
-            elif new_availability:
+            else:
                 apiary_site_on_approval = apiary_site.latest_approval_link
                 if apiary_site_on_approval.site_status == SITE_STATUS_CURRENT:  # Make sure if the apiary site is 'current' status
                     apiary_site_on_approval.available = new_availability
                     apiary_site_on_approval.save()
                 serializer = ApiarySiteOnApprovalGeometrySerializer(apiary_site_on_approval)
+                print(serializer.data['properties']['available'])
                 return Response(serializer.data)
-            else:
-                # No parameters passed, do nothing
-                return Response({})
 
             # instance = self.get_object()
             #
