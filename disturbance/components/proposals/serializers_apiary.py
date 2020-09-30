@@ -250,26 +250,26 @@ class OnSiteInformationSerializer(serializers.ModelSerializer):
         return data
 
 
-def perform_validation(serializer, my_geometry):
-    validate_distance = serializer.context.get('validate_distance', True)
-
-    if validate_distance:
-        non_field_errors = []
-        qs_sites_within = ApiarySite.objects.filter(
-            wkb_geometry__distance_lte=(my_geometry, Distance(m=RESTRICTED_RADIUS))). \
-            exclude(status__in=ApiarySite.NON_RESTRICTIVE_STATUSES, pending_payment=False).\
-            exclude(id=serializer.instance.id)
-        if qs_sites_within:
-            # There is at least one existing apiary site which is too close to the site being created
-            non_field_errors.append(
-                'There is an existing apiary site which is too close to the apiary site you are adding at the coordinates: {}'.format(
-                    my_geometry.coords))
-
-        # Raise errors
-        if non_field_errors:
-            raise serializers.ValidationError(non_field_errors)
-
-    # return attrs
+#def perform_validation(serializer, my_geometry):
+#    validate_distance = serializer.context.get('validate_distance', True)
+#
+#    if validate_distance:
+#        non_field_errors = []
+#        qs_sites_within = ApiarySite.objects.filter(
+#            wkb_geometry__distance_lte=(my_geometry, Distance(m=RESTRICTED_RADIUS))). \
+#            exclude(status__in=ApiarySite.NON_RESTRICTIVE_STATUSES, pending_payment=False).\
+#            exclude(id=serializer.instance.id)
+#        if qs_sites_within:
+#            # There is at least one existing apiary site which is too close to the site being created
+#            non_field_errors.append(
+#                'There is an existing apiary site which is too close to the apiary site you are adding at the coordinates: {}'.format(
+#                    my_geometry.coords))
+#
+#        # Raise errors
+#        if non_field_errors:
+#            raise serializers.ValidationError(non_field_errors)
+#
+#    # return attrs
 
 
 class ApiarySiteOnProposalDraftGeometrySerializer(GeoFeatureModelSerializer):
@@ -437,16 +437,16 @@ class ApiarySiteOnProposalProcessedGeometrySaveSerializer(GeoFeatureModelSeriali
         )
 
 
-class ApiarySiteSavePointPendingSerializer(GeoFeatureModelSerializer):
-
-    def validate(self, attrs):
-        perform_validation(self, attrs['wkb_geometry_pending'])
-        return attrs
-
-    class Meta:
-        model = ApiarySite
-        geo_field = 'wkb_geometry_pending'
-        fields = ('wkb_geometry_pending',)
+# class ApiarySiteSavePointPendingSerializer(GeoFeatureModelSerializer):
+#
+#     def validate(self, attrs):
+#         perform_validation(self, attrs['wkb_geometry_pending'])
+#         return attrs
+#
+#     class Meta:
+#         model = ApiarySite
+#         geo_field = 'wkb_geometry_pending'
+#         fields = ('wkb_geometry_pending',)
 
 
 class ApiarySiteSerializer(serializers.ModelSerializer):
