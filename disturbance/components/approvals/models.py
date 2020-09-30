@@ -77,7 +77,7 @@ class ApiarySiteOnApproval(models.Model):
     approval = models.ForeignKey('Approval',)
     available = models.BooleanField(default=False)
     site_status = models.CharField(default=SITE_STATUS_CURRENT, max_length=20)
-    site_available = models.BooleanField(default=False)
+    # site_available = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
     wkb_geometry = PointField(srid=4326, blank=True, null=True)  # store approved coordinates
