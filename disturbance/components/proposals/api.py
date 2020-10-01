@@ -29,7 +29,7 @@ from disturbance.components.proposals.models import searchKeyWords, search_refer
     OnSiteInformation, ApiarySite, ApiaryChecklistQuestion, ApiaryChecklistAnswer, \
     ProposalApiaryTemporaryUse, ApiarySiteOnProposal
 from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_APPROVED, SITE_STATUS_CURRENT, SITE_STATUS_DENIED, \
-    SITE_STATUS_NOT_TO_BE_REISSUED, SITE_STATUS_VACANT
+    SITE_STATUS_NOT_TO_BE_REISSUED, SITE_STATUS_VACANT, SITE_STATUS_TRANSFERRED
 from disturbance.utils import search_tenure
 from disturbance.components.main.utils import (
         check_db_connection, 
@@ -464,14 +464,13 @@ class OnSiteInformationViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         qs = OnSiteInformation.objects.all()
+        qs = qs.filter(datetime_deleted=None)
 
-        # Only internal user is supposed to access here
-        if is_internal(self.request):  # user.is_authenticated():
-            qs = qs.filter(datetime_deleted=None)
-        else:
-            logger.warn("User is not internal user: {} <{}>".format(user.get_full_name(), user.email))
-            qs = OnSiteInformation.objects.none()
-
+        #if is_internal(self.request):  # user.is_authenticated():
+        #    qs = OnSiteInformation.objects.none()
+        #else:
+        #    logger.warn("User is not internal user: {} <{}>".format(user.get_full_name(), user.email))
+        #    qs = OnSiteInformation.objects.none()
         return qs
 
     @staticmethod
@@ -515,14 +514,26 @@ class OnSiteInformationViewSet(viewsets.ModelViewSet):
 
             return Response({})
 
+    def _construct_data(self, request):
+        request_data = request.data
+
+        apiary_site_id = request.data.get('apiary_site_id')
+        approval_id = request.data.get('approval_id')
+        apiary_site = ApiarySite.objects.get(id=apiary_site_id)
+        approval = Approval.objects.get(id=approval_id)
+        apiary_site_on_approval = ApiarySiteOnApproval.objects.get(apiary_site=apiary_site, approval=approval)
+        request_data['apiary_site_on_approval_id'] = apiary_site_on_approval.id
+
+        self.sanitize_date(request_data, 'period_from')
+        self.sanitize_date(request_data, 'period_to')
+
+        return request_data
+
     @basic_exception_handler
     def update(self, request, *args, **kwargs):
         with transaction.atomic():
             instance = self.get_object()
-            request_data = request.data
-
-            self.sanitize_date(request_data, 'period_from')
-            self.sanitize_date(request_data, 'period_to')
+            request_data = self._construct_data(request)
 
             serializer = OnSiteInformationSerializer(instance, data=request_data)
             serializer.is_valid(raise_exception=True)
@@ -532,10 +543,7 @@ class OnSiteInformationViewSet(viewsets.ModelViewSet):
     @basic_exception_handler
     def create(self, request, *args, **kwargs):
         with transaction.atomic():
-            request_data = request.data
-
-            self.sanitize_date(request_data, 'period_from')
-            self.sanitize_date(request_data, 'period_to')
+            request_data = self._construct_data(request)
 
             serializer = OnSiteInformationSerializer(data=request_data)
             serializer.is_valid(raise_exception=True)
@@ -657,6 +665,7 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
 
         # 2.2. Exclude
         q_exclude_approval |= Q(apiary_site__in=qs_vacant_site)  # We don't want to pick up the vacant sites already retrieved above
+        q_exclude_approval |= Q(site_status=SITE_STATUS_TRANSFERRED)
 
         # 2.3. Issue query
         qs_on_approval = ApiarySiteOnApproval.objects.filter(q_include_approval).exclude(q_exclude_approval).distinct('apiary_site')
@@ -682,7 +691,7 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
 
         qs_on_approval = ApiarySiteOnApproval.objects.filter(q_include).distinct('apiary_site')
         serializer = ApiarySiteOnApprovalGeometrySerializer(qs_on_approval, many=True)
-        return Response(serializer.data)
+        return Response(serializer.data['features'])
 
     @list_route(methods=['GET',])
     @basic_exception_handler
@@ -727,16 +736,14 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
                 else:
                     # For now, this function is only used to change the status to the 'vacant'
                     return Response({})
-            elif new_availability:
+            else:
                 apiary_site_on_approval = apiary_site.latest_approval_link
                 if apiary_site_on_approval.site_status == SITE_STATUS_CURRENT:  # Make sure if the apiary site is 'current' status
                     apiary_site_on_approval.available = new_availability
                     apiary_site_on_approval.save()
                 serializer = ApiarySiteOnApprovalGeometrySerializer(apiary_site_on_approval)
+                print(serializer.data['properties']['available'])
                 return Response(serializer.data)
-            else:
-                # No parameters passed, do nothing
-                return Response({})
 
             # instance = self.get_object()
             #
@@ -2071,14 +2078,11 @@ class ProposalViewSet(viewsets.ModelViewSet):
                             checklist_type='site_transfer',
                             checklist_role='applicant'
                             ):
-                        new_answer = ApiaryChecklistAnswer.objects.create(proposal = proposal_apiary,
-                                                                                   question = question)
+                        new_answer = ApiaryChecklistAnswer.objects.create(proposal=proposal_apiary, question=question)
                     # Save approval apiary sites to site transfer proposal
-                    for apiary_site in approval.apiary_sites.all():
-                        SiteTransferApiarySite.objects.create(
-                                proposal_apiary=proposal_apiary,
-                                apiary_site=apiary_site
-                                )
+                    # for apiary_site in approval.apiary_sites.all():
+                    for relation in approval.get_relations():
+                        SiteTransferApiarySite.objects.create(proposal_apiary=proposal_apiary, apiary_site_on_approval=relation)
 
                 elif application_type.name == ApplicationType.TEMPORARY_USE:
                     approval_id = request.data.get('approval_id')
@@ -2108,10 +2112,10 @@ class ProposalViewSet(viewsets.ModelViewSet):
                     new_temp_use = serializer.save()
 
                     # Save TemporaryUseApiarySite
-                    for site_approval in approval.apiary_sites.all():
+                    for relation in approval.get_relations():
                         data_to_save = {
                             'proposal_apiary_temporary_use_id': new_temp_use.id,
-                            'apiary_site_id': site_approval.id,
+                            'apiary_site_on_approval_id': relation.id,
                         }
                         serializer = TemporaryUseApiarySiteSerializer(data=data_to_save)
                         serializer.is_valid(raise_exception=True)
