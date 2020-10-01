@@ -2515,6 +2515,7 @@ class ProposalApiary(RevisionedMixin):
     transferee = models.ForeignKey(EmailUser, blank=True, null=True, related_name='apiary_transferee')
     originating_approval = models.ForeignKey('disturbance.Approval', blank=True, null=True, related_name="site_transfer_originating_approval")
     target_approval = models.ForeignKey('disturbance.Approval', blank=True, null=True, related_name="site_transfer_target_approval")
+
     apiary_sites = models.ManyToManyField('ApiarySite', through=ApiarySiteOnProposal, related_name='proposal_apiary_set')
 
     def __str__(self):
@@ -3533,7 +3534,7 @@ class ProposalApiaryTemporaryUse(models.Model):
                 detail['reason'] = 'out_of_range_of_licence'
                 return valid, detail
 
-        # Check if the period submitted overlaps with the existing temprary use periods
+        # TODO: Check if the period submitted overlaps with the existing temprary use periods
         #qs = TemporaryUseApiarySite.objects.filter(apiary_site=self, selected=True, proposal_apiary_temporary_use__proposal__processing_status=Proposal.PROCESSING_STATUS_APPROVED)
         #for temp_site in qs:
         #    valid = (period[0] <= period[1] < temp_site.proposal_apiary_temporary_use.from_date) or (temp_site.proposal_apiary_temporary_use.to_date < period[0] <= period[1])
@@ -3563,13 +3564,13 @@ class TemporaryUseApiarySite(models.Model):
 
 class SiteTransferApiarySite(models.Model):
     proposal_apiary = models.ForeignKey(ProposalApiary, blank=True, null=True, related_name='site_transfer_apiary_sites')
-    apiary_site = models.ForeignKey(ApiarySite, blank=True, null=True)
+    # apiary_site = models.ForeignKey(ApiarySite, blank=True, null=True)
+    apiary_site_on_approval = models.ForeignKey('disturbance.ApiarySiteOnApproval', blank=True, null=True)
     internal_selected = models.BooleanField(default=False)
     customer_selected = models.BooleanField(default=False)
 
     class Meta:
         app_label = 'disturbance'
-
 
 
 # TODO: remove if no longer required

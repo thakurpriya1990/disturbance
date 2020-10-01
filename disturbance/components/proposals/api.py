@@ -2077,14 +2077,11 @@ class ProposalViewSet(viewsets.ModelViewSet):
                             checklist_type='site_transfer',
                             checklist_role='applicant'
                             ):
-                        new_answer = ApiaryChecklistAnswer.objects.create(proposal = proposal_apiary,
-                                                                                   question = question)
+                        new_answer = ApiaryChecklistAnswer.objects.create(proposal=proposal_apiary, question=question)
                     # Save approval apiary sites to site transfer proposal
-                    for apiary_site in approval.apiary_sites.all():
-                        SiteTransferApiarySite.objects.create(
-                                proposal_apiary=proposal_apiary,
-                                apiary_site=apiary_site
-                                )
+                    # for apiary_site in approval.apiary_sites.all():
+                    for relation in approval.get_relations():
+                        SiteTransferApiarySite.objects.create(proposal_apiary=proposal_apiary, apiary_site_on_approval=relation)
 
                 elif application_type.name == ApplicationType.TEMPORARY_USE:
                     approval_id = request.data.get('approval_id')
