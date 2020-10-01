@@ -10,7 +10,7 @@ from rest_framework_gis.serializers import GeoFeatureModelSerializer
 
 from disturbance.components.approvals.serializers_apiary import ApiarySiteOnApprovalGeometrySerializer
 from disturbance.components.main.fields import CustomChoiceField
-from disturbance.components.main.utils import get_category, get_tenure, get_region_district
+from disturbance.components.main.utils import get_category, get_tenure, get_region_district, get_feature_in_wa_coastline
 from disturbance.components.organisations.serializers import OrganisationSerializer
 from disturbance.components.organisations.models import UserDelegation
 from disturbance.components.proposals.serializers_base import (
@@ -368,6 +368,10 @@ class ApiarySiteOnProposalDraftGeometrySaveSerializer(GeoFeatureModelSerializer)
     For saving as 'draft'
     """
     def validate(self, attrs):
+        feature = get_feature_in_wa_coastline(attrs.get('wkb_geometry_draft'))
+        if not feature:
+            raise serializers.ValidationError(['Apiary Site is out of bounds.'])
+
         # TODO: validate 3km radius, etc
         site_category = get_category(attrs['wkb_geometry_draft'])
         attrs['site_category_draft'] = site_category

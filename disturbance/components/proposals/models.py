@@ -3258,8 +3258,6 @@ class ProposalApiary(RevisionedMixin):
                 apiary_site_on_approval.save()
 
 
-
-
 class SiteCategory(models.Model):
     CATEGORY_SOUTH_WEST = 'south_west'
     CATEGORY_REMOTE = 'remote'

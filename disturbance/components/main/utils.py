@@ -81,35 +81,53 @@ def get_category(wkb_geometry):
     return category
 
 
+def _get_params(layer_name, coords):
+    return {
+        'SERVICE': 'WMS',
+        'VERSION': '1.1.1',
+        'REQUEST': 'GetFeatureInfo',
+        'FORMAT': 'image/png',
+        'TRANSPARENT': True,
+        'QUERY_LAYERS': layer_name,
+        'STYLES': '',
+        'LAYERS': layer_name,
+        'INFO_FORMAT': 'application/json',
+        'FEATURE_COUNT': 1,  # Features should not be overwrapped
+        'X': 50,
+        'Y': 50,
+        'SRS': 'EPSG:4283',
+        'WIDTH': 101,
+        'HEIGHT': 101,
+        'BBOX': str(coords[0] - 0.0001) + ',' + str(coords[1] - 0.0001) + ',' + str(coords[0] + 0.0001) + ',' + str( coords[1] + 0.0001),
+    }
+
+
+def get_feature_in_wa_coastline(wkb_geometry):
+    try:
+        URL = 'https://kmi.dpaw.wa.gov.au/geoserver/public/wms'
+        coords = wkb_geometry.get_coords()
+        PARAMS = _get_params('public:wa_coast_pub', coords)
+        res = requests.get(url=URL, params=PARAMS)
+        geo_json = res.json()
+        feature = None
+        if len(geo_json['features']) > 0:
+            feature = geo_json['features'][0]
+        return feature
+    except:
+        return None
+
+
 def get_tenure(wkb_geometry):
     try:
         URL = 'https://kmi.dpaw.wa.gov.au/geoserver/public/wms'
         coords = wkb_geometry.get_coords()
-        PARAMS = {
-            'SERVICE': 'WMS',
-            'VERSION': '1.1.1',
-            'REQUEST': 'GetFeatureInfo',
-            'FORMAT': 'image/png',
-            'TRANSPARENT': True,
-            'QUERY_LAYERS': 'public:dpaw_lands_and_waters',
-            'STYLES': '',
-            'LAYERS': 'public:dpaw_lands_and_waters',
-            'INFO_FORMAT': 'application/json',
-            'FEATURE_COUNT': 1,  # Features should not be overwrapped
-            'X': 50,
-            'Y': 50,
-            'SRS': 'EPSG:4283',
-            'WIDTH': 101,
-            'HEIGHT': 101,
-            'BBOX': str(coords[0] - 0.0001) + ',' + str(coords[1] - 0.0001) + ',' + str(coords[0] + 0.0001) + ',' + str(coords[1] + 0.0001),
-        }
+        PARAMS = _get_params('public:dpaw_lands_and_waters', coords)
         res = requests.get(url=URL, params=PARAMS)
         geo_json = res.json()
         tenure_name = ''
         if len(geo_json['features']) > 0:
             tenure_name = geo_json['features'][0]['properties']['tenure']
         return tenure_name
-
     except:
         return ''
 

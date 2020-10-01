@@ -428,7 +428,7 @@ export default {
                 err=>{
                     console.log('err')
                     console.log(err)
-                    if (err.body.type[0] === 'site_no_longer_available'){
+                    if(err.body.type && err.body.type[0] === 'site_no_longer_available'){
                         vm.display_site_no_longer_available_modal(err)
                     } else {
                         helpers.processError(err)
