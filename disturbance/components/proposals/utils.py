@@ -396,7 +396,7 @@ def save_proponent_data_apiary_site_transfer(proposal_obj, request, viewset):
                     checked_value = bool(site.get('checked'))
                     site_transfer_apiary_site = SiteTransferApiarySite.objects.get(
                             proposal_apiary=proposal_obj.proposal_apiary, 
-                            apiary_site_id=site.get('id')
+                            apiary_site_on_approval__apiary_site__id=site.get('id')
                             )
                     site_transfer_apiary_site.customer_selected = checked_value
                     site_transfer_apiary_site.internal_selected = checked_value
@@ -436,7 +436,8 @@ def save_proponent_data_apiary_site_transfer(proposal_obj, request, viewset):
                         # Copy requirements from approval.current_proposal
                         #target_req = proposal_obj.proposal_apiary.target_approval.current_proposal.apiary_requirements(
                          #       approval=proposal_obj.proposal_apiary.target_approval).exclude(is_deleted=True)
-                        origin_req = proposal_obj.proposal_apiary.target_approval.proposalrequirement_set.exclude(is_deleted=True)
+                        # origin_req = proposal_obj.proposal_apiary.target_approval.proposalrequirement_set.exclude(is_deleted=True)
+                        target_req = proposal_obj.proposal_apiary.target_approval.proposalrequirement_set.exclude(is_deleted=True)
                         from copy import deepcopy
                         if target_req:
                             for target_r in target_req:

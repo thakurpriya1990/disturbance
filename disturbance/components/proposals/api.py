@@ -29,7 +29,7 @@ from disturbance.components.proposals.models import searchKeyWords, search_refer
     OnSiteInformation, ApiarySite, ApiaryChecklistQuestion, ApiaryChecklistAnswer, \
     ProposalApiaryTemporaryUse, ApiarySiteOnProposal
 from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_APPROVED, SITE_STATUS_CURRENT, SITE_STATUS_DENIED, \
-    SITE_STATUS_NOT_TO_BE_REISSUED, SITE_STATUS_VACANT
+    SITE_STATUS_NOT_TO_BE_REISSUED, SITE_STATUS_VACANT, SITE_STATUS_TRANSFERRED
 from disturbance.utils import search_tenure
 from disturbance.components.main.utils import (
         check_db_connection, 
@@ -665,6 +665,7 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
 
         # 2.2. Exclude
         q_exclude_approval |= Q(apiary_site__in=qs_vacant_site)  # We don't want to pick up the vacant sites already retrieved above
+        q_exclude_approval |= Q(site_status=SITE_STATUS_TRANSFERRED)
 
         # 2.3. Issue query
         qs_on_approval = ApiarySiteOnApproval.objects.filter(q_include_approval).exclude(q_exclude_approval).distinct('apiary_site')
@@ -2077,14 +2078,11 @@ class ProposalViewSet(viewsets.ModelViewSet):
                             checklist_type='site_transfer',
                             checklist_role='applicant'
                             ):
-                        new_answer = ApiaryChecklistAnswer.objects.create(proposal = proposal_apiary,
-                                                                                   question = question)
+                        new_answer = ApiaryChecklistAnswer.objects.create(proposal=proposal_apiary, question=question)
                     # Save approval apiary sites to site transfer proposal
-                    for apiary_site in approval.apiary_sites.all():
-                        SiteTransferApiarySite.objects.create(
-                                proposal_apiary=proposal_apiary,
-                                apiary_site=apiary_site
-                                )
+                    # for apiary_site in approval.apiary_sites.all():
+                    for relation in approval.get_relations():
+                        SiteTransferApiarySite.objects.create(proposal_apiary=proposal_apiary, apiary_site_on_approval=relation)
 
                 elif application_type.name == ApplicationType.TEMPORARY_USE:
                     approval_id = request.data.get('approval_id')

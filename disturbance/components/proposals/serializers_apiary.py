@@ -504,11 +504,16 @@ class ApiarySiteExportSerializer(GeoFeatureModelSerializer):
 
 class SiteTransferApiarySiteSerializer(serializers.ModelSerializer):
     proposal_apiary_id = serializers.IntegerField(write_only=True, required=False)
-    apiary_site_id = serializers.IntegerField(write_only=True, required=False)
-    apiary_site = ApiarySiteSerializer(read_only=True)
+    # apiary_site_id = serializers.IntegerField(write_only=True, required=False)
+    apiary_site_on_approval_id = serializers.IntegerField(write_only=True, required=False)
+    # apiary_site = ApiarySiteSerializer(read_only=True)
+    apiary_site = serializers.SerializerMethodField()
     # apiary_site_approval = ApiarySiteApprovalSerializer(read_only=True)
     # apiary_site_approval_id = serializers.IntegerField(write_only=True, required=False)
     # apiary_site = serializers.SerializerMethodField()
+
+    def get_apiary_site(self, obj):
+        return ApiarySiteOnApprovalGeometrySerializer(obj.apiary_site_on_approval).data
 
     def validate(self, attrs):
         # TODO: check if the site is not temporary used to another person for the period
@@ -520,9 +525,10 @@ class SiteTransferApiarySiteSerializer(serializers.ModelSerializer):
         fields = (
             'id',
             'proposal_apiary_id',
+            'apiary_site_on_approval_id',
             # 'apiary_site_approval',
             # 'apiary_site_approval_id',
-            'apiary_site_id',
+            # 'apiary_site_id',
             'apiary_site',
             'customer_selected',
             'internal_selected',

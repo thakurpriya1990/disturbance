@@ -110,6 +110,7 @@ def delete_session_site_transfer_application_invoice(session):
         del session['site_transfer_app_invoice']
         session.modified = True
 
+
 def create_fee_lines_site_transfer(proposal):
     #import ipdb;ipdb.set_trace()
     now = datetime.now().strftime('%Y-%m-%d %H:%M')
@@ -123,10 +124,11 @@ def create_fee_lines_site_transfer(proposal):
     summary = {}
     for site_transfer_site in proposal.proposal_apiary.site_transfer_apiary_sites.all():
         if site_transfer_site.customer_selected:
-            if site_transfer_site.apiary_site.site_category.id in summary:
-                summary[site_transfer_site.apiary_site.site_category.id] += 1
+            # if site_transfer_site.apiary_site.site_category.id in summary:
+            if site_transfer_site.apiary_site_on_approval.site_category.id in summary:
+                summary[site_transfer_site.apiary_site_on_approval.site_category.id] += 1
             else:
-                summary[site_transfer_site.apiary_site.site_category.id] = 1
+                summary[site_transfer_site.apiary_site_on_approval.site_category.id] = 1
 
     # Once payment success, data is updated based on this variable
     # This variable is stored in the session
