@@ -17,7 +17,6 @@ from rest_framework import serializers
 
 from disturbance.components.proposals.serializers_apiary import (
     ApplicantAddressSerializer,
-    ApiarySiteSerializer,
     ApiaryProposalRequirementSerializer,
 )
 

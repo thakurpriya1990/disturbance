@@ -666,8 +666,9 @@ def update_proposal_apiary_temporary_use(temp_use_obj, temp_use_data, action):
 
         for item in temp_use_data['temporary_use_apiary_sites']:
             if item['apiary_site']['checked']:
-                apiary_site = ApiarySite.objects.get(id=item['apiary_site']['id'])
-                valid, details = apiary_site.period_valid_for_temporary_use((temp_use_data['from_date'], temp_use_data['to_date']))
+                # apiary_site = ApiarySite.objects.get(id=item['apiary_site']['id'])
+                # valid, details = apiary_site.period_valid_for_temporary_use((temp_use_data['from_date'], temp_use_data['to_date']))
+                valid, details = temp_use_obj.period_valid_for_temporary_use((temp_use_data['from_date'], temp_use_data['to_date']))
                 if not valid:
                     if details['reason'] == 'overlap_existing':
                         non_field_errors.append('Temporary use period you submitted: {} to {} overlaps with the existing temporary use period: {} to {} for the apiary site: {}.'.format(

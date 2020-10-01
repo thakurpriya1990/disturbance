@@ -8,6 +8,7 @@ from django.db.models import Q
 from ledger.settings_base import TIME_ZONE
 from rest_framework_gis.serializers import GeoFeatureModelSerializer
 
+from disturbance.components.approvals.serializers_apiary import ApiarySiteOnApprovalGeometrySerializer
 from disturbance.components.main.fields import CustomChoiceField
 from disturbance.components.main.utils import get_category, get_tenure, get_region_district
 from disturbance.components.organisations.serializers import OrganisationSerializer
@@ -407,7 +408,7 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
     # site_category = serializers.CharField(source='site_category.name', read_only=True)
     # onsiteinformation_set = OnSiteInformationSerializer(read_only=True, many=True,)
     # coordinates = serializers.SerializerMethodField()
-    as_geojson = serializers.SerializerMethodField()
+    # as_geojson = serializers.SerializerMethodField()
     # previous_site_holder_or_applicant = serializers.SerializerMethodField()
     # status = CustomChoiceField(read_only=True)
 
@@ -466,7 +467,7 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
             # 'site_category',
             # 'onsiteinformation_set',
             # 'coordinates',
-            'as_geojson',
+            # 'as_geojson',
             # 'status',
             # 'workflow_selected_status',
             # 'previous_site_holder_or_applicant',
@@ -767,8 +768,10 @@ class SaveProposalApiarySerializer(serializers.ModelSerializer):
 
 class TemporaryUseApiarySiteSerializer(serializers.ModelSerializer):
     proposal_apiary_temporary_use_id = serializers.IntegerField(write_only=True, required=False)
-    apiary_site_id = serializers.IntegerField(write_only=True, required=False)
-    apiary_site = ApiarySiteSerializer(read_only=True)
+    apiary_site_on_approval_id = serializers.IntegerField(write_only=True, required=False)
+    apiary_site_on_approval = ApiarySiteOnApprovalGeometrySerializer(read_only=True)
+    # apiary_site_id = serializers.IntegerField(write_only=True, required=False)
+    # apiary_site = ApiarySiteSerializer(read_only=True)
     # apiary_site_approval = ApiarySiteApprovalSerializer(read_only=True)
     # apiary_site_approval_id = serializers.IntegerField(write_only=True, required=False)
     # apiary_site = serializers.SerializerMethodField()
@@ -783,10 +786,11 @@ class TemporaryUseApiarySiteSerializer(serializers.ModelSerializer):
         fields = (
             'id',
             'proposal_apiary_temporary_use_id',
-            # 'apiary_site_approval',
+            'apiary_site_on_approval_id',
+            'apiary_site_on_approval',
             # 'apiary_site_approval_id',
-            'apiary_site_id',
-            'apiary_site',
+            # 'apiary_site_id',
+            # 'apiary_site',
             'selected',
         )
 

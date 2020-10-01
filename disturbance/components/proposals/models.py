@@ -3434,34 +3434,6 @@ class ApiarySite(models.Model):
         current_fee = self.site_category.current_application_fee_per_site
         return current_fee
 
-    def period_valid_for_temporary_use(self, period):
-        detail = {}
-        valid = True
-
-        # Check if the period sits in the approval valid period
-        if period[0] < self.approval.start_date or self.approval.expiry_date < period[1]:
-            valid = False
-            if not valid:
-                detail['period'] = {}
-                detail['period']['from_date'] = self.approval.start_date
-                detail['period']['to_date'] = self.approval.expiry_date
-                detail['reason'] = 'out_of_range_of_licence'
-                return valid, detail
-
-        # Check if the period submitted overlaps with the existing temprary use periods
-        qs = TemporaryUseApiarySite.objects.filter(apiary_site=self, selected=True, proposal_apiary_temporary_use__proposal__processing_status=Proposal.PROCESSING_STATUS_APPROVED)
-        for temp_site in qs:
-            valid = (period[0] <= period[1] < temp_site.proposal_apiary_temporary_use.from_date) or (temp_site.proposal_apiary_temporary_use.to_date < period[0] <= period[1])
-            if not valid:
-                detail['period'] = {}
-                detail['period']['from_date'] = temp_site.proposal_apiary_temporary_use.from_date
-                detail['period']['to_date'] = temp_site.proposal_apiary_temporary_use.to_date
-                detail['apiary_site'] = temp_site.apiary_site
-                detail['reason'] = 'overlap_existing'
-                return valid, detail
-
-        return valid, detail
-
     class Meta:
         app_label = 'disturbance'
 
@@ -3547,13 +3519,42 @@ class ProposalApiaryTemporaryUse(models.Model):
     class Meta:
         app_label = 'disturbance'
 
+    def period_valid_for_temporary_use(self, period):
+        detail = {}
+        valid = True
+
+        # Check if the period sits in the approval valid period
+        if period[0] < self.loaning_approval.start_date or self.loaning_approval.expiry_date < period[1]:
+            valid = False
+            if not valid:
+                detail['period'] = {}
+                detail['period']['from_date'] = self.loaning_approval.start_date
+                detail['period']['to_date'] = self.loaning_approval.expiry_date
+                detail['reason'] = 'out_of_range_of_licence'
+                return valid, detail
+
+        # Check if the period submitted overlaps with the existing temprary use periods
+        #qs = TemporaryUseApiarySite.objects.filter(apiary_site=self, selected=True, proposal_apiary_temporary_use__proposal__processing_status=Proposal.PROCESSING_STATUS_APPROVED)
+        #for temp_site in qs:
+        #    valid = (period[0] <= period[1] < temp_site.proposal_apiary_temporary_use.from_date) or (temp_site.proposal_apiary_temporary_use.to_date < period[0] <= period[1])
+        #    if not valid:
+        #        detail['period'] = {}
+        #        detail['period']['from_date'] = temp_site.proposal_apiary_temporary_use.from_date
+        #        detail['period']['to_date'] = temp_site.proposal_apiary_temporary_use.to_date
+        #        detail['apiary_site'] = temp_site.apiary_site
+        #        detail['reason'] = 'overlap_existing'
+        #        return valid, detail
+
+        return valid, detail
+
 
 class TemporaryUseApiarySite(models.Model):
     """
     Apiary sites under a proposal can be partially used as temporary site
     """
     proposal_apiary_temporary_use = models.ForeignKey(ProposalApiaryTemporaryUse, blank=True, null=True, related_name='temporary_use_apiary_sites')
-    apiary_site = models.ForeignKey(ApiarySite, blank=True, null=True)
+    # apiary_site = models.ForeignKey(ApiarySite, blank=True, null=True)
+    apiary_site_on_approval = models.ForeignKey('ApiarySiteOnApproval', blank=True, null=True)
     selected = models.BooleanField(default=False)
 
     class Meta:
