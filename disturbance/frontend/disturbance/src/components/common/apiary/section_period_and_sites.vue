@@ -126,7 +126,7 @@
             if (this.temporary_use_apiary_sites.length > 0){
                 for (let i=0; i<this.temporary_use_apiary_sites.length; i++){
                     //let site = this.temporary_use_apiary_sites[i].apiary_site
-                    let site = this.temporary_use_apiary_sites[i].apiary_site_on_approval
+                    let site = this.temporary_use_apiary_sites[i].apiary_site
 
                     // Add the status of the checkbox for this apiary site if needed
                     // otherwise the default status is unchecked
