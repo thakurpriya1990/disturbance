@@ -22,7 +22,8 @@ from disturbance.components.approvals.email import (
     send_approval_surrender_email_notification
 )
 from disturbance.doctopdf import create_apiary_licence_pdf_contents
-from disturbance.settings import SITE_STATUS_CURRENT, SITE_STATUS_NOT_TO_BE_REISSUED, SITE_STATUS_SUSPENDED
+from disturbance.settings import SITE_STATUS_CURRENT, SITE_STATUS_NOT_TO_BE_REISSUED, SITE_STATUS_SUSPENDED, \
+    SITE_STATUS_TRANSFERRED
 from disturbance.utils import search_keys, search_multiple_keys
 from disturbance.helpers import is_customer
 from django_countries.fields import CountryField
@@ -153,12 +154,13 @@ class Approval(RevisionedMixin):
 
     def get_relation(self, apiary_site):
         if isinstance(apiary_site, dict):
-            apiary_site = ApiarySite.objects.get(id=apiary_site['id'])
+            apiary_site = ApiarySite.objects.get(id=apiary_site.get('id'))
         relation_obj = ApiarySiteOnApproval.objects.get(apiary_site=apiary_site, approval=self)
         return relation_obj
 
     def get_relations(self):
-        relation_objs = ApiarySiteOnApproval.objects.filter(apiary_site__in=self.apiary_sites.all(), approval=self)
+        # relation_objs = ApiarySiteOnApproval.objects.filter(apiary_site__in=self.apiary_sites.all(), approval=self)
+        relation_objs = ApiarySiteOnApproval.objects.filter(apiary_site__in=self.apiary_sites.all(), approval=self).exclude(site_status=SITE_STATUS_TRANSFERRED)
         return relation_objs
 
     @property

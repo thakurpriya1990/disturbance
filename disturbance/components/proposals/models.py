@@ -52,7 +52,7 @@ import subprocess
 import logging
 
 from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_PENDING, SITE_STATUS_APPROVED, SITE_STATUS_DENIED, \
-    SITE_STATUS_CURRENT, RESTRICTED_RADIUS
+    SITE_STATUS_CURRENT, RESTRICTED_RADIUS, SITE_STATUS_TRANSFERRED
 
 logger = logging.getLogger(__name__)
 
@@ -1284,7 +1284,7 @@ class Proposal(RevisionedMixin):
                         for apiary_site in apiary_sites:
                             transfer_site = SiteTransferApiarySite.objects.get(
                                     proposal_apiary=self.proposal_apiary,
-                                    apiary_site_id=apiary_site.get('id')
+                                    apiary_site_on_approval__apiary_site__id=apiary_site.get('id')
                                     )
                             transfer_site.internal_selected = apiary_site.get('checked') if transfer_site.customer_selected else False
                             if apiary_site.get('checked'):
@@ -2916,7 +2916,7 @@ class ProposalApiary(RevisionedMixin):
                         for apiary_site in apiary_sites:
                             transfer_site = SiteTransferApiarySite.objects.get(
                                     proposal_apiary=self,
-                                    apiary_site_id=apiary_site.get('id')
+                                    apiary_site_on_approval__apiary_site_id=apiary_site.get('id')
                                     )
                             transfer_site.internal_selected = apiary_site.get('checked') if transfer_site.customer_selected else False
                             transfer_site.save()
@@ -2926,9 +2926,19 @@ class ProposalApiary(RevisionedMixin):
                                 internal_selected=True,
                                 customer_selected=True
                                 )
-                        for site in transfer_sites:
-                            site.apiary_site.approval = target_approval
-                            site.apiary_site.save()
+                        for site_transfer_apiary_site in transfer_sites:
+                            relation_original = site_transfer_apiary_site.apiary_site_on_approval
+                            from disturbance.components.approvals.models import ApiarySiteOnApproval
+                            relation_target, created = ApiarySiteOnApproval.objects.get_or_create(
+                                apiary_site=relation_original.apiary_site,
+                                approval=target_approval,
+                            )
+                            relation_target.site_status = relation_original.site_status  # Copy the site status from the original to the target
+                            relation_original.site_status = SITE_STATUS_TRANSFERRED  # Set the site status of the original site to 'transferred'
+                            relation_original.save()
+                            relation_target.wkb_geometry = relation_original.wkb_geometry
+                            relation_target.site_category = relation_original.site_category
+                            relation_target.save()
                     else:
                         count_approved_site = 0
                         sites_received = request.data.get('apiary_sites', [])

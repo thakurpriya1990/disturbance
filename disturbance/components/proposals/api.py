@@ -29,7 +29,7 @@ from disturbance.components.proposals.models import searchKeyWords, search_refer
     OnSiteInformation, ApiarySite, ApiaryChecklistQuestion, ApiaryChecklistAnswer, \
     ProposalApiaryTemporaryUse, ApiarySiteOnProposal
 from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_APPROVED, SITE_STATUS_CURRENT, SITE_STATUS_DENIED, \
-    SITE_STATUS_NOT_TO_BE_REISSUED, SITE_STATUS_VACANT
+    SITE_STATUS_NOT_TO_BE_REISSUED, SITE_STATUS_VACANT, SITE_STATUS_TRANSFERRED
 from disturbance.utils import search_tenure
 from disturbance.components.main.utils import (
         check_db_connection, 
@@ -665,6 +665,7 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
 
         # 2.2. Exclude
         q_exclude_approval |= Q(apiary_site__in=qs_vacant_site)  # We don't want to pick up the vacant sites already retrieved above
+        q_exclude_approval |= Q(site_status=SITE_STATUS_TRANSFERRED)
 
         # 2.3. Issue query
         qs_on_approval = ApiarySiteOnApproval.objects.filter(q_include_approval).exclude(q_exclude_approval).distinct('apiary_site')

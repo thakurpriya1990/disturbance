@@ -252,10 +252,8 @@ class ApprovalSerializer(serializers.ModelSerializer):
 
     def get_apiary_sites(self, approval):
         ret = []
-        for apiary_site in approval.apiary_sites.all():
-            inter_obj = ApiarySiteOnApproval.objects.get(apiary_site=apiary_site, approval=approval)
-            serializer = ApiarySiteOnApprovalGeometrySerializer
-            ret.append(serializer(inter_obj).data)
+        for relation in approval.get_relations():
+            ret.append(ApiarySiteOnApprovalGeometrySerializer(relation).data)
         return ret
 
     def get_activity(self, approval):
