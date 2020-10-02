@@ -3393,10 +3393,6 @@ class ApiaryAnnualRentalFeeRunDate(RevisionedMixin):
 
 
 class ApiarySite(models.Model):
-    GEOMETRY_CONDITION_APPROVED = 'approved'
-    GEOMETRY_CONDITION_APPLIED = 'applied'
-    GEOMETRY_CONDITION_PENDING = 'pending'
-
     site_guid = models.CharField(max_length=50, blank=True)
     latest_proposal_link = models.ForeignKey('disturbance.ApiarySiteOnProposal', blank=True, null=True)
     latest_approval_link = models.ForeignKey('disturbance.ApiarySiteOnApproval', blank=True, null=True)
