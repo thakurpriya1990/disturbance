@@ -19,4 +19,5 @@ class ApiarySiteOnApprovalListener(object):
         else:
             instance.apiary_site.latest_approval_link = instance
             instance.apiary_site.save()
+            print('ApiarySite: {} updated its latest_approval_link: {}'.format(instance.apiary_site.id, instance))
 

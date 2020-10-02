@@ -94,7 +94,6 @@ from disturbance.components.proposals.serializers_apiary import (
     FullApiaryReferralSerializer,
     ProposalHistorySerializer,
     UserApiaryApprovalSerializer,
-    ApiarySiteExportSerializer,
     ApiarySiteOnProposalProcessedGeometrySerializer, ApiarySiteOnProposalDraftGeometrySerializer,
 )
 from disturbance.components.approvals.models import Approval, ApiarySiteOnApproval
@@ -594,25 +593,6 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
         comms = serializer.save()
 
         return Response({})
-
-    # @list_route(methods=['GET',])
-    # @basic_exception_handler
-    # def export(self, request):
-    def list(self, request):
-        q_objects = Q()
-        exclude_status = request.query_params.get('exclude_status', '')
-        exclude_status_array = [x.strip() for x in exclude_status.split(',')]
-        q_objects |= Q(status__in=exclude_status_array)
-
-        qs = ApiarySite.objects.none()
-        if self.is_internal_system(request):
-            qs = ApiarySite.objects.all()
-        # q_objects |= Q(status__in=ApiarySite.NON_RESTRICTIVE_STATUSES)
-        # q_objects |= Q(wkb_geometry=None)
-        # q_objects |= Q(proposal_apiary=None)
-        qs = qs.exclude(q_objects)
-        serializer = ApiarySiteExportSerializer(qs, many=True)
-        return Response(serializer.data)
 
     @list_route(methods=['GET',])
     @basic_exception_handler

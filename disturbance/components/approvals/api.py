@@ -46,8 +46,7 @@ from disturbance.components.main.decorators import basic_exception_handler
 from disturbance.components.proposals.models import ApiarySite, OnSiteInformation
 from disturbance.components.proposals.serializers_apiary import (
         OnSiteInformationSerializer,
-        ApiarySiteOptimisedSerializer, 
-        ProposalApiaryTemporaryUseSerializer, 
+        ProposalApiaryTemporaryUseSerializer,
         ApiaryProposalRequirementSerializer,
         )
 from disturbance.helpers import is_customer, is_internal

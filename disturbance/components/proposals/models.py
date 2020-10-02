@@ -2480,7 +2480,7 @@ class ApiarySiteOnProposal(RevisionedMixin):
     objects = GeoManager()
 
     def __str__(self):
-        return 'id:{}: apiary_site: {}, proposal_apiary: {}'.format(self.id, self.apiary_site.id, self.proposal_apiary.id)
+        return 'id:{}: (apiary_site: {}, proposal_apiary: {})'.format(self.id, self.apiary_site.id, self.proposal_apiary.id)
 
     def apiary_site_not_under_payment(self):
         value = True
@@ -3281,6 +3281,13 @@ class SiteCategory(models.Model):
         else:
             return None
 
+    @property
+    def display_name(self):
+        for item in SiteCategory.CATEGORY_CHOICES:
+            if self.name == item[0]:
+                return item[1]
+        return '---'
+
     def __str__(self):
         for item in SiteCategory.CATEGORY_CHOICES:
             if item[0] == self.name:
@@ -3394,8 +3401,8 @@ class ApiaryAnnualRentalFeeRunDate(RevisionedMixin):
 
 class ApiarySite(models.Model):
     site_guid = models.CharField(max_length=50, blank=True)
-    latest_proposal_link = models.ForeignKey('disturbance.ApiarySiteOnProposal', blank=True, null=True)
-    latest_approval_link = models.ForeignKey('disturbance.ApiarySiteOnApproval', blank=True, null=True)
+    latest_proposal_link = models.ForeignKey('disturbance.ApiarySiteOnProposal', blank=True, null=True, on_delete=models.SET_NULL)
+    latest_approval_link = models.ForeignKey('disturbance.ApiarySiteOnApproval', blank=True, null=True, on_delete=models.SET_NULL)
     # Store the proposal link intermediate object this apiary site transitioned from when got the 'vacant' status
     proposal_link_for_vacant = models.ForeignKey('disturbance.ApiarySiteOnProposal', blank=True, null=True, related_name='vacant_apiary_site', on_delete=models.SET_NULL)
     # Store the approval link intermediate object this apiary site transitioned from when got the 'vacant' status
@@ -3407,6 +3414,7 @@ class ApiarySite(models.Model):
     
     def delete(self, using=None, keep_parents=False):
         super(ApiarySite, self).delete(using, keep_parents)
+        print('ApiarySite: {}({}) has been deleted.'.format(self.id, self.is_vacant))
 
     def make_vacant(self, vacant, relation):
         from disturbance.components.approvals.models import ApiarySiteOnApproval
