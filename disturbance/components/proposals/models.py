@@ -2772,11 +2772,11 @@ class ProposalApiary(RevisionedMixin):
                 #import ipdb;ipdb.set_trace()
 
                 if self.proposal.processing_status == 'approved':
-                    # TODO if it is an ammendment proposal then check appropriately
                     #import ipdb; ipdb.set_trace()
                     checking_proposal = self.proposal
-                    #TODO - fix for apiary approval
-                    #if self.proposal.proposal_type == 'renewal':
+                    if self.proposal.proposal_type == 'renewal':
+                        # TODO - fix for apiary approval
+                        pass
                     #    if self.proposal.previous_application:
                     #        previous_approval = self.proposal.previous_application.approval
                     #        approval,created = Approval.objects.update_or_create(
@@ -2800,8 +2800,9 @@ class ProposalApiary(RevisionedMixin):
                     #            previous_approval.replaced_by = approval
                     #            previous_approval.save()
 
-                    ##TODO - fix for apiary approval
-                    #elif self.proposal.proposal_type == 'amendment':
+                    elif self.proposal.proposal_type == 'amendment':
+                        # TODO - fix for apiary approval
+                        pass
                     #    if self.proposal.previous_application:
                     #        previous_approval = self.proposal.previous_application.approval
                     #        approval,created = Approval.objects.update_or_create(

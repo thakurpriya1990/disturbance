@@ -292,10 +292,12 @@ class Approval(RevisionedMixin):
                     'previous_application': self.current_proposal,
                     'proposal_type': 'renewal'
                     }
-            proposal=Proposal.objects.get(**renew_conditions)
+            proposal = Proposal.objects.get(**renew_conditions)
             if proposal:
+                # Proposal for the renewal already exists.
                 return False
         except Proposal.DoesNotExist:
+            # Proposal for the renewal doesn't exit
             return True
 
     @property
