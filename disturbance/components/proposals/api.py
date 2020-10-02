@@ -585,7 +585,7 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
         apiary_site = self.get_object()
         comments = request.data.get('comments', '')
         sender = request.user
-        email_data = send_contact_licence_holder_email(apiary_site, comments, sender)
+        email_data = send_contact_licence_holder_email(apiary_site.latest_approval_link, comments, sender)
 
         email_data['approval'] = u'{}'.format(apiary_site.approval.id)
         # request.data['staff'] = u'{}'.format(request.user.id)

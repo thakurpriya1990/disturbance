@@ -407,75 +407,15 @@ class ApiarySiteOnProposalProcessedGeometrySaveSerializer(GeoFeatureModelSeriali
 
 
 class ApiarySiteSerializer(serializers.ModelSerializer):
-    # proposal_apiary_id = serializers.IntegerField(write_only=True, required=False)
-    # site_category_id = serializers.IntegerField(write_only=True, required=False)
-    # site_category = serializers.CharField(source='site_category.name', read_only=True)
-    # onsiteinformation_set = OnSiteInformationSerializer(read_only=True, many=True,)
-    # coordinates = serializers.SerializerMethodField()
-    # as_geojson = serializers.SerializerMethodField()
-    # previous_site_holder_or_applicant = serializers.SerializerMethodField()
-    # status = CustomChoiceField(read_only=True)
 
     def validate(self, attrs):
         return attrs
-
-    def get_previous_site_holder_or_applicant(self, apiary_site):
-        try:
-            if apiary_site.approval:
-                relevant_applicant_name = apiary_site.approval.relevant_applicant_name
-            else:
-                relevant_applicant_name = apiary_site.proposal_apiary.proposal.relevant_applicant_name
-            return relevant_applicant_name
-        except:
-            return ''
-
-    def get_as_geojson(self, apiary_site):
-        proposal_apiary_or_approval = self.context.get('proposal_apiary_or_approval', None)
-        inter_obj = apiary_site.get_relation(proposal_apiary_or_approval)
-
-        # Determine the serializer
-        if inter_obj.site_status in ApiarySiteOnProposal.SITE_STATUSES_FOR_GEOMETRY_DRAFT:
-            serializer = ApiarySiteOnProposalDraftGeometrySerializer
-        elif inter_obj.site_status in ApiarySiteOnProposal.SITE_STATUSES_FOR_GEOMETRY_PROCESSED:
-            serializer = ApiarySiteOnProposalProcessedGeometrySerializer
-        else:
-            from disturbance.components.approvals.serializers_apiary import ApiarySiteOnApprovalGeometrySerializer
-            serializer = ApiarySiteOnApprovalGeometrySerializer
-
-        ret = serializer(inter_obj)
-        return ret.data
-
-        # TODO: return serialized data according to the apiary_site.status and/or the type of self.root (which is root Serializer)
-
-    def get_coordinates(self, apiary_site):
-        try:
-            geometry_condition = self.context.get('geometry_condition', ApiarySite.GEOMETRY_CONDITION_APPROVED)
-            if geometry_condition == ApiarySite.GEOMETRY_CONDITION_APPLIED:
-                return {'lng': apiary_site.wkb_geometry_applied.x, 'lat': apiary_site.wkb_geometry_applied.y}
-            elif geometry_condition == ApiarySite.GEOMETRY_CONDITION_PENDING:
-                return {'lng': apiary_site.wkb_geometry_pending.x, 'lat': apiary_site.wkb_geometry_pending.y}
-            else:
-                return {'lng': apiary_site.wkb_geometry.x, 'lat': apiary_site.wkb_geometry.y}
-        except:
-            return {'lng': '', 'lat': ''}
 
     class Meta:
         model = ApiarySite
         fields = (
             'id',
-            # 'available',
-            # 'temporary_used',
             'site_guid',
-            # 'proposal_apiary_id',
-            # 'site_category_id',
-            # 'site_category',
-            # 'onsiteinformation_set',
-            # 'coordinates',
-            # 'as_geojson',
-            # 'status',
-            # 'workflow_selected_status',
-            # 'previous_site_holder_or_applicant',
-            # 'proposal_apiary_ids',
         )
 
 
