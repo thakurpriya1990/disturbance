@@ -86,7 +86,7 @@ class ApiarySiteOnApproval(models.Model):
     objects = GeoManager()
 
     def __str__(self):
-        return 'id:{}: apiary_site: {}, approval: {}'.format(self.id, self.apiary_site.id, self.approval.id)
+        return 'id:{}: (apiary_site: {}, approval: {})'.format(self.id, self.apiary_site.id, self.approval.id)
 
     class Meta:
         app_label = 'disturbance'

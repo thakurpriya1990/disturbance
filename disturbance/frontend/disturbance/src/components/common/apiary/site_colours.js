@@ -43,9 +43,10 @@ export const SiteColours = {
         'stroke': '#000000',
         'icon_colour': '#a900e6',
     },
+    // Apiary site in the 'making_payment' sits in here 
     'default': {
-        'fill': '#ff00ff',
-        'stroke': '#00ff00'
+        'fill': '#40e0d0',
+        'stroke': '#000000'
     }
 }
 export default SiteColours

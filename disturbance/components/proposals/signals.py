@@ -76,5 +76,5 @@ class ApiarySiteOnProposalListener(object):
     def _post_save(sender, instance, **kwargs):
         instance.apiary_site.latest_proposal_link = instance
         instance.apiary_site.save()
-        print('ApiarySite: {} updates its latest_proposal_link: {}'.format(instance.apiary_site.id, instance.id))
+        print('ApiarySite: {} updated its latest_proposal_link: {}'.format(instance.apiary_site.id, instance))
 

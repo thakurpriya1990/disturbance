@@ -2,14 +2,12 @@ import pytz
 from django.conf import settings
 from datetime import datetime
 
-from django.contrib.gis.measure import Distance
 from django.db.models import Q
 
 from ledger.settings_base import TIME_ZONE
 from rest_framework_gis.serializers import GeoFeatureModelSerializer
 
 from disturbance.components.approvals.serializers_apiary import ApiarySiteOnApprovalGeometrySerializer
-from disturbance.components.main.fields import CustomChoiceField
 from disturbance.components.main.utils import get_category, get_tenure, get_region_district, get_feature_in_wa_coastline
 from disturbance.components.organisations.serializers import OrganisationSerializer
 from disturbance.components.organisations.models import UserDelegation
@@ -39,7 +37,7 @@ from disturbance.components.proposals.models import (
     ProposalRequirement, ApiarySiteOnProposal,
 )
 from disturbance.components.approvals.models import (
-    Approval, ApiarySiteOnApproval,
+    Approval
 )
 
 from rest_framework import serializers
@@ -50,7 +48,7 @@ from django.contrib.contenttypes.models import ContentType
 from ledger.accounts.models import EmailUser
 from copy import deepcopy
 
-from disturbance.settings import RESTRICTED_RADIUS, SITE_STATUS_DRAFT, SITE_STATUS_VACANT
+from disturbance.settings import RESTRICTED_RADIUS, SITE_STATUS_DRAFT, SITE_STATUS_VACANT, COASTLINE_VALIDATION
 
 
 class VersionSerializer(serializers.ModelSerializer):
@@ -174,30 +172,6 @@ class ApplicantAddressSerializer(serializers.ModelSerializer):
             'state',
             'country',
             'postcode'
-        )
-
-
-class ApiarySiteOptimisedSerializer(serializers.ModelSerializer):
-    # proposal_apiary_id = serializers.IntegerField(write_only=True,)
-    # site_category_id = serializers.IntegerField(write_only=True,)
-    coordinates = serializers.SerializerMethodField()
-
-    def get_coordinates(self, apiary_site):
-        try:
-            return {'lng': apiary_site.wkb_geometry.x, 'lat': apiary_site.wkb_geometry.y}
-        except:
-            return {'lng': '', 'lat': ''}
-
-    class Meta:
-        model = ApiarySite
-        fields = (
-            'id',
-            # 'available',
-            'site_guid',
-            # 'proposal_apiary_id',
-            # 'site_category_id',
-            # 'coordinates',
-            # 'status'
         )
 
 
@@ -368,9 +342,10 @@ class ApiarySiteOnProposalDraftGeometrySaveSerializer(GeoFeatureModelSerializer)
     For saving as 'draft'
     """
     def validate(self, attrs):
-        feature = get_feature_in_wa_coastline(attrs.get('wkb_geometry_draft'))
-        if not feature:
-            raise serializers.ValidationError(['Apiary Site is out of bounds.'])
+        if COASTLINE_VALIDATION:
+            feature = get_feature_in_wa_coastline(attrs.get('wkb_geometry_draft'))
+            if not feature:
+                raise serializers.ValidationError(['Apiary Site is out of bounds.'])
 
         # TODO: validate 3km radius, etc
         site_category = get_category(attrs['wkb_geometry_draft'])
@@ -419,31 +394,32 @@ class ApiarySiteSerializer(serializers.ModelSerializer):
         )
 
 
-class ApiarySiteExportSerializer(GeoFeatureModelSerializer):
-    site_category = serializers.CharField(source='site_category.name')
-    address = serializers.CharField(source='approval.relevant_applicant_address')
-    region = serializers.CharField(source='approval.region')
-    district = serializers.CharField(source='approval.district')
-    tenure = serializers.CharField(source='approval.tenure')
-    name = serializers.CharField(source='approval.relevant_applicant_name')
-
-    class Meta:
-        model = ApiarySite
-        geo_field = 'wkb_geometry'
-
-        fields = (
-            'id',
-            'site_guid',
-            'available',
-            'wkb_geometry',
-            'site_category',
-            'status',
-            'address',
-            'region',
-            'district',
-            'tenure',
-            'name',
-        )
+#class ApiarySiteExportSerializer(GeoFeatureModelSerializer):
+#    site_category = serializers.CharField(source='latest_approval_link.site_category.name')
+#    address = serializers.CharField(source='latest_approval_link.relevant_applicant_address')
+#    name = serializers.CharField(source='latest_approval_link.relevant_applicant_name')
+#
+#    region = serializers.CharField(source='latest_approval_link.region')
+#    district = serializers.CharField(source='latest_approval_link.district')
+#    tenure = serializers.CharField(source='latest_approval_link.tenure')
+#
+#    class Meta:
+#        model = ApiarySite
+#        geo_field = 'wkb_geometry'
+#
+#        fields = (
+#            'id',
+#            'site_guid',
+#            'available',
+#            'wkb_geometry',
+#            'site_category',
+#            'status',
+#            'address',
+#            'region',
+#            'district',
+#            'tenure',
+#            'name',
+#        )
 
 
 class SiteTransferApiarySiteSerializer(serializers.ModelSerializer):

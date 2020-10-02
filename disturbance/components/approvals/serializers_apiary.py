@@ -69,7 +69,8 @@ class ApiarySiteOnApprovalGeometrySaveSerializer(GeoFeatureModelSerializer):
 
 class ApiarySiteOnApprovalLicenceDocSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(source='apiary_site.id')
-    site_category = serializers.CharField(source='site_category.name')
+    # site_category = serializers.CharField(source='site_category.name')
+    site_category = serializers.SerializerMethodField()
     coords = serializers.SerializerMethodField()
     tenure = serializers.SerializerMethodField()
     region_district = serializers.SerializerMethodField()
@@ -84,6 +85,10 @@ class ApiarySiteOnApprovalLicenceDocSerializer(serializers.ModelSerializer):
             'tenure',
             'region_district',
         )
+
+    def get_site_category(self, apiary_site_on_approval):
+        site_category = apiary_site_on_approval.site_category
+        return site_category.display_name
 
     def get_tenure(self, apiary_site_on_approval):
         try:
