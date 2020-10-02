@@ -2464,18 +2464,10 @@ class HelpPage(models.Model):
 # Apiary Models Start
 # --------------------------------------------------------------------------------------
 class ApiarySiteOnProposal(RevisionedMixin):
-    # SITE_STATUSES_FOR_GEOMETRY_DRAFT = (SITE_STATUS_DRAFT, SITE_STATUS_PENDING_PAYMENT,)
-    SITE_STATUSES_FOR_GEOMETRY_DRAFT = (SITE_STATUS_DRAFT,)
-    SITE_STATUSES_FOR_GEOMETRY_PROCESSED = (SITE_STATUS_PENDING, SITE_STATUS_APPROVED, SITE_STATUS_DENIED,)
-
-    NON_RESTRICTIVE_STATUSES = (SITE_STATUS_DRAFT, )
-    RENEWABLE_STATUS = (SITE_STATUS_APPROVED,)
-
     apiary_site = models.ForeignKey('ApiarySite',)
     proposal_apiary = models.ForeignKey('ProposalApiary',)
     apiary_site_status_when_submitted = models.CharField(max_length=40, blank=True)
     for_renewal = models.BooleanField(default=False)
-    # site_status = models.CharField(choices=SITE_STATUS_CHOICES, default=SITE_STATUS_CHOICES[0][0], max_length=20)
     site_status = models.CharField(default=SITE_STATUS_DRAFT, max_length=20)
     making_payment = models.BooleanField(default=False)
     workflow_selected_status = models.BooleanField(default=False)  # This field is used only during approval process to select/deselect the site to be approved
