@@ -572,13 +572,10 @@
                 this.constructSiteLocationsTable();
             },
             is_feature_new_or_existing: function(feature){
-                let status = feature.get('status')
-                if (!status || status === 'draft'){
-                    // status is null when new apiary site is added but not saved yet
-                    return 'new'
-                } else {
-                    // status should have the status other than 'draft' status
+                if (feature.get('for_renewal')){
                     return 'existing'
+                } else {
+                    return 'new'
                 }
             },
             showPopup: function(feature){
@@ -683,10 +680,16 @@
                 this.bufferLayerSource.removeFeature(buffer);
             },
             apiaryStyleFunction: function(feature) {
-                var status = feature.get("status");
+                console.log('in apiaryStyleFunction')
+                console.log(feature)
+
+                let status = this.get_status_from_feature(feature)
                 return getApiaryFeatureStyle(status);
             },
             apiaryStyleFunctionExisting: function(feature){
+                console.log('in apiaryStyleFunctionExisting')
+                console.log(feature)
+
                 let vacant_selected = feature.get('vacant_selected')
                 if (vacant_selected){
                     return this.style_for_vacant_selected
@@ -1092,10 +1095,15 @@
                         }
                     });
                     modifyTool.on("modifystart", function(attributes){
+                        console.log('in modifystart')
+
                         attributes.features.forEach(function(feature){
+
                         })
                     });
                     modifyTool.on("modifyend", function(attributes){
+                        console.log('in modifyend')
+
                         // this will list all features in layer, not so useful without cross referencing
                         attributes.features.forEach(function(feature){
                             let id = feature.getId();
@@ -1136,7 +1144,7 @@
                     console.log('hoverInteraction')
                     if(evt.selected.length > 0){
                         // Mouse hover in
-                        if(evt.selected[0].get('status') === 'vacant'){
+                        if(evt.selected[0].get('is_vacant') === true){
                             // When mouse hover on the 'vacant' apiary site, temporarily store it 
                             // so that it can be added to the new apiary site application when user clicking.
                             vm.apiary_site_being_selected = evt.selected[0]
@@ -1148,7 +1156,8 @@
                     } else {
                         // Mouse hover out
                         if (vm.apiary_site_being_selected){
-                            let style_applied = getApiaryFeatureStyle(vm.apiary_site_being_selected.get('status'), false)
+                            let status = vm.get_status_from_feature(vm.apiary_site_being_selected)
+                            let style_applied = getApiaryFeatureStyle(status, false)
 
                             let vacant_selected = vm.apiary_site_being_selected.get('vacant_selected')
                             if (vacant_selected){
@@ -1163,6 +1172,14 @@
                     }
                 });
             },  // End: initMap()
+            get_status_from_feature: function(feature){
+                let status = feature.get("status");
+                let is_vacant = feature.get('is_vacant')
+                if (is_vacant){
+                    status = 'vacant'
+                }
+                return status
+            },
             excludeFeature: function(excludedFeature) {
                 return function(f) {
                     return excludedFeature.getId() != f.getId();

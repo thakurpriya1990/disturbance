@@ -52,7 +52,7 @@ import subprocess
 import logging
 
 from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_PENDING, SITE_STATUS_APPROVED, SITE_STATUS_DENIED, \
-    SITE_STATUS_CURRENT, RESTRICTED_RADIUS
+    SITE_STATUS_CURRENT, RESTRICTED_RADIUS, SITE_STATUS_TRANSFERRED
 
 logger = logging.getLogger(__name__)
 
@@ -1285,7 +1285,7 @@ class Proposal(RevisionedMixin):
                         for apiary_site in apiary_sites:
                             transfer_site = SiteTransferApiarySite.objects.get(
                                     proposal_apiary=self.proposal_apiary,
-                                    apiary_site_id=apiary_site.get('id')
+                                    apiary_site_on_approval__apiary_site__id=apiary_site.get('id')
                                     )
                             transfer_site.internal_selected = apiary_site.get('checked') if transfer_site.customer_selected else False
                             if apiary_site.get('checked'):
@@ -2271,6 +2271,7 @@ def clone_proposal_with_status_reset(proposal):
             except:
                 raise
 
+
 def clone_apiary_proposal_with_status_reset(original_proposal):
     #import ipdb; ipdb.set_trace()
     with transaction.atomic():
@@ -2338,9 +2339,12 @@ def clone_apiary_proposal_with_status_reset(original_proposal):
                     r.save()
 
             # update apiary_sites with new proposal
-            for site in approval.apiary_sites.all():
-                site.proposal_apiary = proposal.proposal_apiary
-                site.save()
+            approval.add_apiary_sites_to_proposal_apiary_for_renewal(proposal_apiary)
+            # for site in approval.apiary_sites.all():
+                # Create new relations between the ApiarySite and the ProposalApiary
+                # ApiarySiteOnProposal.objects.create(apiary_site=site, proposal_apiary=proposal.proposal_apiary)
+                # site.proposal_apiary = proposal.proposal_apiary
+                # site.save()
 
             # Checklist questions
             for question in ApiaryChecklistQuestion.objects.filter(
@@ -2461,17 +2465,10 @@ class HelpPage(models.Model):
 # Apiary Models Start
 # --------------------------------------------------------------------------------------
 class ApiarySiteOnProposal(RevisionedMixin):
-    # SITE_STATUSES_FOR_GEOMETRY_DRAFT = (SITE_STATUS_DRAFT, SITE_STATUS_PENDING_PAYMENT,)
-    SITE_STATUSES_FOR_GEOMETRY_DRAFT = (SITE_STATUS_DRAFT,)
-    SITE_STATUSES_FOR_GEOMETRY_PROCESSED = (SITE_STATUS_PENDING, SITE_STATUS_APPROVED, SITE_STATUS_DENIED,)
-
-    NON_RESTRICTIVE_STATUSES = (SITE_STATUS_DRAFT, )
-    RENEWABLE_STATUS = (SITE_STATUS_APPROVED,)
-
     apiary_site = models.ForeignKey('ApiarySite',)
     proposal_apiary = models.ForeignKey('ProposalApiary',)
     apiary_site_status_when_submitted = models.CharField(max_length=40, blank=True)
-    # site_status = models.CharField(choices=SITE_STATUS_CHOICES, default=SITE_STATUS_CHOICES[0][0], max_length=20)
+    for_renewal = models.BooleanField(default=False)
     site_status = models.CharField(default=SITE_STATUS_DRAFT, max_length=20)
     making_payment = models.BooleanField(default=False)
     workflow_selected_status = models.BooleanField(default=False)  # This field is used only during approval process to select/deselect the site to be approved
@@ -2484,7 +2481,7 @@ class ApiarySiteOnProposal(RevisionedMixin):
     objects = GeoManager()
 
     def __str__(self):
-        return 'id:{}: apiary_site: {}, proposal_apiary: {}'.format(self.id, self.apiary_site.id, self.proposal_apiary.id)
+        return 'id:{}: (apiary_site: {}, proposal_apiary: {})'.format(self.id, self.apiary_site.id, self.proposal_apiary.id)
 
     def apiary_site_not_under_payment(self):
         value = True
@@ -2511,6 +2508,7 @@ class ProposalApiary(RevisionedMixin):
     transferee = models.ForeignKey(EmailUser, blank=True, null=True, related_name='apiary_transferee')
     originating_approval = models.ForeignKey('disturbance.Approval', blank=True, null=True, related_name="site_transfer_originating_approval")
     target_approval = models.ForeignKey('disturbance.Approval', blank=True, null=True, related_name="site_transfer_target_approval")
+
     apiary_sites = models.ManyToManyField('ApiarySite', through=ApiarySiteOnProposal, related_name='proposal_apiary_set')
 
     def __str__(self):
@@ -2775,11 +2773,11 @@ class ProposalApiary(RevisionedMixin):
                 #import ipdb;ipdb.set_trace()
 
                 if self.proposal.processing_status == 'approved':
-                    # TODO if it is an ammendment proposal then check appropriately
                     #import ipdb; ipdb.set_trace()
                     checking_proposal = self.proposal
-                    #TODO - fix for apiary approval
-                    #if self.proposal.proposal_type == 'renewal':
+                    if self.proposal.proposal_type == 'renewal':
+                        # TODO - fix for apiary approval
+                        pass
                     #    if self.proposal.previous_application:
                     #        previous_approval = self.proposal.previous_application.approval
                     #        approval,created = Approval.objects.update_or_create(
@@ -2803,8 +2801,9 @@ class ProposalApiary(RevisionedMixin):
                     #            previous_approval.replaced_by = approval
                     #            previous_approval.save()
 
-                    ##TODO - fix for apiary approval
-                    #elif self.proposal.proposal_type == 'amendment':
+                    elif self.proposal.proposal_type == 'amendment':
+                        # TODO - fix for apiary approval
+                        pass
                     #    if self.proposal.previous_application:
                     #        previous_approval = self.proposal.previous_application.approval
                     #        approval,created = Approval.objects.update_or_create(
@@ -2911,7 +2910,7 @@ class ProposalApiary(RevisionedMixin):
                         for apiary_site in apiary_sites:
                             transfer_site = SiteTransferApiarySite.objects.get(
                                     proposal_apiary=self,
-                                    apiary_site_id=apiary_site.get('id')
+                                    apiary_site_on_approval__apiary_site_id=apiary_site.get('id')
                                     )
                             transfer_site.internal_selected = apiary_site.get('checked') if transfer_site.customer_selected else False
                             transfer_site.save()
@@ -2921,9 +2920,19 @@ class ProposalApiary(RevisionedMixin):
                                 internal_selected=True,
                                 customer_selected=True
                                 )
-                        for site in transfer_sites:
-                            site.apiary_site.approval = target_approval
-                            site.apiary_site.save()
+                        for site_transfer_apiary_site in transfer_sites:
+                            relation_original = site_transfer_apiary_site.apiary_site_on_approval
+                            from disturbance.components.approvals.models import ApiarySiteOnApproval
+                            relation_target, created = ApiarySiteOnApproval.objects.get_or_create(
+                                apiary_site=relation_original.apiary_site,
+                                approval=target_approval,
+                            )
+                            relation_target.site_status = relation_original.site_status  # Copy the site status from the original to the target
+                            relation_original.site_status = SITE_STATUS_TRANSFERRED  # Set the site status of the original site to 'transferred'
+                            relation_original.save()
+                            relation_target.wkb_geometry = relation_original.wkb_geometry
+                            relation_target.site_category = relation_original.site_category
+                            relation_target.save()
                     else:
                         count_approved_site = 0
                         sites_received = request.data.get('apiary_sites', [])
@@ -3243,8 +3252,6 @@ class ProposalApiary(RevisionedMixin):
                 apiary_site_on_approval.save()
 
 
-
-
 class SiteCategory(models.Model):
     CATEGORY_SOUTH_WEST = 'south_west'
     CATEGORY_REMOTE = 'remote'
@@ -3275,6 +3282,13 @@ class SiteCategory(models.Model):
             return site_fee.amount
         else:
             return None
+
+    @property
+    def display_name(self):
+        for item in SiteCategory.CATEGORY_CHOICES:
+            if self.name == item[0]:
+                return item[1]
+        return '---'
 
     def __str__(self):
         for item in SiteCategory.CATEGORY_CHOICES:
@@ -3388,43 +3402,21 @@ class ApiaryAnnualRentalFeeRunDate(RevisionedMixin):
 
 
 class ApiarySite(models.Model):
-    STATUS_DRAFT = 'draft'
-    STATUS_PENDING_PAYMENT = 'pending_payment'
-    STATUS_PENDING = 'pending'
-    STATUS_CURRENT = 'current'
-    STATUS_SUSPENDED = 'suspended'
-    STATUS_NOT_TO_BE_REISSUED = 'not_to_be_reissued'
-    STATUS_DENIED = 'denied'
-    STATUS_VACANT = 'vacant'
-    STATUS_CHOICES = (
-        (STATUS_DRAFT, 'Draft'),
-        (STATUS_PENDING_PAYMENT, 'Pending payment'),
-        (STATUS_PENDING, 'Pending'),
-        (STATUS_CURRENT, 'Current'),
-        (STATUS_SUSPENDED, 'Suspended'),
-        (STATUS_NOT_TO_BE_REISSUED, 'Not to be Reissued'),
-        (STATUS_DENIED, 'Denied'),
-        (STATUS_VACANT, 'Vacant'),
-    )
-    NON_RESTRICTIVE_STATUSES = (STATUS_DRAFT, )
-    TRANSITABLE_STATUSES = (STATUS_NOT_TO_BE_REISSUED, STATUS_DENIED,)
-    RENEWABLE_STATUS = (STATUS_CURRENT, STATUS_SUSPENDED,)
-
-    GEOMETRY_CONDITION_APPROVED = 'approved'
-    GEOMETRY_CONDITION_APPLIED = 'applied'
-    GEOMETRY_CONDITION_PENDING = 'pending'
-
     site_guid = models.CharField(max_length=50, blank=True)
-    latest_proposal_link = models.ForeignKey('disturbance.ApiarySiteOnProposal', blank=True, null=True)
-    latest_approval_link = models.ForeignKey('disturbance.ApiarySiteOnApproval', blank=True, null=True)
+    latest_proposal_link = models.ForeignKey('disturbance.ApiarySiteOnProposal', blank=True, null=True, on_delete=models.SET_NULL)
+    latest_approval_link = models.ForeignKey('disturbance.ApiarySiteOnApproval', blank=True, null=True, on_delete=models.SET_NULL)
     # Store the proposal link intermediate object this apiary site transitioned from when got the 'vacant' status
-    proposal_link_for_vacant = models.ForeignKey('disturbance.ApiarySiteOnProposal', blank=True, null=True, related_name='vacant_apiary_site')
+    proposal_link_for_vacant = models.ForeignKey('disturbance.ApiarySiteOnProposal', blank=True, null=True, related_name='vacant_apiary_site', on_delete=models.SET_NULL)
     # Store the approval link intermediate object this apiary site transitioned from when got the 'vacant' status
-    approval_link_for_vacant = models.ForeignKey('disturbance.ApiarySiteOnApproval', blank=True, null=True, related_name='vacant_apiary_site')
+    approval_link_for_vacant = models.ForeignKey('disturbance.ApiarySiteOnApproval', blank=True, null=True, related_name='vacant_apiary_site', on_delete=models.SET_NULL)
     is_vacant = models.BooleanField(default=False)
 
     def __str__(self):
         return '{}'.format(self.id,)
+    
+    def delete(self, using=None, keep_parents=False):
+        super(ApiarySite, self).delete(using, keep_parents)
+        print('ApiarySite: {}({}) has been deleted.'.format(self.id, self.is_vacant))
 
     def make_vacant(self, vacant, relation):
         from disturbance.components.approvals.models import ApiarySiteOnApproval
@@ -3448,34 +3440,6 @@ class ApiarySite(models.Model):
     def get_current_application_fee_per_site(self):
         current_fee = self.site_category.current_application_fee_per_site
         return current_fee
-
-    def period_valid_for_temporary_use(self, period):
-        detail = {}
-        valid = True
-
-        # Check if the period sits in the approval valid period
-        if period[0] < self.approval.start_date or self.approval.expiry_date < period[1]:
-            valid = False
-            if not valid:
-                detail['period'] = {}
-                detail['period']['from_date'] = self.approval.start_date
-                detail['period']['to_date'] = self.approval.expiry_date
-                detail['reason'] = 'out_of_range_of_licence'
-                return valid, detail
-
-        # Check if the period submitted overlaps with the existing temprary use periods
-        qs = TemporaryUseApiarySite.objects.filter(apiary_site=self, selected=True, proposal_apiary_temporary_use__proposal__processing_status=Proposal.PROCESSING_STATUS_APPROVED)
-        for temp_site in qs:
-            valid = (period[0] <= period[1] < temp_site.proposal_apiary_temporary_use.from_date) or (temp_site.proposal_apiary_temporary_use.to_date < period[0] <= period[1])
-            if not valid:
-                detail['period'] = {}
-                detail['period']['from_date'] = temp_site.proposal_apiary_temporary_use.from_date
-                detail['period']['to_date'] = temp_site.proposal_apiary_temporary_use.to_date
-                detail['apiary_site'] = temp_site.apiary_site
-                detail['reason'] = 'overlap_existing'
-                return valid, detail
-
-        return valid, detail
 
     class Meta:
         app_label = 'disturbance'
@@ -3527,7 +3491,8 @@ class ApiarySiteFeeRemainder(models.Model):
 
 
 class OnSiteInformation(models.Model):
-    apiary_site = models.ForeignKey(ApiarySite, null=True, blank=True)
+    # apiary_site = models.ForeignKey(ApiarySite, null=True, blank=True)
+    apiary_site_on_approval = models.ForeignKey('ApiarySiteOnApproval', blank=True, null=True)
     period_from = models.DateField(null=True, blank=True)
     period_to = models.DateField(null=True, blank=True)
     comments = models.TextField(blank=True)
@@ -3561,13 +3526,42 @@ class ProposalApiaryTemporaryUse(models.Model):
     class Meta:
         app_label = 'disturbance'
 
+    def period_valid_for_temporary_use(self, period):
+        detail = {}
+        valid = True
+
+        # Check if the period sits in the approval valid period
+        if period[0] < self.loaning_approval.start_date or self.loaning_approval.expiry_date < period[1]:
+            valid = False
+            if not valid:
+                detail['period'] = {}
+                detail['period']['from_date'] = self.loaning_approval.start_date
+                detail['period']['to_date'] = self.loaning_approval.expiry_date
+                detail['reason'] = 'out_of_range_of_licence'
+                return valid, detail
+
+        # TODO: Check if the period submitted overlaps with the existing temprary use periods
+        #qs = TemporaryUseApiarySite.objects.filter(apiary_site=self, selected=True, proposal_apiary_temporary_use__proposal__processing_status=Proposal.PROCESSING_STATUS_APPROVED)
+        #for temp_site in qs:
+        #    valid = (period[0] <= period[1] < temp_site.proposal_apiary_temporary_use.from_date) or (temp_site.proposal_apiary_temporary_use.to_date < period[0] <= period[1])
+        #    if not valid:
+        #        detail['period'] = {}
+        #        detail['period']['from_date'] = temp_site.proposal_apiary_temporary_use.from_date
+        #        detail['period']['to_date'] = temp_site.proposal_apiary_temporary_use.to_date
+        #        detail['apiary_site'] = temp_site.apiary_site
+        #        detail['reason'] = 'overlap_existing'
+        #        return valid, detail
+
+        return valid, detail
+
 
 class TemporaryUseApiarySite(models.Model):
     """
     Apiary sites under a proposal can be partially used as temporary site
     """
     proposal_apiary_temporary_use = models.ForeignKey(ProposalApiaryTemporaryUse, blank=True, null=True, related_name='temporary_use_apiary_sites')
-    apiary_site = models.ForeignKey(ApiarySite, blank=True, null=True)
+    # apiary_site = models.ForeignKey(ApiarySite, blank=True, null=True)
+    apiary_site_on_approval = models.ForeignKey('ApiarySiteOnApproval', blank=True, null=True)
     selected = models.BooleanField(default=False)
 
     class Meta:
@@ -3576,13 +3570,13 @@ class TemporaryUseApiarySite(models.Model):
 
 class SiteTransferApiarySite(models.Model):
     proposal_apiary = models.ForeignKey(ProposalApiary, blank=True, null=True, related_name='site_transfer_apiary_sites')
-    apiary_site = models.ForeignKey(ApiarySite, blank=True, null=True)
+    # apiary_site = models.ForeignKey(ApiarySite, blank=True, null=True)
+    apiary_site_on_approval = models.ForeignKey('disturbance.ApiarySiteOnApproval', blank=True, null=True)
     internal_selected = models.BooleanField(default=False)
     customer_selected = models.BooleanField(default=False)
 
     class Meta:
         app_label = 'disturbance'
-
 
 
 # TODO: remove if no longer required

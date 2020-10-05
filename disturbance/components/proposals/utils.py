@@ -396,7 +396,7 @@ def save_proponent_data_apiary_site_transfer(proposal_obj, request, viewset):
                     checked_value = bool(site.get('checked'))
                     site_transfer_apiary_site = SiteTransferApiarySite.objects.get(
                             proposal_apiary=proposal_obj.proposal_apiary, 
-                            apiary_site_id=site.get('id')
+                            apiary_site_on_approval__apiary_site__id=site.get('id')
                             )
                     site_transfer_apiary_site.customer_selected = checked_value
                     site_transfer_apiary_site.internal_selected = checked_value
@@ -436,7 +436,8 @@ def save_proponent_data_apiary_site_transfer(proposal_obj, request, viewset):
                         # Copy requirements from approval.current_proposal
                         #target_req = proposal_obj.proposal_apiary.target_approval.current_proposal.apiary_requirements(
                          #       approval=proposal_obj.proposal_apiary.target_approval).exclude(is_deleted=True)
-                        origin_req = proposal_obj.proposal_apiary.target_approval.proposalrequirement_set.exclude(is_deleted=True)
+                        # origin_req = proposal_obj.proposal_apiary.target_approval.proposalrequirement_set.exclude(is_deleted=True)
+                        target_req = proposal_obj.proposal_apiary.target_approval.proposalrequirement_set.exclude(is_deleted=True)
                         from copy import deepcopy
                         if target_req:
                             for target_r in target_req:
@@ -666,8 +667,9 @@ def update_proposal_apiary_temporary_use(temp_use_obj, temp_use_data, action):
 
         for item in temp_use_data['temporary_use_apiary_sites']:
             if item['apiary_site']['checked']:
-                apiary_site = ApiarySite.objects.get(id=item['apiary_site']['id'])
-                valid, details = apiary_site.period_valid_for_temporary_use((temp_use_data['from_date'], temp_use_data['to_date']))
+                # apiary_site = ApiarySite.objects.get(id=item['apiary_site']['id'])
+                # valid, details = apiary_site.period_valid_for_temporary_use((temp_use_data['from_date'], temp_use_data['to_date']))
+                valid, details = temp_use_obj.period_valid_for_temporary_use((temp_use_data['from_date'], temp_use_data['to_date']))
                 if not valid:
                     if details['reason'] == 'overlap_existing':
                         non_field_errors.append('Temporary use period you submitted: {} to {} overlaps with the existing temporary use period: {} to {} for the apiary site: {}.'.format(
