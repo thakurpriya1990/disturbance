@@ -128,7 +128,7 @@
     import TextField from '@/components/forms/text.vue'
     import datatable from '@vue-utils/datatable.vue'
     import uuid from 'uuid';
-    import { getApiaryFeatureStyle, drawingSiteRadius } from '@/components/common/apiary/site_colours.js'
+    import { getApiaryFeatureStyle, drawingSiteRadius, existingSiteRadius, SiteColours } from '@/components/common/apiary/site_colours.js'
     import Overlay from 'ol/Overlay';
 
     export default {
@@ -182,13 +182,24 @@
                 marker_lat: null,
                 deed_poll_url: '',
                 buffer_radius: 3000, // [m]
-
                 min_num_of_sites_for_renewal: 5,
                 min_num_of_sites_for_new: 5,
+                existing_sites_loaded: false,
+                style_for_vacant_selected: new Style({
+                        image: new CircleStyle({
+                            radius: existingSiteRadius,
+                            fill: new Fill({
+                                color: SiteColours.vacant.fill
+                            }),
+                            stroke: new Stroke({
+                                color: SiteColours.vacant.stroke,
+                                width: 4
+                            })
+                        })
+                    }),
 
                 // Popup
                 popup_id: uuid(),
-                //popup_closer_id: uuid(),
                 popup_content_id: uuid(),
                 content_element: null,
                 overlay: null,
@@ -211,7 +222,6 @@
                 fee_south_west_renewal: 0,
                 fee_remote_renewal: 0,
 
-
                 // variables for the GIS
                 map: null,
                 apiarySitesQuerySource: new VectorSource(),
@@ -221,7 +231,8 @@
                 drawingLayer: null,
                 bufferLayerSource: new VectorSource(),
                 bufferLayer: null,
-                existing_sites_feature_collection: null,
+                vacantLayerSource: new VectorSource(),
+                vacantLayer: null,
                 apiary_site_being_selected: null,
                 swZoneSource: null,
                 //
@@ -275,15 +286,24 @@
                             // Category
                             mRender: function (data, type, feature) {
                                 let cat = feature.get('site_category')
-                                cat = cat.replace('_', ' ')
-                                return cat.replace(/\w\S*/g, function(txt){return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();});
+                                if (cat){
+                                    cat = cat.replace('_', ' ')
+                                    return cat.replace(/\w\S*/g, function(txt){return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();});
+                                } else {
+                                    return '---'
+                                }
                             }
                         },
                         {
                             // Vacant
                             mRender: function (data, type, feature) {
+                                console.log('in mRender for Vacant')
+                                console.log(feature)
+
                                 let my_status = feature.get('status')
-                                if(my_status === 'vacant'){
+                                let is_vacant = feature.get('is_vacant')
+                                if(my_status === 'vacant' || is_vacant === true){
+                                    // Once saved, 'vacant' site status gets 'draft' therefore we have to check another attribute 'is_vacant', too
                                     return '<i class="fa fa-check" aria-hidden="true"></i>'
                                 }
                                 return ''
@@ -478,6 +498,11 @@
             },
         },
         watch:{
+            existing_sites_loaded: function() {
+                if (this.existing_sites_loaded){
+                    this.load_apiary_sites_in_this_proposal()
+                }
+            },
             num_of_sites_south_west_to_add_as_remainder: function(){
                 this.$emit('num_of_sites_south_west_to_add_as_remainder', this.num_of_sites_south_west_to_add_as_remainder)
             },
@@ -515,6 +540,7 @@
                 this.$emit('total_fee_remote_renewal', this.total_fee_remote_renewal)
             },
             apiary_site_being_selected: function() {
+                console.log('apiary_site_being_selected')
                 console.log(this.apiary_site_being_selected);
                 if (this.apiary_site_being_selected){
                     this.showPopup(this.apiary_site_being_selected)
@@ -524,14 +550,32 @@
             }
         },
         methods:{
+            load_apiary_sites_in_this_proposal: function(){
+                // Load the apiary sites in this proposal on the map
+                let vm = this
+                for (let i=0; i<vm.proposal.proposal_apiary.apiary_sites.length; i++){
+                     let apiary_site = vm.proposal.proposal_apiary.apiary_sites[i]
+
+                    if (apiary_site.properties.status === 'vacant'){
+                        // apiary_site is 'vacant' site
+                        let feature = vm.apiarySitesQuerySource.getFeatureById(apiary_site.id)
+                        // Set new attribute to apply a specific style for the 'vacant' selected site
+                        feature.set('vacant_selected', true)
+
+                        vm.drawingLayerSource.addFeature(feature);
+                    } else {
+                        let feature = (new GeoJSON).readFeature(apiary_site)
+                        this.drawingLayerSource.addFeature(feature)
+                        this.createBufferForSite(feature);
+                    }
+                }
+                this.constructSiteLocationsTable();
+            },
             is_feature_new_or_existing: function(feature){
-                let status = feature.get('status')
-                if (!status || status === 'draft'){
-                    // status is null when new apiary site is added but not saved yet
-                    return 'new'
-                } else {
-                    // status should have the status other than 'draft' status
+                if (feature.get('for_renewal')){
                     return 'existing'
+                } else {
+                    return 'new'
                 }
             },
             showPopup: function(feature){
@@ -636,8 +680,48 @@
                 this.bufferLayerSource.removeFeature(buffer);
             },
             apiaryStyleFunction: function(feature) {
-                var status = feature.get("status");
+                console.log('in apiaryStyleFunction')
+                console.log(feature)
+
+                let status = this.get_status_from_feature(feature)
                 return getApiaryFeatureStyle(status);
+            },
+            apiaryStyleFunctionExisting: function(feature){
+                console.log('in apiaryStyleFunctionExisting')
+                console.log(feature)
+
+                let vacant_selected = feature.get('vacant_selected')
+                if (vacant_selected){
+                    return this.style_for_vacant_selected
+                    //return new Style({
+                    //    image: new CircleStyle({
+                    //        radius: existingSiteRadius,
+                    //        fill: new Fill({
+                    //            color: SiteColours.vacant.fill
+                    //        }),
+                    //        stroke: new Stroke({
+                    //            color: SiteColours.vacant.stroke,
+                    //            width: 4
+                    //        })
+                    //    })
+                    //});
+                } else {
+                    return new Style({
+                        fill: new Fill({
+                            color: 'rgba(255, 255, 255, 0.2)'
+                        }),
+                        stroke: new Stroke({
+                            color: '#ffcc33',
+                            width: 2
+                        }),
+                        image: new CircleStyle({
+                            radius: drawingSiteRadius,
+                            fill: new Fill({
+                                color: '#ffcc33'
+                            })
+                        })
+                    })
+                }
             },
             existingSiteAvailableClicked: function() {
                 alert("TODO: open screen 45: External - Contact Holder of Available Site in a different tab page.");
@@ -736,7 +820,6 @@
                 this.$emit('button_text', button_text)
             },
             constructSiteLocationsTable: function(){
-
                 if (this.drawingLayerSource){
                     // Clear table
                     this.$refs.site_locations_table.vmDataTable.clear().draw();
@@ -767,15 +850,18 @@
                 let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
                 this.zoomToApiarySiteById(apiary_site_id)
             },
-            removeSiteLocation: function(e){
-                console.log('in removeSiteLocation')
+            removeApiarySiteById: function(apiary_site_id){
+                let myFeature = this.drawingLayerSource.getFeatureById(apiary_site_id)
+                this.deleteApiarySite(myFeature)
 
-                let site_location_guid = e.target.getAttribute("data-site-location-guid");
-                let myFeature = this.drawingLayerSource.getFeatureById(site_location_guid)
-                let site_category = myFeature.get('site_category')
-
+                // TODO: remove a row
+                this.constructSiteLocationsTable()
+            },
+            deleteApiarySite: function(myFeature){
+                console.log('in deleteApiarySite()')
                 console.log(myFeature)
-                console.log('site: ' + this.is_feature_new_or_existing(myFeature))
+
+                let site_category = myFeature.get('site_category')
 
                 let new_or_existing = this.is_feature_new_or_existing(myFeature)
                 if (new_or_existing === 'new'){
@@ -801,6 +887,46 @@
                     this.removeBufferForSite(myFeature)
                     this.drawingLayerSource.removeFeature(myFeature);
                 }
+                // Remove vacant_selected attribute from the feature
+                myFeature.unset('vacant_selected')
+
+                // Remove the row from the table
+                //$(e.target).closest('tr').fadeOut('slow', function(){ })
+            },
+            removeSiteLocation: function(e){
+                console.log('in removeSiteLocation')
+
+                let site_location_guid = e.target.getAttribute("data-site-location-guid");
+                let myFeature = this.drawingLayerSource.getFeatureById(site_location_guid)
+                this.deleteApiarySite(myFeature)
+                //let site_category = myFeature.get('site_category')
+
+                //let new_or_existing = this.is_feature_new_or_existing(myFeature)
+                //if (new_or_existing === 'new'){
+                //    if (site_category === 'south_west'){
+                //        this.num_of_sites_south_west_applied -= 1
+                //    } else {
+                //        this.num_of_sites_remote_applied -= 1
+                //    }
+                //} 
+                //if (new_or_existing === 'existing'){
+                //    if (site_category === 'south_west'){
+                //        this.num_of_sites_south_west_renewal_applied -= 1
+                //    } else {
+                //        this.num_of_sites_remote_renewal_applied -= 1
+                //    }
+                //}
+
+                //let myFeatureStatus = myFeature.get('status')
+                //if (myFeatureStatus && myFeatureStatus != 'draft'){
+                //    this.drawingLayerSource.removeFeature(myFeature);
+                //} else {
+                //    // Remove buffer
+                //    this.removeBufferForSite(myFeature)
+                //    this.drawingLayerSource.removeFeature(myFeature);
+                //}
+                //// Remove vacant_selected attribute from the feature
+                //myFeature.unset('vacant_selected')
 
                 // Remove the row from the table
                 $(e.target).closest('tr').fadeOut('slow', function(){ })
@@ -855,25 +981,12 @@
                 //vm.drawingLayerSource = new VectorSource();
                 vm.drawingLayerSource.on('addfeature', function(e){
                     //vm.proposal.proposal_apiary.apiary_sites.push(e.feature)
+                    console.log('in addfeature')
                     vm.constructSiteLocationsTable()
                 });
                 vm.drawingLayer = new VectorLayer({
                     source: vm.drawingLayerSource,
-                    style: new Style({
-                        fill: new Fill({
-                            color: 'rgba(255, 255, 255, 0.2)'
-                        }),
-                        stroke: new Stroke({
-                            color: '#ffcc33',
-                            width: 2
-                        }),
-                        image: new CircleStyle({
-                            radius: drawingSiteRadius,
-                            fill: new Fill({
-                                color: '#ffcc33'
-                            })
-                        })
-                    })
+                    style: vm.apiaryStyleFunctionExisting,
                 });
                 vm.map.addLayer(vm.drawingLayer);
 
@@ -940,11 +1053,9 @@
                         if (vm.apiary_site_being_selected){
                             // Abort drawing, instead 'vacant' site is to be added
                             drawTool.abortDrawing();
-                            // Copy the 'id_' attribute, which should have the apiary_site.id in the database, to the 'id' attribute
-                            // This 'id' attribute is used to determine if it exists already in the database once posted.
-                            //vm.apiary_site_being_selected.id = vm.apiary_site_being_selected.id_
-                            console.log('apiary_site_being_selected')
-                            console.log(vm.apiary_site_being_selected)
+
+                            vm.apiary_site_being_selected.set('vacant_selected', true)
+
                             vm.drawingLayerSource.addFeature(vm.apiary_site_being_selected);
                             vm.apiary_site_being_selected.getGeometry().on("change", function() {
                                 if (modifyInProgressList.indexOf(vm.apiary_site_being_selected.getId()) == -1) {
@@ -984,10 +1095,15 @@
                         }
                     });
                     modifyTool.on("modifystart", function(attributes){
+                        console.log('in modifystart')
+
                         attributes.features.forEach(function(feature){
+
                         })
                     });
                     modifyTool.on("modifyend", function(attributes){
+                        console.log('in modifyend')
+
                         // this will list all features in layer, not so useful without cross referencing
                         attributes.features.forEach(function(feature){
                             let id = feature.getId();
@@ -1028,7 +1144,7 @@
                     console.log('hoverInteraction')
                     if(evt.selected.length > 0){
                         // Mouse hover in
-                        if(evt.selected[0].get('status') === 'vacant'){
+                        if(evt.selected[0].get('is_vacant') === true){
                             // When mouse hover on the 'vacant' apiary site, temporarily store it 
                             // so that it can be added to the new apiary site application when user clicking.
                             vm.apiary_site_being_selected = evt.selected[0]
@@ -1040,7 +1156,14 @@
                     } else {
                         // Mouse hover out
                         if (vm.apiary_site_being_selected){
-                            let style_applied = getApiaryFeatureStyle(vm.apiary_site_being_selected.get('status'), false)
+                            let status = vm.get_status_from_feature(vm.apiary_site_being_selected)
+                            let style_applied = getApiaryFeatureStyle(status, false)
+
+                            let vacant_selected = vm.apiary_site_being_selected.get('vacant_selected')
+                            if (vacant_selected){
+                                style_applied = vm.style_for_vacant_selected
+                            }
+
                             vm.apiary_site_being_selected.setStyle(style_applied)
                         }
 
@@ -1049,6 +1172,14 @@
                     }
                 });
             },  // End: initMap()
+            get_status_from_feature: function(feature){
+                let status = feature.get("status");
+                let is_vacant = feature.get('is_vacant')
+                if (is_vacant){
+                    status = 'vacant'
+                }
+                return status
+            },
             excludeFeature: function(excludedFeature) {
                 return function(f) {
                     return excludedFeature.getId() != f.getId();
@@ -1083,8 +1214,11 @@
             this.$http.get('/api/apiary_site/list_existing/?proposal_id=' + this.proposal.id)
             .then(
                 res => {
-                    vm.existing_sites_feature_collection = res.body
-                    vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(vm.existing_sites_feature_collection))
+                    console.log('res.body: ')
+                    console.log(res.body)
+
+                    vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
+                    vm.existing_sites_loaded = true
                 },
                 err => {
 
@@ -1094,34 +1228,10 @@
         },
         mounted: function() {
             let vm = this;
-
             this.$nextTick(() => {
                 vm.initMap();
                 vm.addEventListeners();
             });
-
-            // Create feature and add it to the map, then reconstruct table
-            // Don't forget add 'id' field to the feature which is used to determine if it is new feature or not
-
-            for (let i=0; i<vm.proposal.proposal_apiary.apiary_sites.length; i++){
-                 let apiary_site = vm.proposal.proposal_apiary.apiary_sites[i]
-                 console.log('*** apiary site ***')
-                 console.log('apiary site')
-
-                 //let feature = new Feature(new Point([apiary_site.coordinates.lng, apiary_site.coordinates.lat]));
-                 //feature.setId(apiary_site.site_guid);
-                 //feature.id = apiary_site.id
-                 //feature.set("source", "form");
-                 //feature.set("site_category", apiary_site.site_category)
-                 //this.drawingLayerSource.addFeature(feature);
-
-                 let feature = (new GeoJSON).readFeature(apiary_site.as_geojson)
-                 this.drawingLayerSource.addFeature(feature)
-
-                 this.createBufferForSite(feature);
-            }
-
-            this.constructSiteLocationsTable();
         }
     }
 </script>

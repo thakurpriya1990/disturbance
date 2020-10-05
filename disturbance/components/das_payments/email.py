@@ -8,6 +8,7 @@ from django.conf import settings
 from disturbance.components.emails.emails import TemplateEmailBase
 from disturbance.components.das_payments.invoice_pdf import create_invoice_pdf_bytes
 from disturbance.components.das_payments.confirmation_pdf import create_confirmation_pdf_bytes
+from disturbance.context_processors import apiary_url
 
 logger = logging.getLogger(__name__)
 

@@ -1,11 +1,12 @@
-from django.conf import settings
 from ledger.accounts.models import EmailUser,Address
 
 from disturbance.components.approvals.models import (
     Approval,
     ApprovalLogEntry,
-    ApprovalUserAction
+    ApprovalUserAction, ApiarySiteOnApproval
 )
+from disturbance.components.approvals.serializers_apiary import ApiarySiteOnApprovalLicenceDocSerializer, \
+    ApiarySiteOnApprovalGeometrySerializer
 from disturbance.components.das_payments.models import AnnualRentalFeePeriod, AnnualRentalFee
 from disturbance.components.das_payments.serializers import AnnualRentalFeeSerializer, AnnualRentalFeePeriodSerializer
 from disturbance.components.organisations.models import (
@@ -16,10 +17,7 @@ from rest_framework import serializers
 
 from disturbance.components.proposals.serializers_apiary import (
     ApplicantAddressSerializer,
-    ApiarySiteSerializer,
-    ApiaryProposalRequirementSerializer, 
-    ApiarySiteExportSerializer,
-    ApiarySiteLicenceDocSerializer,
+    ApiaryProposalRequirementSerializer,
 )
 
 
@@ -75,15 +73,23 @@ class ApprovalSerializerForLicenceDoc(serializers.ModelSerializer):
 
     def get_apiary_sites(self, approval):
         ret_array = []
-        if not approval.current_proposal.approval:
-            # Customer does not yet have a licence
-            for apiary_site in approval.current_proposal.proposal_apiary.apiary_sites.all():
-                serializer = ApiarySiteLicenceDocSerializer(apiary_site)
-                ret_array.append(serializer.data)
-        else:
-            for apiary_site in approval.current_proposal.approval.apiary_sites.all():
-                serializer = ApiarySiteLicenceDocSerializer(apiary_site)
-                ret_array.append(serializer.data)
+
+        # if not approval.current_proposal.approval:
+        #     apiary_site_on_proposals = approval.current_proposal.proposal_apiary.get_relations()
+        #     for relation in apiary_site_on_proposals:
+        #         serializer = ApiarySiteOnProposalLicenceDocSerializer(relation)
+        #         ret_array.append(serializer.data)
+        # else:
+        #     apiary_site_on_approvals = approval.get_relations()
+        #     for relation in apiary_site_on_approvals:
+        #         serializer = ApiarySiteOnApprovalLicenceDocSerializer(relation)
+        #         ret_array.append(serializer.data)
+
+        apiary_site_on_approvals = approval.get_relations()
+        for relation in apiary_site_on_approvals:
+            serializer = ApiarySiteOnApprovalLicenceDocSerializer(relation)
+            ret_array.append(serializer.data)
+
         return ret_array
 
     def get_requirements(self, approval):
@@ -144,7 +150,8 @@ class ApprovalSerializer(serializers.ModelSerializer):
     applicant_first_name = serializers.SerializerMethodField()
     applicant_last_name = serializers.SerializerMethodField()
     applicant_address = serializers.SerializerMethodField()
-    apiary_sites = ApiarySiteSerializer(many=True, read_only=True)
+    # apiary_sites = ApiarySiteSerializer(many=True, read_only=True)
+    apiary_sites = serializers.SerializerMethodField()
     annual_rental_fee_periods = serializers.SerializerMethodField()
     latest_apiary_licence_document = serializers.SerializerMethodField()
     apiary_licence_document_history = serializers.SerializerMethodField()
@@ -243,6 +250,12 @@ class ApprovalSerializer(serializers.ModelSerializer):
             'template_group',
         )
 
+    def get_apiary_sites(self, approval):
+        ret = []
+        for relation in approval.get_relations():
+            ret.append(ApiarySiteOnApprovalGeometrySerializer(relation).data)
+        return ret
+
     def get_activity(self, approval):
         activity_text = None
         if approval.apiary_approval:
@@ -288,7 +301,10 @@ class ApprovalSerializer(serializers.ModelSerializer):
         return history
 
     def get_latest_apiary_licence_document(self, obj):
-        return obj.documents.order_by('-uploaded_date')[0]._file.url
+        url = ''
+        if obj.documents.order_by('-uploaded_date'):
+            url = obj.documents.order_by('-uploaded_date')[0]._file.url
+        return url
 
     def get_application_type(self,obj):
         if obj.current_proposal.application_type:
@@ -380,6 +396,7 @@ class DTApprovalSerializer(serializers.ModelSerializer):
     region = serializers.CharField(source='current_proposal.region')
     activity = serializers.SerializerMethodField(read_only=True)
     title = serializers.CharField(source='current_proposal.title')
+    renewal_document = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Approval
@@ -422,7 +439,13 @@ class DTApprovalSerializer(serializers.ModelSerializer):
         return self.context.get('template_group')
 
     def get_latest_apiary_licence_document(self, obj):
-        return obj.documents.order_by('-uploaded_date')[0]._file.url
+        url = ''
+        if obj.documents.order_by('-uploaded_date'):
+            url = obj.documents.order_by('-uploaded_date')[0]._file.url
+        return url
+
+    #def get_latest_apiary_licence_document(self, obj):
+     #   return obj.documents.order_by('-uploaded_date')[0]._file.url
 
     def get_renewal_document(self,obj):
         if obj.relevant_renewal_document and obj.relevant_renewal_document._file:
@@ -430,6 +453,7 @@ class DTApprovalSerializer(serializers.ModelSerializer):
         return None
 
     def get_can_approver_reissue(self,obj):
+        #import ipdb;ipdb.set_trace()
         # Check if currently logged in user has access to process the proposal
         request = self.context['request']
         user = request.user
@@ -460,20 +484,24 @@ class ApprovalCancellationSerializer(serializers.Serializer):
     cancellation_date = serializers.DateField(input_formats=['%d/%m/%Y'])
     cancellation_details = serializers.CharField()
 
+
 class ApprovalSuspensionSerializer(serializers.Serializer):
     from_date = serializers.DateField(input_formats=['%d/%m/%Y'])
     to_date = serializers.DateField(input_formats=['%d/%m/%Y'], required=False, allow_null=True)
     suspension_details = serializers.CharField()
 
+
 class ApprovalSurrenderSerializer(serializers.Serializer):
     surrender_date = serializers.DateField(input_formats=['%d/%m/%Y'])
     surrender_details = serializers.CharField()
+
 
 class ApprovalUserActionSerializer(serializers.ModelSerializer):
     who = serializers.CharField(source='who.get_full_name')
     class Meta:
         model = ApprovalUserAction
         fields = '__all__'
+
 
 class ApprovalLogEntrySerializer(CommunicationLogEntrySerializer):
     documents = serializers.SerializerMethodField()
@@ -486,3 +514,5 @@ class ApprovalLogEntrySerializer(CommunicationLogEntrySerializer):
 
     def get_documents(self,obj):
         return [[d.name,d._file.url] for d in obj.documents.all()]
+
+
