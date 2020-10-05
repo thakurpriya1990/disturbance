@@ -491,20 +491,20 @@ def create_renewal_doc(approval,proposal):
 
     return document
 
-def create_apiary_renewal_doc(approval,proposal):
-    #import ipdb; ipdb.set_trace()
+
+def create_apiary_renewal_doc(approval, proposal):
     renewal_buffer = BytesIO()
 
     _create_renewal(renewal_buffer, approval, proposal)
     filename = 'renewal-{}-{}.pdf'.format(approval.lodgement_number, proposal.lodgement_number)
-    #filename = 'renewal-{}.pdf'.format(approval.id)
     from disturbance.components.approvals.models import RenewalDocument
-    document = RenewalDocument.objects.create(approval=approval,name=filename)
+    document = RenewalDocument.objects.create(approval=approval, name=filename, for_expiry_date=approval.expiry_date)
     document._file.save(filename, File(renewal_buffer), save=True)
 
     renewal_buffer.close()
 
     return document
+
 
 def _create_renewal(renewal_buffer, approval, proposal):
     site_url = settings.SITE_URL

@@ -63,6 +63,7 @@ class RenewalDocument(Document):
     approval = models.ForeignKey('Approval',related_name='renewal_documents')
     _file = models.FileField(upload_to=update_approval_doc_filename)
     can_delete = models.BooleanField(default=True) # after initial submit prevent document from being deleted
+    for_expiry_date = models.DateField()  # An apiary approval could have multiple renewal documents.  Therefore we need to distinguish each renewal document from the others
 
     def delete(self):
         if self.can_delete:
@@ -352,12 +353,14 @@ class Approval(RevisionedMixin):
         self.current_proposal.save(version_comment='Created Approval PDF: {}'.format(self.licence_document.name))
 
     def generate_renewal_doc(self):
-        #import ipdb; ipdb.set_trace()
         from disturbance.components.approvals.pdf import create_renewal_doc, create_apiary_renewal_doc
         if self.apiary_approval:
-            self.apiary_renewal_document = create_apiary_renewal_doc(self,self.current_proposal)
-            self.save(version_comment='Created Approval PDF: {}'.format(self.apiary_renewal_document.name))
-            self.current_proposal.save(version_comment='Created Approval PDF: {}'.format(self.apiary_renewal_document.name))
+            # self.apiary_renewal_document = create_apiary_renewal_doc(self,self.current_proposal)
+            # self.save(version_comment='Created Approval PDF: {}'.format(self.apiary_renewal_document.name))
+            # self.current_proposal.save(version_comment='Created Approval PDF: {}'.format(self.apiary_renewal_document.name))
+            doc = create_apiary_renewal_doc(self, self.current_proposal)
+            self.save(version_comment='Created Approval PDF: {}'.format(doc.name))
+            self.current_proposal.save(version_comment='Created Approval PDF: {}'.format(doc.name))
         else:
             self.renewal_document = create_renewal_doc(self,self.current_proposal)
             self.save(version_comment='Created Approval PDF: {}'.format(self.renewal_document.name))
