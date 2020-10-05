@@ -12,7 +12,7 @@ from django.contrib.gis.db.models.manager import GeoManager
 from ledger.accounts.models import EmailUser, RevisionedMixin
 from disturbance.components.approvals.pdf import create_approval_document
 from disturbance.components.organisations.models import Organisation
-from disturbance.components.proposals.models import Proposal, ProposalUserAction, ApiarySite
+from disturbance.components.proposals.models import Proposal, ProposalUserAction, ApiarySite, ApiarySiteOnProposal
 from disturbance.components.main.models import CommunicationsLogEntry, UserAction, Document
 from disturbance.components.approvals.email import (
     send_approval_expire_email_notification,
@@ -22,7 +22,8 @@ from disturbance.components.approvals.email import (
     send_approval_surrender_email_notification
 )
 from disturbance.doctopdf import create_apiary_licence_pdf_contents
-from disturbance.settings import SITE_STATUS_CURRENT, SITE_STATUS_NOT_TO_BE_REISSUED
+from disturbance.settings import SITE_STATUS_CURRENT, SITE_STATUS_NOT_TO_BE_REISSUED, SITE_STATUS_SUSPENDED, \
+    SITE_STATUS_TRANSFERRED
 from disturbance.utils import search_keys, search_multiple_keys
 from disturbance.helpers import is_customer
 from django_countries.fields import CountryField
@@ -77,7 +78,7 @@ class ApiarySiteOnApproval(models.Model):
     approval = models.ForeignKey('Approval',)
     available = models.BooleanField(default=False)
     site_status = models.CharField(default=SITE_STATUS_CURRENT, max_length=20)
-    site_available = models.BooleanField(default=False)
+    # site_available = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
     wkb_geometry = PointField(srid=4326, blank=True, null=True)  # store approved coordinates
@@ -85,7 +86,7 @@ class ApiarySiteOnApproval(models.Model):
     objects = GeoManager()
 
     def __str__(self):
-        return 'id:{}: apiary_site: {}, approval: {}'.format(self.id, self.apiary_site.id, self.approval.id)
+        return 'id:{}: (apiary_site: {}, approval: {})'.format(self.id, self.apiary_site.id, self.approval.id)
 
     class Meta:
         app_label = 'disturbance'
@@ -140,8 +141,26 @@ class Approval(RevisionedMixin):
         app_label = 'disturbance'
         unique_together = ('lodgement_number', 'issue_date')
 
+    def add_apiary_sites_to_proposal_apiary_for_renewal(self, proposal_apiary):
+        for apiary_site in self.apiary_sites.all():  # Exclude just in case there is.
+            relation = self.get_relation(apiary_site)
+            ApiarySiteOnProposal.objects.create(
+                apiary_site=apiary_site,
+                proposal_apiary=proposal_apiary,
+                wkb_geometry_draft=relation.wkb_geometry,
+                site_category_draft=relation.site_category,
+                for_renewal=True,
+            )
+
+    def get_relation(self, apiary_site):
+        if isinstance(apiary_site, dict):
+            apiary_site = ApiarySite.objects.get(id=apiary_site.get('id'))
+        relation_obj = ApiarySiteOnApproval.objects.get(apiary_site=apiary_site, approval=self)
+        return relation_obj
+
     def get_relations(self):
-        relation_objs = ApiarySiteOnApproval.objects.filter(apiary_site__in=self.apiary_sites.all(), approval=self)
+        # relation_objs = ApiarySiteOnApproval.objects.filter(apiary_site__in=self.apiary_sites.all(), approval=self)
+        relation_objs = ApiarySiteOnApproval.objects.filter(apiary_site__in=self.apiary_sites.all(), approval=self).exclude(site_status=SITE_STATUS_TRANSFERRED)
         return relation_objs
 
     @property
@@ -273,10 +292,12 @@ class Approval(RevisionedMixin):
                     'previous_application': self.current_proposal,
                     'proposal_type': 'renewal'
                     }
-            proposal=Proposal.objects.get(**renew_conditions)
+            proposal = Proposal.objects.get(**renew_conditions)
             if proposal:
+                # Proposal for the renewal already exists.
                 return False
         except Proposal.DoesNotExist:
+            # Proposal for the renewal doesn't exit
             return True
 
     @property
