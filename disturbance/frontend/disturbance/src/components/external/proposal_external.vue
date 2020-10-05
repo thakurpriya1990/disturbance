@@ -275,6 +275,9 @@ export default {
           return (this.proposal) ? `/api/proposal/${this.proposal.id}/submit.json` : '';
           //return this.submit();
         },
+        remove_apiary_site_url: function() {
+          return (this.proposal) ? `/api/proposal/${this.proposal.id}/remove_apiary_site.json` : '';
+        },
         //submit_button_text: function() {
         //    if (!this.proposal.fee_paid && this.proposal.application_type=='Apiary') {
         //        return 'Pay and submit'
@@ -423,7 +426,13 @@ export default {
                     }
                 },
                 err=>{
-                    helpers.processError(err)
+                    console.log('err')
+                    console.log(err)
+                    if(err.body.type && err.body.type[0] === 'site_no_longer_available'){
+                        vm.display_site_no_longer_available_modal(err)
+                    } else {
+                        helpers.processError(err)
+                    }
                 }
             );
         },
@@ -717,10 +726,45 @@ export default {
                 formData.append('apiary_sites_local', JSON.stringify(this.$refs.apiary_site_transfer.apiary_sites_local));
             }
 
-            vm.$http.post(vm.proposal_submit_url,formData).then(res=>{
-                /* after the above save, redirect to the Django post() method in ApplicationFeeView */
-                vm.post_and_redirect(vm.application_fee_url, {'csrfmiddlewaretoken' : vm.csrf_token});
-            },err=>{
+            vm.$http.post(vm.proposal_submit_url, formData).then(
+                res=>{
+                    /* after the above save, redirect to the Django post() method in ApplicationFeeView */
+                    vm.post_and_redirect(vm.application_fee_url, {'csrfmiddlewaretoken' : vm.csrf_token});
+                },
+                err=>{
+                    if (err.body.type[0] === 'site_no_longer_available'){
+                        vm.display_site_no_longer_available_modal(err)
+                    } else {
+                        helpers.processError(err)
+                    }
+                }
+            );
+        },
+        display_site_no_longer_available_modal: function(err){
+            let vm = this
+            let apiary_site_id = err.body.apiary_site_id[0]
+
+            swal({
+                title: "Vacant site no longer available",
+                text: err.body.message[0],
+                type: "warning",
+                confirmButtonText: 'Remove the site from the application',
+                allowOutsideClick: false
+            }).then(function(){
+                console.log('confirmed')
+                vm.$refs.proposal_apiary.remove_apiary_site(apiary_site_id)
+                console.log('confirmed2')
+                // vm.save(false) 
+                vm.$http.post(vm.remove_apiary_site_url, {'apiary_site_id': apiary_site_id}).then(
+                    res => {
+                        console.log('res')
+                        console.log(res);
+                    },
+                    err => {
+                        console.log('err')
+                        console.log(err);
+                    },
+                )
             });
         },
         post_and_redirect: function(url, postData) {
