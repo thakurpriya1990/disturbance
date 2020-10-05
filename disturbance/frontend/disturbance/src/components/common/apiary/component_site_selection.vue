@@ -209,8 +209,10 @@
                             // Site
                             visible: vm.show_col_site,
                             mRender: function (data, type, apiary_site) {
-                                let fillColour = SiteColours[apiary_site.status.id].fill
-                                let strokeColour = SiteColours[apiary_site.status.id].stroke
+                                console.log('aho')
+                                console.log(apiary_site)
+                                let fillColour = SiteColours[apiary_site.properties.status].fill
+                                let strokeColour = SiteColours[apiary_site.properties.status].stroke
                                 return '<svg height="20" width="20">' +
                                             '<circle cx="10" cy="10" r="6" stroke="' + strokeColour + '" stroke-width="2" fill="' + fillColour + '" />' +
                                        '</svg> site: ' + apiary_site.id
@@ -241,22 +243,19 @@
                             // Status
                             visible: vm.show_col_status,
                             mRender: function (data, type, apiary_site){
-                                return apiary_site.status.name
+                                return apiary_site.properties.status
                             }
                         },
                         {
                             // Previous Site Holder/Applicant
                             visible: vm.show_col_previous_site_holder,
                             mRender: function (data, type, apiary_site){
-                                return apiary_site.previous_site_holder_or_applicant
+                                return apiary_site.properties.previous_site_holder_or_applicant
                             }
                         },
                         {
                             // Action
                             mRender: function (data, type, apiary_site) {
-                                //let ret = '<a><span class="view_on_map" data-apiary-site-id="' + apiary_site.id + '"/>View on Map</span></a>';
-                                //return ret;
-
                                 let action_list = []
 
                                 // View on map
@@ -266,17 +265,19 @@
                                 if (vm.show_action_available_unavailable){
                                     // Mark as Available/Unavailable
                                     let display_text = ''
-                                    if (vm.is_external && ['Current', 'current'].includes(apiary_site.status.id)){
-                                        if (apiary_site.available){
+                                    //if (vm.is_external && ['Current', 'current'].includes(apiary_site.status.id)){
+                                    if (vm.is_external && ['Current', 'current'].includes(apiary_site.properties.status)){
+                                        if (apiary_site.properties.available){
                                             display_text = 'Mark as unavailable';
                                         } else {
                                             display_text = 'Mark as available';
                                         }
                                         let ret = '<a><span class="toggle_availability" data-apiary-site-id="' + apiary_site.id +
-                                            '" data-apiary-site-available="' + apiary_site.available + '"/>' + display_text + '</span></a>';
+                                            '" data-apiary-site-available="' + apiary_site.properties.available + '"/>' + display_text + '</span></a>';
                                         action_list.push(ret);
-                                    } else if (vm.is_internal && ['Current', 'current'].includes(apiary_site.status.id)){
-                                        if (apiary_site.available){
+                                    //} else if (vm.is_internal && ['Current', 'current'].includes(apiary_site.status.id)){
+                                    } else if (vm.is_internal && ['Current', 'current'].includes(apiary_site.properties.status)){
+                                        if (apiary_site.properties.available){
                                             display_text = 'Available';
                                         } else {
                                             display_text = 'Unavailable';
@@ -323,13 +324,10 @@
         },
         methods: {
             testEvent: function(e){
-                console.log('in testEvent')
-                console.log(e)
                 if (e.target.tagName === "A"){
                     let spans = e.target.getElementsByTagName('span')
                     if (spans.length == 1){
                         let className = spans[0].className
-                        console.log(className)
                         switch(className){
                             case 'view_on_map':
                                 this.zoomOnApiarySite(e)
@@ -351,6 +349,7 @@
                 this.$emit('featureGeometryUpdated', feature)
             },
             updateTableByFeatures: function(features) {
+
                 // Generate a list of the feature ids displayed on the map
                 let ids = $.map(features, function(feature){
                     return feature.id_
@@ -365,7 +364,6 @@
                 this.constructApiarySitesTable(apiary_sites_filtered)
             },
             ensureCheckedStatus: function() {
-                console.log('in ensureCheckedStatus')
                 if (this.apiary_sites.length > 0){
                     for(let i=0; i<this.apiary_sites.length; i++){
                         if (!this.apiary_sites[i].hasOwnProperty('checked')){
@@ -375,7 +373,6 @@
                 }
             },
             forceToRefreshMap: function() {
-                console.log('forceToRefreshMap in component_site_selection.vue')
                 if (this.$refs.component_map){
                     this.$refs.component_map.forceToRefreshMap()
                 }
@@ -386,32 +383,19 @@
                 }
             },
             addApiarySitesToMap: function(apiary_sites) {
-                console.log('in addApiarySitesToMap')
                 for (let i=0; i<apiary_sites.length; i++){
-                    console.log(apiary_sites[i])
                     if (apiary_sites[i].hasOwnProperty('checked')){
                         //apiary_sites[i].as_geojson['properties']['checked'] = apiary_sites[i].checked
-                        apiary_sites[i].as_geojson.properties.checked = apiary_sites[i].checked
+                        //apiary_sites[i].as_geojson.properties.checked = apiary_sites[i].checked
+                        apiary_sites[i].properties.checked = apiary_sites[i].checked
                     }
-                    this.apiary_site_geojson_array.push(apiary_sites[i].as_geojson)
+                    //this.apiary_site_geojson_array.push(apiary_sites[i].as_geojson)
+                    this.apiary_site_geojson_array.push(apiary_sites[i])
                 }
 
                 // Reload ComponentMap by assigning a new key value
                 this.component_map_key = uuid()
             },
-            //constructApiarySitesTable: function() {
-            //    if (this.$refs.table_apiary_site){
-            //        // Clear table
-            //        this.$refs.table_apiary_site.vmDataTable.clear().draw();
-
-            //        // Construct table
-            //        if (this.apiary_sites.length > 0){
-            //            for(let i=0; i<this.apiary_sites.length; i++){
-            //                this.addApiarySiteToTable(this.apiary_sites[i]);
-            //            }
-            //        }
-            //    }
-            //},
             constructApiarySitesTable: function(apiary_sites) {
                 if (this.$refs.table_apiary_site){
                     // Clear table
@@ -440,7 +424,8 @@
                 // Update internal apiary_site data
                 for (let i=0; i<this.apiary_sites.length; i++){
                     if (this.apiary_sites[i].id == site_updated.id){
-                        this.apiary_sites[i].available = site_updated.available
+                        //this.apiary_sites[i].available = site_updated.properties.available
+                        this.apiary_sites[i] = site_updated
                     }
                 }
             },
@@ -472,7 +457,6 @@
                 e.stopPropagation()
             },
             contactLicenceHolder: function(e){
-                console.log('in contactLicenceHolder')
                 let vm = this;
                 //let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
                 let apiary_site_id = this.getApiarySiteIdFromEvent(e)
@@ -481,8 +465,6 @@
                 e.stopPropagation()
             },
             makeVacantClicked: function(e) {
-                console.log('in makeVacantClicked')
-                console.log(e)
                 let vm = this;
                 //let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
                 let apiary_site_id = this.getApiarySiteIdFromEvent(e)
@@ -498,9 +480,6 @@
                     () => {
                         vm.$http.patch('/api/apiary_site/' + apiary_site_id + '/', { 'status': 'vacant' }).then(
                             async function(accept){
-                                // Update the site in the table
-                                let site_updated = accept.body
-
                                 // Remove the row from the table
                                 $(e.target).closest('tr').fadeOut('slow', function(){
                                     // Remove the site table which the table is based on
@@ -521,12 +500,10 @@
                         );
                     },
                     err => {
-                        console.log(err)
                     }
                 );
             },
             toggleAvailability: function(e) {
-                console.log('in toggleAvailability')
                 let vm = this;
                 //let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
                 let apiary_site_id = this.getApiarySiteIdFromEvent(e)
@@ -553,7 +530,6 @@
                 );
             },
             zoomOnApiarySite: function(e) {
-                console.log('in zoomOnApiarySite')
                 //let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
                 let apiary_site_id = this.getApiarySiteIdFromEvent(e)
                 this.$refs.component_map.zoomToApiarySiteById(apiary_site_id)
@@ -567,10 +543,16 @@
                 return apiary_site_id
             },
             getApiarySiteAvailableFromEvent(e){
+                console.log(e)
                 let apiary_site_available = e.target.getAttribute("data-apiary-site-available");
+
                 if (!(apiary_site_available)){
                     apiary_site_available = e.target.getElementsByTagName('span')[0].getAttribute('data-apiary-site-available')
                 }
+
+                console.log('apiary_site_available: ')
+                console.log(apiary_site_available)
+
                 return apiary_site_available
             }
         },

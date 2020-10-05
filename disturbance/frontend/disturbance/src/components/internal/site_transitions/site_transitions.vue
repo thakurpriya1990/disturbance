@@ -1,21 +1,24 @@
 <template>
     <div class="container"> 
-        <ComponentSiteSelection
-            :apiary_sites="apiary_sites"
-            :is_internal="true"
-            :is_external="false"
-            :show_col_checkbox="false"
-            :show_action_available_unavailable="false"
-            :show_col_status="true"
-            :show_col_previous_site_holder="true"
-            :show_action_make_vacant="true"
-            :key="component_site_selection_key"
-            @apiary_sites_updated="apiarySitesUpdated"
-        />
+        <FormSection :formCollapse="false" label="Site(s)" Index="site_avaiability">
+            <ComponentSiteSelection
+                :apiary_sites="apiary_sites"
+                :is_internal="true"
+                :is_external="false"
+                :show_col_checkbox="false"
+                :show_action_available_unavailable="false"
+                :show_col_status="true"
+                :show_col_previous_site_holder="true"
+                :show_action_make_vacant="true"
+                :key="component_site_selection_key"
+                @apiary_sites_updated="apiarySitesUpdated"
+            />
+        </FormSection>
     </div>
 </template>
 
 <script>
+    import FormSection from "@/components/forms/section_toggle.vue"
     import ComponentSiteSelection from '@/components/common/apiary/component_site_selection.vue'
     import uuid from 'uuid'
     import Vue from 'vue'
@@ -30,6 +33,7 @@
         },
         components: {
             ComponentSiteSelection,
+            FormSection,
         },
         props: {
 
@@ -48,9 +52,7 @@
                 let vm = this
 
                 Vue.http.get('/api/apiary_site/transitable_sites/').then(re => {
-                    console.log(re.body)
-
-                    vm.apiary_sites = re.body
+                    vm.apiary_sites = re.body.features
                     this.component_site_selection_key = uuid()
 
                     ////let temp_use = re.body.apiary_temporary_use

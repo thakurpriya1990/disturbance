@@ -116,7 +116,7 @@ class ApiaryApproverGroupAdmin(admin.ModelAdmin):
 
 @admin.register(models.ProposalStandardRequirement)
 class ProposalStandardRequirementAdmin(admin.ModelAdmin):
-    list_display = ['code','text','obsolete']
+    list_display = ['code','text','system','obsolete']
 
 
 @admin.register(models.HelpPage)

@@ -96,7 +96,6 @@ class OrganisationSerializer(serializers.ModelSerializer):
                     'phone_number',
                     'pins',
                     'delegates',
-                    'template_group',
                 )
 
     def get_pins(self,obj):
@@ -201,7 +200,12 @@ class OrganisationRequestSerializer(serializers.ModelSerializer):
     class Meta:
         model = OrganisationRequest
         fields = '__all__'
-        read_only_fields = ('requester','lodgement_date','assigned_officer')
+        read_only_fields = (
+                'requester',
+                'lodgement_date',
+                'assigned_officer',
+                'template_group',
+                )
 
     def get_status(self,obj):
         return obj.get_status_display()

@@ -10,6 +10,7 @@ from django.core.exceptions import ValidationError
 from ledger.accounts.models import EmailUser, Document, RevisionedMixin
 from django.contrib.postgres.fields.jsonb import JSONField
 
+
 @python_2_unicode_compatible
 class Region(models.Model):
     name = models.CharField(max_length=200, unique=True)
@@ -57,6 +58,17 @@ class RegionDbca(models.Model):
 
     class Meta:
         ordering = ['object_id',]
+        app_label = 'disturbance'
+
+
+class CategoryDbca(models.Model):
+    '''
+    This model is used for defining the categories
+    '''
+    wkb_geometry = MultiPolygonField(srid=4326, blank=True, null=True)
+    category_name = models.CharField(max_length=20, blank=True, null=True)
+
+    class Meta:
         app_label = 'disturbance'
 
 

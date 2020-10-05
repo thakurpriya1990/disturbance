@@ -121,6 +121,7 @@ PUBLIC_URL=env('PUBLIC_URL', SITE_URL)
 DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', 'no-reply@' + SITE_DOMAIN).lower()
 ADMIN_GROUP = env('ADMIN_GROUP', 'Disturbance Admin')
 APIARY_ADMIN_GROUP = 'Apiary Admin'
+DAS_APIARY_ADMIN_GROUP = 'DAS-Apiary Admin'
 CRON_EMAIL = env('CRON_EMAIL', 'cron@' + SITE_DOMAIN).lower()
 TENURE_SECTION = env('TENURE_SECTION', None)
 ASSESSMENT_REMINDER_DAYS = env('ASSESSMENT_REMINDER_DAYS', 15)
@@ -153,3 +154,15 @@ DBCA_ABN = '38 052 249 024'
 if env('CONSOLE_EMAIL_BACKEND', False):
    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
+
+SITE_STATUS_DRAFT = 'draft'
+SITE_STATUS_PENDING = 'pending'
+SITE_STATUS_APPROVED = 'approved'
+SITE_STATUS_DENIED = 'denied'
+SITE_STATUS_CURRENT = 'current'
+SITE_STATUS_NOT_TO_BE_REISSUED = 'not_to_be_reissued'
+SITE_STATUS_SUSPENDED = 'suspended'
+SITE_STATUS_TRANSFERRED = 'transferred'
+SITE_STATUS_VACANT = 'vacant'
+
+COASTLINE_VALIDATION = False

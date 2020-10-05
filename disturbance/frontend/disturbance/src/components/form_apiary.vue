@@ -364,6 +364,9 @@
             num_of_sites_remain_remote_renewal: function(value){
                 this.$emit('num_of_sites_remain_remote_renewal', value)
             },
+            remove_apiary_site: function(apiary_site_id){
+                this.$refs.apiary_site_locations.removeApiarySiteById(apiary_site_id)
+            },
             /*
             getChecklistAnswers: function() {
                 let vm = this;

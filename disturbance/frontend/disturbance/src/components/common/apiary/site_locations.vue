@@ -286,15 +286,24 @@
                             // Category
                             mRender: function (data, type, feature) {
                                 let cat = feature.get('site_category')
-                                cat = cat.replace('_', ' ')
-                                return cat.replace(/\w\S*/g, function(txt){return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();});
+                                if (cat){
+                                    cat = cat.replace('_', ' ')
+                                    return cat.replace(/\w\S*/g, function(txt){return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();});
+                                } else {
+                                    return '---'
+                                }
                             }
                         },
                         {
                             // Vacant
                             mRender: function (data, type, feature) {
+                                console.log('in mRender for Vacant')
+                                console.log(feature)
+
                                 let my_status = feature.get('status')
-                                if(my_status === 'vacant'){
+                                let is_vacant = feature.get('is_vacant')
+                                if(my_status === 'vacant' || is_vacant === true){
+                                    // Once saved, 'vacant' site status gets 'draft' therefore we have to check another attribute 'is_vacant', too
                                     return '<i class="fa fa-check" aria-hidden="true"></i>'
                                 }
                                 return ''
@@ -547,7 +556,7 @@
                 for (let i=0; i<vm.proposal.proposal_apiary.apiary_sites.length; i++){
                      let apiary_site = vm.proposal.proposal_apiary.apiary_sites[i]
 
-                    if (apiary_site.status.id === 'vacant'){
+                    if (apiary_site.properties.status === 'vacant'){
                         // apiary_site is 'vacant' site
                         let feature = vm.apiarySitesQuerySource.getFeatureById(apiary_site.id)
                         // Set new attribute to apply a specific style for the 'vacant' selected site
@@ -555,7 +564,7 @@
 
                         vm.drawingLayerSource.addFeature(feature);
                     } else {
-                        let feature = (new GeoJSON).readFeature(apiary_site.as_geojson)
+                        let feature = (new GeoJSON).readFeature(apiary_site)
                         this.drawingLayerSource.addFeature(feature)
                         this.createBufferForSite(feature);
                     }
@@ -563,13 +572,10 @@
                 this.constructSiteLocationsTable();
             },
             is_feature_new_or_existing: function(feature){
-                let status = feature.get('status')
-                if (!status || status === 'draft'){
-                    // status is null when new apiary site is added but not saved yet
-                    return 'new'
-                } else {
-                    // status should have the status other than 'draft' status
+                if (feature.get('for_renewal')){
                     return 'existing'
+                } else {
+                    return 'new'
                 }
             },
             showPopup: function(feature){
@@ -674,10 +680,16 @@
                 this.bufferLayerSource.removeFeature(buffer);
             },
             apiaryStyleFunction: function(feature) {
-                var status = feature.get("status");
+                console.log('in apiaryStyleFunction')
+                console.log(feature)
+
+                let status = this.get_status_from_feature(feature)
                 return getApiaryFeatureStyle(status);
             },
             apiaryStyleFunctionExisting: function(feature){
+                console.log('in apiaryStyleFunctionExisting')
+                console.log(feature)
+
                 let vacant_selected = feature.get('vacant_selected')
                 if (vacant_selected){
                     return this.style_for_vacant_selected
@@ -838,11 +850,17 @@
                 let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
                 this.zoomToApiarySiteById(apiary_site_id)
             },
-            removeSiteLocation: function(e){
-                console.log('in removeSiteLocation')
+            removeApiarySiteById: function(apiary_site_id){
+                let myFeature = this.drawingLayerSource.getFeatureById(apiary_site_id)
+                this.deleteApiarySite(myFeature)
 
-                let site_location_guid = e.target.getAttribute("data-site-location-guid");
-                let myFeature = this.drawingLayerSource.getFeatureById(site_location_guid)
+                // TODO: remove a row
+                this.constructSiteLocationsTable()
+            },
+            deleteApiarySite: function(myFeature){
+                console.log('in deleteApiarySite()')
+                console.log(myFeature)
+
                 let site_category = myFeature.get('site_category')
 
                 let new_or_existing = this.is_feature_new_or_existing(myFeature)
@@ -871,6 +889,44 @@
                 }
                 // Remove vacant_selected attribute from the feature
                 myFeature.unset('vacant_selected')
+
+                // Remove the row from the table
+                //$(e.target).closest('tr').fadeOut('slow', function(){ })
+            },
+            removeSiteLocation: function(e){
+                console.log('in removeSiteLocation')
+
+                let site_location_guid = e.target.getAttribute("data-site-location-guid");
+                let myFeature = this.drawingLayerSource.getFeatureById(site_location_guid)
+                this.deleteApiarySite(myFeature)
+                //let site_category = myFeature.get('site_category')
+
+                //let new_or_existing = this.is_feature_new_or_existing(myFeature)
+                //if (new_or_existing === 'new'){
+                //    if (site_category === 'south_west'){
+                //        this.num_of_sites_south_west_applied -= 1
+                //    } else {
+                //        this.num_of_sites_remote_applied -= 1
+                //    }
+                //} 
+                //if (new_or_existing === 'existing'){
+                //    if (site_category === 'south_west'){
+                //        this.num_of_sites_south_west_renewal_applied -= 1
+                //    } else {
+                //        this.num_of_sites_remote_renewal_applied -= 1
+                //    }
+                //}
+
+                //let myFeatureStatus = myFeature.get('status')
+                //if (myFeatureStatus && myFeatureStatus != 'draft'){
+                //    this.drawingLayerSource.removeFeature(myFeature);
+                //} else {
+                //    // Remove buffer
+                //    this.removeBufferForSite(myFeature)
+                //    this.drawingLayerSource.removeFeature(myFeature);
+                //}
+                //// Remove vacant_selected attribute from the feature
+                //myFeature.unset('vacant_selected')
 
                 // Remove the row from the table
                 $(e.target).closest('tr').fadeOut('slow', function(){ })
@@ -1039,10 +1095,15 @@
                         }
                     });
                     modifyTool.on("modifystart", function(attributes){
+                        console.log('in modifystart')
+
                         attributes.features.forEach(function(feature){
+
                         })
                     });
                     modifyTool.on("modifyend", function(attributes){
+                        console.log('in modifyend')
+
                         // this will list all features in layer, not so useful without cross referencing
                         attributes.features.forEach(function(feature){
                             let id = feature.getId();
@@ -1083,7 +1144,7 @@
                     console.log('hoverInteraction')
                     if(evt.selected.length > 0){
                         // Mouse hover in
-                        if(evt.selected[0].get('status') === 'vacant'){
+                        if(evt.selected[0].get('is_vacant') === true){
                             // When mouse hover on the 'vacant' apiary site, temporarily store it 
                             // so that it can be added to the new apiary site application when user clicking.
                             vm.apiary_site_being_selected = evt.selected[0]
@@ -1095,7 +1156,8 @@
                     } else {
                         // Mouse hover out
                         if (vm.apiary_site_being_selected){
-                            let style_applied = getApiaryFeatureStyle(vm.apiary_site_being_selected.get('status'), false)
+                            let status = vm.get_status_from_feature(vm.apiary_site_being_selected)
+                            let style_applied = getApiaryFeatureStyle(status, false)
 
                             let vacant_selected = vm.apiary_site_being_selected.get('vacant_selected')
                             if (vacant_selected){
@@ -1110,6 +1172,14 @@
                     }
                 });
             },  // End: initMap()
+            get_status_from_feature: function(feature){
+                let status = feature.get("status");
+                let is_vacant = feature.get('is_vacant')
+                if (is_vacant){
+                    status = 'vacant'
+                }
+                return status
+            },
             excludeFeature: function(excludedFeature) {
                 return function(f) {
                     return excludedFeature.getId() != f.getId();
@@ -1144,6 +1214,9 @@
             this.$http.get('/api/apiary_site/list_existing/?proposal_id=' + this.proposal.id)
             .then(
                 res => {
+                    console.log('res.body: ')
+                    console.log(res.body)
+
                     vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
                     vm.existing_sites_loaded = true
                 },

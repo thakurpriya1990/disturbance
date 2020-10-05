@@ -12,7 +12,7 @@ from django.contrib.gis.db.models.manager import GeoManager
 from ledger.accounts.models import EmailUser, RevisionedMixin
 from disturbance.components.approvals.pdf import create_approval_document
 from disturbance.components.organisations.models import Organisation
-from disturbance.components.proposals.models import Proposal, ProposalUserAction, ApiarySite
+from disturbance.components.proposals.models import Proposal, ProposalUserAction, ApiarySite, ApiarySiteOnProposal
 from disturbance.components.main.models import CommunicationsLogEntry, UserAction, Document
 from disturbance.components.approvals.email import (
     send_approval_expire_email_notification,
@@ -22,8 +22,15 @@ from disturbance.components.approvals.email import (
     send_approval_surrender_email_notification
 )
 from disturbance.doctopdf import create_apiary_licence_pdf_contents
+from disturbance.settings import SITE_STATUS_CURRENT, SITE_STATUS_NOT_TO_BE_REISSUED, SITE_STATUS_SUSPENDED, \
+    SITE_STATUS_TRANSFERRED
 from disturbance.utils import search_keys, search_multiple_keys
 from disturbance.helpers import is_customer
+from django_countries.fields import CountryField
+
+import logging
+logger = logging.getLogger(__name__)
+
 
 def update_approval_doc_filename(instance, filename):
     return_str = ''
@@ -32,6 +39,7 @@ def update_approval_doc_filename(instance, filename):
     else:
         return_str = 'approvals/{}/documents/{}'.format(instance.approval.id,filename)
     return return_str
+
 
 def update_approval_comms_log_filename(instance, filename):
     return 'approvals/{}/communications/{}/{}'.format(instance.log_entry.approval.id,instance.id,filename)
@@ -50,6 +58,7 @@ class ApprovalDocument(Document):
     class Meta:
         app_label = 'disturbance'
 
+
 class RenewalDocument(Document):
     approval = models.ForeignKey('Approval',related_name='renewal_documents')
     _file = models.FileField(upload_to=update_approval_doc_filename)
@@ -67,8 +76,17 @@ class RenewalDocument(Document):
 class ApiarySiteOnApproval(models.Model):
     apiary_site = models.ForeignKey('ApiarySite',)
     approval = models.ForeignKey('Approval',)
+    available = models.BooleanField(default=False)
+    site_status = models.CharField(default=SITE_STATUS_CURRENT, max_length=20)
+    # site_available = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    modified_at = models.DateTimeField(auto_now=True)
     wkb_geometry = PointField(srid=4326, blank=True, null=True)  # store approved coordinates
+    site_category = models.ForeignKey('SiteCategory', null=True, blank=True,)
     objects = GeoManager()
+
+    def __str__(self):
+        return 'id:{}: (apiary_site: {}, approval: {})'.format(self.id, self.apiary_site.id, self.approval.id)
 
     class Meta:
         app_label = 'disturbance'
@@ -117,11 +135,34 @@ class Approval(RevisionedMixin):
     reissued= models.BooleanField(default=False)
     apiary_approval = models.BooleanField(default=False)
     no_annual_rental_fee_until = models.DateField(blank=True, null=True)
-    beehive_sites = models.ManyToManyField('ApiarySite', through=ApiarySiteOnApproval, related_name='approval_set')
+    apiary_sites = models.ManyToManyField('ApiarySite', through=ApiarySiteOnApproval, related_name='approval_set')
+    migrated = models.BooleanField(default=False)
 
     class Meta:
         app_label = 'disturbance'
-        unique_together= ('lodgement_number', 'issue_date')
+        unique_together = ('lodgement_number', 'issue_date')
+
+    def add_apiary_sites_to_proposal_apiary_for_renewal(self, proposal_apiary):
+        for apiary_site in self.apiary_sites.all():  # Exclude just in case there is.
+            relation = self.get_relation(apiary_site)
+            ApiarySiteOnProposal.objects.create(
+                apiary_site=apiary_site,
+                proposal_apiary=proposal_apiary,
+                wkb_geometry_draft=relation.wkb_geometry,
+                site_category_draft=relation.site_category,
+                for_renewal=True,
+            )
+
+    def get_relation(self, apiary_site):
+        if isinstance(apiary_site, dict):
+            apiary_site = ApiarySite.objects.get(id=apiary_site.get('id'))
+        relation_obj = ApiarySiteOnApproval.objects.get(apiary_site=apiary_site, approval=self)
+        return relation_obj
+
+    def get_relations(self):
+        # relation_objs = ApiarySiteOnApproval.objects.filter(apiary_site__in=self.apiary_sites.all(), approval=self)
+        relation_objs = ApiarySiteOnApproval.objects.filter(apiary_site__in=self.apiary_sites.all(), approval=self).exclude(site_status=SITE_STATUS_TRANSFERRED)
+        return relation_objs
 
     @property
     def relevant_renewal_document(self):
@@ -252,10 +293,12 @@ class Approval(RevisionedMixin):
                     'previous_application': self.current_proposal,
                     'proposal_type': 'renewal'
                     }
-            proposal=Proposal.objects.get(**renew_conditions)
+            proposal = Proposal.objects.get(**renew_conditions)
             if proposal:
+                # Proposal for the renewal already exists.
                 return False
         except Proposal.DoesNotExist:
+            # Proposal for the renewal doesn't exit
             return True
 
     @property
@@ -341,7 +384,6 @@ class Approval(RevisionedMixin):
                     raise
         return copied_data
 
-
     def log_user_action(self, action, request):
        return ApprovalUserAction.log_action(self, action, request.user)
 
@@ -364,22 +406,15 @@ class Approval(RevisionedMixin):
                 raise
 
     def change_apiary_site_status(self, approval_status):
-        for site in self.apiary_sites.all():
-            if approval_status in (Approval.STATUS_CANCELLED, Approval.STATUS_SUSPENDED, Approval.STATUS_SURRENDERED,):
-                site.status = ApiarySite.STATUS_NOT_TO_BE_REISSUED
-            elif approval_status == Approval.STATUS_EXPIRED:
-                site.status = ApiarySite.STATUS_VACANT
-                site.approval = None
-                site.proposal_apiary = None
-                site.available = False
-                site.wkb_geometry_pending = None  # Just to make sure it is None
-                site.wkb_geometry_applied = None  # Just to make sure it is None
-                site.workflow_selected_status = False
-
-            elif approval_status == Approval.STATUS_CURRENT:
-                site.status = ApiarySite.STATUS_CURRENT
-
-            site.save()
+        relations = self.get_relations()
+        if approval_status in (Approval.STATUS_CANCELLED, Approval.STATUS_SUSPENDED, Approval.STATUS_SURRENDERED,):
+            relations.update(site_status=SITE_STATUS_NOT_TO_BE_REISSUED)
+        elif approval_status == Approval.STATUS_EXPIRED:
+            for apiary_site in self.apiary_sites.all():
+                apiary_site.make_vacant(True, apiary_site.latest_approval_link)
+            relations.update(available=False)
+        elif approval_status == Approval.STATUS_CURRENT:
+            relations.update(site_status=SITE_STATUS_CURRENT)
 
     def approval_cancellation(self,request,details):
         with transaction.atomic():
@@ -580,6 +615,55 @@ class ApprovalUserAction(UserAction):
         )
 
     approval= models.ForeignKey(Approval, related_name='action_logs')
+
+class MigratedApiaryLicence(models.Model):
+# Records imported from CSV
+    LICENCEE_TYPE_ORGANISATION = 'organisation'
+    LICENCEE_TYPE_INDIVIDUAL = 'individual'
+    LICENCEE_TYPE_CHOICES = (
+        (LICENCEE_TYPE_ORGANISATION, 'Organisation'),
+        (LICENCEE_TYPE_INDIVIDUAL, 'Individual'),
+    )
+
+    permit_number = models.IntegerField(unique=True)
+    start_date = models.DateField()
+    expiry_date = models.DateField()
+    issue_date = models.DateField()
+    status = models.CharField(max_length=40, choices=Approval.STATUS_CHOICES,
+                                       default=Approval.STATUS_CHOICES[0][0])
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    trading_name = models.CharField(max_length=256, null=True, blank=True)
+    licencee = models.CharField(max_length=256, null=True, blank=True)
+    abn = models.CharField(max_length=50, null=True, blank=True, verbose_name='ABN')
+    first_name = models.CharField(max_length=128, blank=False, verbose_name='Given name(s)')
+    last_name = models.CharField(max_length=128, blank=False)
+    #data.update({'other_contact': row[12].strip()})
+    address_line1 = models.CharField('Line 1', max_length=255)
+    address_line2 = models.CharField('Line 2', max_length=255, blank=True)
+    address_line3 = models.CharField('Line 3', max_length=255, blank=True)
+    #locality = models.CharField('Suburb / Town', max_length=255)
+    suburb = models.CharField('Suburb / Town', max_length=255)
+    state = models.CharField(max_length=255, default='WA', blank=True)
+    country = CountryField(default='AU')
+    postcode = models.CharField(max_length=10)
+    phone_number1 = models.CharField(max_length=50, null=True, blank=True,
+                                    verbose_name="phone number", help_text='')
+    phone_number2 = models.CharField(max_length=50, null=True, blank=True,
+                                    verbose_name="phone number", help_text='')
+    mobile_number = models.CharField(max_length=50, null=True, blank=True,
+                                    verbose_name="mobile number", help_text='')
+    email = models.EmailField(blank=True, null=True,)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    modified_at = models.DateTimeField(auto_now=True)
+    migrated = models.BooleanField(default=False)
+    licencee_type = models.CharField(max_length=40, choices=LICENCEE_TYPE_CHOICES)
+
+    class Meta:
+        app_label = 'disturbance'
+        #ordering = ('-when',)
+
 
 @receiver(pre_delete, sender=Approval)
 def delete_documents(sender, instance, *args, **kwargs):

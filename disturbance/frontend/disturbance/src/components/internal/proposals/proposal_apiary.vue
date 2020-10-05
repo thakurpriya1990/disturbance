@@ -255,7 +255,10 @@
             <div class="row">
                 <template v-if="proposal.processing_status == 'With Approver' || isFinalised">
                     <div v-if="siteTransferTemporaryUse">
-                        <ApprovalScreenSiteTransferTemporaryUse :proposal="proposal" @refreshFromResponse="refreshFromResponse"/>
+                        <ApprovalScreenSiteTransferTemporaryUse 
+                            :proposal="proposal" 
+                            ref="approval_screen"
+                            @refreshFromResponse="refreshFromResponse"/>
                     </div>
                     <div v-else>
                         <ApprovalScreen 

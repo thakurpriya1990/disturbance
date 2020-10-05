@@ -89,15 +89,18 @@ class ApiaryApprovalRenewalNotificationEmail(TemplateEmailBase):
 
 
 class ApprovalAnnualRentalFeeInvoiceEmail(TemplateEmailBase):
-    subject = 'Annual rental fee invoice for your licence has been issued.'
+    subject = 'Annual rental fee invoice for your licensed apiary sites.'
     html_template = 'disturbance/emails/approval_annual_rental_fee_invoice.html'
     txt_template = 'disturbance/emails/approval_annual_rental_fee_invoice.txt'
 
 
 class ApprovalAnnualRentalFeeAwaitingPaymentConfirmationEmail(TemplateEmailBase):
-    subject = 'Annual rental fee awaiting payment confirmation for your licence has been issued.'
-    html_template = 'disturbance/emails/approval_annual_rental_fee_awaiting_payment_confirmation.html'
-    txt_template = 'disturbance/emails/approval_annual_rental_fee_awaiting_payment_confirmation.txt'
+    #subject = 'Annual rental fee awaiting payment confirmation for your licence has been issued.'
+    subject = 'Annual rental fee invoice for your licensed apiary sites.'
+    #html_template = 'disturbance/emails/approval_annual_rental_fee_awaiting_payment_confirmation.html'
+    #txt_template = 'disturbance/emails/approval_annual_rental_fee_awaiting_payment_confirmation.txt'
+    html_template = 'disturbance/emails/approval_annual_rental_fee_invoice.html'
+    txt_template = 'disturbance/emails/approval_annual_rental_fee_invoice.txt'
 
 
 class ContactLicenceHolderEmail(TemplateEmailBase):
@@ -122,15 +125,15 @@ def get_value_of_annual_rental_fee_invoice(approval, invoice):
     return value
 
 
-def send_contact_licence_holder_email(apiary_site, comments, sender):
+def send_contact_licence_holder_email(apiary_site_on_approval, comments, sender):
     email = ContactLicenceHolderEmail()
 
     context = {
-        'apiary_site': apiary_site,
+        'apiary_site': apiary_site_on_approval.apiary_site,
         'comments': comments,
         'sender': sender,
     }
-    to_address = [apiary_site.approval.relevant_applicant_email,]
+    to_address = [apiary_site_on_approval.approval.relevant_applicant_email,]
     cc = []
     bcc = []
 
