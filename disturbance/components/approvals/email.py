@@ -125,15 +125,15 @@ def get_value_of_annual_rental_fee_invoice(approval, invoice):
     return value
 
 
-def send_contact_licence_holder_email(apiary_site, comments, sender):
+def send_contact_licence_holder_email(apiary_site_on_approval, comments, sender):
     email = ContactLicenceHolderEmail()
 
     context = {
-        'apiary_site': apiary_site,
+        'apiary_site': apiary_site_on_approval.apiary_site,
         'comments': comments,
         'sender': sender,
     }
-    to_address = [apiary_site.approval.relevant_applicant_email,]
+    to_address = [apiary_site_on_approval.approval.relevant_applicant_email,]
     cc = []
     bcc = []
 
