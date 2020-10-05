@@ -343,15 +343,13 @@ export default {
         setApiarySiteCheckedStatuses: function() {
             if(this.proposal && this.proposal.proposal_apiary){
                 for (let i=0; i<this.proposal.proposal_apiary.apiary_sites.length; i++){
-                    console.log('checked status' + this.proposal.proposal_apiary.apiary_sites[i].workflow_selected_status)
-                    this.proposal.proposal_apiary.apiary_sites[i].checked = this.proposal.proposal_apiary.apiary_sites[i].workflow_selected_status
+                    this.proposal.proposal_apiary.apiary_sites[i].checked = this.proposal.proposal_apiary.apiary_sites[i].properties.workflow_selected_status
                 }
             }
         },
         setApiarySiteCheckedStatusesSiteTransfer: function() {
             if(this.proposal && this.proposal.proposal_apiary){
                 for (let i=0; i<this.proposal.proposal_apiary.transfer_apiary_sites.length; i++){
-                    console.log('checked status' + this.proposal.proposal_apiary.transfer_apiary_sites[i].internal_selected)
                     this.proposal.proposal_apiary.transfer_apiary_sites[i].apiary_site.checked = this.proposal.proposal_apiary.transfer_apiary_sites[i].internal_selected
                 }
             }

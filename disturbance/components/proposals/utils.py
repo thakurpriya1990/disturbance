@@ -1,22 +1,16 @@
 import re
 
-from django.contrib.gis.measure import Distance
 from django.core.exceptions import ValidationError
-from django.db.models.query_utils import Q
-from django.shortcuts import redirect
-from django.urls import reverse
 from django.utils import timezone
 from django.db import transaction
 from django.contrib.gis.geos import Point, GEOSGeometry
-from preserialize.serialize import serialize
 from ledger.accounts.models import EmailUser, Document
 from rest_framework import serializers
 
 from disturbance.components.proposals.models import ProposalDocument, ProposalUserAction, ApiarySite, SiteCategory, \
-    ProposalApiaryTemporaryUse, TemporaryUseApiarySite, ApiaryChecklistAnswer
+    ProposalApiaryTemporaryUse, TemporaryUseApiarySite, ApiarySiteOnProposal
 from disturbance.components.proposals.serializers import SaveProposalSerializer
 
-from disturbance.components.main.models import ApplicationType
 from disturbance.components.approvals.models import Approval
 from disturbance.components.proposals.models import (
     SiteTransferApiarySite,
@@ -27,7 +21,7 @@ from disturbance.components.proposals.serializers_apiary import (
     ProposalApiarySerializer,
     ProposalApiaryTemporaryUseSerializer,
     ApiarySiteSerializer, TemporaryUseApiarySiteSerializer,
-    ApiarySiteSavePointPendingSerializer
+    ApiarySiteOnProposalDraftGeometrySaveSerializer
 )
 from disturbance.components.proposals.email import send_submit_email_notification, send_external_submit_email_notification
 
@@ -402,7 +396,7 @@ def save_proponent_data_apiary_site_transfer(proposal_obj, request, viewset):
                     checked_value = bool(site.get('checked'))
                     site_transfer_apiary_site = SiteTransferApiarySite.objects.get(
                             proposal_apiary=proposal_obj.proposal_apiary, 
-                            apiary_site_id=site.get('id')
+                            apiary_site_on_approval__apiary_site__id=site.get('id')
                             )
                     site_transfer_apiary_site.customer_selected = checked_value
                     site_transfer_apiary_site.internal_selected = checked_value
@@ -442,7 +436,8 @@ def save_proponent_data_apiary_site_transfer(proposal_obj, request, viewset):
                         # Copy requirements from approval.current_proposal
                         #target_req = proposal_obj.proposal_apiary.target_approval.current_proposal.apiary_requirements(
                          #       approval=proposal_obj.proposal_apiary.target_approval).exclude(is_deleted=True)
-                        origin_req = proposal_obj.proposal_apiary.target_approval.proposalrequirement_set.exclude(is_deleted=True)
+                        # origin_req = proposal_obj.proposal_apiary.target_approval.proposalrequirement_set.exclude(is_deleted=True)
+                        target_req = proposal_obj.proposal_apiary.target_approval.proposalrequirement_set.exclude(is_deleted=True)
                         from copy import deepcopy
                         if target_req:
                             for target_r in target_req:
@@ -473,15 +468,15 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
             sc = json.loads(schema) if schema else {}
 
             #save Site Locations data
-            site_location_data = sc.get('proposal_apiary', None)
+            proposal_apiary_data = sc.get('proposal_apiary', None)
 
-            if site_location_data:
+            if proposal_apiary_data:
                 # New apairy site application
-                serializer = ProposalApiarySerializer(proposal_obj.proposal_apiary, data=site_location_data)
+                serializer = ProposalApiarySerializer(proposal_obj.proposal_apiary, data=proposal_apiary_data)
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
 
-                # site_locations_received = site_location_data['apiary_sites']
+                # site_locations_received = proposal_apiary_data['apiary_sites']
                 site_locations_received = json.loads(request.data.get('all_the_features'))
 
                 # Feature object doesn't have a field named 'id' originally unless manually added
@@ -497,16 +492,17 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                             site_ids_received.append(site_already_saved.id)
                         except:
                             pass
-                site_ids_existing = [site.id for site in ApiarySite.objects.filter(proposal_apiary_id=site_location_data['id'])]
-                site_ids_existing_vacant = [site.id for site in proposal_obj.proposal_apiary.vacant_apiary_sites.all()]
+                # site_ids_existing = [site.id for site in ApiarySite.objects.filter(proposal_apiary_id=proposal_apiary_data['id'])]
+                site_ids_existing = [site.id for site in proposal_obj.proposal_apiary.apiary_sites.all()]
+                # site_ids_existing_vacant = [site.id for site in proposal_obj.proposal_apiary.vacant_apiary_sites.all()]
+                site_ids_existing_vacant = []  # TODO implement
                 site_ids_delete = [id for id in site_ids_existing if id not in site_ids_received]
-                site_ids_delete_vacant = [id for id in site_ids_existing_vacant if id not in site_ids_received]
+                # site_ids_delete_vacant = [id for id in site_ids_existing_vacant if id not in site_ids_received] # TODO implement
+                site_ids_delete_vacant = []
 
                 # Handle ApiarySites here
-                ids = []
                 for index, feature in enumerate(site_locations_received):
                     feature['proposal_apiary_id'] = proposal_obj.proposal_apiary.id
-                    # proposal_apiary_ids = []  # For 'vacant' site to have associations with multiple proposal apiaries
 
                     try:
                         # Update existing
@@ -515,97 +511,90 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                         try:
                             # Try to get this apiary site assuming already saved as 'draft'
                             a_site = ApiarySite.objects.get(site_guid=feature['id_'])
-                            serializer = ApiarySiteSerializer(a_site, data=feature)
+
                         except ApiarySite.DoesNotExist:
                             # Try to get this apiary site assuming it is 'vacant' site (available site)
                             a_site = ApiarySite.objects.get(site_guid=feature['values_']['site_guid'])
-                            # if a_site.status == ApiarySite.STATUS_VACANT:
-                            #     del feature['proposal_apiary_id']  # We use proposal_apiaries field
-                                # proposal_apiary_ids = a_site.proposal_apiary_ids if a_site.proposal_apiary_ids else []
-                                # proposal_apiary_ids.append(proposal_obj.proposal_apiary.id)
-                                # proposal_apiary_ids = list(set(proposal_apiary_ids))
-                                # proposal_obj.proposal_apiary.vacant_apiary_site = a_site
-                                # proposal_obj.proposal_apiary.save()
 
-                            serializer = ApiarySiteSerializer(a_site, data=feature)
-                            # serializer = None
+                        serializer = ApiarySiteSerializer(a_site, data=feature)
                     except KeyError:  # when 'site_guid' is not defined above
                         # Create new apiary site when both of the above queries failed
-                        if feature['values_']['site_category'] == 'south_west':
-                            category_obj = SiteCategory.objects.get(name='south_west')
-                        else:
-                            category_obj = SiteCategory.objects.get(name='remote')
-                        feature['site_category_id'] = category_obj.id
+                        # if feature['values_']['site_category'] == 'south_west':
+                        #     category_obj = SiteCategory.objects.get(name='south_west')
+                        # else:
+                        #     category_obj = SiteCategory.objects.get(name='remote')
+                        # feature['site_category_id'] = category_obj.id
                         feature['site_guid'] = feature['id_']
 
                         serializer = ApiarySiteSerializer(data=feature)
+                        # This is test line for gitpush
 
                     if serializer:
                         serializer.is_valid(raise_exception=True)
                         apiary_site_obj = serializer.save()
 
-                        #################
                         # Save coordinate
-                        #################
                         geom_str = GEOSGeometry(
                             'POINT(' +
                             str(feature['values_']['geometry']['flatCoordinates'][0]) + ' ' +
                             str(feature['values_']['geometry']['flatCoordinates'][1]) +
-                            ')',
-                            srid=4326
+                            ')', srid=4326
                         )
-                        # Perform validation to the existing apiary sites
-                        if apiary_site_obj.status in (ApiarySite.STATUS_DRAFT, ApiarySite.STATUS_PENDING, ApiarySite.STATUS_VACANT, ApiarySite.STATUS_CURRENT,):
-                            data = {'wkb_geometry_pending': geom_str}
-                            save_point_serializer = ApiarySiteSavePointPendingSerializer
-                        else:
-                            # Should not reach here?
-                            pass
-                            # data = {'wkb_geometry': geom_str}
-                            # save_point_serializer = ApiarySiteSavePointSerializer
-                        serializer = save_point_serializer(apiary_site_obj, data=data)
+                        # Get apiary_site_on_proposal obj
+                        apiary_site_on_proposal, created = ApiarySiteOnProposal.objects.get_or_create(apiary_site=apiary_site_obj, proposal_apiary=proposal_obj.proposal_apiary)
+                        # Save the coordinate as 'draft' coordinate
+                        serializer = ApiarySiteOnProposalDraftGeometrySaveSerializer(apiary_site_on_proposal, data={
+                            'wkb_geometry_draft': geom_str,
+                            # 'workflow_selected_status': False,
+                        })
                         serializer.is_valid(raise_exception=True)
                         serializer.save()
-                        ids.append(apiary_site_obj.id)
 
-                        if apiary_site_obj.status == ApiarySite.STATUS_VACANT:
-                            apiary_site_obj.proposal_apiary = None  # This should be already None
-                            apiary_site_obj.proposal_apiaries.add(proposal_obj.proposal_apiary)
-                            apiary_site_obj.save()
+                        if viewset.action == 'submit':
+                            # When submit, copy the coordinates from draft to the processed
+                            # apiary_site_on_proposal.wkb_geometry_processed = apiary_site_on_proposal.wkb_geometry_draft
+                            # apiary_site_on_proposal.site_status = ApiarySiteOnProposal.SITE_STATUS_PENDING_PAYMENT
+                            apiary_site_on_proposal.making_payment = True  # This should replace the above line.  site_status should not be overwritten by 'pending_payment'
+                            apiary_site_on_proposal.save()
 
-                for id in ids:
-                    site = ApiarySite.objects.get(id=id)
+#                        if apiary_site_obj.status in (ApiarySite.STATUS_DRAFT, ApiarySite.STATUS_PENDING, ApiarySite.STATUS_VACANT, ApiarySite.STATUS_CURRENT,):
+#                            data = {'wkb_geometry_pending': geom_str}
+#                            save_point_serializer = ApiarySiteSavePointPendingSerializer
+#                        else:
+#                            # Should not reach here?
+#                            pass
+#                        serializer = save_point_serializer(apiary_site_obj, data=data)
+#                        serializer.is_valid(raise_exception=True)
+#                        serializer.save()
 
-                    q_objects = Q(id__in=ids)
-                    if site.status in (ApiarySite.STATUS_DRAFT, ApiarySite.STATUS_PENDING, ApiarySite.STATUS_VACANT, ApiarySite.STATUS_CURRENT,):
-                        q_objects &= Q(wkb_geometry_pending__distance_lte=(site.wkb_geometry_pending, Distance(m=RESTRICTED_RADIUS)))
-                    else:
-                        # Should not reach here?
-                        pass
-                        # q_objects &= Q(wkb_geometry__distance_lte=(site.wkb_geometry, Distance(m=RESTRICTED_RADIUS)))
+                        # if apiary_site_obj.is_vacant:
+                        #     apiary_site_obj.proposal_apiary = None  # This should be already None
+                        #     apiary_site_obj.proposal_apiaries.add(proposal_obj.proposal_apiary)
+                        #     apiary_site_obj.save()
 
-                    qs_sites_within = ApiarySite.objects.filter(q_objects).exclude(id=id)
+                if viewset.action == 'submit':
+                    proposal_obj.proposal_apiary.validate_apiary_sites(raise_exception=True)
 
-                    if qs_sites_within:
-                        # In this proposal, there are apiary sites which are too close to each other
-                        raise serializers.ValidationError(['There are apiary sites in this proposal which are too close to each other.',])
-
-                # save applicant checklist answers
-                save_checklist_answers('applicant', site_location_data.get('applicant_checklist_answers'))
+                save_checklist_answers('applicant', proposal_apiary_data.get('applicant_checklist_answers'))
 
                 # Delete existing
-                sites_delete = ApiarySite.objects.filter(id__in=site_ids_delete, status=ApiarySite.STATUS_DRAFT)
-                sites_delete.delete()
+                sites_delete = ApiarySite.objects.filter(id__in=site_ids_delete)
+                for site_to_delete in sites_delete:
+                    proposal_obj.proposal_apiary.delete_relation(site_to_delete)
+
+
+                # sites_delete.delete()
+
                 # Update the site(s) which is picked up as proposed site
-                sites_updated = ApiarySite.objects.filter(id__in=site_ids_delete)
-                sites_updated.update(proposal_apiary=None)
+                # sites_updated = ApiarySite.objects.filter(id__in=site_ids_delete)
+                # sites_updated.update(proposal_apiary=None)
 
                 # Delete association with 'vacant' site
-                sites_remove = ApiarySite.objects.filter(id__in=site_ids_delete_vacant, status=ApiarySite.STATUS_VACANT)
-                for vacant_site in sites_remove:
-                    vacant_site.proposal_apiaries.remove(proposal_obj.proposal_apiary)
+                # sites_remove = ApiarySite.objects.filter(id__in=site_ids_delete_vacant, status=ApiarySite.STATUS_VACANT)
+                # for vacant_site in sites_remove:
+                #     vacant_site.proposal_apiaries.remove(proposal_obj.proposal_apiary)
 
-            #save Temporary Use data
+            # Save Temporary Use data
             temporary_use_data = request.data.get('apiary_temporary_use', None)
             if temporary_use_data:
                 # Temporary Use Application
@@ -622,18 +611,12 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
 
                 # return redirect(reverse('external-proposal-temporary-use-submit-success', kwargs={'proposal_pk': proposal_obj.id}))
 
-            #save Site Transfer data
-            #site_transfer_data = request.data.get('apiary_site_transfer', None)
-            #if site_transfer_data:
-            #    serializer = ProposalApiarySiteTransferSerializer(proposal_obj.apiary_site_transfer, data=site_transfer_data)
-            #    serializer.is_valid(raise_exception=True)
-            #    serializer.save()
-
             # save/update any additonal special propoerties here
             proposal_obj.title = proposal_obj.proposal_apiary.title if hasattr(proposal_obj, 'proposal_apiary') else proposal_obj.title
             proposal_obj.save()
         except Exception as e:
             raise
+
 
 def save_checklist_answers(checklist_type, checklist_answers=None):
     if checklist_answers and checklist_type == 'referrer':
@@ -684,8 +667,9 @@ def update_proposal_apiary_temporary_use(temp_use_obj, temp_use_data, action):
 
         for item in temp_use_data['temporary_use_apiary_sites']:
             if item['apiary_site']['checked']:
-                apiary_site = ApiarySite.objects.get(id=item['apiary_site']['id'])
-                valid, details = apiary_site.period_valid_for_temporary_use((temp_use_data['from_date'], temp_use_data['to_date']))
+                # apiary_site = ApiarySite.objects.get(id=item['apiary_site']['id'])
+                # valid, details = apiary_site.period_valid_for_temporary_use((temp_use_data['from_date'], temp_use_data['to_date']))
+                valid, details = temp_use_obj.period_valid_for_temporary_use((temp_use_data['from_date'], temp_use_data['to_date']))
                 if not valid:
                     if details['reason'] == 'overlap_existing':
                         non_field_errors.append('Temporary use period you submitted: {} to {} overlaps with the existing temporary use period: {} to {} for the apiary site: {}.'.format(

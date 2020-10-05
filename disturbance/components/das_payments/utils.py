@@ -14,7 +14,7 @@ from ledger.settings_base import TIME_ZONE
 
 from disturbance.components.main.models import ApplicationType, GlobalSettings, ApiaryGlobalSettings
 from disturbance.components.proposals.models import SiteCategory, ApiarySiteFeeType, \
-    ApiarySiteFeeRemainder, ApiaryAnnualRentalFee, ApiarySite
+    ApiarySiteFeeRemainder, ApiaryAnnualRentalFee, ApiarySite, ApiarySiteOnProposal
 from disturbance.components.organisations.models import Organisation
 from disturbance.components.das_payments.models import ApplicationFee, AnnualRentalFee
 from ledger.checkout.utils import create_basket_session, create_checkout_session, calculate_excl_gst
@@ -110,6 +110,7 @@ def delete_session_site_transfer_application_invoice(session):
         del session['site_transfer_app_invoice']
         session.modified = True
 
+
 def create_fee_lines_site_transfer(proposal):
     #import ipdb;ipdb.set_trace()
     now = datetime.now().strftime('%Y-%m-%d %H:%M')
@@ -123,10 +124,11 @@ def create_fee_lines_site_transfer(proposal):
     summary = {}
     for site_transfer_site in proposal.proposal_apiary.site_transfer_apiary_sites.all():
         if site_transfer_site.customer_selected:
-            if site_transfer_site.apiary_site.site_category.id in summary:
-                summary[site_transfer_site.apiary_site.site_category.id] += 1
+            # if site_transfer_site.apiary_site.site_category.id in summary:
+            if site_transfer_site.apiary_site_on_approval.site_category.id in summary:
+                summary[site_transfer_site.apiary_site_on_approval.site_category.id] += 1
             else:
-                summary[site_transfer_site.apiary_site.site_category.id] = 1
+                summary[site_transfer_site.apiary_site_on_approval.site_category.id] = 1
 
     # Once payment success, data is updated based on this variable
     # This variable is stored in the session
@@ -183,45 +185,75 @@ def _get_site_fee_remainders(site_category, apiary_site_fee_type_name, applicant
     return site_fee_remainders
 
 
-def _sum_apiary_sites_per_category(apiary_sites, vacant_apiary_sites):
-    summary = {}
-    db_process_after_success = []
-    temp = {
-            SiteCategory.CATEGORY_SOUTH_WEST: {
-                ApiarySiteFeeType.FEE_TYPE_APPLICATION: [],
-                ApiarySiteFeeType.FEE_TYPE_RENEWAL: [],
-            },
-            SiteCategory.CATEGORY_REMOTE: {
-                ApiarySiteFeeType.FEE_TYPE_APPLICATION: [],
-                ApiarySiteFeeType.FEE_TYPE_RENEWAL: [],
-            },
-        }
+def _sum_apiary_sites_per_category2(proposal_apiary):
+    site_ids = []
+    vacant_site_ids = []
+    site_per_category_per_feetype = {
+        SiteCategory.CATEGORY_SOUTH_WEST: {
+            ApiarySiteFeeType.FEE_TYPE_APPLICATION: [],
+            ApiarySiteFeeType.FEE_TYPE_RENEWAL: [],
+        },
+        SiteCategory.CATEGORY_REMOTE: {
+            ApiarySiteFeeType.FEE_TYPE_APPLICATION: [],
+            ApiarySiteFeeType.FEE_TYPE_RENEWAL: [],
+        },
+    }
 
-    for apiary_site in apiary_sites:
-        if apiary_site.site_category.id in summary:
-            summary[apiary_site.site_category.id] += 1
+    for relation in proposal_apiary.get_relations():
+        if relation.for_renewal:
+            fee_type = ApiarySiteFeeType.FEE_TYPE_RENEWAL
         else:
-            summary[apiary_site.site_category.id] = 1
-        db_process_after_success.append({'id': apiary_site.id})
+            fee_type = ApiarySiteFeeType.FEE_TYPE_APPLICATION
 
-        if apiary_site.status in ApiarySite.RENEWABLE_STATUS:
-            temp[apiary_site.site_category.name][ApiarySiteFeeType.FEE_TYPE_RENEWAL].append(apiary_site)
+        site_per_category_per_feetype[relation.site_category_draft.name][fee_type].append(relation.apiary_site)
+
+        if relation.apiary_site.is_vacant:
+            vacant_site_ids.append(relation.apiary_site.id)
         else:
-            temp[apiary_site.site_category.name][ApiarySiteFeeType.FEE_TYPE_APPLICATION].append(apiary_site)
+            site_ids.append(relation.apiary_site.id)
 
-    for apiary_site in vacant_apiary_sites:
-        if apiary_site.site_category.id in summary:
-            summary[apiary_site.site_category.id] += 1
-        else:
-            summary[apiary_site.site_category.id] = 1
-        # db_process_after_success.append({'id': apiary_site.id})
+    return site_ids, vacant_site_ids, site_per_category_per_feetype
 
-        if apiary_site.status in ApiarySite.RENEWABLE_STATUS:
-            temp[apiary_site.site_category.name][ApiarySiteFeeType.FEE_TYPE_RENEWAL].append(apiary_site)
-        else:
-            temp[apiary_site.site_category.name][ApiarySiteFeeType.FEE_TYPE_APPLICATION].append(apiary_site)
 
-    return summary, db_process_after_success, temp
+# def _sum_apiary_sites_per_category(apiary_sites, vacant_apiary_sites):
+#     num_of_sites_per_category = {}
+#     db_process_after_success = []
+#     site_per_category_per_feetype = {
+#             SiteCategory.CATEGORY_SOUTH_WEST: {
+#                 ApiarySiteFeeType.FEE_TYPE_APPLICATION: [],
+#                 ApiarySiteFeeType.FEE_TYPE_RENEWAL: [],
+#             },
+#             SiteCategory.CATEGORY_REMOTE: {
+#                 ApiarySiteFeeType.FEE_TYPE_APPLICATION: [],
+#                 ApiarySiteFeeType.FEE_TYPE_RENEWAL: [],
+#             },
+#         }
+#
+#     for apiary_site in apiary_sites:
+#         if apiary_site.site_category.id in num_of_sites_per_category:
+#             num_of_sites_per_category[apiary_site.site_category.id] += 1
+#         else:
+#             num_of_sites_per_category[apiary_site.site_category.id] = 1
+#         db_process_after_success.append({'id': apiary_site.id})
+#
+#         if apiary_site.status in ApiarySite.RENEWABLE_STATUS:
+#             site_per_category_per_feetype[apiary_site.site_category.name][ApiarySiteFeeType.FEE_TYPE_RENEWAL].append(apiary_site)
+#         else:
+#             site_per_category_per_feetype[apiary_site.site_category.name][ApiarySiteFeeType.FEE_TYPE_APPLICATION].append(apiary_site)
+#
+#     for apiary_site in vacant_apiary_sites:
+#         if apiary_site.site_category.id in num_of_sites_per_category:
+#             num_of_sites_per_category[apiary_site.site_category.id] += 1
+#         else:
+#             num_of_sites_per_category[apiary_site.site_category.id] = 1
+#        # db_process_after_success.append({'id': apiary_site.id})
+#
+#         if apiary_site.status in ApiarySite.RENEWABLE_STATUS:
+#             site_per_category_per_feetype[apiary_site.site_category.name][ApiarySiteFeeType.FEE_TYPE_RENEWAL].append(apiary_site)
+#         else:
+#             site_per_category_per_feetype[apiary_site.site_category.name][ApiarySiteFeeType.FEE_TYPE_APPLICATION].append(apiary_site)
+#
+#     return num_of_sites_per_category, db_process_after_success, site_per_category_per_feetype
 
 
 def _get_remainders_obj(number_of_sites_to_add_as_remainder, site_category_id, proposal, apiary_site_fee_type_name):
@@ -250,11 +282,15 @@ def create_fee_lines_apiary(proposal):
 
     # Once payment success, data is updated based on this variable
     # This variable is stored in the session
-    db_process_after_success = {'apiary_sites': [], 'site_remainder_used': [], 'site_remainder_to_be_added': []}
+    db_process_after_success = {
+        'site_remainder_used': [],
+        'site_remainder_to_be_added': [],
+    }
 
     # Calculate total number of sites applied per category
-    summary, db_process_after_success['apiary_sites'], temp = _sum_apiary_sites_per_category(proposal.proposal_apiary.apiary_sites.all(), proposal.proposal_apiary.vacant_apiary_sites.all())
-    db_process_after_success['vacant_apiary_site_ids'] = [site.id for site in proposal.proposal_apiary.vacant_apiary_sites.all()]
+    # summary, db_process_after_success['apiary_sites'], temp = _sum_apiary_sites_per_category(proposal.proposal_apiary.apiary_sites.all(), proposal.proposal_apiary.vacant_apiary_sites.all())
+    db_process_after_success['apiary_site_ids'], db_process_after_success['vacant_apiary_site_ids'], temp = _sum_apiary_sites_per_category2(proposal.proposal_apiary)
+    # db_process_after_success['vacant_apiary_site_ids'] = [site.id for site in proposal.proposal_apiary.vacant_apiary_sites.all()]
     db_process_after_success['proposal_apiary_id'] = proposal.proposal_apiary.id
 
     # Calculate number of sites to calculate the fee
