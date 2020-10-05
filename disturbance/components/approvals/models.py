@@ -116,7 +116,7 @@ class Approval(RevisionedMixin):
     #current_proposal = models.ForeignKey(Proposal,related_name = '+')
     current_proposal = models.ForeignKey(Proposal,related_name='approvals')
     renewal_document = models.ForeignKey(ApprovalDocument, blank=True, null=True, related_name='renewal_document')
-    apiary_renewal_document = models.ForeignKey(RenewalDocument, blank=True, null=True, related_name='apiary_renewal_document')
+    # apiary_renewal_document = models.ForeignKey(RenewalDocument, blank=True, null=True, related_name='apiary_renewal_document')
     renewal_sent = models.BooleanField(default=False)
     issue_date = models.DateTimeField()
     original_issue_date = models.DateField(auto_now_add=True)
