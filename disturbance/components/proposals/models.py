@@ -2862,7 +2862,7 @@ class ProposalApiary(RevisionedMixin):
                                 approval.expiry_date = details.get('expiry_date')
                             # always reset this flag
                             approval.reissued = False
-                            approval.renewal_sent = False
+                            approval.renewal_sent = False  # For the apiary, we have to rest this to False for the next renewal
                             #self.proposal.proposed_issuance_approval['start_date'] = approval.start_date.strftime('%d/%m/%Y')
                             #self.proposal.proposed_issuance_approval['expiry_date'] = approval.expiry_date.strftime('%d/%m/%Y')
                             #self.proposal.proposed_issuance_approval['details'] = ''
