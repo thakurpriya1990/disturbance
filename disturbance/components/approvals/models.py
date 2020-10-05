@@ -116,7 +116,7 @@ class Approval(RevisionedMixin):
     #current_proposal = models.ForeignKey(Proposal,related_name = '+')
     current_proposal = models.ForeignKey(Proposal,related_name='approvals')
     renewal_document = models.ForeignKey(ApprovalDocument, blank=True, null=True, related_name='renewal_document')
-    apiary_renewal_document = models.ForeignKey(RenewalDocument, blank=True, null=True, related_name='apiary_renewal_document')
+    # apiary_renewal_document = models.ForeignKey(RenewalDocument, blank=True, null=True, related_name='apiary_renewal_document')
     renewal_sent = models.BooleanField(default=False)
     issue_date = models.DateTimeField()
     original_issue_date = models.DateField(auto_now_add=True)
@@ -166,7 +166,15 @@ class Approval(RevisionedMixin):
 
     @property
     def relevant_renewal_document(self):
-        return self.apiary_renewal_document if self.apiary_renewal_document else self.renewal_document
+        if self.apiary_approval:
+            # return self.renewal_documents.filter(expiry_date=self.expiry_date).first() if self.renewal_documents.filter(expiry_date=self.expiry_date) else None
+            temp = self.renewal_documents.last()
+            all = self.renewal_documents.all()
+            return self.renewal_documents.last() if self.renewal_documents.all() else None
+        else:
+            return self.renewal_document
+
+        # return self.apiary_renewal_document if self.apiary_renewal_document else self.renewal_document
 
     @property
     def relevant_applicant_id(self):
@@ -288,18 +296,34 @@ class Approval(RevisionedMixin):
 
     @property
     def can_renew(self):
-        try:
-            renew_conditions = {
-                    'previous_application': self.current_proposal,
-                    'proposal_type': 'renewal'
-                    }
-            proposal = Proposal.objects.get(**renew_conditions)
-            if proposal:
-                # Proposal for the renewal already exists.
+        if self.apiary_approval:
+            open_renewal_proposal_exists = False
+            # check for "open" renewal proposals
+            for proposal in self.proposal_set.all():
+                if (proposal.proposal_type == 'renewal' and proposal.processing_status not in [
+                    proposal.PROCESSING_STATUS_APPROVED,
+                    proposal.PROCESSING_STATUS_DECLINED,
+                    proposal.PROCESSING_STATUS_DISCARDED
+                ]):
+                    open_renewal_proposal_exists = True
+            if self.renewal_sent and not open_renewal_proposal_exists:
+                # Renewal notification has been sent, but the current proposal is not for the renewal
+                return True
+            else:
                 return False
-        except Proposal.DoesNotExist:
-            # Proposal for the renewal doesn't exit
-            return True
+        else:
+            try:
+                renew_conditions = {
+                        'previous_application': self.current_proposal,
+                        'proposal_type': 'renewal'
+                        }
+                proposal = Proposal.objects.get(**renew_conditions)
+                if proposal:
+                    # Proposal for the renewal already exists.
+                    return False
+            except Proposal.DoesNotExist:
+                # Proposal for the renewal doesn't exit
+                return True
 
     @property
     def can_amend(self):
@@ -353,12 +377,14 @@ class Approval(RevisionedMixin):
         self.current_proposal.save(version_comment='Created Approval PDF: {}'.format(self.licence_document.name))
 
     def generate_renewal_doc(self):
-        #import ipdb; ipdb.set_trace()
         from disturbance.components.approvals.pdf import create_renewal_doc, create_apiary_renewal_doc
         if self.apiary_approval:
-            self.apiary_renewal_document = create_apiary_renewal_doc(self,self.current_proposal)
-            self.save(version_comment='Created Approval PDF: {}'.format(self.apiary_renewal_document.name))
-            self.current_proposal.save(version_comment='Created Approval PDF: {}'.format(self.apiary_renewal_document.name))
+            # self.apiary_renewal_document = create_apiary_renewal_doc(self,self.current_proposal)
+            # self.save(version_comment='Created Approval PDF: {}'.format(self.apiary_renewal_document.name))
+            # self.current_proposal.save(version_comment='Created Approval PDF: {}'.format(self.apiary_renewal_document.name))
+            doc = create_apiary_renewal_doc(self, self.current_proposal)
+            self.save(version_comment='Created Approval PDF: {}'.format(doc.name))
+            self.current_proposal.save(version_comment='Created Approval PDF: {}'.format(doc.name))
         else:
             self.renewal_document = create_renewal_doc(self,self.current_proposal)
             self.save(version_comment='Created Approval PDF: {}'.format(self.renewal_document.name))

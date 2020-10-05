@@ -382,9 +382,11 @@ def send_approval_renewal_email_notification(approval):
         sender_user = EmailUser.objects.get(email__icontains=sender)
     #attach renewal notice
     #renewal_document= approval.renewal_document._file
-    if approval.apiary_renewal_document is not None:
-        file_name = approval.apiary_renewal_document.name
-        attachment = (file_name, approval.apiary_renewal_document._file.file.read(), 'application/pdf')
+    # if approval.apiary_renewal_document is not None:
+    if approval.apiary_approval:
+        # file_name = approval.apiary_renewal_document.name
+        file_name = approval.relevant_renewal_document.name
+        attachment = (file_name, approval.relevant_renewal_document._file.file.read(), 'application/pdf')
         attachment = [attachment]
     #renewal_document= approval.renewal_document._file
     elif approval.renewal_document is not None:
@@ -392,7 +394,7 @@ def send_approval_renewal_email_notification(approval):
         attachment = (file_name, approval.renewal_document._file.file.read(), 'application/pdf')
         attachment = [attachment]
     else:
-        attachment = []   
+        attachment = []
     msg = email.send(proposal.submitter.email, cc=all_ccs, attachments=attachment, context=context)
     sender = settings.DEFAULT_FROM_EMAIL    
     _log_approval_email(msg, approval, sender=sender_user)

@@ -2775,33 +2775,8 @@ class ProposalApiary(RevisionedMixin):
                 if self.proposal.processing_status == 'approved':
                     #import ipdb; ipdb.set_trace()
                     checking_proposal = self.proposal
-                    if self.proposal.proposal_type == 'renewal':
-                        # TODO - fix for apiary approval
-                        pass
-                    #    if self.proposal.previous_application:
-                    #        previous_approval = self.proposal.previous_application.approval
-                    #        approval,created = Approval.objects.update_or_create(
-                    #            current_proposal = checking_proposal,
-                    #            defaults = {
-                    #                #'activity' : self.activity,
-                    #                #'region' : self.region,
-                    #                #'tenure' : self.tenure,
-                    #                #'title' : self.title,
-                    #                'issue_date' : timezone.now(),
-                    #                'expiry_date' : details.get('expiry_date'),
-                    #                'start_date' : details.get('start_date'),
-                    #                'applicant' : self.proposal.applicant,
-                    #                'proxy_applicant' : self.proposal.proxy_applicant,
-                    #                'lodgement_number': previous_approval.lodgement_number,
-                    #                'apiary_approval': self.proposal.apiary_group_application_type,
-                    #                #'extracted_fields' = JSONField(blank=True, null=True)
-                    #            }
-                    #        )
-                    #        if created:
-                    #            previous_approval.replaced_by = approval
-                    #            previous_approval.save()
 
-                    elif self.proposal.proposal_type == 'amendment':
+                    if self.proposal.proposal_type == 'amendment':
                         # TODO - fix for apiary approval
                         pass
                     #    if self.proposal.previous_application:
@@ -2887,6 +2862,7 @@ class ProposalApiary(RevisionedMixin):
                                 approval.expiry_date = details.get('expiry_date')
                             # always reset this flag
                             approval.reissued = False
+                            approval.renewal_sent = False
                             #self.proposal.proposed_issuance_approval['start_date'] = approval.start_date.strftime('%d/%m/%Y')
                             #self.proposal.proposed_issuance_approval['expiry_date'] = approval.expiry_date.strftime('%d/%m/%Y')
                             #self.proposal.proposed_issuance_approval['details'] = ''
