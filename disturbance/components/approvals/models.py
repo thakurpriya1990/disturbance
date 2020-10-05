@@ -63,7 +63,6 @@ class RenewalDocument(Document):
     approval = models.ForeignKey('Approval',related_name='renewal_documents')
     _file = models.FileField(upload_to=update_approval_doc_filename)
     can_delete = models.BooleanField(default=True) # after initial submit prevent document from being deleted
-    for_expiry_date = models.DateField()  # An apiary approval could have multiple renewal documents.  Therefore we need to distinguish each renewal document from the others
 
     def delete(self):
         if self.can_delete:
@@ -166,7 +165,15 @@ class Approval(RevisionedMixin):
 
     @property
     def relevant_renewal_document(self):
-        return self.apiary_renewal_document if self.apiary_renewal_document else self.renewal_document
+        if self.apiary_approval:
+            # return self.renewal_documents.filter(expiry_date=self.expiry_date).first() if self.renewal_documents.filter(expiry_date=self.expiry_date) else None
+            temp = self.renewal_documents.last()
+            all = self.renewal_documents.all()
+            return self.renewal_documents.last() if self.renewal_documents.all() else None
+        else:
+            return self.renewal_document
+
+        # return self.apiary_renewal_document if self.apiary_renewal_document else self.renewal_document
 
     @property
     def relevant_applicant_id(self):
@@ -288,18 +295,34 @@ class Approval(RevisionedMixin):
 
     @property
     def can_renew(self):
-        try:
-            renew_conditions = {
-                    'previous_application': self.current_proposal,
-                    'proposal_type': 'renewal'
-                    }
-            proposal = Proposal.objects.get(**renew_conditions)
-            if proposal:
-                # Proposal for the renewal already exists.
+        if self.apiary_approval:
+            open_renewal_proposal_exists = False
+            # check for "open" renewal proposals
+            for proposal in self.proposal_set.all():
+                if (proposal.proposal_type == 'renewal' and proposal.processing_status not in [
+                    proposal.PROCESSING_STATUS_APPROVED,
+                    proposal.PROCESSING_STATUS_DECLINED,
+                    proposal.PROCESSING_STATUS_DISCARDED
+                ]):
+                    open_renewal_proposal_exists = True
+            if self.renewal_sent and not open_renewal_proposal_exists:
+                # Renewal notification has been sent, but the current proposal is not for the renewal
+                return True
+            else:
                 return False
-        except Proposal.DoesNotExist:
-            # Proposal for the renewal doesn't exit
-            return True
+        else:
+            try:
+                renew_conditions = {
+                        'previous_application': self.current_proposal,
+                        'proposal_type': 'renewal'
+                        }
+                proposal = Proposal.objects.get(**renew_conditions)
+                if proposal:
+                    # Proposal for the renewal already exists.
+                    return False
+            except Proposal.DoesNotExist:
+                # Proposal for the renewal doesn't exit
+                return True
 
     @property
     def can_amend(self):
