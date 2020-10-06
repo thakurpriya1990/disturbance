@@ -79,6 +79,7 @@ class WaCoast(models.Model):
     wkb_geometry = MultiPolygonField(srid=4326, blank=True, null=True)
     type = models.CharField(max_length=30, blank=True, null=True)
     source = models.CharField(max_length=50, blank=True, null=True)
+    smoothed = models.BooleanField(default=False)
 
     class Meta:
         app_label = 'disturbance'
