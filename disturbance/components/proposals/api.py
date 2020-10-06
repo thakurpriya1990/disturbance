@@ -2030,7 +2030,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                             for r in req:
                                 old_r = deepcopy(r)
                                 r.proposal = proposal_apiary.proposal
-                                #r.apiary_approval = approval
+                                r.apiary_approval = None
                                 r.copied_from=old_r
                                 r.id = None
                                 r.save()
