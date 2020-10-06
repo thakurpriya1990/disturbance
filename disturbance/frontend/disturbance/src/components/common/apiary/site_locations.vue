@@ -642,30 +642,33 @@
                 }
                 return min;
             },
-            isNewPositionValid: async function(coords, filter=null){
+            isNewPositionValid: function(coords, filter=null){
                 let vm = this
                 let distance = vm.metersToNearest(coords, filter);
-                let temp = await vm.$http.get('/gisdata/?layer=wa_coast_smoothed&lat=' + coords[1] + '&lng=' + coords[0]).then(
-                    res => {
-                        if (res.body.hasOwnProperty('id')){
-                            if (distance < vm.buffer_radius) {
-                                console.log('NG: distance')
-                                return false
-                            } else {
-                                console.log('OK all')
-                                return true
-                            }
-                        } else {
-                            console.log('NG: no feature')
-                            return false
-                        }
-                    },
-                    err => {
-                        console.log('NG: error')
-                        return false
-                    }
-                )
-                return temp
+                if (distance < vm.buffer_radius) {
+                    return false
+                }
+                return true
+
+                //let temp = await vm.$http.get('/gisdata/?layer=wa_coast_smoothed&lat=' + coords[1] + '&lng=' + coords[0]).then(
+                //    res => {
+                //        console.log(res)
+                //        if (res.body.hasOwnProperty('id')){
+                //            if (distance < vm.buffer_radius) {
+                //                console.log('NG: distance')
+                //            } else {
+                //                console.log('OK all')
+                //            }
+                //        } else {
+                //            console.log('NG: no feature')
+                //        }
+                //    },
+                //    err => {
+                //        console.log('NG: error')
+                //    }
+                //)
+                //console.log(temp)
+                //return temp
             },
             zoneForCoordinates: function(coords){
                 let zone = "remote";
@@ -1046,7 +1049,8 @@
                         source: vm.drawingLayerSource,
                         type: "Point"
                     });
-                    drawTool.on("drawstart", async function(attributes){
+                    drawTool.on("drawstart", function(attributes){
+                        console.log('drawstart')
                         if (vm.apiary_site_being_selected){
                             // Abort drawing, instead 'vacant' site is to be added
                             drawTool.abortDrawing();
@@ -1060,32 +1064,13 @@
                                 }
                             });
                         } else {
-                            let temp = await vm.isNewPositionValid(attributes.feature.getGeometry().getCoordinates())
-                            if(temp){
-                                console.log('OKOK')
-                            } else {
-                                console.log('NGNG')
+                            if (!vm.isNewPositionValid(attributes.feature.getGeometry().getCoordinates())) {
                                 drawTool.abortDrawing();
                             }
-                            
-                            //vm.isNewPositionValid(attributes.feature.getGeometry().getCoordinates()).then(
-                            //    res=>{
-                            //        if(!res){
-                            //            console.log('aborting')
-                            //            drawTool.abortDrawing();
-                            //        }
-                            //    }, 
-                            //    err=>{
-                            //        console.log('aborting')
-                            //        drawTool.abortDrawing();
-                            //    })
-                            console.log('===')
-                            //if (!vm.isNewPositionValid(attributes.feature.getGeometry().getCoordinates())) {
-                            //    drawTool.abortDrawing();
-                            //}
                         }
                     });
                     drawTool.on('drawend', function(attributes){
+                        console.log('drawend')
                         if (!this.readoly){
                             let feature = attributes.feature;
                             let draw_id = vm.uuidv4();
@@ -1118,14 +1103,14 @@
                     });
                     modifyTool.on("modifyend", function(attributes){
                         // this will list all features in layer, not so useful without cross referencing
-                        attributes.features.forEach(async function(feature){
+                        attributes.features.forEach(function(feature){
                             let id = feature.getId();
                             let index = modifyInProgressList.indexOf(id);
                             if (index != -1) {
                                 modifyInProgressList.splice(index, 1);
                                 let coords = feature.getGeometry().getCoordinates();
                                 let filter = vm.excludeFeature(feature);
-                                let valid = await vm.isNewPositionValid(coords, filter);
+                                let valid = vm.isNewPositionValid(coords, filter);
                                 if (!valid || feature.get('status')==='vacant') {
                                     // rollback proposed modification
                                     let c = feature.get("stable_coords");
@@ -1197,7 +1182,7 @@
                     return excludedFeature.getId() != f.getId();
                 };
             },
-            tryCreateNewSiteFromForm: async function(){
+            tryCreateNewSiteFromForm: function(){
                 let lat = this.proposal.proposal_apiary.latitude
                 let lon = this.proposal.proposal_apiary.longitude
                 let coords = [lon, lat];
@@ -1206,7 +1191,7 @@
                     isNaN(lat) || lat < -35 || lat > -11) {
                     return false;
                 }
-                if(await !this.isNewPositionValid(coords))
+                if(!this.isNewPositionValid(coords))
                 {
                     return false;
                 }
