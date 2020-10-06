@@ -7,7 +7,8 @@ from django.conf import settings
 from django.core.cache import cache
 from django.db import connection
 
-from disturbance.components.main.models import CategoryDbca, RegionDbca, DistrictDbca
+from disturbance.components.main.decorators import timeit
+from disturbance.components.main.models import CategoryDbca, RegionDbca, DistrictDbca, WaCoast
 
 
 def retrieve_department_users():
@@ -102,7 +103,26 @@ def _get_params(layer_name, coords):
     }
 
 
-def get_feature_in_wa_coastline(wkb_geometry):
+def get_feature_in_wa_coastline_original(wkb_geometry):
+    return get_feature_in_wa_coastline(wkb_geometry, False)
+
+
+def get_feature_in_wa_coastline_smoothed(wkb_geometry):
+    return get_feature_in_wa_coastline(wkb_geometry, True)
+
+
+def get_feature_in_wa_coastline(wkb_geometry, smoothed):
+    try:
+        features = WaCoast.objects.filter(wkb_geometry__contains=wkb_geometry, smoothed=smoothed)
+        if features:
+            return features[0]
+        else:
+            return None
+    except:
+        return None
+
+
+def get_feature_in_wa_coastline_kmi(wkb_geometry):
     try:
         URL = 'https://kmi.dpaw.wa.gov.au/geoserver/public/wms'
         coords = wkb_geometry.get_coords()
