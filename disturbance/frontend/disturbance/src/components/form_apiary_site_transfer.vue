@@ -104,7 +104,13 @@
                 </div>
             </FormSection>
 
-            <FormSection :formCollapse="false" label="Checklist" Index="checklist">
+            <ApiaryChecklist 
+                :checklist="applicantChecklistAnswers"
+                section_title="Applicant Checklist"
+                :readonly="readonly"
+                ref="applicant_checklist"
+            />
+            <!--FormSection :formCollapse="false" label="Checklist" Index="checklist">
                 <ul class="list-unstyled col-sm-12" v-for="q in proposal.proposal_apiary.checklist_answers">
                     <div class="row">
                         <div class="col-sm-12">
@@ -123,7 +129,7 @@
                         </div>
                     </div>
                 </ul>
-            </FormSection>
+            </FormSection-->
         </div>
 
     </div>
@@ -136,6 +142,7 @@
     import FormSection from "@/components/forms/section_toggle.vue"
     import Vue from 'vue'
     import ComponentSiteSelection from '@/components/common/apiary/component_site_selection.vue'
+    import ApiaryChecklist from '@/components/common/apiary/section_checklist.vue'
     import uuid from 'uuid'
     import {
         api_endpoints,
@@ -202,8 +209,28 @@
             ComponentSiteSelection,
             FileField,
             FormSection,
+            ApiaryChecklist,
         },
         computed:{
+            getUnansweredChecklistQuestions: function() {
+                let UnansweredChecklistQuestions = false;
+
+                if(this.applicantChecklistAnswers){
+                    let numOfAnswers = this.applicantChecklistAnswers.length;
+                    for( let i=0; i< numOfAnswers ; i ++){
+                        if(this.applicantChecklistAnswers[i].answer == null && !this.applicantChecklistAnswers[i].text_answer){
+                            UnansweredChecklistQuestions = true;
+                        }
+                    }
+                }
+                return UnansweredChecklistQuestions;
+            },
+            applicantChecklistAnswers: function() {
+                if (this.proposal && this.proposal.proposal_apiary && this.proposal.proposal_apiary.applicant_checklist_answers &&
+                    this.proposal.proposal_apiary.applicant_checklist_answers.length > 0) {
+                    return this.proposal.proposal_apiary.applicant_checklist_answers;
+                }
+            },
             transfereeName: function() {
                 if (this.proposal && this.proposal.proposal_apiary) {
                     return this.proposal.proposal_apiary.transferee_name;
@@ -260,6 +287,7 @@
                 }
                 return readonlyStatus;
             },
+            /*
             getUnansweredChecklistQuestions: function() {
                 let UnansweredChecklistQuestions = false;
 
@@ -274,6 +302,7 @@
                 }
                 return UnansweredChecklistQuestions;
             },
+            */
             apiary_sites: function() {
                 let sites = []
                 if (this.proposal && this.proposal.proposal_apiary) {
