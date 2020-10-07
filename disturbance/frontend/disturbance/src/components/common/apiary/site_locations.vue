@@ -545,25 +545,6 @@
             }
         },
         methods:{
-            conditionTest: function(e){
-                let vm = this
-                vm.$http.get('/gisdata/?layer=wa_coast_smoothed&lat=' + e.coordinate[1] + '&lng=' + e.coordinate[0]).then(
-                    res => {
-                        if (res.body.hasOwnProperty('id')){
-                            console.log('Valid, return true')
-                            return true
-                        } else {
-                            console.log('Invalid, return false')
-                            return false
-                        }
-                    },
-                    err => {
-                        console.log('Error, return false')
-                        return false
-                    }
-                )
-                return true
-            },
             load_apiary_sites_in_this_proposal: function(){
                 // Load the apiary sites in this proposal on the map
                 let vm = this
@@ -1068,7 +1049,6 @@
                     let drawTool = new Draw({
                         source: vm.drawingLayerSource,
                         type: "Point",
-                        //condition: vm.conditionTest,
                     });
                     drawTool.on("drawstart", function(attributes){
                         console.log('drawstart')
@@ -1097,13 +1077,11 @@
                     });
                     //drawTool.on('drawend', function(attributes){
                     drawTool.on('drawend', async function(attributes){
-                        console.log('drawend')
+                        console.log('in drawend')
                         if (!this.readoly){
                             let feature = attributes.feature;
                             let draw_id = vm.uuidv4();
                             let draw_coords = feature.getGeometry().getCoordinates();
-
-                            console.log('0')
 
                             feature.setId(draw_id);
                             feature.set("source", "draw");
@@ -1117,39 +1095,11 @@
                             vm.createBufferForSite(feature);
                             // Vue table is updated by the event 'addfeature' issued from the Source
 
-                            console.log('1')
                             let ret = await vm.$http.get('/gisdata/?layer=wa_coast_smoothed&lat=' + draw_coords[1] + '&lng=' + draw_coords[0])
-                            console.log('2')
-                            console.log(ret)
                             if(!ret.body.hasOwnProperty('id')){
-                                console.log('3')
-                                console.log('removeLastPoint()')
-                                //drawTool.removeLastPoint()
-
                                 vm.removeBufferForSite(feature)
                                 vm.drawingLayerSource.removeFeature(feature);
-                            } else {
-                                console.log('3')
-                                console.log('ok')
                             }
-                            console.log('4')
-                            //vm.$http.get('/gisdata/?layer=wa_coast_smoothed&lat=' + draw_coords[1] + '&lng=' + draw_coords[0]).then(
-                            //   res => {
-                            //       if (res.body.hasOwnProperty('id')){
-                            //           console.log('Valid, return true')
-                            //           return true
-                            //       } else {
-                            //           drawTool.removeLastPoint()
-                            //           console.log('Invalid, return false')
-                            //           return false
-                            //       }
-                            //   },
-                            //   err => {
-                            //       drawTool.removeLastPoint()
-                            //       console.log('Error, return false')
-                            //       return false
-                            //   }
-                            //)
                         }
                     });
                     vm.map.addInteraction(drawTool);
@@ -1167,7 +1117,7 @@
                     });
                     modifyTool.on("modifyend", function(attributes){
                         // this will list all features in layer, not so useful without cross referencing
-                        attributes.features.forEach(function(feature){
+                        attributes.features.forEach(async function(feature){
                             let id = feature.getId();
                             let index = modifyInProgressList.indexOf(id);
                             if (index != -1) {
@@ -1184,12 +1134,25 @@
                                     modifyInProgressList.splice(index, 1);
                                 }
                                 else {
-                                    // confirm proposed modification
-                                    feature.set("stable_coords", coords);
-                                    vm.removeBufferForSite(feature);
-                                    vm.createBufferForSite(feature);
-                                    feature.set('site_category', vm.zoneForCoordinates(coords));
-                                    vm.constructSiteLocationsTable();
+                                    let ret = await vm.$http.get('/gisdata/?layer=wa_coast_smoothed&lat=' + coords[1] + '&lng=' + coords[0])
+                                    if(!ret.body.hasOwnProperty('id')){
+                                        //vm.removeBufferForSite(feature)
+                                        //vm.drawingLayerSource.removeFeature(feature);
+
+                                        // rollback proposed modification
+                                        let c = feature.get("stable_coords");
+                                        feature.getGeometry().setCoordinates(c);
+                                        // setting coords will add the id to the modification list again, we don't need that so clear it now
+                                        index = modifyInProgressList.indexOf(id);
+                                        modifyInProgressList.splice(index, 1);
+                                    } else {
+                                        // confirm proposed modification
+                                        feature.set("stable_coords", coords);
+                                        vm.removeBufferForSite(feature);
+                                        vm.createBufferForSite(feature);
+                                        feature.set('site_category', vm.zoneForCoordinates(coords));
+                                        vm.constructSiteLocationsTable();
+                                    }
                                 }
                             }
                         });
