@@ -354,6 +354,8 @@ class ApiarySiteOnProposalDraftGeometrySaveSerializer(GeoFeatureModelSerializer)
             )])
 
         # TODO: validate 3km radius, etc
+        # q_objects &= Q(wkb_geometry_draft__distance_lte=(relation.wkb_geometry_draft, Distance(m=RESTRICTED_RADIUS)))
+
         site_category = get_category(attrs['wkb_geometry_draft'])
         attrs['site_category_draft'] = site_category
         return attrs

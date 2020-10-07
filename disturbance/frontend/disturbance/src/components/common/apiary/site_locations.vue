@@ -649,29 +649,8 @@
                     return false
                 }
                 return true
-
-                //let temp = await vm.$http.get('/gisdata/?layer=wa_coast_smoothed&lat=' + coords[1] + '&lng=' + coords[0]).then(
-                //    res => {
-                //        console.log(res)
-                //        if (res.body.hasOwnProperty('id')){
-                //            if (distance < vm.buffer_radius) {
-                //                console.log('NG: distance')
-                //            } else {
-                //                console.log('OK all')
-                //            }
-                //        } else {
-                //            console.log('NG: no feature')
-                //        }
-                //    },
-                //    err => {
-                //        console.log('NG: error')
-                //    }
-                //)
-                //console.log(temp)
-                //return temp
             },
             zoneForCoordinates: function(coords){
-                console.log('in zoneForCoordinates')
                 let zone = "remote";
                 this.swZoneSource.getFeaturesAtCoordinate(coords).forEach(function(feat) {
                     zone = "south_west";
@@ -1067,11 +1046,7 @@
                         } else {
                             let coords = attributes.feature.getGeometry().getCoordinates()
                             if (!vm.isNewPositionValid(coords)) {
-                                console.log('abort drawing')
                                 drawTool.abortDrawing();
-                            } else {
-                                console.log('keep drawing')
-
                             }
                         }
                     });
@@ -1099,6 +1074,7 @@
                             if(!ret.body.hasOwnProperty('id')){
                                 vm.removeBufferForSite(feature)
                                 vm.drawingLayerSource.removeFeature(feature);
+                                vm.constructSiteLocationsTable()
                             }
                         }
                     });
@@ -1238,9 +1214,6 @@
             this.$http.get('/api/apiary_site/list_existing/?proposal_id=' + this.proposal.id)
             .then(
                 res => {
-                    console.log('res.body: ')
-                    console.log(res.body)
-
                     vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
                     vm.existing_sites_loaded = true
                 },
