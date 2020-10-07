@@ -545,6 +545,25 @@
             }
         },
         methods:{
+            conditionTest: function(e){
+                let vm = this
+                vm.$http.get('/gisdata/?layer=wa_coast_smoothed&lat=' + e.coordinate[1] + '&lng=' + e.coordinate[0]).then(
+                    res => {
+                        if (res.body.hasOwnProperty('id')){
+                            console.log('Valid, return true')
+                            return true
+                        } else {
+                            console.log('Invalid, return false')
+                            return false
+                        }
+                    },
+                    err => {
+                        console.log('Error, return false')
+                        return false
+                    }
+                )
+                return true
+            },
             load_apiary_sites_in_this_proposal: function(){
                 // Load the apiary sites in this proposal on the map
                 let vm = this
@@ -671,6 +690,7 @@
                 //return temp
             },
             zoneForCoordinates: function(coords){
+                console.log('in zoneForCoordinates')
                 let zone = "remote";
                 this.swZoneSource.getFeaturesAtCoordinate(coords).forEach(function(feat) {
                     zone = "south_west";
@@ -932,7 +952,7 @@
                 // Remove the row from the table
                 $(e.target).closest('tr').fadeOut('slow', function(){ })
             },
-            initMap: function() {
+            initMap: async function() {
                 let vm = this;
 
                 vm.map = new Map({
@@ -1047,7 +1067,8 @@
                     let modifyInProgressList = [];
                     let drawTool = new Draw({
                         source: vm.drawingLayerSource,
-                        type: "Point"
+                        type: "Point",
+                        //condition: vm.conditionTest,
                     });
                     drawTool.on("drawstart", function(attributes){
                         console.log('drawstart')
@@ -1064,17 +1085,26 @@
                                 }
                             });
                         } else {
-                            if (!vm.isNewPositionValid(attributes.feature.getGeometry().getCoordinates())) {
+                            let coords = attributes.feature.getGeometry().getCoordinates()
+                            if (!vm.isNewPositionValid(coords)) {
+                                console.log('abort drawing')
                                 drawTool.abortDrawing();
+                            } else {
+                                console.log('keep drawing')
+
                             }
                         }
                     });
-                    drawTool.on('drawend', function(attributes){
+                    //drawTool.on('drawend', function(attributes){
+                    drawTool.on('drawend', async function(attributes){
                         console.log('drawend')
                         if (!this.readoly){
                             let feature = attributes.feature;
                             let draw_id = vm.uuidv4();
                             let draw_coords = feature.getGeometry().getCoordinates();
+
+                            console.log('0')
+
                             feature.setId(draw_id);
                             feature.set("source", "draw");
                             feature.set("stable_coords", draw_coords);
@@ -1086,6 +1116,40 @@
                             });
                             vm.createBufferForSite(feature);
                             // Vue table is updated by the event 'addfeature' issued from the Source
+
+                            console.log('1')
+                            let ret = await vm.$http.get('/gisdata/?layer=wa_coast_smoothed&lat=' + draw_coords[1] + '&lng=' + draw_coords[0])
+                            console.log('2')
+                            console.log(ret)
+                            if(!ret.body.hasOwnProperty('id')){
+                                console.log('3')
+                                console.log('removeLastPoint()')
+                                //drawTool.removeLastPoint()
+
+                                vm.removeBufferForSite(feature)
+                                vm.drawingLayerSource.removeFeature(feature);
+                            } else {
+                                console.log('3')
+                                console.log('ok')
+                            }
+                            console.log('4')
+                            //vm.$http.get('/gisdata/?layer=wa_coast_smoothed&lat=' + draw_coords[1] + '&lng=' + draw_coords[0]).then(
+                            //   res => {
+                            //       if (res.body.hasOwnProperty('id')){
+                            //           console.log('Valid, return true')
+                            //           return true
+                            //       } else {
+                            //           drawTool.removeLastPoint()
+                            //           console.log('Invalid, return false')
+                            //           return false
+                            //       }
+                            //   },
+                            //   err => {
+                            //       drawTool.removeLastPoint()
+                            //       console.log('Error, return false')
+                            //       return false
+                            //   }
+                            //)
                         }
                     });
                     vm.map.addInteraction(drawTool);
