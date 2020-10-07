@@ -297,9 +297,6 @@
                         {
                             // Vacant
                             mRender: function (data, type, feature) {
-                                console.log('in mRender for Vacant')
-                                console.log(feature)
-
                                 let my_status = feature.get('status')
                                 let is_vacant = feature.get('is_vacant')
                                 if(my_status === 'vacant' || is_vacant === true){
@@ -540,8 +537,6 @@
                 this.$emit('total_fee_remote_renewal', this.total_fee_remote_renewal)
             },
             apiary_site_being_selected: function() {
-                console.log('apiary_site_being_selected')
-                console.log(this.apiary_site_being_selected);
                 if (this.apiary_site_being_selected){
                     this.showPopup(this.apiary_site_being_selected)
                 } else {
@@ -550,6 +545,25 @@
             }
         },
         methods:{
+            conditionTest: function(e){
+                let vm = this
+                vm.$http.get('/gisdata/?layer=wa_coast_smoothed&lat=' + e.coordinate[1] + '&lng=' + e.coordinate[0]).then(
+                    res => {
+                        if (res.body.hasOwnProperty('id')){
+                            console.log('Valid, return true')
+                            return true
+                        } else {
+                            console.log('Invalid, return false')
+                            return false
+                        }
+                    },
+                    err => {
+                        console.log('Error, return false')
+                        return false
+                    }
+                )
+                return true
+            },
             load_apiary_sites_in_this_proposal: function(){
                 // Load the apiary sites in this proposal on the map
                 let vm = this
@@ -604,7 +618,6 @@
                 }
             },
             zoomToApiarySiteById: function(apiary_site_id){
-                console.log(apiary_site_id)
                 let feature = this.drawingLayerSource.getFeatureById(apiary_site_id)
                 let geometry = feature.getGeometry()
                 let coord = geometry.getCoordinates()
@@ -649,13 +662,35 @@
                 return min;
             },
             isNewPositionValid: function(coords, filter=null){
-                let distance = this.metersToNearest(coords, filter);
-                if (distance < this.buffer_radius) {
-                    return false;
+                let vm = this
+                let distance = vm.metersToNearest(coords, filter);
+                if (distance < vm.buffer_radius) {
+                    return false
                 }
-                return true;
+                return true
+
+                //let temp = await vm.$http.get('/gisdata/?layer=wa_coast_smoothed&lat=' + coords[1] + '&lng=' + coords[0]).then(
+                //    res => {
+                //        console.log(res)
+                //        if (res.body.hasOwnProperty('id')){
+                //            if (distance < vm.buffer_radius) {
+                //                console.log('NG: distance')
+                //            } else {
+                //                console.log('OK all')
+                //            }
+                //        } else {
+                //            console.log('NG: no feature')
+                //        }
+                //    },
+                //    err => {
+                //        console.log('NG: error')
+                //    }
+                //)
+                //console.log(temp)
+                //return temp
             },
             zoneForCoordinates: function(coords){
+                console.log('in zoneForCoordinates')
                 let zone = "remote";
                 this.swZoneSource.getFeaturesAtCoordinate(coords).forEach(function(feat) {
                     zone = "south_west";
@@ -680,16 +715,10 @@
                 this.bufferLayerSource.removeFeature(buffer);
             },
             apiaryStyleFunction: function(feature) {
-                console.log('in apiaryStyleFunction')
-                console.log(feature)
-
                 let status = this.get_status_from_feature(feature)
                 return getApiaryFeatureStyle(status);
             },
             apiaryStyleFunctionExisting: function(feature){
-                console.log('in apiaryStyleFunctionExisting')
-                console.log(feature)
-
                 let vacant_selected = feature.get('vacant_selected')
                 if (vacant_selected){
                     return this.style_for_vacant_selected
@@ -749,9 +778,6 @@
                 }
             },
             calculateRemainders: function(features){
-                console.log('in calculateRemainders')
-                console.log(features)
-
                 let remainders = null;
                 if (this.proposal.application_type === 'Apiary') {
                     remainders = this.proposal.proposal_apiary.site_remainders;
@@ -858,9 +884,6 @@
                 this.constructSiteLocationsTable()
             },
             deleteApiarySite: function(myFeature){
-                console.log('in deleteApiarySite()')
-                console.log(myFeature)
-
                 let site_category = myFeature.get('site_category')
 
                 let new_or_existing = this.is_feature_new_or_existing(myFeature)
@@ -894,8 +917,6 @@
                 //$(e.target).closest('tr').fadeOut('slow', function(){ })
             },
             removeSiteLocation: function(e){
-                console.log('in removeSiteLocation')
-
                 let site_location_guid = e.target.getAttribute("data-site-location-guid");
                 let myFeature = this.drawingLayerSource.getFeatureById(site_location_guid)
                 this.deleteApiarySite(myFeature)
@@ -931,7 +952,7 @@
                 // Remove the row from the table
                 $(e.target).closest('tr').fadeOut('slow', function(){ })
             },
-            initMap: function() {
+            initMap: async function() {
                 let vm = this;
 
                 vm.map = new Map({
@@ -981,7 +1002,6 @@
                 //vm.drawingLayerSource = new VectorSource();
                 vm.drawingLayerSource.on('addfeature', function(e){
                     //vm.proposal.proposal_apiary.apiary_sites.push(e.feature)
-                    console.log('in addfeature')
                     vm.constructSiteLocationsTable()
                 });
                 vm.drawingLayer = new VectorLayer({
@@ -1047,9 +1067,11 @@
                     let modifyInProgressList = [];
                     let drawTool = new Draw({
                         source: vm.drawingLayerSource,
-                        type: "Point"
+                        type: "Point",
+                        //condition: vm.conditionTest,
                     });
                     drawTool.on("drawstart", function(attributes){
+                        console.log('drawstart')
                         if (vm.apiary_site_being_selected){
                             // Abort drawing, instead 'vacant' site is to be added
                             drawTool.abortDrawing();
@@ -1063,16 +1085,26 @@
                                 }
                             });
                         } else {
-                            if (!vm.isNewPositionValid(attributes.feature.getGeometry().getCoordinates())) {
+                            let coords = attributes.feature.getGeometry().getCoordinates()
+                            if (!vm.isNewPositionValid(coords)) {
+                                console.log('abort drawing')
                                 drawTool.abortDrawing();
+                            } else {
+                                console.log('keep drawing')
+
                             }
                         }
                     });
-                    drawTool.on('drawend', function(attributes){
+                    //drawTool.on('drawend', function(attributes){
+                    drawTool.on('drawend', async function(attributes){
+                        console.log('drawend')
                         if (!this.readoly){
                             let feature = attributes.feature;
                             let draw_id = vm.uuidv4();
                             let draw_coords = feature.getGeometry().getCoordinates();
+
+                            console.log('0')
+
                             feature.setId(draw_id);
                             feature.set("source", "draw");
                             feature.set("stable_coords", draw_coords);
@@ -1084,6 +1116,40 @@
                             });
                             vm.createBufferForSite(feature);
                             // Vue table is updated by the event 'addfeature' issued from the Source
+
+                            console.log('1')
+                            let ret = await vm.$http.get('/gisdata/?layer=wa_coast_smoothed&lat=' + draw_coords[1] + '&lng=' + draw_coords[0])
+                            console.log('2')
+                            console.log(ret)
+                            if(!ret.body.hasOwnProperty('id')){
+                                console.log('3')
+                                console.log('removeLastPoint()')
+                                //drawTool.removeLastPoint()
+
+                                vm.removeBufferForSite(feature)
+                                vm.drawingLayerSource.removeFeature(feature);
+                            } else {
+                                console.log('3')
+                                console.log('ok')
+                            }
+                            console.log('4')
+                            //vm.$http.get('/gisdata/?layer=wa_coast_smoothed&lat=' + draw_coords[1] + '&lng=' + draw_coords[0]).then(
+                            //   res => {
+                            //       if (res.body.hasOwnProperty('id')){
+                            //           console.log('Valid, return true')
+                            //           return true
+                            //       } else {
+                            //           drawTool.removeLastPoint()
+                            //           console.log('Invalid, return false')
+                            //           return false
+                            //       }
+                            //   },
+                            //   err => {
+                            //       drawTool.removeLastPoint()
+                            //       console.log('Error, return false')
+                            //       return false
+                            //   }
+                            //)
                         }
                     });
                     vm.map.addInteraction(drawTool);
@@ -1095,15 +1161,11 @@
                         }
                     });
                     modifyTool.on("modifystart", function(attributes){
-                        console.log('in modifystart')
-
                         attributes.features.forEach(function(feature){
 
                         })
                     });
                     modifyTool.on("modifyend", function(attributes){
-                        console.log('in modifyend')
-
                         // this will list all features in layer, not so useful without cross referencing
                         attributes.features.forEach(function(feature){
                             let id = feature.getId();
@@ -1141,7 +1203,6 @@
                 });
                 vm.map.addInteraction(hoverInteraction);
                 hoverInteraction.on('select', function(evt){
-                    console.log('hoverInteraction')
                     if(evt.selected.length > 0){
                         // Mouse hover in
                         if(evt.selected[0].get('is_vacant') === true){
