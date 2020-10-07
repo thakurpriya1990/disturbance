@@ -8,7 +8,8 @@ from ledger.settings_base import TIME_ZONE
 from rest_framework_gis.serializers import GeoFeatureModelSerializer
 
 from disturbance.components.approvals.serializers_apiary import ApiarySiteOnApprovalGeometrySerializer
-from disturbance.components.main.utils import get_category, get_tenure, get_region_district, get_feature_in_wa_coastline
+from disturbance.components.main.utils import get_category, get_tenure, get_region_district, \
+    get_feature_in_wa_coastline_smoothed
 from disturbance.components.organisations.serializers import OrganisationSerializer
 from disturbance.components.organisations.models import UserDelegation
 from disturbance.components.proposals.serializers_base import (
@@ -48,7 +49,7 @@ from django.contrib.contenttypes.models import ContentType
 from ledger.accounts.models import EmailUser
 from copy import deepcopy
 
-from disturbance.settings import RESTRICTED_RADIUS, SITE_STATUS_DRAFT, SITE_STATUS_VACANT, COASTLINE_VALIDATION
+from disturbance.settings import SITE_STATUS_DRAFT
 
 
 class VersionSerializer(serializers.ModelSerializer):
@@ -342,10 +343,15 @@ class ApiarySiteOnProposalDraftGeometrySaveSerializer(GeoFeatureModelSerializer)
     For saving as 'draft'
     """
     def validate(self, attrs):
-        if COASTLINE_VALIDATION:
-            feature = get_feature_in_wa_coastline(attrs.get('wkb_geometry_draft'))
-            if not feature:
-                raise serializers.ValidationError(['Apiary Site is out of bounds.'])
+        feature = get_feature_in_wa_coastline_smoothed(attrs.get('wkb_geometry_draft'))
+        # feature = get_feature_in_wa_coastline_original(attrs.get('wkb_geometry_draft'))
+        # feature = get_feature_in_wa_coastline_api(attrs.get('wkb_geometry_draft'))
+        if not feature:
+            raise serializers.ValidationError(['Apiary Site: {} (lat: {}, lng: {}) is out of bounds.'.format(
+                self.instance.apiary_site.id,
+                attrs.get('wkb_geometry_draft').coords[1],
+                attrs.get('wkb_geometry_draft').coords[0],
+            )])
 
         # TODO: validate 3km radius, etc
         site_category = get_category(attrs['wkb_geometry_draft'])
