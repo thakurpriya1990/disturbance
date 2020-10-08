@@ -4,13 +4,15 @@ import requests
 import json
 import pytz
 from django.conf import settings
+from django.contrib.gis.measure import Distance
 from django.core.cache import cache
 from django.db import connection
 from django.db.models.query_utils import Q
+from rest_framework import serializers
 
 from disturbance.components.main.decorators import timeit
 from disturbance.components.main.models import CategoryDbca, RegionDbca, DistrictDbca, WaCoast
-from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_APPROVED, SITE_STATUS_TRANSFERRED
+from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_APPROVED, SITE_STATUS_TRANSFERRED, RESTRICTED_RADIUS
 
 
 def retrieve_department_users():
@@ -192,7 +194,8 @@ def get_qs_vacant_site():
     return qs_vacant_site_proposal, qs_vacant_site_approval
 
 
-def get_qs_proposal(proposal_id=None):
+# def get_qs_proposal(proposal_id=None):
+def get_qs_proposal():
     from disturbance.components.proposals.models import ApiarySite, ApiarySiteOnProposal, Proposal
 
     # 1. ApiarySiteOnProposal
@@ -207,16 +210,15 @@ def get_qs_proposal(proposal_id=None):
     q_exclude_proposal |= Q(site_status__in=(SITE_STATUS_APPROVED,))  # 'approved' site should be included in the approval as a 'current'
     q_exclude_proposal |= Q(apiary_site__in=ApiarySite.objects.filter(is_vacant=True))  # Vacant sites are already picked up above.  We don't want to pick up them again here.
 
-    # 1.3. Exculde the apairy sites which are on the proposal apiary currently being accessed
-    # proposal_id = request.query_params.get('proposal_id', 0)
-    if proposal_id:
-        # When proposal_id is passed as a query_params, which is the one in the URL after the ?
-        # Exculde the apiary_sites included in that proposal
-        proposal = Proposal.objects.get(id=proposal_id)
-        q_exclude_proposal |= Q(proposal_apiary=proposal.proposal_apiary)
-
+#    # 1.3. Exculde the apairy sites which are on the proposal apiary currently being accessed
+#    if proposal_id:
+#        # When proposal_id is passed as a query_params, which is the one in the URL after the ?
+#        # Exculde the apiary_sites included in that proposal
+#        proposal = Proposal.objects.get(id=proposal_id)
+#        q_exclude_proposal |= Q(proposal_apiary=proposal.proposal_apiary)
+#
     # 1.4. Issue query
-    qs_on_proposal = ApiarySiteOnProposal.objects.filter(q_include_proposal).exclude(q_exclude_proposal).distinct( 'apiary_site')
+    qs_on_proposal = ApiarySiteOnProposal.objects.filter(q_include_proposal).exclude(q_exclude_proposal).distinct('apiary_site')
     qs_on_proposal_processed = qs_on_proposal.exclude(wkb_geometry_processed=None)
     qs_on_proposal_draft = qs_on_proposal.filter(wkb_geometry_processed=None)  # For the 'draft' apiary sites with the making_payment=True attribute
 
@@ -243,3 +245,41 @@ def get_qs_approval():
     qs_on_approval = ApiarySiteOnApproval.objects.filter(q_include_approval).exclude(q_exclude_approval).distinct('apiary_site')
 
     return qs_on_approval
+
+
+def validate_buffer(wkb_geometry, apiary_sites_to_exclude=None):
+    """
+    This function checks if the wkb_geometry (point) is at least 3km away from the other apiary sites
+    @param wkb_geometry: WKB geometry of a point
+    @param apiary_sites_to_exclude: List or queryset of the apiary sites to be excluded when validation
+    """
+    if not apiary_sites_to_exclude:
+        from disturbance.components.proposals.models import ApiarySite
+        apiary_sites_to_exclude = ApiarySite.objects.none()
+
+    site_too_close_error = serializers.ValidationError(
+        ['Apiary Site: (lat: {}, lng: {}) is too close to another apiary site.'.format(
+            wkb_geometry.coords[1],
+            wkb_geometry.coords[0],
+        )])
+
+    qs_vacant_site_proposal, qs_vacant_site_approval = get_qs_vacant_site()
+    sites = qs_vacant_site_proposal.exclude(apiary_site__in=apiary_sites_to_exclude).filter(Q(wkb_geometry_processed__distance_lte=(wkb_geometry, Distance(m=RESTRICTED_RADIUS))))
+    if sites:
+        raise site_too_close_error
+    sites = qs_vacant_site_approval.exclude(apiary_site__in=apiary_sites_to_exclude).filter(Q(wkb_geometry__distance_lte=(wkb_geometry, Distance(m=RESTRICTED_RADIUS))))
+    if sites:
+        raise site_too_close_error
+
+    qs_on_proposal_draft, qs_on_proposal_processed = get_qs_proposal()
+    sites = qs_on_proposal_draft.exclude(apiary_site__in=apiary_sites_to_exclude).filter(Q(wkb_geometry_draft__distance_lte=(wkb_geometry, Distance(m=RESTRICTED_RADIUS))))
+    if sites:
+        raise site_too_close_error
+    sites = qs_on_proposal_processed.exclude(apiary_site__in=apiary_sites_to_exclude).filter(Q(wkb_geometry_processed__distance_lte=(wkb_geometry, Distance(m=RESTRICTED_RADIUS))))
+    if sites:
+        raise site_too_close_error
+
+    qs_on_approval = get_qs_approval()
+    sites = qs_on_approval.exclude(apiary_site__in=apiary_sites_to_exclude).filter(Q(wkb_geometry__distance_lte=(wkb_geometry, Distance(m=RESTRICTED_RADIUS))))
+    if sites:
+        raise site_too_close_error

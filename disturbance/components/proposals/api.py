@@ -603,8 +603,15 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
         serializer_vacant_approval = ApiarySiteOnApprovalGeometrySerializer(qs_vacant_site_approval, many=True)
 
         # ApiarySiteOnProposal
+        qs_on_proposal_draft, qs_on_proposal_processed = get_qs_proposal()
+
         proposal_id = request.query_params.get('proposal_id', None)
-        qs_on_proposal_draft, qs_on_proposal_processed = get_qs_proposal(proposal_id)
+        if proposal_id:
+            # Exculde the apiary_sites included in that proposal
+            proposal = Proposal.objects.get(id=proposal_id)
+            qs_on_proposal_draft = qs_on_proposal_draft.exclude(proposal_apiary=proposal.proposal_apiary)
+            qs_on_proposal_processed = qs_on_proposal_processed.exclude(proposal_apiary=proposal.proposal_apiary)
+
         serializer_proposal_processed = ApiarySiteOnProposalProcessedGeometrySerializer(qs_on_proposal_processed, many=True)
         serializer_proposal_draft = ApiarySiteOnProposalDraftGeometrySerializer(qs_on_proposal_draft, many=True)
 

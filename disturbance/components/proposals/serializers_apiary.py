@@ -2,7 +2,6 @@ import pytz
 from django.conf import settings
 from datetime import datetime
 
-from django.contrib.gis.measure import Distance
 from django.db.models import Q
 
 from ledger.settings_base import TIME_ZONE
@@ -10,7 +9,7 @@ from rest_framework_gis.serializers import GeoFeatureModelSerializer
 
 from disturbance.components.approvals.serializers_apiary import ApiarySiteOnApprovalGeometrySerializer
 from disturbance.components.main.utils import get_category, get_tenure, get_region_district, \
-    get_feature_in_wa_coastline_smoothed, get_qs_vacant_site, get_qs_proposal, get_qs_approval
+    get_feature_in_wa_coastline_smoothed, validate_buffer
 from disturbance.components.organisations.serializers import OrganisationSerializer
 from disturbance.components.organisations.models import UserDelegation
 from disturbance.components.proposals.serializers_base import (
@@ -272,8 +271,8 @@ class ApiarySiteOnProposalDraftGeometrySerializer(GeoFeatureModelSerializer):
             'status',
             'workflow_selected_status',
             'for_renewal',
-            # 'stable_coords',
             'previous_site_holder_or_applicant',
+            'making_payment',
         )
 
     def get_is_vacant(self, obj):
@@ -316,7 +315,7 @@ class ApiarySiteOnProposalProcessedGeometrySerializer(GeoFeatureModelSerializer)
             'status',
             'workflow_selected_status',
             'for_renewal',
-            # 'stable_coords',
+            'making_payment',
             'previous_site_holder_or_applicant',
         )
 
@@ -351,31 +350,12 @@ class ApiarySiteOnProposalDraftGeometrySaveSerializer(GeoFeatureModelSerializer)
         if not feature:
             raise serializers.ValidationError(['Apiary Site: {} (lat: {}, lng: {}) is out of bounds.'.format(
                 self.instance.apiary_site.id,
-                attrs.get('wkb_geometry_draft').coords[1],
-                attrs.get('wkb_geometry_draft').coords[0],
+                wkb_geometry.coords[1],
+                wkb_geometry.coords[0],
             )])
 
-        # Validate 3km radius, etc
-        qs_vacant_site_proposal, qs_vacant_site_approval = get_qs_vacant_site()
-        sites = qs_vacant_site_proposal.filter(Q(wkb_geometry_processed__distance_lte=(wkb_geometry, Distance(m=RESTRICTED_RADIUS))))
-        if sites:
-            raise serializers.ValidationError(['invalid'])
-        sites = qs_vacant_site_approval.filter(Q(wkb_geometry__distance_lte=(wkb_geometry, Distance(m=RESTRICTED_RADIUS))))
-        if sites:
-            raise serializers.ValidationError(['invalid'])
-
-        qs_on_proposal_draft, qs_on_proposal_processed = get_qs_proposal(self.instance.proposal_apiary.proposal.id)
-        sites = qs_on_proposal_draft.filter(Q(wkb_geometry_draft__distance_lte=(wkb_geometry, Distance(m=RESTRICTED_RADIUS))))
-        if sites:
-            raise serializers.ValidationError(['invalid'])
-        sites = qs_on_proposal_processed.filter(Q(wkb_geometry_processed__distance_lte=(wkb_geometry, Distance(m=RESTRICTED_RADIUS))))
-        if sites:
-            raise serializers.ValidationError(['invalid'])
-
-        qs_on_approval = get_qs_approval()
-        sites = qs_on_approval.filter(Q(wkb_geometry__distance_lte=(wkb_geometry, Distance(m=RESTRICTED_RADIUS))))
-        if sites:
-            raise serializers.ValidationError(['invalid'])
+        apiary_sites_to_exclude = [self.instance.apiary_site,] if self.instance.apiary_site else None
+        validate_buffer(wkb_geometry, apiary_sites_to_exclude)
 
         site_category = get_category(attrs['wkb_geometry_draft'])
         attrs['site_category_draft'] = site_category

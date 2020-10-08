@@ -186,18 +186,29 @@
                 min_num_of_sites_for_new: 5,
                 existing_sites_loaded: false,
                 style_for_vacant_selected: new Style({
-                        image: new CircleStyle({
-                            radius: existingSiteRadius,
-                            fill: new Fill({
-                                color: SiteColours.vacant.fill
-                            }),
-                            stroke: new Stroke({
-                                color: SiteColours.vacant.stroke,
-                                width: 4
-                            })
+                    image: new CircleStyle({
+                        radius: existingSiteRadius,
+                        fill: new Fill({
+                            color: SiteColours.vacant.fill
+                        }),
+                        stroke: new Stroke({
+                            color: SiteColours.vacant.stroke,
+                            width: 4
                         })
-                    }),
-
+                    })
+                }),
+                style_for_new_apiary_site: new Style({
+                    image: new CircleStyle({
+                        radius: existingSiteRadius,
+                        fill: new Fill({
+                            color: '#ffdd44'
+                        }),
+                        stroke: new Stroke({
+                            color: '#ffcc33',
+                            width: 2
+                        })
+                    })
+                }),
                 // Popup
                 popup_id: uuid(),
                 popup_content_id: uuid(),
@@ -674,42 +685,18 @@
                 let buffer = this.bufferLayerSource.getFeatureById(site.getId() + "_buffer");
                 this.bufferLayerSource.removeFeature(buffer);
             },
-            apiaryStyleFunction: function(feature) {
+            apiaryStyleFunctionExisting: function(feature) {
+                // This is used for the existing apiary sites
                 let status = this.get_status_from_feature(feature)
                 return getApiaryFeatureStyle(status);
             },
-            apiaryStyleFunctionExisting: function(feature){
+            apiaryStyleFunctionProposed: function(feature){
+                // This is used for the proposed apiary sites
                 let vacant_selected = feature.get('vacant_selected')
                 if (vacant_selected){
                     return this.style_for_vacant_selected
-                    //return new Style({
-                    //    image: new CircleStyle({
-                    //        radius: existingSiteRadius,
-                    //        fill: new Fill({
-                    //            color: SiteColours.vacant.fill
-                    //        }),
-                    //        stroke: new Stroke({
-                    //            color: SiteColours.vacant.stroke,
-                    //            width: 4
-                    //        })
-                    //    })
-                    //});
                 } else {
-                    return new Style({
-                        fill: new Fill({
-                            color: 'rgba(255, 255, 255, 0.2)'
-                        }),
-                        stroke: new Stroke({
-                            color: '#ffcc33',
-                            width: 2
-                        }),
-                        image: new CircleStyle({
-                            radius: drawingSiteRadius,
-                            fill: new Fill({
-                                color: '#ffcc33'
-                            })
-                        })
-                    })
+                    return this.style_for_new_apiary_site
                 }
             },
             existingSiteAvailableClicked: function() {
@@ -932,7 +919,7 @@
                 });
                 vm.apiarySitesQueryLayer = new VectorLayer({
                     source: vm.apiarySitesQuerySource,
-                    style: vm.apiaryStyleFunction,
+                    style: vm.apiaryStyleFunctionExisting,
                 });
                 vm.map.addLayer(vm.apiarySitesQueryLayer);
 
@@ -972,7 +959,7 @@
                 });
                 vm.drawingLayer = new VectorLayer({
                     source: vm.drawingLayerSource,
-                    style: vm.apiaryStyleFunctionExisting,
+                    style: vm.apiaryStyleFunctionProposed,
                 });
                 vm.map.addLayer(vm.drawingLayer);
 
@@ -1098,6 +1085,7 @@
                                 let coords = feature.getGeometry().getCoordinates();
                                 let filter = vm.excludeFeature(feature);
                                 let valid = vm.isNewPositionValid(coords, filter);
+
                                 if (!valid || feature.get('status')==='vacant') {
                                     // rollback proposed modification
                                     let c = feature.get("stable_coords");
@@ -1147,6 +1135,9 @@
                             let style_applied = getApiaryFeatureStyle(vm.apiary_site_being_selected.get('status'), true, 5)
                             vm.apiary_site_being_selected.setStyle(style_applied)
                         }
+                        else {
+                            console.log(evt.selected[0])
+                        }
                     } else {
                         // Mouse hover out
                         if (vm.apiary_site_being_selected){
@@ -1169,8 +1160,12 @@
             get_status_from_feature: function(feature){
                 let status = feature.get("status");
                 let is_vacant = feature.get('is_vacant')
+                let making_payment = feature.get('making_payment')
+
                 if (is_vacant){
                     status = 'vacant'
+                } else if (making_payment){
+                    status = 'making_payment'
                 }
                 return status
             },
