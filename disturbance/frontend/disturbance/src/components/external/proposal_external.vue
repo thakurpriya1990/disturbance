@@ -754,7 +754,7 @@ export default {
                 console.log('confirmed')
                 vm.$refs.proposal_apiary.remove_apiary_site(apiary_site_id)
                 console.log('confirmed2')
-                // vm.save(false) 
+                // vm.save(false)
                 vm.$http.post(vm.remove_apiary_site_url, {'apiary_site_id': apiary_site_id}).then(
                     res => {
                         console.log('res')
@@ -802,8 +802,6 @@ export default {
         //     });
     },
     updated: function(){
-        console.log('in updated')
-
         let vm=this;
         this.$nextTick(() => {
             if(vm.hasAmendmentRequest){

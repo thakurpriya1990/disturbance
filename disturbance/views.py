@@ -1,3 +1,6 @@
+import json
+
+from django.contrib.gis.geos import GEOSGeometry
 from django.http import Http404, HttpResponse, JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, get_object_or_404, redirect
@@ -9,6 +12,12 @@ from django.contrib.auth.mixins import UserPassesTestMixin, LoginRequiredMixin
 
 from datetime import datetime, timedelta
 
+from rest_framework.decorators import api_view, renderer_classes
+from rest_framework.renderers import JSONRenderer
+
+from disturbance.components.main.decorators import timeit
+from disturbance.components.main.serializers import WaCoastSerializer, WaCoastOptimisedSerializer
+from disturbance.components.main.utils import get_feature_in_wa_coastline_smoothed, get_feature_in_wa_coastline_original
 from disturbance.helpers import is_internal
 from disturbance.forms import *
 from disturbance.components.proposals.models import Referral, Proposal, HelpPage
@@ -169,3 +178,26 @@ class TemplateGroupView(views.APIView):
             'template_group': template_group
             })
 
+
+@timeit
+@api_view(('GET',))
+@renderer_classes((JSONRenderer,))
+def gisdata(request):
+    layer = request.GET.get('layer', None)
+    lat = request.GET.get('lat', None)
+    lng = request.GET.get('lng', None)
+    include_feature = request.GET.get('include_feature', False)  # feature(polygon) data could be large
+
+    geom_str = GEOSGeometry('POINT(' + lng + ' ' + lat + ')', srid=4326)
+
+    if layer == 'wa_coast_smoothed':
+        feature = get_feature_in_wa_coastline_smoothed(geom_str)
+    elif layer == 'wa_coast_original':
+        feature = get_feature_in_wa_coastline_original(geom_str)
+
+    if include_feature:
+        serializer = WaCoastSerializer(feature)
+    else:
+        serializer = WaCoastOptimisedSerializer(feature)
+
+    return Response(serializer.data)

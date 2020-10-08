@@ -9,7 +9,7 @@ from ledger.settings_base import TIME_ZONE
 
 from disturbance import settings
 from disturbance.components.main.models import ApplicationType, GlobalSettings, ApiaryGlobalSettings, RegionDbca, \
-    DistrictDbca, CategoryDbca
+    DistrictDbca, CategoryDbca, WaCoast
 from disturbance.components.proposals.models import ApiarySiteFeeType, SiteCategory, ApiarySiteFee, ProposalType, \
     ApiaryAnnualRentalFeePeriodStartDate, ApiaryAnnualRentalFeeRunDate, ApiaryAnnualRentalFee
 
@@ -25,7 +25,37 @@ def construct_name_values(mul):
 
 class DefaultDataManager(object):
 
+    def insert_wa_coast(self, file_path, smoothed):
+        # WA coast line: store geometries
+        count = WaCoast.objects.filter(smoothed=smoothed).count()
+        if not count > 0:
+            with open(file_path) as f:
+                data = json.load(f)
+
+                for region in data['features']:
+                    json_str = json.dumps(region['geometry'])
+                    geom = GEOSGeometry(json_str)
+                    coast_obj = WaCoast.objects.create(
+                        wkb_geometry=geom,
+                        type=region['properties']['TYPE'],
+                        source=region['properties']['SOURCE'],
+                        smoothed=smoothed,
+                    )
+                    coast_obj.save()
+                    logger.info(
+                        "Created coast line record, id:{}, type:{}, smoothed:{}".format(coast_obj.id, coast_obj.type,
+                                                                                        smoothed))
+                logger.info("{} coastline polygons have been created".format(len(data['features'])))
+
     def __init__(self):
+        # WA coast (original)
+        file_path_original = os.path.join(settings.BASE_DIR, 'disturbance', 'static', 'disturbance', 'gis', 'wa_coast.geojson')
+        self.insert_wa_coast(file_path_original, False)
+
+        # WA coast (smoothed)
+        file_path_smoothed = os.path.join(settings.BASE_DIR, 'disturbance', 'static', 'disturbance', 'gis', 'wa_coast_smoothed.geojson')
+        self.insert_wa_coast(file_path_smoothed, True)
+
         # Category: store south west apiary zone
         path_to_zones = os.path.join(settings.BASE_DIR, 'disturbance', 'static', 'disturbance', 'gis', 'sw_apiary_zone.geojson')
         count = CategoryDbca.objects.all().count()
