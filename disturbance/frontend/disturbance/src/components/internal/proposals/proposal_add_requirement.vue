@@ -138,7 +138,7 @@ export default {
                 recurrence: false,
                 recurrence_pattern: '1',
                 proposal: vm.proposal_id,
-                apiary_approval: vm.approval_id
+                apiary_approval: vm.approval_id,
             },
             addingRequirement: false,
             updatingRequirement: false,

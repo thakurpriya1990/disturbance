@@ -23,7 +23,8 @@
         ref="target_requirement_detail" 
         :proposal_id="proposal.id" 
         :requirements="requirements"
-        :approval_id="targetApprovalId"/>
+        :approval_id="targetApprovalId"
+        v-bind:key="uuid"/>
     </div>
 </template>
 <script>
@@ -54,6 +55,7 @@ export default {
                 "Action",
                 "Order"
             ],
+            uuid: 0,
             requirement_options:{
                 autoWidth: false,
                 language: {
@@ -212,7 +214,10 @@ export default {
     },
     methods:{
         addRequirement(){
-            this.$refs.target_requirement_detail.isModalOpen = true;
+            this.uuid += 1;
+            this.$nextTick(() => {
+                this.$refs.target_requirement_detail.isModalOpen = true;
+            });
         },
         removeRequirement(_id){
             let vm = this;

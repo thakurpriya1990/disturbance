@@ -807,7 +807,6 @@ class ProposalApiaryViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['POST',])
     @basic_exception_handler
     def final_approval(self, request, *args, **kwargs):
-        #import ipdb;ipdb.set_trace()
         with transaction.atomic():
             instance = self.get_object()
             if instance.proposal.application_type.name == ApplicationType.SITE_TRANSFER:
@@ -823,16 +822,27 @@ class ProposalApiaryViewSet(viewsets.ModelViewSet):
             #serializer = InternalProposalSerializer(instance,context={'request':request})
             serializer_class = self.internal_apiary_serializer_class()
             serializer = serializer_class(instance.proposal,context={'request':request})
+            #import ipdb;ipdb.set_trace()
             if preview:
+                site_transfer_preview = False
                 if instance.proposal.application_type.name == ApplicationType.SITE_TRANSFER:
-                    pass
+                    site_transfer_preview = True
+                    originating_target = request.data.get('originating_target')
+                    if originating_target == 'originating':
+                        preview_approval_id = serializer.data.get('proposal_apiary', {}).get('originating_approval_id')
+                    else:
+                        preview_approval_id = serializer.data.get('proposal_apiary', {}).get('target_approval_id')
                 else:
-                    licence_response = HttpResponse(content_type='application/pdf')
                     preview_approval_id = serializer.data.get('approval', {}).get('id')
-                    preview_approval = Approval.objects.get(id=preview_approval_id)
-                    licence_response.content = preview_approval.generate_doc(request.user, preview=True)
-                    transaction.set_rollback(True)
-                    return licence_response
+                licence_response = HttpResponse(content_type='application/pdf')
+                preview_approval = Approval.objects.get(id=preview_approval_id)
+                licence_response.content = preview_approval.generate_doc(
+                        request.user, 
+                        preview=True, 
+                        site_transfer_preview=site_transfer_preview
+                        )
+                transaction.set_rollback(True)
+                return licence_response
             return Response(serializer.data)
 
     @detail_route(methods=['POST', ])

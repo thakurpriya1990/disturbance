@@ -11,19 +11,19 @@
                 </div>
                 <div class="panel-body panel-collapse collapse in" :id="panelBody">
                     <form class="form-horizontal" action="index.html" method="post">
-                        <div class="col-sm-12">
+                        <!--div class="col-sm-12">
                             <button v-if="hasAssessorMode" @click.prevent="addRequirement()" style="margin-bottom:10px;" class="btn btn-primary pull-right">Add Requirement</button>
-                        </div>
+                        </div-->
                         <datatable ref="originating_requirements_datatable" :id="'originating-approval-requirements-datatable-'+_uid" :dtOptions="requirement_options" :dtHeaders="requirement_headers"/>
                     </form>
                 </div>
             </div>
         </div>
-        <RequirementDetail 
+        <!--RequirementDetail 
         ref="originating_requirement_detail" 
         :proposal_id="proposal.id" 
         :requirements="requirements"
-        :approval_id="originatingApprovalId"/>
+        :approval_id="originatingApprovalId"/-->
     </div>
 </template>
 <script>
@@ -33,7 +33,7 @@ import {
 }
 from '@/utils/hooks'
 import datatable from '@vue-utils/datatable.vue'
-import RequirementDetail from './proposal_add_requirement.vue'
+//import RequirementDetail from './proposal_add_requirement.vue'
 export default {
     name: 'OriginatingApprovalRequirements',
     props: {
@@ -187,7 +187,7 @@ export default {
     },
     components:{
         datatable,
-        RequirementDetail
+        //RequirementDetail
     },
     computed:{
         hasAssessorMode(){
