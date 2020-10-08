@@ -2,6 +2,7 @@ import pytz
 from django.conf import settings
 from datetime import datetime
 
+from django.contrib.gis.measure import Distance
 from django.db.models import Q
 
 from ledger.settings_base import TIME_ZONE
@@ -9,7 +10,7 @@ from rest_framework_gis.serializers import GeoFeatureModelSerializer
 
 from disturbance.components.approvals.serializers_apiary import ApiarySiteOnApprovalGeometrySerializer
 from disturbance.components.main.utils import get_category, get_tenure, get_region_district, \
-    get_feature_in_wa_coastline_smoothed
+    get_feature_in_wa_coastline_smoothed, get_qs_vacant_site, get_qs_proposal, get_qs_approval
 from disturbance.components.organisations.serializers import OrganisationSerializer
 from disturbance.components.organisations.models import UserDelegation
 from disturbance.components.proposals.serializers_base import (
@@ -49,7 +50,7 @@ from django.contrib.contenttypes.models import ContentType
 from ledger.accounts.models import EmailUser
 from copy import deepcopy
 
-from disturbance.settings import SITE_STATUS_DRAFT
+from disturbance.settings import SITE_STATUS_DRAFT, RESTRICTED_RADIUS
 
 
 class VersionSerializer(serializers.ModelSerializer):
@@ -343,7 +344,8 @@ class ApiarySiteOnProposalDraftGeometrySaveSerializer(GeoFeatureModelSerializer)
     For saving as 'draft'
     """
     def validate(self, attrs):
-        feature = get_feature_in_wa_coastline_smoothed(attrs.get('wkb_geometry_draft'))
+        wkb_geometry = attrs.get('wkb_geometry_draft')
+        feature = get_feature_in_wa_coastline_smoothed(wkb_geometry)
         # feature = get_feature_in_wa_coastline_original(attrs.get('wkb_geometry_draft'))
         # feature = get_feature_in_wa_coastline_api(attrs.get('wkb_geometry_draft'))
         if not feature:
@@ -353,8 +355,27 @@ class ApiarySiteOnProposalDraftGeometrySaveSerializer(GeoFeatureModelSerializer)
                 attrs.get('wkb_geometry_draft').coords[0],
             )])
 
-        # TODO: validate 3km radius, etc
-        # q_objects &= Q(wkb_geometry_draft__distance_lte=(relation.wkb_geometry_draft, Distance(m=RESTRICTED_RADIUS)))
+        # Validate 3km radius, etc
+        qs_vacant_site_proposal, qs_vacant_site_approval = get_qs_vacant_site()
+        sites = qs_vacant_site_proposal.filter(Q(wkb_geometry_processed__distance_lte=(wkb_geometry, Distance(m=RESTRICTED_RADIUS))))
+        if sites:
+            raise serializers.ValidationError(['invalid'])
+        sites = qs_vacant_site_approval.filter(Q(wkb_geometry__distance_lte=(wkb_geometry, Distance(m=RESTRICTED_RADIUS))))
+        if sites:
+            raise serializers.ValidationError(['invalid'])
+
+        qs_on_proposal_draft, qs_on_proposal_processed = get_qs_proposal(self.instance.proposal_apiary.proposal.id)
+        sites = qs_on_proposal_draft.filter(Q(wkb_geometry_draft__distance_lte=(wkb_geometry, Distance(m=RESTRICTED_RADIUS))))
+        if sites:
+            raise serializers.ValidationError(['invalid'])
+        sites = qs_on_proposal_processed.filter(Q(wkb_geometry_processed__distance_lte=(wkb_geometry, Distance(m=RESTRICTED_RADIUS))))
+        if sites:
+            raise serializers.ValidationError(['invalid'])
+
+        qs_on_approval = get_qs_approval()
+        sites = qs_on_approval.filter(Q(wkb_geometry__distance_lte=(wkb_geometry, Distance(m=RESTRICTED_RADIUS))))
+        if sites:
+            raise serializers.ValidationError(['invalid'])
 
         site_category = get_category(attrs['wkb_geometry_draft'])
         attrs['site_category_draft'] = site_category
