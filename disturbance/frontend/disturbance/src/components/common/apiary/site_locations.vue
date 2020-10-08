@@ -984,11 +984,6 @@
                     autoPan: false,
                     offest: [0, -10]
                 })
-                //closer.onclick = function() {
-                //    vm.overlay.setPosition(undefined)
-                //    closer.blur()
-                //    return false
-                //}
                 vm.map.addOverlay(vm.overlay)
 
                 //vm.bufferLayerSource = new VectorSource();
@@ -1114,9 +1109,6 @@
                                 else {
                                     let ret = await vm.$http.get('/gisdata/?layer=wa_coast_smoothed&lat=' + coords[1] + '&lng=' + coords[0])
                                     if(!ret.body.hasOwnProperty('id')){
-                                        //vm.removeBufferForSite(feature)
-                                        //vm.drawingLayerSource.removeFeature(feature);
-
                                         // rollback proposed modification
                                         let c = feature.get("stable_coords");
                                         feature.getGeometry().setCoordinates(c);

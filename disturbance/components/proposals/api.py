@@ -32,9 +32,9 @@ from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_APPROVED, SITE_S
     SITE_STATUS_NOT_TO_BE_REISSUED, SITE_STATUS_VACANT, SITE_STATUS_TRANSFERRED
 from disturbance.utils import search_tenure
 from disturbance.components.main.utils import (
-        check_db_connection, 
-        get_template_group
-        )
+    check_db_connection,
+    get_template_group, get_qs_vacant_site, get_qs_proposal, get_qs_approval
+)
 
 from django.urls import reverse
 from django.shortcuts import redirect, get_object_or_404
@@ -597,63 +597,22 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
     @list_route(methods=['GET',])
     @basic_exception_handler
     def list_existing(self, request):
-        # 0. Retrieve 'vacant' sites
-        qs_vacant_site = ApiarySite.objects.filter(is_vacant=True).exclude(apiarysiteonproposal__in=ApiarySiteOnProposal.objects.filter(making_payment=True)).distinct()
-        apiary_site_proposal_ids = qs_vacant_site.all().values('proposal_link_for_vacant__id')
-        qs_vacant_site_proposal = ApiarySiteOnProposal.objects.filter(id__in=apiary_site_proposal_ids)
+        # Retrieve 'vacant' sites
+        qs_vacant_site_proposal, qs_vacant_site_approval = get_qs_vacant_site()
         serializer_vacant_proposal = ApiarySiteOnProposalProcessedGeometrySerializer(qs_vacant_site_proposal, many=True)
-
-        apiary_site_approval_ids = qs_vacant_site.all().values('approval_link_for_vacant__id')
-        qs_vacant_site_approval = ApiarySiteOnApproval.objects.filter(id__in=apiary_site_approval_ids)
         serializer_vacant_approval = ApiarySiteOnApprovalGeometrySerializer(qs_vacant_site_approval, many=True)
 
-        # 1. ApiarySiteOnProposal
-        q_include_proposal = Q()
-        q_exclude_proposal = Q()
-
-        # 1.1. Include
-        q_include_proposal &= Q(id__in=(ApiarySite.objects.all().values('latest_proposal_link__id'))) # Include only the intermediate objects which are on the ApiarySite.latest_proposal_links
-
-        # 1.2. Exclude
-        q_exclude_proposal |= Q(site_status__in=(SITE_STATUS_DRAFT,)) & Q(making_payment=False)  # Purely 'draft' site
-        q_exclude_proposal |= Q(site_status__in=(SITE_STATUS_APPROVED,))  # 'approved' site should be included in the approval as a 'current'
-        q_exclude_proposal |= Q(apiary_site__in=ApiarySite.objects.filter(is_vacant=True))  # Vacant sites are already picked up above.  We don't want to pick up them again here.
-
-        # 1.3. Exculde the apairy sites which are on the proposal apiary currently being accessed
-        proposal_id = request.query_params.get('proposal_id', 0)
-        if proposal_id:
-            # When proposal_id is passed as a query_params, which is the one in the URL after the ?
-            # Exculde the apiary_sites included in that proposal
-            proposal = Proposal.objects.get(id=proposal_id)
-            q_exclude_proposal |= Q(proposal_apiary=proposal.proposal_apiary)
-
-        # 1.4. Issue query
-        qs_on_proposal = ApiarySiteOnProposal.objects.filter(q_include_proposal).exclude(q_exclude_proposal).distinct('apiary_site')
-        qs_on_proposal_processed = qs_on_proposal.exclude(wkb_geometry_processed=None)
-        qs_on_proposal_draft = qs_on_proposal.filter(wkb_geometry_processed=None)  # For the 'draft' apiary sites with the making_payment=True attribute
-
-        # 1.5. serialize
+        # ApiarySiteOnProposal
+        proposal_id = request.query_params.get('proposal_id', None)
+        qs_on_proposal_draft, qs_on_proposal_processed = get_qs_proposal(proposal_id)
         serializer_proposal_processed = ApiarySiteOnProposalProcessedGeometrySerializer(qs_on_proposal_processed, many=True)
         serializer_proposal_draft = ApiarySiteOnProposalDraftGeometrySerializer(qs_on_proposal_draft, many=True)
 
-        # 2. ApiarySiteOnApproval
-        q_include_approval = Q()
-        q_exclude_approval = Q()
-
-        # 2.1. Include
-        q_include_approval &= Q(id__in=(ApiarySite.objects.all().values('latest_approval_link__id'))) # Include only the intermediate objects which are on the ApiarySite.latest_approval_links
-
-        # 2.2. Exclude
-        q_exclude_approval |= Q(apiary_site__in=qs_vacant_site)  # We don't want to pick up the vacant sites already retrieved above
-        q_exclude_approval |= Q(site_status=SITE_STATUS_TRANSFERRED)
-
-        # 2.3. Issue query
-        qs_on_approval = ApiarySiteOnApproval.objects.filter(q_include_approval).exclude(q_exclude_approval).distinct('apiary_site')
-
-        # 2.5. serialize
+        # ApiarySiteOnApproval
+        qs_on_approval = get_qs_approval()
         serializer_approval = ApiarySiteOnApprovalGeometrySerializer(qs_on_approval, many=True)
 
-        # 3. Merge all the data above
+        # Merge all the data above
         serializer_approval.data['features'].extend(serializer_proposal_draft.data['features'])
         serializer_approval.data['features'].extend(serializer_proposal_processed.data['features'])
         serializer_approval.data['features'].extend(serializer_vacant_proposal.data['features'])
