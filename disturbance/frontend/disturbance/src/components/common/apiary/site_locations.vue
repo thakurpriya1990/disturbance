@@ -806,6 +806,7 @@
                 this.$emit('button_text', button_text)
             },
             constructSiteLocationsTable: function(){
+                console.log('in constructSiteLocationsTable')
                 if (this.drawingLayerSource){
                     // Clear table
                     this.$refs.site_locations_table.vmDataTable.clear().draw();
@@ -960,8 +961,13 @@
 
                 // In memory vector layer for digitization
                 //vm.drawingLayerSource = new VectorSource();
-                vm.drawingLayerSource.on('addfeature', function(e){
-                    //vm.proposal.proposal_apiary.apiary_sites.push(e.feature)
+                vm.drawingLayerSource.on('addfeature', async function(e){
+                    let coords = e.feature.getGeometry().getCoordinates()
+                    let ret = await vm.$http.get('/gisdata/?layer=wa_coast_smoothed&lat=' + coords[1] + '&lng=' + coords[0])
+                    if(!ret.body.hasOwnProperty('id')){
+                        vm.removeBufferForSite(e.feature)
+                        vm.drawingLayerSource.removeFeature(e.feature);
+                    }
                     vm.constructSiteLocationsTable()
                 });
                 vm.drawingLayer = new VectorLayer({
@@ -1029,8 +1035,11 @@
                         source: vm.drawingLayerSource,
                         type: "Point",
                     });
-                    drawTool.on("drawstart", function(attributes){
-                        console.log('drawstart')
+                    drawTool.on("drawstart", async function(attributes){
+                        console.log('in drawstart')
+                        
+                        let coords = attributes.feature.getGeometry().getCoordinates()
+
                         if (vm.apiary_site_being_selected){
                             // Abort drawing, instead 'vacant' site is to be added
                             drawTool.abortDrawing();
@@ -1069,13 +1078,6 @@
                             });
                             vm.createBufferForSite(feature);
                             // Vue table is updated by the event 'addfeature' issued from the Source
-
-                            let ret = await vm.$http.get('/gisdata/?layer=wa_coast_smoothed&lat=' + draw_coords[1] + '&lng=' + draw_coords[0])
-                            if(!ret.body.hasOwnProperty('id')){
-                                vm.removeBufferForSite(feature)
-                                vm.drawingLayerSource.removeFeature(feature);
-                                vm.constructSiteLocationsTable()
-                            }
                         }
                     });
                     vm.map.addInteraction(drawTool);
