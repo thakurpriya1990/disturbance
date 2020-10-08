@@ -6,8 +6,11 @@ import pytz
 from django.conf import settings
 from django.core.cache import cache
 from django.db import connection
+from django.db.models.query_utils import Q
 
-from disturbance.components.main.models import CategoryDbca, RegionDbca, DistrictDbca
+from disturbance.components.main.decorators import timeit
+from disturbance.components.main.models import CategoryDbca, RegionDbca, DistrictDbca, WaCoast
+from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_APPROVED, SITE_STATUS_TRANSFERRED
 
 
 def retrieve_department_users():
@@ -102,7 +105,26 @@ def _get_params(layer_name, coords):
     }
 
 
-def get_feature_in_wa_coastline(wkb_geometry):
+def get_feature_in_wa_coastline_original(wkb_geometry):
+    return get_feature_in_wa_coastline(wkb_geometry, False)
+
+
+def get_feature_in_wa_coastline_smoothed(wkb_geometry):
+    return get_feature_in_wa_coastline(wkb_geometry, True)
+
+
+def get_feature_in_wa_coastline(wkb_geometry, smoothed):
+    try:
+        features = WaCoast.objects.filter(wkb_geometry__contains=wkb_geometry, smoothed=smoothed)
+        if features:
+            return features[0]
+        else:
+            return None
+    except:
+        return None
+
+
+def get_feature_in_wa_coastline_kmi(wkb_geometry):
     try:
         URL = 'https://kmi.dpaw.wa.gov.au/geoserver/public/wms'
         coords = wkb_geometry.get_coords()
@@ -147,3 +169,77 @@ def get_region_district(wkb_geometry):
     except:
         return ''
 
+
+def get_vacant_apiary_site():
+    from disturbance.components.proposals.models import ApiarySite, ApiarySiteOnProposal
+
+    qs_vacant_site = ApiarySite.objects.filter(is_vacant=True).exclude(apiarysiteonproposal__in=ApiarySiteOnProposal.objects.filter(making_payment=True)).distinct()
+    return qs_vacant_site
+
+
+def get_qs_vacant_site():
+    from disturbance.components.proposals.models import ApiarySiteOnProposal
+    from disturbance.components.approvals.models import ApiarySiteOnApproval
+
+    qs_vacant_site = get_vacant_apiary_site()
+
+    apiary_site_proposal_ids = qs_vacant_site.all().values('proposal_link_for_vacant__id')
+    qs_vacant_site_proposal = ApiarySiteOnProposal.objects.filter(id__in=apiary_site_proposal_ids)
+
+    apiary_site_approval_ids = qs_vacant_site.all().values('approval_link_for_vacant__id')
+    qs_vacant_site_approval = ApiarySiteOnApproval.objects.filter(id__in=apiary_site_approval_ids)
+
+    return qs_vacant_site_proposal, qs_vacant_site_approval
+
+
+def get_qs_proposal(proposal_id=None):
+    from disturbance.components.proposals.models import ApiarySite, ApiarySiteOnProposal, Proposal
+
+    # 1. ApiarySiteOnProposal
+    q_include_proposal = Q()
+    q_exclude_proposal = Q()
+
+    # 1.1. Include
+    q_include_proposal &= Q(id__in=(ApiarySite.objects.all().values('latest_proposal_link__id')))  # Include only the intermediate objects which are on the ApiarySite.latest_proposal_links
+
+    # 1.2. Exclude
+    q_exclude_proposal |= Q(site_status__in=(SITE_STATUS_DRAFT,)) & Q(making_payment=False)  # Purely 'draft' site
+    q_exclude_proposal |= Q(site_status__in=(SITE_STATUS_APPROVED,))  # 'approved' site should be included in the approval as a 'current'
+    q_exclude_proposal |= Q(apiary_site__in=ApiarySite.objects.filter(is_vacant=True))  # Vacant sites are already picked up above.  We don't want to pick up them again here.
+
+    # 1.3. Exculde the apairy sites which are on the proposal apiary currently being accessed
+    # proposal_id = request.query_params.get('proposal_id', 0)
+    if proposal_id:
+        # When proposal_id is passed as a query_params, which is the one in the URL after the ?
+        # Exculde the apiary_sites included in that proposal
+        proposal = Proposal.objects.get(id=proposal_id)
+        q_exclude_proposal |= Q(proposal_apiary=proposal.proposal_apiary)
+
+    # 1.4. Issue query
+    qs_on_proposal = ApiarySiteOnProposal.objects.filter(q_include_proposal).exclude(q_exclude_proposal).distinct( 'apiary_site')
+    qs_on_proposal_processed = qs_on_proposal.exclude(wkb_geometry_processed=None)
+    qs_on_proposal_draft = qs_on_proposal.filter(wkb_geometry_processed=None)  # For the 'draft' apiary sites with the making_payment=True attribute
+
+    return qs_on_proposal_draft, qs_on_proposal_processed
+
+
+def get_qs_approval():
+    from disturbance.components.proposals.models import ApiarySite
+    from disturbance.components.approvals.models import ApiarySiteOnApproval
+
+    q_include_approval = Q()
+    q_exclude_approval = Q()
+
+    qs_vacant_site = get_vacant_apiary_site()
+
+    # 2.1. Include
+    q_include_approval &= Q(id__in=(ApiarySite.objects.all().values('latest_approval_link__id')))  # Include only the intermediate objects which are on the ApiarySite.latest_approval_links
+
+    # 2.2. Exclude
+    q_exclude_approval |= Q(apiary_site__in=qs_vacant_site)  # We don't want to pick up the vacant sites already retrieved above
+    q_exclude_approval |= Q(site_status=SITE_STATUS_TRANSFERRED)
+
+    # 2.3. Issue query
+    qs_on_approval = ApiarySiteOnApproval.objects.filter(q_include_approval).exclude(q_exclude_approval).distinct('apiary_site')
+
+    return qs_on_approval

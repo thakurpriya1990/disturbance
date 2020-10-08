@@ -72,6 +72,19 @@ class CategoryDbca(models.Model):
         app_label = 'disturbance'
 
 
+class WaCoast(models.Model):
+    '''
+    This model is used for validating if the apiary site is in the valid area
+    '''
+    wkb_geometry = MultiPolygonField(srid=4326, blank=True, null=True)
+    type = models.CharField(max_length=30, blank=True, null=True)
+    source = models.CharField(max_length=50, blank=True, null=True)
+    smoothed = models.BooleanField(default=False)
+
+    class Meta:
+        app_label = 'disturbance'
+
+
 @python_2_unicode_compatible
 class ApplicationType(models.Model):
 

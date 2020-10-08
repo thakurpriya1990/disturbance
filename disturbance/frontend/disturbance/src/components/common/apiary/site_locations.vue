@@ -297,9 +297,6 @@
                         {
                             // Vacant
                             mRender: function (data, type, feature) {
-                                console.log('in mRender for Vacant')
-                                console.log(feature)
-
                                 let my_status = feature.get('status')
                                 let is_vacant = feature.get('is_vacant')
                                 if(my_status === 'vacant' || is_vacant === true){
@@ -540,8 +537,6 @@
                 this.$emit('total_fee_remote_renewal', this.total_fee_remote_renewal)
             },
             apiary_site_being_selected: function() {
-                console.log('apiary_site_being_selected')
-                console.log(this.apiary_site_being_selected);
                 if (this.apiary_site_being_selected){
                     this.showPopup(this.apiary_site_being_selected)
                 } else {
@@ -604,7 +599,6 @@
                 }
             },
             zoomToApiarySiteById: function(apiary_site_id){
-                console.log(apiary_site_id)
                 let feature = this.drawingLayerSource.getFeatureById(apiary_site_id)
                 let geometry = feature.getGeometry()
                 let coord = geometry.getCoordinates()
@@ -649,11 +643,12 @@
                 return min;
             },
             isNewPositionValid: function(coords, filter=null){
-                let distance = this.metersToNearest(coords, filter);
-                if (distance < this.buffer_radius) {
-                    return false;
+                let vm = this
+                let distance = vm.metersToNearest(coords, filter);
+                if (distance < vm.buffer_radius) {
+                    return false
                 }
-                return true;
+                return true
             },
             zoneForCoordinates: function(coords){
                 let zone = "remote";
@@ -680,16 +675,10 @@
                 this.bufferLayerSource.removeFeature(buffer);
             },
             apiaryStyleFunction: function(feature) {
-                console.log('in apiaryStyleFunction')
-                console.log(feature)
-
                 let status = this.get_status_from_feature(feature)
                 return getApiaryFeatureStyle(status);
             },
             apiaryStyleFunctionExisting: function(feature){
-                console.log('in apiaryStyleFunctionExisting')
-                console.log(feature)
-
                 let vacant_selected = feature.get('vacant_selected')
                 if (vacant_selected){
                     return this.style_for_vacant_selected
@@ -749,9 +738,6 @@
                 }
             },
             calculateRemainders: function(features){
-                console.log('in calculateRemainders')
-                console.log(features)
-
                 let remainders = null;
                 if (this.proposal.application_type === 'Apiary') {
                     remainders = this.proposal.proposal_apiary.site_remainders;
@@ -820,6 +806,7 @@
                 this.$emit('button_text', button_text)
             },
             constructSiteLocationsTable: function(){
+                console.log('in constructSiteLocationsTable')
                 if (this.drawingLayerSource){
                     // Clear table
                     this.$refs.site_locations_table.vmDataTable.clear().draw();
@@ -858,9 +845,6 @@
                 this.constructSiteLocationsTable()
             },
             deleteApiarySite: function(myFeature){
-                console.log('in deleteApiarySite()')
-                console.log(myFeature)
-
                 let site_category = myFeature.get('site_category')
 
                 let new_or_existing = this.is_feature_new_or_existing(myFeature)
@@ -894,8 +878,6 @@
                 //$(e.target).closest('tr').fadeOut('slow', function(){ })
             },
             removeSiteLocation: function(e){
-                console.log('in removeSiteLocation')
-
                 let site_location_guid = e.target.getAttribute("data-site-location-guid");
                 let myFeature = this.drawingLayerSource.getFeatureById(site_location_guid)
                 this.deleteApiarySite(myFeature)
@@ -931,7 +913,7 @@
                 // Remove the row from the table
                 $(e.target).closest('tr').fadeOut('slow', function(){ })
             },
-            initMap: function() {
+            initMap: async function() {
                 let vm = this;
 
                 vm.map = new Map({
@@ -979,9 +961,13 @@
 
                 // In memory vector layer for digitization
                 //vm.drawingLayerSource = new VectorSource();
-                vm.drawingLayerSource.on('addfeature', function(e){
-                    //vm.proposal.proposal_apiary.apiary_sites.push(e.feature)
-                    console.log('in addfeature')
+                vm.drawingLayerSource.on('addfeature', async function(e){
+                    let coords = e.feature.getGeometry().getCoordinates()
+                    let ret = await vm.$http.get('/gisdata/?layer=wa_coast_smoothed&lat=' + coords[1] + '&lng=' + coords[0])
+                    if(!ret.body.hasOwnProperty('id')){
+                        vm.removeBufferForSite(e.feature)
+                        vm.drawingLayerSource.removeFeature(e.feature);
+                    }
                     vm.constructSiteLocationsTable()
                 });
                 vm.drawingLayer = new VectorLayer({
@@ -998,11 +984,6 @@
                     autoPan: false,
                     offest: [0, -10]
                 })
-                //closer.onclick = function() {
-                //    vm.overlay.setPosition(undefined)
-                //    closer.blur()
-                //    return false
-                //}
                 vm.map.addOverlay(vm.overlay)
 
                 //vm.bufferLayerSource = new VectorSource();
@@ -1047,9 +1028,13 @@
                     let modifyInProgressList = [];
                     let drawTool = new Draw({
                         source: vm.drawingLayerSource,
-                        type: "Point"
+                        type: "Point",
                     });
-                    drawTool.on("drawstart", function(attributes){
+                    drawTool.on("drawstart", async function(attributes){
+                        console.log('in drawstart')
+                        
+                        let coords = attributes.feature.getGeometry().getCoordinates()
+
                         if (vm.apiary_site_being_selected){
                             // Abort drawing, instead 'vacant' site is to be added
                             drawTool.abortDrawing();
@@ -1063,16 +1048,20 @@
                                 }
                             });
                         } else {
-                            if (!vm.isNewPositionValid(attributes.feature.getGeometry().getCoordinates())) {
+                            let coords = attributes.feature.getGeometry().getCoordinates()
+                            if (!vm.isNewPositionValid(coords)) {
                                 drawTool.abortDrawing();
                             }
                         }
                     });
-                    drawTool.on('drawend', function(attributes){
+                    //drawTool.on('drawend', function(attributes){
+                    drawTool.on('drawend', async function(attributes){
+                        console.log('in drawend')
                         if (!this.readoly){
                             let feature = attributes.feature;
                             let draw_id = vm.uuidv4();
                             let draw_coords = feature.getGeometry().getCoordinates();
+
                             feature.setId(draw_id);
                             feature.set("source", "draw");
                             feature.set("stable_coords", draw_coords);
@@ -1095,17 +1084,13 @@
                         }
                     });
                     modifyTool.on("modifystart", function(attributes){
-                        console.log('in modifystart')
-
                         attributes.features.forEach(function(feature){
 
                         })
                     });
                     modifyTool.on("modifyend", function(attributes){
-                        console.log('in modifyend')
-
                         // this will list all features in layer, not so useful without cross referencing
-                        attributes.features.forEach(function(feature){
+                        attributes.features.forEach(async function(feature){
                             let id = feature.getId();
                             let index = modifyInProgressList.indexOf(id);
                             if (index != -1) {
@@ -1122,12 +1107,22 @@
                                     modifyInProgressList.splice(index, 1);
                                 }
                                 else {
-                                    // confirm proposed modification
-                                    feature.set("stable_coords", coords);
-                                    vm.removeBufferForSite(feature);
-                                    vm.createBufferForSite(feature);
-                                    feature.set('site_category', vm.zoneForCoordinates(coords));
-                                    vm.constructSiteLocationsTable();
+                                    let ret = await vm.$http.get('/gisdata/?layer=wa_coast_smoothed&lat=' + coords[1] + '&lng=' + coords[0])
+                                    if(!ret.body.hasOwnProperty('id')){
+                                        // rollback proposed modification
+                                        let c = feature.get("stable_coords");
+                                        feature.getGeometry().setCoordinates(c);
+                                        // setting coords will add the id to the modification list again, we don't need that so clear it now
+                                        index = modifyInProgressList.indexOf(id);
+                                        modifyInProgressList.splice(index, 1);
+                                    } else {
+                                        // confirm proposed modification
+                                        feature.set("stable_coords", coords);
+                                        vm.removeBufferForSite(feature);
+                                        vm.createBufferForSite(feature);
+                                        feature.set('site_category', vm.zoneForCoordinates(coords));
+                                        vm.constructSiteLocationsTable();
+                                    }
                                 }
                             }
                         });
@@ -1141,7 +1136,6 @@
                 });
                 vm.map.addInteraction(hoverInteraction);
                 hoverInteraction.on('select', function(evt){
-                    console.log('hoverInteraction')
                     if(evt.selected.length > 0){
                         // Mouse hover in
                         if(evt.selected[0].get('is_vacant') === true){
@@ -1214,9 +1208,6 @@
             this.$http.get('/api/apiary_site/list_existing/?proposal_id=' + this.proposal.id)
             .then(
                 res => {
-                    console.log('res.body: ')
-                    console.log(res.body)
-
                     vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
                     vm.existing_sites_loaded = true
                 },
