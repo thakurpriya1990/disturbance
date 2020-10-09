@@ -175,6 +175,7 @@ def get_region_district(wkb_geometry):
 def get_vacant_apiary_site():
     from disturbance.components.proposals.models import ApiarySite, ApiarySiteOnProposal
 
+    # ApiarySite with is_vacant==True and making_payment==False
     qs_vacant_site = ApiarySite.objects.filter(is_vacant=True).exclude(apiarysiteonproposal__in=ApiarySiteOnProposal.objects.filter(making_payment=True)).distinct()
     return qs_vacant_site
 

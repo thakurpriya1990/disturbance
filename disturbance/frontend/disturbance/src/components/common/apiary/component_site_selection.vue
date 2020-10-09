@@ -257,21 +257,19 @@
                                 let action_list = []
 
                                 // View on map
-                                let view_on_map_html = '<a><span class="view_on_map" data-apiary-site-id="' + apiary_site.id + '"/>View on map</span></a>';
+                                let view_on_map_html = '<a data-view-on-map="' + apiary_site.id + '"/>View on map</a>';
                                 action_list.push(view_on_map_html);
 
                                 if (vm.show_action_available_unavailable){
                                     // Mark as Available/Unavailable
                                     let display_text = ''
-                                    //if (vm.is_external && ['Current', 'current'].includes(apiary_site.status.id)){
                                     if (vm.is_external && ['Current', 'current'].includes(apiary_site.properties.status)){
                                         if (apiary_site.properties.available){
                                             display_text = 'Mark as unavailable';
                                         } else {
                                             display_text = 'Mark as available';
                                         }
-                                        let ret = '<a><span class="toggle_availability" data-apiary-site-id="' + apiary_site.id +
-                                            '" data-apiary-site-available="' + apiary_site.properties.available + '"/>' + display_text + '</span></a>';
+                                        let ret = '<a data-toggle-availability="' + apiary_site.id + '" data-apiary-site-available="' + apiary_site.properties.available + '"/>' + display_text + '</a>';
                                         action_list.push(ret);
                                     //} else if (vm.is_internal && ['Current', 'current'].includes(apiary_site.status.id)){
                                     } else if (vm.is_internal && ['Current', 'current'].includes(apiary_site.properties.status)){
@@ -285,12 +283,12 @@
                                 }
                                 if (vm.show_action_make_vacant){
                                     let display_text = 'Make Vacant'
-                                    let ret = '<a><span class="make_vacant" data-apiary-site-id="' + apiary_site.id + '"/>' + display_text + '</span></a>';
+                                    let ret = '<a data-make-vacant="' + apiary_site.id + '"/>' + display_text + '</a>';
                                     action_list.push(ret);
                                 }
                                 if (vm.show_action_contact_licence_holder){
                                     let display_text = 'Contact licence holder'
-                                    let ret = '<a><span class="contact_licence_holder" data-apiary-site-id="' + apiary_site.id + '"/>' + display_text + '</span></a>';
+                                    let ret = '<a data-contact-licence-holder="' + apiary_site.id + '"/>' + display_text + '</a>';
                                     action_list.push(ret);
                                 }
                                 return action_list.join('<br />');
@@ -321,28 +319,6 @@
 
         },
         methods: {
-            testEvent: function(e){
-                if (e.target.tagName === "A"){
-                    let spans = e.target.getElementsByTagName('span')
-                    if (spans.length == 1){
-                        let className = spans[0].className
-                        switch(className){
-                            case 'view_on_map':
-                                this.zoomOnApiarySite(e)
-                                break;
-                            case 'toggle_availability':
-                                this.toggleAvailability(e)
-                                break;
-                            case 'make_vacant':
-                                this.makeVacantClicked(e)
-                                break;
-                            case 'contact_licence_holder':
-                                this.contactLicenceHolder(e)
-                                break;
-                        }
-                    } 
-                }
-            },
             featureGeometryUpdated: function(feature){
                 this.$emit('featureGeometryUpdated', feature)
             },
@@ -411,12 +387,11 @@
                 this.$refs.table_apiary_site.vmDataTable.row.add(apiary_site).draw();
             },
             addEventListeners: function () {
-                $("#" + this.table_id).on("click", ".view_on_map", this.zoomOnApiarySite)
-                $("#" + this.table_id).on("click", ".toggle_availability", this.toggleAvailability)
+                $("#" + this.table_id).on("click", "a[data-view-on-map]", this.zoomOnApiarySite)
+                $("#" + this.table_id).on("click", "a[data-toggle-availability]", this.toggleAvailability)
                 $("#" + this.table_id).on('click', 'input[type="checkbox"]', this.checkboxClicked)
-                $("#" + this.table_id).on('click', '.make_vacant', this.makeVacantClicked)
-                $("#" + this.table_id).on('click', '.contact_licence_holder', this.contactLicenceHolder)
-                $("#" + this.table_id).on('click', this.testEvent)
+                $("#" + this.table_id).on('click', 'a[data-make-vacant]', this.makeVacantClicked)
+                $("#" + this.table_id).on('click', 'a[contact_licence_holder]', this.contactLicenceHolder)
             },
             updateApiarySite: function(site_updated) {
                 // Update internal apiary_site data
@@ -457,7 +432,7 @@
             contactLicenceHolder: function(e){
                 let vm = this;
                 //let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
-                let apiary_site_id = this.getApiarySiteIdFromEvent(e)
+                let apiary_site_id = e.target.getAttribute("data-contact-licence-holder");
 
                 this.$emit('contact-licence-holder-clicked', apiary_site_id)
                 e.stopPropagation()
@@ -465,7 +440,7 @@
             makeVacantClicked: function(e) {
                 let vm = this;
                 //let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
-                let apiary_site_id = this.getApiarySiteIdFromEvent(e)
+                let apiary_site_id = e.target.getAttribute("data-make-vacant");
                 e.stopPropagation()
 
                 swal({
@@ -503,9 +478,7 @@
             },
             toggleAvailability: function(e) {
                 let vm = this;
-                //let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
-                let apiary_site_id = this.getApiarySiteIdFromEvent(e)
-                //let current_availability = e.target.getAttribute("data-apiary-site-available");
+                let apiary_site_id = e.target.getAttribute("data-toggle-availability");
                 let current_availability = this.getApiarySiteAvailableFromEvent(e)
                 let requested_availability = current_availability === 'true' ? false : true
                 e.stopPropagation()
@@ -528,8 +501,7 @@
                 );
             },
             zoomOnApiarySite: function(e) {
-                //let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
-                let apiary_site_id = this.getApiarySiteIdFromEvent(e)
+                let apiary_site_id = e.target.getAttribute("data-view-on-map");
                 this.$refs.component_map.zoomToApiarySiteById(apiary_site_id)
                 e.stopPropagation()
             },
@@ -541,15 +513,11 @@
                 return apiary_site_id
             },
             getApiarySiteAvailableFromEvent(e){
-                console.log(e)
                 let apiary_site_available = e.target.getAttribute("data-apiary-site-available");
 
                 if (!(apiary_site_available)){
                     apiary_site_available = e.target.getElementsByTagName('span')[0].getAttribute('data-apiary-site-available')
                 }
-
-                console.log('apiary_site_available: ')
-                console.log(apiary_site_available)
 
                 return apiary_site_available
             }
