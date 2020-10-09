@@ -12,7 +12,8 @@ from rest_framework import serializers
 
 from disturbance.components.main.decorators import timeit
 from disturbance.components.main.models import CategoryDbca, RegionDbca, DistrictDbca, WaCoast
-from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_APPROVED, SITE_STATUS_TRANSFERRED, RESTRICTED_RADIUS
+from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_APPROVED, SITE_STATUS_TRANSFERRED, RESTRICTED_RADIUS, \
+    SITE_STATUS_PENDING
 
 
 def retrieve_department_users():
@@ -176,7 +177,9 @@ def get_vacant_apiary_site():
     from disturbance.components.proposals.models import ApiarySite, ApiarySiteOnProposal
 
     # ApiarySite with is_vacant==True and making_payment==False
-    qs_vacant_site = ApiarySite.objects.filter(is_vacant=True).exclude(apiarysiteonproposal__in=ApiarySiteOnProposal.objects.filter(making_payment=True)).distinct()
+    q = Q(making_payment=True)  # Making payment is True from CC screen to success screen
+    q |= Q(site_status=SITE_STATUS_PENDING)  # Once payment success, site_status gets PENDING
+    qs_vacant_site = ApiarySite.objects.filter(is_vacant=True).exclude(apiarysiteonproposal__in=ApiarySiteOnProposal.objects.filter(q)).distinct()
     return qs_vacant_site
 
 

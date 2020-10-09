@@ -125,6 +125,10 @@
                 type: Boolean,
                 default: true,
             },
+            show_col_vacant: {
+                type: Boolean,
+                default: false,
+            },
             show_view_all_features_button: {
                 type: Boolean,
                 default: true,
@@ -165,6 +169,7 @@
                     'Latitude',
                     'District',
                     'Status',
+                    'Vacant',
                     'Previous Site Holder<br>Applicant',
                     'Action',
                 ],
@@ -242,6 +247,18 @@
                             visible: vm.show_col_status,
                             mRender: function (data, type, apiary_site){
                                 return apiary_site.properties.status
+                            }
+                        },
+                        {
+                            // Vacant
+                            visible: vm.show_col_vacant,
+                            mRender: function (data, type, apiary_site) {
+                                let status = apiary_site.properties.status
+                                let is_vacant = apiary_site.properties.is_vacant
+                                if(status === 'vacant' || is_vacant === true){
+                                    return '<i class="fa fa-check" aria-hidden="true"></i>'
+                                }
+                                return ''
                             }
                         },
                         {
