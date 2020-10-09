@@ -687,7 +687,7 @@
             },
             apiaryStyleFunctionExisting: function(feature) {
                 // This is used for the existing apiary sites
-                let status = this.get_status_from_feature(feature)
+                let status = this.get_status_for_colour_from_feature(feature)
                 return getApiaryFeatureStyle(status);
             },
             apiaryStyleFunctionProposed: function(feature){
@@ -1141,7 +1141,7 @@
                     } else {
                         // Mouse hover out
                         if (vm.apiary_site_being_selected){
-                            let status = vm.get_status_from_feature(vm.apiary_site_being_selected)
+                            let status = vm.get_status_for_colour_from_feature(vm.apiary_site_being_selected)
                             let style_applied = getApiaryFeatureStyle(status, false)
 
                             let vacant_selected = vm.apiary_site_being_selected.get('vacant_selected')
@@ -1157,7 +1157,7 @@
                     }
                 });
             },  // End: initMap()
-            get_status_from_feature: function(feature){
+            get_status_for_colour_from_feature: function(feature){
                 let status = feature.get("status");
                 let is_vacant = feature.get('is_vacant')
                 let making_payment = feature.get('making_payment')
