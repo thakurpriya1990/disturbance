@@ -53,7 +53,7 @@
     import { circular} from 'ol/geom/Polygon';
     import GeoJSON from 'ol/format/GeoJSON';
     import Overlay from 'ol/Overlay';
-    import { getApiaryFeatureStyle } from '@/components/common/apiary/site_colours.js'
+    import { getStatusForColour, getApiaryFeatureStyle } from '@/components/common/apiary/site_colours.js'
 
     export default {
         props:{
@@ -142,7 +142,11 @@
                     source: vm.apiarySitesQuerySource,
                     //style: this.drawStyle
                     style: function(feature, resolution){
-                        return getApiaryFeatureStyle(feature.get('status'), feature.get('checked'))
+                        //return getApiaryFeatureStyle(feature.get('status'), feature.get('checked'))
+                        console.log('rrrrrrr')
+                        let status = getStatusForColour(feature)
+                        console.log(status)
+                        return getApiaryFeatureStyle(status, feature.get('checked'))
                     },
                 });
                 vm.map.addLayer(vm.apiarySitesQueryLayer);
@@ -284,8 +288,9 @@
                 this.showPopup(feature)
             },
             setApiarySiteSelectedStatus: function(apiary_site_id, selected) {
+                console.log('in setApiarySiteSelectedStatus')
                 let feature = this.apiarySitesQuerySource.getFeatureById(apiary_site_id)
-                let style_applied = getApiaryFeatureStyle(feature.get('status'), selected)
+                let style_applied = getApiaryFeatureStyle(getStatusForColour(feature), selected)
                 feature.setStyle(style_applied)
             },
             addEventListeners: function () {

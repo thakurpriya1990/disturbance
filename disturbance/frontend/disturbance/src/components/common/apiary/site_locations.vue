@@ -128,7 +128,7 @@
     import TextField from '@/components/forms/text.vue'
     import datatable from '@vue-utils/datatable.vue'
     import uuid from 'uuid';
-    import { getApiaryFeatureStyle, drawingSiteRadius, existingSiteRadius, SiteColours } from '@/components/common/apiary/site_colours.js'
+    import { getStatusForColour, getApiaryFeatureStyle, drawingSiteRadius, existingSiteRadius, SiteColours } from '@/components/common/apiary/site_colours.js'
     import Overlay from 'ol/Overlay';
 
     export default {
@@ -688,7 +688,7 @@
             },
             apiaryStyleFunctionExisting: function(feature) {
                 // This is used for the existing apiary sites
-                let status = this.get_status_for_colour_from_feature(feature)
+                let status = this.get_status_for_colour(feature)
                 return getApiaryFeatureStyle(status);
             },
             apiaryStyleFunctionProposed: function(feature){
@@ -861,7 +861,7 @@
                 }
                 // Remove vacant_selected attribute from the feature
                 myFeature.unset('vacant_selected')
-                let status = this.get_status_for_colour_from_feature(myFeature)
+                let status = this.get_status_for_colour(myFeature)
                 let style_applied = getApiaryFeatureStyle(status)
                 myFeature.setStyle(style_applied)
 
@@ -1119,7 +1119,7 @@
                     } else {
                         // Mouse hover out
                         if (vm.vacant_site_being_selected){
-                            let status = vm.get_status_for_colour_from_feature(vm.vacant_site_being_selected)
+                            let status = vm.get_status_for_colour(vm.vacant_site_being_selected)
                             let style_applied = getApiaryFeatureStyle(status, false)
 
                             let vacant_selected = vm.vacant_site_being_selected.get('vacant_selected')
@@ -1136,7 +1136,7 @@
                     }
                 });
             },  // End: initMap()
-            get_status_for_colour_from_feature: function(feature){
+            get_status_for_colour: function(feature){
                 let status = feature.get("status");
                 let is_vacant = feature.get('is_vacant')
                 let making_payment = feature.get('making_payment')

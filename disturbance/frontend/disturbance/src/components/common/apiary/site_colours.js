@@ -59,9 +59,35 @@ export const SiteColours = {
 export default SiteColours
 export let existingSiteRadius = 5
 export let drawingSiteRadius = 7
+export function getStatusForColour(feature){
+                let status = feature.get("status");
+                let is_vacant = feature.get('is_vacant')
+                let making_payment = feature.get('making_payment')
+
+                if (is_vacant){
+                    status = 'vacant'
+                } else if (making_payment){
+                    status = 'making_payment'
+                }
+                return status
+            }
 export function getApiaryFeatureStyle(status, selected=false, stroke_width_when_selected=2){
     let additional_width = selected ? stroke_width_when_selected : 0
     switch(status){
+        case 'draft':
+            return new Style({
+                image: new CircleStyle({
+                    radius: existingSiteRadius,
+                    fill: new Fill({
+                        color: SiteColours.draft.fill
+                    }),
+                    stroke: new Stroke({
+                        color: SiteColours.draft.stroke,
+                        width: 1 + additional_width
+                    })
+                })
+            });
+            break;
         case 'pending':
             return new Style({
                 image: new CircleStyle({
