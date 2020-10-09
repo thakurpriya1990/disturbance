@@ -149,7 +149,7 @@ def create_fee_lines_site_transfer(proposal):
         #    application_price = 0
 
         line_item = {
-            'ledger_description': 'Application Fee - {} - {} - {}'.format(now, proposal.lodgement_number, site_category.name),
+            'ledger_description': 'Application Fee - {} - {} - {}'.format(now, proposal.lodgement_number, site_category.display_name),
             'oracle_code': proposal.application_type.oracle_code_application,
             'price_incl_tax': application_price,
             'price_excl_tax': application_price if proposal.application_type.is_gst_exempt else calculate_excl_gst(application_price),
@@ -319,10 +319,10 @@ def create_fee_lines_apiary(proposal):
 
             if new_or_renewal == ApiarySiteFeeType.FEE_TYPE_APPLICATION:
                 min_num_of_sites_to_pay = MIN_NUMBER_OF_SITES_TO_NEW
-                ledger_desc = 'New Apiary Site Fee - {} - {} - {}'.format(now, proposal.lodgement_number, site_category.name)
+                ledger_desc = 'New Apiary Site Fee - {} - {} - {}'.format(now, proposal.lodgement_number, site_category.display_name)
             elif new_or_renewal == ApiarySiteFeeType.FEE_TYPE_RENEWAL:
                 min_num_of_sites_to_pay = MIN_NUMBER_OF_SITES_TO_RENEW
-                ledger_desc = 'Renewal Fee - {} - {} - {}'.format(now, proposal.lodgement_number, site_category.name)
+                ledger_desc = 'Renewal Fee - {} - {} - {}'.format(now, proposal.lodgement_number, site_category.display_name)
             else:
                 # Should not reach here
                 min_num_of_sites_to_pay = 5
