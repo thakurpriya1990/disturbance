@@ -5,6 +5,10 @@ export const SiteColours = {
         'fill': '#e0e0e0',
         'stroke': '#616161',
     },
+    'draft_external': {
+        'fill': '#ffdd44',
+        'stroke': '#ffcc33',
+    },
     'pending': {
         'fill': '#0070FF',
         'stroke': '#00000',

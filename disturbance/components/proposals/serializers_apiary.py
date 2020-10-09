@@ -258,6 +258,7 @@ class ApiarySiteOnProposalDraftGeometrySerializer(GeoFeatureModelSerializer):
     site_category = serializers.SerializerMethodField()
     previous_site_holder_or_applicant = serializers.SerializerMethodField()
     is_vacant = serializers.SerializerMethodField()
+    stable_coords = serializers.SerializerMethodField()
 
     class Meta:
         model = ApiarySiteOnProposal
@@ -273,7 +274,11 @@ class ApiarySiteOnProposalDraftGeometrySerializer(GeoFeatureModelSerializer):
             'for_renewal',
             'previous_site_holder_or_applicant',
             'making_payment',
+            'stable_coords',
         )
+
+    def get_stable_coords(self, obj):
+        return obj.wkb_geometry_draft.get_coords()
 
     def get_is_vacant(self, obj):
         return obj.apiary_site.is_vacant
@@ -302,6 +307,7 @@ class ApiarySiteOnProposalProcessedGeometrySerializer(GeoFeatureModelSerializer)
     site_category = serializers.SerializerMethodField()
     previous_site_holder_or_applicant = serializers.SerializerMethodField()
     is_vacant = serializers.SerializerMethodField()
+    stable_coords = serializers.SerializerMethodField()
 
     class Meta:
         model = ApiarySiteOnProposal
@@ -317,7 +323,11 @@ class ApiarySiteOnProposalProcessedGeometrySerializer(GeoFeatureModelSerializer)
             'for_renewal',
             'making_payment',
             'previous_site_holder_or_applicant',
+            'stable_coords',
         )
+
+    def get_stable_coords(self, obj):
+        return obj.wkb_geometry_processed.get_coords()
 
     def get_is_vacant(self, obj):
         return obj.apiary_site.is_vacant

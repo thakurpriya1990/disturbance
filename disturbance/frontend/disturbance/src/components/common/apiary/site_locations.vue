@@ -201,10 +201,10 @@
                     image: new CircleStyle({
                         radius: existingSiteRadius,
                         fill: new Fill({
-                            color: '#ffdd44'
+                            color: SiteColours.draft_external.fill
                         }),
                         stroke: new Stroke({
-                            color: '#ffcc33',
+                            color: SiteColours.draft_external.stroke,
                             width: 2
                         })
                     })
@@ -682,6 +682,7 @@
                 this.bufferLayerSource.addFeature(buffer);
             },
             removeBufferForSite: function(site){
+                console.log('in removeBufferForSite')
                 let buffer = this.bufferLayerSource.getFeatureById(site.getId() + "_buffer");
                 this.bufferLayerSource.removeFeature(buffer);
             },
@@ -1071,13 +1072,13 @@
                         }
                     });
                     modifyTool.on("modifystart", function(attributes){
-                        attributes.features.forEach(function(feature){
 
-                        })
                     });
                     modifyTool.on("modifyend", function(attributes){
+                        console.log('in modifyend')
                         // this will list all features in layer, not so useful without cross referencing
                         attributes.features.forEach(async function(feature){
+                            console.log(feature)
                             let id = feature.getId();
                             let index = modifyInProgressList.indexOf(id);
                             if (index != -1) {
@@ -1086,7 +1087,8 @@
                                 let filter = vm.excludeFeature(feature);
                                 let valid = vm.isNewPositionValid(coords, filter);
 
-                                if (!valid || feature.get('status')==='vacant') {
+                                if (!valid || feature.get('is_vacant')===true) {
+                                    console.log('in is_vacant==true')
                                     // rollback proposed modification
                                     let c = feature.get("stable_coords");
                                     feature.getGeometry().setCoordinates(c);
@@ -1128,10 +1130,10 @@
                         // Mouse hover in
                         if(evt.selected[0].get('is_vacant') === true){
                             // When mouse hover on the 'vacant' apiary site, temporarily store it 
-                            // so that it can be added to the new apiary site application when user clicking.
+                            // so that it can be added to the new apiary site application when user clicking on it.
                             vm.apiary_site_being_selected = evt.selected[0]
 
-                            // Thicken border
+                            // Thicken border when hover
                             let style_applied = getApiaryFeatureStyle(vm.apiary_site_being_selected.get('status'), true, 5)
                             vm.apiary_site_being_selected.setStyle(style_applied)
                         }
