@@ -16,6 +16,7 @@ from rest_framework.renderers import JSONRenderer
 from ledger.accounts.models import EmailUser
 from datetime import datetime
 
+from django.http import HttpResponse#, JsonResponse, Http404
 from disturbance import settings
 from disturbance.components.approvals.email import send_contact_licence_holder_email
 from disturbance.components.approvals.serializers_apiary import ApiarySiteOnApprovalGeometrySerializer
@@ -807,20 +808,32 @@ class ProposalApiaryViewSet(viewsets.ModelViewSet):
     @basic_exception_handler
     def final_approval(self, request, *args, **kwargs):
         #import ipdb;ipdb.set_trace()
-        instance = self.get_object()
-        if instance.proposal.application_type.name == ApplicationType.SITE_TRANSFER:
-            serializer = ProposedApprovalSiteTransferSerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-        else:
-            serializer = ProposedApprovalSerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-        #serializer = ProposedApprovalSerializer(data=request.data)
-        #serializer.is_valid(raise_exception=True)
-        instance.final_approval(request,serializer.validated_data)
-        #serializer = InternalProposalSerializer(instance,context={'request':request})
-        serializer_class = self.internal_apiary_serializer_class()
-        serializer = serializer_class(instance.proposal,context={'request':request})
-        return Response(serializer.data)
+        with transaction.atomic():
+            instance = self.get_object()
+            if instance.proposal.application_type.name == ApplicationType.SITE_TRANSFER:
+                serializer = ProposedApprovalSiteTransferSerializer(data=request.data)
+                serializer.is_valid(raise_exception=True)
+            else:
+                serializer = ProposedApprovalSerializer(data=request.data)
+                serializer.is_valid(raise_exception=True)
+            #serializer = ProposedApprovalSerializer(data=request.data)
+            #serializer.is_valid(raise_exception=True)
+            preview = request.data.get('preview')
+            instance.final_approval(request,serializer.validated_data,preview=preview)
+            #serializer = InternalProposalSerializer(instance,context={'request':request})
+            serializer_class = self.internal_apiary_serializer_class()
+            serializer = serializer_class(instance.proposal,context={'request':request})
+            if preview:
+                if instance.proposal.application_type.name == ApplicationType.SITE_TRANSFER:
+                    pass
+                else:
+                    licence_response = HttpResponse(content_type='application/pdf')
+                    preview_approval_id = serializer.data.get('approval', {}).get('id')
+                    preview_approval = Approval.objects.get(id=preview_approval_id)
+                    licence_response.content = preview_approval.generate_doc(request.user, preview=True)
+                    transaction.set_rollback(True)
+                    return licence_response
+            return Response(serializer.data)
 
     @detail_route(methods=['POST', ])
     def get_apiary_approvals(self, request, *args, **kwargs):
