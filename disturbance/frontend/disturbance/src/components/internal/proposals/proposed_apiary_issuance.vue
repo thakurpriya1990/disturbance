@@ -86,7 +86,7 @@
                                         <label v-if="submitter_email && applicant_email" class="control-label pull-left"  for="Name">After approving this application, licence will be emailed to {{proposalNotificationList}}.</label>
                                         <label v-else class="control-label pull-left"  for="Name">After approving this application, licence will be emailed to {{submitter_email}}.</label>
                                     </div>
-                                    
+
                                 </div>
                             </div>
                         </div>
@@ -99,6 +99,7 @@
                         :is_internal="true"
                         :is_external="false"
                         :show_col_checkbox="true"
+                        :show_col_vacant="true"
                         :show_action_available_unavailable="false"
                         :key="component_site_selection_key"
                         :can_modify="true"
@@ -569,7 +570,7 @@ export default {
             if (this.siteTransferApplication) {
                 rulesVar = {
                     approval_details:"required",
-                } 
+                }
             } else {
                 rulesVar = {
                     start_date:"required",
@@ -612,8 +613,8 @@ export default {
                     let proposalApprovalStartDate = vm.proposal.approval && vm.proposal.approval.start_date ?
                         moment(vm.proposal.approval.start_date, 'YYYY-MM-DD') :
                         null;
-                    let startDate = Object.keys($(vm.$refs.start_date)).length ? 
-                        $(vm.$refs.start_date).data('DateTimePicker').date() : 
+                    let startDate = Object.keys($(vm.$refs.start_date)).length ?
+                        $(vm.$refs.start_date).data('DateTimePicker').date() :
                         proposalApprovalStartDate;
                     //console.log(startDate)
                     //console.log($(vm.$refs.due_date).data('DateTimePicker').date())

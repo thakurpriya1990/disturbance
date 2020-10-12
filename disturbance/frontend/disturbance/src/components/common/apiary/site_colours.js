@@ -5,6 +5,10 @@ export const SiteColours = {
         'fill': '#e0e0e0',
         'stroke': '#616161',
     },
+    'draft_external': {
+        'fill': '#ffdd44',
+        'stroke': '#ffcc33',
+    },
     'pending': {
         'fill': '#0070FF',
         'stroke': '#00000',
@@ -43,7 +47,10 @@ export const SiteColours = {
         'stroke': '#000000',
         'icon_colour': '#a900e6',
     },
-    // Apiary site in the 'making_payment' sits in here 
+    'making_payment': {
+        'fill': '#40e0d0',
+        'stroke': '#000000'
+    },
     'default': {
         'fill': '#40e0d0',
         'stroke': '#000000'
@@ -52,10 +59,35 @@ export const SiteColours = {
 export default SiteColours
 export let existingSiteRadius = 5
 export let drawingSiteRadius = 7
+export function getStatusForColour(feature){
+                let status = feature.get("status");
+                let is_vacant = feature.get('is_vacant')
+                let making_payment = feature.get('making_payment')
+
+                if (is_vacant){
+                    status = 'vacant'
+                } else if (making_payment){
+                    status = 'making_payment'
+                }
+                return status
+            }
 export function getApiaryFeatureStyle(status, selected=false, stroke_width_when_selected=2){
-    console.log('in getApiaryFeatureStyle')
     let additional_width = selected ? stroke_width_when_selected : 0
     switch(status){
+        case 'draft':
+            return new Style({
+                image: new CircleStyle({
+                    radius: existingSiteRadius,
+                    fill: new Fill({
+                        color: SiteColours.draft.fill
+                    }),
+                    stroke: new Stroke({
+                        color: SiteColours.draft.stroke,
+                        width: 1 + additional_width
+                    })
+                })
+            });
+            break;
         case 'pending':
             return new Style({
                 image: new CircleStyle({
@@ -171,6 +203,20 @@ export function getApiaryFeatureStyle(status, selected=false, stroke_width_when_
                     //src: "data/+2.png"
                     src: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAMCAYAAABWdVznAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAZdEVYdFNvZnR3YXJlAHBhaW50Lm5ldCA0LjAuMTM0A1t6AAAAQklEQVQoU52LMQoAIBDD/P+n69KAmBvEQJaGriSToKahgpqGCmoaKqhpqKB2xie+DpOgpqGCmoYKahoqqGmocO1ZGzz92jSqmlDHAAAAAElFTkSuQmCC"
                 }),
+            });
+            break;
+        case 'making_payment':
+            return new Style({
+                image: new CircleStyle({
+                    radius: existingSiteRadius,
+                    fill: new Fill({
+                        color: SiteColours.making_payment.fill
+                    }),
+                    stroke: new Stroke({
+                        color: SiteColours.making_payment.stroke,
+                        width: 1 + additional_width
+                    })
+                })
             });
             break;
         default:
