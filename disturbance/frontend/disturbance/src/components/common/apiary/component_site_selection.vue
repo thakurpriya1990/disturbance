@@ -274,7 +274,7 @@
                                 let action_list = []
 
                                 // View on map
-                                let view_on_map_html = '<a data-view-on-map="' + apiary_site.id + '"/>View on map</a>';
+                                let view_on_map_html = '<a href="#' + apiary_site.id + '" data-view-on-map="' + apiary_site.id + '">View on map</a>';
                                 action_list.push(view_on_map_html);
 
                                 if (vm.show_action_available_unavailable){
@@ -286,7 +286,7 @@
                                         } else {
                                             display_text = 'Mark as available';
                                         }
-                                        let ret = '<a data-toggle-availability="' + apiary_site.id + '" data-apiary-site-available="' + apiary_site.properties.available + '"/>' + display_text + '</a>';
+                                        let ret = '<a data-toggle-availability="' + apiary_site.id + '" data-apiary-site-available="' + apiary_site.properties.available + '">' + display_text + '</a>';
                                         action_list.push(ret);
                                     //} else if (vm.is_internal && ['Current', 'current'].includes(apiary_site.status.id)){
                                     } else if (vm.is_internal && ['Current', 'current'].includes(apiary_site.properties.status)){
@@ -300,12 +300,12 @@
                                 }
                                 if (vm.show_action_make_vacant){
                                     let display_text = 'Make Vacant'
-                                    let ret = '<a data-make-vacant="' + apiary_site.id + '"/>' + display_text + '</a>';
+                                    let ret = '<a data-make-vacant="' + apiary_site.id + '">' + display_text + '</a>';
                                     action_list.push(ret);
                                 }
                                 if (vm.show_action_contact_licence_holder){
                                     let display_text = 'Contact licence holder'
-                                    let ret = '<a data-contact-licence-holder="' + apiary_site.id + '"/>' + display_text + '</a>';
+                                    let ret = '<a data-contact-licence-holder="' + apiary_site.id + '">' + display_text + '</a>';
                                     action_list.push(ret);
                                 }
                                 return action_list.join('<br />');
