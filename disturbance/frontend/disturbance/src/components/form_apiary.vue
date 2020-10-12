@@ -44,6 +44,7 @@
                         :show_col_checkbox="false"
                         :show_action_available_unavailable="showActionAvailableUnavailable"
                         :show_col_status="showColStatus"
+                        :show_col_vacant="is_internal"
                         :key="component_site_selection_key"
                       />
                 </div>
@@ -68,14 +69,14 @@
                     </div>
                 </div>
             </FormSection>
-            <ApiaryChecklist 
+            <ApiaryChecklist
                 :checklist="applicantChecklistAnswers"
                 section_title="Applicant Checklist"
                 :readonly="readonly"
                 ref="applicant_checklist"
             />
             <div v-if="assessorChecklistVisibility">
-                <ApiaryChecklist 
+                <ApiaryChecklist
                 :checklist="assessorChecklistAnswers"
                 section_title="Assessor Checklist"
                 :readonly="assessorChecklistReadonly"
@@ -86,7 +87,7 @@
                 <!--div v-if="(referral && r.referral_id === referral.id) || (assessorChecklistVisibility && proposal.processing_status === 'With Assessor')"-->
                 <div v-if="(referral && r.referral_id === referral.id) || (assessorChecklistVisibility)">
                 <!--div v-if="r.id = referral.id"-->
-                    <ApiaryChecklist 
+                    <ApiaryChecklist
                     :checklist="r.referral_data"
                     :section_title="'Referral Checklist: ' + r.referrer_group_name"
                     :readonly="referrerChecklistReadonly"
@@ -201,7 +202,7 @@
             },
             showColStatus: function() {
                 let show = false
-                
+
                 show = true
 
                 return show
@@ -261,7 +262,7 @@
             referrerChecklistReadonly: function() {
                 let readonlyStatus = true;
                 // referrer must have access
-                if (this.is_internal && this.proposal.processing_status === 'With Referral' && 
+                if (this.is_internal && this.proposal.processing_status === 'With Referral' &&
                     this.referral && this.referral.processing_status === 'Awaiting' &&
                     this.referral.apiary_referral && this.referral.apiary_referral.can_process) {
                     readonlyStatus = false;
@@ -314,7 +315,7 @@
                 }
             },
             referrerChecklistAnswers: function() {
-                if (this.proposal && this.proposal.proposal_apiary && this.proposal.proposal_apiary.referrer_checklist_answers && 
+                if (this.proposal && this.proposal.proposal_apiary && this.proposal.proposal_apiary.referrer_checklist_answers &&
                     this.proposal.proposal_apiary.referrer_checklist_answers.length > 0) {
                     return this.proposal.proposal_apiary.referrer_checklist_answers;
                 }
