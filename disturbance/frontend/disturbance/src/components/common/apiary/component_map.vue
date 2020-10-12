@@ -53,7 +53,7 @@
     import { circular} from 'ol/geom/Polygon';
     import GeoJSON from 'ol/format/GeoJSON';
     import Overlay from 'ol/Overlay';
-    import { getApiaryFeatureStyle } from '@/components/common/apiary/site_colours.js'
+    import { getStatusForColour, getApiaryFeatureStyle } from '@/components/common/apiary/site_colours.js'
 
     export default {
         props:{
@@ -142,7 +142,9 @@
                     source: vm.apiarySitesQuerySource,
                     //style: this.drawStyle
                     style: function(feature, resolution){
-                        return getApiaryFeatureStyle(feature.get('status'), feature.get('checked'))
+                        //return getApiaryFeatureStyle(feature.get('status'), feature.get('checked'))
+                        let status = getStatusForColour(feature)
+                        return getApiaryFeatureStyle(status, feature.get('checked'))
                     },
                 });
                 vm.map.addLayer(vm.apiarySitesQueryLayer);
@@ -185,9 +187,6 @@
 
                 vm.map.on('click', function(evt){
                     let feature = vm.map.forEachFeatureAtPixel(evt.pixel, function(feature, layer) {
-                        console.log(evt)
-                        console.log(feature)
-                        console.log(layer)
                         return feature;
                     });
                     if (feature){
@@ -239,10 +238,8 @@
                 }
             },
             showPopup: function(feature){
-                console.log('** showPopup **')
                 let geometry = feature.getGeometry();
                 let coord = geometry.getCoordinates();
-                console.log(coord)
                 let svg_hexa = "<svg xmlns='http://www.w3.org/2000/svg' version='1.1' height='20' width='15'>" + 
                 '<g transform="translate(0, 4) scale(0.9)"><path d="M 14.3395,12.64426 7.5609998,16.557828 0.78249996,12.64426 0.7825,4.8171222 7.5609999,0.90355349 14.3395,4.8171223 Z" id="path837" style="fill:none;stroke:#ffffff;stroke-width:1.565;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" /></g></svg>'
                 let content = '<div style="padding: 0.25em;">' + 
@@ -285,7 +282,7 @@
             },
             setApiarySiteSelectedStatus: function(apiary_site_id, selected) {
                 let feature = this.apiarySitesQuerySource.getFeatureById(apiary_site_id)
-                let style_applied = getApiaryFeatureStyle(feature.get('status'), selected)
+                let style_applied = getApiaryFeatureStyle(getStatusForColour(feature), selected)
                 feature.setStyle(style_applied)
             },
             addEventListeners: function () {

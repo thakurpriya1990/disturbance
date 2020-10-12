@@ -2561,14 +2561,15 @@ class ProposalApiary(RevisionedMixin):
     def final_decline(self):
         relations = self.get_relations()
         relations.update(site_status=SITE_STATUS_DENIED)
+        self.apiary_sites.all().update(is_vacant=False)  # Once delclined or approved, is_vacant status must be set to False
 
     def post_payment_success(self):
         """
         Run this function just after the payment success
         """
         for relation in self.get_relations():
-            if relation.apiary_site.is_vacant:
-                relation.apiary_site.is_vacant = False
+            # if relation.apiary_site.is_vacant:
+            #     relation.apiary_site.is_vacant = False
             relation.apiary_site_status_when_submitted = relation.site_status
             relation.wkb_geometry_processed = relation.wkb_geometry_draft
             relation.site_category_processed = relation.site_category_draft
@@ -3204,6 +3205,8 @@ class ProposalApiary(RevisionedMixin):
             # Reset selected status to make the checkboxes unticked when renewal or so
             apiary_site_on_proposal.workflow_selected_status = False
             apiary_site_on_proposal.save()
+            a_site.is_vacant = False
+            a_site.save()
 
             # Apiary Site can be moved by assessor and/or approver
             if 'coordinates_moved' in my_site:
