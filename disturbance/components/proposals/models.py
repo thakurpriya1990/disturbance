@@ -1920,8 +1920,8 @@ class ApiaryReferralGroup(models.Model):
         verbose_name = "Apiary Referral Group"
         verbose_name_plural = "Apiary Referral groups"
 
-
 class ProposalRequirement(OrderedModel):
+    #from disturbance.components.approvals.models import Approval
     RECURRENCE_PATTERNS = [(1, 'Weekly'), (2, 'Monthly'), (3, 'Yearly')]
     standard_requirement = models.ForeignKey(ProposalStandardRequirement,null=True,blank=True)
     free_requirement = models.TextField(null=True,blank=True)
@@ -1933,8 +1933,10 @@ class ProposalRequirement(OrderedModel):
     recurrence_schedule = models.IntegerField(null=True,blank=True)
     copied_from = models.ForeignKey('self', on_delete=models.SET_NULL, blank=True, null=True)
     is_deleted = models.BooleanField(default=False)
-    #site_transfer_approval = models.ForeignKey('disturbance.Approval',null=True,blank=True)
-    apiary_approval = models.ForeignKey('disturbance.Approval',null=True,blank=True)
+    # temporary location during Site Transfer applications - copied to apiary_approval during final_approval()
+    sitetransfer_approval = models.ForeignKey('disturbance.Approval',null=True,blank=True, related_name='sitetransferapproval_requirement')
+    # permanent location for apiary / site transfer approvals
+    apiary_approval = models.ForeignKey('disturbance.Approval',null=True,blank=True, related_name='proposalrequirement_set')
     #order = models.IntegerField(default=1)
     # referral_group is no longer required for Apiary
     referral_group = models.ForeignKey(ApiaryReferralGroup,null=True,blank=True,related_name='apiary_requirement_referral_groups')
@@ -3104,11 +3106,14 @@ class ProposalApiary(RevisionedMixin):
             raise
 
     def link_apiary_approval_requirements(self, approval):
-        if not self.proposal.application_type.name == ApplicationType.SITE_TRANSFER:
-            # Ensure current requirements are associated with apiary approval
-            link_requirement_set = self.proposal.requirements.all()
-            #import ipdb; ipdb.set_trace()
-            for link_r in link_requirement_set:
+        # Ensure current requirements are associated with apiary approval / site transfer
+        link_requirement_set = self.proposal.requirements.all()
+        #import ipdb; ipdb.set_trace()
+        for link_r in link_requirement_set:
+            if self.proposal.application_type.name == ApplicationType.SITE_TRANSFER and link_r.sitetransfer_approval == approval:
+                link_r.apiary_approval = approval
+                link_r.save()
+            else:
                 link_r.apiary_approval = approval
                 link_r.save()
 

@@ -552,7 +552,7 @@ class ProposalRequirementSerializer(serializers.ModelSerializer):
     due_date = serializers.DateField(input_formats=['%d/%m/%Y'],required=False,allow_null=True)
     class Meta:
         model = ProposalRequirement
-        fields = ('id','due_date','free_requirement','standard_requirement','standard','order','proposal','recurrence','recurrence_schedule','recurrence_pattern','requirement','is_deleted','copied_from', 'apiary_approval')
+        fields = ('id','due_date','free_requirement','standard_requirement','standard','order','proposal','recurrence','recurrence_schedule','recurrence_pattern','requirement','is_deleted','copied_from', 'apiary_approval', 'sitetransfer_approval')
         read_only_fields = ('order','requirement', 'copied_from')
 
 class ProposalStandardRequirementSerializer(serializers.ModelSerializer):
