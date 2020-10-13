@@ -361,6 +361,7 @@ export default {
                 this.$refs.component_site_selection.forceToRefreshMap()
             }
         },
+        /*
         preview:function () {
             let vm =this;
             let formData = new FormData(vm.form)
@@ -375,6 +376,17 @@ export default {
             }
             vm.post_and_redirect(vm.preview_licence_url, {'csrfmiddlewaretoken' : vm.csrf_token, 'formData': JSON.stringify(jsonObject)});
         },
+        */
+        preview:function () {
+            this.sendData(true);
+        },
+        preview_originating_approval:function () {
+            this.sendData(true, 'originating');
+        },
+        preview_target_approval:function () {
+            this.sendData(true, 'target')
+        },
+        /*
         preview_originating_approval:function () {
             let vm =this;
             let formData = new FormData(vm.form)
@@ -405,6 +417,7 @@ export default {
             jsonObject['target_approval_id'] = this.proposal.proposal_apiary.target_approval_id;
             vm.post_and_redirect(vm.preview_licence_url, {'csrfmiddlewaretoken' : vm.csrf_token, 'formData': JSON.stringify(jsonObject)});
         },
+        */
         post_and_redirect: function(url, postData) {
             /* http.post and ajax do not allow redirect from Django View (post method),
                this function allows redirect by mimicking a form submit.
@@ -454,13 +467,19 @@ export default {
                 console.log(error);
             } );
         },
-        sendData:function(){
+        sendData:function(preview=false,originating_target=null){
             console.log('**********')
             console.log('in sendData')
             console.log('**********')
 
             let vm = this;
             vm.errors = false;
+            if (preview) {
+                vm.approval.preview = preview;
+            }
+            if (originating_target) {
+                vm.approval.originating_target = originating_target;
+            }
             //vm.approval.apiary_sites = vm.proposal.proposal_apiary.apiary_sites
             vm.approval.apiary_sites = vm.apiary_sites_updated
             if (!this.startDateCanBeModified){
@@ -490,6 +509,46 @@ export default {
                         vm.issuingApproval = false;
                         vm.errorString = helpers.apiVueResourceError(error);
                     });
+            }
+            else if (vm.state == 'final_approval' && preview){
+                /*
+                vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal_apiary,vm.proposal_apiary_id+'/final_approval'),JSON.stringify(approval),{
+                        emulateJSON:true,
+                }).then((response) => {
+                        //const blob = new Blob([response.body],{type: 'image/pdf'});
+                        const pdfBlob = new Blob([response.body],{type: 'application/pdf'});
+                        const objectURL = window.URL.createObjectURL(pdfBlob);
+                        let link = document.createElement('a');
+                        link.href = objectURL;
+                        link.download="file.pdf";
+                        link.click();
+                    },(error)=>{
+                        vm.errors = true;
+                        //vm.issuingApproval = false;
+                        vm.errorString = helpers.apiVueResourceError(error);
+                    });
+                */
+                fetch(helpers.add_endpoint_json(api_endpoints.proposal_apiary,vm.proposal_apiary_id+'/final_approval'), {
+                    method: 'POST',
+                    body: JSON.stringify(approval),
+                    //body: this.approval,
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": vm.csrf_token,
+                    },
+                })
+                    .then(response => response.blob())
+                    .then(function(myBlob) {
+                        console.log(myBlob);
+                        //const blob = new Blob([response.body],{type: 'image/pdf'});
+                        //const blob = new Blob([response.body],{type: 'application/pdf'});
+                        const objectURL = URL.createObjectURL(myBlob);
+                        let link = document.createElement('a');
+                        link.href = objectURL;
+                        link.download="file.pdf";
+                        link.click();
+                    });
+
             }
             else if (vm.state == 'final_approval'){
                 vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal_apiary,vm.proposal_apiary_id+'/final_approval'),JSON.stringify(approval),{
