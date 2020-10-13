@@ -122,7 +122,7 @@ export default {
                 type: Array,
                 required: true
             },
-            approval_id:{
+            sitetransfer_approval_id:{
                 type:Number,
                 required: false
             },
@@ -138,7 +138,7 @@ export default {
                 recurrence: false,
                 recurrence_pattern: '1',
                 proposal: vm.proposal_id,
-                apiary_approval: vm.approval_id
+                sitetransfer_approval: vm.sitetransfer_approval_id,
             },
             addingRequirement: false,
             updatingRequirement: false,

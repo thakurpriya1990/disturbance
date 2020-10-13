@@ -342,7 +342,7 @@ class Approval(RevisionedMixin):
                 else:
                     return False
 
-    def generate_apiary_site_transfer_doc(self, request_user, site_transfer_proposal, preview=False):
+    def generate_apiary_site_transfer_doc(self, request_user, site_transfer_proposal, preview=None):
         return self.generate_apiary_licence_doc(site_transfer_proposal, request_user, preview)
         # copied_to_permit = self.copiedToPermit_fields(site_transfer_proposal)  # Get data related to isCopiedToPermit tag
         # if preview:
@@ -352,10 +352,10 @@ class Approval(RevisionedMixin):
         # self.save(version_comment='Created Approval PDF: {}'.format(self.licence_document.name))
         # self.current_proposal.save(version_comment='Created Approval PDF: {}'.format(self.licence_document.name))
 
-    def generate_doc(self, request_user, preview=False):
+    def generate_doc(self, request_user, preview=None, site_transfer_preview=None):
         #if self.current_proposal and self.current_proposal.apiary_group_application_type:
         if self.apiary_approval:
-            return self.generate_apiary_licence_doc(self.current_proposal, request_user, preview)
+            return self.generate_apiary_licence_doc(self.current_proposal, request_user, preview, site_transfer_preview)
         else:
             from disturbance.components.approvals.pdf import create_approval_doc, create_approval_pdf_bytes
             copied_to_permit = self.copiedToPermit_fields(self.current_proposal) #Get data related to isCopiedToPermit tag
@@ -365,11 +365,11 @@ class Approval(RevisionedMixin):
             self.save(version_comment='Created Approval PDF: {}'.format(self.licence_document.name))
             self.current_proposal.save(version_comment='Created Approval PDF: {}'.format(self.licence_document.name))
 
-    def generate_apiary_licence_doc(self, proposal, request_user, preview=False):
+    def generate_apiary_licence_doc(self, proposal, request_user, preview=None, site_transfer_preview=None):
         #import ipdb; ipdb.set_trace()
         copied_to_permit = self.copiedToPermit_fields(proposal) #Get data related to isCopiedToPermit tag
         if preview:
-            pdf_contents = create_apiary_licence_pdf_contents(self, proposal, copied_to_permit, request_user)
+            pdf_contents = create_apiary_licence_pdf_contents(self, proposal, copied_to_permit, request_user, site_transfer_preview)
             return pdf_contents
         #self.licence_document = create_apiary_licence_pdf_contents(self, proposal, copied_to_permit, request_user)
         self.licence_document = create_approval_document(self, proposal, copied_to_permit, request_user)
