@@ -1704,7 +1704,8 @@ class Proposal(RevisionedMixin):
 
     def apiary_requirements(self, approval=None):
         if self.application_type.name == ApplicationType.SITE_TRANSFER and approval:
-            return self.requirements.filter(apiary_approval=approval)
+            #return self.requirements.filter(apiary_approval=approval)
+            return self.requirements.filter(sitetransfer_approval=approval)
         else:
             return self.requirements.all()
 
@@ -1920,8 +1921,8 @@ class ApiaryReferralGroup(models.Model):
         verbose_name = "Apiary Referral Group"
         verbose_name_plural = "Apiary Referral groups"
 
-
 class ProposalRequirement(OrderedModel):
+    #from disturbance.components.approvals.models import Approval
     RECURRENCE_PATTERNS = [(1, 'Weekly'), (2, 'Monthly'), (3, 'Yearly')]
     standard_requirement = models.ForeignKey(ProposalStandardRequirement,null=True,blank=True)
     free_requirement = models.TextField(null=True,blank=True)
@@ -1933,8 +1934,10 @@ class ProposalRequirement(OrderedModel):
     recurrence_schedule = models.IntegerField(null=True,blank=True)
     copied_from = models.ForeignKey('self', on_delete=models.SET_NULL, blank=True, null=True)
     is_deleted = models.BooleanField(default=False)
-    #site_transfer_approval = models.ForeignKey('disturbance.Approval',null=True,blank=True)
-    apiary_approval = models.ForeignKey('disturbance.Approval',null=True,blank=True)
+    # temporary location during Site Transfer applications - copied to apiary_approval during final_approval()
+    sitetransfer_approval = models.ForeignKey('disturbance.Approval',null=True,blank=True, related_name='sitetransferapproval_requirement')
+    # permanent location for apiary / site transfer approvals
+    apiary_approval = models.ForeignKey('disturbance.Approval',null=True,blank=True, related_name='proposalrequirement_set')
     #order = models.IntegerField(default=1)
     # referral_group is no longer required for Apiary
     referral_group = models.ForeignKey(ApiaryReferralGroup,null=True,blank=True,related_name='apiary_requirement_referral_groups')
@@ -2823,6 +2826,11 @@ class ProposalApiary(RevisionedMixin):
                     target_approval.issue_date = timezone.now()
                     #target_approval.current_proposal = checking_proposal
                     target_approval.save()
+                    if preview:
+                        # do this instead of generate compliances section below
+                        self.link_apiary_approval_requirements(originating_approval)
+                        self.link_apiary_approval_requirements(target_approval)
+
                 # Apiary approval
                 else:
                     if not approval:
@@ -2861,6 +2869,9 @@ class ProposalApiary(RevisionedMixin):
                         #self.proposal.proposed_issuance_approval['details'] = ''
                         #self.proposal.proposed_issuance_approval['cc_email'] = ''
                         approval.save()
+                    if preview:
+                        # do this instead of generate compliances section below
+                        self.link_apiary_approval_requirements(approval)
 
 
                 # Get apiary sites from proposal
@@ -2962,7 +2973,7 @@ class ProposalApiary(RevisionedMixin):
                     #print approval,approval.id, created
                 # Generate compliances
                 #self.generate_compliances(approval, request)
-                if self.proposal.application_type.name == ApplicationType.APIARY:
+                if self.proposal.application_type.name == ApplicationType.APIARY and not preview:
                     from disturbance.components.compliances.models import Compliance, ComplianceUserAction
                     if created:
                         # ProposalType set during def create api method
@@ -2981,17 +2992,14 @@ class ProposalApiary(RevisionedMixin):
 
                         # Log creation
                         # Generate the document
-                        if not preview:
-                            approval.generate_doc(request.user)
                         self.link_apiary_approval_requirements(approval)
+                        approval.generate_doc(request.user)
                         self.generate_apiary_compliances(approval, request)
                         # send the doc and log in approval and org
                     else:
                         #approval.replaced_by = request.user
                         #approval.replaced_by = self.approval
                         # Generate the document
-                        if not preview:
-                            approval.generate_doc(request.user)
 
                         #Delete the future compliances if Approval is reissued and generate the compliances again.
                         approval_compliances = Compliance.objects.filter(
@@ -3004,6 +3012,7 @@ class ProposalApiary(RevisionedMixin):
                             for c in approval_compliances:
                                 c.delete()
                         self.link_apiary_approval_requirements(approval)
+                        approval.generate_doc(request.user)
                         self.generate_apiary_compliances(approval, request)
                         # Log proposal action
                         self.proposal.log_user_action(
@@ -3019,17 +3028,14 @@ class ProposalApiary(RevisionedMixin):
 
                     self.proposal.approval = approval
                     #send Proposal approval email with attachment
-                    if not preview:
-                        send_proposal_approval_email_notification(self.proposal,request)
+                    send_proposal_approval_email_notification(self.proposal,request)
                     self.proposal.save(version_comment='Final Approval: {}'.format(self.proposal.approval.lodgement_number))
                     self.proposal.approval.documents.all().update(can_delete=False)
-                elif self.proposal.application_type.name == ApplicationType.SITE_TRANSFER:
+                elif self.proposal.application_type.name == ApplicationType.SITE_TRANSFER and not preview:
                     #import ipdb;ipdb.set_trace()
                     # add Site Transfer Compliance/Requirements logic here
                     from disturbance.components.compliances.models import Compliance, ComplianceUserAction
                     ## Originating approval
-                    if not preview:
-                        originating_approval.generate_apiary_site_transfer_doc(request.user, site_transfer_proposal=self.proposal)
                     #Delete the future compliances if Approval is reissued and generate the compliances again.
                     approval_compliances = Compliance.objects.filter(
                             approval= originating_approval,
@@ -3041,6 +3047,7 @@ class ProposalApiary(RevisionedMixin):
                             c.delete()
                     #self.generate_apiary_site_transfer_compliances(originating_approval, request)
                     self.link_apiary_approval_requirements(originating_approval)
+                    originating_approval.generate_apiary_site_transfer_doc(request.user, site_transfer_proposal=self.proposal)
                     self.generate_apiary_compliances(originating_approval, request)
                     # Log proposal action
                     self.proposal.log_user_action(
@@ -3057,8 +3064,6 @@ class ProposalApiary(RevisionedMixin):
                     #send Proposal approval email with attachment
                     send_site_transfer_approval_email_notification(self.proposal, request, originating_approval)
                     ## Target approval
-                    if not preview:
-                        target_approval.generate_apiary_site_transfer_doc(request.user, site_transfer_proposal=self.proposal)
                     #Delete the future compliances if Approval is reissued and generate the compliances again.
                     approval_compliances = Compliance.objects.filter(
                             approval= target_approval,
@@ -3069,6 +3074,7 @@ class ProposalApiary(RevisionedMixin):
                         for c in approval_compliances:
                             c.delete()
                     self.link_apiary_approval_requirements(target_approval)
+                    target_approval.generate_apiary_site_transfer_doc(request.user, site_transfer_proposal=self.proposal)
                     self.generate_apiary_compliances(target_approval, request)
                     # Log proposal action
                     self.proposal.log_user_action(
@@ -3082,8 +3088,7 @@ class ProposalApiary(RevisionedMixin):
                                 request
                                 )
                     #send Proposal approval email with attachment
-                    if not preview:
-                        send_site_transfer_approval_email_notification(self.proposal, request, target_approval)
+                    send_site_transfer_approval_email_notification(self.proposal, request, target_approval)
                     #self.proposal.save(version_comment='Final Approval: {}'.format(self.proposal.approval.lodgement_number))
                     self.proposal.save(version_comment='Originating Approval: {}, Target Approval: {}'.format(
                         originating_approval.lodgement_number,
@@ -3098,11 +3103,18 @@ class ProposalApiary(RevisionedMixin):
             raise
 
     def link_apiary_approval_requirements(self, approval):
-        # Ensure current requirements are associated with apiary approval
+        # Ensure current requirements are associated with apiary approval / site transfer
+        #import ipdb; ipdb.set_trace()
         link_requirement_set = self.proposal.requirements.all()
         for link_r in link_requirement_set:
-            link_r.apiary_approval = approval
-            link_r.save()
+            if self.proposal.application_type.name == ApplicationType.SITE_TRANSFER:
+                if not link_r.is_deleted and link_r.sitetransfer_approval == approval:
+                    link_r.apiary_approval = approval
+                    link_r.save()
+            else:
+                link_r.apiary_approval = approval
+                link_r.save()
+
         # Remove apiary approval link from previous requirements
         unlink_requirement_set = approval.proposalrequirement_set.exclude(proposal=self.proposal)
         for unlink_r in unlink_requirement_set:

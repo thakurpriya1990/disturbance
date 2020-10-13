@@ -426,7 +426,9 @@ def save_proponent_data_apiary_site_transfer(proposal_obj, request, viewset):
                                 origin_r.proposal = proposal_obj
                                 #origin_r.proposal = None
                                 #origin_r.site_transfer_approval = originating_approval
-                                origin_r.apiary_approval = originating_approval
+                                #origin_r.apiary_approval = originating_approval
+                                origin_r.apiary_approval = None
+                                origin_r.sitetransfer_approval = originating_approval
                                 origin_r.copied_from=old_origin_r
                                 origin_r.id = None
                                 origin_r.save()
@@ -443,8 +445,9 @@ def save_proponent_data_apiary_site_transfer(proposal_obj, request, viewset):
                             for target_r in target_req:
                                 old_target_r = deepcopy(target_r)
                                 target_r.proposal = proposal_obj
-                                #target_r.proposal = None
-                                target_r.apiary_approval = proposal_obj.proposal_apiary.target_approval
+                                #target_r.apiary_approval = proposal_obj.proposal_apiary.target_approval
+                                target_r.apiary_approval = None
+                                target_r.sitetransfer_approval = proposal_obj.proposal_apiary.target_approval
                                 target_r.copied_from=old_target_r
                                 target_r.id = None
                                 target_r.save()
