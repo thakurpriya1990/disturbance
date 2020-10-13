@@ -378,13 +378,15 @@ export default {
         },
         */
         preview:function () {
-            this.sendData(true);
+            //this.sendData(true);
+            console.log("preview")
+            this.previewData();
         },
         preview_originating_approval:function () {
-            this.sendData(true, 'originating');
+            this.previewData('originating');
         },
         preview_target_approval:function () {
-            this.sendData(true, 'target')
+            this.previewData('target')
         },
         /*
         preview_originating_approval:function () {
@@ -467,19 +469,83 @@ export default {
                 console.log(error);
             } );
         },
-        sendData:function(preview=false,originating_target=null){
+        previewData:function(originating_target=null){
+            console.log("previewData")
+            this.approval.preview = true;
+            if (originating_target) {
+                this.approval.originating_target = originating_target;
+            }
+            this.approval.apiary_sites = this.apiary_sites_updated
+            if (!this.startDateCanBeModified){
+                // There is an existing licence. Therefore start_date and expiry_date are fixed to that dates
+                this.approval.start_date = moment(this.proposal.approval.start_date, 'YYYY-MM-DD').format('DD/MM/YYYY')
+            }
+            if (!this.expiryDateCanBeModified){
+                // There is an existing licence. Therefore start_date and expiry_date are fixed to that dates
+                this.approval.expiry_date = moment(this.proposal.approval.expiry_date, 'YYYY-MM-DD').format('DD/MM/YYYY')
+            }
+            let approval = JSON.parse(JSON.stringify(this.approval)); // Deep copy
+            console.log('approval to post')
+            console.log(approval)
+
+            this.issuingApproval = true;
+            if (this.state == 'final_approval'){
+                /*
+                vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal_apiary,vm.proposal_apiary_id+'/final_approval'),JSON.stringify(approval),{
+                        emulateJSON:true,
+                }).then((response) => {
+                        //const blob = new Blob([response.body],{type: 'image/pdf'});
+                        const pdfBlob = new Blob([response.body],{type: 'application/pdf'});
+                        const objectURL = window.URL.createObjectURL(pdfBlob);
+                        let link = document.createElement('a');
+                        link.href = objectURL;
+                        link.download="file.pdf";
+                        link.click();
+                    },(error)=>{
+                        vm.errors = true;
+                        //vm.issuingApproval = false;
+                        vm.errorString = helpers.apiVueResourceError(error);
+                    });
+                */
+                fetch(helpers.add_endpoint_json(api_endpoints.proposal_apiary,this.proposal_apiary_id+'/final_approval'), {
+                    method: 'POST',
+                    body: JSON.stringify(approval),
+                    //body: this.approval,
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": this.csrf_token,
+                    },
+                })
+                    .then(response => response.blob())
+                    .then(function(myBlob) {
+                        console.log(myBlob);
+                        //const blob = new Blob([response.body],{type: 'image/pdf'});
+                        //const blob = new Blob([response.body],{type: 'application/pdf'});
+                        const objectURL = URL.createObjectURL(myBlob);
+                        let link = document.createElement('a');
+                        link.href = objectURL;
+                        link.download="file.pdf";
+                        link.click();
+                        //vm.issuingApproval = false;
+                    });
+
+            }
+            this.approval.preview = false;
+            this.issuingApproval = false;
+        },
+        //sendData:function(preview=false,originating_target=null){
+        sendData:function(preview=false){
             console.log('**********')
             console.log('in sendData')
             console.log('**********')
 
             let vm = this;
             vm.errors = false;
+            /*
             if (preview) {
                 vm.approval.preview = preview;
             }
-            if (originating_target) {
-                vm.approval.originating_target = originating_target;
-            }
+            */
             //vm.approval.apiary_sites = vm.proposal.proposal_apiary.apiary_sites
             vm.approval.apiary_sites = vm.apiary_sites_updated
             if (!this.startDateCanBeModified){
@@ -547,6 +613,7 @@ export default {
                         link.href = objectURL;
                         link.download="file.pdf";
                         link.click();
+                        vm.issuingApproval = false;
                     });
 
             }
