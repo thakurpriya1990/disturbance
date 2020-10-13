@@ -30,18 +30,18 @@ from disturbance.components.main.models import CommunicationsLogEntry, UserActio
     ApplicationType, RegionDbca, DistrictDbca, CategoryDbca
 from disturbance.components.main.utils import get_department_user
 from disturbance.components.proposals.email import (
-        send_referral_email_notification, 
-        send_apiary_referral_email_notification, 
-        send_apiary_referral_complete_email_notification, 
+        send_referral_email_notification,
+        send_apiary_referral_email_notification,
+        send_apiary_referral_complete_email_notification,
         send_proposal_decline_email_notification,
-        send_proposal_approval_email_notification, 
+        send_proposal_approval_email_notification,
         send_amendment_email_notification,
-        send_submit_email_notification, 
-        send_external_submit_email_notification, 
-        send_approver_decline_email_notification, 
-        send_approver_approve_email_notification, 
-        send_referral_complete_email_notification, 
-        send_proposal_approver_sendback_email_notification, 
+        send_submit_email_notification,
+        send_external_submit_email_notification,
+        send_approver_decline_email_notification,
+        send_approver_approve_email_notification,
+        send_referral_complete_email_notification,
+        send_proposal_approver_sendback_email_notification,
         send_referral_recall_email_notification,
         send_site_transfer_approval_email_notification,
         )
@@ -1167,14 +1167,14 @@ class Proposal(RevisionedMixin):
                 if originating_approval_id:
                     preview_approval = Approval.objects.get(id=originating_approval_id)
                     licence_buffer = preview_approval.generate_apiary_site_transfer_doc(
-                            request.user, 
+                            request.user,
                             site_transfer_proposal=self,
                             preview=True
                             )
                 elif target_approval_id:
                     preview_approval = Approval.objects.get(id=target_approval_id)
                     licence_buffer = preview_approval.generate_apiary_site_transfer_doc(
-                            request.user, 
+                            request.user,
                             site_transfer_proposal=self,
                             preview=True
                             )
@@ -1296,7 +1296,7 @@ class Proposal(RevisionedMixin):
                 # Log proposal action
                 if self.apiary_group_application_type:
                     self.log_user_action(ProposalUserAction.ACTION_PROPOSED_APIARY_APPROVAL.format(
-                        self.id, 
+                        self.id,
                         self.proposed_issuance_approval.get('start_date'),
                         self.proposed_issuance_approval.get('expiry_date'),
                         #', '.join(apiary_sites_list)
@@ -1308,7 +1308,7 @@ class Proposal(RevisionedMixin):
                 if self.applicant:
                     if self.apiary_group_application_type:
                         self.applicant.log_user_action(ProposalUserAction.ACTION_PROPOSED_APIARY_APPROVAL.format(
-                            self.id, 
+                            self.id,
                             self.proposed_issuance_approval.get('start_date'),
                             self.proposed_issuance_approval.get('expiry_date'),
                             str(apiary_sites_list).lstrip('[').rstrip(']')
@@ -1701,7 +1701,7 @@ class Proposal(RevisionedMixin):
     def internal_view_log(self,request):
         self.log_user_action(ProposalUserAction.ACTION_VIEW_PROPOSAL.format(self.id),request)
         return self
-    
+
     def apiary_requirements(self, approval=None):
         if self.application_type.name == ApplicationType.SITE_TRANSFER and approval:
             return self.requirements.filter(apiary_approval=approval)
@@ -1869,7 +1869,7 @@ class ProposalDeclinedDetails(models.Model):
 #class ProposalStandardRequirement(models.Model):
 class ProposalStandardRequirement(RevisionedMixin):
     SYSTEM_CHOICES = (
-            ('disturbance', 'Disturbance'), 
+            ('disturbance', 'Disturbance'),
             ('apiary', 'Apiary'),
                       )
     system = models.CharField('System', max_length=20, choices=SYSTEM_CHOICES, default=SYSTEM_CHOICES[0][0])
@@ -2483,13 +2483,6 @@ class ApiarySiteOnProposal(RevisionedMixin):
     def __str__(self):
         return 'id:{}: (apiary_site: {}, proposal_apiary: {})'.format(self.id, self.apiary_site.id, self.proposal_apiary.id)
 
-    def apiary_site_not_under_payment(self):
-        value = True
-        if self.apiary_site.is_vacant:
-            qs = ApiarySiteOnProposal.objects
-
-        return value
-
     class Meta:
         app_label = 'disturbance'
         unique_together = ['apiary_site', 'proposal_apiary',]
@@ -2524,7 +2517,7 @@ class ProposalApiary(RevisionedMixin):
         for apiary_site in self.apiary_sites.all():
             if apiary_site.is_vacant:
                 # The site is 'vacant'
-                others = ApiarySiteOnProposal.objects.filter(apiary_site=apiary_site, making_payment=True).exclude(proposal_apiary=self)
+                others = ApiarySiteOnProposal.objects.filter(Q(apiary_site=apiary_site), (Q(making_payment=True) | Q(site_status=SITE_STATUS_PENDING))).exclude(proposal_apiary=self)
                 if others:
                     # Someone has been making payment for this apiary site
                     validity = False
@@ -2532,7 +2525,6 @@ class ProposalApiary(RevisionedMixin):
                 # The site is not 'vacant'
                 relation = self.get_relation(apiary_site)
                 if relation != apiary_site.latest_proposal_link:
-                    # This site was 'vacant' site when selected, but it's already taken by someone else
                     validity = False
 
             if not validity and raise_exception:
@@ -3000,10 +2992,12 @@ class ProposalApiary(RevisionedMixin):
                         # Generate the document
                         if not preview:
                             approval.generate_doc(request.user)
+
                         #Delete the future compliances if Approval is reissued and generate the compliances again.
                         approval_compliances = Compliance.objects.filter(
                                 approval= approval, 
                                 #proposal = self.proposal, 
+
                                 processing_status='future'
                                 )
                         if approval_compliances:
@@ -3022,6 +3016,7 @@ class ProposalApiary(RevisionedMixin):
                                     ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.proposal.id),
                                     request
                                     )
+
                     self.proposal.approval = approval
                     #send Proposal approval email with attachment
                     if not preview:
@@ -3057,6 +3052,7 @@ class ProposalApiary(RevisionedMixin):
                         self.proposal.applicant.log_user_action(
                                 ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.proposal.id),
                                 request
+
                                 )
                     #send Proposal approval email with attachment
                     send_site_transfer_approval_email_notification(self.proposal, request, originating_approval)
@@ -3128,8 +3124,8 @@ class ProposalApiary(RevisionedMixin):
                     cs=[]
                     # Now discard all of the due compliances
                     cs=Compliance.objects.filter(
-                            requirement=r.copied_from, 
-                            approval=approval, 
+                            requirement=r.copied_from,
+                            approval=approval,
                             processing_status='due'
                             )
                     if cs:
@@ -3399,19 +3395,18 @@ class ApiarySite(models.Model):
 
     def __str__(self):
         return '{}'.format(self.id,)
-    
+
     def delete(self, using=None, keep_parents=False):
         super(ApiarySite, self).delete(using, keep_parents)
         print('ApiarySite: {}({}) has been deleted.'.format(self.id, self.is_vacant))
 
     def make_vacant(self, vacant, relation):
+        self.is_vacant = vacant
         from disturbance.components.approvals.models import ApiarySiteOnApproval
         if isinstance(relation, ApiarySiteOnProposal):
-            self.is_vacant = vacant
             self.proposal_link_for_vacant = relation if vacant else None
             self.approval_link_for_vacant = None
         elif isinstance(relation, ApiarySiteOnApproval):
-            self.is_vacant = vacant
             self.proposal_link_for_vacant = None
             self.approval_link_for_vacant = relation if vacant else None
         self.save()
@@ -3703,7 +3698,7 @@ class ApiaryChecklistAnswer(models.Model):
 
 
 class ApiaryAssessorGroup(models.Model):
-    #site = models.OneToOneField(Site, default='1') 
+    #site = models.OneToOneField(Site, default='1')
     members = models.ManyToManyField(EmailUser)
 
     def __str__(self):
@@ -3731,7 +3726,7 @@ class ApiaryAssessorGroup(models.Model):
 
 
 class ApiaryApproverGroup(models.Model):
-    #site = models.OneToOneField(Site, default='1') 
+    #site = models.OneToOneField(Site, default='1')
     members = models.ManyToManyField(EmailUser)
 
     def __str__(self):
@@ -3847,7 +3842,7 @@ class ApiaryReferral(RevisionedMixin):
                 )
             # TODO log organisation action
             applicant_field=getattr(
-                    self.referral.proposal, 
+                    self.referral.proposal,
                     self.referral.proposal.applicant_field
                     )
             applicant_field.log_user_action(
@@ -3873,7 +3868,7 @@ class ApiaryReferral(RevisionedMixin):
                 )
             # Create a log entry for the organisation
             applicant_field=getattr(
-                    self.referral.proposal, 
+                    self.referral.proposal,
                     self.referral.proposal.applicant_field
                     )
             applicant_field.log_user_action(
@@ -3907,7 +3902,7 @@ class ApiaryReferral(RevisionedMixin):
             # Create a log entry for the organisation
             #self.proposal.applicant.log_user_action(ProposalUserAction.ACTION_RESEND_REFERRAL_TO.format(self.id,self.proposal.id,'{}({})'.format(self.referral.get_full_name(),self.referral.email)),request)
             applicant_field=getattr(
-                    self.referral.proposal, 
+                    self.referral.proposal,
                     self.referral.proposal.applicant_field
                     )
             applicant_field.log_user_action(
@@ -3941,7 +3936,7 @@ class ApiaryReferral(RevisionedMixin):
                 #self.proposal.log_user_action(ProposalUserAction.CONCLUDE_REFERRAL.format(self.id,self.proposal.id,'{}({})'.format(self.referral.get_full_name(),self.referral.email)),request)
                 self.referral.proposal.log_user_action(
                         ProposalUserAction.APIARY_CONCLUDE_REFERRAL.format(
-                            request.user.get_full_name(), 
+                            request.user.get_full_name(),
                             self.referral.id,
                             self.referral.proposal.id,
                             '{}'.format(
@@ -3953,12 +3948,12 @@ class ApiaryReferral(RevisionedMixin):
                 #self.proposal.applicant.log_user_action(ProposalUserAction.CONCLUDE_REFERRAL.format(self.id,self.proposal.id,'{}({})'.format(self.referral.get_full_name(),self.referral.email)),request)
                 #import ipdb;ipdb.set_trace();
                 applicant_field=getattr(
-                        self.referral.proposal, 
+                        self.referral.proposal,
                         self.referral.proposal.applicant_field
                         )
                 applicant_field.log_user_action(
                         ProposalUserAction.APIARY_CONCLUDE_REFERRAL.format(
-                            request.user.get_full_name(), 
+                            request.user.get_full_name(),
                             self.referral.id,
                             self.referral.proposal.id,
                             '{}'.format(self.referral_group.name)
@@ -4043,7 +4038,7 @@ class ApiaryReferral(RevisionedMixin):
                             )
                     # Create a log entry for the organisation
                     applicant_field=getattr(
-                            self.referral.proposal, 
+                            self.referral.proposal,
                             self.referral.proposal.applicant_field
                             )
                     applicant_field.log_user_action(
