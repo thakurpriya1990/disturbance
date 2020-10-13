@@ -94,17 +94,31 @@ class ApprovalSerializerForLicenceDoc(serializers.ModelSerializer):
 
     def get_requirements(self, approval):
         ret_array = []
-        for req in approval.current_proposal.requirements.all():
+        for req in approval.proposalrequirement_set.all():
             ret_array.append({
                 'id': req.id,
                 'text': req.requirement,
             })
-        return  ret_array
+        return ret_array
 
-        # return [
-        #     {'id': 1, 'text': 'this is text 1.'},
-        #     {'id': 2, 'text': 'this is text 2.'},
-        # ]
+    #def bak_get_requirements(self, approval):
+    #    #import ipdb; ipdb.set_trace()
+    #    ret_array = []
+    #    site_transfer_preview = self.context.get('site_transfer_preview')
+    #    #if self.proposal.application_type.name == ApplicationType.SITE_TRANSFER:
+    #    for req in approval.current_proposal.requirements.all():
+    #        if site_transfer_preview:
+    #            if not req.is_deleted and req.apiary_approval_id == approval.id:
+    #                ret_array.append({
+    #                    'id': req.id,
+    #                    'text': req.requirement,
+    #                })
+    #        else:
+    #            ret_array.append({
+    #                'id': req.id,
+    #                'text': req.requirement,
+    #            })
+    #    return ret_array
 
     class Meta:
         model = Approval

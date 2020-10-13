@@ -6,7 +6,7 @@ from docxtpl import DocxTemplate
 from disturbance.components.main.models import ApiaryGlobalSettings
 
 
-def create_apiary_licence_pdf_contents(approval, proposal, copied_to_permit, approver):
+def create_apiary_licence_pdf_contents(approval, proposal, copied_to_permit, approver, site_transfer_preview=None):
     #import ipdb; ipdb.set_trace()
     # print ("Letter File")
     # confirmation_doc = None
@@ -37,7 +37,11 @@ def create_apiary_licence_pdf_contents(approval, proposal, copied_to_permit, app
     #     sc = booking.sticker_created + timedelta(hours=8)
     #     stickercreated = sc.strftime('%d %B %Y')
     from disturbance.components.approvals.serializers import ApprovalSerializerForLicenceDoc
-    context_obj = ApprovalSerializerForLicenceDoc(approval, context={'approver': approver})
+    serializer_context = {
+            'approver': approver,
+            'site_transfer_preview': site_transfer_preview,
+            }
+    context_obj = ApprovalSerializerForLicenceDoc(approval, context=serializer_context)
     context = context_obj.data
     doc.render(context)
 
