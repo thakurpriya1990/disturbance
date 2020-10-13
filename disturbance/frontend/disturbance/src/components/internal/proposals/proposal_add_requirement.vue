@@ -138,7 +138,7 @@ export default {
                 recurrence: false,
                 recurrence_pattern: '1',
                 proposal: vm.proposal_id,
-                sitetransfer_approval: vm.sitetransferapproval_id,
+                sitetransfer_approval: vm.sitetransfer_approval_id,
             },
             addingRequirement: false,
             updatingRequirement: false,

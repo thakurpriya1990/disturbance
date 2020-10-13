@@ -822,7 +822,6 @@ class ProposalApiaryViewSet(viewsets.ModelViewSet):
             #serializer = InternalProposalSerializer(instance,context={'request':request})
             serializer_class = self.internal_apiary_serializer_class()
             serializer = serializer_class(instance.proposal,context={'request':request})
-            #import ipdb;ipdb.set_trace()
             if preview:
                 site_transfer_preview = False
                 if instance.proposal.application_type.name == ApplicationType.SITE_TRANSFER:
@@ -841,6 +840,7 @@ class ProposalApiaryViewSet(viewsets.ModelViewSet):
                         preview=True, 
                         site_transfer_preview=site_transfer_preview
                         )
+                #import ipdb;ipdb.set_trace()
                 transaction.set_rollback(True)
                 return licence_response
             return Response(serializer.data)

@@ -23,7 +23,7 @@
         ref="target_requirement_detail" 
         :proposal_id="proposal.id" 
         :requirements="requirements"
-        :approval_id="targetApprovalId"
+        :sitetransfer_approval_id="targetApprovalId"
         v-bind:key="uuid"/>
     </div>
 </template>
