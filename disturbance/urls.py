@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.contrib import admin
 from django.conf.urls import url, include
 from django.conf.urls.static import static
 from rest_framework import routers
@@ -70,6 +71,7 @@ api_patterns = [
 # Django searches matching url from the top of the list, and once found a matching url, it never goes through the urls below it.
 urlpatterns = [
     url(r'^admin/', disturbance_admin_site.urls),
+    url(r'^ledger/admin/', admin.site.urls, name='ledger_admin'),
     url(r'', include(api_patterns)),
     url(r'^$', views.DisturbanceRoutingView.as_view(), name='ds_home'),
     url(r'^contact/', views.DisturbanceContactView.as_view(), name='ds_contact'),
