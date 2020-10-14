@@ -117,7 +117,7 @@
                                                     <li><a href="/external/organisations/manage/{{org.id}}">Manage {{ org.organisation.name}}</a></li>
                                                 {% endfor %}
 
-                                                {% if is_disturbance_admin_user or request.user.is_superuser or is_payment_officer %}
+                                                {% if is_payment_admin %}
                                                     <li><a href="/internal/reports">Reports</a></li>
                                                 {% endif %}
 
