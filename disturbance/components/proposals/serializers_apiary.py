@@ -520,6 +520,7 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
             'transferee_org_name',
             'transferee_first_name',
             'transferee_last_name',
+            'transferee_email_text', 
         )
 
     def validate(self, attrs):
@@ -548,26 +549,28 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
 
     def get_transferee_name(self, obj):
         name = None
-        if obj.proposal.approval:
-            name = obj.proposal.approval.relevant_applicant_name
+        #if obj.proposal.approval:
+         #   name = obj.proposal.approval.relevant_applicant_name
+        if obj.target_approval:
+            name = obj.target_approval.relevant_applicant_name
         return name
 
     def get_transferee_org_name(self, obj):
         name = None
-        if obj.proposal.approval and obj.proposal.approval.applicant:
-            name = obj.proposal.approval.applicant.name
+        if obj.target_approval and obj.target_approval.applicant:
+            name = obj.target_approval.applicant.name
         return name
 
     def get_transferee_first_name(self, obj):
         name = None
-        if obj.proposal.approval and obj.proposal.approval.proxy_applicant:
-            name = obj.proposal.approval.proxy_applicant.first_name
+        if obj.target_approval and obj.target_approval.proxy_applicant:
+            name = obj.target_approval.proxy_applicant.first_name
         return name
 
     def get_transferee_last_name(self, obj):
         name = None
-        if obj.proposal.approval and obj.proposal.approval.proxy_applicant:
-            name = obj.proposal.approval.proxy_applicant.last_name
+        if obj.target_approval and obj.target_approval.proxy_applicant:
+            name = obj.target_approval.proxy_applicant.last_name
         return name
 
     def get_target_approval_lodgement_number(self, obj):
