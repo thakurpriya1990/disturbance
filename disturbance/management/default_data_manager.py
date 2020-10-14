@@ -4,6 +4,7 @@ import logging
 import os
 
 import pytz
+from django.contrib.auth.models import Group
 from django.contrib.gis.geos import GEOSGeometry, fromfile
 from ledger.settings_base import TIME_ZONE
 
@@ -48,6 +49,13 @@ class DefaultDataManager(object):
                 logger.info("{} coastline polygons have been created".format(len(data['features'])))
 
     def __init__(self):
+        # Groups
+        CUSTOM_GROUPS = [settings.ADMIN_GROUP, settings.APIARY_ADMIN_GROUP, settings.DAS_APIARY_ADMIN_GROUP, settings.APIARY_PAYMENTS_OFFICERS_GROUP,]
+        for group_name in CUSTOM_GROUPS:
+            group, created = Group.objects.get_or_create(name=group_name)
+            if created:
+                logger.info("Created group: {}".format(group_name))
+
         # WA coast (original)
         file_path_original = os.path.join(settings.BASE_DIR, 'disturbance', 'static', 'disturbance', 'gis', 'wa_coast.geojson')
         self.insert_wa_coast(file_path_original, False)

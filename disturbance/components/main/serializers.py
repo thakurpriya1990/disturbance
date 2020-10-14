@@ -97,3 +97,10 @@ class ApplicationTypeSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'tenure_app_types')
 
 
+class BookingSettlementReportSerializer(serializers.Serializer):
+    date = serializers.DateTimeField(input_formats=['%d/%m/%Y'])
+
+
+class OracleSerializer(serializers.Serializer):
+    date = serializers.DateField(input_formats=['%d/%m/%Y','%Y-%m-%d'])
+    override = serializers.BooleanField(default=False)
