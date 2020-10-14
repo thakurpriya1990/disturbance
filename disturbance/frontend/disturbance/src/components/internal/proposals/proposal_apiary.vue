@@ -268,7 +268,7 @@
                         />
                     </div>
                 </template>
-                <template v-if="proposal.processing_status == 'With Assessor (Requirements)' || ((proposal.processing_status == 'With Approver' || isFinalised) && showingRequirements)">
+                <template v-if="canLimitedAction && proposal.processing_status == 'With Assessor (Requirements)' || ((proposal.processing_status == 'With Approver' || isFinalised) && showingRequirements)">
                     <div v-if="siteTransfer">
                         <OriginatingApprovalRequirements 
                         :proposal="proposal" 

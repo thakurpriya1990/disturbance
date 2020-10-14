@@ -388,6 +388,11 @@ def save_proponent_data_apiary_site_transfer(proposal_obj, request, viewset):
             #        site_transfer_apiary_site.selected = checked_value
             #        site_transfer_apiary_site.save()
 
+            transferee_email_text = request.data.get('transferee_email_text')
+            if transferee_email_text:
+                proposal_obj.proposal_apiary.transferee_email_text = transferee_email_text
+                proposal_obj.proposal_apiary.save()
+
             apiary_sites_local = request.data.get('apiary_sites_local')
             if apiary_sites_local:
                 for site in json.loads(apiary_sites_local):

@@ -2501,7 +2501,9 @@ class ProposalApiary(RevisionedMixin):
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
 
     # required for Site Transfer applications
+    # transferee not used - to delete
     transferee = models.ForeignKey(EmailUser, blank=True, null=True, related_name='apiary_transferee')
+    transferee_email_text = models.CharField(max_length=200, null=True)
     originating_approval = models.ForeignKey('disturbance.Approval', blank=True, null=True, related_name="site_transfer_originating_approval")
     target_approval = models.ForeignKey('disturbance.Approval', blank=True, null=True, related_name="site_transfer_target_approval")
 

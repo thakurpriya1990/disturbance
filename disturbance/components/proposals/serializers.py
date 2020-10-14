@@ -184,8 +184,9 @@ class ListProposalSerializer(BaseProposalSerializer):
     def get_assessor_process(self,obj):
         # Check if currently logged in user has access to process the proposal
         request = self.context['request']
+        template_group = self.context.get('template_group')
         user = request.user
-        if obj.can_officer_process:
+        if obj.can_officer_process and template_group == 'apiary':
             '''if (obj.assigned_officer and obj.assigned_officer == user) or (user in obj.allowed_assessors):
                 return True'''
             if obj.assigned_officer:
