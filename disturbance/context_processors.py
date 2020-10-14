@@ -1,6 +1,6 @@
 from django.conf import settings
 #from mooring import models
-from ledger.payments import helpers
+from ledger.payments.helpers import is_payment_admin
 
 from disturbance import helpers
 
@@ -38,7 +38,7 @@ def apiary_url(request):
     #     is_admin = helpers.is_admin(request.user)
     #     is_payment_officer = helpers.is_payment_officer(request.user)
     #     is_customer = helpers.is_customer(request.user)
-    is_payment_admin = helpers.is_payment_admin(request.user)
+    is_payment_officer = is_payment_admin(request.user)
 
     return {
         #'EXPLORE_PARKS_SEARCH': '/map',
@@ -65,7 +65,7 @@ def apiary_url(request):
         'APPLICATION_GROUP': application_group,
         'DISPLAYED_SYSTEM_NAME': displayed_system_name,
         'SUPPORT_EMAIL': support_email,
-        'is_payment_admin': is_payment_admin
+        'is_payment_admin': is_payment_officer
         }
 
 
