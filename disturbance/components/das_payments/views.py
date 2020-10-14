@@ -59,7 +59,6 @@ from ledger.basket.models import Basket
 from ledger.payments.mixins import InvoiceOwnerMixin
 from oscar.apps.order.models import Order
 from disturbance.helpers import is_internal, is_disturbance_admin, is_in_organisation_contacts
-from ledger.payments.helpers import is_payment_admin
 from disturbance.context_processors import apiary_url, template_context
 
 import logging

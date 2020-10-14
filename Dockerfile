@@ -22,6 +22,7 @@ ENV SITE_DOMAIN="localhost"
 ENV APIARY_URL=[u'apiary-uat-internal.dbca.wa.gov.au',u'apiary-uat.dbca.wa.gov.au',u'localhost:8071']
 ENV SYSTEM_NAME="Disturbance Assessment System"
 ENV APIARY_SYSTEM_NAME="Apiary System"
+ENV PAYMENT_OFFICERS_GROUP="Apiary Payments Officers"
 RUN apt-get update \
   && apt-get upgrade -y \
   && apt-get install -yq git mercurial gcc gdal-bin libsasl2-dev libpq-dev \

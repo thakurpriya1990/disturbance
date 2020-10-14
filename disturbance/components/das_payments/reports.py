@@ -1,15 +1,11 @@
 import csv
 import pytz
-import datetime
 from six.moves import StringIO
-from wsgiref.util import FileWrapper
 from django.utils import timezone
-from django.core.mail import EmailMessage
-from django.conf import settings
-#from mooring.models import Booking, BookingInvoice, OutstandingBookingRecipient, BookingHistory, AdmissionsBooking, AdmissionsBookingInvoice
-from ledger.payments.models import OracleParser,OracleParserInvoice, CashTransaction, BpointTransaction, BpayTransaction,Invoice, TrackRefund
-#from commercialoperator.components.bookings.models import BookingInvoice, ApplicationFeeInvoice
-from disturbance.components.bookings.models import BookingInvoice, ApplicationFeeInvoice
+from ledger.payments.models import CashTransaction, BpointTransaction, BpayTransaction,Invoice
+
+# TODO: AnnualRentalFee, ApplicationFeeInvoice in the Apiary case
+from disturbance.components.das_payments.models import ApplicationFeeInvoice, AnnualRentalFee
 
 
 def booking_bpoint_settlement_report(_date):
@@ -29,8 +25,8 @@ def booking_bpoint_settlement_report(_date):
             try:
                 invoice = Invoice.objects.get(reference=b.crn1)
                 try:
-                    booking = BookingInvoice.objects.get(invoice_reference=invoice.reference).booking
-                except BookingInvoice.DoesNotExist:
+                    booking = AnnualRentalFee.objects.get(invoice_reference=invoice.reference).booking
+                except AnnualRentalFee.DoesNotExist:
                     pass
 
                 try:
@@ -59,8 +55,8 @@ def booking_bpoint_settlement_report(_date):
             try:
                 invoice = Invoice.objects.get(reference=b.crn)
                 try:
-                    booking = BookingInvoice.objects.get(invoice_reference=invoice.reference).booking
-                except BookingInvoice.DoesNotExist:
+                    booking = AnnualRentalFee.objects.get(invoice_reference=invoice.reference).booking
+                except AnnualRentalFee.DoesNotExist:
                     pass
 
                 if booking:
@@ -79,8 +75,8 @@ def booking_bpoint_settlement_report(_date):
             try:
                 invoice = b.invoice
                 try:
-                    booking = BookingInvoice.objects.get(invoice_reference=invoice.reference).booking
-                except BookingInvoice.DoesNotExist:
+                    booking = AnnualRentalFee.objects.get(invoice_reference=invoice.reference).booking
+                except AnnualRentalFee.DoesNotExist:
                     pass
 
                 if booking:
