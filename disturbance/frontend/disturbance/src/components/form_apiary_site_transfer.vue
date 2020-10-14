@@ -27,7 +27,7 @@
                             <label class="inline">Title:</label>
                         </div-->
                         <div class="col-sm-8">
-                            <label class="emailLabel">Email:</label>
+                            <label class="emailLabel">Enter the email address of the licence holder you want to transfer sites to:</label>
                             <input
                                 type="text"
                                 class="form-control"
