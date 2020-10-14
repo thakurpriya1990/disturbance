@@ -9,7 +9,7 @@ from rest_framework_gis.serializers import GeoFeatureModelSerializer
 
 from disturbance.components.approvals.serializers_apiary import ApiarySiteOnApprovalGeometrySerializer
 from disturbance.components.main.utils import get_category, get_tenure, get_region_district, \
-    get_feature_in_wa_coastline_smoothed, validate_buffer
+    get_feature_in_wa_coastline_smoothed, validate_buffer, get_template_group
 from disturbance.components.organisations.serializers import OrganisationSerializer
 from disturbance.components.organisations.models import UserDelegation
 from disturbance.components.proposals.serializers_base import (
@@ -1162,8 +1162,9 @@ class ApiaryInternalProposalSerializer(BaseProposalSerializer):
 
     def get_assessor_mode(self,obj):
         # TODO check if the proposal has been accepted or declined
+        #import ipdb; ipdb.set_trace()
         request = self.context['request']
-        template_group = self.context.get('template_group')
+        template_group = get_template_group(request)#self.context.get('template_group')
         user = request.user._wrapped if hasattr(request.user,'_wrapped') else request.user
         assessor_can_assess = obj.can_assess(user) if template_group == 'apiary' else False
         return {

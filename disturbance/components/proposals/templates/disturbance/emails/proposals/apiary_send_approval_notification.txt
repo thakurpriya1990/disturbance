@@ -2,7 +2,7 @@
 
 {%  block content %}
    		{% if proposal.approval.reissued %}
- 			Licence {{proposal.approval.lodgement_number}} for Application {{proposal.lodgement_number}} has been reissued.
+ 			Licence {{proposal.approval.lodgement_number}} for application {{proposal.lodgement_number}} has been reissued.
  		{% else %}
 
         	Application {{proposal.lodgement_number}} has been approved.
