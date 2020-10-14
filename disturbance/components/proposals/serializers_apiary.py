@@ -1163,11 +1163,13 @@ class ApiaryInternalProposalSerializer(BaseProposalSerializer):
     def get_assessor_mode(self,obj):
         # TODO check if the proposal has been accepted or declined
         request = self.context['request']
+        template_group = self.context.get('template_group')
         user = request.user._wrapped if hasattr(request.user,'_wrapped') else request.user
+        assessor_can_assess = obj.can_assess(user) if template_group == 'apiary' else False
         return {
             'assessor_mode': True,
             'has_assessor_mode': obj.has_assessor_mode(user),
-            'assessor_can_assess': obj.can_assess(user),
+            'assessor_can_assess': assessor_can_assess, #obj.can_assess(user),
             'assessor_level': 'assessor',
             'assessor_box_view': obj.assessor_comments_view(user)
         }
