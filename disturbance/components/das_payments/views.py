@@ -31,7 +31,7 @@ from disturbance.components.das_payments.confirmation_pdf import create_confirma
 from disturbance.components.proposals.utils import proposal_submit_apiary
 from disturbance.components.das_payments.email import (
     send_application_fee_invoice_apiary_email_notification,
-    send_application_fee_confirmation_apiary_email_notification,
+    #send_application_fee_confirmation_apiary_email_notification,
 )
 from disturbance.components.das_payments.utils import (
     checkout,
@@ -245,7 +245,7 @@ class SiteTransferApplicationFeeSuccessView(TemplateView):
                     delete_session_site_transfer_application_invoice(request.session)
 
                     send_application_fee_invoice_apiary_email_notification(request, proposal, invoice, recipients=[recipient])
-                    send_application_fee_confirmation_apiary_email_notification(request, application_fee, invoice, recipients=[recipient])
+                    #send_application_fee_confirmation_apiary_email_notification(request, application_fee, invoice, recipients=[recipient])
 
                     context = {
                         'proposal': proposal,
@@ -424,7 +424,7 @@ class ApplicationFeeSuccessView(TemplateView):
                     delete_session_application_invoice(request.session)
 
                     send_application_fee_invoice_apiary_email_notification(request, proposal, invoice, recipients=[recipient])
-                    send_application_fee_confirmation_apiary_email_notification(request, application_fee, invoice, recipients=[recipient])
+                    #send_application_fee_confirmation_apiary_email_notification(request, application_fee, invoice, recipients=[recipient])
 
                     context = {
                         'proposal': proposal,

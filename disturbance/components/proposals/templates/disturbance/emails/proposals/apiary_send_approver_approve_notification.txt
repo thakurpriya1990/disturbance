@@ -1,7 +1,7 @@
 {%  extends 'disturbance/emails/apiary_base_email.txt' %}
 
 {%  block content %}
-    The Application {{ proposal.lodgement_number }} has been assessed and has been recommended for approval.
+    The application {{ proposal.lodgement_number }} has been assessed and has been recommended for approval.
 
     Title: {{proposal.title}}
     Activity: {{proposal.activity}}
@@ -16,9 +16,9 @@
     {% endif %}
 
     <p>
-    You can access this Application using the following link:
+    You can access this application using the following link:
     </p>
-    <a href="{{url}}">Access Application</a>
+    <a href="{{url}}">Access application</a>
 
 
 {%  endblock %}
