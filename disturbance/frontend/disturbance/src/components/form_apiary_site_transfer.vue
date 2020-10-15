@@ -3,7 +3,7 @@
         <div v-if="is_external" class="col-md-3">
             <div>
                 <h3>Application: {{ proposal.lodgement_number }}</h3>
-                <h4>Application Type: {{proposal.proposal_type }}</h4>
+                <h4>Application Type: {{proposal.application_type }}</h4>
                 <h4>Status: {{proposal.customer_status }}</h4>
             </div>
         </div>
@@ -47,8 +47,8 @@
                                     </div>
                                 </div>
                                 <div v-else-if="targetApprovalLodgementNumber">
-                                    <div>Transferee Email: {{ transfereeEmailText }}</div>
-                                    <div>Licence: {{targetApprovalLodgementNumber}}</div>
+                                    <div><label>Transferee Email:</label> {{ transfereeEmailText }}</div>
+                                    <div><label>Licence:</label> {{targetApprovalLodgementNumber}}</div>
                                 </div>
                             </div>
                     </div>
