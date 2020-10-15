@@ -313,7 +313,8 @@ class AnnualRentalFeeSuccessView(TemplateView):
             delete_session_annual_rental_fee(request.session)
 
             # Send invoice
-            email_data = send_annual_rental_fee_invoice(annual_rental_fee.approval, invoice)
+            to_email_addresses = annual_rental_fee.approval.relevant_applicant.email
+            email_data = send_annual_rental_fee_invoice(annual_rental_fee.approval, invoice, [to_email_addresses,])
 
             # Add comms log
             email_data['approval'] = u'{}'.format(annual_rental_fee.approval.id)
@@ -321,8 +322,15 @@ class AnnualRentalFeeSuccessView(TemplateView):
             serializer.is_valid(raise_exception=True)
             comms = serializer.save()
 
+            can_access_invoice = False
+            if request.user == annual_rental_fee.approval.relevant_applicant or \
+                    annual_rental_fee.approval.applicant in request.user.disturbance_organisations:
+                can_access_invoice = True
+
             context = {
-                'annual_rental_fee': annual_rental_fee,
+                'invoice_reference': annual_rental_fee.invoice_reference,
+                'to_email_address': to_email_addresses,
+                'can_access_invoice': can_access_invoice,
             }
             return render(request, self.template_name, context)
 
@@ -333,8 +341,16 @@ class AnnualRentalFeeSuccessView(TemplateView):
                 request.session.modified = True
 
                 # TODO: Display success screen
+                to_email_addresses = annual_rental_fee.approval.relevant_applicant.email
+                can_access_invoice = False
+                if request.user == annual_rental_fee.approval.relevant_applicant or \
+                        annual_rental_fee.approval.applicant in request.user.disturbance_organisations:
+                    can_access_invoice = True
+
                 context = {
-                    'annual_rental_fee': annual_rental_fee,
+                    'invoice_reference': annual_rental_fee.invoice_reference,
+                    'to_email_address': to_email_addresses,
+                    'can_access_invoice': can_access_invoice,
                 }
                 return render(request, self.template_name, context)
             else:
