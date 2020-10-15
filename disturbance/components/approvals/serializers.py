@@ -3,7 +3,9 @@ from ledger.accounts.models import EmailUser,Address
 from disturbance.components.approvals.models import (
     Approval,
     ApprovalLogEntry,
-    ApprovalUserAction, ApiarySiteOnApproval
+    ApprovalUserAction, 
+    ApiarySiteOnApproval,
+    ApprovalDocument,
 )
 from disturbance.components.approvals.serializers_apiary import ApiarySiteOnApprovalLicenceDocSerializer, \
     ApiarySiteOnApprovalGeometrySerializer
@@ -35,6 +37,34 @@ class ApprovalWrapperSerializer(serializers.ModelSerializer):
             'id',
             'apiary_approval',
             )
+
+
+class ApprovalDocumentHistorySerializer(serializers.ModelSerializer):
+    history_date = serializers.SerializerMethodField()
+    history_document_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ApprovalDocument
+        fields = (
+            'history_date',
+            'history_document_url',
+        )
+
+    def get_history_date(self, obj):
+        date_format_loc = timezone.localtime(
+            obj['uploaded_date']
+        )
+        history_date = date_format_loc.strftime('%d/%m/%Y %H:%M:%S.%f')
+
+        return history_date
+
+    def get_history_document_url(self, obj):
+        doc_id = obj['id']
+        pdf = obj['name']
+        url = '/media/wildlifecompliance/licences/{0}/documents/{1}'.format(
+            doc_id, pdf
+        )
+        return url
 
 
 class ApprovalSerializerForLicenceDoc(serializers.ModelSerializer):

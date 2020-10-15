@@ -245,17 +245,6 @@ export default {
         ApiarySiteTransfer,
     },
     computed: {
-        /*
-        siteTransferApplicationFee: function() {
-            let fee = null;
-            console.log(this.$refs)
-            if (this.$refs.apiary_site_transfer) {
-                fee = this.$refs.apiary_site_transfer.applicationFee;
-                return this.$refs.apiary_site_transfer.applicationFee;
-            }
-            return fee;
-        },
-        */
         num_of_sites_south_west_remain_after_payment: function() {
             let total = this.num_of_sites_remain_south_west + this.num_of_sites_south_west_to_add_as_remainder
             if (this.num_of_sites_south_west_to_add_as_remainder <= 0){
