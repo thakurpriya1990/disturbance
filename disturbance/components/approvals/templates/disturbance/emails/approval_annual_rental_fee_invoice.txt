@@ -1,7 +1,7 @@
 {%  extends 'disturbance/emails/base_email.txt' %}
 
 {%  block content %}
-    An annual rental fee invoice has been issued for your licensed apiary sites:
+    Your annual rental fee has been paid for your licensed apiary sites:
 
     Licence : {{ approval.lodgement_number}}
 
