@@ -96,7 +96,7 @@ def oracle_integration(date, override):
 
 
 class OracleJob(views.APIView):
-    renderer_classes = [JSONRenderer,]
+    renderer_classes = [JSONRenderer]
     def get(self, request, format=None):
         try:
             data = {
