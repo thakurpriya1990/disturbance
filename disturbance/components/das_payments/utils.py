@@ -26,7 +26,7 @@ from decimal import Decimal
 
 import logging
 
-from disturbance.settings import PAYMENT_SYSTEM_ID
+from disturbance.settings import PAYMENT_SYSTEM_ID, DEBUG, PRODUCTION_EMAIL
 
 logger = logging.getLogger('payment_checkout')
 
@@ -537,12 +537,22 @@ def calculate_total_annual_rental_fee(approval, period, sites_charged):
 
     # Make sure total amount cannot be negative
     total_amount = total_amount if total_amount >= 0 else 0
+    total_amount = round_amount_according_to_env(total_amount)
 
     return {
         'total_amount': total_amount,
         'charge_start_date': charge_start_date,
         'charge_end_date': charge_end_date,
     }
+
+
+def round_amount_according_to_env(amount):
+    if not DEBUG and PRODUCTION_EMAIL:
+        amount = round(amount, 2)  # Round to 2 decimal places
+    else:
+        # in Dev/UAT, avoid decimal amount, otherwise payment is declined
+        amount = round(amount)
+    return amount
 
 
 def generate_line_items_for_annual_rental_fee(approval, today_now, period, apiary_sites):

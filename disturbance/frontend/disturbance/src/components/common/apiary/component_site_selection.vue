@@ -1,6 +1,7 @@
 <template lang="html">
     <div>
 
+<!--
         <template v-if="table_and_map_in_a_row">
             <div class="row col-sm-12">
                 <div class="col-sm-6">
@@ -31,6 +32,8 @@
         </template>
 
         <template v-else>
+
+-->
             <div class="row col-sm-12">
                 <ComponentMap
                     ref="component_map"
@@ -38,6 +41,7 @@
                     :key="component_map_key"
                     @featuresDisplayed="updateTableByFeatures"
                     :can_modify="can_modify"
+                    @featureGeometryUpdated="featureGeometryUpdated"
                 />
             </div>
             <div class="row col-sm-12">
@@ -53,7 +57,9 @@
                     </div>
                 </template>
             </div>
+            <!--
         </template>
+            -->
 
     </div>
 </template>

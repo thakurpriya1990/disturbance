@@ -97,10 +97,8 @@ class ApprovalAnnualRentalFeeInvoiceEmail(TemplateEmailBase):
 class ApprovalAnnualRentalFeeAwaitingPaymentConfirmationEmail(TemplateEmailBase):
     #subject = 'Annual rental fee awaiting payment confirmation for your licence has been issued.'
     subject = 'Annual rental fee invoice for your licensed apiary sites.'
-    #html_template = 'disturbance/emails/approval_annual_rental_fee_awaiting_payment_confirmation.html'
-    #txt_template = 'disturbance/emails/approval_annual_rental_fee_awaiting_payment_confirmation.txt'
-    html_template = 'disturbance/emails/approval_annual_rental_fee_invoice.html'
-    txt_template = 'disturbance/emails/approval_annual_rental_fee_invoice.txt'
+    html_template = 'disturbance/emails/approval_annual_rental_fee_awaiting_payment_confirmation.html'
+    txt_template = 'disturbance/emails/approval_annual_rental_fee_awaiting_payment_confirmation.txt'
 
 
 class ContactLicenceHolderEmail(TemplateEmailBase):
@@ -181,7 +179,7 @@ def send_annual_rental_fee_awaiting_payment_confirmation(approval, annual_rental
     return email_data
 
 
-def send_annual_rental_fee_invoice(approval, invoice):
+def send_annual_rental_fee_invoice(approval, invoice, to_email_addresses):
     email = ApprovalAnnualRentalFeeInvoiceEmail()
 
     context = {
@@ -192,7 +190,7 @@ def send_annual_rental_fee_invoice(approval, invoice):
     contents = get_value_of_annual_rental_fee_invoice(approval, invoice)
     attachments.append(('annual_rental_fee_invoice_{}.pdf'.format(invoice.reference), contents, 'application/pdf'))
 
-    to_address = [approval.relevant_applicant_email]
+    to_address = to_email_addresses
     cc = []
     bcc = []
 

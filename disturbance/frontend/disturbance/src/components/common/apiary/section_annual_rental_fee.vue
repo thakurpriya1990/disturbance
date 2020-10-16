@@ -53,7 +53,7 @@
                             <div>
                                 <template v-if="annual_rental_fee.payment_status === 'pending_invoice'">
                                     <a :href="'/payments/awaiting-payment-pdf/' + annual_rental_fee.id" target='_blank'>
-                                        <i style='color:red;' class='fa fa-file-pdf-o'></i> Pending Invoice
+                                        <i style='color:red;' class='fa fa-file-pdf-o'></i> Invoice
                                     </a>
                                     <strong>Status: {{ capitalize(annual_rental_fee.payment_status) }}</strong>
                                     <a :href="'/annual_rental_fee/' + annual_rental_fee.id">Pay</a>
