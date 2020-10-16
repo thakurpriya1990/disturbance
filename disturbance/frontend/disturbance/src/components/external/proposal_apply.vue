@@ -85,11 +85,11 @@
                         </div>
                         <div class="panel-body collapse in" :id="pBody2">
                             <div>
-                                <label for="" class="control-label" >Proposal Type * <a :href="proposal_type_help_url" target="_blank"><i class="fa fa-question-circle" style="color:blue">&nbsp;</i></a></label>
+                                <label for="" class="control-label" >{{ objectTypeLabel }}<a v-if="dasTemplateGroup" :href="proposal_type_help_url" target="_blank"><i class="fa fa-question-circle" style="color:blue">&nbsp;</i></a></label>
                                 <div class="col-sm-12">
                                     <div class="form-group">
                                         <select class="form-control" style="width:40%" v-model="selected_application_id" @change="chainedSelectAppType(selected_application_id)">
-											<option value="" selected disabled>Select proposal type*</option>
+                                            <option value="" selected disabled>{{ objectTypeListLabel }}</option>
                                             <option v-for="application_type in applicationTypesList" :value="application_type.value">
                                                 {{ application_type.text }}
                                             </option>
@@ -253,6 +253,20 @@ export default {
   components: {
   },
   computed: {
+      objectTypeLabel: function() {
+          let returnStr = 'Proposal Type * ';
+          if (this.apiaryTemplateGroup) {
+              returnStr = 'Application Type';
+          }
+          return returnStr;
+      },
+      objectTypeListLabel: function() {
+          let returnStr = 'Select proposal type* ';
+          if (this.apiaryTemplateGroup) {
+              returnStr = 'Select application type';
+          }
+          return returnStr;
+      },
       applicationTypesList: function() {
           console.log("applicationTypesList")
           let returnList = [];

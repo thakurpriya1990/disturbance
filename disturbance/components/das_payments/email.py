@@ -20,11 +20,11 @@ class ApplicationFeeInvoiceApiarySendNotificationEmail(TemplateEmailBase):
     html_template = 'disturbance/emails/payments/apiary/send_application_fee_notification.html'
     txt_template = 'disturbance/emails/payments/apiary/send_application_fee_notification.txt'
 
-
-class ApplicationFeeConfirmationApiarySendNotificationEmail(TemplateEmailBase):
-    subject = 'Your application fee confirmation.'
-    html_template = 'disturbance/emails/payments/apiary/send_application_fee_confirmation_notification.html'
-    txt_template = 'disturbance/emails/payments/apiary/send_application_fee_confirmation_notification.txt'
+# not required
+#class ApplicationFeeConfirmationApiarySendNotificationEmail(TemplateEmailBase):
+#    subject = 'Your application fee confirmation.'
+#    html_template = 'disturbance/emails/payments/apiary/send_application_fee_confirmation_notification.html'
+#    txt_template = 'disturbance/emails/payments/apiary/send_application_fee_confirmation_notification.txt'
 
 
 def send_application_fee_invoice_apiary_email_notification(request, proposal, invoice, recipients, is_test=False):
@@ -56,32 +56,32 @@ def send_application_fee_invoice_apiary_email_notification(request, proposal, in
     else:
         _log_user_email(msg, proposal.submitter, proposal.submitter, sender=sender)
 
-
-def send_application_fee_confirmation_apiary_email_notification(request, application_fee, invoice, recipients, is_test=False):
-    email = ApplicationFeeConfirmationApiarySendNotificationEmail()
-    #url = request.build_absolute_uri(reverse('external-proposal-detail',kwargs={'proposal_pk': proposal.id}))
-
-    proposal = application_fee.proposal
-    context = {
-        'lodgement_number': proposal.lodgement_number,
-        #'url': url,
-    }
-
-    filename = 'confirmation.pdf'
-    doc = create_confirmation_pdf_bytes(filename, invoice, application_fee)
-    #doc = create_invoice_pdf_bytes(filename, invoice, proposal)
-    attachment = (filename, doc, 'application/pdf')
-
-    msg = email.send(recipients, attachments=[attachment], context=context)
-    if is_test:
-        return
-
-    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    _log_proposal_email(msg, proposal, sender=sender)
-    if proposal.applicant:
-        _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
-    else:
-        _log_user_email(msg, proposal.submitter, proposal.submitter, sender=sender)
+# not required
+#def send_application_fee_confirmation_apiary_email_notification(request, application_fee, invoice, recipients, is_test=False):
+#    email = ApplicationFeeConfirmationApiarySendNotificationEmail()
+#    #url = request.build_absolute_uri(reverse('external-proposal-detail',kwargs={'proposal_pk': proposal.id}))
+#
+#    proposal = application_fee.proposal
+#    context = {
+#        'lodgement_number': proposal.lodgement_number,
+#        #'url': url,
+#    }
+#
+#    filename = 'confirmation.pdf'
+#    doc = create_confirmation_pdf_bytes(filename, invoice, application_fee)
+#    #doc = create_invoice_pdf_bytes(filename, invoice, proposal)
+#    attachment = (filename, doc, 'application/pdf')
+#
+#    msg = email.send(recipients, attachments=[attachment], context=context)
+#    if is_test:
+#        return
+#
+#    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+#    _log_proposal_email(msg, proposal, sender=sender)
+#    if proposal.applicant:
+#        _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
+#    else:
+#        _log_user_email(msg, proposal.submitter, proposal.submitter, sender=sender)
 
 
 def _log_proposal_email(email_message, proposal, sender=None):
