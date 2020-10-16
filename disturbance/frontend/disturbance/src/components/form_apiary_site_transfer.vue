@@ -26,17 +26,33 @@
                         <!--div class="row form-control">
                             <label class="inline">Title:</label>
                         </div-->
-                        <div class="col-sm-8">
-                            <label class="emailLabel">Email:</label>
-                            <input
-                                type="text"
-                                class="form-control"
-                                v-model="transfereeEmail"
-                                :readonly="readonly"
-                            />
-                        </div>
+                        <label class="col-sm-6 emailLabel">Enter the email address of the licence holder you want to transfer sites to:</label>
+                        <input
+                            type="text"
+                            class="form-control"
+                            v-model="transfereeEmail"
+                            :readonly="readonly"
+                        />
                         <input type="button" @click="lookupTransferee" value="Find existing licence" class="btn btn-primary">
                     </div>
+                    <div class="form-group">
+                            <div class="col-sm-6">
+                                <div v-if="lookupErrorText">
+                                    Error: {{lookupErrorText}}
+                                </div>
+                                <div v-else-if="apiaryApprovals">
+                                    <div v-for="approval in apiaryApprovals">
+                                        <input type="radio" name="approval_choice" :value="approval.id" v-model="proposal.proposal_apiary.selected_licence"/>
+                                        Licence: {{approval.lodgement_number}}
+                                    </div>
+                                </div>
+                                <div v-else-if="targetApprovalLodgementNumber">
+                                    <div>Transferee Email: {{ transfereeEmailText }}</div>
+                                    <div>Licence: {{targetApprovalLodgementNumber}}</div>
+                                </div>
+                            </div>
+                    </div>
+
                 </div>
                 <div v-else>
                     <div v-if="transfereeOrgName" class="col-sm-8">
@@ -55,7 +71,7 @@
                     </div>
                 </div>
                 <!--/span-->
-                <div class="row col-sm-12">
+                <!--div class="row col-sm-12">
                     <div class="form-group">
                         <div v-if="lookupErrorText">
                             Error: {{lookupErrorText}}
@@ -70,7 +86,7 @@
                             Licence: {{targetApprovalLodgementNumber}}
                         </div>
                     </div>
-                </div>
+                </div-->
 
             </FormSection>
             <FormSection :formCollapse="false" label="Site" Index="site_locations">
@@ -254,6 +270,11 @@
             targetApprovalLodgementNumber: function() {
                 if (this.proposal && this.proposal.proposal_apiary) {
                     return this.proposal.proposal_apiary.target_approval_lodgement_number;
+                }
+            },
+            transfereeEmailText: function() {
+                if (this.proposal && this.proposal.proposal_apiary) {
+                    return this.proposal.proposal_apiary.transferee_email_text;
                 }
             },
             apiary_sections_classname: function() {

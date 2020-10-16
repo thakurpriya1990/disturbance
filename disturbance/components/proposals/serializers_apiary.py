@@ -9,7 +9,7 @@ from rest_framework_gis.serializers import GeoFeatureModelSerializer
 
 from disturbance.components.approvals.serializers_apiary import ApiarySiteOnApprovalGeometrySerializer
 from disturbance.components.main.utils import get_category, get_tenure, get_region_district, \
-    get_feature_in_wa_coastline_smoothed, validate_buffer
+    get_feature_in_wa_coastline_smoothed, validate_buffer, get_template_group
 from disturbance.components.organisations.serializers import OrganisationSerializer
 from disturbance.components.organisations.models import UserDelegation
 from disturbance.components.proposals.serializers_base import (
@@ -520,6 +520,7 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
             'transferee_org_name',
             'transferee_first_name',
             'transferee_last_name',
+            'transferee_email_text', 
         )
 
     def validate(self, attrs):
@@ -548,26 +549,28 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
 
     def get_transferee_name(self, obj):
         name = None
-        if obj.proposal.approval:
-            name = obj.proposal.approval.relevant_applicant_name
+        #if obj.proposal.approval:
+         #   name = obj.proposal.approval.relevant_applicant_name
+        if obj.target_approval:
+            name = obj.target_approval.relevant_applicant_name
         return name
 
     def get_transferee_org_name(self, obj):
         name = None
-        if obj.proposal.approval and obj.proposal.approval.applicant:
-            name = obj.proposal.approval.applicant.name
+        if obj.target_approval and obj.target_approval.applicant:
+            name = obj.target_approval.applicant.name
         return name
 
     def get_transferee_first_name(self, obj):
         name = None
-        if obj.proposal.approval and obj.proposal.approval.proxy_applicant:
-            name = obj.proposal.approval.proxy_applicant.first_name
+        if obj.target_approval and obj.target_approval.proxy_applicant:
+            name = obj.target_approval.proxy_applicant.first_name
         return name
 
     def get_transferee_last_name(self, obj):
         name = None
-        if obj.proposal.approval and obj.proposal.approval.proxy_applicant:
-            name = obj.proposal.approval.proxy_applicant.last_name
+        if obj.target_approval and obj.target_approval.proxy_applicant:
+            name = obj.target_approval.proxy_applicant.last_name
         return name
 
     def get_target_approval_lodgement_number(self, obj):
@@ -1162,12 +1165,15 @@ class ApiaryInternalProposalSerializer(BaseProposalSerializer):
 
     def get_assessor_mode(self,obj):
         # TODO check if the proposal has been accepted or declined
+        #import ipdb; ipdb.set_trace()
         request = self.context['request']
+        template_group = get_template_group(request)#self.context.get('template_group')
         user = request.user._wrapped if hasattr(request.user,'_wrapped') else request.user
+        assessor_can_assess = obj.can_assess(user) if template_group == 'apiary' else False
         return {
             'assessor_mode': True,
             'has_assessor_mode': obj.has_assessor_mode(user),
-            'assessor_can_assess': obj.can_assess(user),
+            'assessor_can_assess': assessor_can_assess, #obj.can_assess(user),
             'assessor_level': 'assessor',
             'assessor_box_view': obj.assessor_comments_view(user)
         }

@@ -215,6 +215,9 @@ export default {
             num_of_sites_remote_to_add_as_remainder: 0,
             num_of_sites_south_west_renewal_to_add_as_remainder: 0,
             num_of_sites_remote_renewal_to_add_as_remainder: 0,
+            // Template group
+            apiaryTemplateGroup: false,
+            dasTemplateGroup: false,
         }
     },
     components: {
@@ -413,16 +416,25 @@ export default {
             if (this.$refs.apiary_site_transfer && this.$refs.apiary_site_transfer.apiary_sites_local) {
                 //console.log(this.$refs.apiary_site_transfer.site_transfer_apiary_sites)
                 formData.append('apiary_sites_local', JSON.stringify(this.$refs.apiary_site_transfer.apiary_sites_local));
+                formData.append('transferee_email_text', JSON.stringify(this.$refs.apiary_site_transfer.transfereeEmail));
             }
 
             vm.$http.post(vm.proposal_form_url, formData).then(
                 res=>{
                     if (confirmation_required){
-                        swal(
-                            'Saved',
-                            'Your proposal has been saved',
-                            'success'
-                        );
+                        if (this.apiaryTemplateGroup) {
+                            swal(
+                                'Saved',
+                                'Your application has been saved',
+                                'success'
+                            );
+                        } else {
+                            swal(
+                                'Saved',
+                                'Your proposal has been saved',
+                                'success'
+                            );
+                        }
                     }
                 },
                 err=>{
@@ -674,10 +686,15 @@ export default {
 
             // remove the confirm prompt when navigating away from window (on button 'Submit' click)
             vm.submitting = true;
-
+            let swalTitle = "Submit Proposal";
+            let swalText = "Are you sure you want to submit this proposal?";
+            if (this.apiaryTemplateGroup) {
+                swalTitle = "Submit Application";
+                swalText = "Are you sure you want to submit this application?";
+            }
             swal({
-                title: "Submit Proposal",
-                text: "Are you sure you want to submit this proposal?",
+                title: swalTitle,
+                text: swalText,
                 type: "question",
                 showCancelButton: true,
                 confirmButtonText: 'Submit'
@@ -724,6 +741,7 @@ export default {
             if (this.$refs.apiary_site_transfer && this.$refs.apiary_site_transfer.apiary_sites_local) {
                 //console.log(this.$refs.apiary_site_transfer.site_transfer_apiary_sites)
                 formData.append('apiary_sites_local', JSON.stringify(this.$refs.apiary_site_transfer.apiary_sites_local));
+                formData.append('transferee_email_text', JSON.stringify(this.$refs.apiary_site_transfer.transfereeEmail));
             }
 
             vm.$http.post(vm.proposal_submit_url, formData).then(
@@ -835,7 +853,21 @@ export default {
                 console.log(err);
             }
         );
+        // retrieve template group
+        this.$http.get('/template_group',{
+            emulateJSON:true
+            }).then(res=>{
+                //this.template_group = res.body.template_group;
+                if (res.body.template_group === 'apiary') {
+                    this.apiaryTemplateGroup = true;
+                } else {
+                    this.dasTemplateGroup = true;
+                }
+        },err=>{
+        console.log(err);
+        });
     },
+
     beforeRouteEnter: function(to, from, next) {
         console.log('in beforeRouteEnter')
         console.log('id: ' + to.params.proposal_id)
