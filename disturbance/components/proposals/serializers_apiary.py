@@ -32,6 +32,7 @@ from disturbance.components.proposals.models import (
     SiteTransferApiarySite,
     ApiaryReferral,
     Referral,
+    ApiarySiteFee,
     ApiarySiteFeeType,
     ApiarySiteFeeRemainder,
     SiteCategory,
@@ -853,6 +854,34 @@ class ProposalApiarySiteTransferSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProposalApiarySiteTransfer
         fields = '__all__'
+
+
+class SiteCategorySerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = SiteCategory
+        fields = '__all__'
+
+
+class ApiarySiteFeeTypeSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = ApiarySiteFeeType
+        fields = '__all__'
+
+
+class ApiarySiteFeeSerializer(serializers.ModelSerializer):
+    site_category = SiteCategorySerializer()
+    apiary_site_fee_type = ApiarySiteFeeTypeSerializer()
+
+    class Meta:
+        model = ApiarySiteFee
+        fields = (
+                'site_category',
+                'apiary_site_fee_type',
+                'amount',
+                'date_of_enforcement',
+                )
 
 
 class ProposalApiaryDocumentSerializer(serializers.ModelSerializer):
