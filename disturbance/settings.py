@@ -12,6 +12,39 @@ SITE_ID = 1
 DEPT_DOMAINS = env('DEPT_DOMAINS', ['dpaw.wa.gov.au', 'dbca.wa.gov.au'])
 SUPERVISOR_STOP_CMD = env('SUPERVISOR_STOP_CMD')
 SYSTEM_MAINTENANCE_WARNING = env('SYSTEM_MAINTENANCE_WARNING', 24) # hours
+DISABLE_EMAIL = env('DISABLE_EMAIL', False)
+SHOW_DEBUG_TOOLBAR = env('SHOW_DEBUG_TOOLBAR', False)
+
+if SHOW_DEBUG_TOOLBAR:
+#    def get_ip():
+#        import subprocess
+#        route = subprocess.Popen(('ip', 'route'), stdout=subprocess.PIPE)
+#        network = subprocess.check_output(
+#            ('grep', '-Po', 'src \K[\d.]+\.'), stdin=route.stdout
+#        ).decode().rstrip()
+#        route.wait()
+#        network_gateway = network + '1'
+#        return network_gateway
+
+    def show_toolbar(request):
+        return True
+
+    MIDDLEWARE_CLASSES += [
+        'debug_toolbar.middleware.DebugToolbarMiddleware',
+    ]
+    INSTALLED_APPS += (
+        'debug_toolbar',
+    )
+    #INTERNAL_IPS = ('127.0.0.1', 'localhost', get_ip())
+    INTERNAL_IPS = ('127.0.0.1', 'localhost')
+
+    # this dict removes check to dtermine if toolbar should display --> works for rks docker container
+    DEBUG_TOOLBAR_CONFIG = {
+        "SHOW_TOOLBAR_CALLBACK" : show_toolbar,
+        'INTERCEPT_REDIRECTS': False,
+    }
+
+STATIC_URL = '/static/'
 
 INSTALLED_APPS += [
     'reversion_compare',
