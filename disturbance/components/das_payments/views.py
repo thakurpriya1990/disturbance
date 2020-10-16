@@ -42,7 +42,7 @@ from disturbance.components.das_payments.utils import (
     get_session_site_transfer_application_invoice,
     set_session_site_transfer_application_invoice,
     delete_session_site_transfer_application_invoice, set_session_annual_rental_fee, get_session_annual_rental_fee,
-    delete_session_annual_rental_fee,
+    delete_session_annual_rental_fee, round_amount_according_to_env,
     # create_bpay_invoice,
     # create_other_invoice,
 )
@@ -74,11 +74,7 @@ class AnnualRentalFeeView(TemplateView):
             for key in line:
                 if key in ('price_incl_tax', 'price_excl_tax') and isinstance(line[key], (str, unicode)):
                     amount_f = float(line[key])  # string to float
-                    if not DEBUG and PRODUCTION_EMAIL:
-                        round_f = round(amount_f, 2)  # Round to 2 decimal places
-                    else:
-                        # in Dev/UAT, avoid decimal amount, otherwise payment is declined
-                        round_f = round(amount_f)
+                    round_f = round_amount_according_to_env(amount_f)
                     decimal_f = Decimal(str(round_f))  # Generate Decimal with 2 decimal places string
                     line[key] = decimal_f
         return lines

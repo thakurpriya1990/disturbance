@@ -13,8 +13,7 @@ from ledger.settings_base import TIME_ZONE
 from disturbance.components.approvals.email import send_annual_rental_fee_awaiting_payment_confirmation
 from disturbance.components.approvals.models import Approval, ApiarySiteOnApproval
 from disturbance.components.das_payments.models import AnnualRentalFee, AnnualRentalFeePeriod, AnnualRentalFeeApiarySite
-from disturbance.components.das_payments.utils import create_other_invoice_for_annual_rental_fee, \
-    generate_line_items_for_annual_rental_fee
+from disturbance.components.das_payments.utils import generate_line_items_for_annual_rental_fee
 from disturbance.components.proposals.models import ApiaryAnnualRentalFeeRunDate, ApiaryAnnualRentalFeePeriodStartDate, \
     ApiarySite
 from disturbance.settings import SITE_STATUS_CURRENT
