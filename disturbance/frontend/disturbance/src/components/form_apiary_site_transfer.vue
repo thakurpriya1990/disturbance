@@ -219,6 +219,7 @@
                 component_site_selection_key: '',
                 apiary_sites_local: [],
                 siteTransferFees: [],
+                num_of_sites_selected: null,
                 //applicationFee: null,
             }
         },
@@ -428,6 +429,14 @@
         methods:{
             apiarySitesUpdated: function(apiarySitesLocal) {
                 this.apiary_sites_local = apiarySitesLocal;
+                // Update this.num_of_sites_selected
+                let temp = 0
+                for (let i=0; i<apiary_sites_local.length; i++){
+                    if (apiary_sites_local[i].checked){
+                        temp += 1
+                    }
+                }
+                this.num_of_sites_selected = temp
             },
             button_text: function(button_text) {
                 this.$emit('button_text', button_text)
