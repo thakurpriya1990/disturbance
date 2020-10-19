@@ -63,7 +63,7 @@
                             First Name: {{ transfereeFirstName }}
                         </div>
                         <div class="col-sm-8">
-                            Last Name: {{ transfereeFirstName }}
+                            Last Name: {{ transfereeLastName }}
                         </div>
                     </div>
                     <div class="col-sm-8">
@@ -428,12 +428,6 @@
         methods:{
             apiarySitesUpdated: function(apiarySitesLocal) {
                 this.apiary_sites_local = apiarySitesLocal;
-                /*
-                this.$nextTick(() => {
-                    this.$emit('site_transfer_application_fee', this.applicationFee);
-                })
-                */
-                //this.setApplicationFee();
             },
             button_text: function(button_text) {
                 this.$emit('button_text', button_text)
