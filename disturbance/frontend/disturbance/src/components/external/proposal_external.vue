@@ -156,15 +156,22 @@
                             <div class="col-sm-4 text-right no-padding">
                                 <input type="button" @click.prevent="save_exit" class="btn btn-primary" value="Save and Exit"/>
                                 <input type="button" @click.prevent="save(true)" class="btn btn-primary" value="Save and Continue"/>
-
-                                <button v-if="isSubmitting" disabled class="btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Submitting</button>
-
-                                <span v-else-if="ok_button_disabled" class="d-inline-block" tabindex="0" data-toggle="tooltip" title="Please select at least one site to issue">
-                                    <button type="button" style="pointer-events: none;" class="btn btn-default" @click="ok" disabled>Ok</button>
-                                </span>
-
-                                <input v-else-if="" disabled type="button" class="btn btn-primary" :value="submit_button_text"/>
-                                <input v-else type="button" @click.prevent="submit" class="btn btn-primary" :value="submit_button_text"/>
+                                <!--div v-if="proposal_type_name==='transfer'">
+                                    <button v-if="isSubmitting" disabled class="btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Submitting</button>
+                                    <span v-else-if="submit_button_disabled" class="d-inline-block" tabindex="0" data-toggle="tooltip" title="Please select at least one site to issue">
+                                        <button type="button" style="pointer-events: none;" class="btn btn-default" @click="submit" disabled>Pay and submit</button>
+                                    </span>
+                                    <input v-else type="button" @click.prevent="submit" class="btn btn-primary" value="Pay and submit"/>
+                                </div>
+                                <div v-else-->
+                                <div v-if="proposal_type_name==='transfer'">
+                                    <input v-if="!isSubmitting" type="button" @click.prevent="submit" class="btn btn-primary" value="Pay and submit"/>
+                                </div>
+                                <div v-else>
+                                    <input v-if="!isSubmitting" type="button" @click.prevent="submit" class="btn btn-primary" :value="submit_button_text"/>
+                                </div>
+                                    <button v-else disabled class="btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Submitting</button>
+                                <!--/div-->
 
                                 <input id="save_and_continue_btn" type="hidden" @click.prevent="save(false)" class="btn btn-primary" value="Save Without Confirmation"/>
                             </div>
@@ -251,14 +258,16 @@ export default {
         ApiarySiteTransfer,
     },
     computed: {
+        /*
         submit_button_disabled: function(){
             console.log('submit button disabled')
             let disabled = true;
-            if (this.$refs.apiary_site_transfer.this.num_of_sites_selected > 0){
+            if (this.$refs.apiary_site_transfer && this.$refs.apiary_site_transfer.num_of_sites_selected > 0){
                 disabled = false;
             }
             return disabled;
         },
+        */
         num_of_sites_south_west_remain_after_payment: function() {
             let total = this.num_of_sites_remain_south_west + this.num_of_sites_south_west_to_add_as_remainder
             if (this.num_of_sites_south_west_to_add_as_remainder <= 0){
@@ -666,6 +675,9 @@ export default {
                 }
                 if(!vm.$refs.apiary_site_transfer.selectedLicence){
                     blank_fields.push(' Transferee licence cannot be blank')
+                }
+                if (!(this.$refs.apiary_site_transfer.num_of_sites_selected > 0)){
+                    blank_fields.push(' You must select at least one site to transfer')
                 }
              }
 

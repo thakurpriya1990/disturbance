@@ -431,8 +431,8 @@
                 this.apiary_sites_local = apiarySitesLocal;
                 // Update this.num_of_sites_selected
                 let temp = 0
-                for (let i=0; i<apiary_sites_local.length; i++){
-                    if (apiary_sites_local[i].checked){
+                for (let i=0; i<this.apiary_sites_local.length; i++){
+                    if (this.apiary_sites_local[i].checked){
                         temp += 1
                     }
                 }
