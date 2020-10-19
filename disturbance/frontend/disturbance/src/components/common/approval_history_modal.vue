@@ -1,7 +1,7 @@
 <template lang="html">
     <div id="historyDetail" v-show='showApprovalHistory'>
 
-        <modal transition="modal fade" title="Approval History" large force>
+        <modal transition="modal fade" :title="dashboardTitle" large force>
             <div class="container-fluid">
 
                 <form class="form-horizontal" name="approvalHistoryForm">
@@ -48,6 +48,8 @@ export default {
         return {
             isModalOpen: false,
             processingDetails: false,
+            apiaryTemplateGroup: false,
+            dasTemplateGroup: false,
 
             //approval_history_id: '0',
             approval_history_id: null,
@@ -108,6 +110,16 @@ export default {
             }
             return this.isModalOpen
         },
+        dashboardTitle: function() {
+            let title = ''
+            if (this.apiaryTemplateGroup) {
+                title = 'Licence History';
+            } else {
+                title = 'Approval History';
+            }
+            return title;
+        },
+
     },
     methods:{
         cancel: function() {
@@ -124,5 +136,21 @@ export default {
             this.$refs.approval_history_table.vmDataTable.ajax.reload();
         }
     },
+    created: function() {
+        // retrieve template group
+        this.$http.get('/template_group',{
+            emulateJSON:true
+            }).then(res=>{
+                //this.template_group = res.body.template_group;
+                if (res.body.template_group === 'apiary') {
+                    this.apiaryTemplateGroup = true;
+                } else {
+                    this.dasTemplateGroup = true;
+                }
+        },err=>{
+        console.log(err);
+        });
+    },
+
 }
 </script>
