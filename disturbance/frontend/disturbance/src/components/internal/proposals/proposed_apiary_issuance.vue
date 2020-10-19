@@ -520,11 +520,14 @@ export default {
                     .then(function(myBlob) {
                         console.log(myBlob);
                         const objectURL = URL.createObjectURL(myBlob);
+                        window.open(objectURL);
+                        /*
                         let link = document.createElement('a');
                         link.href = objectURL;
                         //link.download="file.pdf";
                         link.target = '_blank';
                         link.click();
+                        */
                     });
 
             }
