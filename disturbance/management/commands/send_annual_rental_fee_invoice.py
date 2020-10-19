@@ -16,7 +16,7 @@ from disturbance.components.das_payments.models import AnnualRentalFee, AnnualRe
 from disturbance.components.das_payments.utils import generate_line_items_for_annual_rental_fee
 from disturbance.components.proposals.models import ApiaryAnnualRentalFeeRunDate, ApiaryAnnualRentalFeePeriodStartDate, \
     ApiarySite
-from disturbance.settings import SITE_STATUS_CURRENT
+from disturbance.settings import SITE_STATUS_CURRENT, SITE_STATUS_SUSPENDED
 
 logger = logging.getLogger(__name__)
 
@@ -73,15 +73,21 @@ def get_approvals(annual_rental_fee_period):
 def get_apiary_sites_to_be_charged(approval, annual_rental_fee_period):
     # 1. Retrieve all the annual_rental_fees under this approval and this annual_rental_fee_period
     #       annual_rental_fees = AnnualRentalFee.objects.filter(approval=approval, annual_rental_fee_period=annual_rental_fee_period)
-    # 2. Retrieve all the current apiary_sites under this approval
+    # 2. Retrieve all the current and suspended apiary_sites under this approval
     #       sites_status_current = approval.apiary_sites.filter(status=ApiarySite.STATUS_CURRENT)
     # 3. Retrieve apiary_sites which invoices have been issued for already
     #       annual_rental_fee_apiary_sites = AnnualRentalFeeApiarySite.objects.filter(apiary_site__in=sites_status_current, annual_rental_fee__in=annual_rental_fees)
     #       sites_exclude = ApiarySite.objects.filter(annualrentalfeeapiarysite__in=annual_rental_fee_apiary_sites)
 
+    temp = AnnualRentalFeeApiarySite.objects.filter(
+        annual_rental_fee__in=AnnualRentalFee.objects.filter(
+            approval=approval,
+            annual_rental_fee_period=annual_rental_fee_period
+        )
+    )
     # Combine the queries above
     apiary_sites = ApiarySite.objects.filter(
-        id__in=(ApiarySiteOnApproval.objects.filter(approval=approval, site_status=SITE_STATUS_CURRENT).values_list('apiary_site_id', flat=True))
+        id__in=(ApiarySiteOnApproval.objects.filter(approval=approval, site_status__in=(SITE_STATUS_CURRENT, SITE_STATUS_SUSPENDED,)).values_list('apiary_site_id', flat=True))
     ).exclude(
         # Exclude the apiaries for which the invoices have been issued for this period
         annualrentalfeeapiarysite__in=AnnualRentalFeeApiarySite.objects.filter(

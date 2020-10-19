@@ -2916,6 +2916,13 @@ class ProposalApiary(RevisionedMixin):
                         relation_target.site_category = relation_original.site_category
                         relation_target.save()
                 else:
+                    from disturbance.management.commands.send_annual_rental_fee_invoice import get_annual_rental_fee_period
+                    from disturbance.components.das_payments.models import AnnualRentalFeePeriod
+                    from disturbance.components.das_payments.utils import generate_line_items_for_annual_rental_fee
+                    from disturbance.management.commands.send_annual_rental_fee_invoice import make_serializable
+                    from disturbance.components.das_payments.models import AnnualRentalFee, AnnualRentalFeeApiarySite
+                    from disturbance.components.approvals.email import send_annual_rental_fee_awaiting_payment_confirmation
+
                     count_approved_site = 0
                     sites_received = request.data.get('apiary_sites', [])
 
@@ -2930,21 +2937,15 @@ class ProposalApiary(RevisionedMixin):
                     # Determine the start and end date of the annual rental fee, for which the invoices should be issued
                     today_now_local = datetime.datetime.now(pytz.timezone(TIME_ZONE))
                     today_date_local = today_now_local.date()
-                    from disturbance.management.commands.send_annual_rental_fee_invoice import get_annual_rental_fee_period
                     period_start_date, period_end_date = get_annual_rental_fee_period(today_date_local)
 
                     # Retrieve annual rental fee period object for the period calculated above
                     # This period should not overwrap the existings, otherwise you will need a refund
-                    from disturbance.components.das_payments.models import AnnualRentalFeePeriod
                     annual_rental_fee_period, created = AnnualRentalFeePeriod.objects.get_or_create(period_start_date=period_start_date, period_end_date=period_end_date)
 
-                    from disturbance.components.das_payments.utils import \
-                        generate_line_items_for_annual_rental_fee
                     products, details_dict = generate_line_items_for_annual_rental_fee(approval, today_now_local, (period_start_date, period_end_date), sites_approved)
-                    from disturbance.management.commands.send_annual_rental_fee_invoice import make_serializable
                     products = make_serializable(products)  # Make line items serializable to store in the JSONField
 
-                    from disturbance.components.das_payments.models import AnnualRentalFee
                     annual_rental_fee = AnnualRentalFee.objects.create(
                         approval=approval,
                         annual_rental_fee_period=annual_rental_fee_period,
@@ -2957,7 +2958,6 @@ class ProposalApiary(RevisionedMixin):
                     for site in sites_approved:
                         # Store the apiary sites which the invoice created above has been issued for
                         apiary_site = ApiarySite.objects.get(id=site['id'])
-                        from disturbance.components.das_payments.models import AnnualRentalFeeApiarySite
                         annual_rental_fee_apiary_site = AnnualRentalFeeApiarySite(apiary_site=apiary_site, annual_rental_fee=annual_rental_fee)
                         annual_rental_fee_apiary_site.save()
 
@@ -2966,8 +2966,6 @@ class ProposalApiary(RevisionedMixin):
                         for proposal_apiary_temporary_use in proposal_apiary_temporary_use_qs:
                             temp_use_apiary_site, created = TemporaryUseApiarySite.objects.get_or_create(apiary_site=site, proposal_apiary_temporary_use=proposal_apiary_temporary_use)
 
-                    from disturbance.components.approvals.email import \
-                        send_annual_rental_fee_awaiting_payment_confirmation
                     if not preview:
                         email_data = send_annual_rental_fee_awaiting_payment_confirmation(approval, annual_rental_fee)
                     # TODO: Add comms log

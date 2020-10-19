@@ -26,7 +26,7 @@ from decimal import Decimal
 
 import logging
 
-from disturbance.settings import PAYMENT_SYSTEM_ID, DEBUG, PRODUCTION_EMAIL
+from disturbance.settings import PAYMENT_SYSTEM_ID, DEBUG, PRODUCTION_EMAIL, ANNUAL_RENTAL_FEE_GST_EXEMPT
 
 logger = logging.getLogger('payment_checkout')
 
@@ -579,7 +579,7 @@ def generate_line_items_for_annual_rental_fee(approval, today_now, period, apiar
             ),
             'oracle_code': oracle_code_obj.value,
             'price_incl_tax': details_dict['total_amount'],
-            'price_excl_tax': details_dict['total_amount'],
+            'price_excl_tax': details_dict['total_amount'] if ANNUAL_RENTAL_FEE_GST_EXEMPT else calculate_excl_gst(details_dict['total_amount']),
             'quantity': 1,
         },
     ]
