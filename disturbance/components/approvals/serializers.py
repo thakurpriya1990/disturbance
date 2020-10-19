@@ -1,5 +1,5 @@
 from ledger.accounts.models import EmailUser,Address
-
+from django.utils import timezone
 from disturbance.components.approvals.models import (
     Approval,
     ApprovalLogEntry,
@@ -52,18 +52,14 @@ class ApprovalDocumentHistorySerializer(serializers.ModelSerializer):
 
     def get_history_date(self, obj):
         date_format_loc = timezone.localtime(
-            obj['uploaded_date']
+            obj.uploaded_date
         )
         history_date = date_format_loc.strftime('%d/%m/%Y %H:%M:%S.%f')
 
         return history_date
 
     def get_history_document_url(self, obj):
-        doc_id = obj['id']
-        pdf = obj['name']
-        url = '/media/wildlifecompliance/licences/{0}/documents/{1}'.format(
-            doc_id, pdf
-        )
+        url = obj._file.url
         return url
 
 

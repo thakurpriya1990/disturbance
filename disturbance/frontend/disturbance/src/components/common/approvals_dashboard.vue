@@ -108,7 +108,7 @@
         <ApprovalCancellation ref="approval_cancellation"  @refreshFromResponse="refreshFromResponse"></ApprovalCancellation>
         <ApprovalSuspension ref="approval_suspension"  @refreshFromResponse="refreshFromResponse"></ApprovalSuspension>
         <ApprovalSurrender ref="approval_surrender"  @refreshFromResponse="refreshFromResponse"></ApprovalSurrender>
-
+        <ApprovalHistory ref="approval_history" />
 
     </div>
 </template>
@@ -118,6 +118,7 @@ import Vue from 'vue'
 import ApprovalCancellation from '../internal/approvals/approval_cancellation.vue'
 import ApprovalSuspension from '../internal/approvals/approval_suspension.vue'
 import ApprovalSurrender from '../internal/approvals/approval_surrender.vue'
+import ApprovalHistory from './approval_history_modal.vue';
 import {
     api_endpoints,
     helpers
@@ -145,6 +146,10 @@ export default {
             datatable_id: 'proposal-datatable-'+vm._uid,
             //Profile to check if user has access to process Proposal
             profile: {},
+            approval_history: {
+                isModalOpen: false,
+                approval_history_id: null,
+            },
             // Filters for Proposals
             filterProposalRegion: 'All',
             filterProposalActivity: 'All',
@@ -386,6 +391,11 @@ export default {
 
                                 }
                             }
+                            if (full.apiary_approval) {
+                                links +=  `<a href='#${full.id}' approval-history='${full.id}'>Licence History</a><br/>`;
+                            } else {
+                                links +=  `<a href='#${full.id}' approval-history='${full.id}'>Approval History</a><br/>`;
+                            }
                             return links;
                         },
                         searchable: false,
@@ -457,7 +467,8 @@ export default {
         datatable,
         ApprovalCancellation,
         ApprovalSuspension,
-        ApprovalSurrender
+        ApprovalSurrender,
+        ApprovalHistory
     },
     watch:{
         filterProposalRegion: function(){
@@ -631,6 +642,13 @@ export default {
                 var id = $(this).attr('data-pdf-approval');
                 var media_link = $(this).attr('media-link');
                 vm.viewApprovalPDF(id, media_link);
+            });
+            // Create Licence History Listener.
+            vm.$refs.proposal_datatable.vmDataTable.on('click', 'a[approval-history]', function(e) {
+                e.preventDefault();
+                let approval_id = $(this).attr('approval-history');
+                vm.$refs.approval_history.approval_history_id = approval_id;
+                vm.$refs.approval_history.isModalOpen = true;
             });
 
         },
