@@ -235,7 +235,7 @@ export default {
             // Template group
             apiaryTemplateGroup: false,
             dasTemplateGroup: false,
-            siteTransferApplicationFee: null,
+            siteTransferApplicationFee: "0.00",
         }
     },
     components: {
@@ -447,7 +447,7 @@ export default {
                 formData.append('apiary_sites_local', JSON.stringify(this.$refs.apiary_site_transfer.apiary_sites_local));
             }
             if (this.$refs.apiary_site_transfer && this.$refs.apiary_site_transfer.transfereeEmail){
-                formData.append('transferee_email_text', JSON.stringify(this.$refs.apiary_site_transfer.transfereeEmail));
+                formData.append('transferee_email_text', this.$refs.apiary_site_transfer.transfereeEmail);
             }
 
             vm.$http.post(vm.proposal_form_url, formData).then(

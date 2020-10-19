@@ -63,7 +63,7 @@
                             First Name: {{ transfereeFirstName }}
                         </div>
                         <div class="col-sm-8">
-                            Last Name: {{ transfereeFirstName }}
+                            Last Name: {{ transfereeLastName }}
                         </div>
                     </div>
                     <div class="col-sm-8">
