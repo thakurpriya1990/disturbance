@@ -599,19 +599,12 @@ class ApprovalViewSet(viewsets.ModelViewSet):
     @list_route(methods=['GET', ])
     def approval_history(self, request, *args, **kwargs):
         try:
-            #import ipdb; ipdb.set_trace()
             qs = None
             approval_history_id = request.query_params['approval_history_id']
-
-            #if approval_history_id != '0':
             if approval_history_id:
-                #instance = WildlifeLicence.objects.get(id=licence_history_id)
                 instance = Approval.objects.get(id=approval_history_id)
-                #qs = instance.get_document_history()
                 qs = instance.documents.all().order_by("-uploaded_date")
-
             serializer = ApprovalDocumentHistorySerializer(qs, many=True)
-
             return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())

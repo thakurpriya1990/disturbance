@@ -589,7 +589,6 @@ class Approval(RevisionedMixin):
         self.log_user_action(ApprovalUserAction.ACTION_APPROVAL_PDF_VIEW.format(self.id),request)
         return self
 
-
 class PreviewTempApproval(Approval):
     class Meta:
         app_label = 'disturbance'
