@@ -156,14 +156,6 @@
                             <div class="col-sm-4 text-right no-padding">
                                 <input type="button" @click.prevent="save_exit" class="btn btn-primary" value="Save and Exit"/>
                                 <input type="button" @click.prevent="save(true)" class="btn btn-primary" value="Save and Continue"/>
-                                <!--div v-if="proposal_type_name==='transfer'">
-                                    <button v-if="isSubmitting" disabled class="btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Submitting</button>
-                                    <span v-else-if="submit_button_disabled" class="d-inline-block" tabindex="0" data-toggle="tooltip" title="Please select at least one site to issue">
-                                        <button type="button" style="pointer-events: none;" class="btn btn-default" @click="submit" disabled>Pay and submit</button>
-                                    </span>
-                                    <input v-else type="button" @click.prevent="submit" class="btn btn-primary" value="Pay and submit"/>
-                                </div>
-                                <div v-else-->
                                 <div v-if="proposal_type_name==='transfer'">
                                     <input v-if="!isSubmitting" type="button" @click.prevent="submit" class="btn btn-primary" value="Pay and submit"/>
                                 </div>
@@ -171,7 +163,6 @@
                                     <input v-if="!isSubmitting" type="button" @click.prevent="submit" class="btn btn-primary" :value="submit_button_text"/>
                                 </div>
                                     <button v-else disabled class="btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Submitting</button>
-                                <!--/div-->
 
                                 <input id="save_and_continue_btn" type="hidden" @click.prevent="save(false)" class="btn btn-primary" value="Save Without Confirmation"/>
                             </div>

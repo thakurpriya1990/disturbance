@@ -36,14 +36,16 @@
                         <input type="button" @click="lookupTransferee" value="Find existing licence" class="btn btn-primary">
                     </div>
                     <div class="form-group">
-                            <div class="col-sm-6">
+                            <div class="col-sm-12">
                                 <div v-if="lookupErrorText">
                                     Error: {{lookupErrorText}}
                                 </div>
                                 <div v-else-if="apiaryApprovals">
+                                    <!--label class="col-sm-6 emailLabel">Select the licence you want to transfer to:</label-->
+                                    <label>Select the licence you want to transfer to:</label>
                                     <div v-for="approval in apiaryApprovals">
                                         <input type="radio" name="approval_choice" :value="approval.id" v-model="proposal.proposal_apiary.selected_licence"/>
-                                        Licence: {{approval.lodgement_number}}
+                                        Licence: {{approval.lodgement_number}}  ({{ approval.licence_holder }})
                                     </div>
                                 </div>
                                 <div v-else-if="targetApprovalLodgementNumber">
