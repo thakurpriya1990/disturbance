@@ -249,16 +249,6 @@ export default {
         ApiarySiteTransfer,
     },
     computed: {
-        /*
-        submit_button_disabled: function(){
-            console.log('submit button disabled')
-            let disabled = true;
-            if (this.$refs.apiary_site_transfer && this.$refs.apiary_site_transfer.num_of_sites_selected > 0){
-                disabled = false;
-            }
-            return disabled;
-        },
-        */
         num_of_sites_south_west_remain_after_payment: function() {
             let total = this.num_of_sites_remain_south_west + this.num_of_sites_south_west_to_add_as_remainder
             if (this.num_of_sites_south_west_to_add_as_remainder <= 0){
