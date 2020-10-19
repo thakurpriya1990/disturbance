@@ -16,6 +16,7 @@ from disturbance.components.proposals.models import SiteCategory, ApiarySiteFee,
     ApiaryAnnualRentalFee, \
     ApiaryAnnualRentalFeeRunDate, ApiaryAnnualRentalFeePeriodStartDate
 from disturbance.utils import create_helppage_object
+from disturbance.helpers import is_apiary_admin, is_disturbance_admin, is_das_apiary_admin
 # Register your models here.
 
 @admin.register(models.ProposalType)
@@ -117,6 +118,37 @@ class ApiaryApproverGroupAdmin(admin.ModelAdmin):
 @admin.register(models.ProposalStandardRequirement)
 class ProposalStandardRequirementAdmin(admin.ModelAdmin):
     list_display = ['code','text','system','obsolete']
+    #readonly_fields=('system',)
+    #list_filter=('system',)
+
+    def get_queryset(self, request):
+        #import ipdb;ipdb.set_trace()
+        # filter based on membership of Apiary Admin or Disturbance Admin
+        qs = super(ProposalStandardRequirementAdmin, self).get_queryset(request)
+        if request.user.is_superuser or is_das_apiary_admin(request):
+            return qs
+        group_list = []
+        if is_apiary_admin(request):
+            group_list.append('apiary')
+        if is_disturbance_admin(request):
+            group_list.append('disturbance')
+        return qs.filter(system__in=group_list)
+
+    def formfield_for_choice_field(self, db_field, request, **kwargs):
+        if db_field.name == 'system':
+            if (request.user.is_superuser or is_das_apiary_admin(request) or 
+                    (is_apiary_admin(request) and is_disturbance_admin(request))
+                    ):
+                # user will see both choices
+                kwargs["choices"] = (
+                        ('apiary', 'Apiary'),
+                        ('disturbance', 'Disturbance'),
+                        )
+            elif is_apiary_admin(request):
+                kwargs["choices"] = (('apiary', 'Apiary'),)
+            elif is_disturbance_admin(request):
+                kwargs["choices"] = (('disturbance', 'Disturbance'),)
+        return super(ProposalStandardRequirementAdmin, self).formfield_for_choice_field(db_field, request, **kwargs)
 
 
 @admin.register(models.HelpPage)
