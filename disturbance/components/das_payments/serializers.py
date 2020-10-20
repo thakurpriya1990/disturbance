@@ -49,7 +49,7 @@ class AnnualRentalFeeSerializer(serializers.ModelSerializer):
             return invoice.payment_status
         except Invoice.DoesNotExist:
             if obj.lines and obj.lines[0]:  # The default value of the JSONField is [''], that's why we have to check if lines[0] is not empty
-                return 'pending_invoice'
+                return 'unpaid'
             else:
                 raise
 
