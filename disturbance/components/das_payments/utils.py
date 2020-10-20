@@ -455,46 +455,46 @@ def oracle_integration(date,override):
     oracle_codes = oracle_parser(date, system, 'Disturbance Approval System', override=override)
 
 
-def create_other_invoice_for_annual_rental_fee(approval, today_now, period, apiary_sites, request=None):
-    """
-    This function is called to issue annual rental fee invoices
-    """
-    with transaction.atomic():
-        try:
-            logger.info('Creating OTHER invoice for the licence: {}'.format(approval.lodgement_number))
-            order, details_dict = create_invoice(approval, today_now, period, apiary_sites, payment_method='other')
-            invoice = Invoice.objects.get(order_number=order.number)
-
-            return invoice, details_dict
-
-        except Exception, e:
-            logger.error('Failed to create OTHER invoice for sanction outcome: {}'.format(approval))
-            logger.error('{}'.format(e))
-
-
-def create_invoice(approval, today_now, period, apiary_sites, payment_method='bpay'):
-    """
-    This will create and invoice and order from a basket bypassing the session
-    and payment bpoint code constraints.
-    """
-    from ledger.checkout.utils import createCustomBasket
-    from ledger.payments.invoice.utils import CreateInvoiceBasket
-
-    products, details_dict = generate_line_items_for_annual_rental_fee(approval, today_now, period, apiary_sites)
-    user = approval.relevant_applicant if isinstance(approval.relevant_applicant, EmailUser) else approval.current_proposal.submitter
-    # user = approval.relevant_applicant
-    # for contact in user.contacts.all():
-    #     temp = contact  # contact is the OrganisationContact obj
-
-    invoice_text = 'Annual Rental Fee Invoice'
-
-    basket = createCustomBasket(products, user, PAYMENT_SYSTEM_ID)
-    order = CreateInvoiceBasket(
-        payment_method=payment_method,
-        system=PAYMENT_SYSTEM_ID
-    ).create_invoice_and_order(basket, 0, None, None, user=user, invoice_text=invoice_text)
-
-    return order, details_dict
+#def create_other_invoice_for_annual_rental_fee(approval, today_now, period, apiary_sites, request=None):
+#    """
+#    This function is called to issue annual rental fee invoices
+#    """
+#    with transaction.atomic():
+#        try:
+#            logger.info('Creating OTHER invoice for the licence: {}'.format(approval.lodgement_number))
+#            order, details_dict = create_invoice(approval, today_now, period, apiary_sites, payment_method='other')
+#            invoice = Invoice.objects.get(order_number=order.number)
+#
+#            return invoice, details_dict
+#
+#        except Exception, e:
+#            logger.error('Failed to create OTHER invoice for sanction outcome: {}'.format(approval))
+#            logger.error('{}'.format(e))
+#
+#
+#def create_invoice(approval, today_now, period, apiary_sites, payment_method='bpay'):
+#    """
+#    This will create and invoice and order from a basket bypassing the session
+#    and payment bpoint code constraints.
+#    """
+#    from ledger.checkout.utils import createCustomBasket
+#    from ledger.payments.invoice.utils import CreateInvoiceBasket
+#
+#    line_items, details_dict, invoice_period = generate_line_items_for_annual_rental_fee(approval, today_now, period, apiary_sites)
+#    user = approval.relevant_applicant if isinstance(approval.relevant_applicant, EmailUser) else approval.current_proposal.submitter
+#    # user = approval.relevant_applicant
+#    # for contact in user.contacts.all():
+#    #     temp = contact  # contact is the OrganisationContact obj
+#
+#    invoice_text = 'Annual Rental Fee Invoice'
+#
+#    basket = createCustomBasket(line_items, user, PAYMENT_SYSTEM_ID)
+#    order = CreateInvoiceBasket(
+#        payment_method=payment_method,
+#        system=PAYMENT_SYSTEM_ID
+#    ).create_invoice_and_order(basket, 0, None, None, user=user, invoice_text=invoice_text)
+#
+#    return order, details_dict
 
 
 def calculate_total_annual_rental_fee(approval, period, sites_charged):
@@ -511,39 +511,60 @@ def calculate_total_annual_rental_fee(approval, period, sites_charged):
             # No fee charged
             return 0
 
-    fee_applied = ApiaryAnnualRentalFee.get_fee_at_target_date(period[0])
+    # fee_applied = ApiaryAnnualRentalFee.get_fee_at_target_date(period[0])
     # sites_charged = approval.apiary_sites.filter(status=ApiarySite.STATUS_CURRENT)
-    num_of_days_in_period = period[1] - (period[0] - timedelta(days=1))  # period[0] is the start date.  (period[0] - timedelta(days=1)) means the previous date of the start date
+    # num_of_days_in_period = period[1] - (period[0] - timedelta(days=1))  # period[0] is the start date.  (period[0] - timedelta(days=1)) means the previous date of the start date
 
-    # Calculate charge start date
-    charge_start_date = approval.no_annual_rental_fee_until + timedelta(days=1) \
+    # Calculate charge start date taking into account the licence's start date
+    invoice_period_start_date = approval.no_annual_rental_fee_until + timedelta(days=1) \
         if approval.no_annual_rental_fee_until and period[0] < (approval.no_annual_rental_fee_until + timedelta(days=1)) \
         else period[0]
-    charge_start_date = charge_start_date if approval.start_date < charge_start_date else approval.start_date
+    invoice_period_start_date = invoice_period_start_date if approval.start_date < invoice_period_start_date else approval.start_date
 
-    # Calculate charge end date
-    charge_end_date = period[1] if period[1] <= approval.expiry_date else approval.expiry_date
+    # Calculate charge end date taking into account the licence's end date
+    invoice_period_end_date = period[1] if period[1] <= approval.expiry_date else approval.expiry_date
 
-    # Calculate the number of days to be charged
-    num_of_days_charged = charge_end_date - (charge_start_date - timedelta(days=1))
+    apiary_sites_charged = {}
+    for my_site in sites_charged:
+        apiary_site = ApiarySite.objects.get(id=my_site['id'])
+        last_annual_rental_fee = AnnualRentalFee.objects.filter(approval=approval, annualrentalfeeapiarysite__apiary_site=apiary_site).order_by('-invoice_period_end_date').first()
+        if last_annual_rental_fee:
+            # There is at least one payment for this site
+            if last_annual_rental_fee.invoice_period_end_date < invoice_period_end_date:
+                # Partially paid somehow
+                # num_of_days_charged = charge_end_date - last_annual_rental_fee.invoice_period_end_date
+                charge_start_date_for_this_site = last_annual_rental_fee.invoice_period_end_date + timedelta(days=1)
+                charge_end_date_for_this_site = invoice_period_end_date
+            else:
+                # Already paid for this period for this apiary site
+                continue
+        else:
+            # Calculate the number of days to be charged
+            # num_of_days_charged = charge_end_date - (charge_start_date - timedelta(days=1))
+            charge_start_date_for_this_site = invoice_period_start_date
+            charge_end_date_for_this_site = invoice_period_end_date
 
-    # Calculate the total amount
-    try:
-        num_of_sites = sites_charged.count()  # Expect queryset
-    except:
-        num_of_sites = len(sites_charged)  # Expect list
+        # amount_for_this_site = fee_applied.amount * num_of_days_charged.days / num_of_days_in_period.days
 
-    total_amount = fee_applied.amount * num_of_sites * num_of_days_charged.days / num_of_days_in_period.days
+        charge_period = (charge_start_date_for_this_site, charge_end_date_for_this_site)
+        if charge_period in apiary_sites_charged:
+            apiary_sites_charged[charge_period].append(apiary_site)
+        else:
+            apiary_sites_charged[charge_period] = [apiary_site]
 
-    # Make sure total amount cannot be negative
-    total_amount = total_amount if total_amount >= 0 else 0
-    total_amount = round_amount_according_to_env(total_amount)
+    return apiary_sites_charged, (invoice_period_start_date, invoice_period_end_date)
 
-    return {
-        'total_amount': total_amount,
-        'charge_start_date': charge_start_date,
-        'charge_end_date': charge_end_date,
-    }
+
+#    # Make sure total amount cannot be negative
+#    total_amount = total_amount if total_amount >= 0 else 0
+#    total_amount = round_amount_according_to_env(total_amount)
+#
+#    return {
+#        # 'total_amount': total_amount,
+#        'apiary_sites_charged': apiary_sites_charged,
+#        'charge_start_date': charge_start_date,
+#        'charge_end_date': charge_end_date,
+#    }
 
 
 def round_amount_according_to_env(amount):
@@ -556,31 +577,65 @@ def round_amount_according_to_env(amount):
 
 
 def generate_line_items_for_annual_rental_fee(approval, today_now, period, apiary_sites):
-    """ Create the ledger lines - line item for the annual rental fee sent to payment system """
-
-    details_dict = calculate_total_annual_rental_fee(approval, period, apiary_sites)
-
-    try:
-        sites_str = ', '.join(['site: ' + str(site.id) for site in apiary_sites])
-    except:
-        sites_str = ', '.join(['site: ' + str(site['id']) for site in apiary_sites])
-
     oracle_code_obj = ApiaryGlobalSettings.objects.get(key=ApiaryGlobalSettings.KEY_ORACLE_CODE_APIARY_SITE_ANNUAL_RENTAL_FEE)
+    num_of_days_in_period = period[1] - (period[0] - timedelta(days=1))
 
-    line_items = [
-        {
-            'ledger_description': 'Annual Rental Fee: {}, Issued: {} {}, Period: {} to {}, Site(s): {}'.format(
+    # Retrieve summarised payment data per charge_period
+    apiary_sites_charged, invoice_period = calculate_total_annual_rental_fee(approval, period, apiary_sites)
+
+    line_items = []
+
+    if apiary_sites_charged:
+        for charge_period, apiary_sites in apiary_sites_charged.items():
+            if not len(apiary_sites):
+                continue
+
+            fee_applied = ApiaryAnnualRentalFee.get_fee_at_target_date(charge_period[0])  # TODO fee might be changed during the period
+            num_of_days_charged = charge_period[1] - (charge_period[0] - timedelta(days=1))
+            amount_per_site = fee_applied.amount * num_of_days_charged.days / num_of_days_in_period.days
+            total_amount = amount_per_site * len(apiary_sites)
+            total_amount = total_amount if total_amount >= 0 else 0
+            total_amount = round_amount_according_to_env(total_amount)
+
+            line_item = {}
+            line_item['ledger_description'] = 'Annual Rental Fee: {}, Issued: {} {}, Period: {} to {}, Site(s): {}'.format(
                 approval.lodgement_number,
                 today_now.strftime("%d/%m/%Y"),
                 today_now.strftime("%I:%M %p"),
-                details_dict['charge_start_date'].strftime('%d/%m/%Y'),
-                details_dict['charge_end_date'].strftime('%d/%m/%Y'),
-                sites_str
-            ),
-            'oracle_code': oracle_code_obj.value,
-            'price_incl_tax': details_dict['total_amount'],
-            'price_excl_tax': details_dict['total_amount'] if ANNUAL_RENTAL_FEE_GST_EXEMPT else calculate_excl_gst(details_dict['total_amount']),
-            'quantity': 1,
-        },
-    ]
-    return line_items, details_dict
+                charge_period[0].strftime("%d/%m/%Y"),
+                charge_period[1].strftime("%d/%m/%Y"),
+                ', '.join(['site: ' + str(site.id) for site in apiary_sites])
+            )
+            line_item['oracle_code'] = oracle_code_obj.value
+            line_item['price_incl_tax'] = total_amount
+            line_item['price_excl_tax'] = total_amount if ANNUAL_RENTAL_FEE_GST_EXEMPT else calculate_excl_gst(total_amount)
+            line_item['quantity'] = 1
+
+            line_items.append(line_item)
+
+    return line_items, apiary_sites_charged, invoice_period
+
+#    try:
+#        sites_str = ', '.join(['site: ' + str(site.id) for site in apiary_sites])
+#    except:
+#        sites_str = ', '.join(['site: ' + str(site['id']) for site in apiary_sites])
+#
+#    oracle_code_obj = ApiaryGlobalSettings.objects.get(key=ApiaryGlobalSettings.KEY_ORACLE_CODE_APIARY_SITE_ANNUAL_RENTAL_FEE)
+#
+#    line_items = [
+#        {
+#            'ledger_description': 'Annual Rental Fee: {}, Issued: {} {}, Period: {} to {}, Site(s): {}'.format(
+#                approval.lodgement_number,
+#                today_now.strftime("%d/%m/%Y"),
+#                today_now.strftime("%I:%M %p"),
+#                apiary_sites_charged['charge_start_date'].strftime('%d/%m/%Y'),
+#                apiary_sites_charged['charge_end_date'].strftime('%d/%m/%Y'),
+#                sites_str
+#            ),
+#            'oracle_code': oracle_code_obj.value,
+#            'price_incl_tax': apiary_sites_charged['total_amount'],
+#            'price_excl_tax': apiary_sites_charged['total_amount'] if ANNUAL_RENTAL_FEE_GST_EXEMPT else calculate_excl_gst(apiary_sites_charged['total_amount']),
+#            'quantity': 1,
+#        },
+#    ]
+#    return line_items, apiary_sites_charged
