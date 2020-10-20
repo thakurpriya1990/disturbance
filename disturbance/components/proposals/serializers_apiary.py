@@ -1361,6 +1361,7 @@ class UserApiaryApprovalSerializer(serializers.ModelSerializer):
                     'type': 'individual',
                     'id':individual_approval.id,
                     'lodgement_number':individual_approval.lodgement_number,
+                    'licence_holder': individual_approval.relevant_applicant_name,
                     })
                 individual_approvals = True
         #Organisation applications
@@ -1379,6 +1380,7 @@ class UserApiaryApprovalSerializer(serializers.ModelSerializer):
                         'type': 'organisation', 
                         'id':organisation_approval.id,
                         'lodgement_number':organisation_approval.lodgement_number,
+                        'licence_holder': organisation_approval.relevant_applicant_name,
                         })
                     organisation_approvals = True
         #approvals.append(organisation_approvals)
