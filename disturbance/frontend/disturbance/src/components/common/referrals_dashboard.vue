@@ -3,7 +3,7 @@
         <div class="col-sm-12">
             <div class="panel panel-default">
                 <div class="panel-heading">
-                    <h3 class="panel-title">Proposals/Applications referred to me
+                    <h3 class="panel-title">{{ dashboardTitle }}
                         <a :href="'#'+pBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="pBody">
                             <span class="glyphicon glyphicon-chevron-up pull-right "></span>
                         </a>
@@ -411,9 +411,9 @@ export default {
         dashboardTitle: function() {
             let title = ''
             if (this.apiaryTemplateGroup) {
-                title = 'Applications';
+                title = 'Applications referred to me';
             } else {
-                title = 'Proposals';
+                title = 'Proposals referred to me';
             }
             return title;
         },
