@@ -53,6 +53,7 @@ from disturbance.components.proposals.models import (
     ProposalApiary,
     ApiaryReferral,
     SiteTransferApiarySite,
+    ApiarySiteFee,
 )
 from disturbance.components.proposals.serializers import (
     SendReferralSerializer,
@@ -95,7 +96,9 @@ from disturbance.components.proposals.serializers_apiary import (
     FullApiaryReferralSerializer,
     ProposalHistorySerializer,
     UserApiaryApprovalSerializer,
-    ApiarySiteOnProposalProcessedGeometrySerializer, ApiarySiteOnProposalDraftGeometrySerializer,
+    ApiarySiteOnProposalProcessedGeometrySerializer, 
+    ApiarySiteOnProposalDraftGeometrySerializer,
+    ApiarySiteFeeSerializer,
 )
 from disturbance.components.approvals.models import Approval, ApiarySiteOnApproval
 from disturbance.components.approvals.serializers import ApprovalLogEntrySerializer
@@ -2593,4 +2596,27 @@ class ApiaryReferralGroupViewSet(viewsets.ModelViewSet):
             return ApiaryReferralGroup.objects.all()
         else:
             return ApiaryReferralGroup.objects.none()
+
+
+class ApiarySiteFeeViewSet(viewsets.ModelViewSet):
+    queryset = ApiarySiteFee.objects.none()
+    serializer_class = ApiarySiteFeeSerializer
+
+    def get_queryset(self):
+        #user = self.request.user
+        #import ipdb; ipdb.set_trace()
+        if is_internal(self.request): #user.is_authenticated():
+            return ApiarySiteFee.objects.all()
+        else:
+            return ApiarySiteFee.objects.none()
+
+    @list_route(methods=['GET',])
+    def get_site_transfer_fees(self, request, *args, **kwargs):
+        #import ipdb; ipdb.set_trace()
+        south_west = ApiarySiteFee.objects.filter(apiary_site_fee_type__name='transfer', site_category__name='south_west').order_by('-date_of_enforcement')[0]
+        remote = ApiarySiteFee.objects.filter(apiary_site_fee_type__name='transfer', site_category__name='remote').order_by('-date_of_enforcement')[0]
+        return_list = [south_west, remote]
+        serializer = self.get_serializer(return_list, many=True)
+        return Response(serializer.data)
+
 

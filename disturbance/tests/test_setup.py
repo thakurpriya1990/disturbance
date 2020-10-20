@@ -9,7 +9,7 @@ from disturbance.management.default_data_manager import DefaultDataManager
 from ledger.accounts.models import EmailUser, EmailUserManager
 import random
 import string
-import json, io
+import json, io, os, sys
 from rest_framework.test import (
         APIRequestFactory, 
         force_authenticate, 
@@ -271,7 +271,9 @@ class APITestSetup(APITestCase):
 
 # write apiary_sites data to file
 def json_filewriter_example():
-    with io.open('filename', 'w', encoding="utf8") as json_file:
+    # open(os.path.join(sys.path[0], input_file), 'r')
+    input_file = 'all_the_features_1.json'
+    with io.open(os.path.join(sys.path[0], input_file), 'w', encoding="utf8") as json_file:
         data = json.dumps(d, ensure_ascii=False, encoding="utf8")
         json_file.write(unicode(data))
 
