@@ -56,4 +56,5 @@ module.exports = {
     apiary_referral_groups:"/api/apiary_referral_groups.json",
     proposal_apiary:"/api/proposal_apiary.json",
     apiary_referrals:"/api/apiary_referrals.json",
+    apiary_site_transfer_fees:"/api/apiary_site_fees/get_site_transfer_fees.json",
 }

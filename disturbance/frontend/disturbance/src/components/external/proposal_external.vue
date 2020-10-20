@@ -69,6 +69,7 @@
                     ref="apiary_site_transfer"
                     :is_external="true"
                     @button_text="button_text"
+                    @site_transfer_application_fee="setSiteTransferApplicationFee"
                 />
             </div>
 
@@ -119,6 +120,17 @@
                                 </div>
 
                             </template>
+                            <template v-if="is_proposal_type_transfer">
+                                <div class="col-sm-3 text-right">
+                                </div>
+                                <div class="col-sm-3 text-right">
+                                    <div class="text-center payment-description-title"> </div>
+                                    <div> </div>
+                                    <div> </div>
+                                </div>
+
+                            </template>
+
                             <template v-if="is_proposal_type_renewal">
                                 <div class="col-sm-3 text-right">
                                     <div class="text-center payment-description-title">New sites</div>
@@ -134,7 +146,12 @@
 
                             <div class="col-sm-2 text-center">
                                 <div class="payment-description-title">Application fee</div>
-                                <div class="payment-description-total-fee">${{ sum_of_total_fees }}</div>
+                                <div v-if="is_proposal_type_transfer">
+                                    <div class="payment-description-total-fee">${{ siteTransferApplicationFee }}</div>
+                                </div>
+                                <div v-else>
+                                    <div class="payment-description-total-fee">${{ sum_of_total_fees }}</div>
+                                </div>
                             </div>
                             <div class="col-sm-4 text-right no-padding">
                                 <input type="button" @click.prevent="save_exit" class="btn btn-primary" value="Save and Exit"/>
@@ -218,6 +235,7 @@ export default {
             // Template group
             apiaryTemplateGroup: false,
             dasTemplateGroup: false,
+            siteTransferApplicationFee: "0.00",
         }
     },
     components: {
@@ -304,6 +322,12 @@ export default {
             }
             return false
         },
+        is_proposal_type_transfer: function(){
+            if (this.proposal_type_name === 'transfer'){
+                return true
+            }
+            return false
+        },
         proposal_type_name: function() {
             if (this.proposal.application_type === 'Apiary'){
                 if (this.proposal.proposal_type.toLowerCase() === 'renewal'){
@@ -311,6 +335,8 @@ export default {
                 } else {
                     return 'new'
                 }
+            } else if (this.proposal.application_type === 'Site Transfer'){
+                return 'transfer'
             } else {
                 return '---'
             }
@@ -327,6 +353,9 @@ export default {
         }
     },
     methods: {
+        setSiteTransferApplicationFee: function(fee) {
+            this.siteTransferApplicationFee = fee;
+        },
         update_num_of_sites_south_west_to_add_as_remainder: function(value){
             this.num_of_sites_south_west_to_add_as_remainder = value
         },
@@ -416,7 +445,9 @@ export default {
             if (this.$refs.apiary_site_transfer && this.$refs.apiary_site_transfer.apiary_sites_local) {
                 //console.log(this.$refs.apiary_site_transfer.site_transfer_apiary_sites)
                 formData.append('apiary_sites_local', JSON.stringify(this.$refs.apiary_site_transfer.apiary_sites_local));
-                formData.append('transferee_email_text', JSON.stringify(this.$refs.apiary_site_transfer.transfereeEmail));
+            }
+            if (this.$refs.apiary_site_transfer && this.$refs.apiary_site_transfer.transfereeEmail){
+                formData.append('transferee_email_text', this.$refs.apiary_site_transfer.transfereeEmail);
             }
 
             vm.$http.post(vm.proposal_form_url, formData).then(
@@ -741,8 +772,17 @@ export default {
             if (this.$refs.apiary_site_transfer && this.$refs.apiary_site_transfer.apiary_sites_local) {
                 //console.log(this.$refs.apiary_site_transfer.site_transfer_apiary_sites)
                 formData.append('apiary_sites_local', JSON.stringify(this.$refs.apiary_site_transfer.apiary_sites_local));
+            }
+            if (this.$refs.apiary_site_transfer && this.$refs.apiary_site_transfer.transfereeEmail){
                 formData.append('transferee_email_text', JSON.stringify(this.$refs.apiary_site_transfer.transfereeEmail));
             }
+            /*
+            if (this.$refs.apiary_site_transfer && this.$refs.apiary_site_transfer.apiary_sites_local) {
+                //console.log(this.$refs.apiary_site_transfer.site_transfer_apiary_sites)
+                formData.append('apiary_sites_local', JSON.stringify(this.$refs.apiary_site_transfer.apiary_sites_local));
+                formData.append('transferee_email_text', JSON.stringify(this.$refs.apiary_site_transfer.transfereeEmail));
+            }
+            */
 
             vm.$http.post(vm.proposal_submit_url, formData).then(
                 res=>{

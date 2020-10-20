@@ -49,6 +49,7 @@ router.register(r'activity_matrix', main_api.ActivityMatrixViewSet)
 router.register(r'application_types', main_api.ApplicationTypeViewSet)
 router.register(r'apiary_referral_groups', proposal_api.ApiaryReferralGroupViewSet)
 router.register(r'apiary_referrals',proposal_api.ApiaryReferralViewSet)
+router.register(r'apiary_site_fees',proposal_api.ApiarySiteFeeViewSet)
 #router.register(r'payment',payment_api.PaymentViewSet)
 
 

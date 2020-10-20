@@ -3,7 +3,7 @@
         <div v-if="is_external" class="col-md-3">
             <div>
                 <h3>Application: {{ proposal.lodgement_number }}</h3>
-                <h4>Application Type: {{proposal.proposal_type }}</h4>
+                <h4>Application Type: {{proposal.application_type }}</h4>
                 <h4>Status: {{proposal.customer_status }}</h4>
             </div>
         </div>
@@ -47,8 +47,8 @@
                                     </div>
                                 </div>
                                 <div v-else-if="targetApprovalLodgementNumber">
-                                    <div>Transferee Email: {{ transfereeEmailText }}</div>
-                                    <div>Licence: {{targetApprovalLodgementNumber}}</div>
+                                    <div><label>Transferee Email:</label> {{ transfereeEmailText }}</div>
+                                    <div><label>Licence:</label> {{targetApprovalLodgementNumber}}</div>
                                 </div>
                             </div>
                     </div>
@@ -63,7 +63,7 @@
                             First Name: {{ transfereeFirstName }}
                         </div>
                         <div class="col-sm-8">
-                            Last Name: {{ transfereeFirstName }}
+                            Last Name: {{ transfereeLastName }}
                         </div>
                     </div>
                     <div class="col-sm-8">
@@ -221,6 +221,8 @@
                 //selectedLicence: null,
                 component_site_selection_key: '',
                 apiary_sites_local: [],
+                siteTransferFees: [],
+                //applicationFee: null,
             }
         },
         components: {
@@ -230,7 +232,54 @@
             FormSection,
             ApiaryChecklist,
         },
+        watch: {
+            applicationFee: function() {
+                this.$nextTick(() => {
+                    this.$emit('site_transfer_application_fee', this.applicationFee);
+                });
+            },
+        },
         computed:{
+            remoteSiteTransferFee: function() {
+                let remoteFee = null;
+                if (this.siteTransferFees && this.siteTransferFees.length) {
+                    for (let fee of this.siteTransferFees) {
+                        if (fee.site_category.name === 'remote') {
+                            remoteFee = fee.amount;
+                        }
+                    }
+                }
+                return remoteFee
+            },
+            southWestSiteTransferFee: function() {
+                let southWestFee = null;
+                if (this.siteTransferFees && this.siteTransferFees.length) {
+                    for (let fee of this.siteTransferFees) {
+                        if (fee.site_category.name === 'south_west') {
+                            southWestFee = fee.amount;
+                        }
+                    }
+                }
+                return southWestFee;
+            },
+            applicationFee: function() {
+                let totalFee = 0;
+                if (this.apiary_sites_local && this.apiary_sites_local.length && this.southWestSiteTransferFee && this.remoteSiteTransferFee) {
+                    for (let site of this.apiary_sites_local) {
+                        if (site.checked && site.properties.site_category === 'remote') {
+                            //totalFee += parseFloat(this.remoteSiteTransferFee);
+                            totalFee += parseFloat(this.remoteSiteTransferFee);
+                        } else if (site.checked && site.properties.site_category === 'south_west') {
+                            //totalFee += parseFloat(this.southWestSiteTransferFee);
+                            totalFee += parseFloat(this.southWestSiteTransferFee);
+                        }
+                    }
+                }
+                //console.log(totalFee)
+                //console.log(typeof(totalFee))
+                return parseFloat(totalFee).toFixed(2);
+            },
+
             getUnansweredChecklistQuestions: function() {
                 let UnansweredChecklistQuestions = false;
 
@@ -435,12 +484,25 @@
                     }
                 }
             }
+            Vue.http.get(api_endpoints.apiary_site_transfer_fees)
+                .then(res => {
+                    for (let fee of res.body) {
+                        this.siteTransferFees.push(fee)
+                    }
+            },
+            err => {
+              console.log(err);
+            });
+            /*
+            this.$nextTick(() => {
+                this.$emit('site_transfer_application_fee', this.applicationFee);
+            })
+            */
 
             //vm.form = document.forms.new_proposal;
             //window.addEventListener('beforeunload', vm.leaving);
             //window.addEventListener('onblur', vm.leaving);
-        }
-
+        },
     }
 </script>
 

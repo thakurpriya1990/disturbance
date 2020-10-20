@@ -248,8 +248,11 @@ export default {
         },
         fetchRequirements(){
             let vm = this;
-            
-            vm.$http.get(api_endpoints.proposal_standard_requirements).then((response) => {
+            let url = api_endpoints.proposal_standard_requirements;
+            if (this.proposal.proposal_apiary) {
+                url = api_endpoints.apiary_standard_requirements;
+            }
+            vm.$http.get(url).then((response) => {
                 vm.requirements = response.body
             },(error) => {
                 console.log(error);

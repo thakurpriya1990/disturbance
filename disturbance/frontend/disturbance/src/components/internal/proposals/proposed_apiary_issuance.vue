@@ -519,14 +519,12 @@ export default {
                     .then(response => response.blob())
                     .then(function(myBlob) {
                         console.log(myBlob);
-                        //const blob = new Blob([response.body],{type: 'image/pdf'});
-                        //const blob = new Blob([response.body],{type: 'application/pdf'});
                         const objectURL = URL.createObjectURL(myBlob);
                         let link = document.createElement('a');
                         link.href = objectURL;
-                        link.download="file.pdf";
+                        //link.download="file.pdf";
+                        link.target = '_blank';
                         link.click();
-                        //vm.issuingApproval = false;
                     });
 
             }
