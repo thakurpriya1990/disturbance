@@ -238,9 +238,9 @@ class ApiaryAnnualRentalFeeRunDateAdmin(admin.ModelAdmin):
     pass
 
 
-@admin.register(ApiaryAnnualRentalFeePeriodStartDate)
-class ApiaryAnnualRentalFeePeriodStartDateAdmin(admin.ModelAdmin):
-    pass
+# @admin.register(ApiaryAnnualRentalFeePeriodStartDate)
+# class ApiaryAnnualRentalFeePeriodStartDateAdmin(admin.ModelAdmin):
+#     pass
 
 # class SiteApplicationFeeInline(admin.TabularInline):
 #     model = SiteApplicationFee

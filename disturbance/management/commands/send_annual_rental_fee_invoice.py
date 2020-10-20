@@ -16,7 +16,7 @@ from disturbance.components.das_payments.models import AnnualRentalFee, AnnualRe
 from disturbance.components.das_payments.utils import generate_line_items_for_annual_rental_fee
 from disturbance.components.proposals.models import ApiaryAnnualRentalFeeRunDate, ApiaryAnnualRentalFeePeriodStartDate, \
     ApiarySite
-from disturbance.settings import SITE_STATUS_CURRENT
+from disturbance.settings import SITE_STATUS_CURRENT, SITE_STATUS_SUSPENDED
 
 logger = logging.getLogger(__name__)
 
@@ -70,40 +70,34 @@ def get_approvals(annual_rental_fee_period):
     return approval_qs
 
 
-def get_apiary_sites_to_be_charged(approval, annual_rental_fee_period):
+# def get_apiary_sites_to_be_charged(approval, annual_rental_fee_period):
+#     apiary_sites = ApiarySite.objects.filter(
+#         id__in=(ApiarySiteOnApproval.objects.filter(approval=approval, site_status__in=(SITE_STATUS_CURRENT, SITE_STATUS_SUSPENDED,)).values_list('apiary_site_id', flat=True))
+#     )
+#     return apiary_sites
+
     # 1. Retrieve all the annual_rental_fees under this approval and this annual_rental_fee_period
     #       annual_rental_fees = AnnualRentalFee.objects.filter(approval=approval, annual_rental_fee_period=annual_rental_fee_period)
-    # 2. Retrieve all the current apiary_sites under this approval
+    # 2. Retrieve all the current and suspended apiary_sites under this approval
     #       sites_status_current = approval.apiary_sites.filter(status=ApiarySite.STATUS_CURRENT)
     # 3. Retrieve apiary_sites which invoices have been issued for already
     #       annual_rental_fee_apiary_sites = AnnualRentalFeeApiarySite.objects.filter(apiary_site__in=sites_status_current, annual_rental_fee__in=annual_rental_fees)
     #       sites_exclude = ApiarySite.objects.filter(annualrentalfeeapiarysite__in=annual_rental_fee_apiary_sites)
 
     # Combine the queries above
-    apiary_sites = ApiarySite.objects.filter(
-        id__in=(ApiarySiteOnApproval.objects.filter(approval=approval, site_status=SITE_STATUS_CURRENT).values_list('apiary_site_id', flat=True))
-    ).exclude(
-        # Exclude the apiaries for which the invoices have been issued for this period
-        annualrentalfeeapiarysite__in=AnnualRentalFeeApiarySite.objects.filter(
-            annual_rental_fee__in=AnnualRentalFee.objects.filter(
-                approval=approval,
-                annual_rental_fee_period=annual_rental_fee_period
-            )
-        )
-    )
-#    apiary_sites = approval.apiary_sites.filter(
-#        # ApiarySite must be the 'current' status
-#        status=ApiarySite.STATUS_CURRENT
+#    apiary_sites = ApiarySite.objects.filter(
+#        id__in=(ApiarySiteOnApproval.objects.filter(approval=approval, site_status__in=(SITE_STATUS_CURRENT, SITE_STATUS_SUSPENDED,)).values_list('apiary_site_id', flat=True))
 #    ).exclude(
 #        # Exclude the apiaries for which the invoices have been issued for this period
 #        annualrentalfeeapiarysite__in=AnnualRentalFeeApiarySite.objects.filter(
 #            annual_rental_fee__in=AnnualRentalFee.objects.filter(
 #                approval=approval,
-#                annual_rental_fee_period=annual_rental_fee_period
+#                # annual_rental_fee_period=annual_rental_fee_period
+#                invoice_period_end_date__gte=annual_rental_fee_period.period_end_date
 #            )
 #        )
 #    )
-    return apiary_sites
+#    return apiary_sites
 
 
 class Command(BaseCommand):
@@ -127,21 +121,30 @@ class Command(BaseCommand):
             for approval in approval_qs:
                 try:
                     with transaction.atomic():
-                        apiary_sites_to_be_charged = get_apiary_sites_to_be_charged(approval, annual_rental_fee_period)
+                        # apiary_sites_to_be_charged = get_apiary_sites_to_be_charged(approval, annual_rental_fee_period)
+                        apiary_sites_to_be_charged = ApiarySite.objects.filter(
+                            id__in=(ApiarySiteOnApproval.objects.filter(approval=approval, site_status__in=(
+                                SITE_STATUS_CURRENT, SITE_STATUS_SUSPENDED,)).values_list('apiary_site_id', flat=True))
+                        )
 
                         if apiary_sites_to_be_charged.count() > 0:
                             # invoice, details_dict = create_other_invoice_for_annual_rental_fee(approval, today_now_local, (period_start_date, period_end_date), apiary_sites_to_be_charged)
-                            products, details_dict = generate_line_items_for_annual_rental_fee(approval, today_now_local, (period_start_date, period_end_date), apiary_sites_to_be_charged)
+                            line_items, apiary_sites_charged, invoice_period = generate_line_items_for_annual_rental_fee(
+                                approval,
+                                today_now_local,
+                                (annual_rental_fee_period.period_start_date, annual_rental_fee_period.period_end_date),
+                                apiary_sites_to_be_charged
+                            )
 
-                            products = make_serializable(products)  # Make line items serializable to store in the JSONField
+                            line_items = make_serializable(line_items)  # Make line items serializable to store in the JSONField
 
                             annual_rental_fee = AnnualRentalFee.objects.create(
                                 approval=approval,
                                 annual_rental_fee_period=annual_rental_fee_period,
                                 # invoice_reference=invoice.reference,  #  We don't create an ledger invoice, but just store the lines
-                                invoice_period_start_date=details_dict['charge_start_date'],
-                                invoice_period_end_date=details_dict['charge_end_date'],
-                                lines=products,  # This is used when generating the invoice at payment time
+                                invoice_period_start_date=invoice_period[0],
+                                invoice_period_end_date=invoice_period[1],
+                                lines=line_items,  # This is used when generating the invoice at payment time
                             )
 
                             # Store the apiary sites which the invoice created above has been issued for
