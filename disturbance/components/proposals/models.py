@@ -3366,6 +3366,34 @@ class ApiaryAnnualRentalFee(RevisionedMixin):
         fee_applied = ApiaryAnnualRentalFee.objects.filter(date_from__lte=target_date).order_by('-date_from').first()
         return fee_applied
 
+    @staticmethod
+    def get_fees_by_period(start_date, end_date):
+        fee_first = ApiaryAnnualRentalFee.objects.filter(date_from__lte=start_date)
+        fees_rest = ApiaryAnnualRentalFee.objects.filter(date_from__gt=start_date, date_from__lte=end_date).order_by('date_from')
+        if not fee_first:
+            raise ValidationError("No annual rental fee amounts found.  Please configure at least one annual rental fee amount at the admin page.")
+        else:
+            fee_first = fee_first.latest('date_from')
+
+        temp_end_date = end_date if not fees_rest else fees_rest[0].date_from - datetime.timedelta(days=1)
+        fees = [{
+            'amount_per_year': fee_first.amount,
+            'date_start': start_date,
+            'date_end': temp_end_date,
+            'num_of_days': temp_end_date - (start_date - datetime.timedelta(days=1))
+        }]
+        for idx, annual_rental_fee in enumerate(fees_rest):
+            temp_end_date = end_date if idx == len(fees_rest) - 1 else fees_rest[idx + 1].date_from - datetime.timedelta( days=1)
+            fee = {
+                'amount_per_year': annual_rental_fee.amount,
+                'date_start': annual_rental_fee.date_from,
+                'date_end': temp_end_date,
+                'num_of_days': temp_end_date - (annual_rental_fee.date_from - datetime.timedelta(days=1))
+            }
+            fees.append(fee)
+
+        return fees
+
 
 class ApiaryAnnualRentalFeePeriodStartDate(RevisionedMixin):
     """
