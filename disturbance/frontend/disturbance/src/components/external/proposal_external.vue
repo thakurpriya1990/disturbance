@@ -156,9 +156,13 @@
                             <div class="col-sm-4 text-right no-padding">
                                 <input type="button" @click.prevent="save_exit" class="btn btn-primary" value="Save and Exit"/>
                                 <input type="button" @click.prevent="save(true)" class="btn btn-primary" value="Save and Continue"/>
-
-                                <input v-if="!isSubmitting" type="button" @click.prevent="submit" class="btn btn-primary" :value="submit_button_text"/>
-                                <button v-else disabled class="btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Submitting</button>
+                                <div v-if="proposal_type_name==='transfer'">
+                                    <input v-if="!isSubmitting" type="button" @click.prevent="submit" class="btn btn-primary" value="Pay and submit"/>
+                                </div>
+                                <div v-else>
+                                    <input v-if="!isSubmitting" type="button" @click.prevent="submit" class="btn btn-primary" :value="submit_button_text"/>
+                                </div>
+                                    <button v-else disabled class="btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Submitting</button>
 
                                 <input id="save_and_continue_btn" type="hidden" @click.prevent="save(false)" class="btn btn-primary" value="Save Without Confirmation"/>
                             </div>
@@ -652,6 +656,9 @@ export default {
                 }
                 if(!vm.$refs.apiary_site_transfer.selectedLicence){
                     blank_fields.push(' Transferee licence cannot be blank')
+                }
+                if (!(this.$refs.apiary_site_transfer.num_of_sites_selected > 0)){
+                    blank_fields.push(' You must select at least one site to transfer')
                 }
              }
 
