@@ -598,7 +598,7 @@ def generate_line_items_for_annual_rental_fee(approval, today_now, period, apiar
 
             amount_per_site = 0
             for fee_for_site in fees_applied:
-                amount_per_site += fee_for_site.get('amount') * fee_for_site.get('num_of_days') / num_of_days_in_period.days
+                amount_per_site += fee_for_site.get('amount_per_year') * fee_for_site.get('num_of_days').days / num_of_days_in_period.days
 
             total_amount = amount_per_site * len(apiary_sites)
             total_amount = total_amount if total_amount >= 0 else 0
