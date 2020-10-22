@@ -1,65 +1,29 @@
 <template lang="html">
     <div>
 
-<!--
-        <template v-if="table_and_map_in_a_row">
-            <div class="row col-sm-12">
-                <div class="col-sm-6">
-                    <datatable
-                        ref="table_apiary_site"
-                        :id="table_id"
-                        :dtOptions="dtOptions"
-                        :dtHeaders="dtHeaders"
-                    />
-                    <template v-if="show_view_all_features_button">
-                        <div class="button_row">
-                            <span class="view_all_button" @click="displayAllFeatures">View All On Map</span>
-                        </div>
-                    </template>
+        <div class="row col-sm-12">
+            <ComponentMap
+                ref="component_map"
+                :apiary_site_geojson_array="apiary_site_geojson_array"
+                :key="component_map_key"
+                @featuresDisplayed="updateTableByFeatures"
+                :can_modify="can_modify"
+                @featureGeometryUpdated="featureGeometryUpdated"
+            />
+        </div>
+        <div class="row col-sm-12">
+            <datatable
+                ref="table_apiary_site"
+                :id="table_id"
+                :dtOptions="dtOptions"
+                :dtHeaders="dtHeaders"
+            />
+            <template v-if="show_view_all_features_button">
+                <div class="button_row">
+                    <span class="view_all_button" @click="displayAllFeatures">View All On Map</span>
                 </div>
-
-                <div class="col-sm-6">
-                    <ComponentMap
-                        ref="component_map"
-                        :apiary_site_geojson_array="apiary_site_geojson_array"
-                        :key="component_map_key"
-                        @featuresDisplayed="updateTableByFeatures"
-                        :can_modify="can_modify"
-                        @featureGeometryUpdated="featureGeometryUpdated"
-                    />
-                </div>
-            </div>
-        </template>
-
-        <template v-else>
-
--->
-            <div class="row col-sm-12">
-                <ComponentMap
-                    ref="component_map"
-                    :apiary_site_geojson_array="apiary_site_geojson_array"
-                    :key="component_map_key"
-                    @featuresDisplayed="updateTableByFeatures"
-                    :can_modify="can_modify"
-                    @featureGeometryUpdated="featureGeometryUpdated"
-                />
-            </div>
-            <div class="row col-sm-12">
-                <datatable
-                    ref="table_apiary_site"
-                    :id="table_id"
-                    :dtOptions="dtOptions"
-                    :dtHeaders="dtHeaders"
-                />
-                <template v-if="show_view_all_features_button">
-                    <div class="button_row">
-                        <span class="view_all_button" @click="displayAllFeatures">View All On Map</span>
-                    </div>
-                </template>
-            </div>
-            <!--
-        </template>
-            -->
+            </template>
+        </div>
 
     </div>
 </template>
@@ -69,7 +33,7 @@
     import datatable from '@vue-utils/datatable.vue'
     import uuid from 'uuid'
     import ComponentMap from '@/components/common/apiary/component_map.vue'
-    import SiteColours from '@/components/common/apiary/site_colours.js'
+    import { getStatusForColour, SiteColours } from '@/components/common/apiary/site_colours.js'
 
     export default {
         props:{
@@ -220,11 +184,20 @@
                             // Site
                             visible: vm.show_col_site,
                             mRender: function (data, type, apiary_site) {
-                                let fillColour = SiteColours[apiary_site.properties.status].fill
-                                let strokeColour = SiteColours[apiary_site.properties.status].stroke
-                                return '<svg height="20" width="20">' +
-                                            '<circle cx="10" cy="10" r="6" stroke="' + strokeColour + '" stroke-width="2" fill="' + fillColour + '" />' +
-                                       '</svg> site: ' + apiary_site.id
+                                let status_for_colour = getStatusForColour(apiary_site)
+                                let fillColour = SiteColours[status_for_colour].fill
+                                let strokeColour = SiteColours[status_for_colour].stroke
+
+                                if (status_for_colour === 'denied'){
+                                    return '<svg height="20" width="20">' +
+                                        '<line x1="4" y1="4" x2="16" y2="16" stroke="' + strokeColour + '" + stroke-width="2" />' + 
+                                        '<line x1="4" y1="16" x2="16" y2="4" stroke="' + strokeColour + '" + stroke-width="2" />' + 
+                                           '</svg> site: ' + apiary_site.id
+                                } else {
+                                    return '<svg height="20" width="20">' +
+                                                '<circle cx="10" cy="10" r="6" stroke="' + strokeColour + '" stroke-width="2" fill="' + fillColour + '" />' +
+                                           '</svg> site: ' + apiary_site.id
+                                }
                             }
                         },
                         {
@@ -361,11 +334,14 @@
                 this.constructApiarySitesTable(apiary_sites_filtered)
             },
             ensureCheckedStatus: function() {
+                console.log('in ensureCheckedStatus')
                 if (this.apiary_sites.length > 0){
                     for(let i=0; i<this.apiary_sites.length; i++){
                         if (!this.apiary_sites[i].hasOwnProperty('checked')){
+                            console.log(this.apiary_sites[i])
                             this.apiary_sites[i].checked = this.default_checkbox_checked
                         }
+                        console.log(this.apiary_sites[i])
                     }
                 }
             },
