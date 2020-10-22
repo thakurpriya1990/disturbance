@@ -225,7 +225,8 @@
                             // Status
                             visible: vm.show_col_status,
                             mRender: function (data, type, apiary_site){
-                                return apiary_site.properties.status
+                                let display_name = vm.getDisplayNameFromStatus(apiary_site.properties.status)
+                                return display_name
                             }
                         },
                         {
@@ -315,6 +316,40 @@
 
         },
         methods: {
+            getDisplayNameFromStatus: function(status_name){
+                switch(status_name){
+                    case 'draft':
+                        return 'Draft'
+                        break
+                    case 'pending':
+                        return 'Pending'
+                        break
+                    case 'approved':
+                        return 'Approved'
+                        break
+                    case 'denied':
+                        return 'Denied'
+                        break
+                    case 'current':
+                        return 'Current'
+                        break
+                    case 'not_to_be_reissued':
+                        return 'Not to be re-issued'
+                        break
+                    case 'suspended':
+                        return 'Suspended'
+                        break
+                    case 'transferred':
+                        return 'Transferred'
+                        break
+                    case 'vacant':
+                        return 'Vacant'
+                        break
+                    default:
+                        return status_name
+                        break
+                }
+            },
             featureGeometryUpdated: function(feature){
                 this.$emit('featureGeometryUpdated', feature)
             },
