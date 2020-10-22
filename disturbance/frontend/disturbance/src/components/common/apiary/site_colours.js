@@ -11,7 +11,7 @@ export const SiteColours = {
     },
     'pending': {
         'fill': '#0070FF',
-        'stroke': '#00000',
+        'stroke': '#000000',
     },
     'current': {
         'fill': '#00ff00', 
@@ -59,18 +59,31 @@ export const SiteColours = {
 export default SiteColours
 export let existingSiteRadius = 5
 export let drawingSiteRadius = 7
-export function getStatusForColour(feature){
-                let status = feature.get("status");
-                let is_vacant = feature.get('is_vacant')
-                let making_payment = feature.get('making_payment')
+export function getStatusForColour(feature_or_apiary_site){
+    let status = ''
+    let is_vacant = false
+    let making_payment = false
 
-                if (is_vacant){
-                    status = 'vacant'
-                } else if (making_payment){
-                    status = 'making_payment'
-                }
-                return status
-            }
+    if (feature_or_apiary_site.hasOwnProperty('ol_uid')){
+        // feature_or_apiary_site is Feature object
+        status = feature_or_apiary_site.get("status");
+        is_vacant = feature_or_apiary_site.get('is_vacant')
+        making_payment = feature_or_apiary_site.get('making_payment')
+    } else {
+        // feature_or_apiary_site is apiary_site object
+        status = feature_or_apiary_site.properties.status
+        is_vacant = feature_or_apiary_site.properties.is_vacant
+        making_payment = feature_or_apiary_site.properties.making_payment
+    }
+
+    if (is_vacant){
+        status = 'vacant'
+    } else if (making_payment){
+        status = 'making_payment'
+    }
+
+    return status
+}
 export function getApiaryFeatureStyle(status, selected=false, stroke_width_when_selected=2){
     let additional_width = selected ? stroke_width_when_selected : 0
     switch(status){
