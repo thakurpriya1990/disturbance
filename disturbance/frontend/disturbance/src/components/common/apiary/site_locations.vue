@@ -1106,7 +1106,11 @@
                 hoverInteraction.on('select', function(evt){
                     if(evt.selected.length > 0){
                         // Mouse hover in
-                        if(evt.selected[0].get('is_vacant') === true){
+                        console.log('in hoverInteraction')
+                        console.log(evt.selected[0])
+                        if(evt.selected[0].get('is_vacant') === true && 
+                            evt.selected[0].get('making_payment') === false &&
+                            evt.selected[0].get('status') != 'pending'){
                             // When mouse hover on the 'vacant' apiary site, temporarily store it 
                             // so that it can be added to the new apiary site application when user clicking on it.
                             vm.vacant_site_being_selected = evt.selected[0]
