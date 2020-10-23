@@ -9,6 +9,7 @@
                 @featuresDisplayed="updateTableByFeatures"
                 :can_modify="can_modify"
                 @featureGeometryUpdated="featureGeometryUpdated"
+                @popupClosed="popupClosed"
             />
         </div>
         <div class="row col-sm-12">
@@ -131,6 +132,7 @@
                 table_id: uuid(),
                 apiary_site_geojson_array: [],  // This is passed to the ComponentMap as props
                 default_checkbox_checked: false,  // If checked property isn't set as a apiary_site's property, this default value is used
+                popup_opened_by_link: false,
                 dtHeaders: [
                     'Id',
                     '',
@@ -321,6 +323,9 @@
 
         },
         methods: {
+            popupClosed: function(){
+                this.not_close_popup_by_mouseleave = false
+            },
             getDisplayNameFromStatus: function(status_name){
                 switch(status_name){
                     case 'draft':
@@ -517,13 +522,18 @@
             },
             mouseEnter: function(e){
                 let vm = this;
-                let apiary_site_id = e.currentTarget.getAttribute("data-apiary-site-id");
-                if (apiary_site_id){
-                    this.$refs.component_map.showPopupById(apiary_site_id)
+                if (!vm.not_close_popup_by_mouseleave){
+                    let apiary_site_id = e.currentTarget.getAttribute("data-apiary-site-id");
+                    if (apiary_site_id){
+                        vm.$refs.component_map.showPopupById(apiary_site_id)
+                    }
                 }
             },
             mouseLeave: function(e){
-                this.$refs.component_map.closePopup()
+                let vm = this;
+                if (!vm.not_close_popup_by_mouseleave){
+                    vm.$refs.component_map.closePopup()
+                }
             },
             toggleAvailability: function(e) {
                 let vm = this;
@@ -550,6 +560,8 @@
                 );
             },
             zoomOnApiarySite: function(e) {
+                this.not_close_popup_by_mouseleave = true
+
                 let apiary_site_id = e.target.getAttribute("data-view-on-map");
                 this.$refs.component_map.zoomToApiarySiteById(apiary_site_id)
                 e.stopPropagation()

@@ -112,9 +112,9 @@
         },
         methods: {
             closePopup: function(){
+                console.log('in closePopup')
                 this.overlay.setPosition(undefined)
-                //closer.blur()
-                //return false
+                this.$emit('popupClosed')
             },
             forceToRefreshMap: function() {
                 let vm = this
@@ -182,7 +182,7 @@
                 })
 
                 closer.onclick = function() {
-                    vm.overlay.setPosition(undefined)
+                    vm.closePopup()
                     closer.blur()
                     return false
                 }
