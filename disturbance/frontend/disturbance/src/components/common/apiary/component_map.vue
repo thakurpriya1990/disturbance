@@ -112,7 +112,6 @@
         },
         methods: {
             closePopup: function(){
-                console.log('in closePopup')
                 this.overlay.setPosition(undefined)
                 this.$emit('popupClosed')
             },

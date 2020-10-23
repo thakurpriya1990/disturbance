@@ -179,7 +179,8 @@ def get_vacant_apiary_site():
     # ApiarySite with is_vacant==True and making_payment==False
     q = Q(making_payment=True)  # Making payment is True from CC screen to success screen
     q |= Q(site_status=SITE_STATUS_PENDING)  # Once payment success, site_status gets PENDING
-    qs_vacant_site = ApiarySite.objects.filter(is_vacant=True).exclude(apiarysiteonproposal__in=ApiarySiteOnProposal.objects.filter(q)).distinct()
+    # qs_vacant_site = ApiarySite.objects.filter(is_vacant=True).exclude(apiarysiteonproposal__in=ApiarySiteOnProposal.objects.filter(q)).distinct()
+    qs_vacant_site = ApiarySite.objects.filter(is_vacant=True).distinct()
     return qs_vacant_site
 
 
@@ -189,7 +190,8 @@ def get_qs_vacant_site():
 
     qs_vacant_site = get_vacant_apiary_site()
 
-    apiary_site_proposal_ids = qs_vacant_site.all().values('proposal_link_for_vacant__id')
+    # apiary_site_proposal_ids = qs_vacant_site.all().values('proposal_link_for_vacant__id')
+    apiary_site_proposal_ids = qs_vacant_site.all().values('latest_proposal_link__id')  # <== Always latest_proposal_link should have the latest site_status, shouldn't it?
     qs_vacant_site_proposal = ApiarySiteOnProposal.objects.filter(id__in=apiary_site_proposal_ids)
 
     apiary_site_approval_ids = qs_vacant_site.all().values('approval_link_for_vacant__id')
