@@ -111,6 +111,10 @@
 
         },
         methods: {
+            closePopup: function(){
+                this.overlay.setPosition(undefined)
+                this.$emit('popupClosed')
+            },
             forceToRefreshMap: function() {
                 let vm = this
                 setTimeout(function(){
@@ -177,7 +181,7 @@
                 })
 
                 closer.onclick = function() {
-                    vm.overlay.setPosition(undefined)
+                    vm.closePopup()
                     closer.blur()
                     return false
                 }
@@ -235,6 +239,10 @@
                     });
                     vm.map.addInteraction(modifyTool);
                 }
+            },
+            showPopupById: function(apiary_site_id){
+                let feature = this.apiarySitesQuerySource.getFeatureById(apiary_site_id)
+                this.showPopup(feature)
             },
             showPopup: function(feature){
                 let geometry = feature.getGeometry();

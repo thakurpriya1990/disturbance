@@ -9,6 +9,7 @@
                 @featuresDisplayed="updateTableByFeatures"
                 :can_modify="can_modify"
                 @featureGeometryUpdated="featureGeometryUpdated"
+                @popupClosed="popupClosed"
             />
         </div>
         <div class="row col-sm-12">
@@ -131,6 +132,7 @@
                 table_id: uuid(),
                 apiary_site_geojson_array: [],  // This is passed to the ComponentMap as props
                 default_checkbox_checked: false,  // If checked property isn't set as a apiary_site's property, this default value is used
+                popup_opened_by_link: false,
                 dtHeaders: [
                     'Id',
                     '',
@@ -156,6 +158,9 @@
                     },
                     responsive: true,
                     processing: true,
+                    createdRow: function(row, data, index){
+                        $(row).attr('data-apiary-site-id', data.id)
+                    },
                     columns: [
                         {
                             // Id (database id)
@@ -187,17 +192,19 @@
                                 let status_for_colour = getStatusForColour(apiary_site)
                                 let fillColour = SiteColours[status_for_colour].fill
                                 let strokeColour = SiteColours[status_for_colour].stroke
+                                let sub_str = ''
 
                                 if (status_for_colour === 'denied'){
-                                    return '<svg height="20" width="20">' +
+                                    sub_str = '<svg height="20" width="20">' +
                                         '<line x1="4" y1="4" x2="16" y2="16" stroke="' + strokeColour + '" + stroke-width="2" />' + 
                                         '<line x1="4" y1="16" x2="16" y2="4" stroke="' + strokeColour + '" + stroke-width="2" />' + 
                                            '</svg> site: ' + apiary_site.id
                                 } else {
-                                    return '<svg height="20" width="20">' +
+                                    sub_str = '<svg height="20" width="20">' +
                                                 '<circle cx="10" cy="10" r="6" stroke="' + strokeColour + '" stroke-width="2" fill="' + fillColour + '" />' +
                                            '</svg> site: ' + apiary_site.id
                                 }
+                                return '<div data-site="' + apiary_site.id + '">' + sub_str + '</div>'
                             }
                         },
                         {
@@ -316,6 +323,9 @@
 
         },
         methods: {
+            popupClosed: function(){
+                this.not_close_popup_by_mouseleave = false
+            },
             getDisplayNameFromStatus: function(status_name){
                 switch(status_name){
                     case 'draft':
@@ -369,14 +379,11 @@
                 this.constructApiarySitesTable(apiary_sites_filtered)
             },
             ensureCheckedStatus: function() {
-                console.log('in ensureCheckedStatus')
                 if (this.apiary_sites.length > 0){
                     for(let i=0; i<this.apiary_sites.length; i++){
                         if (!this.apiary_sites[i].hasOwnProperty('checked')){
-                            console.log(this.apiary_sites[i])
                             this.apiary_sites[i].checked = this.default_checkbox_checked
                         }
-                        console.log(this.apiary_sites[i])
                     }
                 }
             },
@@ -426,6 +433,9 @@
                 $("#" + this.table_id).on('click', 'input[type="checkbox"]', this.checkboxClicked)
                 $("#" + this.table_id).on('click', 'a[data-make-vacant]', this.makeVacantClicked)
                 $("#" + this.table_id).on('click', 'a[contact_licence_holder]', this.contactLicenceHolder)
+
+                $("#" + this.table_id).on('mouseenter', "tr", this.mouseEnter)
+                $("#" + this.table_id).on('mouseleave', "tr", this.mouseLeave)
             },
             updateApiarySite: function(site_updated) {
                 // Update internal apiary_site data
@@ -510,6 +520,21 @@
                     }
                 );
             },
+            mouseEnter: function(e){
+                let vm = this;
+                if (!vm.not_close_popup_by_mouseleave){
+                    let apiary_site_id = e.currentTarget.getAttribute("data-apiary-site-id");
+                    if (apiary_site_id){
+                        vm.$refs.component_map.showPopupById(apiary_site_id)
+                    }
+                }
+            },
+            mouseLeave: function(e){
+                let vm = this;
+                if (!vm.not_close_popup_by_mouseleave){
+                    vm.$refs.component_map.closePopup()
+                }
+            },
             toggleAvailability: function(e) {
                 let vm = this;
                 let apiary_site_id = e.target.getAttribute("data-toggle-availability");
@@ -535,6 +560,8 @@
                 );
             },
             zoomOnApiarySite: function(e) {
+                this.not_close_popup_by_mouseleave = true
+
                 let apiary_site_id = e.target.getAttribute("data-view-on-map");
                 this.$refs.component_map.zoomToApiarySiteById(apiary_site_id)
                 e.stopPropagation()
