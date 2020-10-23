@@ -591,8 +591,15 @@ def generate_line_items_for_annual_rental_fee(approval, today_now, period, apiar
                 continue
 
             fee_applied = ApiaryAnnualRentalFee.get_fee_at_target_date(charge_period[0])  # TODO fee might be changed during the period
-            num_of_days_charged = charge_period[1] - (charge_period[0] - timedelta(days=1))
-            amount_per_site = fee_applied.amount * num_of_days_charged.days / num_of_days_in_period.days
+            fees_applied = ApiaryAnnualRentalFee.get_fees_by_period(charge_period[0], charge_period[1])
+
+            # num_of_days_charged = charge_period[1] - (charge_period[0] - timedelta(days=1))
+            # amount_per_site = fee_applied.amount * num_of_days_charged.days / num_of_days_in_period.days
+
+            amount_per_site = 0
+            for fee_for_site in fees_applied:
+                amount_per_site += fee_for_site.get('amount_per_year') * fee_for_site.get('num_of_days').days / num_of_days_in_period.days
+
             total_amount = amount_per_site * len(apiary_sites)
             total_amount = total_amount if total_amount >= 0 else 0
             total_amount = round_amount_according_to_env(total_amount)

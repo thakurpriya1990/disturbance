@@ -1,7 +1,7 @@
 <template lang="html">
     <div>
         <div :id="elem_id" class="map"></div>
-        
+
         <div :id="popup_id" class="ol-popup">
             <a href="#" :id="popup_closer_id" class="ol-popup-closer">
            <svg xmlns='http://www.w3.org/2000/svg' version='1.1' height='20' width='20' class="close-icon">
@@ -43,7 +43,7 @@
     import Collection from 'ol/Collection';
     import {Draw, Modify, Snap} from 'ol/interaction';
     import VectorLayer from 'ol/layer/Vector';
-    import VectorSource from 'ol/source/Vector'; 
+    import VectorSource from 'ol/source/Vector';
     import {Circle as CircleStyle, Fill, Stroke, Style} from 'ol/style';
     import {FullScreen as FullScreenControl, MousePosition as MousePositionControl} from 'ol/control';
     import Vue from 'vue/dist/vue';
@@ -142,7 +142,6 @@
                     source: vm.apiarySitesQuerySource,
                     //style: this.drawStyle
                     style: function(feature, resolution){
-                        //return getApiaryFeatureStyle(feature.get('status'), feature.get('checked'))
                         let status = getStatusForColour(feature)
                         return getApiaryFeatureStyle(status, feature.get('checked'))
                     },
@@ -231,7 +230,7 @@
                                 vm.modifyInProgressList.splice(index, 1);
                                 let coords = feature.getGeometry().getCoordinates();
                                 vm.$emit('featureGeometryUpdated', {'id': id, 'coordinates': {'lng': coords[0], 'lat': coords[1]}})
-                            } 
+                            }
                         });
                     });
                     vm.map.addInteraction(modifyTool);
@@ -240,14 +239,14 @@
             showPopup: function(feature){
                 let geometry = feature.getGeometry();
                 let coord = geometry.getCoordinates();
-                let svg_hexa = "<svg xmlns='http://www.w3.org/2000/svg' version='1.1' height='20' width='15'>" + 
+                let svg_hexa = "<svg xmlns='http://www.w3.org/2000/svg' version='1.1' height='20' width='15'>" +
                 '<g transform="translate(0, 4) scale(0.9)"><path d="M 14.3395,12.64426 7.5609998,16.557828 0.78249996,12.64426 0.7825,4.8171222 7.5609999,0.90355349 14.3395,4.8171223 Z" id="path837" style="fill:none;stroke:#ffffff;stroke-width:1.565;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" /></g></svg>'
-                let content = '<div style="padding: 0.25em;">' + 
-                '<div style="background: darkgray; color: white; text-align: center;" class="align-middle">' + svg_hexa + ' site: ' + feature.id_ + '</div>' + 
-                                  '<div style="font-size: 0.8em;">' + 
-                                      '<div>' + feature.get('status') + '</div>' + 
-                                      '<div>' + feature['values_']['geometry']['flatCoordinates'] + '</div>' + 
-                                  '</div>' + 
+                let content = '<div style="padding: 0.25em;">' +
+                '<div style="background: darkgray; color: white; text-align: center;" class="align-middle">' + svg_hexa + ' site: ' + feature.id_ + '</div>' +
+                                  '<div style="font-size: 0.8em;">' +
+                                      '<div>' + feature.get('status') + '</div>' +
+                                      '<div>' + feature['values_']['geometry']['flatCoordinates'] + '</div>' +
+                                  '</div>' +
                               '</div>'
                 this.content_element.innerHTML = content;
                 this.overlay.setPosition(coord);
