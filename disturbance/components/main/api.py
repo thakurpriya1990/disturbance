@@ -92,7 +92,8 @@ class BookingSettlementReportView(views.APIView):
 def oracle_integration(date, override):
     system = PAYMENT_SYSTEM_PREFIX
     #oracle_codes = oracle_parser(date, system, 'Commercial Operator Licensing', override=override)
-    oracle_codes = oracle_parser(date, system, 'WildlifeCompliance', override=override)
+    # oracle_codes = oracle_parser(date, system, 'WildlifeCompliance', override=override)
+    oracle_codes = oracle_parser(date, system, 'Disturbance Approval System', override=override)
 
 
 class OracleJob(views.APIView):

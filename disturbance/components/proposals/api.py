@@ -5,7 +5,7 @@ import os
 import json
 
 import pytz
-from ledger.settings_base import TIME_ZONE
+from ledger.settings_base import TIME_ZONE, DATABASES
 from django.db.models import Q
 from django.db import transaction
 from django.core.exceptions import ValidationError
