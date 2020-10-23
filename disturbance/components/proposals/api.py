@@ -604,7 +604,10 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
         if self.is_internal_system(request):
             # Retrieve 'vacant' sites
             qs_vacant_site_proposal, qs_vacant_site_approval = get_qs_vacant_site()
-            serializer_vacant_proposal = ApiarySiteOnProposalProcessedGeometrySerializer(qs_vacant_site_proposal, many=True)
+            # serializer_vacant_proposal = ApiarySiteOnProposalProcessedGeometrySerializer(qs_vacant_site_proposal, many=True)
+            # qs_vacant_site_proposal may not have the wkb_geometry_processed if the apiary site is the selected 'vacant' site
+            serializer_vacant_proposal_d = ApiarySiteOnProposalDraftGeometrySerializer(qs_vacant_site_proposal.filter(wkb_geometry_processed__isnull=True), many=True)
+            serializer_vacant_proposal = ApiarySiteOnProposalProcessedGeometrySerializer(qs_vacant_site_proposal.filter(wkb_geometry_processed__isnull=False), many=True)
             serializer_vacant_approval = ApiarySiteOnApprovalGeometrySerializer(qs_vacant_site_approval, many=True)
 
             # ApiarySiteOnProposal
@@ -619,6 +622,7 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
             # Merge all the data above
             serializer_approval.data['features'].extend(serializer_proposal_draft.data['features'])
             serializer_approval.data['features'].extend(serializer_proposal_processed.data['features'])
+            serializer_approval.data['features'].extend(serializer_vacant_proposal_d.data['features'])
             serializer_approval.data['features'].extend(serializer_vacant_proposal.data['features'])
             serializer_approval.data['features'].extend(serializer_vacant_approval.data['features'])
 
@@ -631,7 +635,9 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
     def list_existing(self, request):
         # Retrieve 'vacant' sites
         qs_vacant_site_proposal, qs_vacant_site_approval = get_qs_vacant_site()
-        serializer_vacant_proposal = ApiarySiteOnProposalProcessedGeometrySerializer(qs_vacant_site_proposal, many=True)
+        # qs_vacant_site_proposal may not have the wkb_geometry_processed if the apiary site is the selected 'vacant' site
+        serializer_vacant_proposal_d = ApiarySiteOnProposalDraftGeometrySerializer(qs_vacant_site_proposal.filter(wkb_geometry_processed__isnull=True), many=True)
+        serializer_vacant_proposal = ApiarySiteOnProposalProcessedGeometrySerializer(qs_vacant_site_proposal.filter(wkb_geometry_processed__isnull=False), many=True)
         serializer_vacant_approval = ApiarySiteOnApprovalGeometrySerializer(qs_vacant_site_approval, many=True)
 
         # ApiarySiteOnProposal
@@ -654,6 +660,7 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
         # Merge all the data above
         serializer_approval.data['features'].extend(serializer_proposal_draft.data['features'])
         serializer_approval.data['features'].extend(serializer_proposal_processed.data['features'])
+        serializer_approval.data['features'].extend(serializer_vacant_proposal_d.data['features'])
         serializer_approval.data['features'].extend(serializer_vacant_proposal.data['features'])
         serializer_approval.data['features'].extend(serializer_vacant_approval.data['features'])
 
