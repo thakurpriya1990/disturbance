@@ -50,7 +50,7 @@ from disturbance.components.proposals.serializers_apiary import (
         ProposalApiaryTemporaryUseSerializer,
         ApiaryProposalRequirementSerializer,
         )
-from disturbance.helpers import is_customer, is_internal
+from disturbance.helpers import is_customer, is_internal, is_das_apiary_admin
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 from rest_framework_datatables.filters import DatatablesFilterBackend
 from rest_framework_datatables.renderers import DatatablesRenderer
@@ -203,20 +203,27 @@ class ApprovalPaginatedViewSet(viewsets.ModelViewSet):
         #qs = Approval.objects.filter(id__in=ids)
         #web_url = request.META.get('HTTP_HOST', None)
         template_group = get_template_group(request)
-        #if web_url in settings.APIARY_URL:
-         #  template_group = 'apiary'
-        #else:
-         #  template_group = 'das'
         if template_group == 'apiary':
-            #qs = self.get_queryset().filter(application_type__apiary_group_application_type=True).exclude(processing_status='discarded')
+            #qs = self.get_queryset().filter(application_type__apiary_group_application_type=True)
             qs = self.get_queryset().filter(
                     apiary_approval=True
                     ).filter(id__in=ids)
         else:
-            qs = self.get_queryset().exclude(
-                    apiary_approval=True
-                    ).filter(id__in=ids)
-        #qs = self.get_queryset().exclude(processing_status='future')
+            if is_das_apiary_admin(self.request):
+                qs = self.get_queryset()
+            else:
+                qs = self.get_queryset().exclude(
+                        apiary_approval=True
+                        ).filter(id__in=ids)
+
+        #if template_group == 'apiary':
+        #    qs = self.get_queryset().filter(
+        #            apiary_approval=True
+        #            ).filter(id__in=ids)
+        #else:
+        #    qs = self.get_queryset().exclude(
+        #            apiary_approval=True
+        #            ).filter(id__in=ids)
         qs = self.filter_queryset(qs)
 
         # on the internal organisations dashboard, filter the Proposal/Approval/Compliance datatables by applicant/organisation
