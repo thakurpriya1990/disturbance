@@ -906,6 +906,15 @@ def proposal_submit_apiary(proposal, request):
                     ):
                 new_answer = ApiaryChecklistAnswer.objects.create(proposal = proposal.proposal_apiary,
                                                                            question = question)
+            # add questions per site
+            for question in ApiaryChecklistQuestion.objects.filter(
+                    checklist_type='apiary_per_site',
+                    checklist_role='assessor'
+                    ):
+                for site in proposal.proposal_apiary.apiary_sites:
+                    new_answer = ApiaryChecklistAnswer.objects.create(proposal = proposal.proposal_apiary,
+                                                                               question = question,
+                                                                               site=site)
             return proposal
 
         else:

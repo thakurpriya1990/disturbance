@@ -3684,6 +3684,7 @@ class ApiaryChecklistQuestion(RevisionedMixin):
     )
     CHECKLIST_TYPE_CHOICES = (
         ('apiary', 'Apiary'),
+        ('apiary_per_site', 'Apiary per site'),
         ('site_transfer', 'Site Transfer'),
     )
     CHECKLIST_ROLE_CHOICES = (
@@ -3722,6 +3723,7 @@ class ApiaryChecklistAnswer(models.Model):
     proposal = models.ForeignKey(ProposalApiary, related_name="apiary_checklist")
     apiary_referral = models.ForeignKey('ApiaryReferral', related_name="apiary_checklist_referral", blank=True, null=True)
     text_answer= models.CharField(max_length=256, blank=True, null=True)
+    site=models.ForeignKey(ApiarySiteOnProposal, blank=True, null=True)
 
     def __str__(self):
         return self.question.text
