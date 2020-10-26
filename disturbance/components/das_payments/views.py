@@ -340,7 +340,7 @@ class AnnualRentalFeeSuccessView(TemplateView):
                 to_email_addresses = annual_rental_fee.approval.relevant_applicant.email
                 can_access_invoice = False
                 if request.user == annual_rental_fee.approval.relevant_applicant or \
-                        annual_rental_fee.approval.applicant in request.user.disturbance_organisations:
+                        annual_rental_fee.approval.applicant in request.user.disturbance_organisations.all():
                     can_access_invoice = True
 
                 context = {
