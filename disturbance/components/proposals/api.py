@@ -590,7 +590,7 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
         sender = request.user
         email_data = send_contact_licence_holder_email(apiary_site.latest_approval_link, comments, sender)
 
-        email_data['approval'] = u'{}'.format(apiary_site.approval.id)
+        email_data['approval'] = u'{}'.format(apiary_site.latest_approval_link.approval.id)
         # request.data['staff'] = u'{}'.format(request.user.id)
         serializer = ApprovalLogEntrySerializer(data=email_data)
         serializer.is_valid(raise_exception=True)
