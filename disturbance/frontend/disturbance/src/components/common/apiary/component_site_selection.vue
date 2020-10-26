@@ -432,7 +432,7 @@
                 $("#" + this.table_id).on("click", "a[data-toggle-availability]", this.toggleAvailability)
                 $("#" + this.table_id).on('click', 'input[type="checkbox"]', this.checkboxClicked)
                 $("#" + this.table_id).on('click', 'a[data-make-vacant]', this.makeVacantClicked)
-                $("#" + this.table_id).on('click', 'a[contact_licence_holder]', this.contactLicenceHolder)
+                $("#" + this.table_id).on('click', 'a[data-contact-licence-holder]', this.contactLicenceHolder)
 
                 $("#" + this.table_id).on('mouseenter', "tr", this.mouseEnter)
                 $("#" + this.table_id).on('mouseleave', "tr", this.mouseLeave)
