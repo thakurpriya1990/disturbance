@@ -473,7 +473,12 @@
         </div>
         </div>
         <ProposedDecline ref="proposed_decline" :processing_status="proposal.processing_status" :proposal_id="proposal.id" @refreshFromResponse="refreshFromResponse"></ProposedDecline>
-        <AmendmentRequest ref="amendment_request" :proposal_id="proposal.id" @refreshFromResponse="refreshFromResponse"></AmendmentRequest>
+        <AmendmentRequest 
+        ref="amendment_request" 
+        :proposal_id="proposal.id" 
+        :is_apiary_proposal="isApiaryProposal"
+        @refreshFromResponse="refreshFromResponse"
+        />
         <ProposedApiaryIssuance 
             ref="proposed_approval" 
             :processing_status="proposal.processing_status" 
@@ -690,6 +695,13 @@ export default {
                 iApplicant = true;
             }
             return iApplicant;
+        },
+        isApiaryProposal: function() {
+            let returnVal = false;
+            if (this.proposal && this.proposal.proposal_apiary) {
+                returnVal = true;
+            }
+            return returnVal;
         },
         apiaryProposal: function() {
             if (this.proposal && this.proposal.proposal_apiary) {
