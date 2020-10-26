@@ -470,6 +470,8 @@ export default {
             } );
         },
         previewData:function(originating_target=null){
+            let previewWindow = window.open(' ', '_blank');
+
             console.log("previewData")
             this.approval.preview = true;
             if (originating_target) {
@@ -516,16 +518,18 @@ export default {
                         "X-CSRFToken": this.csrf_token,
                     },
                 })
+                    /*
+                    .then((response) => {
+                        console.log(response);
+                        previewWindow.document.write(response);
+                        previewWindow.focus();
+                    });
+                    */
+                    
                     .then(response => response.blob())
                     .then(function(myBlob) {
-                        console.log(myBlob);
                         const objectURL = URL.createObjectURL(myBlob);
-                        //window.open(objectURL);
-                        let link = document.createElement('a');
-                        link.href = objectURL;
-                        //link.download="file.pdf";
-                        link.target = '_blank';
-                        link.click();
+                        previewWindow.location.href = objectURL;
                     });
 
             }
