@@ -3734,7 +3734,8 @@ class ApiaryChecklistAnswer(models.Model):
     answer = models.NullBooleanField()
     proposal = models.ForeignKey(ProposalApiary, related_name="apiary_checklist")
     apiary_referral = models.ForeignKey('ApiaryReferral', related_name="apiary_checklist_referral", blank=True, null=True)
-    text_answer= models.CharField(max_length=256, blank=True, null=True)
+    #text_answer= models.CharField(max_length=256, blank=True, null=True)
+    text_answer = models.TextField(blank=True, null=True)
     site=models.ForeignKey(ApiarySiteOnProposal, blank=True, null=True)
 
     def __str__(self):
