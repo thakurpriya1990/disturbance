@@ -82,6 +82,14 @@
                 :readonly="assessorChecklistReadonly"
                 ref="assessor_checklist"
                 />
+                <div v-for="site in apiary_sites">
+                    <ApiaryChecklist
+                    :checklist="assessorChecklistAnswersPerSite(site.id)"
+                    :section_title="'Assessor checklist for site ' + site.id"
+                    :readonly="assessorChecklistReadonly"
+                    v-bind:key="'assessor_checklist_per_site_' + site.id"
+                    />
+                </div>
             </div>
             <div v-for="r in referrerChecklistAnswers">
                 <!--div v-if="(referral && r.referral_id === referral.id) || (assessorChecklistVisibility && proposal.processing_status === 'With Assessor')"-->
@@ -93,6 +101,14 @@
                     :readonly="referrerChecklistReadonly"
                     ref="referrer_checklist"
                     />
+                    <div v-for="site in apiary_sites">
+                        <ApiaryChecklist
+                        :checklist="referrerChecklistAnswersPerSite(r.apiary_referral_id, site.id)"
+                        :section_title="'Referral Checklist: ' + r.referrer_group_name + ' for site ' + site.id"
+                        :readonly="referrerChecklistReadonly"
+                        v-bind:key="'referrer_checklist_per_site_' + r.apiary_referral_id + site.id"
+                        />
+                    </div>
                 </div>
             </div>
 
@@ -326,6 +342,53 @@
           //},
         },
         methods:{
+            assessorChecklistAnswersPerSite: function(siteId) {
+                let siteList = []
+                if (this.proposal && this.proposal.proposal_apiary && this.proposal.proposal_apiary.assessor_checklist_answers_per_site &&
+                    this.proposal.proposal_apiary.assessor_checklist_answers_per_site.length > 0) {
+                    for (let answer of this.proposal.proposal_apiary.assessor_checklist_answers_per_site) {
+                        if (answer.site && answer.site.apiary_site_id === siteId) {
+                            siteList.push(answer)
+                        }
+                    }
+                }
+                return siteList;
+            },
+            /*
+            referrerChecklistAnswersPerSite: function(referralId, siteId) {
+                let siteList = []
+                if (this.proposal.proposal_apiary && this.proposal.proposal_apiary.referrer_checklist_answers_per_site) {
+                    for (let referral of this.proposal.proposal_apiary.referrer_checklist_answers_per_site) {
+                        if (referral.referral_data && referral.referral_data.length > 0) {
+                            for (let answer of referral.referral_data) {
+                                if (answer.site && answer.site.apiary_site_id === siteId && answer.apiary_referral_id === referralId) {
+                                    siteList.push(answer)
+                                }
+                            }
+                        }
+                    }
+                }
+                //console.log(siteList)
+                return siteList;
+            },
+            */
+            referrerChecklistAnswersPerSite: function(referralId, siteId) {
+                let siteList = []
+                if (this.proposal.proposal_apiary && this.proposal.proposal_apiary.referrer_checklist_answers_per_site) {
+                    for (let referral of this.proposal.proposal_apiary.referrer_checklist_answers_per_site) {
+                        if (referral.referral_data && referral.referral_data.length > 0) {
+                            for (let answer of referral.referral_data) {
+                                if (answer.site && answer.site.apiary_site_id === siteId && answer.apiary_referral_id === referralId) {
+                                    siteList.push(answer)
+                                }
+                            }
+                        }
+                    }
+                }
+                console.log(siteList)
+                return siteList;
+            },
+
             num_of_sites_south_west_to_add_as_remainder: function(value){
                 this.$emit('num_of_sites_south_west_to_add_as_remainder', value)
             },

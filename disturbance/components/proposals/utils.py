@@ -626,17 +626,18 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
             raise
 
 
-def save_checklist_answers(checklist_type, checklist_answers=None):
-    if checklist_answers and checklist_type == 'referrer':
+def save_checklist_answers(checklist_role, checklist_answers=None):
+    if checklist_answers and checklist_role == 'referrer':
         for referral_answers in checklist_answers:
             for ref_answer in referral_answers.get('referral_data'):
                 r_ans = ApiaryChecklistAnswer.objects.get(id=ref_answer['id'])
                 if ref_answer.get('question', {}).get('answer_type') == 'free_text':
+                    #import ipdb; ipdb.set_trace()
                     r_ans.text_answer = ref_answer['text_answer']
                 elif ref_answer.get('question', {}).get('answer_type') == 'yes_no':
                     r_ans.answer = ref_answer['answer']
                 r_ans.save()
-    elif checklist_answers:
+    elif checklist_answers and checklist_role == 'assessor':
         for new_answer in checklist_answers:
             ans = ApiaryChecklistAnswer.objects.get(id=new_answer['id'])
             if new_answer.get('question', {}).get('answer_type') == 'free_text':
@@ -823,7 +824,6 @@ def save_assessor_data(instance,request,viewset):
 
 
 def save_apiary_assessor_data(instance,request,viewset):
-    #import ipdb; ipdb.set_trace()
     with transaction.atomic():
         try:
             serializer = SaveProposalSerializer(instance, request.data, partial=True)
@@ -853,15 +853,25 @@ def save_apiary_assessor_data(instance,request,viewset):
             proposal_apiary_data = sc.get('proposal_apiary')
             if proposal_apiary_data:
                 save_checklist_answers('assessor', proposal_apiary_data.get('assessor_checklist_answers'))
+                save_checklist_answers('assessor', proposal_apiary_data.get('assessor_checklist_answers_per_site'))
             # referrer checklist answers
             try:
                 referrer_checklist_answers_str = request.data.get('referrer_checklist_answers')
             except:
                 referrer_checklist_answers_str = request.POST.get('referrer_checklist_answers')
-
             referrer_checklist_answers = json.loads(referrer_checklist_answers_str) if referrer_checklist_answers_str else []
             if referrer_checklist_answers:
                 save_checklist_answers('referrer', referrer_checklist_answers)
+            # referrer checklist answers per site
+            try:
+                referrer_checklist_answers_per_site_str = request.data.get('referrer_checklist_answers_per_site')
+            except:
+                referrer_checklist_answers_per_site_str = request.POST.get('referrer_checklist_answers_per_site')
+            #import ipdb; ipdb.set_trace()
+            referrer_checklist_answers_per_site = json.loads(referrer_checklist_answers_per_site_str) if referrer_checklist_answers_per_site_str else []
+            if referrer_checklist_answers_per_site:
+                save_checklist_answers('referrer', referrer_checklist_answers_per_site)
+
             instance.log_user_action(ProposalUserAction.APIARY_ACTION_SAVE_APPLICATION.format(instance.id),request)
         except:
             raise
@@ -907,11 +917,12 @@ def proposal_submit_apiary(proposal, request):
                 new_answer = ApiaryChecklistAnswer.objects.create(proposal = proposal.proposal_apiary,
                                                                            question = question)
             # add questions per site
+            #import ipdb; ipdb.set_trace()
             for question in ApiaryChecklistQuestion.objects.filter(
                     checklist_type='apiary_per_site',
                     checklist_role='assessor'
                     ):
-                for site in proposal.proposal_apiary.apiary_sites:
+                for site in proposal.proposal_apiary.get_relations():
                     new_answer = ApiaryChecklistAnswer.objects.create(proposal = proposal.proposal_apiary,
                                                                                question = question,
                                                                                site=site)

@@ -2678,6 +2678,17 @@ class ProposalApiary(RevisionedMixin):
                                     question = question
                                     )
 
+                        for question in ApiaryChecklistQuestion.objects.filter(
+                                checklist_type='apiary_per_site',
+                                checklist_role='referrer'
+                                ):
+                            for site in self.get_relations():
+                                new_answer = ApiaryChecklistAnswer.objects.create(
+                                        proposal = self,
+                                        apiary_referral = apiary_referral,
+                                        question = question,
+                                        site=site
+                                        )
                         # Create a log entry for the proposal
                         #self.log_user_action(ProposalUserAction.ACTION_SEND_REFERRAL_TO.format(referral.id,self.id,'{}({})'.format(user.get_full_name(),user.email)),request)
                         self.proposal.log_user_action(
@@ -3686,6 +3697,7 @@ class ApiaryChecklistQuestion(RevisionedMixin):
         ('apiary', 'Apiary'),
         ('apiary_per_site', 'Apiary per site'),
         ('site_transfer', 'Site Transfer'),
+        ('site_transfer_per_site', 'Site Transfer per site'),
     )
     CHECKLIST_ROLE_CHOICES = (
         ('assessor', 'Assessor'),

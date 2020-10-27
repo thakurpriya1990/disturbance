@@ -345,6 +345,7 @@
                                 <input type='hidden' name="schema" :value="JSON.stringify(proposal)" />
                                 <input type='hidden' name="proposal_id" :value="1" /-->
                                 <input type='hidden' name="referrer_checklist_answers" :value="JSON.stringify(proposalApiaryReferrerChecklistAnswers)" />
+                                <input type='hidden' name="referrer_checklist_answers_per_site" :value="JSON.stringify(proposalApiaryReferrerChecklistAnswersPerSite)" />
                                 <div class="navbar navbar-fixed-bottom" v-if="!proposal.can_user_edit && !isFinalised" style="background-color: #f5f5f5 ">
                                         <div class="navbar-inner">
                                             <div v-if="!isFinalised" class="container">
@@ -476,6 +477,11 @@ export default {
         proposalApiaryReferrerChecklistAnswers: function() {
             if (this.proposal && this.proposal.proposal_apiary) {
                 return this.proposal.proposal_apiary.referrer_checklist_answers;
+            }
+        },
+        proposalApiaryReferrerChecklistAnswersPerSite: function() {
+            if (this.proposal && this.proposal.proposal_apiary) {
+                return this.proposal.proposal_apiary.referrer_checklist_answers_per_site;
             }
         },
         contactsURL: function(){
