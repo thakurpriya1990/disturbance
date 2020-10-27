@@ -205,7 +205,7 @@ def _sum_apiary_sites_per_category2(proposal_apiary):
         else:
             fee_type = ApiarySiteFeeType.FEE_TYPE_APPLICATION
 
-        site_per_category_per_feetype[relation.site_category_draft.name][fee_type].append(relation.apiary_site)
+        site_per_category_per_feetype[relation.site_category_draft.name][fee_type].append(relation)
 
         if relation.apiary_site.is_vacant:
             vacant_site_ids.append(relation.apiary_site.id)
@@ -298,15 +298,16 @@ def create_fee_lines_apiary(proposal):
     for site_category_name, data_in_category in temp.items():
         site_category = SiteCategory.objects.get(name=site_category_name)
 
-        for new_or_renewal, apiary_sites in data_in_category.items():
-            if not len(apiary_sites) > 0:
+        for new_or_renewal, relations in data_in_category.items():
+            if not len(relations) > 0:
                 # No apiary sites for this 'site_cateogyr' and 'new_or_renewal'
                 continue
 
             site_fee_remainders = _get_site_fee_remainders(site_category, new_or_renewal, proposal.applicant, proposal.proxy_applicant)
 
             # Calculate deduction and set date_used field
-            number_of_sites_after_deduction = len(apiary_sites)
+            # number_of_sites_after_deduction = len(apiary_sites)
+            number_of_sites_after_deduction = len([relation for relation in relations if not relation.application_fee_paid])
             for site_left in site_fee_remainders:
                 if number_of_sites_after_deduction == 0:
                     break
