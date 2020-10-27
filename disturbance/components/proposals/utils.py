@@ -826,6 +826,7 @@ def save_assessor_data(instance,request,viewset):
 def save_apiary_assessor_data(instance,request,viewset):
     with transaction.atomic():
         try:
+            #import ipdb; ipdb.set_trace()
             serializer = SaveProposalSerializer(instance, request.data, partial=True)
             serializer.is_valid(raise_exception=True)
             viewset.perform_update(serializer)
@@ -854,6 +855,8 @@ def save_apiary_assessor_data(instance,request,viewset):
             if proposal_apiary_data:
                 save_checklist_answers('assessor', proposal_apiary_data.get('assessor_checklist_answers'))
                 save_checklist_answers('assessor', proposal_apiary_data.get('assessor_checklist_answers_per_site'))
+                save_checklist_answers('assessor', proposal_apiary_data.get('site_transfer_assessor_checklist_answers'))
+                save_checklist_answers('assessor', proposal_apiary_data.get('site_transfer_assessor_checklist_answers_per_site'))
             # referrer checklist answers
             try:
                 referrer_checklist_answers_str = request.data.get('referrer_checklist_answers')
@@ -867,10 +870,25 @@ def save_apiary_assessor_data(instance,request,viewset):
                 referrer_checklist_answers_per_site_str = request.data.get('referrer_checklist_answers_per_site')
             except:
                 referrer_checklist_answers_per_site_str = request.POST.get('referrer_checklist_answers_per_site')
-            #import ipdb; ipdb.set_trace()
             referrer_checklist_answers_per_site = json.loads(referrer_checklist_answers_per_site_str) if referrer_checklist_answers_per_site_str else []
             if referrer_checklist_answers_per_site:
                 save_checklist_answers('referrer', referrer_checklist_answers_per_site)
+            # site transfer referrer checklist answers
+            try:
+                site_transfer_referrer_checklist_answers_str = request.data.get('site_transfer_referrer_checklist_answers')
+            except:
+                site_transfer_referrer_checklist_answers_str = request.POST.get('site_transfer_referrer_checklist_answers')
+            site_transfer_referrer_checklist_answers = json.loads(referrer_checklist_answers_str) if referrer_checklist_answers_str else []
+            if site_transfer_referrer_checklist_answers:
+                save_checklist_answers('referrer', site_transfer_referrer_checklist_answers)
+            # site transfer referrer checklist answers per site
+            try:
+                site_transfer_referrer_checklist_answers_per_site_str = request.data.get('site_transfer_referrer_checklist_answers_per_site')
+            except:
+                site_transfer_referrer_checklist_answers_per_site_str = request.POST.get('site_transfer_referrer_checklist_answers_per_site')
+            site_transfer_referrer_checklist_answers_per_site = json.loads(referrer_checklist_answers_per_site_str) if referrer_checklist_answers_per_site_str else []
+            if site_transfer_referrer_checklist_answers_per_site:
+                save_checklist_answers('referrer', site_transfer_referrer_checklist_answers_per_site)
 
             instance.log_user_action(ProposalUserAction.APIARY_ACTION_SAVE_APPLICATION.format(instance.id),request)
         except:

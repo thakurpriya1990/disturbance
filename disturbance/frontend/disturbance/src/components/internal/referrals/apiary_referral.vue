@@ -330,33 +330,57 @@
                     <div class="row">
                         <form :action="proposal_form_url" method="post" name="new_proposal" enctype="multipart/form-data">
                             <!--ProposalApiary form_width="inherit" :withSectionsSelector="false" v-if="proposal" :proposal="proposal"-->
-                            <ProposalApiary 
-                            v-if="proposal" 
-                            :proposal="proposal" 
-                            id="proposalStart" 
-                            ref="proposal_apiary" 
-                            :is_external="false" 
-                            :is_internal="true" 
-                            :hasAssessorMode="hasAssessorMode"
-                            :referral="referral"
-                            />
-                                <!--NewApply v-if="proposal" :proposal="proposal"></NewApply>
-                                <input type="hidden" name="csrfmiddlewaretoken" :value="csrf_token"/>
-                                <input type='hidden' name="schema" :value="JSON.stringify(proposal)" />
-                                <input type='hidden' name="proposal_id" :value="1" /-->
-                                <input type='hidden' name="referrer_checklist_answers" :value="JSON.stringify(proposalApiaryReferrerChecklistAnswers)" />
-                                <input type='hidden' name="referrer_checklist_answers_per_site" :value="JSON.stringify(proposalApiaryReferrerChecklistAnswersPerSite)" />
-                                <div class="navbar navbar-fixed-bottom" v-if="!proposal.can_user_edit && !isFinalised" style="background-color: #f5f5f5 ">
-                                        <div class="navbar-inner">
-                                            <div v-if="!isFinalised" class="container">
-                                            <p class="pull-right">                       
-                                            <button class="btn btn-primary pull-right" style="margin-top:5px;" @click.prevent="save()">Save Changes</button>
-                                            </p>                      
-                                            </div>                   
-                                        </div>
-                                </div>      
+                            <div v-if="proposal && proposal.application_type=='Apiary'">
+                                <ProposalApiary 
+                                v-if="proposal" 
+                                :proposal="proposal" 
+                                ref="proposal_apiary" 
+                                :is_external="false" 
+                                :is_internal="true" 
+                                :hasAssessorMode="hasAssessorMode"
+                                :referral="referral"
+                                />
+                                    <!--NewApply v-if="proposal" :proposal="proposal"></NewApply>
+                                    <input type="hidden" name="csrfmiddlewaretoken" :value="csrf_token"/>
+                                    <input type='hidden' name="schema" :value="JSON.stringify(proposal)" />
+                                    <input type='hidden' name="proposal_id" :value="1" /-->
+                                    <input type='hidden' name="referrer_checklist_answers" :value="JSON.stringify(proposalApiaryReferrerChecklistAnswers)" />
+                                    <input type='hidden' name="referrer_checklist_answers_per_site" :value="JSON.stringify(proposalApiaryReferrerChecklistAnswersPerSite)" />
+                                    <div class="navbar navbar-fixed-bottom" v-if="!proposal.can_user_edit && !isFinalised" style="background-color: #f5f5f5 ">
+                                            <div class="navbar-inner">
+                                                <div v-if="!isFinalised" class="container">
+                                                <p class="pull-right">                       
+                                                <button class="btn btn-primary pull-right" style="margin-top:5px;" @click.prevent="save()">Save Changes</button>
+                                                </p>                      
+                                                </div>                   
+                                            </div>
+                                    </div>      
 
-                            </ProposalApiary>
+                                </ProposalApiary>
+                            </div>
+                            <div v-else-if="proposal && proposal.application_type=='Site Transfer'">
+                                <ApiarySiteTransfer
+                                    v-if="proposal"
+                                    :proposal="proposal"
+                                    ref="site_transfer"
+                                    :hasAssessorMode="hasAssessorMode"
+                                    :is_external="false" 
+                                    :is_internal="true" 
+                                    :referral="referral"
+                                />
+                                    <input type='hidden' name="referrer_checklist_answers" :value="JSON.stringify(siteTransferProposalApiaryReferrerChecklistAnswers)" />
+                                    <input type='hidden' name="referrer_checklist_answers_per_site" :value="JSON.stringify(siteTransferProposalApiaryReferrerChecklistAnswersPerSite)" />
+                                    <div class="navbar navbar-fixed-bottom" v-if="!proposal.can_user_edit && !isFinalised" style="background-color: #f5f5f5 ">
+                                            <div class="navbar-inner">
+                                                <div v-if="!isFinalised" class="container">
+                                                <p class="pull-right">                       
+                                                <button class="btn btn-primary pull-right" style="margin-top:5px;" @click.prevent="save()">Save Changes</button>
+                                                </p>                      
+                                                </div>                   
+                                            </div>
+                                    </div>      
+                                </ApiarySiteTransfer>
+                            </div>
                         </form>
                     </div>
                 </div>
@@ -367,6 +391,7 @@
 </template>
 <script>
 import ProposalApiary from '../../form_apiary.vue'
+import ApiarySiteTransfer from '../../form_apiary_site_transfer.vue'
 import NewApply from '../../external/proposal_apply_new.vue'
 import Vue from 'vue'
 import datatable from '@vue-utils/datatable.vue'
@@ -455,6 +480,7 @@ export default {
         //MoreReferrals,
         NewApply,
         ApiaryReferralsForProposal,
+        ApiarySiteTransfer,
         //OriginatingApprovalRequirements,
         //TargetApprovalRequirements,
     },
@@ -482,6 +508,16 @@ export default {
         proposalApiaryReferrerChecklistAnswersPerSite: function() {
             if (this.proposal && this.proposal.proposal_apiary) {
                 return this.proposal.proposal_apiary.referrer_checklist_answers_per_site;
+            }
+        },
+        siteTransferProposalApiaryReferrerChecklistAnswers: function() {
+            if (this.proposal && this.proposal.proposal_apiary) {
+                return this.proposal.proposal_apiary.site_transfer_referrer_checklist_answers;
+            }
+        },
+        siteTransferProposalApiaryReferrerChecklistAnswersPerSite: function() {
+            if (this.proposal && this.proposal.proposal_apiary) {
+                return this.proposal.proposal_apiary.site_transfer_referrer_checklist_answers_per_site;
             }
         },
         contactsURL: function(){
