@@ -2607,7 +2607,11 @@ class ProposalApiary(RevisionedMixin):
         return relation_obj
 
     def get_relations(self):
-        relation_objs = ApiarySiteOnProposal.objects.filter(apiary_site__in=self.apiary_sites.all(), proposal_apiary=self)
+        if self.proposal.application_type.name == 'Site Transfer':
+            from disturbance.components.approvals.models import ApiarySiteOnApproval
+            relation_objs = ApiarySiteOnApproval.objects.filter(id__in=SiteTransferApiarySite.objects.filter(proposal_apiary=self).values('apiary_site_on_approval_id'))
+        else:
+            relation_objs = ApiarySiteOnProposal.objects.filter(apiary_site__in=self.apiary_sites.all(), proposal_apiary=self)
         return relation_objs
 
     def delete_relation(self, apiary_site):
@@ -2667,28 +2671,53 @@ class ProposalApiary(RevisionedMixin):
                             #sent_by=request.user,
                             #text=referral_text
                         )
-                        # create referral checklist answers
-                        for question in ApiaryChecklistQuestion.objects.filter(
-                                checklist_type='apiary',
-                                checklist_role='referrer'
-                                ):
-                            new_answer = ApiaryChecklistAnswer.objects.create(
-                                    proposal = self,
-                                    apiary_referral = apiary_referral,
-                                    question = question
-                                    )
-
-                        for question in ApiaryChecklistQuestion.objects.filter(
-                                checklist_type='apiary_per_site',
-                                checklist_role='referrer'
-                                ):
-                            for site in self.get_relations():
+                        if self.proposal.application_type.name == 'Apiary':
+                            # create referral checklist answers
+                            for question in ApiaryChecklistQuestion.objects.filter(
+                                    checklist_type='apiary',
+                                    checklist_role='referrer'
+                                    ):
                                 new_answer = ApiaryChecklistAnswer.objects.create(
                                         proposal = self,
                                         apiary_referral = apiary_referral,
-                                        question = question,
-                                        site=site
+                                        question = question
                                         )
+
+                            for question in ApiaryChecklistQuestion.objects.filter(
+                                    checklist_type='apiary_per_site',
+                                    checklist_role='referrer'
+                                    ):
+                                for site in self.get_relations():
+                                    new_answer = ApiaryChecklistAnswer.objects.create(
+                                            proposal = self,
+                                            apiary_referral = apiary_referral,
+                                            question = question,
+                                            site=site
+                                            )
+                        elif proposal.application_type.name == 'Site Transfer':
+                            # create referral checklist answers
+                            for question in ApiaryChecklistQuestion.objects.filter(
+                                    checklist_type='site_transfer',
+                                    checklist_role='referrer'
+                                    ):
+                                new_answer = ApiaryChecklistAnswer.objects.create(
+                                        proposal = self,
+                                        apiary_referral = apiary_referral,
+                                        question = question
+                                        )
+
+                            for question in ApiaryChecklistQuestion.objects.filter(
+                                    checklist_type='site_transfer_per_site',
+                                    checklist_role='referrer'
+                                    ):
+                                for site in self.get_relations():
+                                    new_answer = ApiaryChecklistAnswer.objects.create(
+                                            proposal = self,
+                                            apiary_referral = apiary_referral,
+                                            question = question,
+                                            site=site
+                                            )
+
                         # Create a log entry for the proposal
                         #self.log_user_action(ProposalUserAction.ACTION_SEND_REFERRAL_TO.format(referral.id,self.id,'{}({})'.format(user.get_full_name(),user.email)),request)
                         self.proposal.log_user_action(
@@ -3736,7 +3765,9 @@ class ApiaryChecklistAnswer(models.Model):
     apiary_referral = models.ForeignKey('ApiaryReferral', related_name="apiary_checklist_referral", blank=True, null=True)
     #text_answer= models.CharField(max_length=256, blank=True, null=True)
     text_answer = models.TextField(blank=True, null=True)
+    # to delete
     site=models.ForeignKey(ApiarySiteOnProposal, blank=True, null=True)
+    apiary_site=models.ForeignKey(ApiarySite, blank=True, null=True)
 
     def __str__(self):
         return self.question.text

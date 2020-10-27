@@ -910,22 +910,43 @@ def proposal_submit_apiary(proposal, request):
             else:
                 raise ValidationError('An error occurred while submitting proposal (Submit email notifications failed)')
 
-            for question in ApiaryChecklistQuestion.objects.filter(
-                    checklist_type='apiary',
-                    checklist_role='assessor'
-                    ):
-                new_answer = ApiaryChecklistAnswer.objects.create(proposal = proposal.proposal_apiary,
-                                                                           question = question)
-            # add questions per site
             #import ipdb; ipdb.set_trace()
-            for question in ApiaryChecklistQuestion.objects.filter(
-                    checklist_type='apiary_per_site',
-                    checklist_role='assessor'
-                    ):
-                for site in proposal.proposal_apiary.get_relations():
+            if proposal.application_type.name == 'Apiary':
+                for question in ApiaryChecklistQuestion.objects.filter(
+                        checklist_type='apiary',
+                        checklist_role='assessor'
+                        ):
                     new_answer = ApiaryChecklistAnswer.objects.create(proposal = proposal.proposal_apiary,
-                                                                               question = question,
-                                                                               site=site)
+                                                                               question = question)
+                # add questions per site
+                for question in ApiaryChecklistQuestion.objects.filter(
+                        checklist_type='apiary_per_site',
+                        checklist_role='assessor'
+                        ):
+                    # site is an ApiarySiteOnProposal obj
+                    for site in proposal.proposal_apiary.get_relations():
+                        new_answer = ApiaryChecklistAnswer.objects.create(proposal = proposal.proposal_apiary,
+                                                                                   question = question,
+                                                                                   apiary_site=site.apiary_site)
+            elif proposal.application_type.name == 'Site Transfer':
+                for question in ApiaryChecklistQuestion.objects.filter(
+                        checklist_type='site_transfer',
+                        checklist_role='assessor'
+                        ):
+                    new_answer = ApiaryChecklistAnswer.objects.create(proposal = proposal.proposal_apiary,
+                                                                               question = question)
+                #import ipdb; ipdb.set_trace()
+                # add questions per site
+                for question in ApiaryChecklistQuestion.objects.filter(
+                        checklist_type='site_transfer_per_site',
+                        checklist_role='assessor'
+                        ):
+                    # site is an ApiarySiteOnApproval obj
+                    for site in proposal.proposal_apiary.get_relations():
+                        new_answer = ApiaryChecklistAnswer.objects.create(proposal = proposal.proposal_apiary,
+                                                                                   question = question,
+                                                                                   apiary_site=site.apiary_site)
+
             return proposal
 
         else:
