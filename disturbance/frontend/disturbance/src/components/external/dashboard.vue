@@ -63,8 +63,6 @@ export default {
                     proposals or submit information required to comply with requirements listed on your approval.`
             } else if (this.apiaryTemplateGroup) {
                 welcomeText = `Welcome to the ${this.apiarySystemName} online dashboard.<p/><p/>
-                    //Here you can access your existing licences, view any applications in progress, lodge new
-                    //applications or submit information required to comply with requirements listed on your license.`;
                     Here you can access your existing apiary authorities, view any applications in progress, lodge new
                     applications or submit information required to comply with requirements listed on your authority.`
             }
