@@ -1,7 +1,7 @@
 <template lang="html">
     <div>
 
-        <div class="row col-sm-12">
+        <!-- div class="row col-sm-12">
             <div class="form-group">
                 <label class="inline">Title:</label>
                 <input
@@ -12,7 +12,7 @@
                     style="width: 100%;"
                 />
             </div>
-        </div>
+        </div -->
 
         <div class="row col-sm-12">
             Mark the location of the new proposed site either by entering the latitude and longitude or by clicking the location in the map.
@@ -382,7 +382,7 @@
             // 1. South West
             // 1.1 New
             num_of_sites_remain_south_west: function(){
-                // Number of sites paid left
+                // Number of sites paid left - number of sites to be applied
                 let value = this.num_of_sites_remain_south_west_base - this.num_of_sites_south_west_applied
                 value = value >= 0 ? value : 0
                 return value
@@ -509,6 +509,7 @@
             existing_sites_loaded: function() {
                 if (this.existing_sites_loaded){
                     this.load_apiary_sites_in_this_proposal()
+                    this.displayAllFeatures()
                 }
             },
             num_of_sites_south_west_to_add_as_remainder: function(){
@@ -577,9 +578,9 @@
                 }
                 this.constructSiteLocationsTable();
             },
-            is_feature_new_or_existing: function(feature){
+            is_feature_new_or_renewal: function(feature){
                 if (feature.get('for_renewal')){
-                    return 'existing'
+                    return 'renewal'
                 } else {
                     return 'new'
                 }
@@ -728,60 +729,53 @@
                 }
             },
             calculateRemainders: function(features){
+                console.log('in calculateRemainders')
                 let remainders = null;
                 if (this.proposal.application_type === 'Apiary') {
                     remainders = this.proposal.proposal_apiary.site_remainders;
                 }
-                //if (this.proposal.application_type === 'Apiary' && this.proposal.proposal_type === 'renewal') {
-                //    remainders = this.proposal.proposal_apiary.renewal_site_remainders;
-                //} else {
-                //    remainders = this.proposal.proposal_apiary.site_remainders;
-                //}
-                //let num_remain_south_west = 0
-                //let num_remain_remote = 0
-                //let num_remain_south_west_renewal = 0
-                //let num_remain_remote_renewal = 0
-
-                //for (let i=0; i<remainders.length; i++){
-                //    if (remainders[i].category_name == 'South West'){
-                //        num_remain_south_west = remainders[i].remainders
-                //        num_remain_south_west_renewal = remainders[i].remainders_renewal
-                //    } else if (remainders[i].category_name == 'Remote'){
-                //        num_remain_remote = remainders[i].remainders
-                //        num_remain_remote_renewal = remainders[i].remainders_renewal
-                //    } else {
-                //        console.log('should not reach here')
-                //    }
-                //}
                 this.num_of_sites_south_west_applied = 0
                 this.num_of_sites_remote_applied = 0
                 this.num_of_sites_south_west_renewal_applied = 0
                 this.num_of_sites_remote_renewal_applied = 0
 
                 for (let i=0; i<features.length; i++){
-                    let new_or_existing = this.is_feature_new_or_existing(features[i])
+                    console.log(features[i])
+                    let new_or_renewal = this.is_feature_new_or_renewal(features[i])
                     let site_status = features[i].get('status')
                     let site_category = features[i].get('site_category')
+                    let application_fee_paid = features[i].get('application_fee_paid')
 
-                    if (site_status === 'vacant'){
-                        if (site_category == 'south_west'){
-                            this.num_of_sites_south_west_applied += 1
-                        } else if (site_category == 'remote'){
-                            this.num_of_sites_remote_applied += 1
-                        }
+                    if (application_fee_paid){
+                        // For this apiary site, application fee has been already paid
+                        // We should ignore this site interms of the calculation for the remainders and fees
                     } else {
-                        if (new_or_existing === 'existing'){
+                        if (site_status === 'vacant'){
                             if (site_category == 'south_west'){
-                                this.num_of_sites_south_west_renewal_applied += 1
-                            } else if (site_category == 'remote'){
-                                this.num_of_sites_remote_renewal_applied += 1
-                            }
-                        }
-                        if (new_or_existing === 'new'){
-                            if (site_category == 'south_west'){
+                                console.log('vacant south_west')
                                 this.num_of_sites_south_west_applied += 1
                             } else if (site_category == 'remote'){
+                                console.log('vacant remote')
                                 this.num_of_sites_remote_applied += 1
+                            }
+                        } else {
+                            if (new_or_renewal === 'renewal'){
+                                if (site_category == 'south_west'){
+                                    console.log('renewal south_west')
+                                    this.num_of_sites_south_west_renewal_applied += 1
+                                } else if (site_category == 'remote'){
+                                    console.log('renewal remote')
+                                    this.num_of_sites_remote_renewal_applied += 1
+                                }
+                            }
+                            if (new_or_renewal === 'new'){
+                                if (site_category == 'south_west'){
+                                    console.log('new south_west')
+                                    this.num_of_sites_south_west_applied += 1
+                                } else if (site_category == 'remote'){
+                                    console.log('new remote')
+                                    this.num_of_sites_remote_applied += 1
+                                }
                             }
                         }
                     }
@@ -835,20 +829,26 @@
             },
             deleteApiarySite: function(myFeature){
                 let site_category = myFeature.get('site_category')
+                let application_fee_paid = myFeature.get('application_fee_paid')
+                let new_or_renewal = this.is_feature_new_or_renewal(myFeature)
 
-                let new_or_existing = this.is_feature_new_or_existing(myFeature)
-                if (new_or_existing === 'new'){
-                    if (site_category === 'south_west'){
-                        this.num_of_sites_south_west_applied -= 1
-                    } else {
-                        this.num_of_sites_remote_applied -= 1
-                    }
-                } 
-                if (new_or_existing === 'existing'){
-                    if (site_category === 'south_west'){
-                        this.num_of_sites_south_west_renewal_applied -= 1
-                    } else {
-                        this.num_of_sites_remote_renewal_applied -= 1
+                if (application_fee_paid){
+                    // For this apiary site, application fee has been already paid
+                    // We should ignore this site interms of the calculation for the remainders and fees
+                } else {
+                    if (new_or_renewal === 'new'){
+                        if (site_category === 'south_west'){
+                            this.num_of_sites_south_west_applied -= 1
+                        } else {
+                            this.num_of_sites_remote_applied -= 1
+                        }
+                    } 
+                    if (new_or_renewal === 'renewal'){
+                        if (site_category === 'south_west'){
+                            this.num_of_sites_south_west_renewal_applied -= 1
+                        } else {
+                            this.num_of_sites_remote_renewal_applied -= 1
+                        }
                     }
                 }
 

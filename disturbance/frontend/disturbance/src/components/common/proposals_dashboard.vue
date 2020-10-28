@@ -255,6 +255,7 @@ export default {
 					},
                     {
                         data: "title",
+                        visible: false,
                         'render': function (value) {
                             return helpers.dtPopover(value);
                         },

@@ -14,7 +14,7 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AlterModelOptions(
             name='apiaryannualrentalfeerundate',
-            options={'verbose_name': 'Annual Rental Fee Issue Date'},
+            options={'verbose_name': 'Annual Site Fee Issue Date'},
         ),
         migrations.AlterField(
             model_name='apiaryannualrentalfeerundate',

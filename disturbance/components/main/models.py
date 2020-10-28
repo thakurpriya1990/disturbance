@@ -257,7 +257,7 @@ class ApiaryGlobalSettings(models.Model):
     KEY_APIARY_LICENCE_TEMPLATE_FILE = 'apiary_licence_template_file'
 
     keys = (
-        (KEY_ORACLE_CODE_APIARY_SITE_ANNUAL_RENTAL_FEE, 'Oracle code for the apiary site annual rental fee'),
+        (KEY_ORACLE_CODE_APIARY_SITE_ANNUAL_RENTAL_FEE, 'Oracle code for the apiary site annual site fee'),
         (KEY_APIARY_SITES_LIST_TOKEN, 'Token to import the apiary sites list'),
         (KEY_APIARY_LICENCE_TEMPLATE_FILE, 'Apiary licence template file'),
     )

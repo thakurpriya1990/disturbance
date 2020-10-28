@@ -257,7 +257,7 @@ def _is_gst_exempt(proposal, invoice):
     # TODO need to fix, since individual parks can be exempt, Below calculation assumes NO PARK IS exempt
     # return proposal.application_type.is_gst_exempt if proposal and proposal.fee_invoice_reference == invoice.reference else False
     if not proposal:
-        return True  # Expecting this is annual rental fee
+        return True  # Expecting this is annual site fee
 
     elif proposal.fee_invoice_reference == invoice.reference:
         return proposal.application_type.is_gst_exempt

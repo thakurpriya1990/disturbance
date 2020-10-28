@@ -164,7 +164,7 @@
             <div class="col-sm-12">
                 <div class="panel panel-default">
                   <div class="panel-heading">
-                    <h3 class="panel-title">Organisation <small>Link to the Organisations you are an employee of and for which you are managing approvals</small>
+                    <h3 class="panel-title">Organisation <small>Link to the organisations you are an employee of and for which you are managing approvals</small>
                         <a class="panelClicker" :href="'#'+oBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="oBody">
                             <span class="glyphicon glyphicon-chevron-down pull-right "></span>
                         </a>
@@ -185,17 +185,17 @@
                           </div>
                           <div class="form-group" v-if="managesOrg=='Yes'">
                             <div class="col-sm-12">
-                                <button class="btn btn-primary pull-right" v-if="hasOrgs && !addingCompany" @click.prevent="addCompany()">Add Another Organisation</button>   
+                                <button class="btn btn-primary pull-right" v-if="hasOrgs && !addingCompany" @click.prevent="addCompany()">Add Another Organisation</button>
                             </div>
                           </div>
                           <div v-for="org in profile.disturbance_organisations">
                               <div class="form-group">
                                 <label for="" class="col-sm-2 control-label" >Organisation</label>
-                                <div class="col-sm-3"> 
+                                <div class="col-sm-3">
                                     <input type="text" disabled class="form-control" name="organisation" v-model="org.name" placeholder="" style="width: 100%">
                                 </div>
                                 <label for="" class="col-sm-2 control-label" >ABN/ACN</label>
-                                <div class="col-sm-3"> 
+                                <div class="col-sm-3">
                                     <input type="text" disabled class="form-control" name="organisation" v-model="org.abn" placeholder="">
                                 </div>
                                 <a style="cursor:pointer;text-decoration:none;" @click.prevent="unlinkUser(org)"><i class="fa fa-chain-broken fa-2x" ></i>&nbsp;Unlink</a>
@@ -205,11 +205,11 @@
                           <div v-for="orgReq in orgRequest_list">
                               <div class="form-group">
                                 <label for="" class="col-sm-2 control-label" >Organisation</label>
-                                <div class="col-sm-3"> 
+                                <div class="col-sm-3">
                                     <input type="text" disabled class="form-control" name="organisation" v-model="orgReq.name" placeholder="" style="width: 100%">
                                 </div>
                                 <label for="" class="col-sm-2 control-label" >ABN/ACN</label>
-                                <div class="col-sm-3"> 
+                                <div class="col-sm-3">
                                     <input type="text" disabled class="form-control" name="organisation" v-model="orgReq.abn" placeholder="">
                                 </div>
                                 <lable>&nbsp;Pending for approval</lable>
@@ -268,7 +268,7 @@
                                     <button v-else disabled class="btn btn-primary pull-right"><i class="fa fa-spin fa-spinner"></i>&nbsp;Submitting</button>
                                   </div>
                               </div>
-                              
+
                         </div>
                        </form>
                   </div>
@@ -321,7 +321,7 @@ export default {
             showAddressError: false,
             errorListContact:[],
             showContactError: false,
-            role: null, 
+            role: null,
         }
     },
     watch: {
@@ -332,7 +332,7 @@ export default {
         //         this.resetNewOrg();
         //         this.uploadedFile = null;
         //         this.addingCompany = false;
-        //     } 
+        //     }
         // },
         managesOrg: function() {
             if (this.managesOrg == 'Yes'){
@@ -384,7 +384,7 @@ export default {
             var input = $(vm.$refs.uploadedFile)[0];
             if (input.files && input.files[0]) {
                 var reader = new FileReader();
-                reader.readAsDataURL(input.files[0]); 
+                reader.readAsDataURL(input.files[0]);
                 reader.onload = function(e) {
                     _file = e.target.result;
                 };
@@ -397,7 +397,7 @@ export default {
                 'name': '',
                 'abn': '',
             };
-            this.addingCompany=true; 
+            this.addingCompany=true;
         },
         resetNewOrg: function(){
             this.newOrg = {
@@ -443,7 +443,7 @@ export default {
             });
           }
         },
-        
+
         updateContact: function() {
             let vm = this;
             vm.missing_fields = [];
@@ -509,7 +509,7 @@ export default {
             }
             else{
               vm.showAddressError = false;
-            
+
 
             vm.updatingAddress = true;
             vm.$http.post(helpers.add_endpoint_json(api_endpoints.users,(vm.profile.id+'/update_address')),JSON.stringify(vm.profile.residential_address),{
@@ -544,8 +544,8 @@ export default {
         fetchOrgRequestList: function() { //Fetch all the Organisation requests submitted by user which are pending for approval.
             let vm = this;
             vm.$http.get(helpers.add_endpoint_json(api_endpoints.organisation_requests,'get_pending_requests')).then((response) => {
-                
-                vm.orgRequest_list=response.body; 
+
+                vm.orgRequest_list=response.body;
             }, (error) => {
                 console.log(error);
             });
@@ -579,7 +579,7 @@ export default {
                 }else {
                     swal(
                         'Validate Pins',
-                        'The pins you entered were incorrect', 
+                        'The pins you entered were incorrect',
                         'error'
                     )
                 }
@@ -751,7 +751,7 @@ export default {
                     )
                 });
             },(error) => {
-            }); 
+            });
         },
         fetchProfile: function(){
           let vm=this;
@@ -790,7 +790,7 @@ export default {
             window.setTimeout(function () {
                 $(chev).toggleClass("glyphicon-chevron-down glyphicon-chevron-up");
             },100);
-        }); 
+        });
     }
 }
 </script>

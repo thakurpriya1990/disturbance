@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 def get_annual_rental_fee_period(target_date):
     """
-    Retrieve the annual rental fee period, the invoice for this period should have been issued on the target_date passed as a parameter
+    Retrieve the annual site fee period, the invoice for this period should have been issued on the target_date passed as a parameter
     """
     target_date_year = target_date.year
 
@@ -38,8 +38,8 @@ def get_annual_rental_fee_period(target_date):
         # prev_run_date calculated above is in the future.  Calculate one before that
         prev_run_date = datetime.date(year=prev_run_date.year-1, month=prev_run_date.month, day=prev_run_date.day)
 
-    # Calculate annual rental fee period
-    # annual rental fee start date must be between the prev_run_date and next_run_date
+    # Calculate annual site fee period
+    # annual site fee start date must be between the prev_run_date and next_run_date
     start_date = ApiaryAnnualRentalFeePeriodStartDate.objects.get(name=ApiaryAnnualRentalFeePeriodStartDate.NAME_PERIOD_START)
     period_start_date_month = start_date.period_start_date.month
     period_start_date_day = start_date.period_start_date.day
@@ -105,19 +105,19 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         try:
-            # Determine the start and end date of the annual rental fee, for which the invoices should be issued
+            # Determine the start and end date of the annual site fee, for which the invoices should be issued
             today_now_local = datetime.datetime.now(pytz.timezone(TIME_ZONE))
             today_date_local = today_now_local.date()
             period_start_date, period_end_date = get_annual_rental_fee_period(today_date_local)
 
-            # Retrieve annual rental fee period object for the period calculated above
+            # Retrieve annual site fee period object for the period calculated above
             # This period should not overwrap the existings, otherwise you will need a refund
             annual_rental_fee_period, created = AnnualRentalFeePeriod.objects.get_or_create(period_start_date=period_start_date, period_end_date=period_end_date)
 
-            # Retrieve the licences which will be valid within the current annual rental fee period
+            # Retrieve the licences which will be valid within the current annual site fee period
             approval_qs = get_approvals(annual_rental_fee_period)
 
-            # Issue the annual rental fee invoices per approval per annual_rental_fee_period
+            # Issue the annual site fee invoices per approval per annual_rental_fee_period
             for approval in approval_qs:
                 try:
                     with transaction.atomic():
@@ -160,7 +160,7 @@ class Command(BaseCommand):
 
                 except Exception as e:
                     logger.error('Error command {}'.format(__name__))
-                    logger.error('Failed to send an annual rental fee invoice for the approval {}'.format(approval.lodgement_number))
+                    logger.error('Failed to send an annual site fee invoice for the approval {}'.format(approval.lodgement_number))
 
         except Exception as e:
             logger.error('Error command {}'.format(__name__))
