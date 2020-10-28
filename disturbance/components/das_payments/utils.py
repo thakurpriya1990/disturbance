@@ -458,7 +458,7 @@ def oracle_integration(date,override):
 
 #def create_other_invoice_for_annual_rental_fee(approval, today_now, period, apiary_sites, request=None):
 #    """
-#    This function is called to issue annual rental fee invoices
+#    This function is called to issue annual site fee invoices
 #    """
 #    with transaction.atomic():
 #        try:
@@ -487,7 +487,7 @@ def oracle_integration(date,override):
 #    # for contact in user.contacts.all():
 #    #     temp = contact  # contact is the OrganisationContact obj
 #
-#    invoice_text = 'Annual Rental Fee Invoice'
+#    invoice_text = 'Annual Site Fee Invoice'
 #
 #    basket = createCustomBasket(line_items, user, PAYMENT_SYSTEM_ID)
 #    order = CreateInvoiceBasket(
@@ -505,7 +505,7 @@ def calculate_total_annual_rental_fee(approval, period, sites_charged):
 
     if approval.expiry_date < period[0]:
         # Check if the approval is valid
-        raise ValidationError('This approval is/will be expired before the annual rental fee period starts')
+        raise ValidationError('This approval is/will be expired before the annual site fee period starts')
 
     if approval.no_annual_rental_fee_until:
         if approval.no_annual_rental_fee_until >= period[1]:
@@ -606,7 +606,7 @@ def generate_line_items_for_annual_rental_fee(approval, today_now, period, apiar
             total_amount = round_amount_according_to_env(total_amount)
 
             line_item = {}
-            line_item['ledger_description'] = 'Annual Rental Fee: {}, Issued: {} {}, Period: {} to {}, Site(s): {}'.format(
+            line_item['ledger_description'] = 'Annual Site Fee: {}, Issued: {} {}, Period: {} to {}, Site(s): {}'.format(
                 approval.lodgement_number,
                 today_now.strftime("%d/%m/%Y"),
                 today_now.strftime("%I:%M %p"),
@@ -632,7 +632,7 @@ def generate_line_items_for_annual_rental_fee(approval, today_now, period, apiar
 #
 #    line_items = [
 #        {
-#            'ledger_description': 'Annual Rental Fee: {}, Issued: {} {}, Period: {} to {}, Site(s): {}'.format(
+#            'ledger_description': 'Annual Site Fee: {}, Issued: {} {}, Period: {} to {}, Site(s): {}'.format(
 #                approval.lodgement_number,
 #                today_now.strftime("%d/%m/%Y"),
 #                today_now.strftime("%I:%M %p"),

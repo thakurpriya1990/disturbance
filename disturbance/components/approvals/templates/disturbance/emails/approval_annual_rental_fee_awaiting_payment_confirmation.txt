@@ -1,10 +1,10 @@
 {%  extends 'disturbance/emails/apiary_base_email.txt' %}
 
 {%  block content %}
-    Annual rental fee awaiting payment confirmation has been issued:
+    Annual site fee awaiting payment confirmation has been issued:
 
     Licence : {{ approval.lodgement_number}}
 
-    Please find the attached annual rental fee awaiting payment confirmation.
+    Please find the attached annual site fee awaiting payment confirmation.
 
 {%  endblock %}

@@ -626,7 +626,7 @@ class ApprovalUserAction(UserAction):
     ACTION_RENEW_APPROVAL = "Create renewal Proposal for approval {}"
     ACTION_AMEND_APPROVAL = "Create amendment Proposal for approval {}"
     ACTION_APPROVAL_PDF_VIEW ="View approval PDF for approval {}"
-    ACTION_UPDATE_NO_CHARGE_DATE_UNTIL = "'Do not charge annual rental fee until' date updated to {} for approval {}"
+    ACTION_UPDATE_NO_CHARGE_DATE_UNTIL = "'Do not charge annual site fee until' date updated to {} for approval {}"
 
     class Meta:
         app_label = 'disturbance'

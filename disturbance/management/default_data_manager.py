@@ -160,23 +160,23 @@ class DefaultDataManager(object):
                     new_fee.save()
                     logger.info("Created apiary site fee: %s" % new_fee)
 
-        # Annual rental fee period start date
+        # Annual site fee period start date
         for item in ApiaryAnnualRentalFeePeriodStartDate.NAME_CHOICES:
             obj, created = ApiaryAnnualRentalFeePeriodStartDate.objects.get_or_create(name=item[0])
             if created:
                 obj.period_start_date = datetime.date(year=2020, month=7, day=1)
                 obj.save()
-                logger.info("Created the period start date for the annual rental fee: %s" % obj)
+                logger.info("Created the period start date for the annual site fee: %s" % obj)
 
-        # Run cron job date for the annual rental fee
+        # Run cron job date for the annual site fee
         for item in ApiaryAnnualRentalFeeRunDate.NAME_CHOICES:
             obj, created = ApiaryAnnualRentalFeeRunDate.objects.get_or_create(name=item[0])
             if created:
                 obj.date_run_cron = datetime.date(year=2020, month=6, day=17)
                 obj.save()
-                logger.info("Created the cron job run date for the annual rental fee: %s" % obj)
+                logger.info("Created the cron job run date for the annual site fee: %s" % obj)
 
-        # Annual Rental Fee
+        # Annual Site Fee
         arfs = ApiaryAnnualRentalFee.objects.filter(date_from__lte=today_local)
         if arfs.count() <= 0:
             obj, created = ApiaryAnnualRentalFee.objects.get_or_create(amount=25.00, date_from=(today_local - datetime.timedelta(days=1000)))
