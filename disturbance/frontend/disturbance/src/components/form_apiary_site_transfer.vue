@@ -131,6 +131,44 @@
                 :readonly="readonly"
                 ref="applicant_checklist"
             />
+            <div v-if="assessorChecklistVisibility">
+                <ApiaryChecklist
+                :checklist="assessorChecklistAnswers"
+                section_title="Assessor Checklist"
+                :readonly="assessorChecklistReadonly"
+                ref="assessor_checklist"
+                />
+                <div v-for="site in apiary_sites">
+                    <ApiaryChecklist
+                    :checklist="assessorChecklistAnswersPerSite(site.id)"
+                    :section_title="'Assessor checklist for site ' + site.id"
+                    :readonly="assessorChecklistReadonly"
+                    v-bind:key="'assessor_checklist_per_site_' + site.id"
+                    />
+                </div>
+            </div>
+            <div v-for="r in referrerChecklistAnswers">
+                <!--div v-if="(referral && r.referral_id === referral.id) || (assessorChecklistVisibility && proposal.processing_status === 'With Assessor')"-->
+                <div v-if="(referral && r.referral_id === referral.id) || (assessorChecklistVisibility)">
+                <!--div v-if="r.id = referral.id"-->
+                    <ApiaryChecklist
+                    :checklist="r.referral_data"
+                    :section_title="'Referral Checklist: ' + r.referrer_group_name"
+                    :readonly="referrerChecklistReadonly"
+                    ref="referrer_checklist"
+                    />
+                    <div v-for="site in apiary_sites">
+                        <ApiaryChecklist
+                        :checklist="referrerChecklistAnswersPerSite(r.apiary_referral_id, site.id)"
+                        :section_title="'Referral Checklist: ' + r.referrer_group_name + ' for site ' + site.id"
+                        :readonly="referrerChecklistReadonly"
+                        v-bind:key="'referrer_checklist_per_site_' + r.apiary_referral_id + site.id"
+                        />
+                    </div>
+                </div>
+            </div>
+
+
             <!--FormSection :formCollapse="false" label="Checklist" Index="checklist">
                 <ul class="list-unstyled col-sm-12" v-for="q in proposal.proposal_apiary.checklist_answers">
                     <div class="row">
@@ -430,8 +468,84 @@
           //applicantType: function(){
           //  return this.proposal.applicant_type;
           //},
+            assessorChecklistReadonly: function() {
+                let readonlyStatus = true;
+                //if (this.proposal.processing_status === 'With Assessor' && this.is_internal) {
+                if (this.is_internal && this.proposal && this.proposal.assessor_mode && this.proposal.assessor_mode.assessor_can_assess) {
+                    readonlyStatus = false;
+                }
+                return readonlyStatus;
+            },
+            assessorChecklistVisibility: function() {
+                let visibility = false;
+                //if (this.proposal.processing_status === 'With Assessor' && this.is_internal) {
+                if (this.is_internal && this.proposal && this.proposal.assessor_mode && this.proposal.assessor_mode.has_assessor_mode) {
+                    visibility = true;
+                }
+                return visibility;
+            },
+            referrerChecklistReadonly: function() {
+                let readonlyStatus = true;
+                // referrer must have access
+                if (this.is_internal && this.proposal.processing_status === 'With Referral' &&
+                    this.referral && this.referral.processing_status === 'Awaiting' &&
+                    this.referral.apiary_referral && this.referral.apiary_referral.can_process) {
+                    readonlyStatus = false;
+                }
+                return readonlyStatus;
+            },
+            referrerChecklistVisibility: function() {
+                let visibility = false;
+                // must be relevant referral
+                if ((!this.referrerChecklistReadonly && r.id === this.referral.id) || this.assessorChecklistVisibility) {
+                    visibility = true;
+                }
+                return visibility;
+            },
+            assessorChecklistAnswers: function() {
+                if (this.proposal && this.proposal.proposal_apiary && this.proposal.proposal_apiary.site_transfer_assessor_checklist_answers &&
+                    this.proposal.proposal_apiary.site_transfer_assessor_checklist_answers.length > 0) {
+                    return this.proposal.proposal_apiary.site_transfer_assessor_checklist_answers;
+                }
+            },
+            referrerChecklistAnswers: function() {
+                if (this.proposal && this.proposal.proposal_apiary && this.proposal.proposal_apiary.site_transfer_referrer_checklist_answers &&
+                    this.proposal.proposal_apiary.site_transfer_referrer_checklist_answers.length > 0) {
+                    return this.proposal.proposal_apiary.site_transfer_referrer_checklist_answers;
+                }
+            },
+
         },
         methods:{
+            assessorChecklistAnswersPerSite: function(siteId) {
+                let siteList = []
+                if (this.proposal && this.proposal.proposal_apiary && this.proposal.proposal_apiary.site_transfer_assessor_checklist_answers_per_site &&
+                    this.proposal.proposal_apiary.site_transfer_assessor_checklist_answers_per_site.length > 0) {
+                    for (let answer of this.proposal.proposal_apiary.site_transfer_assessor_checklist_answers_per_site) {
+                        if (answer.apiary_site_id === siteId) {
+                            siteList.push(answer)
+                        }
+                    }
+                }
+                return siteList;
+            },
+            referrerChecklistAnswersPerSite: function(referralId, siteId) {
+                let siteList = []
+                if (this.proposal.proposal_apiary && this.proposal.proposal_apiary.site_transfer_referrer_checklist_answers_per_site) {
+                    for (let referral of this.proposal.proposal_apiary.site_transfer_referrer_checklist_answers_per_site) {
+                        if (referral.referral_data && referral.referral_data.length > 0) {
+                            for (let answer of referral.referral_data) {
+                                if (answer.apiary_site_id === siteId && answer.apiary_referral_id === referralId) {
+                                    siteList.push(answer)
+                                }
+                            }
+                        }
+                    }
+                }
+                console.log(siteList)
+                return siteList;
+            },
+
             apiarySitesUpdated: function(apiarySitesLocal) {
                 this.apiary_sites_local = apiarySitesLocal;
                 // Update this.num_of_sites_selected
