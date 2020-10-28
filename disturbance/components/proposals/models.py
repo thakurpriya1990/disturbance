@@ -3678,7 +3678,8 @@ class DeedPollDocument(Document):
 #            return super(DeedPollDocument, self).delete()
 
 
-class ApiaryChecklistQuestion(models.Model):
+#class ApiaryChecklistQuestion(models.Model):
+class ApiaryChecklistQuestion(RevisionedMixin):
     ANSWER_TYPE_CHOICES = (
         ('yes_no', 'Yes/No type'),
         ('free_text','Free text type'),
@@ -4163,6 +4164,7 @@ reversion.register(HelpPage)
 reversion.register(ApplicationType)
 # reversion.register(ProposalApiary, follow=['apiary_sites'])
 reversion.register(ProposalApiary)
+reversion.register(ApiaryChecklistQuestion)
 #reversion.register(ProposalApiary)
 reversion.register(ApiarySite)
 
