@@ -205,7 +205,7 @@ def _sum_apiary_sites_per_category2(proposal_apiary):
         else:
             fee_type = ApiarySiteFeeType.FEE_TYPE_APPLICATION
 
-        site_per_category_per_feetype[relation.site_category_draft.name][fee_type].append(relation.apiary_site)
+        site_per_category_per_feetype[relation.site_category_draft.name][fee_type].append(relation)
 
         if relation.apiary_site.is_vacant:
             vacant_site_ids.append(relation.apiary_site.id)
@@ -298,15 +298,16 @@ def create_fee_lines_apiary(proposal):
     for site_category_name, data_in_category in temp.items():
         site_category = SiteCategory.objects.get(name=site_category_name)
 
-        for new_or_renewal, apiary_sites in data_in_category.items():
-            if not len(apiary_sites) > 0:
+        for new_or_renewal, relations in data_in_category.items():
+            if not len(relations) > 0:
                 # No apiary sites for this 'site_cateogyr' and 'new_or_renewal'
                 continue
 
             site_fee_remainders = _get_site_fee_remainders(site_category, new_or_renewal, proposal.applicant, proposal.proxy_applicant)
 
             # Calculate deduction and set date_used field
-            number_of_sites_after_deduction = len(apiary_sites)
+            # number_of_sites_after_deduction = len(apiary_sites)
+            number_of_sites_after_deduction = len([relation for relation in relations if not relation.application_fee_paid])
             for site_left in site_fee_remainders:
                 if number_of_sites_after_deduction == 0:
                     break
@@ -457,7 +458,7 @@ def oracle_integration(date,override):
 
 #def create_other_invoice_for_annual_rental_fee(approval, today_now, period, apiary_sites, request=None):
 #    """
-#    This function is called to issue annual rental fee invoices
+#    This function is called to issue annual site fee invoices
 #    """
 #    with transaction.atomic():
 #        try:
@@ -486,7 +487,7 @@ def oracle_integration(date,override):
 #    # for contact in user.contacts.all():
 #    #     temp = contact  # contact is the OrganisationContact obj
 #
-#    invoice_text = 'Annual Rental Fee Invoice'
+#    invoice_text = 'Annual Site Fee Invoice'
 #
 #    basket = createCustomBasket(line_items, user, PAYMENT_SYSTEM_ID)
 #    order = CreateInvoiceBasket(
@@ -504,7 +505,7 @@ def calculate_total_annual_rental_fee(approval, period, sites_charged):
 
     if approval.expiry_date < period[0]:
         # Check if the approval is valid
-        raise ValidationError('This approval is/will be expired before the annual rental fee period starts')
+        raise ValidationError('This approval is/will be expired before the annual site fee period starts')
 
     if approval.no_annual_rental_fee_until:
         if approval.no_annual_rental_fee_until >= period[1]:
@@ -605,7 +606,7 @@ def generate_line_items_for_annual_rental_fee(approval, today_now, period, apiar
             total_amount = round_amount_according_to_env(total_amount)
 
             line_item = {}
-            line_item['ledger_description'] = 'Annual Rental Fee: {}, Issued: {} {}, Period: {} to {}, Site(s): {}'.format(
+            line_item['ledger_description'] = 'Annual Site Fee: {}, Issued: {} {}, Period: {} to {}, Site(s): {}'.format(
                 approval.lodgement_number,
                 today_now.strftime("%d/%m/%Y"),
                 today_now.strftime("%I:%M %p"),
@@ -631,7 +632,7 @@ def generate_line_items_for_annual_rental_fee(approval, today_now, period, apiar
 #
 #    line_items = [
 #        {
-#            'ledger_description': 'Annual Rental Fee: {}, Issued: {} {}, Period: {} to {}, Site(s): {}'.format(
+#            'ledger_description': 'Annual Site Fee: {}, Issued: {} {}, Period: {} to {}, Site(s): {}'.format(
 #                approval.lodgement_number,
 #                today_now.strftime("%d/%m/%Y"),
 #                today_now.strftime("%I:%M %p"),

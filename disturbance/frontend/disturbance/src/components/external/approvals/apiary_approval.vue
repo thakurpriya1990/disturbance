@@ -137,7 +137,7 @@
                 </FormSection>
             </div>
             <div class="row">
-                <FormSection :formCollapse="false" label="Annual Rental Fee" Index="annual_rental_fee">
+                <FormSection :formCollapse="false" label="Annual Site Fee" Index="annual_rental_fee">
                     <template v-if="approval && approval.id">
                         <SectionAnnualRentalFee
                             :is_readonly="false"

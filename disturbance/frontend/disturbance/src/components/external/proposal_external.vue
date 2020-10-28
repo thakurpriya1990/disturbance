@@ -693,7 +693,7 @@ export default {
             vm.highlight_deficient_fields(deficient_fields);
         },
         submit: function(){
-            console.log('submit');
+            console.log('in submit');
 
             let vm = this;
             vm.form=document.forms.new_proposal;
@@ -740,7 +740,7 @@ export default {
                 console.log('in then()');
                 vm.submittingProposal = true;
                 // Only Apiary has an application fee
-                if (!vm.proposal.fee_paid && ['Apiary', 'Site Transfer'].includes(vm.proposal.application_type)) {
+                if (!vm.proposal.fee_paid || ['Apiary', 'Site Transfer'].includes(vm.proposal.application_type)) {
                 //if (this.submit_button_text === 'Pay and submit' && ['Apiary', 'Site Transfer'].includes(vm.proposal.application_type)) {
                     vm.save_and_redirect();
                 } else {
@@ -833,6 +833,8 @@ export default {
             });
         },
         post_and_redirect: function(url, postData) {
+            console.log('in post_and_redirect')
+            console.log('url: ' + url)
             /* http.post and ajax do not allow redirect from Django View (post method),
                this function allows redirect by mimicking a form submit.
 

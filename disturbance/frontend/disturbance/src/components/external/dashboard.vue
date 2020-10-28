@@ -62,9 +62,9 @@ export default {
                     Here you can access your existing approvals, view any proposals in progress, lodge new
                     proposals or submit information required to comply with requirements listed on your approval.`
             } else if (this.apiaryTemplateGroup) {
-                welcomeText = `Welcome to the ${this.apiarySystemName} online system dashboard.<p/><p/>
-                    Here you can access your existing licences, view any applications in progress, lodge new
-                    applications or submit information required to comply with requirements listed on your license.`;
+                welcomeText = `Welcome to the ${this.apiarySystemName} online dashboard.<p/><p/>
+                    Here you can access your existing apiary authorities, view any applications in progress, lodge new
+                    applications or submit information required to comply with requirements listed on your authority.`
             }
             return welcomeText;
         },

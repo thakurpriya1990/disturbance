@@ -248,3 +248,50 @@ export function getApiaryFeatureStyle(status, selected=false, stroke_width_when_
             break;
     }
 }
+export function getDisplayNameOfCategory(key) {
+    switch(key){
+        case 'south_west':
+            return 'South West'
+            break
+        case 'remote':
+            return 'Remote'
+            break
+        default:
+            return ''
+            break
+    }
+}
+export function getDisplayNameFromStatus(status_name){
+    switch(status_name){
+        case 'draft':
+            return 'Draft'
+            break
+        case 'pending':
+            return 'Pending'
+            break
+        case 'approved':
+            return 'Approved'
+            break
+        case 'denied':
+            return 'Denied'
+            break
+        case 'current':
+            return 'Current'
+            break
+        case 'not_to_be_reissued':
+            return 'Not to be re-issued'
+            break
+        case 'suspended':
+            return 'Suspended'
+            break
+        case 'transferred':
+            return 'Transferred'
+            break
+        case 'vacant':
+            return 'Vacant'
+            break
+        default:
+            return status_name
+            break
+    }
+}
