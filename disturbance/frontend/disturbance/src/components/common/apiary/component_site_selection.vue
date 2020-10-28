@@ -34,7 +34,7 @@
     import datatable from '@vue-utils/datatable.vue'
     import uuid from 'uuid'
     import ComponentMap from '@/components/common/apiary/component_map.vue'
-    import { getStatusForColour, SiteColours } from '@/components/common/apiary/site_colours.js'
+    import { getDisplayNameFromStatus, getStatusForColour, SiteColours } from '@/components/common/apiary/site_colours.js'
 
     export default {
         props:{
@@ -232,7 +232,7 @@
                             // Status
                             visible: vm.show_col_status,
                             mRender: function (data, type, apiary_site){
-                                let display_name = vm.getDisplayNameFromStatus(apiary_site.properties.status)
+                                let display_name = getDisplayNameFromStatus(apiary_site.properties.status)
                                 return display_name
                             }
                         },
@@ -325,40 +325,6 @@
         methods: {
             popupClosed: function(){
                 this.not_close_popup_by_mouseleave = false
-            },
-            getDisplayNameFromStatus: function(status_name){
-                switch(status_name){
-                    case 'draft':
-                        return 'Draft'
-                        break
-                    case 'pending':
-                        return 'Pending'
-                        break
-                    case 'approved':
-                        return 'Approved'
-                        break
-                    case 'denied':
-                        return 'Denied'
-                        break
-                    case 'current':
-                        return 'Current'
-                        break
-                    case 'not_to_be_reissued':
-                        return 'Not to be re-issued'
-                        break
-                    case 'suspended':
-                        return 'Suspended'
-                        break
-                    case 'transferred':
-                        return 'Transferred'
-                        break
-                    case 'vacant':
-                        return 'Vacant'
-                        break
-                    default:
-                        return status_name
-                        break
-                }
             },
             featureGeometryUpdated: function(feature){
                 this.$emit('featureGeometryUpdated', feature)

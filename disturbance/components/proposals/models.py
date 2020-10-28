@@ -2481,6 +2481,7 @@ class ApiarySiteOnProposal(RevisionedMixin):
     wkb_geometry_processed = PointField(srid=4326, blank=True, null=True)  # store approved coordinates
     site_category_draft = models.ForeignKey('SiteCategory', null=True, blank=True, related_name='intermediate_draft')
     site_category_processed = models.ForeignKey('SiteCategory', null=True, blank=True, related_name='intermediate_processed')
+    application_fee_paid = models.BooleanField(default=False)  # To avoid overcharging when the proposal is sent back to the customer, we need this flag
     objects = GeoManager()
 
     def __str__(self):
@@ -2572,6 +2573,7 @@ class ProposalApiary(RevisionedMixin):
             relation.site_category_processed = relation.site_category_draft
             relation.site_status = SITE_STATUS_PENDING
             relation.making_payment = False  # This should replace the above line
+            relation.application_fee_paid = True
             relation.save()
 
     def set_workflow_selected_status(self, apiary_site, selected_status):
