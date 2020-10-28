@@ -2481,6 +2481,7 @@ class ApiarySiteOnProposal(RevisionedMixin):
     wkb_geometry_processed = PointField(srid=4326, blank=True, null=True)  # store approved coordinates
     site_category_draft = models.ForeignKey('SiteCategory', null=True, blank=True, related_name='intermediate_draft')
     site_category_processed = models.ForeignKey('SiteCategory', null=True, blank=True, related_name='intermediate_processed')
+    application_fee_paid = models.BooleanField(default=False)  # To avoid overcharging when the proposal is sent back to the customer, we need this flag
     objects = GeoManager()
 
     def __str__(self):
@@ -2572,6 +2573,7 @@ class ProposalApiary(RevisionedMixin):
             relation.site_category_processed = relation.site_category_draft
             relation.site_status = SITE_STATUS_PENDING
             relation.making_payment = False  # This should replace the above line
+            relation.application_fee_paid = True
             relation.save()
 
     def set_workflow_selected_status(self, apiary_site, selected_status):
@@ -2974,13 +2976,13 @@ class ProposalApiary(RevisionedMixin):
 
                     self._update_apiary_sites(approval, sites_received, request)
 
-                    # Check the current annual rental fee period
-                    # Determine the start and end date of the annual rental fee, for which the invoices should be issued
+                    # Check the current annual site fee period
+                    # Determine the start and end date of the annual site fee, for which the invoices should be issued
                     today_now_local = datetime.datetime.now(pytz.timezone(TIME_ZONE))
                     today_date_local = today_now_local.date()
                     period_start_date, period_end_date = get_annual_rental_fee_period(today_date_local)
 
-                    # Retrieve annual rental fee period object for the period calculated above
+                    # Retrieve annual site fee period object for the period calculated above
                     # This period should not overwrap the existings, otherwise you will need a refund
                     annual_rental_fee_period, created = AnnualRentalFeePeriod.objects.get_or_create(period_start_date=period_start_date, period_end_date=period_end_date)
 
@@ -3411,7 +3413,7 @@ class ApiaryAnnualRentalFee(RevisionedMixin):
         fee_first = ApiaryAnnualRentalFee.objects.filter(date_from__lte=start_date)
         fees_rest = ApiaryAnnualRentalFee.objects.filter(date_from__gt=start_date, date_from__lte=end_date).order_by('date_from')
         if not fee_first:
-            raise ValidationError("No annual rental fee amounts found.  Please configure at least one annual rental fee amount at the admin page.")
+            raise ValidationError("No annual site fee amounts found.  Please configure at least one annual site fee amount at the admin page.")
         else:
             fee_first = fee_first.latest('date_from')
 
@@ -3437,11 +3439,11 @@ class ApiaryAnnualRentalFee(RevisionedMixin):
 
 class ApiaryAnnualRentalFeePeriodStartDate(RevisionedMixin):
     """
-    Calculation of the annual rental fee starts from this date
+    Calculation of the annual site fee starts from this date
     """
     NAME_PERIOD_START = 'period_start_date'
     NAME_CHOICES = (
-        (NAME_PERIOD_START, 'Start date of the annual rental fee'),
+        (NAME_PERIOD_START, 'Start date of the annual site fee'),
     )
     name = models.CharField(unique=True, max_length=50, choices=NAME_CHOICES, )
     period_start_date = models.DateField(blank=True, null=True)
@@ -3456,7 +3458,7 @@ class ApiaryAnnualRentalFeePeriodStartDate(RevisionedMixin):
 
 class ApiaryAnnualRentalFeeRunDate(RevisionedMixin):
     """
-    This is the date to issue the annual rental fee invoices
+    This is the date to issue the annual site fee invoices
     """
     NAME_CRON = 'date_to_run_cron_job'
     NAME_CHOICES = (
@@ -3467,7 +3469,7 @@ class ApiaryAnnualRentalFeeRunDate(RevisionedMixin):
 
     class Meta:
         app_label = 'disturbance'
-        verbose_name = 'Annual Rental Fee Issue Date'
+        verbose_name = 'Annual Site Fee Issue Date'
 
     def __str__(self):
         return '{}: {} {}'.format(self.name, self.date_run_cron.strftime('%B'), self.date_run_cron.day)

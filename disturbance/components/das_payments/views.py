@@ -93,10 +93,10 @@ class AnnualRentalFeeView(TemplateView):
                     lines,
                     return_url_ns='annual_rental_fee_success',
                     return_preload_url_ns='annual_rental_fee_success',
-                    invoice_text='Annual Rental Fee'
+                    invoice_text='Annual Site Fee'
                 )
 
-                logger.info('{} built payment line item {} for Annual Rental Fee and handing over to payment gateway'.format(
+                logger.info('{} built payment line item {} for Annual Site Fee and handing over to payment gateway'.format(
                     'User {} with id {}'.format(
                         request.user.get_full_name(), request.user.id
                     ), annual_rental_fee.approval.lodgement_number
@@ -104,7 +104,7 @@ class AnnualRentalFeeView(TemplateView):
                 return checkout_response
 
         except Exception, e:
-            logger.error('Error Creating Annual Rental Fee: {}'.format(e))
+            logger.error('Error Creating Annual Site Fee: {}'.format(e))
             raise
 
 
@@ -340,7 +340,7 @@ class AnnualRentalFeeSuccessView(TemplateView):
                 to_email_addresses = annual_rental_fee.approval.relevant_applicant.email
                 can_access_invoice = False
                 if request.user == annual_rental_fee.approval.relevant_applicant or \
-                        annual_rental_fee.approval.applicant in request.user.disturbance_organisations:
+                        annual_rental_fee.approval.applicant in request.user.disturbance_organisations.all():
                     can_access_invoice = True
 
                 context = {
@@ -545,7 +545,7 @@ class InvoicePDFView(View):
                 response.write(create_invoice_pdf_bytes('invoice.pdf', invoice, url_var, proposal))
                 return response
         except Proposal.DoesNotExist:
-            # The invoice might be issued for the annual rental fee
+            # The invoice might be issued for the annual site fee
             annual_rental_fee = AnnualRentalFee.objects.get(invoice_reference=invoice.reference)
             approval = annual_rental_fee.approval
             response = HttpResponse(content_type='application/pdf')

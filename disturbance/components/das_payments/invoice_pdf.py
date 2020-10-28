@@ -253,7 +253,7 @@ def _create_header(canvas, doc, draw_page_number=True):
 def _is_gst_exempt(proposal, invoice):
     # TODO need to fix, since individual parks can be exempt, Below calculation assumes NO PARK IS exempt
     if not proposal:
-        return True  # Expecting this is annual rental fee
+        return True  # Expecting this is annual site fee
 
     elif proposal.fee_invoice_reference == invoice.reference:
         return proposal.application_type.is_gst_exempt
@@ -370,7 +370,7 @@ def _create_invoice(invoice_buffer, invoice, url_var, proposal):
 
     return invoice_buffer
 
-# proposal needs to be nullable for Annual rental fees
+# proposal needs to be nullable for Annual site fees
 def create_invoice_pdf_bytes(filename, invoice, url_var, proposal=None):
     invoice_buffer = BytesIO()
     _create_invoice(invoice_buffer, invoice, url_var, proposal)

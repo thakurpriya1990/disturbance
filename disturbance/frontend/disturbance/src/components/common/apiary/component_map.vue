@@ -53,7 +53,7 @@
     import { circular} from 'ol/geom/Polygon';
     import GeoJSON from 'ol/format/GeoJSON';
     import Overlay from 'ol/Overlay';
-    import { getStatusForColour, getApiaryFeatureStyle } from '@/components/common/apiary/site_colours.js'
+    import { getDisplayNameFromStatus, getDisplayNameOfCategory, getStatusForColour, getApiaryFeatureStyle } from '@/components/common/apiary/site_colours.js'
 
     export default {
         props:{
@@ -245,6 +245,7 @@
                 this.showPopup(feature)
             },
             showPopup: function(feature){
+                console.log(feature)
                 let geometry = feature.getGeometry();
                 let coord = geometry.getCoordinates();
                 let svg_hexa = "<svg xmlns='http://www.w3.org/2000/svg' version='1.1' height='20' width='15'>" +
@@ -252,7 +253,8 @@
                 let content = '<div style="padding: 0.25em;">' +
                 '<div style="background: darkgray; color: white; text-align: center;" class="align-middle">' + svg_hexa + ' site: ' + feature.id_ + '</div>' +
                                   '<div style="font-size: 0.8em;">' +
-                                      '<div>' + feature.get('status') + '</div>' +
+                                      '<div>' + getDisplayNameFromStatus(feature.get('status')) + '</div>' +
+                                      '<div>' + getDisplayNameOfCategory(feature.get('site_category')) + '</div>' +
                                       '<div>' + feature['values_']['geometry']['flatCoordinates'] + '</div>' +
                                   '</div>' +
                               '</div>'
