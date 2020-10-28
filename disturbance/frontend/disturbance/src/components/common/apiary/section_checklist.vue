@@ -19,7 +19,8 @@
                         </div>
                         <div v-else-if="q.question.answer_type === 'free_text'">
                             <li class="list-inline-item">
-                                <input class="form-check-input form-control" v-model="q.text_answer" type="text" :name="'option'+q.id" :id="'text_answer'+q.id" data-parsley-required :disabled="readonly"/>
+                                <!--input class="form-check-input form-control" v-model="q.text_answer" type="text" :name="'option'+q.id" :id="'text_answer'+q.id" data-parsley-required :disabled="readonly"/-->
+                                <textarea class="form-check-input form-control" v-model="q.text_answer" :name="'option'+q.id" :id="'text_answer'+q.id" data-parsley-required :disabled="readonly"/>
                             </li>
                         </div>
                     </div>
