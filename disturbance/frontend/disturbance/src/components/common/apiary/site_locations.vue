@@ -509,6 +509,7 @@
             existing_sites_loaded: function() {
                 if (this.existing_sites_loaded){
                     this.load_apiary_sites_in_this_proposal()
+                    this.displayAllFeatures()
                 }
             },
             num_of_sites_south_west_to_add_as_remainder: function(){
