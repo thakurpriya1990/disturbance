@@ -289,6 +289,7 @@ export default {
                         name: "current_proposal__activity",
                         visible: false,
                     },
+                    /*
                     {
                         data: "title",
                         'render': function (value) {
@@ -297,6 +298,7 @@ export default {
                         'createdCell': helpers.dtPopoverCellFn,
                         name: "current_proposal__title"
                     },
+                    */
                     {
                         data: "applicant",
                         //name: "applicant__organisation__name" // will be use like: Approval.objects.all().order_by('applicant__organisation__nane')
@@ -527,11 +529,11 @@ export default {
         proposal_headers: function() {
             if (this.apiaryTemplateGroup) {
                 return [
-            "Number","Region","Activity","Title","Holder","Status","Start Date","Expiry Date","Licence","Action",""
+            "Number","Region","Activity",/*"Title",*/"Holder","Status","Start Date","Expiry Date","Licence","Action",""
             ]
             } else {
                 return [
-            "Number","Region","Activity","Title","Holder","Status","Start Date","Expiry Date","Approval","Action",""
+            "Number","Region","Activity",/*"Title",*/"Holder","Status","Start Date","Expiry Date","Approval","Action",""
             ]
             }
         },

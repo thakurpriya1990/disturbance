@@ -208,10 +208,12 @@ export default {
                         name: "proposal__activity",
                         visible: false,
                     },
+                    /*
                     {
                         data: "title",
                         name: "proposal__title",
                     },
+                    */
                     {
                         data: "approval_lodgement_number",
                         mRender:function (data,type,full) {
@@ -385,11 +387,11 @@ export default {
         proposal_headers: function() {
             if (this.apiaryTemplateGroup) {
                 return [
-                    "Number","Region/District","Activity","Title","Licence","Holder","Status",
+                    "Number","Region/District","Activity",/*"Title",*/"Licence","Holder","Status",
                     "Due Date","Assigned To", "CustomerStatus", "Reference","Action"]
             } else {
                 return [
-                    "Number","Region/District","Activity","Title","Approval","Holder","Status",
+                    "Number","Region/District","Activity",/*"Title",*/"Approval","Holder","Status",
                     "Due Date","Assigned To", "CustomerStatus", "Reference","Action"]
             }
         },

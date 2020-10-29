@@ -253,6 +253,7 @@ export default {
 						data: "activity",
 						name: "activity"
 					},
+                    /*
                     {
                         data: "title",
                         visible: false,
@@ -261,6 +262,7 @@ export default {
                         },
                         'createdCell': helpers.dtPopoverCellFn
                     },
+                    */
                     {
                         data: "submitter",
                         mRender:function (data,type,full) {
@@ -502,6 +504,7 @@ export default {
                     },
                     */
                     {data: "activity"},
+                    /*
                     {
                         data: "title",
                         'render': function (value) {
@@ -509,6 +512,7 @@ export default {
                         },
                         'createdCell': helpers.dtPopoverCellFn
                     },
+                    */
                     {
                         data: "submitter",
                         mRender:function (data,type,full) {
@@ -763,7 +767,7 @@ export default {
                 return [
             "Number","Region",
             //"District",
-            "Application Type","Title","Submitter",
+            "Application Type",/*"Title",*/"Submitter",
             "Applicant","Status","Lodged on","Assigned Officer",
             "Invoice","Action","Template Group"
             ]
@@ -771,7 +775,7 @@ export default {
                 return [
             "Number","Region",
             //"District",
-            "Activity","Title","Submitter",
+            "Activity",/*"Title",*/"Submitter",
             "Proponent","Status","Lodged on","Assigned Officer",
             "Invoice/Confirmation","Action","Template Group"
             ]
@@ -782,7 +786,7 @@ export default {
                 return [
             "Number","Region",
             //"District",
-            "Application Type","Title","Submitter",
+            "Application Type",/*"Title",*/"Submitter",
             "Applicant","Status","Lodged on",
             "Invoice","Action","Template Group"
             ]
@@ -790,7 +794,7 @@ export default {
                 return [
             "Number","Region",
             //"District",
-            "Activity","Title","Submitter",
+            "Activity",/*"Title",*/"Submitter",
             "Proponent","Status","Lodged on",
             "Invoice/Confirmation","Action","Template Group"
             ]
