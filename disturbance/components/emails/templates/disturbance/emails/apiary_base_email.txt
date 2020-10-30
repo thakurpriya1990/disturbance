@@ -14,8 +14,8 @@ Yours sincerely,
 
 
 {% block reply_statement %}
-Please do not reply directly to this email. Should you need to contact the licensing section of the  
-{{ settings.DEP_NAME }}, please send emails to {{ settings.APIARY_SUPPORT_EMAIL }} or call {{ settings.DEP_PHONE_SUPPORT }}.
-This is an automated email, please don't reply to this. 
+Please do not reply directly to this email. Should you need to contact the {{settings.DEP_NAME}},
+please contact the Commercial Buisness Unit or the Apiary administrator on {{ settings.APIARY_SUPPORT_EMAIL }}.
+This is an automated email, please don't reply to this.
 {% endblock %}
 
