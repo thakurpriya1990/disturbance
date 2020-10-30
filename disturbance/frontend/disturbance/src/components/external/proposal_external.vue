@@ -661,9 +661,11 @@ export default {
                 if(vm.$refs.apiary_site_transfer.$refs.deed_poll_documents.documents.length==0){
                     blank_fields.push(' Deed poll document is missing')
                 }
+                 /*
                 if(!vm.$refs.apiary_site_transfer.selectedLicence){
                     blank_fields.push(' Transferee licence cannot be blank')
                 }
+                */
                 if (!(this.$refs.apiary_site_transfer.num_of_sites_selected > 0)){
                     blank_fields.push(' You must select at least one site to transfer')
                 }
