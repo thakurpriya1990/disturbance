@@ -164,7 +164,7 @@
             <div class="col-sm-12">
                 <div class="panel panel-default">
                   <div class="panel-heading">
-                    <h3 class="panel-title">Organisation <small>Link to the organisations you are an employee of and for which you are managing approvals</small>
+                      <h3 class="panel-title">Organisation <small>{{ organisationSectionTitleText }}</small>
                         <a class="panelClicker" :href="'#'+oBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="oBody">
                             <span class="glyphicon glyphicon-chevron-down pull-right "></span>
                         </a>
@@ -173,7 +173,7 @@
                   <div class="panel-body collapse" :id="oBody">
                       <form class="form-horizontal" name="orgForm" method="post">
                           <div class="form-group">
-                            <label for="" class="col-sm-5 control-label">Are you responsible for preparing proposals on behalf of an organisation?</label>
+                              <label for="" class="col-sm-5 control-label">{{ organisationSectionDetailText }}</label>
                             <div class="col-sm-4">
                                 <label class="radio-inline">
                                   <input type="radio" name="behalf_of_org" v-model="managesOrg" value="Yes"> Yes
@@ -322,6 +322,8 @@ export default {
             errorListContact:[],
             showContactError: false,
             role: null,
+            apiaryTemplateGroup: false,
+            dasTemplateGroup: false,
         }
     },
     watch: {
@@ -358,6 +360,20 @@ export default {
         },
     },
     computed: {
+        organisationSectionTitleText: function() {
+            let titleText = 'Link to the organisations you are an employee of and for which you are managing approvals';
+            if (this.apiaryTemplateGroup) {
+                titleText = 'Link to the organisations you are an employee of and for which you are managing an apiary authority';
+            }
+            return titleText;
+        },
+        organisationSectionDetailText: function() {
+            let detailText = 'Are you responsible for preparing proposals on behalf of an organisation?';
+            if (this.apiaryTemplateGroup) {
+                detailText = 'Do you manage an apiary authority on behalf of an organisation?';
+            }
+            return detailText;
+        },
         hasOrgs: function() {
             return this.profile.disturbance_organisations && this.profile.disturbance_organisations.length > 0 ? true: false;
         },
@@ -791,7 +807,22 @@ export default {
                 $(chev).toggleClass("glyphicon-chevron-down glyphicon-chevron-up");
             },100);
         });
-    }
+    },
+    created: function() {
+        // retrieve template group
+        this.$http.get('/template_group',{
+            emulateJSON:true
+            }).then(res=>{
+                //this.template_group = res.body.template_group;
+                if (res.body.template_group === 'apiary') {
+                    this.apiaryTemplateGroup = true;
+                } else {
+                    this.dasTemplateGroup = true;
+                }
+        },err=>{
+        console.log(err);
+        });
+    },
 }
 </script>
 

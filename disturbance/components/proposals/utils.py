@@ -370,6 +370,7 @@ def save_proponent_data_apiary_site_transfer(proposal_obj, request, viewset):
 
             proposal_apiary_data = sc.get('proposal_apiary', None)
             if proposal_apiary_data:
+                #import ipdb;ipdb.set_trace()
                 save_checklist_answers('applicant', proposal_apiary_data.get('applicant_checklist_answers'))
                 #for new_answer in proposal_apiary_data['applicant_checklist_answers']:
                 #    ans = ApiaryChecklistAnswer.objects.get(id=new_answer['id'])
@@ -466,6 +467,7 @@ def save_proponent_data_apiary_site_transfer(proposal_obj, request, viewset):
 
 
 def save_proponent_data_apiary(proposal_obj, request, viewset):
+    #import ipdb;ipdb.set_trace()
     with transaction.atomic():
         try:
             try:
@@ -637,7 +639,8 @@ def save_checklist_answers(checklist_role, checklist_answers=None):
                 elif ref_answer.get('question', {}).get('answer_type') == 'yes_no':
                     r_ans.answer = ref_answer['answer']
                 r_ans.save()
-    elif checklist_answers and checklist_role == 'assessor':
+    #elif checklist_answers and checklist_role == 'assessor':
+    else:
         for new_answer in checklist_answers:
             ans = ApiaryChecklistAnswer.objects.get(id=new_answer['id'])
             if new_answer.get('question', {}).get('answer_type') == 'free_text':

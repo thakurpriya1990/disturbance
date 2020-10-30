@@ -213,10 +213,12 @@ export default {
                         name: "proposal__activity",
                         //searchable: false, // handles by filter_queryset override method - class ProposalFilterBackend
                     },
+                    /*
                     {
                         data: "title",
                         name: "proposal__title",
                     },
+                    */
                     {
                         data: "submitter",
                         mRender:function (data,type,full) {
@@ -419,9 +421,9 @@ export default {
         },
         proposal_headers: function() {
             if (this.apiaryTemplateGroup) {
-                return ["Number","Region","Application Type","Title","Submitter","Applicant","Status","Lodged on","Action","Template Group"]
+                return ["Number","Region","Application Type",/*"Title",*/"Submitter","Applicant","Status","Lodged on","Action","Template Group"]
             } else {
-                return ["Number","Region","Activity","Title","Submitter","Proponent","Status","Lodged on","Action","Template Group"]
+                return ["Number","Region","Activity",/*"Title",*/"Submitter","Proponent","Status","Lodged on","Action","Template Group"]
             }
         },
     },

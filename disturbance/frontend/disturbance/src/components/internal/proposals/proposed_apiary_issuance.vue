@@ -83,7 +83,7 @@
                             <div class="form-group">
                                 <div class="row">
                                     <div class="col-sm-12">
-                                        <label v-if="submitter_email && applicant_email" class="control-label pull-left"  for="Name">After approving this application, licence will be emailed to {{proposalNotificationList}}.</label>
+                                        <label v-if="submitter_email && applicant_email" class="control-label pull-left"  for="Name">After approving this application, the apiary authority will be emailed to {{proposalNotificationList}}.</label>
                                         <label v-else class="control-label pull-left"  for="Name">After approving this application, licence will be emailed to {{submitter_email}}.</label>
                                     </div>
 
@@ -263,7 +263,8 @@ export default {
             return vm.startDateError;
         },
         title: function(){
-            return this.processing_status == 'With Approver' ? 'Issue Application' : 'Propose to issue licence';
+            //return this.processing_status == 'With Approver' ? 'Issue Application' : 'Propose to issue licence';
+            return this.processing_status == 'With Approver' ? 'Issue Application' : 'Propose to approve';
         },
         is_amendment: function(){
             return this.proposal_type == 'Amendment' ? true : false;

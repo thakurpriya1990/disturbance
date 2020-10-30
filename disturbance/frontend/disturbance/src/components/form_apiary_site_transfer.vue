@@ -38,9 +38,12 @@
                     <div class="form-group">
                             <div class="col-sm-12">
                                 <div v-if="lookupErrorText">
-                                    Error: {{lookupErrorText}}
+                                    {{lookupErrorText}}
                                 </div>
-                                <div v-else-if="apiaryApprovals">
+                                <div v-if="lookupNotification">
+                                    {{lookupNotification}}
+                                </div>
+                                <div v-else-if="apiaryApprovals && apiaryApprovals.length">
                                     <!--label class="col-sm-6 emailLabel">Select the licence you want to transfer to:</label-->
                                     <label>Select the licence you want to transfer to:</label>
                                     <div v-for="approval in apiaryApprovals">
@@ -257,6 +260,7 @@
                 //apiaryApprovals: {},
                 apiaryApprovals: null,
                 lookupErrorText: '',
+                lookupNotification: '',
                 //selectedLicence: null,
                 component_site_selection_key: '',
                 apiary_sites_local: [],
@@ -569,6 +573,7 @@
             },
             lookupTransferee: function() {
                 this.lookupErrorText = '';
+                this.lookupNotification = '';
                 console.log(this.transfereeEmail);
                 //let url = `/api/proposal_apiary/${this.proposal.proposal_apiary.id}/get_apiary_approvals.json`
                 Vue.http.post(helpers.add_endpoint_json(
@@ -582,7 +587,8 @@
                         if (res.body && res.body.apiary_approvals) {
                             this.apiaryApprovals = res.body.apiary_approvals.approvals;
                             if (this.apiaryApprovals.length < 1) {
-                                this.lookupErrorText = 'No current licence for the transferee';
+                                //this.lookupErrorText = 'No current licence for the transferee';
+                                this.lookupNotification = 'No current licence for the transferee - one will be created';
                             }
                         } else {
                             this.lookupErrorText = res.body;
@@ -617,6 +623,10 @@
             err => {
               console.log(err);
             });
+            // update transferreeEmail
+            if (this.proposal && this.proposal.proposal_apiary) {
+                this.transfereeEmail = this.proposal.proposal_apiary.transferee_email_text;
+            }
             /*
             this.$nextTick(() => {
                 this.$emit('site_transfer_application_fee', this.applicationFee);
