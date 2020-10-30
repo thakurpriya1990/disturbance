@@ -18,6 +18,7 @@
             :key="component_site_selection_key"
             :show_col_checkbox="false"
             :show_col_status="true"
+            :show_action_available_unavailable="true"
         />
     </div>
 </template>

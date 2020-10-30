@@ -685,7 +685,9 @@
             removeBufferForSite: function(site){
                 console.log('in removeBufferForSite')
                 let buffer = this.bufferLayerSource.getFeatureById(site.getId() + "_buffer");
-                this.bufferLayerSource.removeFeature(buffer);
+                if (buffer){
+                    this.bufferLayerSource.removeFeature(buffer);
+                }
             },
             apiaryStyleFunctionExisting: function(feature) {
                 // This is used for the existing apiary sites
