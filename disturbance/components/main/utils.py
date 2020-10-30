@@ -191,8 +191,9 @@ def get_qs_vacant_site():
     qs_vacant_site = get_vacant_apiary_site()
 
     # apiary_site_proposal_ids = qs_vacant_site.all().values('proposal_link_for_vacant__id')
-    apiary_site_proposal_ids = qs_vacant_site.all().values('latest_proposal_link__id')  # <== Always latest_proposal_link should have the latest site_status, shouldn't it?
-    qs_vacant_site_proposal = ApiarySiteOnProposal.objects.filter(id__in=apiary_site_proposal_ids)
+    apiary_site_proposal_ids = qs_vacant_site.all().values('latest_proposal_link__id')
+    apiary_site_proposal_ids2 = qs_vacant_site.filter(latest_proposal_link__isnull=True).values('proposal_link_for_vacant__id')  # When the 'vacant' site is selected, saved, deselected and then saved again, the latest_proposal_link gets None
+    qs_vacant_site_proposal = ApiarySiteOnProposal.objects.filter(Q(id__in=apiary_site_proposal_ids) | Q(id__in=apiary_site_proposal_ids2))
 
     apiary_site_approval_ids = qs_vacant_site.all().values('approval_link_for_vacant__id')
     qs_vacant_site_approval = ApiarySiteOnApproval.objects.filter(id__in=apiary_site_approval_ids)
