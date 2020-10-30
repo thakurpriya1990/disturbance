@@ -85,7 +85,7 @@
             </div>
 
             <div class="row">
-                <FormSection :formCollapse="false" label="Approval Details" Index="approval_details">
+                <FormSection :formCollapse="false" label="Licence Details" Index="approval_details">
                     <form class="form-horizontal" action="index.html" method="post">
                         <div class="form-group">
                             <label for="" class="col-sm-3 control-label">Issue Date</label>
@@ -108,7 +108,7 @@
                         <div class="form-group">
                             <label for="" class="col-sm-3 control-label" >Document</label>
                             <div class="col-sm-4">
-                                <p><a target="_blank" :href="approval.latest_apiary_licence_document" class="control-label pull-left">Approval.pdf</a></p>
+                                <p><a target="_blank" :href="approval.latest_apiary_licence_document" class="control-label pull-left">Licence.pdf</a></p>
                             </div>
                         </div>
                         <!--div class="form-group">

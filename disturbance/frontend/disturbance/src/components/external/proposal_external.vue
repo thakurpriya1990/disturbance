@@ -6,7 +6,7 @@
                 <div class="col-lg-12 pull-right">
                     <div class="panel panel-default">
                       <div class="panel-heading">
-                        <h3 class="panel-title" style="color:red;">An amendment has been requested for this Proposal
+                          <h3 class="panel-title" style="color:red;">{{ amendmentRequestText }}
                           <a class="panelClicker" :href="'#'+pBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="pBody">
                                 <span class="glyphicon glyphicon-chevron-down pull-right "></span>
                           </a>
@@ -249,6 +249,13 @@ export default {
         ApiarySiteTransfer,
     },
     computed: {
+        amendmentRequestText: function() {
+            let requestText = 'An amendment has been requested for this proposal';
+            if (this.apiaryTemplateGroup) {
+                requestText = 'An amendment has been requested for this application';
+            }
+            return requestText;
+        },
         num_of_sites_south_west_remain_after_payment: function() {
             let total = this.num_of_sites_remain_south_west + this.num_of_sites_south_west_to_add_as_remainder
             if (this.num_of_sites_south_west_to_add_as_remainder <= 0){
@@ -654,9 +661,11 @@ export default {
                 if(vm.$refs.apiary_site_transfer.$refs.deed_poll_documents.documents.length==0){
                     blank_fields.push(' Deed poll document is missing')
                 }
+                 /*
                 if(!vm.$refs.apiary_site_transfer.selectedLicence){
                     blank_fields.push(' Transferee licence cannot be blank')
                 }
+                */
                 if (!(this.$refs.apiary_site_transfer.num_of_sites_selected > 0)){
                     blank_fields.push(' You must select at least one site to transfer')
                 }
