@@ -100,7 +100,6 @@
                         :is_external="false"
                         :show_col_checkbox="true"
                         :show_col_vacant="true"
-                        :show_action_available_unavailable="false"
                         :key="component_site_selection_key"
                         :can_modify="true"
                         ref="component_site_selection"
@@ -525,7 +524,7 @@ export default {
                         previewWindow.focus();
                     });
                     */
-                    
+
                     .then(response => response.blob())
                     .then(function(myBlob) {
                         const objectURL = URL.createObjectURL(myBlob);

@@ -2953,6 +2953,7 @@ class ProposalApiary(RevisionedMixin):
                         )
                         relation_target.site_status = relation_original.site_status  # Copy the site status from the original to the target
                         relation_original.site_status = SITE_STATUS_TRANSFERRED  # Set the site status of the original site to 'transferred'
+                        relation_original.available = False
                         relation_original.save()
                         relation_target.wkb_geometry = relation_original.wkb_geometry
                         relation_target.site_category = relation_original.site_category
