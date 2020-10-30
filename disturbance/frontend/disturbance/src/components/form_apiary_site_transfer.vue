@@ -102,7 +102,6 @@
                     :key="component_site_selection_key"
                     :show_col_checkbox="showColCheckbox"
                     :enable_col_checkbox="is_external"
-                    :show_action_available_unavailable="is_external"
 
                     ref="component_site_selection"
                     @apiary_sites_updated="apiarySitesUpdated"

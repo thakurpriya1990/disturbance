@@ -1,12 +1,11 @@
 <template>
-    <div class="container"> 
+    <div class="container">
         <FormSection :formCollapse="false" label="Available Sites" Index="available_sites">
             <ComponentSiteSelection
                 :apiary_sites="apiary_sites"
                 :is_internal="true"
                 :is_external="false"
                 :show_col_checkbox="false"
-                :show_action_available_unavailable="false"
                 :show_col_status="false"
                 :show_col_previous_site_holder="false"
                 :key="component_site_selection_key"

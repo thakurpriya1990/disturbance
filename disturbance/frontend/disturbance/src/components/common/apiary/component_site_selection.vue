@@ -106,7 +106,7 @@
             },
             show_action_available_unavailable: {
                 type: Boolean,
-                default: true,
+                default: false,
             },
             show_action_make_vacant: {
                 type: Boolean,
@@ -196,8 +196,8 @@
 
                                 if (status_for_colour === 'denied'){
                                     sub_str = '<svg height="20" width="20">' +
-                                        '<line x1="4" y1="4" x2="16" y2="16" stroke="' + strokeColour + '" + stroke-width="2" />' + 
-                                        '<line x1="4" y1="16" x2="16" y2="4" stroke="' + strokeColour + '" + stroke-width="2" />' + 
+                                        '<line x1="4" y1="4" x2="16" y2="16" stroke="' + strokeColour + '" + stroke-width="2" />' +
+                                        '<line x1="4" y1="16" x2="16" y2="4" stroke="' + strokeColour + '" + stroke-width="2" />' +
                                            '</svg> site: ' + apiary_site.id
                                 } else {
                                     sub_str = '<svg height="20" width="20">' +
