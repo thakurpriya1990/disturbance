@@ -559,7 +559,7 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
     serializer_class = ApiarySiteSerializer
 
     def is_internal_system(self, request):
-        apiary_site_list_token = request.query_params.get('apiary_site_list_token', None)
+        apiary_site_list_token = request.query_params.get(ApiaryGlobalSettings.KEY_APIARY_SITES_LIST_TOKEN, None)
         if apiary_site_list_token:
             token = ApiaryGlobalSettings.objects.get(key=ApiaryGlobalSettings.KEY_APIARY_SITES_LIST_TOKEN)
             if apiary_site_list_token.lower() == token.value.lower():
