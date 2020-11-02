@@ -1434,22 +1434,22 @@ class DTApiaryReferralSerializer(serializers.ModelSerializer):
 
 
 class UserApiaryApprovalSerializer(serializers.ModelSerializer):
-    apiary_approvals = serializers.SerializerMethodField(read_only=True)
+    licence_holders = serializers.SerializerMethodField(read_only=True)
     class Meta:
         model = EmailUser
         fields = (
                 'id',
-                'apiary_approvals',
+                'licence_holders',
                 )
 
-    def get_apiary_approvals(self, obj):
+    def get_licence_holders(self, obj):
         originating_approval_id = self.context.get('originating_approval_id')
         print(originating_approval_id)
         #return 'apiary_approvals'
-        approvals = []
-        multiple_approvals = False
-        individual_approvals = False
-        organisation_approvals = False
+        licence_holders = []
+        #multiple_approvals = False
+        #individual_approvals = False
+        #organisation_approvals = False
         #Individual applications
         for individual_approval in obj.disturbance_proxy_approvals.filter(
                 status='current', 
@@ -1458,38 +1458,63 @@ class UserApiaryApprovalSerializer(serializers.ModelSerializer):
                         ):
             #approval = Approval.objects.filter(applicant=self.proposal.applicant, status='current', apiary_approval=True).first()
             if individual_approval.apiary_approval:
-                approvals.append({
+                licence_holders.append({
                     'type': 'individual',
                     'id':individual_approval.id,
                     'lodgement_number':individual_approval.lodgement_number,
                     'licence_holder': individual_approval.relevant_applicant_name,
                     })
-                individual_approvals = True
+                #individual_approvals = True
+        # add user if no licence exists
+        if not licence_holders:
+            licence_holders.append({
+                'type': 'individual',
+                'id': None,
+                'lodgement_number': None,
+                'licence_holder': obj.get_full_name(),
+                'licence_holder_id': obj.id,
+                })
         #Organisation applications
         #import ipdb;ipdb.set_trace()
         user_delegations = UserDelegation.objects.filter(user=obj)
         #organisation_approvals = []
         for user_delegation in user_delegations:
             #organisation_approvals.append(user_delegation.organisation.disturbance_approvals.all())
-            for organisation_approval in user_delegation.organisation.disturbance_approvals.filter(
+            # add org even if no licence exists
+            if not user_delegation.organisation.disturbance_approvals.filter(
                     status='current',
                     apiary_approval=True
                     ).exclude(id=originating_approval_id
                             ):
-                if organisation_approval.apiary_approval:
-                    approvals.append({
-                        'type': 'organisation', 
-                        'id':organisation_approval.id,
-                        'lodgement_number':organisation_approval.lodgement_number,
-                        'licence_holder': organisation_approval.relevant_applicant_name,
-                        })
-                    organisation_approvals = True
-        #approvals.append(organisation_approvals)
+                licence_holders.append({
+                    'type': 'organisation', 
+                    'id': None,
+                    'lodgement_number':None,
+                    'licence_holder': user_delegation.organisation.name,
+                    'licence_holder_id': obj.id,
+                    })
+            else:
+                # licence exists
+                for organisation_approval in user_delegation.organisation.disturbance_approvals.filter(
+                        status='current',
+                        apiary_approval=True
+                        ).exclude(id=originating_approval_id
+                                ):
+                    if organisation_approval.apiary_approval:
+                        licence_holders.append({
+                            'type': 'organisation', 
+                            'id':organisation_approval.id,
+                            'lodgement_number':organisation_approval.lodgement_number,
+                            'licence_holder': organisation_approval.relevant_applicant_name,
+                            })
+                        #organisation_approvals = True
+            #approvals.append(organisation_approvals)
 
-        if individual_approvals and organisation_approvals:
-            multiple_approvals = True
+        #if individual_approvals and organisation_approvals:
+         #   multiple_approvals = True
 
-        return {'approvals': approvals, 'multiple': multiple_approvals}
+        #return {'approvals': approvals, 'multiple': multiple_approvals}
+        return {'licence_holders': licence_holders}
 
 
 class ApiaryProposalRequirementSerializer(serializers.ModelSerializer):

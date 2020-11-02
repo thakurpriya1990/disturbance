@@ -884,7 +884,7 @@ class ProposalApiaryViewSet(viewsets.ModelViewSet):
             return Response(serializer.data)
 
     @detail_route(methods=['POST', ])
-    def get_apiary_approvals(self, request, *args, **kwargs):
+    def get_licence_holders(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
             user = None
