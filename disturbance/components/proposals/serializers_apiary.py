@@ -321,6 +321,16 @@ class ApiarySiteOnProposalDraftGeometrySerializer(GeoFeatureModelSerializer):
             return ''
 
 
+class ApiarySiteOnProposalVacantDraftGeometrySerializer(ApiarySiteOnProposalDraftGeometrySerializer):
+    application_fee_paid = serializers.SerializerMethodField()
+
+    def get_application_fee_paid(self, obj):
+        return False
+
+    class Meta(ApiarySiteOnProposalDraftGeometrySerializer.Meta):
+        pass
+
+
 class ApiarySiteOnProposalProcessedGeometrySerializer(GeoFeatureModelSerializer):
     """
     For reading as 'processed'
@@ -371,6 +381,15 @@ class ApiarySiteOnProposalProcessedGeometrySerializer(GeoFeatureModelSerializer)
             return relevant_applicant_name
         except:
             return ''
+
+class ApiarySiteOnProposalVacantProcessedGeometrySerializer(ApiarySiteOnProposalProcessedGeometrySerializer):
+    application_fee_paid = serializers.SerializerMethodField()
+
+    def get_application_fee_paid(self, obj):
+        return False
+
+    class Meta(ApiarySiteOnProposalProcessedGeometrySerializer.Meta):
+        pass
 
 
 class ApiarySiteOnProposalDraftGeometrySaveSerializer(GeoFeatureModelSerializer):
