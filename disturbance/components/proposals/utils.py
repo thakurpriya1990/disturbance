@@ -373,8 +373,9 @@ def save_proponent_data_apiary_site_transfer(proposal_obj, request, viewset):
                 #import ipdb;ipdb.set_trace()
                 save_checklist_answers('applicant', proposal_apiary_data.get('applicant_checklist_answers'))
 
-            #transferee_email_text = request.data.get('transferee_email_text')
-            transferee_email_text = proposal_apiary_data.get('transferee_email_text')
+            #import ipdb; ipdb.set_trace()
+            transferee_email_text = request.data.get('transferee_email_text')
+            #transferee_email_text = proposal_apiary_data.get('transferee_email_text')
             if transferee_email_text:
                 proposal_obj.proposal_apiary.transferee_email_text = transferee_email_text
                 proposal_obj.proposal_apiary.save()
@@ -402,7 +403,6 @@ def save_proponent_data_apiary_site_transfer(proposal_obj, request, viewset):
                 #proposal_obj.approval = approval
 
             ## On submit, requirements need to be copied for originating and target approvals
-            #import ipdb; ipdb.set_trace()
             if viewset.action == 'submit':
                 # set transferee for applications without a target licence
                 proposal_obj.proposal_apiary.transferee = EmailUser.objects.get(email=proposal_obj.proposal_apiary.transferee_email_text)

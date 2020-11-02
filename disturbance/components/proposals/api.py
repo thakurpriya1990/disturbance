@@ -1438,13 +1438,15 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
     @detail_route(methods=['GET',])
     def apiary_site_transfer_target_approval_requirements(self, request, *args, **kwargs):
+        # for new licences, sitetransfer_approval is None
         try:
             instance = self.get_object()
-            #qs = instance.requirements.all()
-            #qs = instance.requirements.all().exclude(is_deleted=True)
-            approval = Approval.objects.get(id=instance.proposal_apiary.target_approval_id)
-            qs = instance.apiary_requirements(approval).exclude(is_deleted=True)
-            #qs = instance.apiary_site_transfer_originatingrequirements(approval_id).exclude(is_deleted=True)
+            if instance.proposal_apiary.target_approval_id:
+                approval = Approval.objects.get(id=instance.proposal_apiary.target_approval_id)
+                qs = instance.apiary_requirements(approval).exclude(is_deleted=True)
+            else:
+                qs = instance.apiary_requirements().exclude(is_deleted=True)
+
             serializer = ProposalRequirementSerializer(qs,many=True)
             return Response(serializer.data)
         except serializers.ValidationError:

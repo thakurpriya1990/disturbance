@@ -2768,6 +2768,21 @@ class ProposalApiary(RevisionedMixin):
             approval = Approval.objects.filter(proxy_applicant=self.proposal.proxy_applicant, status=Approval.STATUS_CURRENT, apiary_approval=True).first()
         return approval
 
+    def create_transferee_approval(self):
+        from disturbance.components.models import Approval
+        approval = Approval.objects.create(
+            current_proposal = self,
+            defaults = {
+            'issue_date' : timezone.now(),
+            #'expiry_date' : details.get('expiry_date'),
+            #'start_date' : details.get('start_date'),
+            #'applicant' : self.proposal.applicant,
+            #'proxy_applicant' : self.proposal.proxy_applicant,
+            'apiary_approval': self.proposal.apiary_group_application_type,
+            }
+        )
+        return approval
+
     # ProposalApiary final approval
     def final_approval(self,request,details,preview=False):
         #import ipdb;ipdb.set_trace()
@@ -2783,6 +2798,14 @@ class ProposalApiary(RevisionedMixin):
                 #approval = self.proposal.approval
                 target_approval = self.target_approval
                 originating_approval = self.originating_approval
+                # New Licence creation for target_approval
+                if not target_approval and self.transferee_email_text:
+                    target_approval = self.create_transferee_approval()
+                    # set proposal_apiary requirements with sitetransfer_approval set to None to target_approval
+                    transferee_requirements = self.proposal.requirements.filter(sitetransfer_approval=None).exclude(is_deleted=True)
+                    for req in transferee_requirements:
+                        req.sitetransfer_approval = target_approval
+                        req.save()
 
             #approval = None
             #approval = self.retrieve_approval()
