@@ -749,9 +749,11 @@
                     let application_fee_paid = features[i].get('application_fee_paid')
 
                     if (application_fee_paid){
+                        console.log('1')
                         // For this apiary site, application fee has been already paid
                         // We should ignore this site interms of the calculation for the remainders and fees
                     } else {
+                        console.log('2')
                         if (site_status === 'vacant'){
                             if (site_category == 'south_west'){
                                 console.log('vacant south_west')
@@ -1004,6 +1006,8 @@
                         let coords = attributes.feature.getGeometry().getCoordinates()
 
                         if (vm.vacant_site_being_selected){
+                            console.log('vacant_site_being_selected')
+                            console.log(vm.vacant_site_being_selected)
                             // Abort drawing, instead 'vacant' site is to be added
                             drawTool.abortDrawing();
 
@@ -1110,9 +1114,16 @@
                         // Mouse hover in
                         console.log('in hoverInteraction')
                         console.log(evt.selected[0])
-                        if(evt.selected[0].get('is_vacant') === true && 
-                            evt.selected[0].get('making_payment') === false &&
-                            evt.selected[0].get('status') != 'pending'){
+                        
+                        let is_vacant = evt.selected[0].get('is_vacant')
+                        let making_payment = evt.selected[0].get('making_payment') || false
+                        let status = evt.selected[0].get('status')
+                        
+                        console.log('is_vacant: ' + is_vacant)
+                        console.log('making_payment: ' + making_payment)
+                        console.log('status: ' + status)
+
+                        if(is_vacant && !making_payment && status != 'pending'){
                             // When mouse hover on the 'vacant' apiary site, temporarily store it 
                             // so that it can be added to the new apiary site application when user clicking on it.
                             vm.vacant_site_being_selected = evt.selected[0]
