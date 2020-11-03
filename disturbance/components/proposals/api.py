@@ -96,9 +96,10 @@ from disturbance.components.proposals.serializers_apiary import (
     FullApiaryReferralSerializer,
     ProposalHistorySerializer,
     UserApiaryApprovalSerializer,
-    ApiarySiteOnProposalProcessedGeometrySerializer, 
+    ApiarySiteOnProposalProcessedGeometrySerializer,
     ApiarySiteOnProposalDraftGeometrySerializer,
-    ApiarySiteFeeSerializer,
+    ApiarySiteFeeSerializer, ApiarySiteOnProposalVacantDraftGeometrySerializer,
+    ApiarySiteOnProposalVacantProcessedGeometrySerializer,
 )
 from disturbance.components.approvals.models import Approval, ApiarySiteOnApproval
 from disturbance.components.approvals.serializers import ApprovalLogEntrySerializer
@@ -559,7 +560,7 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
     serializer_class = ApiarySiteSerializer
 
     def is_internal_system(self, request):
-        apiary_site_list_token = request.query_params.get('apiary_site_list_token', None)
+        apiary_site_list_token = request.query_params.get(ApiaryGlobalSettings.KEY_APIARY_SITES_LIST_TOKEN, None)
         if apiary_site_list_token:
             token = ApiaryGlobalSettings.objects.get(key=ApiaryGlobalSettings.KEY_APIARY_SITES_LIST_TOKEN)
             if apiary_site_list_token.lower() == token.value.lower():
@@ -636,8 +637,13 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
         # Retrieve 'vacant' sites
         qs_vacant_site_proposal, qs_vacant_site_approval = get_qs_vacant_site()
         # qs_vacant_site_proposal may not have the wkb_geometry_processed if the apiary site is the selected 'vacant' site
-        serializer_vacant_proposal_d = ApiarySiteOnProposalDraftGeometrySerializer(qs_vacant_site_proposal.filter(wkb_geometry_processed__isnull=True), many=True)
-        serializer_vacant_proposal = ApiarySiteOnProposalProcessedGeometrySerializer(qs_vacant_site_proposal.filter(wkb_geometry_processed__isnull=False), many=True)
+
+        # serializer_vacant_proposal_d = ApiarySiteOnProposalDraftGeometrySerializer(qs_vacant_site_proposal.filter(wkb_geometry_processed__isnull=True), many=True)
+        # serializer_vacant_proposal = ApiarySiteOnProposalProcessedGeometrySerializer(qs_vacant_site_proposal.filter(wkb_geometry_processed__isnull=False), many=True)
+        # serializer_vacant_approval = ApiarySiteOnApprovalGeometrySerializer(qs_vacant_site_approval, many=True)
+
+        serializer_vacant_proposal_d = ApiarySiteOnProposalVacantDraftGeometrySerializer(qs_vacant_site_proposal.filter(wkb_geometry_processed__isnull=True), many=True)
+        serializer_vacant_proposal = ApiarySiteOnProposalVacantProcessedGeometrySerializer(qs_vacant_site_proposal.filter(wkb_geometry_processed__isnull=False), many=True)
         serializer_vacant_approval = ApiarySiteOnApprovalGeometrySerializer(qs_vacant_site_approval, many=True)
 
         # ApiarySiteOnProposal
