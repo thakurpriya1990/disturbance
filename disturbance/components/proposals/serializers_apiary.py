@@ -558,6 +558,8 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
             'transferee_first_name',
             'transferee_last_name',
             'transferee_email_text', 
+            'transferee_id',
+            'target_approval_organisation_id',
         )
 
     def validate(self, attrs):
@@ -1472,7 +1474,7 @@ class UserApiaryApprovalSerializer(serializers.ModelSerializer):
                 'id': None,
                 'lodgement_number': None,
                 'licence_holder': obj.get_full_name(),
-                'licence_holder_id': obj.id,
+                'transferee_id': obj.id,
                 })
         #Organisation applications
         #import ipdb;ipdb.set_trace()
@@ -1491,7 +1493,8 @@ class UserApiaryApprovalSerializer(serializers.ModelSerializer):
                     'id': None,
                     'lodgement_number':None,
                     'licence_holder': user_delegation.organisation.name,
-                    'licence_holder_id': obj.id,
+                    'transferee_id': obj.id,
+                    'organisation_id': user_delegation.organisation.id,
                     })
             else:
                 # licence exists

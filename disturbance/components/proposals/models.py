@@ -2509,6 +2509,7 @@ class ProposalApiary(RevisionedMixin):
     transferee_email_text = models.CharField(max_length=200, null=True)
     originating_approval = models.ForeignKey('disturbance.Approval', blank=True, null=True, related_name="site_transfer_originating_approval")
     target_approval = models.ForeignKey('disturbance.Approval', blank=True, null=True, related_name="site_transfer_target_approval")
+    target_approval_organisation = models.ForeignKey(Organisation, blank=True, null=True)
 
     apiary_sites = models.ManyToManyField('ApiarySite', through=ApiarySiteOnProposal, related_name='proposal_apiary_set')
 

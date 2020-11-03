@@ -48,8 +48,9 @@
                                     <label>Select the licence you want to transfer to:</label>
                                     <div v-for="holder in licenceHolders">
                                         <!--input type="radio" name="approval_choice" :value="approval.id" v-model="proposal.proposal_apiary.selected_licence"/-->
-                                        <input type="radio" name="holder_choice" :value="holder" v-model="selectedLicenceHolder"/>
+                                        <input type="radio" name="holder_choice" :value="holder" v-model="selectedLicenceHolder" :disabled="readonlyLicenceHolders"/>
                                         <span v-if="holder.lodgement_number">
+
                                             {{ holder.licence_holder }}: Licence {{holder.lodgement_number}}
                                         </span>
                                         <span v-else>
@@ -289,8 +290,43 @@
                     this.$emit('site_transfer_application_fee', this.applicationFee);
                 });
             },
+            licenceHolders: function() {
+                this.$nextTick(() => {
+                    console.log(this.readonlyLicenceHolders)
+                    if (this.readonlyLicenceHolders) {
+                        // only one option available
+                        this.selectedLicenceHolder = this.licenceHolders[0];
+                    } else if (this.proposal.proposal_apiary.target_approval_id) {
+                        // approval has already been selected
+                        for (let holder of this.licenceHolders) {
+                            if (holder.id === this.proposal.proposal_apiary.target_approval_id) {
+                                this.selectedLicenceHolder = holder;
+                            }
+                        }
+                    } else if (this.proposal.proposal_apiary.transferee_id) {
+                        // transferee_id and/or target_approval_organisation_id have already been selected
+                        for (let holder of this.licenceHolders) {
+                            if (holder.transferee_id === this.proposal.proposal_apiary.transferee_id && 
+                                (!this.proposal.proposal_apiary.target_approval_organisation_id || 
+                                    this.proposal.proposal_apiary.target_approval_organisation_id === holder.organisation_id)
+                            ) {
+                                this.selectedLicenceHolder = holder;
+                            }
+                        }
+                    } else {
+                        this.selectedLicenceHolder = null;
+                    }
+                });
+            },
         },
         computed:{
+            readonlyLicenceHolders: function() {
+                let readonly = true;
+                if (this.licenceHolders && this.licenceHolders.length > 1) {
+                    readonly = false;
+                }
+                return readonly;
+            },
             remoteSiteTransferFee: function() {
                 let remoteFee = null;
                 if (this.siteTransferFees && this.siteTransferFees.length) {
@@ -455,6 +491,7 @@
                 return lodgement_number;
             },
             */
+            /*
             selectedLicence: function() {
                 let licence = null;
                 if (this.proposal && this.proposal.proposal_apiary && this.proposal.proposal_apiary.target_approval_lodgement_number) {
@@ -464,6 +501,7 @@
                 }
                 return licence;
             },
+            */
             /*
             site_transfer_apiary_sites: function(){
                 let sites = []
@@ -637,11 +675,11 @@
             if (this.proposal && this.proposal.proposal_apiary) {
                 this.transfereeEmail = this.proposal.proposal_apiary.transferee_email_text;
             }
-            /*
             this.$nextTick(() => {
-                this.$emit('site_transfer_application_fee', this.applicationFee);
+                if (this.transfereeEmail) {
+                    this.lookupTransferee();
+                }
             })
-            */
 
             //vm.form = document.forms.new_proposal;
             //window.addEventListener('beforeunload', vm.leaving);

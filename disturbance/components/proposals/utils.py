@@ -24,6 +24,7 @@ from disturbance.components.proposals.serializers_apiary import (
     ApiarySiteOnProposalDraftGeometrySaveSerializer
 )
 from disturbance.components.proposals.email import send_submit_email_notification, send_external_submit_email_notification
+from disturbance.components.organisations.models import Organisation
 
 import traceback
 import os
@@ -375,10 +376,31 @@ def save_proponent_data_apiary_site_transfer(proposal_obj, request, viewset):
 
             #import ipdb; ipdb.set_trace()
             transferee_email_text = request.data.get('transferee_email_text')
-            #transferee_email_text = proposal_apiary_data.get('transferee_email_text')
             if transferee_email_text:
                 proposal_obj.proposal_apiary.transferee_email_text = transferee_email_text
                 proposal_obj.proposal_apiary.save()
+            selected_licence_holder_str = request.data.get('selected_licence_holder')
+            selected_licence_holder = json.loads(selected_licence_holder_str)
+            if selected_licence_holder:
+                # for each path, ensure we remove any previously user selected licence holder data (target_approval, transferee, target_approval_organisation)
+                if not selected_licence_holder.get('id'):
+                    # new licence creation required
+                    if selected_licence_holder.get('organisation_id'):
+                        proposal_obj.proposal_apiary.target_approval_organisation = Organisation.objects.get(id=selected_licence_holder.get('organisation_id'))
+                        proposal_obj.proposal_apiary.transferee = EmailUser.objects.get(id=selected_licence_holder.get('transferee_id'))
+                        proposal_obj.proposal_apiary.target_approval = None
+                    else:
+                        proposal_obj.proposal_apiary.transferee = EmailUser.objects.get(id=selected_licence_holder.get('transferee_id'))
+                        proposal_obj.proposal_apiary.target_approval_organisation = None
+                        proposal_obj.proposal_apiary.target_approval = None
+                else:
+                    # Apiary licence already exists
+                    proposal_obj.proposal_apiary.transferee = None
+                    proposal_obj.proposal_apiary.target_approval_organisation = None
+                    proposal_obj.proposal_apiary.target_approval = Approval.objects.get(id=selected_licence_holder.get('id'))
+                # save for all paths
+                proposal_obj.proposal_apiary.save()
+
 
             apiary_sites_local = request.data.get('apiary_sites_local')
             if apiary_sites_local:
@@ -394,19 +416,16 @@ def save_proponent_data_apiary_site_transfer(proposal_obj, request, viewset):
                     site_transfer_apiary_site.internal_selected = checked_value
                     site_transfer_apiary_site.save()
 
-            selected_licence = proposal_apiary_data.get('selected_licence')
-            if selected_licence:
-                #target_approval = Approval.objects.get(id=selected_licence)
-                proposal_obj.proposal_apiary.target_approval = Approval.objects.get(id=selected_licence)
-                proposal_obj.proposal_apiary.save()
-                # 20200727 - don't do this any more
-                #proposal_obj.approval = approval
+            #selected_licence = proposal_apiary_data.get('selected_licence')
+            #if selected_licence:
+            #    proposal_obj.proposal_apiary.target_approval = Approval.objects.get(id=selected_licence)
+            #    proposal_obj.proposal_apiary.save()
 
             ## On submit, requirements need to be copied for originating and target approvals
             if viewset.action == 'submit':
                 # set transferee for applications without a target licence
-                proposal_obj.proposal_apiary.transferee = EmailUser.objects.get(email=proposal_obj.proposal_apiary.transferee_email_text)
-                proposal_obj.proposal_apiary.save()
+                #proposal_obj.proposal_apiary.transferee = EmailUser.objects.get(email=proposal_obj.proposal_apiary.transferee_email_text)
+                #proposal_obj.proposal_apiary.save()
                 # Find originating approval
                 originating_approval = proposal_obj.proposal_apiary.retrieve_approval
                 if originating_approval:
