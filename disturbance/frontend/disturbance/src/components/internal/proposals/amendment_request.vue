@@ -35,12 +35,12 @@
                                     <div class="form-group">
                                         <div class="input-group date" ref="add_attachments" style="width: 70%;">
                                             <!--FileField ref="filefield" :uploaded_documents="amendment.amendment_request_documents" :delete_url="delete_url" :proposal_id="proposal_id" isRepeatable="true" name="amendment_request_file" @refreshFromResponse="refreshFromResponse"/-->
-                                            <FileField 
-                                            ref="filefield" 
-                                            :uploaded_documents="amendment.amendment_request_documents" 
-                                            :delete_url="delete_url" 
-                                            :proposal_id="proposal_id" 
-                                            :isRepeatable="true" 
+                                            <FileField
+                                            ref="filefield"
+                                            :uploaded_documents="amendment.amendment_request_documents"
+                                            :delete_url="delete_url"
+                                            :proposal_id="proposal_id"
+                                            :isRepeatable="true"
                                             name="amendment_request_file"/>
                                         </div>
                                     </div>
@@ -67,7 +67,7 @@ export default {
     name:'amendment-request',
     components:{
         modal,
-        alert, 
+        alert,
         FileField,
     },
     props:{
@@ -130,14 +130,14 @@ export default {
             this.errors = false;
             $(this.$refs.reason).val(null).trigger('change');
             $('.has-error').removeClass('has-error');
-            
+
             this.validation_form.resetForm();
         },
         fetchAmendmentChoices: function(){
             let vm = this;
             vm.$http.get('/api/amendment_request_reason_choices.json').then((response) => {
                 vm.reason_choices = response.body;
-                
+
             },(error) => {
                 console.log(error);
             } );
@@ -166,9 +166,10 @@ export default {
                         emulateJSON:true,
                     }).then((response)=>{
                         //vm.$parent.loading.splice('processing contact',1);
+                        let proposal_or_licence = vm.is_apiary_proposal ? 'Licence' : 'Proposal'
                         swal(
                              'Sent',
-                             'An email has been sent to proponent with the request to amend this Proposal',
+                             'An email has been sent to proponent with the request to amend this ' + proposal_or_licence,
                              'success'
                         );
                         vm.amendingProposal = true;
@@ -177,20 +178,20 @@ export default {
                         Vue.http.get(`/api/proposal/${vm.proposal_id}/internal_proposal.json`).then((response)=>
                         {
                             vm.$emit('refreshFromResponse',response);
-                            
+
                         },(error)=>{
                             console.log(error);
                         });
                         vm.$router.push({ path: '/internal' }); //Navigate to dashboard after creating Amendment request
-                     
+
                     },(error)=>{
                         console.log(error);
                         vm.errors = true;
                         vm.errorString = helpers.apiVueResourceError(error);
                         vm.amendingProposal = true;
-                        
+
                     });
-                
+
 
         },
         addFormValidations: function() {
@@ -198,12 +199,12 @@ export default {
             vm.validation_form = $(vm.form).validate({
                 rules: {
                     reason: "required"
-                    
-                     
+
+
                 },
-                messages: {              
+                messages: {
                     reason: "field is required",
-                                         
+
                 },
                 showErrors: function(errorMap, errorList) {
                     $.each(this.validElements(), function(index, element) {
@@ -227,7 +228,7 @@ export default {
        },
        eventListerners:function () {
             let vm = this;
-            
+
             // Intialise select2
             $(vm.$refs.reason).select2({
                 "theme": "bootstrap",
@@ -251,7 +252,7 @@ export default {
        vm.form = document.forms.amendForm;
        vm.fetchAmendmentChoices();
        vm.addFormValidations();
-       this.$nextTick(()=>{  
+       this.$nextTick(()=>{
             vm.eventListerners();
         });
     //console.log(validate);
