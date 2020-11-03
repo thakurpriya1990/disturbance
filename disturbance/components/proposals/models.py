@@ -1215,7 +1215,8 @@ class Proposal(RevisionedMixin):
                 # Do not accept new start and expiry dates for Apiary group applications with a licence, unless the licence has been reissued
                 start_date = details.get('start_date').strftime('%d/%m/%Y') if details.get('start_date') else None
                 expiry_date = details.get('expiry_date').strftime('%d/%m/%Y') if details.get('expiry_date') else None
-                if self.apiary_group_application_type:
+                #if self.apiary_group_application_type:
+                if self.application_type.name == 'Apiary':
                     if self.approval and (self.approval.reissued or self.proposal_type == 'renewal'):
                         self.proposed_issuance_approval = {
                             'start_date' : start_date,
@@ -1237,7 +1238,7 @@ class Proposal(RevisionedMixin):
                                 'details' : details.get('details'),
                                 'cc_email' : details.get('cc_email'),
                         }
-                # non-apiary Proposals
+                # non-apiary Proposals & Apiary Site Transfers
                 else:
                     self.proposed_issuance_approval = {
                             'start_date' : start_date,
@@ -2510,6 +2511,8 @@ class ProposalApiary(RevisionedMixin):
     originating_approval = models.ForeignKey('disturbance.Approval', blank=True, null=True, related_name="site_transfer_originating_approval")
     target_approval = models.ForeignKey('disturbance.Approval', blank=True, null=True, related_name="site_transfer_target_approval")
     target_approval_organisation = models.ForeignKey(Organisation, blank=True, null=True)
+    target_approval_start_date = models.DateField(blank=True, null=True)
+    target_approval_expiry_date = models.DateField(blank=True, null=True)
 
     apiary_sites = models.ManyToManyField('ApiarySite', through=ApiarySiteOnProposal, related_name='proposal_apiary_set')
 
@@ -2769,44 +2772,25 @@ class ProposalApiary(RevisionedMixin):
             approval = Approval.objects.filter(proxy_applicant=self.proposal.proxy_applicant, status=Approval.STATUS_CURRENT, apiary_approval=True).first()
         return approval
 
-    def create_transferee_approval(self):
-        from disturbance.components.models import Approval
+    def create_transferee_approval(self, details, applicant=None, proxy_applicant=None):
+        import ipdb;ipdb.set_trace()
+        from disturbance.components.approvals.models import Approval
         approval = Approval.objects.create(
-            current_proposal = self,
-            defaults = {
-            'issue_date' : timezone.now(),
-            #'expiry_date' : details.get('expiry_date'),
-            #'start_date' : details.get('start_date'),
-            #'applicant' : self.proposal.applicant,
-            #'proxy_applicant' : self.proposal.proxy_applicant,
-            'apiary_approval': self.proposal.apiary_group_application_type,
-            }
+            current_proposal = self.proposal,
+            issue_date= timezone.now(),
+            start_date= details.get('start_date'),
+            expiry_date= details.get('expiry_date'),
+            applicant= applicant,
+            proxy_applicant= proxy_applicant,
+            apiary_approval= self.proposal.apiary_group_application_type,
         )
         return approval
 
     # ProposalApiary final approval
     def final_approval(self,request,details,preview=False):
-        #import ipdb;ipdb.set_trace()
         from disturbance.components.approvals.models import Approval
         #with transaction.atomic():
         try:
-            approval = None
-            if self.proposal.application_type.name == 'Apiary':
-            #if self.proposal.application_type.name == ApplicationType.APIARY:
-                approval = self.retrieve_approval
-            elif self.proposal.application_type.name == 'Site Transfer':
-            #elif self.proposal.application_type.name == ApplicationType.SITE_TRANSFER:
-                #approval = self.proposal.approval
-                target_approval = self.target_approval
-                originating_approval = self.originating_approval
-                # New Licence creation for target_approval
-                if not target_approval and self.transferee_email_text:
-                    target_approval = self.create_transferee_approval()
-                    # set proposal_apiary requirements with sitetransfer_approval set to None to target_approval
-                    transferee_requirements = self.proposal.requirements.filter(sitetransfer_approval=None).exclude(is_deleted=True)
-                    for req in transferee_requirements:
-                        req.sitetransfer_approval = target_approval
-                        req.save()
 
             #approval = None
             #approval = self.retrieve_approval()
@@ -2827,6 +2811,28 @@ class ProposalApiary(RevisionedMixin):
                     'cc_email' : details.get('cc_email'),
             }
             self.save()
+
+            approval = None
+            if self.proposal.application_type.name == 'Apiary':
+            #if self.proposal.application_type.name == ApplicationType.APIARY:
+                approval = self.retrieve_approval
+            elif self.proposal.application_type.name == 'Site Transfer':
+            #elif self.proposal.application_type.name == ApplicationType.SITE_TRANSFER:
+                #approval = self.proposal.approval
+                target_approval = self.target_approval
+                originating_approval = self.originating_approval
+                # New Licence creation for target_approval
+                if not target_approval:
+                    if self.target_approval_organisation:
+                        target_approval = self.create_transferee_approval(details, applicant=Organisation.objects.get(id=self.target_approval_organisation_id))
+                    else:
+                        target_approval = self.create_transferee_approval(details, proxy_applicant=EmailUser.objects.get(id=self.transferee_id))
+                    self.target_approval = target_approval
+                    # set proposal_apiary requirements with sitetransfer_approval set to None to target_approval
+                    transferee_requirements = self.proposal.requirements.filter(sitetransfer_approval=None).exclude(is_deleted=True)
+                    for req in transferee_requirements:
+                        req.sitetransfer_approval = target_approval
+                        req.save()
 
             self.proposal.proposed_decline_status = False
             self.proposal.processing_status = 'approved'
@@ -3178,6 +3184,7 @@ class ProposalApiary(RevisionedMixin):
                     originating_approval.documents.all().update(can_delete=False)
                     target_approval.documents.all().update(can_delete=False)
 
+            return self
         except:
             raise
 

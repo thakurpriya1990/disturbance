@@ -79,7 +79,12 @@
                         </div>
                     </div>
                     <div class="col-sm-8">
-                        Licence: {{ targetApprovalLodgementNumber }}
+                        <span v-if="targetApprovalLodgementNumber">
+                            Licence: {{ targetApprovalLodgementNumber }}
+                        </span>
+                        <span v-else>
+                            Licence: to be created
+                        </span>
                     </div>
                 </div>
                 <!--/span-->

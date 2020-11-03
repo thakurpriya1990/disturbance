@@ -592,24 +592,32 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
          #   name = obj.proposal.approval.relevant_applicant_name
         if obj.target_approval:
             name = obj.target_approval.relevant_applicant_name
+        else:
+            name = obj.transferee.get_full_name()
         return name
 
     def get_transferee_org_name(self, obj):
         name = None
         if obj.target_approval and obj.target_approval.applicant:
             name = obj.target_approval.applicant.name
+        elif obj.target_approval_organisation:
+            name = obj.target_approval_organisation.name
         return name
 
     def get_transferee_first_name(self, obj):
         name = None
         if obj.target_approval and obj.target_approval.proxy_applicant:
             name = obj.target_approval.proxy_applicant.first_name
+        else:
+            name = obj.transferee.first_name
         return name
 
     def get_transferee_last_name(self, obj):
         name = None
         if obj.target_approval and obj.target_approval.proxy_applicant:
             name = obj.target_approval.proxy_applicant.last_name
+        else:
+            name = obj.transferee.last_name
         return name
 
     def get_target_approval_lodgement_number(self, obj):
