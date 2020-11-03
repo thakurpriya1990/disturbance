@@ -533,11 +533,11 @@ export default {
                 this.approval.originating_target = originating_target;
             }
             this.approval.apiary_sites = this.apiary_sites_updated
-            if (!this.startDateCanBeModified){
+            if (!this.startDateCanBeModified && !this.siteTransferApplication){
                 // There is an existing licence. Therefore start_date and expiry_date are fixed to that dates
                 this.approval.start_date = moment(this.proposal.approval.start_date, 'YYYY-MM-DD').format('DD/MM/YYYY')
             }
-            if (!this.expiryDateCanBeModified){
+            if (!this.expiryDateCanBeModified && !this.siteTransferApplication){
                 // There is an existing licence. Therefore start_date and expiry_date are fixed to that dates
                 this.approval.expiry_date = moment(this.proposal.approval.expiry_date, 'YYYY-MM-DD').format('DD/MM/YYYY')
             }
@@ -606,11 +606,11 @@ export default {
             */
             //vm.approval.apiary_sites = vm.proposal.proposal_apiary.apiary_sites
             vm.approval.apiary_sites = vm.apiary_sites_updated
-            if (!this.startDateCanBeModified || (this.siteTransferApplication && !this.siteTransferTransferApprovalExists)){
+            if (!this.startDateCanBeModified  && !this.siteTransferApplication){
                 // There is an existing licence. Therefore start_date and expiry_date are fixed to that dates
                 this.approval.start_date = moment(this.proposal.approval.start_date, 'YYYY-MM-DD').format('DD/MM/YYYY')
             }
-            if (!this.expiryDateCanBeModified || (this.siteTransferApplication && !this.siteTransferTransferApprovalExists)){
+            if (!this.expiryDateCanBeModified && !this.siteTransferApplication){
                 // There is an existing licence. Therefore start_date and expiry_date are fixed to that dates
                 this.approval.expiry_date = moment(this.proposal.approval.expiry_date, 'YYYY-MM-DD').format('DD/MM/YYYY')
             }

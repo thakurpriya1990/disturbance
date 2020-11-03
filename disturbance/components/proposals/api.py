@@ -870,7 +870,7 @@ class ProposalApiaryViewSet(viewsets.ModelViewSet):
                         preview_approval_id = serializer.data.get('proposal_apiary', {}).get('originating_approval_id')
                     else:
                         #preview_approval_id = serializer.data.get('proposal_apiary', {}).get('target_approval_id')
-                        import ipdb; ipdb.set_trace()
+                        #import ipdb; ipdb.set_trace()
                         preview_approval_id = instance.target_approval_id
                 else:
                     preview_approval_id = serializer.data.get('approval', {}).get('id')

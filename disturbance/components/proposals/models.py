@@ -2773,7 +2773,7 @@ class ProposalApiary(RevisionedMixin):
         return approval
 
     def create_transferee_approval(self, details, applicant=None, proxy_applicant=None):
-        import ipdb;ipdb.set_trace()
+        #import ipdb;ipdb.set_trace()
         from disturbance.components.approvals.models import Approval
         approval = Approval.objects.create(
             current_proposal = self.proposal,
