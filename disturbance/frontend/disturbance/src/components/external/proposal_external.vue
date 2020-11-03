@@ -466,8 +466,13 @@ export default {
                 //console.log(this.$refs.apiary_site_transfer.site_transfer_apiary_sites)
                 formData.append('apiary_sites_local', JSON.stringify(this.$refs.apiary_site_transfer.apiary_sites_local));
             }
+            if (this.$refs.apiary_site_transfer && this.$refs.apiary_site_transfer.selectedLicenceHolder){
+                //let selectedLicenceHolder = this.$refs.apiary_site_transfer.selectedLicenceHolder
+                formData.append('selected_licence_holder', JSON.stringify(this.$refs.apiary_site_transfer.selectedLicenceHolder));
+            }
             if (this.$refs.apiary_site_transfer && this.$refs.apiary_site_transfer.transfereeEmail){
-                formData.append('transferee_email_text', this.$refs.apiary_site_transfer.transfereeEmail);
+                let transfereeEmail = this.$refs.apiary_site_transfer.transfereeEmail
+                formData.append('transferee_email_text', transfereeEmail);
             }
 
             vm.$http.post(vm.proposal_form_url, formData).then(
@@ -798,17 +803,14 @@ export default {
                 //console.log(this.$refs.apiary_site_transfer.site_transfer_apiary_sites)
                 formData.append('apiary_sites_local', JSON.stringify(this.$refs.apiary_site_transfer.apiary_sites_local));
             }
+            if (this.$refs.apiary_site_transfer && this.$refs.apiary_site_transfer.selectedLicenceHolder){
+                //let selectedLicenceHolder = this.$refs.apiary_site_transfer.selectedLicenceHolder
+                formData.append('selected_licence_holder', JSON.stringify(this.$refs.apiary_site_transfer.selectedLicenceHolder));
+            }
             if (this.$refs.apiary_site_transfer && this.$refs.apiary_site_transfer.transfereeEmail){
-                formData.append('transferee_email_text', JSON.stringify(this.$refs.apiary_site_transfer.transfereeEmail));
+                let transfereeEmail = this.$refs.apiary_site_transfer.transfereeEmail
+                formData.append('transferee_email_text', transfereeEmail);
             }
-            /*
-            if (this.$refs.apiary_site_transfer && this.$refs.apiary_site_transfer.apiary_sites_local) {
-                //console.log(this.$refs.apiary_site_transfer.site_transfer_apiary_sites)
-                formData.append('apiary_sites_local', JSON.stringify(this.$refs.apiary_site_transfer.apiary_sites_local));
-                formData.append('transferee_email_text', JSON.stringify(this.$refs.apiary_site_transfer.transfereeEmail));
-            }
-            */
-
             vm.$http.post(vm.proposal_submit_url, formData).then(
                 res=>{
                     /* after the above save, redirect to the Django post() method in ApplicationFeeView */

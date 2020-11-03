@@ -8,53 +8,101 @@
                         <alert :show.sync="showError" type="danger"><strong>{{errorString}}</strong></alert>
                         <div class="col-sm-12">
 
-                            <div v-if="!siteTransferApplication" class="form-group">
-                                <div class="row">
-                                    <div class="col-sm-3">
-                                        <label v-if="processing_status == 'With Approver'" class="control-label pull-left"  for="Name">Start Date</label>
-                                        <label v-else class="control-label pull-left"  for="Name">Proposed Start Date</label>
+                            <div v-if="!siteTransferApplication">
+                                <div class="form-group">
+                                    <div class="row">
+                                        <div class="col-sm-3">
+                                            <label v-if="processing_status == 'With Approver'" class="control-label pull-left"  for="Name">Start Date</label>
+                                            <label v-else class="control-label pull-left"  for="Name">Proposed Start Date</label>
+                                        </div>
+                                        <div class="col-sm-9">
+                                            <template v-if="!startDateCanBeModified">
+                                                {{ proposal.approval.start_date }}
+                                            </template>
+                                            <template v-else>
+                                                <div class="input-group date" ref="start_date" style="width: 70%;">
+                                                    <input type="text" class="form-control" name="start_date" placeholder="DD/MM/YYYY" v-model="approval.start_date">
+                                                    <span class="input-group-addon">
+                                                        <span class="glyphicon glyphicon-calendar"></span>
+                                                    </span>
+                                                </div>
+                                            </template>
+                                        </div>
                                     </div>
-                                    <div class="col-sm-9">
-                                        <template v-if="!startDateCanBeModified">
-                                            {{ proposal.approval.start_date }}
-                                        </template>
-                                        <template v-else>
-                                            <div class="input-group date" ref="start_date" style="width: 70%;">
-                                                <input type="text" class="form-control" name="start_date" placeholder="DD/MM/YYYY" v-model="approval.start_date">
-                                                <span class="input-group-addon">
-                                                    <span class="glyphicon glyphicon-calendar"></span>
-                                                </span>
-                                            </div>
-                                        </template>
+                                    <div class="row" v-show="showstartDateError">
+                                        <alert  class="col-sm-12" type="danger"><strong>{{startDateErrorString}}</strong></alert>
                                     </div>
                                 </div>
-                                <div class="row" v-show="showstartDateError">
-                                    <alert  class="col-sm-12" type="danger"><strong>{{startDateErrorString}}</strong></alert>
+
+                                <div class="form-group">
+                                    <div class="row">
+                                        <div class="col-sm-3">
+                                            <label v-if="processing_status == 'With Approver'" class="control-label pull-left"  for="Name">Expiry Date</label>
+                                            <label v-else class="control-label pull-left"  for="Name">Proposed Expiry Date</label>
+                                        </div>
+                                        <div class="col-sm-9">
+                                            <template v-if="!expiryDateCanBeModified">
+                                                {{ proposal.approval.expiry_date }}
+                                            </template>
+                                            <template v-else>
+                                                <div class="input-group date" ref="due_date" style="width: 70%;">
+                                                    <input type="text" class="form-control" name="due_date" placeholder="DD/MM/YYYY" v-model="approval.expiry_date" :readonly="is_amendment">
+                                                    <span class="input-group-addon">
+                                                        <span class="glyphicon glyphicon-calendar"></span>
+                                                    </span>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </div>
+                                    <div class="row" v-show="showtoDateError">
+                                        <alert  class="col-sm-12" type="danger"><strong>{{toDateErrorString}}</strong></alert>
+                                    </div>
                                 </div>
                             </div>
-
-                            <div v-if="!siteTransferApplication" class="form-group">
-                                <div class="row">
-                                    <div class="col-sm-3">
-                                        <label v-if="processing_status == 'With Approver'" class="control-label pull-left"  for="Name">Expiry Date</label>
-                                        <label v-else class="control-label pull-left"  for="Name">Proposed Expiry Date</label>
+                            <div v-else>
+                                <div v-if="!siteTransferTargetApprovalExists" class="form-group">
+                                    <div class="row">
+                                        <div class="col-sm-3">
+                                            <label v-if="processing_status == 'With Approver'" class="control-label pull-left"  for="Name">Start Date</label>
+                                            <label v-else class="control-label pull-left"  for="Name">Proposed Start Date</label>
+                                        </div>
+                                        <div class="col-sm-9">
+                                            <template>
+                                                <div class="input-group date" ref="start_date" style="width: 70%;">
+                                                    <input type="text" class="form-control" name="start_date" placeholder="DD/MM/YYYY" v-model="approval.start_date">
+                                                    <span class="input-group-addon">
+                                                        <span class="glyphicon glyphicon-calendar"></span>
+                                                    </span>
+                                                </div>
+                                            </template>
+                                        </div>
                                     </div>
-                                    <div class="col-sm-9">
-                                        <template v-if="!expiryDateCanBeModified">
-                                            {{ proposal.approval.expiry_date }}
-                                        </template>
-                                        <template v-else>
-                                            <div class="input-group date" ref="due_date" style="width: 70%;">
-                                                <input type="text" class="form-control" name="due_date" placeholder="DD/MM/YYYY" v-model="approval.expiry_date" :readonly="is_amendment">
-                                                <span class="input-group-addon">
-                                                    <span class="glyphicon glyphicon-calendar"></span>
-                                                </span>
-                                            </div>
-                                        </template>
+                                    <div class="row" v-show="showstartDateError">
+                                        <alert  class="col-sm-12" type="danger"><strong>{{startDateErrorString}}</strong></alert>
                                     </div>
                                 </div>
-                                <div class="row" v-show="showtoDateError">
-                                    <alert  class="col-sm-12" type="danger"><strong>{{toDateErrorString}}</strong></alert>
+
+                                <div v-if="!siteTransferTargetApprovalExists" class="form-group">
+                                    <div class="row">
+                                        <div class="col-sm-3">
+                                            <label v-if="processing_status == 'With Approver'" class="control-label pull-left"  for="Name">Expiry Date</label>
+                                            <label v-else class="control-label pull-left"  for="Name">Proposed Expiry Date</label>
+                                        </div>
+                                        <div class="col-sm-9">
+                                            <template>
+                                                <div class="input-group date" ref="due_date" style="width: 70%;">
+                                                    <input type="text" class="form-control" name="due_date" placeholder="DD/MM/YYYY" v-model="approval.expiry_date">
+                                                    <span class="input-group-addon">
+                                                        <span class="glyphicon glyphicon-calendar"></span>
+                                                    </span>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </div>
+                                    <div class="row" v-show="showtoDateError">
+                                        <alert  class="col-sm-12" type="danger"><strong>{{toDateErrorString}}</strong></alert>
+                                    </div>
+
                                 </div>
                             </div>
 
@@ -310,6 +358,13 @@ export default {
             }
             return siteTransfer;
         },
+        siteTransferTargetApprovalExists: function() {
+            let targetApprovalExists = false;
+            if (this.proposal.proposal_apiary && this.proposal.proposal_apiary.target_approval) {
+                targetApprovalExists = true;
+            }
+            return targetApprovalExists;
+        },
     },
     watch: {
 
@@ -470,7 +525,8 @@ export default {
             } );
         },
         previewData:function(originating_target=null){
-            let previewWindow = window.open(' ', '_blank');
+            //let previewWindow = window.open(' ', '_blank');
+            let previewWindow = window.open();
 
             console.log("previewData")
             this.approval.preview = true;
@@ -478,11 +534,11 @@ export default {
                 this.approval.originating_target = originating_target;
             }
             this.approval.apiary_sites = this.apiary_sites_updated
-            if (!this.startDateCanBeModified){
+            if (!this.startDateCanBeModified && !this.siteTransferApplication){
                 // There is an existing licence. Therefore start_date and expiry_date are fixed to that dates
                 this.approval.start_date = moment(this.proposal.approval.start_date, 'YYYY-MM-DD').format('DD/MM/YYYY')
             }
-            if (!this.expiryDateCanBeModified){
+            if (!this.expiryDateCanBeModified && !this.siteTransferApplication){
                 // There is an existing licence. Therefore start_date and expiry_date are fixed to that dates
                 this.approval.expiry_date = moment(this.proposal.approval.expiry_date, 'YYYY-MM-DD').format('DD/MM/YYYY')
             }
@@ -551,11 +607,11 @@ export default {
             */
             //vm.approval.apiary_sites = vm.proposal.proposal_apiary.apiary_sites
             vm.approval.apiary_sites = vm.apiary_sites_updated
-            if (!this.startDateCanBeModified){
+            if (!this.startDateCanBeModified  && !this.siteTransferApplication){
                 // There is an existing licence. Therefore start_date and expiry_date are fixed to that dates
                 this.approval.start_date = moment(this.proposal.approval.start_date, 'YYYY-MM-DD').format('DD/MM/YYYY')
             }
-            if (!this.expiryDateCanBeModified){
+            if (!this.expiryDateCanBeModified && !this.siteTransferApplication){
                 // There is an existing licence. Therefore start_date and expiry_date are fixed to that dates
                 this.approval.expiry_date = moment(this.proposal.approval.expiry_date, 'YYYY-MM-DD').format('DD/MM/YYYY')
             }

@@ -854,7 +854,8 @@ class ProposalApiaryViewSet(viewsets.ModelViewSet):
         with transaction.atomic():
             instance = self.get_object()
             if instance.proposal.application_type.name == ApplicationType.SITE_TRANSFER:
-                serializer = ProposedApprovalSiteTransferSerializer(data=request.data)
+                #serializer = ProposedApprovalSiteTransferSerializer(data=request.data)
+                serializer = ProposedApprovalSerializer(data=request.data)
                 serializer.is_valid(raise_exception=True)
             else:
                 serializer = ProposedApprovalSerializer(data=request.data)
@@ -862,7 +863,7 @@ class ProposalApiaryViewSet(viewsets.ModelViewSet):
             #serializer = ProposedApprovalSerializer(data=request.data)
             #serializer.is_valid(raise_exception=True)
             preview = request.data.get('preview')
-            instance.final_approval(request,serializer.validated_data,preview=preview)
+            instance = instance.final_approval(request,serializer.validated_data,preview=preview)
             #serializer = InternalProposalSerializer(instance,context={'request':request})
             serializer_class = self.internal_apiary_serializer_class()
             serializer = serializer_class(instance.proposal,context={'request':request})
@@ -874,7 +875,9 @@ class ProposalApiaryViewSet(viewsets.ModelViewSet):
                     if originating_target == 'originating':
                         preview_approval_id = serializer.data.get('proposal_apiary', {}).get('originating_approval_id')
                     else:
-                        preview_approval_id = serializer.data.get('proposal_apiary', {}).get('target_approval_id')
+                        #preview_approval_id = serializer.data.get('proposal_apiary', {}).get('target_approval_id')
+                        #import ipdb; ipdb.set_trace()
+                        preview_approval_id = instance.target_approval_id
                 else:
                     preview_approval_id = serializer.data.get('approval', {}).get('id')
                 licence_response = HttpResponse(content_type='application/pdf')
@@ -890,7 +893,7 @@ class ProposalApiaryViewSet(viewsets.ModelViewSet):
             return Response(serializer.data)
 
     @detail_route(methods=['POST', ])
-    def get_apiary_approvals(self, request, *args, **kwargs):
+    def get_licence_holders(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
             user = None
@@ -1444,13 +1447,15 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
     @detail_route(methods=['GET',])
     def apiary_site_transfer_target_approval_requirements(self, request, *args, **kwargs):
+        # for new licences, sitetransfer_approval is None
         try:
             instance = self.get_object()
-            #qs = instance.requirements.all()
-            #qs = instance.requirements.all().exclude(is_deleted=True)
-            approval = Approval.objects.get(id=instance.proposal_apiary.target_approval_id)
-            qs = instance.apiary_requirements(approval).exclude(is_deleted=True)
-            #qs = instance.apiary_site_transfer_originatingrequirements(approval_id).exclude(is_deleted=True)
+            if instance.proposal_apiary.target_approval_id:
+                approval = Approval.objects.get(id=instance.proposal_apiary.target_approval_id)
+                qs = instance.apiary_requirements(approval).exclude(is_deleted=True)
+            else:
+                qs = instance.apiary_requirements().exclude(is_deleted=True)
+
             serializer = ProposalRequirementSerializer(qs,many=True)
             return Response(serializer.data)
         except serializers.ValidationError:
@@ -1717,7 +1722,8 @@ class ProposalViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             if instance.application_type.name == ApplicationType.SITE_TRANSFER:
-                serializer = ProposedApprovalSiteTransferSerializer(data=request.data)
+                #serializer = ProposedApprovalSiteTransferSerializer(data=request.data)
+                serializer = ProposedApprovalSerializer(data=request.data)
                 serializer.is_valid(raise_exception=True)
             else:
                 serializer = ProposedApprovalSerializer(data=request.data)

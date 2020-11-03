@@ -33,7 +33,7 @@
                             v-model="transfereeEmail"
                             :readonly="readonly"
                         />
-                        <input type="button" @click="lookupTransferee" value="Find existing licence" class="btn btn-primary">
+                        <input type="button" @click="lookupTransferee" value="Find licence details" class="btn btn-primary">
                     </div>
                     <div class="form-group">
                             <div class="col-sm-12">
@@ -43,12 +43,19 @@
                                 <div v-if="lookupNotification">
                                     {{lookupNotification}}
                                 </div>
-                                <div v-else-if="apiaryApprovals && apiaryApprovals.length">
+                                <div v-else-if="licenceHolders && licenceHolders.length">
                                     <!--label class="col-sm-6 emailLabel">Select the licence you want to transfer to:</label-->
                                     <label>Select the licence you want to transfer to:</label>
-                                    <div v-for="approval in apiaryApprovals">
-                                        <input type="radio" name="approval_choice" :value="approval.id" v-model="proposal.proposal_apiary.selected_licence"/>
-                                        Licence: {{approval.lodgement_number}}  ({{ approval.licence_holder }})
+                                    <div v-for="holder in licenceHolders">
+                                        <!--input type="radio" name="approval_choice" :value="approval.id" v-model="proposal.proposal_apiary.selected_licence"/-->
+                                        <input type="radio" name="holder_choice" :value="holder" v-model="selectedLicenceHolder" :disabled="readonlyLicenceHolders"/>
+                                        <span v-if="holder.lodgement_number">
+
+                                            {{ holder.licence_holder }}: Licence {{holder.lodgement_number}}
+                                        </span>
+                                        <span v-else>
+                                            {{ holder.licence_holder }}: create new licence
+                                        </span>
                                     </div>
                                 </div>
                                 <div v-else-if="targetApprovalLodgementNumber">
@@ -72,7 +79,12 @@
                         </div>
                     </div>
                     <div class="col-sm-8">
-                        Licence: {{ targetApprovalLodgementNumber }}
+                        <span v-if="targetApprovalLodgementNumber">
+                            Licence: {{ targetApprovalLodgementNumber }}
+                        </span>
+                        <span v-else>
+                            Licence: to be created
+                        </span>
                     </div>
                 </div>
                 <!--/span-->
@@ -258,10 +270,11 @@
                 checklist_answers : [],
                 transfereeEmail: '',
                 //apiaryApprovals: {},
-                apiaryApprovals: null,
+                //apiaryApprovals: null,
+                licenceHolders: null,
                 lookupErrorText: '',
                 lookupNotification: '',
-                //selectedLicence: null,
+                selectedLicenceHolder: null,
                 component_site_selection_key: '',
                 apiary_sites_local: [],
                 siteTransferFees: [],
@@ -282,8 +295,43 @@
                     this.$emit('site_transfer_application_fee', this.applicationFee);
                 });
             },
+            licenceHolders: function() {
+                this.$nextTick(() => {
+                    console.log(this.readonlyLicenceHolders)
+                    if (this.readonlyLicenceHolders) {
+                        // only one option available
+                        this.selectedLicenceHolder = this.licenceHolders[0];
+                    } else if (this.proposal.proposal_apiary.target_approval_id) {
+                        // approval has already been selected
+                        for (let holder of this.licenceHolders) {
+                            if (holder.id === this.proposal.proposal_apiary.target_approval_id) {
+                                this.selectedLicenceHolder = holder;
+                            }
+                        }
+                    } else if (this.proposal.proposal_apiary.transferee_id) {
+                        // transferee_id and/or target_approval_organisation_id have already been selected
+                        for (let holder of this.licenceHolders) {
+                            if (holder.transferee_id === this.proposal.proposal_apiary.transferee_id && 
+                                (!this.proposal.proposal_apiary.target_approval_organisation_id || 
+                                    this.proposal.proposal_apiary.target_approval_organisation_id === holder.organisation_id)
+                            ) {
+                                this.selectedLicenceHolder = holder;
+                            }
+                        }
+                    } else {
+                        this.selectedLicenceHolder = null;
+                    }
+                });
+            },
         },
         computed:{
+            readonlyLicenceHolders: function() {
+                let readonly = true;
+                if (this.licenceHolders && this.licenceHolders.length > 1) {
+                    readonly = false;
+                }
+                return readonly;
+            },
             remoteSiteTransferFee: function() {
                 let remoteFee = null;
                 if (this.siteTransferFees && this.siteTransferFees.length) {
@@ -448,6 +496,7 @@
                 return lodgement_number;
             },
             */
+            /*
             selectedLicence: function() {
                 let licence = null;
                 if (this.proposal && this.proposal.proposal_apiary && this.proposal.proposal_apiary.target_approval_lodgement_number) {
@@ -457,6 +506,7 @@
                 }
                 return licence;
             },
+            */
             /*
             site_transfer_apiary_sites: function(){
                 let sites = []
@@ -577,19 +627,22 @@
                 console.log(this.transfereeEmail);
                 //let url = `/api/proposal_apiary/${this.proposal.proposal_apiary.id}/get_apiary_approvals.json`
                 Vue.http.post(helpers.add_endpoint_json(
-                    api_endpoints.proposal_apiary,this.proposal.proposal_apiary.id+'/get_apiary_approvals'),
+                    api_endpoints.proposal_apiary,this.proposal.proposal_apiary.id+'/get_licence_holders'),
                     //data,{
                     {
                         'user_email': this.transfereeEmail,
                         'originating_approval_id': this.proposal.proposal_apiary.originating_approval_id,
                     }).then(res => {
                         console.log(res.body);
-                        if (res.body && res.body.apiary_approvals) {
-                            this.apiaryApprovals = res.body.apiary_approvals.approvals;
-                            if (this.apiaryApprovals.length < 1) {
+                        if (res.body && res.body.licence_holders) {
+                            this.licenceHolders = res.body.licence_holders.licence_holders;
+                            //this.apiaryApprovals = res.body.apiary_approvals.approvals;
+                            /*
+                            if (this.licenceHolders.length < 1) {
                                 //this.lookupErrorText = 'No current licence for the transferee';
                                 this.lookupNotification = 'No current licence for the transferee - one will be created';
                             }
+                            */
                         } else {
                             this.lookupErrorText = res.body;
                         }
@@ -627,11 +680,11 @@
             if (this.proposal && this.proposal.proposal_apiary) {
                 this.transfereeEmail = this.proposal.proposal_apiary.transferee_email_text;
             }
-            /*
             this.$nextTick(() => {
-                this.$emit('site_transfer_application_fee', this.applicationFee);
+                if (this.transfereeEmail) {
+                    this.lookupTransferee();
+                }
             })
-            */
 
             //vm.form = document.forms.new_proposal;
             //window.addEventListener('beforeunload', vm.leaving);
