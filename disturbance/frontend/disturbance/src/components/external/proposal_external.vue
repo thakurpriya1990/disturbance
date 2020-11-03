@@ -157,7 +157,7 @@
                                 <input type="button" @click.prevent="save_exit" class="btn btn-primary" value="Save and Exit"/>
                                 <input type="button" @click.prevent="save(true)" class="btn btn-primary" value="Save and Continue"/>
                                 <div v-if="proposal_type_name==='transfer'">
-                                    <input v-if="!isSubmitting" type="button" @click.prevent="submit" class="btn btn-primary" value="Pay and Submit"/>
+                                    <input v-if="!isSubmitting" type="button" @click.prevent="submit" class="btn btn-primary" value="Pay and Submit" :disabled="pay_button_disabled"/>
                                     <button v-else disabled class="btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Submitting</button>
                                 </div>
                                 <div v-else>
@@ -223,6 +223,7 @@ export default {
             sectionShow: true,
             //submit_button_text: 'Pay and submit',
             submit_button_text: 'Submit',
+            pay_button_disabled: true,
 
             // Fee
             total_fee_south_west: 0,
@@ -361,6 +362,13 @@ export default {
                 this.submit_button_text = 'Pay and Submit'
             } else {
                 this.submit_button_text = 'Submit'
+            }
+        },
+        siteTransferApplicationFee: function(){
+            if (this.siteTransferApplicationFee> 0){
+                this.pay_button_disabled = false
+            } else {
+                this.pay_button_disabled = true
             }
         }
     },
