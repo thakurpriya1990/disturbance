@@ -1112,16 +1112,9 @@
                 hoverInteraction.on('select', function(evt){
                     if(evt.selected.length > 0){
                         // Mouse hover in
-                        console.log('in hoverInteraction')
-                        console.log(evt.selected[0])
-                        
                         let is_vacant = evt.selected[0].get('is_vacant')
                         let making_payment = evt.selected[0].get('making_payment') || false
                         let status = evt.selected[0].get('status')
-                        
-                        console.log('is_vacant: ' + is_vacant)
-                        console.log('making_payment: ' + making_payment)
-                        console.log('status: ' + status)
 
                         if(is_vacant && !making_payment && status != 'pending'){
                             // When mouse hover on the 'vacant' apiary site, temporarily store it 
@@ -1133,6 +1126,9 @@
                             vm.vacant_site_being_selected.setStyle(style_applied)
                         }
                         else {
+
+                        }
+                        if (vm.$route.query.debug === 'true'){
                             console.log(evt.selected[0])
                         }
                     } else {
