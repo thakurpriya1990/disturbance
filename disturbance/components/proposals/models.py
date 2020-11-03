@@ -1295,13 +1295,20 @@ class Proposal(RevisionedMixin):
                 self.save()
                 # Log proposal action
                 if self.apiary_group_application_type:
-                    self.log_user_action(ProposalUserAction.ACTION_PROPOSED_APIARY_APPROVAL.format(
-                        self.id,
-                        self.proposed_issuance_approval.get('start_date'),
-                        self.proposed_issuance_approval.get('expiry_date'),
-                        #', '.join(apiary_sites_list)
-                        str(apiary_sites_list).lstrip('[').rstrip(']')
-                        ),request)
+                    if self.application_type and self.application_type.name == ApplicationType.SITE_TRANSFER:
+                        self.log_user_action(ProposalUserAction.ACTION_PROPOSED_APIARY_APPROVAL_SITE_TRANSFER.format(
+                            self.lodgement_number,
+                            self.proposal_apiary.originating_approval.lodgement_number,
+                            self.proposal_apiary.target_approval.lodgement_number,
+                            str(apiary_sites_list).lstrip('[').rstrip(']')
+                        ), request)
+                    else:
+                        self.log_user_action(ProposalUserAction.ACTION_PROPOSED_APIARY_APPROVAL.format(
+                            self.id,
+                            self.proposed_issuance_approval.get('start_date'),
+                            self.proposed_issuance_approval.get('expiry_date'),
+                            str(apiary_sites_list).lstrip('[').rstrip(']')
+                            ), request)
                 else:
                     self.log_user_action(ProposalUserAction.ACTION_PROPOSED_APPROVAL.format(self.id),request)
                 # Log entry for organisation
@@ -2002,6 +2009,7 @@ class ProposalUserAction(UserAction):
     ACTION_CONCLUDE_ASSESSMENT_ = "Conclude assessment {}"
     ACTION_PROPOSED_APPROVAL = "Proposal {} has been proposed for approval"
     ACTION_PROPOSED_APIARY_APPROVAL = "Proposal {} has been proposed for approval with start date {}, expiry date {} and apiary sites {}"
+    ACTION_PROPOSED_APIARY_APPROVAL_SITE_TRANSFER = "Proposal {} has been proposed for approval with originating approval {}, target approval {} and apiary sites {}"
     ACTION_PROPOSED_DECLINE = "Proposal {} has been proposed for decline"
     # Referrals
     ACTION_SEND_REFERRAL_TO = "Send referral {} for proposal {} to {}"
@@ -2895,6 +2903,9 @@ class ProposalApiary(RevisionedMixin):
                             #'extracted_fields' = JSONField(blank=True, null=True)
                             }
                         )
+                        if created:
+                            from disturbance.components.approvals.models import ApprovalUserAction
+                            ApprovalUserAction.log_action(approval, ApprovalUserAction.ACTION_CREATE_APPROVAL.format(approval.id), request.user)
                     else:
                         approval.issue_date = timezone.now()
                         # ensure current_proposal is updated with this proposal
