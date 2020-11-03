@@ -116,7 +116,7 @@
     import {Draw, Modify, Snap, Select} from 'ol/interaction';
     import {pointerMove} from 'ol/events/condition';
     import VectorLayer from 'ol/layer/Vector';
-    import VectorSource from 'ol/source/Vector'; 
+    import VectorSource from 'ol/source/Vector';
     import {Circle as CircleStyle, Fill, Stroke, Style, Icon} from 'ol/style';
     import {FullScreen as FullScreenControl, MousePosition as MousePositionControl} from 'ol/control';
     import Vue from 'vue/dist/vue';
@@ -619,7 +619,7 @@
                 //this.showPopup(feature)
             },
             uuidv4: function () {
-                return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, 
+                return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,
                     function(c) {
                         return (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16);
                     }
@@ -785,7 +785,7 @@
                     }
                 }
 
-                let button_text = 'Pay and submit'
+                let button_text = 'Pay and Submit'
                 // TODO: improve this logic
                 if (this.num_of_sites_remain_south_west >= 0 && this.num_of_sites_remain_remote >=0 && !this.proposal.proposal_type === 'renewal'){
                     button_text = 'Submit'
@@ -846,7 +846,7 @@
                         } else {
                             this.num_of_sites_remote_applied -= 1
                         }
-                    } 
+                    }
                     if (new_or_renewal === 'renewal'){
                         if (site_category === 'south_west'){
                             this.num_of_sites_south_west_renewal_applied -= 1
@@ -1117,7 +1117,7 @@
                         let status = evt.selected[0].get('status')
 
                         if(is_vacant && !making_payment && status != 'pending'){
-                            // When mouse hover on the 'vacant' apiary site, temporarily store it 
+                            // When mouse hover on the 'vacant' apiary site, temporarily store it
                             // so that it can be added to the new apiary site application when user clicking on it.
                             vm.vacant_site_being_selected = evt.selected[0]
 
@@ -1182,7 +1182,7 @@
                 {
                     return false;
                 }
-                
+
                 let feature = new Feature(new Point(coords));
                 feature.setId(this.uuidv4());
                 feature.set("source", "form");
@@ -1261,7 +1261,7 @@
         background-color: rgba(37, 45, 51, 0.7);
     }
     .action_link {
-        color: #347ab7; 
+        color: #347ab7;
         cursor: pointer;
     }
 

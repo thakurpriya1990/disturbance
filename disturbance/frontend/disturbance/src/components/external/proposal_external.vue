@@ -157,12 +157,13 @@
                                 <input type="button" @click.prevent="save_exit" class="btn btn-primary" value="Save and Exit"/>
                                 <input type="button" @click.prevent="save(true)" class="btn btn-primary" value="Save and Continue"/>
                                 <div v-if="proposal_type_name==='transfer'">
-                                    <input v-if="!isSubmitting" type="button" @click.prevent="submit" class="btn btn-primary" value="Pay and submit"/>
+                                    <input v-if="!isSubmitting" type="button" @click.prevent="submit" class="btn btn-primary" value="Pay and Submit"/>
+                                    <button v-else disabled class="btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Submitting</button>
                                 </div>
                                 <div v-else>
                                     <input v-if="!isSubmitting" type="button" @click.prevent="submit" class="btn btn-primary" :value="submit_button_text"/>
-                                </div>
                                     <button v-else disabled class="btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Submitting</button>
+                                </div>
 
                                 <input id="save_and_continue_btn" type="hidden" @click.prevent="save(false)" class="btn btn-primary" value="Save Without Confirmation"/>
                             </div>
@@ -357,7 +358,7 @@ export default {
         sum_of_total_fees: function(){
             console.log('in sum_of_total_fees in watch')
             if (this.sum_of_total_fees > 0){
-                this.submit_button_text = 'Pay and submit'
+                this.submit_button_text = 'Pay and Submit'
             } else {
                 this.submit_button_text = 'Submit'
             }
