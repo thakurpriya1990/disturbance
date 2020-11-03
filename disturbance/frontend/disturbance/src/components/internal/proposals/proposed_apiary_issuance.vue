@@ -525,7 +525,8 @@ export default {
             } );
         },
         previewData:function(originating_target=null){
-            let previewWindow = window.open(' ', '_blank');
+            //let previewWindow = window.open(' ', '_blank');
+            let previewWindow = window.open();
 
             console.log("previewData")
             this.approval.preview = true;
