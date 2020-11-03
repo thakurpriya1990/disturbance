@@ -537,8 +537,9 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
     site_transfer_referrer_checklist_answers_per_site = serializers.SerializerMethodField()
     site_remainders = serializers.SerializerMethodField()
     originating_approval_lodgement_number = serializers.SerializerMethodField()
-    #target_approval_id = serializers.SerializerMethodField()
+    originating_approval_licence_document = serializers.SerializerMethodField()
     target_approval_lodgement_number = serializers.SerializerMethodField()
+    target_approval_licence_document = serializers.SerializerMethodField()
     transferee_name = serializers.SerializerMethodField()
     transferee_org_name = serializers.SerializerMethodField()
     transferee_first_name = serializers.SerializerMethodField()
@@ -570,8 +571,10 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
             'site_remainders',
             'originating_approval_id',
             'originating_approval_lodgement_number',
+            'originating_approval_licence_document',
             'target_approval_id',
             'target_approval_lodgement_number',
+            'target_approval_licence_document',
             'transferee_name',
             'transferee_org_name',
             'transferee_first_name',
@@ -582,6 +585,18 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         self.instance.validate_apiary_sites(raise_exception=True)
         return attrs
+
+    def get_originating_approval_licence_document(self, proposal_apiary):
+        url = ''
+        if proposal_apiary.originating_approval:
+            url = proposal_apiary.originating_approval.documents.order_by('-uploaded_date')[0]._file.url
+        return url
+
+    def get_target_approval_licence_document(self, proposal_apiary):
+        url = ''
+        if proposal_apiary.target_approval:
+            url = proposal_apiary.target_approval.documents.order_by('-uploaded_date')[0]._file.url
+        return url
 
     def get_apiary_sites(self, proposal_apiary):
         ret = []
