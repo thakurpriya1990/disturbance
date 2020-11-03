@@ -38,6 +38,10 @@ export const SiteColours = {
         'fill': '#ffaa00',
         'stroke': '#000000'
     },
+    'pending_vacant': {
+        'fill': '#ffaa00',
+        'stroke': '#0077FF'
+    },
     'transferred': {
         'fill': '#888888',
         'stroke': '#000000',
@@ -77,7 +81,11 @@ export function getStatusForColour(feature_or_apiary_site){
     }
 
     if (is_vacant){
-        status = 'vacant'
+        if (status == 'pending'){
+            status = 'pending_vacant'
+        } else {
+            status = 'vacant'
+        }
     } else if (making_payment){
         status = 'making_payment'
     }
@@ -204,6 +212,20 @@ export function getApiaryFeatureStyle(status, selected=false, stroke_width_when_
                     }),
                     stroke: new Stroke({
                         color: SiteColours.vacant.stroke,
+                        width: 1 + additional_width
+                    })
+                })
+            });
+            break;
+        case 'pending_vacant':
+            return new Style({
+                image: new CircleStyle({
+                    radius: existingSiteRadius,
+                    fill: new Fill({
+                        color: SiteColours.pending_vacant.fill
+                    }),
+                    stroke: new Stroke({
+                        color: SiteColours.pending_vacant.stroke,
                         width: 1 + additional_width
                     })
                 })
