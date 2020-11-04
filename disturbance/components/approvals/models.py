@@ -635,6 +635,8 @@ class ApprovalUserAction(UserAction):
 
     @classmethod
     def log_action(cls, approval, action, user):
+        if approval.apiary_approval:
+            action = action.replace('Approval', 'Licence').replace('approval', 'licence').replace('proposal', 'application').replace('Proposal', 'Application')
         return cls.objects.create(
             approval=approval,
             who=user,
