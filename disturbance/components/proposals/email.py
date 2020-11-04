@@ -505,7 +505,8 @@ def send_site_transfer_approval_email_notification(proposal, request, approval):
     else:
         attachment = []
 
-    msg = email.send(proposal.submitter.email, bcc= all_ccs, attachments=attachment, context=context)
+    #msg = email.send(proposal.submitter.email, bcc= all_ccs, attachments=attachment, context=context)
+    msg = email.send(approval.relevant_applicant_email, bcc= all_ccs, attachments=attachment, context=context)
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     _log_proposal_email(msg, proposal, sender=sender)
     if proposal.applicant:

@@ -360,7 +360,7 @@ export default {
         },
         siteTransferTargetApprovalExists: function() {
             let targetApprovalExists = false;
-            if (this.proposal.proposal_apiary && this.proposal.proposal_apiary.target_approval) {
+            if (this.proposal.proposal_apiary && this.proposal.proposal_apiary.target_approval_id) {
                 targetApprovalExists = true;
             }
             return targetApprovalExists;
@@ -542,6 +542,12 @@ export default {
                 // There is an existing licence. Therefore start_date and expiry_date are fixed to that dates
                 this.approval.expiry_date = moment(this.proposal.approval.expiry_date, 'YYYY-MM-DD').format('DD/MM/YYYY')
             }
+            if (!this.approval.start_date) {
+                delete this.approval.start_date;
+            }
+            if (!this.approval.expiry_date) {
+                delete this.approval.expiry_date;
+            }
             let approval = JSON.parse(JSON.stringify(this.approval)); // Deep copy
             console.log('approval to post')
             console.log(approval)
@@ -614,6 +620,12 @@ export default {
             if (!this.expiryDateCanBeModified && !this.siteTransferApplication){
                 // There is an existing licence. Therefore start_date and expiry_date are fixed to that dates
                 this.approval.expiry_date = moment(this.proposal.approval.expiry_date, 'YYYY-MM-DD').format('DD/MM/YYYY')
+            }
+            if (!this.approval.start_date) {
+                delete this.approval.start_date;
+            }
+            if (!this.approval.expiry_date) {
+                delete this.approval.expiry_date;
             }
             let approval = JSON.parse(JSON.stringify(vm.approval)); // Deep copy
             console.log('approval to post')
