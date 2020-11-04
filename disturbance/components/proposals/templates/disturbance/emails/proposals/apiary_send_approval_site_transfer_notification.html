@@ -1,6 +1,7 @@
 {%  extends 'disturbance/emails/apiary_base_email.html' %}
 
 {%  block content %}
+        Site transfer
  		{% if approval.reissued %}
  			<p>Licence <strong>{{approval.lodgement_number}} </strong> has been reissued.</p>
  		{% else %}

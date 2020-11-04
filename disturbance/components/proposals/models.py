@@ -1066,6 +1066,13 @@ class Proposal(RevisionedMixin):
     def reissue_approval(self,request,status):
         if not self.processing_status=='approved' :
             raise ValidationError('You cannot change the current status at this time')
+        elif self.application_type.name == 'Site Transfer' and self.__approver_group() in request.user.apiaryapprovergroup_set.all():
+            self.processing_status = status
+            self.save()
+            self.proposal_apiary.originating_approval.reissued = True
+            self.proposal_apiary.originating_approval.save()
+            self.proposal_apiary.target_approval.reissued = True
+            self.proposal_apiary.target_approval.save()
         elif self.approval and self.approval.can_reissue:
             # Apiary logic in first condition
             if self.apiary_group_application_type and self.__approver_group() in request.user.apiaryapprovergroup_set.all():
@@ -2895,13 +2902,15 @@ class ProposalApiary(RevisionedMixin):
 
                 #import ipdb; ipdb.set_trace()
                 if self.proposal.application_type.name == ApplicationType.SITE_TRANSFER:
+                    reissue_originating_approval = False
+                    reissue_target_approval = False
                     # approval must already exist - we reissue with same start and expiry dates
                     # does thhis need to be reissued with self.reissue_approval() ?
                     originating_approval.issue_date = timezone.now()
                     originating_approval.current_proposal = checking_proposal
-                    if originating_approval.reissued:
-                        originating_approval.expiry_date = details.get('expiry_date')
-                        originating_approval.start_date = details.get('start_date')
+                    #if originating_approval.reissued:
+                     #   originating_approval.expiry_date = details.get('expiry_date')
+                      #  originating_approval.start_date = details.get('start_date')
                     # always reset this flag
                     originating_approval.reissued = False
                     #self.proposal.proposed_issuance_approval['start_date'] = originating_approval.start_date.strftime('%d/%m/%Y')
@@ -2911,6 +2920,7 @@ class ProposalApiary(RevisionedMixin):
                     originating_approval.save()
                     target_approval.issue_date = timezone.now()
                     #target_approval.current_proposal = checking_proposal
+                    target_approval.reissued = False
                     target_approval.save()
                     if preview:
                         # do this instead of generate compliances section below
@@ -3003,6 +3013,11 @@ class ProposalApiary(RevisionedMixin):
                         relation_target.wkb_geometry = relation_original.wkb_geometry
                         relation_target.site_category = relation_original.site_category
                         relation_target.save()
+                        # if at least one site is transferred, both licences should be reissued
+                        # will this work when a site is transferred back from target to origin?
+                        if created:
+                            reissue_originating_approval = True
+                            reissue_target_approval = True
                 else:
                     from disturbance.management.commands.send_annual_rental_fee_invoice import get_annual_rental_fee_period
                     from disturbance.components.das_payments.models import AnnualRentalFeePeriod
