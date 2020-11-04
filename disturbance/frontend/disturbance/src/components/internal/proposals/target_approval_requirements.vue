@@ -3,7 +3,7 @@
         <div class="row">
             <div class="panel panel-default">
                 <div class="panel-heading">
-                    <h3 class="panel-title">Requirements for {{targetApprovalLodgementNumber}}
+                    <h3 class="panel-title">{{ sectionTitle }}
                         <a class="panelClicker" :href="'#'+panelBody" data-toggle="collapse"  data-parent="#userInfo" expanded="false" :aria-controls="panelBody">
                             <span class="glyphicon glyphicon-chevron-down pull-right "></span>
                         </a>
@@ -197,6 +197,16 @@ export default {
         hasAssessorMode(){
             return this.proposal.assessor_mode.has_assessor_mode;
         },
+        sectionTitle(){
+            let titleText = 'Requirements for ';
+            if (this.targetApprovalLodgementNumber) {
+                titleText += this.targetApprovalLodgementNumber;
+            } else {
+                titleText += 'New Licence';
+            }
+            return titleText;
+        },
+
         /*
         targetApprovalLodgementNumber: function() {
             let returnVal = '';
