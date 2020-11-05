@@ -1,4 +1,5 @@
 import pytz
+from confy import env
 from django.conf import settings
 from datetime import datetime
 
@@ -421,13 +422,16 @@ class ApiarySiteOnProposalDraftGeometrySaveSerializer(GeoFeatureModelSerializer)
     """
     def validate(self, attrs):
         wkb_geometry = attrs.get('wkb_geometry_draft')
-        feature = get_feature_in_wa_coastline_smoothed(wkb_geometry)
-        if not feature:
-            raise serializers.ValidationError(['Apiary Site: {} (lat: {}, lng: {}) is out of bounds.'.format(
-                self.instance.apiary_site.id,
-                wkb_geometry.coords[1],
-                wkb_geometry.coords[0],
-            )])
+
+        check_coastline = env('PERFORM_BACKEND_COAST_LINE_CHECK', False)
+        if check_coastline:
+            feature = get_feature_in_wa_coastline_smoothed(wkb_geometry)
+            if not feature:
+                raise serializers.ValidationError(['Apiary Site: {} (lat: {}, lng: {}) is out of bounds.'.format(
+                    self.instance.apiary_site.id,
+                    wkb_geometry.coords[1],
+                    wkb_geometry.coords[0],
+                )])
 
         apiary_sites_to_exclude = [self.instance.apiary_site,] if self.instance.apiary_site else None
         validate_buffer(wkb_geometry, apiary_sites_to_exclude)
