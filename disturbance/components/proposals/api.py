@@ -794,6 +794,21 @@ class ProposalApiaryViewSet(viewsets.ModelViewSet):
         else:
             return Response()
 
+    @detail_route(methods=['POST'])
+    @renderer_classes((JSONRenderer,))
+    @basic_exception_handler
+    def process_public_liability_insurance_document(self, request, *args, **kwargs):
+
+        return Response()
+
+    @detail_route(methods=['POST'])
+    @renderer_classes((JSONRenderer,))
+    @basic_exception_handler
+    def process_supporting_application_document(self, request, *args, **kwargs):
+
+        return Response()
+
+
     @detail_route(methods=['post'])
     @basic_exception_handler
     def apiary_assessor_send_referral(self, request, *args, **kwargs):
