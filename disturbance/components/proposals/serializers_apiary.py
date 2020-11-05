@@ -382,6 +382,7 @@ class ApiarySiteOnProposalProcessedGeometrySerializer(GeoFeatureModelSerializer)
         except:
             return ''
 
+
 class ApiarySiteOnProposalVacantProcessedGeometrySerializer(ApiarySiteOnProposalProcessedGeometrySerializer):
     application_fee_paid = serializers.SerializerMethodField()
 

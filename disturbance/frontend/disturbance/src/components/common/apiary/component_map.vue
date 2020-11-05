@@ -219,13 +219,10 @@
                         source: vm.apiarySitesQuerySource,
                     });
                     modifyTool.on("modifystart", function(attributes){
-                        console.log('modifystart')
                         attributes.features.forEach(function(feature){
-                            console.log(feature)
                         })
                     });
                     modifyTool.on("modifyend", function(attributes){
-                        console.log('modifyend')
                         attributes.features.forEach(function(feature){
                             let id = feature.getId();
                             let index = vm.modifyInProgressList.indexOf(id);
@@ -245,9 +242,6 @@
                 this.showPopup(feature)
             },
             showPopup: function(feature){
-                console.log(feature)
-                console.log(feature.get('is_vacant'))
-
                 let geometry = feature.getGeometry();
                 let coord = geometry.getCoordinates();
                 let svg_hexa = "<svg xmlns='http://www.w3.org/2000/svg' version='1.1' height='20' width='15'>" +
