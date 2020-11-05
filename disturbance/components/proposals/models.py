@@ -381,6 +381,7 @@ class Proposal(RevisionedMixin):
     approval = models.ForeignKey('disturbance.Approval',null=True,blank=True)
 
     previous_application = models.ForeignKey('self', on_delete=models.PROTECT, blank=True, null=True)
+    self_clone = models.ForeignKey('self', on_delete=models.SET_NULL, blank=True, null=True, related_name='proposal_current_state')
     proposed_decline_status = models.BooleanField(default=False)
     # Special Fields
     title = models.CharField(max_length=255,null=True,blank=True)
@@ -1064,35 +1065,44 @@ class Proposal(RevisionedMixin):
             raise ValidationError('The provided status cannot be found.')
 
     def reissue_approval(self,request,status):
-        if not self.processing_status=='approved' :
-            raise ValidationError('You cannot change the current status at this time')
-        elif self.application_type.name == 'Site Transfer' and self.__approver_group() in request.user.apiaryapprovergroup_set.all():
-            self.processing_status = status
-            self.save()
-            self.proposal_apiary.originating_approval.reissued = True
-            self.proposal_apiary.originating_approval.save()
-            self.proposal_apiary.target_approval.reissued = True
-            self.proposal_apiary.target_approval.save()
-        elif self.approval and self.approval.can_reissue:
-            # Apiary logic in first condition
-            if self.apiary_group_application_type and self.__approver_group() in request.user.apiaryapprovergroup_set.all():
+        with transaction.atomic():
+            if not self.processing_status=='approved' :
+                raise ValidationError('You cannot change the current status at this time')
+            elif self.application_type.name == 'Site Transfer' and self.__approver_group() in request.user.apiaryapprovergroup_set.all():
+                # track changes to apiary sites and proposal requirements in save() methods instead
                 self.processing_status = status
+                self.self_clone = copy.deepcopy(self)
+                self.self_clone.id = None
+                #self.self_clone.save()
                 self.save()
-                self.approval.reissued=True
-                self.approval.save()
-                # Create a log entry for the proposal
-                self.log_user_action(ProposalUserAction.ACTION_REISSUE_APPROVAL.format(self.id),request)
-            elif self.__approver_group() in request.user.proposalapprovergroup_set.all():
-                self.processing_status = status
-                self.save()
-                self.approval.reissued=True
-                self.approval.save()
-                # Create a log entry for the proposal
-                self.log_user_action(ProposalUserAction.ACTION_REISSUE_APPROVAL.format(self.id),request)
+                self.proposal_apiary.self_clone = copy.deepcopy(self.proposal_apiary)
+                self.proposal_apiary.self_clone.id = None
+                #self.proposal_apiary.self_clone.save()
+                self.proposal_apiary.save()
+                self.proposal_apiary.originating_approval.reissued = True
+                self.proposal_apiary.originating_approval.save()
+                self.proposal_apiary.target_approval.reissued = True
+                self.proposal_apiary.target_approval.save()
+            elif self.approval and self.approval.can_reissue:
+                # Apiary logic in first condition
+                if self.apiary_group_application_type and self.__approver_group() in request.user.apiaryapprovergroup_set.all():
+                    self.processing_status = status
+                    self.save()
+                    self.approval.reissued=True
+                    self.approval.save()
+                    # Create a log entry for the proposal
+                    self.log_user_action(ProposalUserAction.ACTION_REISSUE_APPROVAL.format(self.id),request)
+                elif self.__approver_group() in request.user.proposalapprovergroup_set.all():
+                    self.processing_status = status
+                    self.save()
+                    self.approval.reissued=True
+                    self.approval.save()
+                    # Create a log entry for the proposal
+                    self.log_user_action(ProposalUserAction.ACTION_REISSUE_APPROVAL.format(self.id),request)
+                else:
+                    raise ValidationError('Cannot reissue Approval')
             else:
                 raise ValidationError('Cannot reissue Approval')
-        else:
-            raise ValidationError('Cannot reissue Approval')
 
     def proposed_decline(self,request,details):
         with transaction.atomic():
@@ -1304,10 +1314,12 @@ class Proposal(RevisionedMixin):
                 # Log proposal action
                 if self.apiary_group_application_type:
                     if self.application_type and self.application_type.name == ApplicationType.SITE_TRANSFER:
+                        target_approval_lodgement_number = (self.proposal_apiary.target_approval.lodgement_number if 
+                                self.proposal_apiary.target_approval else '')
                         self.log_user_action(ProposalUserAction.ACTION_PROPOSED_APIARY_APPROVAL_SITE_TRANSFER.format(
                             self.lodgement_number,
                             self.proposal_apiary.originating_approval.lodgement_number,
-                            self.proposal_apiary.target_approval.lodgement_number,
+                            target_approval_lodgement_number,
                             str(apiary_sites_list).lstrip('[').rstrip(']')
                         ), request)
                     else:
@@ -1693,7 +1705,6 @@ class Proposal(RevisionedMixin):
                 #copy all the requirements from the previous proposal
                 #req=self.requirements.all()
                 req=self.requirements.all().exclude(is_deleted=True)
-                from copy import deepcopy
                 if req:
                     for r in req:
                         old_r = deepcopy(r)
@@ -2018,8 +2029,8 @@ class ProposalUserAction(UserAction):
     ACTION_SAVE_ASSESSMENT_ = "Save assessment {}"
     ACTION_CONCLUDE_ASSESSMENT_ = "Conclude assessment {}"
     ACTION_PROPOSED_APPROVAL = "Proposal {} has been proposed for approval"
-    ACTION_PROPOSED_APIARY_APPROVAL = "Proposal {} has been proposed for approval with start date {}, expiry date {} and apiary sites {}"
-    ACTION_PROPOSED_APIARY_APPROVAL_SITE_TRANSFER = "Proposal {} has been proposed for approval with originating approval {}, target approval {} and apiary sites {}"
+    ACTION_PROPOSED_APIARY_APPROVAL = "Proposal {} has been proposed for issue with start date {}, expiry date {} and apiary sites {}"
+    ACTION_PROPOSED_APIARY_APPROVAL_SITE_TRANSFER = "Proposal {} has been proposed for issue with originating approval {}, target approval {} and apiary sites {}"
     ACTION_PROPOSED_DECLINE = "Proposal {} has been proposed for decline"
     # Referrals
     ACTION_SEND_REFERRAL_TO = "Send referral {} for proposal {} to {}"
@@ -2532,6 +2543,7 @@ class ProposalApiary(RevisionedMixin):
     target_approval_expiry_date = models.DateField(blank=True, null=True)
 
     apiary_sites = models.ManyToManyField('ApiarySite', through=ApiarySiteOnProposal, related_name='proposal_apiary_set')
+    self_clone = models.ForeignKey('self', on_delete=models.SET_NULL, blank=True, null=True)
 
     def __str__(self):
         return 'id:{} - {}'.format(self.id, self.title)
@@ -2850,6 +2862,8 @@ class ProposalApiary(RevisionedMixin):
                     for req in transferee_requirements:
                         req.sitetransfer_approval = target_approval
                         req.save()
+                    # ensure ProposalApiary object has been updated
+                    self.save()
 
             self.proposal.proposed_decline_status = False
             self.proposal.processing_status = 'approved'

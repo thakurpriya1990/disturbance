@@ -596,7 +596,7 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
 
     def get_target_approval_licence_document(self, proposal_apiary):
         url = ''
-        if proposal_apiary.target_approval:
+        if proposal_apiary.target_approval and proposal_apiary.target_approval.documents.count():
             url = proposal_apiary.target_approval.documents.order_by('-uploaded_date')[0]._file.url
         return url
 
