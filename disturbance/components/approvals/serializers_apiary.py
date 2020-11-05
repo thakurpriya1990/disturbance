@@ -52,6 +52,14 @@ class ApiarySiteOnApprovalGeometrySerializer(GeoFeatureModelSerializer):
             return ''
 
 
+class ApiarySiteOnApprovalGeometryExportSerializer(ApiarySiteOnApprovalGeometrySerializer):
+
+    class Meta(ApiarySiteOnApprovalGeometrySerializer.Meta):
+        fields = (
+            'id',
+        )
+
+
 class ApiarySiteOnApprovalGeometrySaveSerializer(GeoFeatureModelSerializer):
     """
     For saving

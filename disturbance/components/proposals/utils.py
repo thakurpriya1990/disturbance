@@ -7,6 +7,7 @@ from django.contrib.gis.geos import Point, GEOSGeometry
 from ledger.accounts.models import EmailUser, Document
 from rest_framework import serializers
 
+from disturbance.components.main.decorators import timeit
 from disturbance.components.proposals.models import ProposalDocument, ProposalUserAction, ApiarySite, SiteCategory, \
     ProposalApiaryTemporaryUse, TemporaryUseApiarySite, ApiarySiteOnProposal
 from disturbance.components.proposals.serializers import SaveProposalSerializer
@@ -472,6 +473,7 @@ def save_proponent_data_apiary_site_transfer(proposal_obj, request, viewset):
             raise
 
 
+@timeit
 def save_proponent_data_apiary(proposal_obj, request, viewset):
     #import ipdb;ipdb.set_trace()
     with transaction.atomic():
