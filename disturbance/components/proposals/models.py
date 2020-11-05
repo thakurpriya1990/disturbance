@@ -2049,6 +2049,8 @@ class ProposalUserAction(UserAction):
 
     @classmethod
     def log_action(cls, proposal, action, user):
+        if proposal.apiary_group_application_type:
+            action = action.replace('Approval', 'Licence').replace('approval', 'licence').replace('proposal', 'application').replace('Proposal', 'Application')
         return cls.objects.create(
             proposal=proposal,
             who=user,
