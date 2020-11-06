@@ -60,7 +60,7 @@
                                 </div>
                             </div>
                             <div v-else>
-                                <div v-if="!siteTransferTargetApprovalExists" class="form-group">
+                                <div v-if="creatingSiteTransferTargetApproval" class="form-group">
                                     <div class="row">
                                         <div class="col-sm-3">
                                             <label v-if="processing_status == 'With Approver'" class="control-label pull-left"  for="Name">Start Date</label>
@@ -82,7 +82,7 @@
                                     </div>
                                 </div>
 
-                                <div v-if="!siteTransferTargetApprovalExists" class="form-group">
+                                <div v-if="creatingSiteTransferTargetApproval" class="form-group">
                                     <div class="row">
                                         <div class="col-sm-3">
                                             <label v-if="processing_status == 'With Approver'" class="control-label pull-left"  for="Name">Expiry Date</label>
@@ -357,6 +357,13 @@ export default {
                 siteTransfer = true;
             }
             return siteTransfer;
+        },
+        creatingSiteTransferTargetApproval: function() {
+            let creatingApproval = false;
+            if (!this.siteTransferTargetApprovalExists || (this.proposal.proposal_apiary && this.proposal.proposal_apiary.transferee)) {
+                creatingApproval = true;
+            }
+            return creatingApproval;
         },
         siteTransferTargetApprovalExists: function() {
             let targetApprovalExists = false;
