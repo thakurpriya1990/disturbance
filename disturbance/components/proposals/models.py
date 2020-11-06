@@ -381,7 +381,7 @@ class Proposal(RevisionedMixin):
     approval = models.ForeignKey('disturbance.Approval',null=True,blank=True)
 
     previous_application = models.ForeignKey('self', on_delete=models.PROTECT, blank=True, null=True)
-    self_clone = models.ForeignKey('self', on_delete=models.SET_NULL, blank=True, null=True, related_name='proposal_current_state')
+    #self_clone = models.ForeignKey('self', on_delete=models.SET_NULL, blank=True, null=True, related_name='proposal_current_state')
     proposed_decline_status = models.BooleanField(default=False)
     # Special Fields
     title = models.CharField(max_length=255,null=True,blank=True)
@@ -1071,13 +1071,15 @@ class Proposal(RevisionedMixin):
             elif self.application_type.name == 'Site Transfer' and self.__approver_group() in request.user.apiaryapprovergroup_set.all():
                 # track changes to apiary sites and proposal requirements in save() methods instead
                 self.processing_status = status
-                self.self_clone = copy.deepcopy(self)
-                self.self_clone.id = None
+                #self.self_clone = copy.deepcopy(self)
+                #self.self_clone.id = None
                 #self.self_clone.save()
                 self.save()
-                self.proposal_apiary.self_clone = copy.deepcopy(self.proposal_apiary)
-                self.proposal_apiary.self_clone.id = None
+                #self.proposal_apiary.self_clone = copy.deepcopy(self.proposal_apiary)
+                #self.proposal_apiary.self_clone.id = None
                 #self.proposal_apiary.self_clone.save()
+                self.proposal_apiary.reissue_originating_approval = False
+                self.proposal_apiary.reissue_target_approval = False
                 self.proposal_apiary.save()
                 self.proposal_apiary.originating_approval.reissued = True
                 self.proposal_apiary.originating_approval.save()
@@ -1978,6 +1980,22 @@ class ProposalRequirement(OrderedModel):
     def requirement(self):
         return self.standard_requirement.text if self.standard else self.free_requirement
 
+    def save(self, *args, **kwargs):
+        super(ProposalRequirement, self).save(*args,**kwargs)
+        # update reissue flags as needed
+        #import ipdb; ipdb.set_trace()
+        if self.proposal and self.proposal.proposal_apiary and self.proposal.application_type.name == 'Site Transfer':
+            #if self.sitetransfer_approval == self.apiary_approval:
+                # therefore, we know that the requirement is already attached to the target/originating approval, i.e. is not new
+                # now find out whether it is target/originating
+            # update relevant reissue flag
+            if self.sitetransfer_approval == self.proposal.proposal_apiary.originating_approval:
+                self.proposal.proposal_apiary.reissue_originating_approval = True
+            elif self.sitetransfer_approval == self.proposal.proposal_apiary.target_approval:
+                self.proposal.proposal_apiary.reissue_target_approval = True
+            self.proposal.proposal_apiary.save()
+            #self.save()
+
 # no longer required for Apiary
 #class RequirementDocument(Document):
 #    #requirement = models.ForeignKey('ProposalRequirement',related_name='requirement_documents')
@@ -2541,9 +2559,11 @@ class ProposalApiary(RevisionedMixin):
     target_approval_organisation = models.ForeignKey(Organisation, blank=True, null=True)
     target_approval_start_date = models.DateField(blank=True, null=True)
     target_approval_expiry_date = models.DateField(blank=True, null=True)
+    reissue_originating_approval = models.BooleanField(default=False)
+    reissue_target_approval = models.BooleanField(default=False)
 
     apiary_sites = models.ManyToManyField('ApiarySite', through=ApiarySiteOnProposal, related_name='proposal_apiary_set')
-    self_clone = models.ForeignKey('self', on_delete=models.SET_NULL, blank=True, null=True)
+    #self_clone = models.ForeignKey('self', on_delete=models.SET_NULL, blank=True, null=True)
 
     def __str__(self):
         return 'id:{} - {}'.format(self.id, self.title)
@@ -2862,6 +2882,9 @@ class ProposalApiary(RevisionedMixin):
                     for req in transferee_requirements:
                         req.sitetransfer_approval = target_approval
                         req.save()
+                    # if we are creating a target licence, both licences must be reissued
+                    self.reissue_originating_approval = True
+                    self.reissue_target_approval = True
                     # ensure ProposalApiary object has been updated
                     self.save()
 
@@ -2916,26 +2939,21 @@ class ProposalApiary(RevisionedMixin):
 
                 #import ipdb; ipdb.set_trace()
                 if self.proposal.application_type.name == ApplicationType.SITE_TRANSFER:
-                    reissue_originating_approval = False
-                    reissue_target_approval = False
                     # approval must already exist - we reissue with same start and expiry dates
                     # does thhis need to be reissued with self.reissue_approval() ?
-                    originating_approval.issue_date = timezone.now()
-                    originating_approval.current_proposal = checking_proposal
                     #if originating_approval.reissued:
                      #   originating_approval.expiry_date = details.get('expiry_date')
                       #  originating_approval.start_date = details.get('start_date')
                     # always reset this flag
-                    originating_approval.reissued = False
+                    #originating_approval.reissued = False
                     #self.proposal.proposed_issuance_approval['start_date'] = originating_approval.start_date.strftime('%d/%m/%Y')
                     #self.proposal.proposed_issuance_approval['expiry_date'] = originating_approval.expiry_date.strftime('%d/%m/%Y')
                     #self.proposal.proposed_issuance_approval['details'] = ''
                     #self.proposal.proposed_issuance_approval['cc_email'] = ''
-                    originating_approval.save()
-                    target_approval.issue_date = timezone.now()
+                    #originating_approval.save()
                     #target_approval.current_proposal = checking_proposal
-                    target_approval.reissued = False
-                    target_approval.save()
+                    #target_approval.reissued = False
+                    #target_approval.save()
                     if preview:
                         # do this instead of generate compliances section below
                         self.link_apiary_approval_requirements(originating_approval)
@@ -2994,7 +3012,7 @@ class ProposalApiary(RevisionedMixin):
                 #elif self.proposal.application_type == ApplicationType.SITE_TRANSFER:
                 #    for site in self.apiary_site_transfer.apiary_sites.all():
                 #        site.approval = approval
-                #import ipdb;ipdb.set_trace()
+                #import ipdb;ipdb.set_trace(:
                 # for site in self.apiary_sites.all():
                 if self.proposal.application_type.name == ApplicationType.SITE_TRANSFER:
                     #import ipdb; ipdb.set_trace()
@@ -3020,19 +3038,20 @@ class ProposalApiary(RevisionedMixin):
                             apiary_site=relation_original.apiary_site,
                             approval=target_approval,
                         )
-                        relation_target.site_status = relation_original.site_status  # Copy the site status from the original to the target
+                        if relation_original.site_status != SITE_STATUS_TRANSFERRED:  # Reissue both licences
+                            relation_target.site_status = relation_original.site_status  # Copy the site status from the original to the target
+                            # if at least one site is transferred, both licences should be reissued
+                            self.reissue_originating_approval = True
+                            self.reissue_target_approval = True
                         relation_original.site_status = SITE_STATUS_TRANSFERRED  # Set the site status of the original site to 'transferred'
                         relation_original.available = False
                         relation_original.save()
                         relation_target.wkb_geometry = relation_original.wkb_geometry
                         relation_target.site_category = relation_original.site_category
                         relation_target.save()
-                        # if at least one site is transferred, both licences should be reissued
-                        # will this work when a site is transferred back from target to origin?
-                        if created:
-                            reissue_originating_approval = True
-                            reissue_target_approval = True
+                        self.save()
                 else:
+                    # could this be refactored into a separate method?
                     from disturbance.management.commands.send_annual_rental_fee_invoice import get_annual_rental_fee_period
                     from disturbance.components.das_payments.models import AnnualRentalFeePeriod
                     from disturbance.components.das_payments.utils import generate_line_items_for_annual_rental_fee
@@ -3163,68 +3182,78 @@ class ProposalApiary(RevisionedMixin):
                     # add Site Transfer Compliance/Requirements logic here
                     from disturbance.components.compliances.models import Compliance, ComplianceUserAction
                     ## Originating approval
-                    #Delete the future compliances if Approval is reissued and generate the compliances again.
-                    approval_compliances = Compliance.objects.filter(
-                            approval= originating_approval,
-                            #proposal = self.proposal, 
-                            processing_status='future'
-                            )
-                    if approval_compliances:
-                        for c in approval_compliances:
-                            c.delete()
-                    #self.generate_apiary_site_transfer_compliances(originating_approval, request)
-                    self.link_apiary_approval_requirements(originating_approval)
-                    originating_approval.generate_apiary_site_transfer_doc(request.user, site_transfer_proposal=self.proposal)
-                    self.generate_apiary_compliances(originating_approval, request)
-                    # Log proposal action
-                    self.proposal.log_user_action(
-                            ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.proposal.id),
-                            request
-                            )
-                    # Log entry for organisation
-                    if self.proposal.applicant:
-                        self.proposal.applicant.log_user_action(
+                    if self.reissue_originating_approval or not originating_approval.reissued:
+                        originating_approval.reissued = False
+                        originating_approval.issue_date = timezone.now()
+                        originating_approval.current_proposal = checking_proposal
+                        originating_approval.save()
+                        #Delete the future compliances if Approval is reissued and generate the compliances again.
+                        approval_compliances = Compliance.objects.filter(
+                                approval= originating_approval,
+                                #proposal = self.proposal, 
+                                processing_status='future'
+                                )
+                        if approval_compliances:
+                            for c in approval_compliances:
+                                c.delete()
+                        #self.generate_apiary_site_transfer_compliances(originating_approval, request)
+                        self.link_apiary_approval_requirements(originating_approval)
+                        originating_approval.generate_apiary_site_transfer_doc(request.user, site_transfer_proposal=self.proposal)
+                        self.generate_apiary_compliances(originating_approval, request)
+                        # Log proposal action
+                        self.proposal.log_user_action(
                                 ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.proposal.id),
                                 request
+                                )
+                        # Log entry for organisation
+                        if self.proposal.applicant:
+                            self.proposal.applicant.log_user_action(
+                                    ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.proposal.id),
+                                    request
 
-                                )
-                    #send Proposal approval email with attachment
-                    send_site_transfer_approval_email_notification(self.proposal, request, originating_approval)
+                                    )
+                        #send Proposal approval email with attachment
+                        send_site_transfer_approval_email_notification(self.proposal, request, originating_approval)
                     ## Target approval
-                    #Delete the future compliances if Approval is reissued and generate the compliances again.
-                    approval_compliances = Compliance.objects.filter(
-                            approval= target_approval,
-                            #proposal = self.proposal, 
-                            processing_status='future'
-                            )
-                    if approval_compliances:
-                        for c in approval_compliances:
-                            c.delete()
-                    self.link_apiary_approval_requirements(target_approval)
-                    target_approval.generate_apiary_site_transfer_doc(request.user, site_transfer_proposal=self.proposal)
-                    self.generate_apiary_compliances(target_approval, request)
-                    # Log proposal action
-                    self.proposal.log_user_action(
-                            ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.proposal.id),
-                            request
-                            )
-                    # Log entry for organisation
-                    if self.proposal.applicant:
-                        self.proposal.applicant.log_user_action(
+                    if self.reissue_target_approval or not target_approval.reissued:
+                        target_approval.reissued = False
+                        target_approval.issue_date = timezone.now()
+                        target_approval.current_proposal = checking_proposal
+                        target_approval.save()
+                        #Delete the future compliances if Approval is reissued and generate the compliances again.
+                        approval_compliances = Compliance.objects.filter(
+                                approval= target_approval,
+                                #proposal = self.proposal, 
+                                processing_status='future'
+                                )
+                        if approval_compliances:
+                            for c in approval_compliances:
+                                c.delete()
+                        self.link_apiary_approval_requirements(target_approval)
+                        target_approval.generate_apiary_site_transfer_doc(request.user, site_transfer_proposal=self.proposal)
+                        self.generate_apiary_compliances(target_approval, request)
+                        # Log proposal action
+                        self.proposal.log_user_action(
                                 ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.proposal.id),
                                 request
                                 )
-                    #send Proposal approval email with attachment
-                    send_site_transfer_approval_email_notification(self.proposal, request, target_approval)
-                    #self.proposal.save(version_comment='Final Approval: {}'.format(self.proposal.approval.lodgement_number))
-                    self.proposal.save(version_comment='Originating Approval: {}, Target Approval: {}'.format(
-                        originating_approval.lodgement_number,
-                        target_approval.lodgement_number,
+                        # Log entry for organisation
+                        if self.proposal.applicant:
+                            self.proposal.applicant.log_user_action(
+                                    ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.proposal.id),
+                                    request
+                                    )
+                        #send Proposal approval email with attachment
+                        send_site_transfer_approval_email_notification(self.proposal, request, target_approval)
+                        #self.proposal.save(version_comment='Final Approval: {}'.format(self.proposal.approval.lodgement_number))
+                        self.proposal.save(version_comment='Originating Approval: {}, Target Approval: {}'.format(
+                            originating_approval.lodgement_number,
+                            target_approval.lodgement_number,
+                            )
                         )
-                    )
-                    #self.proposal.approval.documents.all().update(can_delete=False)
-                    originating_approval.documents.all().update(can_delete=False)
-                    target_approval.documents.all().update(can_delete=False)
+                        #self.proposal.approval.documents.all().update(can_delete=False)
+                        originating_approval.documents.all().update(can_delete=False)
+                        target_approval.documents.all().update(can_delete=False)
 
             return self
         except:
