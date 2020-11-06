@@ -360,7 +360,7 @@ export default {
         },
         creatingSiteTransferTargetApproval: function() {
             let creatingApproval = false;
-            if (!this.siteTransferTargetApprovalExists || (this.proposal.proposal_apiary && this.proposal.proposal_apiary.transferee)) {
+            if (!this.siteTransferTargetApprovalExists || (this.proposal.proposal_apiary && this.proposal.proposal_apiary.transferee_id)) {
                 creatingApproval = true;
             }
             return creatingApproval;

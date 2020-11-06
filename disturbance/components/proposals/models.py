@@ -2887,6 +2887,14 @@ class ProposalApiary(RevisionedMixin):
                     self.reissue_target_approval = True
                     # ensure ProposalApiary object has been updated
                     self.save()
+                elif self.transferee:
+                    if self.target_approval.start_date != details.get('start_date'):
+                        self.reissue_target_approval = True
+                        self.target_approval.start_date = details.get('start_date')
+                    if self.target_approval.expiry_date != details.get('expiry_date'):
+                        self.reissue_target_approval = True
+                        self.target_approval.expiry_date = details.get('expiry_date')
+                    self.target_approval.save()
 
             self.proposal.proposed_decline_status = False
             self.proposal.processing_status = 'approved'
@@ -3770,23 +3778,23 @@ class ApiarySiteApproval(models.Model):
 
 
 # TODO: remove if no longer required
-class ProposalApiarySiteTransfer(models.Model):
-    email = models.EmailField('Email of Transferee', max_length=254, blank=True, null=True)
-    proposal = models.OneToOneField(Proposal, related_name='apiary_site_transfer', null=True)
-    transferee = models.ForeignKey(EmailUser, blank=True, null=True, related_name='transferee')
-
-    def __str__(self):
-        if self.proposal.proposal_apiary:
-            return 'id:{} - {}'.format(self.id, self.proposal.proposal_apiary.title)
-        else:
-            # Should not reach here
-            return 'id:{}'.format(self.id)
-
-    #def __str__(self):
-     #   return '{}'.format(self.title)
-
-    class Meta:
-        app_label = 'disturbance'
+#class ProposalApiarySiteTransfer(models.Model):
+#    email = models.EmailField('Email of Transferee', max_length=254, blank=True, null=True)
+#    proposal = models.OneToOneField(Proposal, related_name='apiary_site_transfer', null=True)
+#    transferee = models.ForeignKey(EmailUser, blank=True, null=True, related_name='transferee')
+#
+#    def __str__(self):
+#        if self.proposal.proposal_apiary:
+#            return 'id:{} - {}'.format(self.id, self.proposal.proposal_apiary.title)
+#        else:
+#            # Should not reach here
+#            return 'id:{}'.format(self.id)
+#
+#    #def __str__(self):
+#     #   return '{}'.format(self.title)
+#
+#    class Meta:
+#        app_label = 'disturbance'
 
 
 class ProposalApiaryDocument(DefaultDocument):
