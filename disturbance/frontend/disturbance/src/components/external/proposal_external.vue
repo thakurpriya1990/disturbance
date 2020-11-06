@@ -192,6 +192,8 @@
             </div>
 
         </form>
+        <div v-if="isSubmitting" id="overlay">
+        </div>
     </div>
 </template>
 <script>
@@ -958,5 +960,15 @@ export default {
 .payment-details-buttons {
     display: flex;
     align-items: center;
+}
+#overlay {
+    width: 100%;
+    height: 100%;
+    position: fixed;
+    left: 0px;
+    top: 0px;
+    background-color:#000;
+    opacity: .25;
+    z-index: 2000;
 }
 </style>

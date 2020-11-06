@@ -3739,6 +3739,7 @@ class ProposalApiaryDocument(DefaultDocument):
         if self.can_delete:
             return super(ProposalApiaryDocument, self).delete()
 
+
 class DeedPollDocument(Document):
     proposal = models.ForeignKey(ProposalApiary, related_name='deed_poll_documents', blank=True, null=True)
     base_proposal = models.ForeignKey(Proposal, related_name='deed_poll_documents', blank=True, null=True)
@@ -3752,6 +3753,22 @@ class DeedPollDocument(Document):
     def delete(self):
         if self.can_delete:
             return super(DeedPollDocument, self).delete()
+
+    class Meta:
+        app_label = 'disturbance'
+
+
+class PublicLiabilityInsuranceDocument(Document):
+    proposal = models.ForeignKey(ProposalApiary, related_name='public_liability_insurance_documents', blank=True, null=True)
+    _file = models.FileField(max_length=255)
+
+    class Meta:
+        app_label = 'disturbance'
+
+
+class SupportingApplicationDocument(Document):
+    proposal = models.ForeignKey(ProposalApiary, related_name='supporting_application_documents', blank=True, null=True)
+    _file = models.FileField(max_length=255)
 
     class Meta:
         app_label = 'disturbance'
