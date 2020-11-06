@@ -23,7 +23,7 @@ from disturbance.components.proposals.models import (
     Proposal,
     ProposalApiary,
     ProposalApiaryTemporaryUse,
-    ProposalApiarySiteTransfer,
+    #ProposalApiarySiteTransfer,
     ApiaryChecklistQuestion,
     ApiaryChecklistAnswer,
     ProposalApiaryDocument,
@@ -1019,11 +1019,11 @@ class ProposalApiaryTemporaryUseSerializer(serializers.ModelSerializer):
         )
 
 
-class ProposalApiarySiteTransferSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = ProposalApiarySiteTransfer
-        fields = '__all__'
+#class ProposalApiarySiteTransferSerializer(serializers.ModelSerializer):
+#
+#    class Meta:
+#        model = ProposalApiarySiteTransfer
+#        fields = '__all__'
 
 
 class SiteCategorySerializer(serializers.ModelSerializer):
@@ -1075,7 +1075,7 @@ class ProposalApiaryTypeSerializer(serializers.ModelSerializer):
     application_type = serializers.CharField(source='application_type.name', read_only=True)
     proposal_apiary = ProposalApiarySerializer()
     apiary_temporary_use = ProposalApiaryTemporaryUseSerializer(many=False, read_only=True)
-    apiary_site_transfer = ProposalApiarySiteTransferSerializer()
+    #apiary_site_transfer = ProposalApiarySiteTransferSerializer()
     apiary_group_application_type = serializers.SerializerMethodField()
 
     class Meta:
@@ -1120,7 +1120,7 @@ class ProposalApiaryTypeSerializer(serializers.ModelSerializer):
                 'activity',
                 'proposal_apiary',
                 'apiary_temporary_use',
-                'apiary_site_transfer',
+                #'apiary_site_transfer',
                 'apiary_group_application_type',
 
                 )
@@ -1226,7 +1226,7 @@ class ApiaryInternalProposalSerializer(BaseProposalSerializer):
 
     proposal_apiary = ProposalApiarySerializer()
     apiary_temporary_use = ProposalApiaryTemporaryUseSerializer(many=False, read_only=True)
-    apiary_site_transfer = ProposalApiarySiteTransferSerializer()
+    #apiary_site_transfer = ProposalApiarySiteTransferSerializer()
 
     applicant_checklist = serializers.SerializerMethodField()
     apiary_group_application_type = serializers.SerializerMethodField()
@@ -1293,7 +1293,7 @@ class ApiaryInternalProposalSerializer(BaseProposalSerializer):
                 'applicant_type',
                 'proposal_apiary',
                 'apiary_temporary_use',
-                'apiary_site_transfer',
+                #'apiary_site_transfer',
                 'applicant_address',
 
                 # 'apiary_checklist',

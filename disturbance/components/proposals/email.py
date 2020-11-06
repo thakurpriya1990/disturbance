@@ -93,7 +93,8 @@ class ApiaryProposalDeclineSendNotificationEmail(TemplateEmailBase):
     txt_template = 'disturbance/emails/proposals/apiary_send_decline_notification.txt'
 
 class ApiaryProposalApprovalSiteTransferSendNotificationEmail(TemplateEmailBase):
-    subject = 'Your Application has been approved.'
+    #subject = 'Your Application has been approved.'
+    subject = 'Your Licence has been issued.'
     html_template = 'disturbance/emails/proposals/apiary_send_approval_site_transfer_notification.html'
     txt_template = 'disturbance/emails/proposals/apiary_send_approval_site_transfer_notification.txt'
 
@@ -482,7 +483,8 @@ def send_proposal_approval_email_notification(proposal,request):
 
 def send_site_transfer_approval_email_notification(proposal, request, approval):
     email = ApiaryProposalApprovalSiteTransferSendNotificationEmail()
-    email.subject= 'Your Approval has been reissued.'
+    if approval.reissued:
+        email.subject= 'Your Approval has been reissued.'
 
     context = {
         'approval': approval,
