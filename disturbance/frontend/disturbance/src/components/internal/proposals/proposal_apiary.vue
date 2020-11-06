@@ -258,7 +258,8 @@
                         <ApprovalScreenSiteTransferTemporaryUse 
                             :proposal="proposal" 
                             ref="approval_screen"
-                            @refreshFromResponse="refreshFromResponse"/>
+                            @refreshFromResponse="refreshFromResponse"
+                        />
                     </div>
                     <div v-else>
                         <ApprovalScreen 
@@ -954,7 +955,6 @@ export default {
             });
         },
         refreshFromResponse:function(response){
-            console.log('in refreshFromResponse')
             let vm = this;
             vm.original_proposal = helpers.copyObject(response.body);
             vm.proposal = helpers.copyObject(response.body);
@@ -963,7 +963,9 @@ export default {
                 vm.initialiseAssignedOfficerSelect(true);
                 vm.updateAssignedOfficerSelect();
             });
-            this.$refs.approval_screen.updateComponentSiteSelectionKey()
+            if (vm.$refs.approval_screen){
+                vm.$refs.approval_screen.updateComponentSiteSelectionKey()
+            }
         },
         assignTo: function(){
             let vm = this;

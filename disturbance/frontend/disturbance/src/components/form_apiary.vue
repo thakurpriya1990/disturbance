@@ -51,6 +51,42 @@
 
             </FormSection>
 
+            <FormSection :formCollapse="false" label="Supporting Application Documents" Index="supporting_application_documents">
+                <div class="row">
+                    <div class="col-sm-12">
+                        Please provide supporting documents to your application this includes site photos, proposed access routes and details on native vegetation clearing (if applicable).
+                        <FileField
+                            ref="supporting_application_documents"
+                            name="supporting-application-documents"
+                            :isRepeatable="true"
+                            :documentActionUrl="supportingApplicationDocumentUrl"
+                            :readonly="readonly"
+                        />
+                    </div>
+                </div>
+            </FormSection>
+
+            <FormSection :formCollapse="false" label="Public Liability Insurance" Index="public_liability_insurance">
+                <div class="row">
+                    <div class="col-sm-12">
+                        <label>
+                            <ol type="a">
+                            <li>Attach your policy for public liability insurance that covers the areas and operations allowed under the apiary authority, and in the name of the applicant to the extent of its rights and interests, for a sum of not less than AU$10 million per event.</li>
+                            <li>It is a requirement of all apiary authority holders to maintain appropriate public liability insurance.</li>
+                            </ol>
+                        </label>
+
+                        <FileField
+                            ref="public_liability_insurance_documents"
+                            name="public-liability-insurance-documents"
+                            :isRepeatable="false"
+                            :documentActionUrl="publicLiabilityInsuranceDocumentUrl"
+                            :readonly="readonly"
+                        />
+                    </div>
+                </div>
+            </FormSection>
+
             <FormSection :formCollapse="false" label="Deed Poll" Index="deed_poll">
                 <div class="row">
                     <div class="col-sm-12">
@@ -237,10 +273,29 @@
                 let url = '';
                 if (this.proposal && this.proposal.proposal_apiary) {
                     url = helpers.add_endpoint_join(
-                        //api_endpoints.proposal_apiary,
                         '/api/proposal_apiary/',
                         this.proposal.proposal_apiary.id + '/process_deed_poll_document/'
-                        )
+                    )
+                }
+                return url;
+            },
+            supportingApplicationDocumentUrl: function() {
+                let url = '';
+                if (this.proposal && this.proposal.proposal_apiary) {
+                    url = helpers.add_endpoint_join(
+                        '/api/proposal_apiary/',
+                        this.proposal.proposal_apiary.id + '/process_supporting_application_document/'
+                    )
+                }
+                return url;
+            },
+            publicLiabilityInsuranceDocumentUrl: function() {
+                let url = '';
+                if (this.proposal && this.proposal.proposal_apiary) {
+                    url = helpers.add_endpoint_join(
+                        '/api/proposal_apiary/',
+                        this.proposal.proposal_apiary.id + '/process_public_liability_insurance_document/'
+                    )
                 }
                 return url;
             },
