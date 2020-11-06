@@ -76,13 +76,14 @@ def get_template_group(request):
     return template_group
 
 
+@timeit
 def get_category(wkb_geometry):
     from disturbance.components.proposals.models import SiteCategory
     category = SiteCategory.objects.get(name=SiteCategory.CATEGORY_REMOTE)
     zones = CategoryDbca.objects.filter(wkb_geometry__contains=wkb_geometry)
     if zones:
         category_name = zones[0].category_name.lower()
-        if 'south' in category_name and 'west' in category_name:
+        if 'south' in category_name:
             category = SiteCategory.objects.get(name=SiteCategory.CATEGORY_SOUTH_WEST)
     return category
 
@@ -107,11 +108,11 @@ def _get_params(layer_name, coords):
         'BBOX': str(coords[0] - 0.0001) + ',' + str(coords[1] - 0.0001) + ',' + str(coords[0] + 0.0001) + ',' + str( coords[1] + 0.0001),
     }
 
-
 def get_feature_in_wa_coastline_original(wkb_geometry):
     return get_feature_in_wa_coastline(wkb_geometry, False)
 
 
+@timeit
 def get_feature_in_wa_coastline_smoothed(wkb_geometry):
     return get_feature_in_wa_coastline(wkb_geometry, True)
 
@@ -254,6 +255,7 @@ def get_qs_approval():
     return qs_on_approval
 
 
+@timeit
 def validate_buffer(wkb_geometry, apiary_sites_to_exclude=None):
     """
     This function checks if the wkb_geometry (point) is at least 3km away from the other apiary sites
