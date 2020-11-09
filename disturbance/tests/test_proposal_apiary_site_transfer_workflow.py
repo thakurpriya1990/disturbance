@@ -5,6 +5,7 @@ from disturbance.components.proposals.models import (
         ApiarySite,
         ProposalStandardRequirement,
         )
+from disturbance.components.approvals.models import ApiarySiteOnApproval
 from disturbance.management.commands.update_compliance_status import Command
 
 
@@ -59,6 +60,8 @@ class ApiarySiteTransferIntegrationTests(APITestSetup):
         saved_proposal_1.processing_status = 'with_assessor'
         saved_proposal_1.customer_status = 'with_assessor'
         saved_proposal_1.save()
+        #  bb 20201109 must run this after (fake) payment
+        saved_proposal_1.proposal_apiary.post_payment_success()
 
         # Move status to 'With Assessor (Requirements)
         saved_proposal_1.processing_status = 'with_assessor_requirements'
@@ -147,9 +150,9 @@ class ApiarySiteTransferIntegrationTests(APITestSetup):
         print(proposal_1_obj.processing_status)
         for site_1_output in proposal_1_obj.proposal_apiary.apiary_sites.all():
             print(site_1_output)
-        print("APPROVAL SITES")
-        for approval_site in ApiarySite.objects.filter(approval=customer1_approval):
-            print(approval_site)
+        #print("APPROVAL SITES")
+        #for approval_site in ApiarySite.objects.filter(approval=customer1_approval):
+         #   print(approval_site)
 
         #######################################################
         self.client.login(email=self.customer2, password='pass')
@@ -199,6 +202,8 @@ class ApiarySiteTransferIntegrationTests(APITestSetup):
         saved_proposal_2.processing_status = 'with_assessor'
         saved_proposal_2.customer_status = 'with_assessor'
         saved_proposal_2.save()
+        #  bb 20201109 must run this after (fake) payment
+        saved_proposal_2.proposal_apiary.post_payment_success()
 
         # Move status to 'With Assessor (Requirements)
         saved_proposal_2.processing_status = 'with_assessor_requirements'
@@ -288,9 +293,9 @@ class ApiarySiteTransferIntegrationTests(APITestSetup):
         print(proposal_2_obj.processing_status)
         for site_2_output in proposal_2_obj.proposal_apiary.apiary_sites.all():
             print(site_2_output)
-        print("APPROVAL SITES")
-        for approval_site in ApiarySite.objects.filter(approval=customer2_approval):
-            print(approval_site)
+        #print("APPROVAL SITES")
+        #for approval_site in ApiarySite.objects.filter(approval=customer2_approval):
+         #   print(approval_site)
         ####################################################
 
         ## Start Site Transfer proposal
@@ -334,7 +339,8 @@ class ApiarySiteTransferIntegrationTests(APITestSetup):
         draft_site_transfer_proposal_data = {
                 "schema": json.dumps(draft_schema_site_transfer),
                 "apiary_sites_local": json.dumps([{
-                    "id": ApiarySite.objects.filter(approval=customer1_approval)[1].id,
+                    #"id": ApiarySite.objects.filter(approval=customer1_approval)[1].id,
+                    "id": ApiarySiteOnApproval.objects.filter(approval=customer1_approval)[1].id,
                     "checked": True,
                     },
                     ])

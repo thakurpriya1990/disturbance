@@ -64,6 +64,8 @@ class ApiaryIntegrationTests(APITestSetup):
         saved_proposal.processing_status = 'with_assessor'
         saved_proposal.customer_status = 'with_assessor'
         saved_proposal.save()
+        #  bb 20201109 must run this after (fake) payment
+        saved_proposal.proposal_apiary.post_payment_success()
 
         # referrals testing goes here
 
@@ -199,6 +201,8 @@ class ApiaryIntegrationTests(APITestSetup):
         saved_proposal_2.processing_status = 'with_assessor'
         saved_proposal_2.customer_status = 'with_assessor'
         saved_proposal_2.save()
+        #  bb 20201109 must run this after (fake) payment
+        saved_proposal_2.proposal_apiary.post_payment_success()
 
         # referrals testing goes here
 
@@ -293,9 +297,9 @@ class ApiaryIntegrationTests(APITestSetup):
         final_proposal_proposal_apiary_id = final_proposal.proposal_apiary.id
         print(Proposal.objects.get(id=proposal_id).approval.apiary_approval)
         print(Proposal.objects.get(id=proposal_id).processing_status)
-        print("APPROVAL SITES")
-        for approval_site in ApiarySite.objects.filter(approval=final_proposal.approval):
-            print(approval_site)
+        #print("APPROVAL SITES")
+        #for approval_site in ApiarySite.objects.filter(approval=final_proposal.approval):
+            #print(approval_site)
         # Compliance creation test
         approval_standard_requirements = []
         for compliance in final_proposal.approval.compliances.all():
@@ -333,8 +337,9 @@ class ApiaryIntegrationTests(APITestSetup):
                 "details": "reissued details",
                 "expiry_date": self.today_plus_1_week_str,
                 "start_date": self.today_str,
-                "apiary_sites": apiary_sites
+                "apiary_sites": apiary_sites_2
                 }
+        #import ipdb; ipdb.set_trace()
         reissue_final_approval_response = self.client.post(
                 '/api/proposal_apiary/{}/final_approval/'.format(final_proposal.id),
                 #final_approval_data, 
