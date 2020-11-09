@@ -1,5 +1,7 @@
 import re
+from datetime import datetime
 
+import pytz
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from django.db import transaction
@@ -33,7 +35,7 @@ import json
 
 import logging
 
-from disturbance.settings import RESTRICTED_RADIUS
+from disturbance.settings import RESTRICTED_RADIUS, TIME_ZONE
 from disturbance.utils import convert_moment_str_to_python_datetime_obj
 
 logger = logging.getLogger(__name__)
@@ -490,6 +492,8 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
 
             if proposal_apiary_data:
                 # New apairy site application
+                local_date = get_local_date(proposal_apiary_data.get('public_liability_insurance_expiry_date', None), )
+                proposal_apiary_data['public_liability_insurance_expiry_date'] = local_date.strftime('%Y-%m-%d') if local_date else None
                 serializer = ProposalApiarySerializer(proposal_obj.proposal_apiary, data=proposal_apiary_data)
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
@@ -594,6 +598,9 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                     proposal_obj.proposal_apiary.validate_apiary_sites(raise_exception=True)
 
                 save_checklist_answers('applicant', proposal_apiary_data.get('applicant_checklist_answers'))
+                # expiry_date = sanitize_date(proposal_apiary_data.get('public_liability_insurance_expiry_date'))
+                # proposal_obj.proposal_apiary.public_liability_insurance_expiry_date = expiry_date
+                # proposal_obj.proposal_apiary.save()
 
                 # Delete existing
                 sites_delete = ApiarySite.objects.filter(id__in=site_ids_delete)
@@ -634,6 +641,15 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
             proposal_obj.save()
         except Exception as e:
             raise
+
+
+def get_local_date(date_string):
+    if date_string:
+        date_utc = datetime.strptime(date_string, '%Y-%m-%dT%H:%M:%S.%fZ')
+        date_utc = date_utc.replace(tzinfo=pytz.UTC)
+        date_wa = date_utc.astimezone(pytz.timezone(TIME_ZONE))
+        return date_wa
+    return None
 
 
 def save_checklist_answers(checklist_role, checklist_answers=None):

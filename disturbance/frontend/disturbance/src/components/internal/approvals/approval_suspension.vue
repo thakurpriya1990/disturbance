@@ -9,7 +9,7 @@
                             <div class="form-group">
                                 <div class="row">
                                     <div class="col-sm-3">
-                                        
+
                                         <label class="control-label pull-left"  for="Name">From Date</label>
                                     </div>
                                     <div class="col-sm-9">
@@ -26,7 +26,7 @@
                             <div class="form-group">
                                 <div class="row">
                                     <div class="col-sm-3">
-                                        
+
                                         <label class="control-label pull-left"  for="Name">To Date</label>
                                     </div>
                                     <div class="col-sm-9">
@@ -39,11 +39,11 @@
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <div class="form-group">
                                 <div class="row">
                                     <div class="col-sm-3">
-                                        
+
                                         <label class="control-label pull-left"  for="Name">Suspension Details</label>
                                     </div>
                                     <div class="col-sm-9">
@@ -51,7 +51,7 @@
                                     </div>
                                 </div>
                             </div>
-                           
+
                         </div>
                     </form>
                 </div>
@@ -119,7 +119,7 @@ export default {
             let vm =this;
             if($(vm.form).valid()){
                 vm.sendData();
-               
+
             }
         },
         cancel:function () {
@@ -149,7 +149,7 @@ export default {
             vm.errors = false;
             let approval = JSON.parse(JSON.stringify(vm.approval));
             vm.issuingApproval = true;
-            
+
             vm.$http.post(helpers.add_endpoint_json(api_endpoints.approvals,vm.approval_id+'/approval_suspension'),JSON.stringify(approval),{
                         emulateJSON:true,
                     }).then((response)=>{
@@ -158,11 +158,11 @@ export default {
                         vm.close();
                         swal(
                              'Suspend',
-                             'An email has been sent to proponent about suspension of this approval',
+                             'An email has been sent to the proponent about suspension of this approval',
                              'success'
                         );
                         vm.$emit('refreshFromResponse',response);
-                       
+
 
                     },(error)=>{
                         vm.errors = true;
@@ -171,14 +171,14 @@ export default {
                         //vm.approval={};
                         //vm.close();
                     });
-                        
-            
+
+
         },
         addFormValidations: function() {
             let vm = this;
             vm.validation_form = $(vm.form).validate({
                 rules: {
-                    from_date:"required",                    
+                    from_date:"required",
                     suspension_details:"required",
                 },
                 messages: {
@@ -207,7 +207,7 @@ export default {
        eventListeners:function () {
             let vm = this;
             // Initialise Date Picker
-            
+
             $(vm.$refs.from_date).datetimepicker(vm.datepickerOptions);
             $(vm.$refs.from_date).on('dp.change', function(e){
                 if ($(vm.$refs.from_date).data('DateTimePicker').date()) {

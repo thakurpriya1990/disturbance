@@ -75,7 +75,9 @@
                             <li>It is a requirement of all apiary authority holders to maintain appropriate public liability insurance.</li>
                             </ol>
                         </label>
+                    </div>
 
+                    <div class="col-sm-6">
                         <FileField
                             ref="public_liability_insurance_documents"
                             name="public-liability-insurance-documents"
@@ -83,6 +85,16 @@
                             :documentActionUrl="publicLiabilityInsuranceDocumentUrl"
                             :readonly="readonly"
                         />
+                    </div>
+
+                    <div class="col-sm-6">
+                        <label>Expiry Date</label>
+                        <div class="input-group date" ref="expiryDatePicker">
+                            <input type="text" class="form-control" placeholder="DD/MM/YYYY" id="expiry_date_input_element" :readonly="readonly"/>
+                            <span class="input-group-addon">
+                                <span class="glyphicon glyphicon-calendar"></span>
+                            </span>
+                        </div>
                     </div>
                 </div>
             </FormSection>
@@ -227,12 +239,12 @@
             },
         },
         data:function () {
-            let vm=this;
+            let vm = this;
             return{
                 values:null,
                 pBody: 'pBody'+vm._uid,
-                //checklist_answers : [],
                 component_site_selection_key: '',
+                expiry_date_local: '',
             }
         },
         components: {
@@ -397,6 +409,45 @@
           //},
         },
         methods:{
+            addEventListeners: function () {
+                let vm = this;
+                let el_fr = $(vm.$refs.expiryDatePicker);
+                let options = {
+                    format: "DD/MM/YYYY",
+                    showClear: true ,
+                    useCurrent: false,
+                };
+
+                el_fr.datetimepicker(options);
+
+                el_fr.on("dp.change", function(e) {
+                    if (e.date){
+                        // Date selected
+                        vm.expiry_date_local= e.date.format('DD/MM/YYYY')  // e.date is moment object
+                    } else {
+                        // Date not selected
+                        vm.expiry_date_local = null;
+                    }
+                    vm.$emit('expiry_date_changed', vm.expiry_date_local)
+                });
+
+                //***
+                // Set dates in case they are passed from the parent component
+                //***
+                let searchPattern = /^[0-9]{4}/
+
+                let expiry_date_passed = vm.proposal.proposal_apiary.public_liability_insurance_expiry_date;
+                console.log('passed')
+                console.log(expiry_date_passed)
+                if (expiry_date_passed) {
+                    // If date passed
+                    if (searchPattern.test(expiry_date_passed)) {
+                        // Convert YYYY-MM-DD to DD/MM/YYYY
+                        expiry_date_passed = moment(expiry_date_passed, 'YYYY-MM-DD').format('DD/MM/YYYY');
+                    }
+                    $('#expiry_date_input_element').val(expiry_date_passed);
+                }
+            },
             assessorChecklistAnswersPerSite: function(siteId) {
                 let siteList = []
                 if (this.proposal && this.proposal.proposal_apiary && this.proposal.proposal_apiary.assessor_checklist_answers_per_site &&
@@ -481,8 +532,11 @@
 
         },
         mounted: function() {
-            //let vm = this;
+            let vm = this;
             this.component_site_selection_key = uuid()
+            this.$nextTick(() => {
+                vm.addEventListeners();
+            });
             //vm.form = document.forms.new_proposal;
             //window.addEventListener('beforeunload', vm.leaving);
             //window.addEventListener('onblur', vm.leaving);

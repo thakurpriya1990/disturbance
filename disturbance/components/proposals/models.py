@@ -2564,6 +2564,7 @@ class ProposalApiary(RevisionedMixin):
 
     apiary_sites = models.ManyToManyField('ApiarySite', through=ApiarySiteOnProposal, related_name='proposal_apiary_set')
     #self_clone = models.ForeignKey('self', on_delete=models.SET_NULL, blank=True, null=True)
+    public_liability_insurance_expiry_date = models.DateField(null=True, blank=True)
 
     def __str__(self):
         return 'id:{} - {}'.format(self.id, self.title)
@@ -3807,6 +3808,8 @@ class ProposalApiaryDocument(DefaultDocument):
 
 
 class DeedPollDocument(Document):
+    DOC_TYPE_NAME = 'deed_poll_documents'
+
     proposal = models.ForeignKey(ProposalApiary, related_name='deed_poll_documents', blank=True, null=True)
     base_proposal = models.ForeignKey(Proposal, related_name='deed_poll_documents', blank=True, null=True)
     _file = models.FileField(max_length=255)
@@ -3825,16 +3828,26 @@ class DeedPollDocument(Document):
 
 
 class PublicLiabilityInsuranceDocument(Document):
+    DOC_TYPE_NAME = 'public_liability_document'
+
     proposal = models.ForeignKey(ProposalApiary, related_name='public_liability_insurance_documents', blank=True, null=True)
     _file = models.FileField(max_length=255)
+    input_name = models.CharField(max_length=255, blank=True, null=True)
+    can_delete = models.BooleanField(default=True)
+    visible = models.BooleanField(default=True)
 
     class Meta:
         app_label = 'disturbance'
 
 
 class SupportingApplicationDocument(Document):
+    DOC_TYPE_NAME = 'supporting_application_document'
+
     proposal = models.ForeignKey(ProposalApiary, related_name='supporting_application_documents', blank=True, null=True)
     _file = models.FileField(max_length=255)
+    input_name = models.CharField(max_length=255, blank=True, null=True)
+    can_delete = models.BooleanField(default=True)
+    visible = models.BooleanField(default=True)
 
     class Meta:
         app_label = 'disturbance'

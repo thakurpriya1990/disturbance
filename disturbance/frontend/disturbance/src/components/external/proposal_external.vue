@@ -58,6 +58,7 @@
                     @num_of_sites_remote_to_add_as_remainder="update_num_of_sites_remote_to_add_as_remainder"
                     @num_of_sites_south_west_renewal_to_add_as_remainder="update_num_of_sites_south_west_renewal_to_add_as_remainder"
                     @num_of_sites_remote_renewal_to_add_as_remainder="update_num_of_sites_remote_renewal_to_add_as_remainder"
+                    @expiry_date_changed="expiry_date_changed"
                 />
             </div>
             <div v-else-if="proposal && proposal.application_type=='Site Transfer'">
@@ -375,6 +376,10 @@ export default {
         }
     },
     methods: {
+        expiry_date_changed: function(value){
+            console.log(value)
+            this.proposal.proposal_apiary.public_liability_insurance_expiry_date = moment(value, 'DD/MM/YYYY');
+        },
         setSiteTransferApplicationFee: function(fee) {
             this.siteTransferApplicationFee = fee;
         },

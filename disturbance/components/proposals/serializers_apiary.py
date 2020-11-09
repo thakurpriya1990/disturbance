@@ -574,7 +574,6 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
         model = ProposalApiary
         fields = (
             'id',
-            'title',
             'proposal',
             'apiary_sites',
             # 'apiary_sites_2',
@@ -607,6 +606,7 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
             'transferee_email_text', 
             'transferee_id',
             'target_approval_organisation_id',
+            'public_liability_insurance_expiry_date',
         )
 
     def validate(self, attrs):
@@ -831,7 +831,6 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
                     "referrer_group_name": referral.apiary_referral.referral_group.name,
                     })
         return referral_list
-
 
 
 class CreateProposalApiarySiteTransferSerializer(serializers.ModelSerializer):
