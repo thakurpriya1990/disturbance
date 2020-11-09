@@ -1,6 +1,35 @@
 from rest_framework import serializers
-from disturbance.components.main.models import CommunicationsLogEntry, Region, District, Tenure, ApplicationType, ActivityMatrix
+from rest_framework_gis.serializers import GeoFeatureModelSerializer
+
+from disturbance.components.main.models import CommunicationsLogEntry, Region, District, Tenure, ApplicationType, \
+    ActivityMatrix, WaCoast
 from ledger.accounts.models import EmailUser
+
+
+class WaCoastOptimisedSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = WaCoast
+        fields = (
+            'id',
+            'type',
+            # 'source',
+            # 'smoothed',
+        )
+
+
+class WaCoastSerializer(GeoFeatureModelSerializer):
+
+    class Meta:
+        model = WaCoast
+        geo_field = 'wkb_geometry'
+        fields = (
+            'id',
+            'type',
+            # 'source',
+            # 'smoothed',
+        )
+
 
 class CommunicationLogEntrySerializer(serializers.ModelSerializer):
     customer = serializers.PrimaryKeyRelatedField(queryset=EmailUser.objects.all(),required=False)
@@ -68,3 +97,10 @@ class ApplicationTypeSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'tenure_app_types')
 
 
+class BookingSettlementReportSerializer(serializers.Serializer):
+    date = serializers.DateTimeField(input_formats=['%d/%m/%Y'])
+
+
+class OracleSerializer(serializers.Serializer):
+    date = serializers.DateField(input_formats=['%d/%m/%Y','%Y-%m-%d'])
+    override = serializers.BooleanField(default=False)

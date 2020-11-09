@@ -145,7 +145,7 @@
                             }
                         },
                         {
-                            visible: false,
+                            visible: true,
                             mRender: function (data, type, full) {
                                 if (vm.is_external){
                                     if (full.action) {
@@ -185,7 +185,6 @@
         },
         methods:{
             onSiteInformationAdded: async function() {
-                console.log('onSiteInformationAdded');
                 await this.loadOnSiteInformation(this.approval_id);
                 this.constructOnSiteInformationTable();
             },
@@ -199,8 +198,10 @@
                 });
             },
             openOnSiteInformationModal: async function(obj_to_edit) {
-                console.log('in openOnSiteInformationModal');
-                console.log(obj_to_edit);
+                console.log('openOnSiteInformationModal')
+                console.log('obj_to_edit: ')
+                console.log(obj_to_edit)
+
                 // Refresh the component key
                 this.modalBindId = uuid()
 
@@ -213,7 +214,7 @@
                         }
                     });
                 } catch (err) {
-                    this.processError(err)
+                    helpers.processError(err)
                 }
             },
             constructOnSiteInformationTable: function(){
@@ -235,9 +236,13 @@
                 $("#on-site-information-table").on("click", ".edit_on_site_information", this.editOnSiteInformation);
             },
             editOnSiteInformation: async function(e) {
+                console.log('in editOnSiteInformation')
+
                 let vm = this;
                 let on_site_information_id = e.target.getAttribute("data-on-site-information-id");
-                console.log('edit on_site_information_id: ' + on_site_information_id);
+                
+                console.log('on_site_information_id: ' + on_site_information_id)
+
                 let obj_to_edit = {
                     id: null,
                     apiary_site: null,
@@ -291,20 +296,15 @@
             loadOnSiteInformation: async function(){
                 await this.$http.get('/api/approvals/' + this.approval_id + '/on_site_information/').then(
                     (accept)=>{
-                        console.log('accept')
-                        console.log(accept.body)
                         this.on_site_information_list = accept.body
                         this.constructOnSiteInformationTable()
                     },
                     (reject)=>{
-                        console.log('reject')
                     },
                 )
             }
         },
         created: function() {
-            console.log('in created')
-            console.log('approval_id: ' + this.approval_id)
             this.loadOnSiteInformation()
         },
         mounted: function() {

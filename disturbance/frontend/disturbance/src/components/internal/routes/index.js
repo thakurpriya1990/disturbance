@@ -14,6 +14,8 @@ import Compliance from '../compliances/access.vue'
 //import Approval from '../approvals/approval.vue'
 import Approval from '../approvals/approval_wrapper.vue'
 import SiteTransitions from '../site_transitions/site_transitions.vue'
+import AvailableSites from '../available_sites.vue'
+import Reports from '@/components/reports/reports.vue'
 
 export default
 {
@@ -32,6 +34,11 @@ export default
             name:"internal-dashboard",
         },
         {
+            path:'reports',
+            name:'reports',
+            component:Reports
+        },
+        {
             path: 'approvals',
             component: ApprovalDash,
             name:"internal-approvals-dash"
@@ -39,7 +46,12 @@ export default
         {
             path: 'approval/:approval_id',
             component: Approval,
-           
+
+        },
+        {
+            path: 'available_sites',
+            component: AvailableSites,
+            name: 'available_sites'
         },
         {
             path: 'compliances',
@@ -49,7 +61,7 @@ export default
         {
             path: 'compliance/:compliance_id',
             component: Compliance,
-           
+
         },
         {
             path: 'search',
@@ -85,7 +97,7 @@ export default
                     component: Organisation,
                     name:"internal-org-detail"
                 },
- 
+
             ]
         },
         {
@@ -125,7 +137,7 @@ export default
                         */
                     ]
                 },
- 
+
             ]
         },
         /*{

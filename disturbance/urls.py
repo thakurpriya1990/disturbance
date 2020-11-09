@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.contrib import admin
 from django.conf.urls import url, include
 from django.conf.urls.static import static
 from rest_framework import routers
@@ -15,7 +16,6 @@ from disturbance.components.proposals import api as proposal_api
 from disturbance.components.approvals import api as approval_api
 from disturbance.components.compliances import api as compliances_api
 from disturbance.components.main import api as main_api
-from disturbance.components.das_payments import api as payment_api
 
 from ledger.urls import urlpatterns as ledger_patterns
 
@@ -49,6 +49,7 @@ router.register(r'activity_matrix', main_api.ActivityMatrixViewSet)
 router.register(r'application_types', main_api.ApplicationTypeViewSet)
 router.register(r'apiary_referral_groups', proposal_api.ApiaryReferralGroupViewSet)
 router.register(r'apiary_referrals',proposal_api.ApiaryReferralViewSet)
+router.register(r'apiary_site_fees',proposal_api.ApiarySiteFeeViewSet)
 #router.register(r'payment',payment_api.PaymentViewSet)
 
 
@@ -71,6 +72,7 @@ api_patterns = [
 # Django searches matching url from the top of the list, and once found a matching url, it never goes through the urls below it.
 urlpatterns = [
     url(r'^admin/', disturbance_admin_site.urls),
+    url(r'^ledger/admin/', admin.site.urls, name='ledger_admin'),
     url(r'', include(api_patterns)),
     url(r'^$', views.DisturbanceRoutingView.as_view(), name='ds_home'),
     url(r'^contact/', views.DisturbanceContactView.as_view(), name='ds_contact'),
@@ -80,6 +82,7 @@ urlpatterns = [
     url(r'^external/proposal/(?P<proposal_pk>\d+)/submit_temp_use_success/$', ExternalProposalTemporaryUseSubmitSuccessView.as_view(),),
     url(r'^external/', views.ExternalView.as_view(), name='external'),
     url(r'^firsttime/$', views.first_time, name='first_time'),
+    url(r'^gisdata/$', views.gisdata, name='gisdata'),
     url(r'^account/$', views.ExternalView.as_view(), name='manage-account'),
     url(r'^help/(?P<application_type>[^/]+)/(?P<help_type>[^/]+)/$', views.HelpView.as_view(), name='help'),
     url(r'^mgt-commands/$', views.ManagementCommandsView.as_view(), name='mgt-commands'),
@@ -89,9 +92,12 @@ urlpatterns = [
     url(r'^preview/licence-pdf/(?P<proposal_pk>\d+)',proposal_views.PreviewLicencePDFView.as_view(), name='preview_licence_pdf'),
 
     url(r'^application_fee/(?P<proposal_pk>\d+)/$', payment_views.ApplicationFeeView.as_view(), name='application_fee'),
+    url(r'^annual_rental_fee/(?P<annual_rental_fee_id>\d+)/$', payment_views.AnnualRentalFeeView.as_view(), name='annual_rental_fee'),
     url(r'^success/fee/$', payment_views.ApplicationFeeSuccessView.as_view(), name='fee_success'),
     url(r'^success/site_transfer_fee/$', payment_views.SiteTransferApplicationFeeSuccessView.as_view(), name='site_transfer_fee_success'),
+    url(r'^success/annual_rental_fee/$', payment_views.AnnualRentalFeeSuccessView.as_view(), name='annual_rental_fee_success'),
     url(r'payments/invoice-pdf/(?P<reference>\d+)', payment_views.InvoicePDFView.as_view(), name='invoice-pdf'),
+    url(r'payments/awaiting-payment-pdf/(?P<annual_rental_fee_id>\d+)', payment_views.AwaitingPaymentPDFView.as_view(), name='awaiting-payment-pdf'),
     url(r'payments/confirmation-pdf/(?P<reference>\d+)', payment_views.ConfirmationPDFView.as_view(), name='confirmation-pdf'),
 
 
@@ -110,8 +116,14 @@ urlpatterns = [
     url(r'^history/proposaltype/(?P<pk>\d+)/$', proposal_views.ProposalTypeHistoryCompareView.as_view(), name='proposaltype_history'),
     url(r'^history/helppage/(?P<pk>\d+)/$', proposal_views.HelpPageHistoryCompareView.as_view(), name='helppage_history'),
     url(r'^history/organisation/(?P<pk>\d+)/$', organisation_views.OrganisationHistoryCompareView.as_view(), name='organisation_history'),
+    url(r'^template_group$', views.TemplateGroupView.as_view(), name='template-group'),
 
-    # url(r'^external/proposal/(?P<proposal_pk>\d+)/submit_temp_use_success/$', success_view, name='external-proposal-temporary-use-submit-success'),
+    # Reports
+    url(r'^api/oracle_job$', main_api.OracleJob.as_view(), name='get-oracle'),
+    url(r'^api/reports/booking_settlements$', main_api.BookingSettlementReportView.as_view(),
+        name='booking-settlements-report'),
+
+                  # url(r'^external/proposal/(?P<proposal_pk>\d+)/submit_temp_use_success/$', success_view, name='external-proposal-temporary-use-submit-success'),
 ] + ledger_patterns
 
 if not are_migrations_running():

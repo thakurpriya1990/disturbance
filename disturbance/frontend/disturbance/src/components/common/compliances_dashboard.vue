@@ -1,4 +1,4 @@
-a<template id="proposal_dashboard">
+<template id="proposal_dashboard">
     <div class="row">
         <div class="col-sm-12">
             <div class="panel panel-default">
@@ -9,24 +9,27 @@ a<template id="proposal_dashboard">
                         </a>
                     </h3>
                 </div>
+
                 <div class="panel-body collapse in" :id="pBody">
                     <div class="row">
-                        <div class="col-md-3">
-                            <div class="form-group">
-                                <label for="">Region</label>
-                                <select class="form-control" v-model="filterProposalRegion">
-                                    <option value="All">All</option>
-                                    <option v-for="r in proposal_regions" :value="r">{{r}}</option>
-                                </select>
+                        <div v-if="!apiaryTemplateGroup">
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="">Region</label>
+                                    <select class="form-control" v-model="filterProposalRegion">
+                                        <option value="All">All</option>
+                                        <option v-for="r in proposal_regions" :value="r">{{r}}</option>
+                                    </select>
+                                </div>
                             </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="form-group">
-                                <label for="">Activity</label>
-                                <select class="form-control" v-model="filterProposalActivity">
-                                    <option value="All">All</option>
-                                    <option v-for="a in proposal_activityTitles" :value="a">{{a}}</option>
-                                </select>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="">Activity</label>
+                                    <select class="form-control" v-model="filterProposalActivity">
+                                        <option value="All">All</option>
+                                        <option v-for="a in proposal_activityTitles" :value="a">{{a}}</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
                         <div class="col-md-3">
@@ -34,7 +37,7 @@ a<template id="proposal_dashboard">
                                 <label for="">Status</label>
                                 <select class="form-control" v-model="filterComplianceStatus">
                                     <option value="All">All</option>
-                                    <option v-for="s in status" :value="s">{{s}}</option>
+                                    <option v-for="s in status_values" :value="s">{{s}}</option>
                                 </select>
                             </div>
                         </div>
@@ -99,6 +102,8 @@ export default {
             datatable_id: 'proposal-datatable-'+vm._uid,
             //Profile to check if user has access to process Proposal
             profile: {},
+            dasTemplateGroup: false,
+            apiaryTemplateGroup: false,
             // Filters for Proposals
             filterProposalRegion: 'All',
             filterProposalActivity: 'All',
@@ -114,6 +119,7 @@ export default {
                 keepInvalid:true,
                 allowInputToggle:true
             },
+            /*
             external_status:[
                 'Due',
                 'Future',
@@ -127,10 +133,11 @@ export default {
                 'Approved',
 
             ],
+            */
             proposal_activityTitles : [],
             proposal_regions: [],
             proposal_submitters: [],
-            proposal_headers:["Number","Region/District","Activity","Title","Approval","Holder","Status","Due Date","Assigned To", "CustomerStatus", "Reference","Action"],
+            //proposal_headers:["Number","Region/District","Activity","Title","Approval","Holder","Status","Due Date","Assigned To", "CustomerStatus", "Reference","Action"],
             proposal_options:{
                 language: {
                     processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
@@ -147,6 +154,7 @@ export default {
                         //d.regions = vm.filterProposalRegion.join();
                         d.date_from = vm.filterComplianceDueFrom != '' && vm.filterComplianceDueFrom != null ? moment(vm.filterComplianceDueFrom, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
                         d.date_to = vm.filterComplianceDueTo != '' && vm.filterComplianceDueTo != null ? moment(vm.filterComplianceDueTo, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
+                        /*
                         if (vm.level == 'external') { // hack to allow for correct Django choicelist in qs filter ProposalFilterBackend.filter_quesryset()
                             d.customer_status = vm.filterComplianceStatus == 'Under Review' ? 'with_assessor': vm.filterComplianceStatus != 'All' ? vm.filterComplianceStatus: '';
                             d.processing_status = '';
@@ -154,12 +162,33 @@ export default {
                             d.processing_status = vm.filterComplianceStatus == 'With Assessor' ? 'with_assessor': vm.filterComplianceStatus != 'All' ? vm.filterComplianceStatus: '';
                             d.customer_status = '';
                         }
+                        */
+                        d.compliance_status = vm.filterComplianceStatus;
+                        d.region = vm.filterProposalRegion;
+                        d.proposal_activity = vm.filterProposalActivity;
+                        d.is_external = vm.is_external;
                     }
 
                 },
                 dom: 'lBfrtip',
+                /*
                 buttons:[
                 'excel', 'csv', ],
+                */
+                buttons:[
+                    {
+                        extend: 'excel',
+                        exportOptions: {
+                            columns: ':visible'
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        exportOptions: {
+                            columns: ':visible'
+                        }
+                    },
+                ],
                 columns: [
                     {
                         data: "id",
@@ -171,16 +200,20 @@ export default {
                     },
                     {
                         data: "regions",
-                        name: "proposal__region__name" // will be use like: Approval.objects.filter(proposal__region__name='Kimberley')
+                        name: "proposal__region__name", // will be use like: Approval.objects.filter(proposal__region__name='Kimberley')
+                        visible: false,
                     },
                     {
                         data: "activity",
                         name: "proposal__activity",
+                        visible: false,
                     },
+                    /*
                     {
                         data: "title",
                         name: "proposal__title",
                     },
+                    */
                     {
                         data: "approval_lodgement_number",
                         mRender:function (data,type,full) {
@@ -240,6 +273,17 @@ export default {
                     {data: "allowed_assessors", visible: false},
                 ],
                 processing: true,
+                initComplete: function() {
+                    // set column visibility and headers according to template group
+                    // region
+                    let regionColumn = vm.$refs.proposal_datatable.vmDataTable.columns(1);
+                    let activityColumn = vm.$refs.proposal_datatable.vmDataTable.columns(2);
+                    if (vm.dasTemplateGroup) {
+                        regionColumn.visible(true);
+                        activityColumn.visible(true);
+                    }
+                },
+
                 /*
                 initComplete: function () {
                     // Grab Regions from the data in the table
@@ -321,6 +365,35 @@ export default {
         }, */
         is_external: function(){
             return this.level == 'external';
+        },
+        status_values: function() {
+            if (this.is_external) {
+                return [
+                    'Due',
+                    'Future',
+                    'Under Review',
+                    'Approved',
+                ]
+            } else {
+                return [
+                    'Due',
+                    'Future',
+                    'With Assessor',
+                    'Approved',
+                ]
+            }
+        },
+
+        proposal_headers: function() {
+            if (this.apiaryTemplateGroup) {
+                return [
+                    "Number","Region/District","Activity",/*"Title",*/"Licence","Holder","Status",
+                    "Due Date","Assigned To", "CustomerStatus", "Reference","Action"]
+            } else {
+                return [
+                    "Number","Region/District","Activity",/*"Title",*/"Approval","Holder","Status",
+                    "Due Date","Assigned To", "CustomerStatus", "Reference","Action"]
+            }
         },
 
     },
@@ -463,20 +536,42 @@ export default {
         },
         check_assessor: function(compliance){
             let vm = this;
+            if (compliance.allowed_assessors) {
+                var assessor = compliance.allowed_assessors.filter(function(elem){
+                        return(elem.id==vm.profile.id)
+                    });
 
-            var assessor = compliance.allowed_assessors.filter(function(elem){
-                    return(elem.id==vm.profile.id)
-                });
-
-            if (assessor.length > 0){
-                //console.log(proposal.id, assessor)
-                return true;
-            }
-            else
+                if (assessor.length > 0){
+                    //console.log(proposal.id, assessor)
+                    return true;
+                }
+                else
+                    return false;
+            } else {
                 return false;
-
-            return false;
+            }
         }
+    },
+    created: function() {
+        // retrieve template group
+        this.$http.get('/template_group',{
+            emulateJSON:true
+            }).then(res=>{
+                //this.template_group = res.body.template_group;
+                if (res.body.template_group === 'apiary') {
+                    this.apiaryTemplateGroup = true;
+                } else {
+                    this.dasTemplateGroup = true;
+                }
+        },err=>{
+        console.log(err);
+        });
+    },
+    updated: function() {
+        this.$nextTick(() => {
+            this.addEventListeners();
+            this.initialiseSearch();
+        });
     },
     mounted: function(){
         let vm = this;
@@ -488,15 +583,10 @@ export default {
                 $( chev ).toggleClass( "glyphicon-chevron-down glyphicon-chevron-up" );
             }, 100 );
         });
-        this.$nextTick(() => {
-            vm.addEventListeners();
-            vm.initialiseSearch();
-        });
         if(vm.is_external){
             var column = vm.$refs.proposal_datatable.vmDataTable.columns(8); //Hide 'Assigned To column for external'
             column.visible(false);
         }
-
     }
 }
 </script>

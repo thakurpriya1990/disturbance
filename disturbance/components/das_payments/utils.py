@@ -12,9 +12,9 @@ from dateutil.relativedelta import relativedelta
 from ledger.accounts.models import EmailUser
 from ledger.settings_base import TIME_ZONE
 
-from disturbance.components.main.models import ApplicationType
+from disturbance.components.main.models import ApplicationType, GlobalSettings, ApiaryGlobalSettings
 from disturbance.components.proposals.models import SiteCategory, ApiarySiteFeeType, \
-    ApiarySiteFeeRemainder, ApiaryAnnualRentalFee, ApiarySite
+    ApiarySiteFeeRemainder, ApiaryAnnualRentalFee, ApiarySite, ApiarySiteOnProposal
 from disturbance.components.organisations.models import Organisation
 from disturbance.components.das_payments.models import ApplicationFee, AnnualRentalFee
 from ledger.checkout.utils import create_basket_session, create_checkout_session, calculate_excl_gst
@@ -26,9 +26,10 @@ from decimal import Decimal
 
 import logging
 
-from disturbance.settings import PAYMENT_SYSTEM_ID
+from disturbance.settings import PAYMENT_SYSTEM_ID, DEBUG, PRODUCTION_EMAIL, ANNUAL_RENTAL_FEE_GST_EXEMPT
 
 logger = logging.getLogger('payment_checkout')
+
 
 def get_session_application_invoice(session):
     """ Application Fee session ID """
@@ -41,7 +42,7 @@ def get_session_application_invoice(session):
         #return Invoice.objects.get(id=application_invoice_id)
         #return Proposal.objects.get(id=proposal_id)
         return ApplicationFee.objects.get(id=application_fee_id)
-    except Invoice.DoesNotExist:
+    except ApplicationFee.DoesNotExist:
         raise Exception('Application not found for application {}'.format(application_fee_id))
 
 
@@ -51,11 +52,36 @@ def set_session_application_invoice(session, application_fee):
     session.modified = True
 
 
+def delete_session_annual_rental_fee(session):
+    """ Application Fee session ID """
+    if 'annual_rental_fee' in session:
+        del session['annual_rental_fee']
+        session.modified = True
+
+
+def set_session_annual_rental_fee(session, annual_rental_fee):
+    session['annual_rental_fee'] = annual_rental_fee.id
+    session.modified = True
+
+
+def get_session_annual_rental_fee(session):
+    if 'annual_rental_fee' in session:
+        annual_rental_fee_id = session['annual_rental_fee']
+    else:
+        raise Exception('AnnualRentalFee not in Session')
+
+    try:
+        return AnnualRentalFee.objects.get(id=annual_rental_fee_id)
+    except AnnualRentalFee.DoesNotExist:
+        raise Exception('AnnualRentalFee not found for id {}'.format(annual_rental_fee_id))
+
+
 def delete_session_application_invoice(session):
     """ Application Fee session ID """
     if 'das_app_invoice' in session:
         del session['das_app_invoice']
         session.modified = True
+
 
 def get_session_site_transfer_application_invoice(session):
     """ Application Fee session ID """
@@ -68,7 +94,7 @@ def get_session_site_transfer_application_invoice(session):
         #return Invoice.objects.get(id=application_invoice_id)
         #return Proposal.objects.get(id=proposal_id)
         return ApplicationFee.objects.get(id=application_fee_id)
-    except Invoice.DoesNotExist:
+    except ApplicationFee.DoesNotExist:
         raise Exception('Application not found for application {}'.format(application_fee_id))
 
 
@@ -84,6 +110,7 @@ def delete_session_site_transfer_application_invoice(session):
         del session['site_transfer_app_invoice']
         session.modified = True
 
+
 def create_fee_lines_site_transfer(proposal):
     #import ipdb;ipdb.set_trace()
     now = datetime.now().strftime('%Y-%m-%d %H:%M')
@@ -97,10 +124,11 @@ def create_fee_lines_site_transfer(proposal):
     summary = {}
     for site_transfer_site in proposal.proposal_apiary.site_transfer_apiary_sites.all():
         if site_transfer_site.customer_selected:
-            if site_transfer_site.apiary_site.site_category.id in summary:
-                summary[site_transfer_site.apiary_site.site_category.id] += 1
+            # if site_transfer_site.apiary_site.site_category.id in summary:
+            if site_transfer_site.apiary_site_on_approval.site_category.id in summary:
+                summary[site_transfer_site.apiary_site_on_approval.site_category.id] += 1
             else:
-                summary[site_transfer_site.apiary_site.site_category.id] = 1
+                summary[site_transfer_site.apiary_site_on_approval.site_category.id] = 1
 
     # Once payment success, data is updated based on this variable
     # This variable is stored in the session
@@ -121,7 +149,7 @@ def create_fee_lines_site_transfer(proposal):
         #    application_price = 0
 
         line_item = {
-            'ledger_description': 'Application Fee - {} - {} - {}'.format(now, proposal.lodgement_number, site_category.name),
+            'ledger_description': 'Application Fee - {} - {} - {}'.format(now, proposal.lodgement_number, site_category.display_name),
             'oracle_code': proposal.application_type.oracle_code_application,
             'price_incl_tax': application_price,
             'price_excl_tax': application_price if proposal.application_type.is_gst_exempt else calculate_excl_gst(application_price),
@@ -131,90 +159,199 @@ def create_fee_lines_site_transfer(proposal):
 
     return line_items, None
 
+
+def _get_site_fee_remainders(site_category, apiary_site_fee_type_name, applicant, proxy_applicant):
+    # Retrieve sites left
+    if not applicant and not proxy_applicant:
+        # Should not reach here
+        logger.error('No applicants are set to retrieve the remainders.')
+        return None
+
+    filter_site_category = Q(site_category=site_category)
+    filter_site_fee_type = Q( apiary_site_fee_type=ApiarySiteFeeType.objects.get(name=apiary_site_fee_type_name))
+    filter_applicant = Q(applicant=applicant)
+    filter_proxy_applicant = Q(proxy_applicant=proxy_applicant)
+    # filter_expiry = Q(date_expiry__gte=today_local)
+    filter_used = Q(date_used__isnull=True)
+    site_fee_remainders = ApiarySiteFeeRemainder.objects.filter(
+        filter_site_category &
+        filter_site_fee_type &
+        filter_applicant &
+        filter_proxy_applicant &
+        # filter_expiry &
+        filter_used
+    ).order_by('datetime_created')  # Older comes earlier
+
+    return site_fee_remainders
+
+
+def _sum_apiary_sites_per_category2(proposal_apiary):
+    site_ids = []
+    vacant_site_ids = []
+    site_per_category_per_feetype = {
+        SiteCategory.CATEGORY_SOUTH_WEST: {
+            ApiarySiteFeeType.FEE_TYPE_APPLICATION: [],
+            ApiarySiteFeeType.FEE_TYPE_RENEWAL: [],
+        },
+        SiteCategory.CATEGORY_REMOTE: {
+            ApiarySiteFeeType.FEE_TYPE_APPLICATION: [],
+            ApiarySiteFeeType.FEE_TYPE_RENEWAL: [],
+        },
+    }
+
+    for relation in proposal_apiary.get_relations():
+        if relation.for_renewal:
+            fee_type = ApiarySiteFeeType.FEE_TYPE_RENEWAL
+        else:
+            fee_type = ApiarySiteFeeType.FEE_TYPE_APPLICATION
+
+        site_per_category_per_feetype[relation.site_category_draft.name][fee_type].append(relation)
+
+        if relation.apiary_site.is_vacant:
+            vacant_site_ids.append(relation.apiary_site.id)
+        else:
+            site_ids.append(relation.apiary_site.id)
+
+    return site_ids, vacant_site_ids, site_per_category_per_feetype
+
+
+# def _sum_apiary_sites_per_category(apiary_sites, vacant_apiary_sites):
+#     num_of_sites_per_category = {}
+#     db_process_after_success = []
+#     site_per_category_per_feetype = {
+#             SiteCategory.CATEGORY_SOUTH_WEST: {
+#                 ApiarySiteFeeType.FEE_TYPE_APPLICATION: [],
+#                 ApiarySiteFeeType.FEE_TYPE_RENEWAL: [],
+#             },
+#             SiteCategory.CATEGORY_REMOTE: {
+#                 ApiarySiteFeeType.FEE_TYPE_APPLICATION: [],
+#                 ApiarySiteFeeType.FEE_TYPE_RENEWAL: [],
+#             },
+#         }
+#
+#     for apiary_site in apiary_sites:
+#         if apiary_site.site_category.id in num_of_sites_per_category:
+#             num_of_sites_per_category[apiary_site.site_category.id] += 1
+#         else:
+#             num_of_sites_per_category[apiary_site.site_category.id] = 1
+#         db_process_after_success.append({'id': apiary_site.id})
+#
+#         if apiary_site.status in ApiarySite.RENEWABLE_STATUS:
+#             site_per_category_per_feetype[apiary_site.site_category.name][ApiarySiteFeeType.FEE_TYPE_RENEWAL].append(apiary_site)
+#         else:
+#             site_per_category_per_feetype[apiary_site.site_category.name][ApiarySiteFeeType.FEE_TYPE_APPLICATION].append(apiary_site)
+#
+#     for apiary_site in vacant_apiary_sites:
+#         if apiary_site.site_category.id in num_of_sites_per_category:
+#             num_of_sites_per_category[apiary_site.site_category.id] += 1
+#         else:
+#             num_of_sites_per_category[apiary_site.site_category.id] = 1
+#        # db_process_after_success.append({'id': apiary_site.id})
+#
+#         if apiary_site.status in ApiarySite.RENEWABLE_STATUS:
+#             site_per_category_per_feetype[apiary_site.site_category.name][ApiarySiteFeeType.FEE_TYPE_RENEWAL].append(apiary_site)
+#         else:
+#             site_per_category_per_feetype[apiary_site.site_category.name][ApiarySiteFeeType.FEE_TYPE_APPLICATION].append(apiary_site)
+#
+#     return num_of_sites_per_category, db_process_after_success, site_per_category_per_feetype
+
+
+def _get_remainders_obj(number_of_sites_to_add_as_remainder, site_category_id, proposal, apiary_site_fee_type_name):
+    # Add remainders
+    remainders_arr = []
+
+    for i in range(number_of_sites_to_add_as_remainder):
+        site_to_be_added = {
+            'site_category_id': site_category_id,
+            'apiary_site_fee_type_name': apiary_site_fee_type_name,
+            'applicant_id': proposal.applicant.id if proposal.applicant else None,
+            'proxy_applicant_id': proposal.proxy_applicant.id if proposal.proxy_applicant else None,
+            # 'date_expiry': (today_local + timedelta(days=7)).strftime('%Y-%m-%d')
+        }
+        remainders_arr.append(site_to_be_added)
+
+    return remainders_arr
+
+
 def create_fee_lines_apiary(proposal):
     now = datetime.now().strftime('%Y-%m-%d %H:%M')
     today_local = datetime.now(pytz.timezone(TIME_ZONE)).date()
-    MIN_NUMBER_OF_SITES_TO_APPLY = 5
+    MIN_NUMBER_OF_SITES_TO_RENEW = 5
+    MIN_NUMBER_OF_SITES_TO_NEW = 5
     line_items = []
-
-    # applicant = EmailUser.objects.get(email='katsufumi.shibata@dbca.wa.gov.au')  # TODO: Get proper applicant
-
-    # Calculate total number of sites applied per category
-    summary = {}
-    for apiary_site in proposal.proposal_apiary.apiary_sites.all():
-        if apiary_site.site_category.id in summary:
-            summary[apiary_site.site_category.id] += 1
-        else:
-            summary[apiary_site.site_category.id] = 1
 
     # Once payment success, data is updated based on this variable
     # This variable is stored in the session
-    db_process_after_success = {'site_remainder_used': [], 'site_remainder_to_be_added': []}
+    db_process_after_success = {
+        'site_remainder_used': [],
+        'site_remainder_to_be_added': [],
+    }
+
+    # Calculate total number of sites applied per category
+    # summary, db_process_after_success['apiary_sites'], temp = _sum_apiary_sites_per_category(proposal.proposal_apiary.apiary_sites.all(), proposal.proposal_apiary.vacant_apiary_sites.all())
+    db_process_after_success['apiary_site_ids'], db_process_after_success['vacant_apiary_site_ids'], temp = _sum_apiary_sites_per_category2(proposal.proposal_apiary)
+    # db_process_after_success['vacant_apiary_site_ids'] = [site.id for site in proposal.proposal_apiary.vacant_apiary_sites.all()]
+    db_process_after_success['proposal_apiary_id'] = proposal.proposal_apiary.id
 
     # Calculate number of sites to calculate the fee
-    for site_category_id, number_of_sites_applied in summary.items():
+    # for site_category_id, number_of_sites_applied in summary.items():
+    for site_category_name, data_in_category in temp.items():
+        site_category = SiteCategory.objects.get(name=site_category_name)
 
-        site_category = SiteCategory.objects.get(id=site_category_id)
+        for new_or_renewal, relations in data_in_category.items():
+            if not len(relations) > 0:
+                # No apiary sites for this 'site_cateogyr' and 'new_or_renewal'
+                continue
 
+            site_fee_remainders = _get_site_fee_remainders(site_category, new_or_renewal, proposal.applicant, proposal.proxy_applicant)
 
-        # Retrieve sites left
-        filter_site_category = Q(site_category=site_category)
-        filter_site_fee_type = Q(apiary_site_fee_type=ApiarySiteFeeType.objects.get(name=ApiarySiteFeeType.FEE_TYPE_APPLICATION))
-        filter_applicant = Q(applicant=proposal.applicant)
-        filter_proxy_applicant = Q(proxy_applicant=proposal.proxy_applicant)
-        # filter_expiry = Q(date_expiry__gte=today_local)
-        filter_used = Q(date_used__isnull=True)
-        site_fee_remainders = ApiarySiteFeeRemainder.objects.filter(
-            filter_site_category &
-            filter_site_fee_type &
-            filter_applicant &
-            filter_proxy_applicant &
-            # filter_expiry &
-            filter_used
-        ).order_by('datetime_created')  # Older comes earlier
+            # Calculate deduction and set date_used field
+            # number_of_sites_after_deduction = len(apiary_sites)
+            number_of_sites_after_deduction = len([relation for relation in relations if not relation.application_fee_paid])
+            for site_left in site_fee_remainders:
+                if number_of_sites_after_deduction == 0:
+                    break
+                number_of_sites_after_deduction -= 1
+                site_remainder_used = {
+                    'id': site_left.id,
+                    'date_used': today_local.strftime('%Y-%m-%d')
+                }
+                db_process_after_success['site_remainder_used'].append(site_remainder_used)
 
-        # Calculate deduction and set date_used field
-        number_of_sites_after_deduction = number_of_sites_applied
-        for site_left in site_fee_remainders:
-            if number_of_sites_after_deduction == 0:
-                break
-            number_of_sites_after_deduction -= 1
-            site_remainder_used = {
-                'id': site_left.id,
-                'date_used': today_local.strftime('%Y-%m-%d')
+            if new_or_renewal == ApiarySiteFeeType.FEE_TYPE_APPLICATION:
+                min_num_of_sites_to_pay = MIN_NUMBER_OF_SITES_TO_NEW
+                ledger_desc = 'New Apiary Site Fee - {} - {} - {}'.format(now, proposal.lodgement_number, site_category.display_name)
+            elif new_or_renewal == ApiarySiteFeeType.FEE_TYPE_RENEWAL:
+                min_num_of_sites_to_pay = MIN_NUMBER_OF_SITES_TO_RENEW
+                ledger_desc = 'Renewal Fee - {} - {} - {}'.format(now, proposal.lodgement_number, site_category.display_name)
+            else:
+                # Should not reach here
+                min_num_of_sites_to_pay = 5
+                ledger_desc = ''
+
+            quotient, remainder = divmod(number_of_sites_after_deduction, min_num_of_sites_to_pay)
+            number_of_sites_calculate = quotient * min_num_of_sites_to_pay + min_num_of_sites_to_pay if remainder else quotient * min_num_of_sites_to_pay
+            number_of_sites_to_add_as_remainder = number_of_sites_calculate - number_of_sites_after_deduction
+            application_price = site_category.retrieve_current_fee_per_site_by_type(new_or_renewal)
+
+            # Avoid ledger error
+            # ledger doesn't accept quantity=0). Alternatively, set quantity=1 and price=0
+            if number_of_sites_calculate == 0:
+                number_of_sites_calculate = 1
+                application_price = 0
+
+            line_item = {
+                'ledger_description': ledger_desc,
+                'oracle_code': proposal.application_type.oracle_code_application,
+                'price_incl_tax': application_price,
+                'price_excl_tax': application_price if proposal.application_type.is_gst_exempt else calculate_excl_gst(application_price),
+                'quantity': number_of_sites_calculate,
             }
-            db_process_after_success['site_remainder_used'].append(site_remainder_used)
+            line_items.append(line_item)
 
-        quotient, remainder = divmod(number_of_sites_after_deduction, MIN_NUMBER_OF_SITES_TO_APPLY)
-        number_of_sites_calculate = quotient * MIN_NUMBER_OF_SITES_TO_APPLY + MIN_NUMBER_OF_SITES_TO_APPLY if remainder else quotient * MIN_NUMBER_OF_SITES_TO_APPLY
-        number_of_sites_to_add_as_remainder = number_of_sites_calculate - number_of_sites_after_deduction
-        application_price = site_category.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_APPLICATION)
-
-        # Avoid ledger error
-        # ledger doesn't accept quantity=0). Alternatively, set quantity=1 and price=0
-        if number_of_sites_calculate == 0:
-            number_of_sites_calculate = 1
-            application_price = 0
-
-        line_item = {
-            'ledger_description': 'Application Fee - {} - {} - {}'.format(now, proposal.lodgement_number, site_category.name),
-            'oracle_code': proposal.application_type.oracle_code_application,
-            'price_incl_tax': application_price,
-            'price_excl_tax': application_price if proposal.application_type.is_gst_exempt else calculate_excl_gst(application_price),
-            'quantity': number_of_sites_calculate,
-        }
-        line_items.append(line_item)
-
-        # Add remainders
-        for i in range(number_of_sites_to_add_as_remainder):
-            site_to_be_added = {
-                'site_category_id': site_category.id,
-                'apiary_site_fee_type_name': ApiarySiteFeeType.FEE_TYPE_APPLICATION,
-                'applicant_id': proposal.applicant.id if proposal.applicant else None,
-                'proxy_applicant_id': proposal.proxy_applicant.id if proposal.proxy_applicant else None,
-                # 'date_expiry': (today_local + timedelta(days=7)).strftime('%Y-%m-%d')
-            }
-            db_process_after_success['site_remainder_to_be_added'].append(site_to_be_added)
+            # Add remainders
+            site_remainder_to_be_added = _get_remainders_obj(number_of_sites_to_add_as_remainder, site_category.id, proposal, new_or_renewal)
+            db_process_after_success['site_remainder_to_be_added'].extend(site_remainder_to_be_added)
 
     return line_items, db_process_after_success
 
@@ -226,6 +363,7 @@ def create_fee_lines(proposal, invoice_text=None, vouchers=[], internal=False):
 
     if proposal.application_type.name == ApplicationType.APIARY:
         line_items, db_processes_after_success = create_fee_lines_apiary(proposal)  # This function returns line items and db_processes as a tuple
+        # line_items, db_processes_after_success = create_fee_lines_apiary(proposal)  # This function returns line items and db_processes as a tuple
     elif proposal.application_type.name == ApplicationType.SITE_TRANSFER:
         line_items, db_processes_after_success = create_fee_lines_site_transfer(proposal)  # This function returns line items and db_processes as a tuple
     else:
@@ -275,7 +413,8 @@ def checkout(request, proposal, lines, return_url_ns='public_payment_success', r
     #if internal or request.user.is_anonymous():
     if proxy or request.user.is_anonymous():
         #checkout_params['basket_owner'] = booking.customer.id
-        checkout_params['basket_owner'] = proposal.submitter_id
+        # checkout_params['basket_owner'] = proposal.submitter_id  # There isn't a submitter_id field... supposed to be submitter.id...?
+        checkout_params['basket_owner'] = proposal.submitter.id
 
 
     create_checkout_session(request, checkout_params)
@@ -317,46 +456,46 @@ def oracle_integration(date,override):
     oracle_codes = oracle_parser(date, system, 'Disturbance Approval System', override=override)
 
 
-def create_other_invoice_for_annual_rental_fee(approval, today_now, period, apiary_sites, request=None):
-    """
-    This function is called from the cron job to issue annual rental fee invoices
-    """
-    with transaction.atomic():
-        try:
-            logger.info('Creating OTHER invoice for the licence: {}'.format(approval.lodgement_number))
-            order, details_dict = create_invoice(approval, today_now, period, apiary_sites, payment_method='other')
-            invoice = Invoice.objects.get(order_number=order.number)
-
-            return invoice, details_dict
-
-        except Exception, e:
-            logger.error('Failed to create OTHER invoice for sanction outcome: {}'.format(approval))
-            logger.error('{}'.format(e))
-
-
-def create_invoice(approval, today_now, period, apiary_sites, payment_method='bpay'):
-    """
-    This will create and invoice and order from a basket bypassing the session
-    and payment bpoint code constraints.
-    """
-    from ledger.checkout.utils import createCustomBasket
-    from ledger.payments.invoice.utils import CreateInvoiceBasket
-
-    products, details_dict = generate_line_items_for_annual_rental_fee(approval, today_now, period, apiary_sites)
-    user = approval.relevant_applicant if isinstance(approval.relevant_applicant, EmailUser) else approval.current_proposal.submitter
-    # user = approval.relevant_applicant
-    # for contact in user.contacts.all():
-    #     temp = contact  # contact is the OrganisationContact obj
-
-    invoice_text = 'Annual Rental Fee Invoice'
-
-    basket = createCustomBasket(products, user, PAYMENT_SYSTEM_ID)
-    order = CreateInvoiceBasket(
-        payment_method=payment_method,
-        system=PAYMENT_SYSTEM_ID
-    ).create_invoice_and_order(basket, 0, None, None, user=user, invoice_text=invoice_text)
-
-    return order, details_dict
+#def create_other_invoice_for_annual_rental_fee(approval, today_now, period, apiary_sites, request=None):
+#    """
+#    This function is called to issue annual site fee invoices
+#    """
+#    with transaction.atomic():
+#        try:
+#            logger.info('Creating OTHER invoice for the licence: {}'.format(approval.lodgement_number))
+#            order, details_dict = create_invoice(approval, today_now, period, apiary_sites, payment_method='other')
+#            invoice = Invoice.objects.get(order_number=order.number)
+#
+#            return invoice, details_dict
+#
+#        except Exception, e:
+#            logger.error('Failed to create OTHER invoice for sanction outcome: {}'.format(approval))
+#            logger.error('{}'.format(e))
+#
+#
+#def create_invoice(approval, today_now, period, apiary_sites, payment_method='bpay'):
+#    """
+#    This will create and invoice and order from a basket bypassing the session
+#    and payment bpoint code constraints.
+#    """
+#    from ledger.checkout.utils import createCustomBasket
+#    from ledger.payments.invoice.utils import CreateInvoiceBasket
+#
+#    line_items, details_dict, invoice_period = generate_line_items_for_annual_rental_fee(approval, today_now, period, apiary_sites)
+#    user = approval.relevant_applicant if isinstance(approval.relevant_applicant, EmailUser) else approval.current_proposal.submitter
+#    # user = approval.relevant_applicant
+#    # for contact in user.contacts.all():
+#    #     temp = contact  # contact is the OrganisationContact obj
+#
+#    invoice_text = 'Annual Site Fee Invoice'
+#
+#    basket = createCustomBasket(line_items, user, PAYMENT_SYSTEM_ID)
+#    order = CreateInvoiceBasket(
+#        payment_method=payment_method,
+#        system=PAYMENT_SYSTEM_ID
+#    ).create_invoice_and_order(basket, 0, None, None, user=user, invoice_text=invoice_text)
+#
+#    return order, details_dict
 
 
 def calculate_total_annual_rental_fee(approval, period, sites_charged):
@@ -366,70 +505,145 @@ def calculate_total_annual_rental_fee(approval, period, sites_charged):
 
     if approval.expiry_date < period[0]:
         # Check if the approval is valid
-        raise ValidationError('This approval is/will be expired before the annual rental fee period starts')
+        raise ValidationError('This approval is/will be expired before the annual site fee period starts')
 
     if approval.no_annual_rental_fee_until:
         if approval.no_annual_rental_fee_until >= period[1]:
             # No fee charged
             return 0
 
-    fee_applied = ApiaryAnnualRentalFee.get_fee_at_target_date(period[0])
+    # fee_applied = ApiaryAnnualRentalFee.get_fee_at_target_date(period[0])
     # sites_charged = approval.apiary_sites.filter(status=ApiarySite.STATUS_CURRENT)
-    num_of_days_in_period = period[1] - (period[0] - timedelta(days=1))  # period[0] is the start date.  (period[0] - timedelta(days=1)) means the previous date of the start date
+    # num_of_days_in_period = period[1] - (period[0] - timedelta(days=1))  # period[0] is the start date.  (period[0] - timedelta(days=1)) means the previous date of the start date
 
-    # Calculate charge start date
-    charge_start_date = approval.no_annual_rental_fee_until + timedelta(days=1) \
+    # Calculate charge start date taking into account the licence's start date
+    invoice_period_start_date = approval.no_annual_rental_fee_until + timedelta(days=1) \
         if approval.no_annual_rental_fee_until and period[0] < (approval.no_annual_rental_fee_until + timedelta(days=1)) \
         else period[0]
-    charge_start_date = charge_start_date if approval.start_date < charge_start_date else approval.start_date
+    invoice_period_start_date = invoice_period_start_date if approval.start_date < invoice_period_start_date else approval.start_date
 
-    # Calculate charge end date
-    charge_end_date = period[1] if period[1] <= approval.expiry_date else approval.expiry_date
+    # Calculate charge end date taking into account the licence's end date
+    invoice_period_end_date = period[1] if period[1] <= approval.expiry_date else approval.expiry_date
 
-    # Calculate the number of days to be charged
-    num_of_days_charged = charge_end_date - (charge_start_date - timedelta(days=1))
+    apiary_sites_charged = {}
+    for my_site in sites_charged:
+        apiary_site = ApiarySite.objects.get(id=my_site['id'])
+        last_annual_rental_fee = AnnualRentalFee.objects.filter(approval=approval, annualrentalfeeapiarysite__apiary_site=apiary_site).order_by('-invoice_period_end_date').first()
+        if last_annual_rental_fee:
+            # There is at least one payment for this site
+            if last_annual_rental_fee.invoice_period_end_date < invoice_period_end_date:
+                # Partially paid somehow
+                # num_of_days_charged = charge_end_date - last_annual_rental_fee.invoice_period_end_date
+                charge_start_date_for_this_site = last_annual_rental_fee.invoice_period_end_date + timedelta(days=1)
+                charge_end_date_for_this_site = invoice_period_end_date
+            else:
+                # Already paid for this period for this apiary site
+                continue
+        else:
+            # Calculate the number of days to be charged
+            # num_of_days_charged = charge_end_date - (charge_start_date - timedelta(days=1))
+            charge_start_date_for_this_site = invoice_period_start_date
+            charge_end_date_for_this_site = invoice_period_end_date
 
-    # Calculate the total amount
-    try:
-        num_of_sites = sites_charged.count()  # Expect queryset
-    except:
-        num_of_sites = len(sites_charged)  # Expect list
+        # amount_for_this_site = fee_applied.amount * num_of_days_charged.days / num_of_days_in_period.days
 
-    total_amount = fee_applied.amount * num_of_sites * num_of_days_charged.days / num_of_days_in_period.days
+        charge_period = (charge_start_date_for_this_site, charge_end_date_for_this_site)
+        if charge_period in apiary_sites_charged:
+            apiary_sites_charged[charge_period].append(apiary_site)
+        else:
+            apiary_sites_charged[charge_period] = [apiary_site]
 
-    # Make sure total amount cannot be negative
-    total_amount = total_amount if total_amount >= 0 else 0
+    return apiary_sites_charged, (invoice_period_start_date, invoice_period_end_date)
 
-    return {
-        'total_amount': total_amount,
-        'charge_start_date': charge_start_date,
-        'charge_end_date': charge_end_date,
-    }
+
+#    # Make sure total amount cannot be negative
+#    total_amount = total_amount if total_amount >= 0 else 0
+#    total_amount = round_amount_according_to_env(total_amount)
+#
+#    return {
+#        # 'total_amount': total_amount,
+#        'apiary_sites_charged': apiary_sites_charged,
+#        'charge_start_date': charge_start_date,
+#        'charge_end_date': charge_end_date,
+#    }
+
+
+def round_amount_according_to_env(amount):
+    if not DEBUG and PRODUCTION_EMAIL:
+        amount = round(amount, 2)  # Round to 2 decimal places
+    else:
+        # in Dev/UAT, avoid decimal amount, otherwise payment is declined
+        amount = round(amount)
+    return amount
 
 
 def generate_line_items_for_annual_rental_fee(approval, today_now, period, apiary_sites):
-    """ Create the ledger lines - line item for the annual rental fee sent to payment system """
+    oracle_code_obj = ApiaryGlobalSettings.objects.get(key=ApiaryGlobalSettings.KEY_ORACLE_CODE_APIARY_SITE_ANNUAL_RENTAL_FEE)
+    num_of_days_in_period = period[1] - (period[0] - timedelta(days=1))
 
-    details_dict = calculate_total_annual_rental_fee(approval, period, apiary_sites)
+    # Retrieve summarised payment data per charge_period
+    apiary_sites_charged, invoice_period = calculate_total_annual_rental_fee(approval, period, apiary_sites)
 
-    try:
-        sites_str = ', '.join(['site: ' + str(site.id) for site in apiary_sites])
-    except:
-        sites_str = ', '.join(['site: ' + str(site['id']) for site in apiary_sites])
+    line_items = []
 
-    line_items = [
-        {'ledger_description': 'Annual Rental Fee: {}, Issued: {} {}, Period: {} to {}, Site(s): {}'.format(
-            approval.lodgement_number,
-            today_now.strftime("%d/%m/%Y"),
-            today_now.strftime("%I:%M %p"),
-            details_dict['charge_start_date'].strftime('%d/%m/%Y'),
-            details_dict['charge_end_date'].strftime('%d/%m/%Y'),
-            sites_str
-        ),
-            'oracle_code': 'ABC123 GST',
-            'price_incl_tax': details_dict['total_amount'],
-            'price_excl_tax': details_dict['total_amount'],
-            'quantity': 1,
-        },
-    ]
-    return line_items, details_dict
+    if apiary_sites_charged:
+        for charge_period, apiary_sites in apiary_sites_charged.items():
+            if not len(apiary_sites):
+                continue
+
+            fee_applied = ApiaryAnnualRentalFee.get_fee_at_target_date(charge_period[0])  # TODO fee might be changed during the period
+            fees_applied = ApiaryAnnualRentalFee.get_fees_by_period(charge_period[0], charge_period[1])
+
+            # num_of_days_charged = charge_period[1] - (charge_period[0] - timedelta(days=1))
+            # amount_per_site = fee_applied.amount * num_of_days_charged.days / num_of_days_in_period.days
+
+            amount_per_site = 0
+            for fee_for_site in fees_applied:
+                amount_per_site += fee_for_site.get('amount_per_year') * fee_for_site.get('num_of_days').days / num_of_days_in_period.days
+
+            total_amount = amount_per_site * len(apiary_sites)
+            total_amount = total_amount if total_amount >= 0 else 0
+            total_amount = round_amount_according_to_env(total_amount)
+
+            line_item = {}
+            line_item['ledger_description'] = 'Annual Site Fee: {}, Issued: {} {}, Period: {} to {}, Site(s): {}'.format(
+                approval.lodgement_number,
+                today_now.strftime("%d/%m/%Y"),
+                today_now.strftime("%I:%M %p"),
+                charge_period[0].strftime("%d/%m/%Y"),
+                charge_period[1].strftime("%d/%m/%Y"),
+                ', '.join(['site: ' + str(site.id) for site in apiary_sites])
+            )
+            line_item['oracle_code'] = oracle_code_obj.value
+            line_item['price_incl_tax'] = total_amount
+            line_item['price_excl_tax'] = total_amount if ANNUAL_RENTAL_FEE_GST_EXEMPT else calculate_excl_gst(total_amount)
+            line_item['quantity'] = 1
+
+            line_items.append(line_item)
+
+    return line_items, apiary_sites_charged, invoice_period
+
+#    try:
+#        sites_str = ', '.join(['site: ' + str(site.id) for site in apiary_sites])
+#    except:
+#        sites_str = ', '.join(['site: ' + str(site['id']) for site in apiary_sites])
+#
+#    oracle_code_obj = ApiaryGlobalSettings.objects.get(key=ApiaryGlobalSettings.KEY_ORACLE_CODE_APIARY_SITE_ANNUAL_RENTAL_FEE)
+#
+#    line_items = [
+#        {
+#            'ledger_description': 'Annual Site Fee: {}, Issued: {} {}, Period: {} to {}, Site(s): {}'.format(
+#                approval.lodgement_number,
+#                today_now.strftime("%d/%m/%Y"),
+#                today_now.strftime("%I:%M %p"),
+#                apiary_sites_charged['charge_start_date'].strftime('%d/%m/%Y'),
+#                apiary_sites_charged['charge_end_date'].strftime('%d/%m/%Y'),
+#                sites_str
+#            ),
+#            'oracle_code': oracle_code_obj.value,
+#            'price_incl_tax': apiary_sites_charged['total_amount'],
+#            'price_excl_tax': apiary_sites_charged['total_amount'] if ANNUAL_RENTAL_FEE_GST_EXEMPT else calculate_excl_gst(apiary_sites_charged['total_amount']),
+#            'quantity': 1,
+#        },
+#    ]
+#    return line_items, apiary_sites_charged

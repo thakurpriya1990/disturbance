@@ -3,7 +3,7 @@
         <div class="col-sm-12">
             <div class="panel panel-default">
                 <div class="panel-heading">
-                    <h3 class="panel-title">Proposals/Applications referred to me
+                    <h3 class="panel-title">{{ dashboardTitle }}
                         <a :href="'#'+pBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="pBody">
                             <span class="glyphicon glyphicon-chevron-up pull-right "></span>
                         </a>
@@ -11,7 +11,7 @@
                 </div>
                 <div class="panel-body collapse in" :id="pBody">
                     <div class="row">
-                        <div class="col-md-3">
+                        <!--div class="col-md-3">
                             <div class="form-group">
                                 <label for="">Region</label>
                                 <select style="width:100%" class="form-control" multiple ref="filterRegion" >
@@ -27,7 +27,40 @@
                                     <option v-for="a in proposal_activityTitles" :value="a">{{a}}</option>
                                 </select>
                             </div>
+                        </div-->
+
+                        <div v-if="!apiaryTemplateGroup">
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="">Region</label>
+                                    <select style="width:100%" class="form-control input-sm" multiple ref="filterRegion" >
+                                        <option v-for="r in proposal_regions" :value="r">{{r}}</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="">Activity</label>
+                                    <select class="form-control" v-model="filterProposalActivity">
+                                        <option value="All">All</option>
+                                        <option v-for="a in proposal_activityTitles" :value="a">{{a}}</option>
+                                    </select>
+                                </div>
+                            </div>
                         </div>
+                        <div v-else>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="">Application Type</label>
+                                    <select class="form-control" v-model="filterProposalApplicationType" ref="filterApplicationType">
+                                        <option value="All">All</option>
+                                        <option v-for="a in proposal_applicationTypes" :value="a">{{a}}</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="">Status</label>
@@ -97,9 +130,13 @@ export default {
         return {
             pBody: 'pBody' + vm._uid,
             datatable_id: 'proposal-datatable-'+vm._uid,
+            //template_group: '',
+            dasTemplateGroup: false,
+            apiaryTemplateGroup: false,
             // Filters for Proposals
             filterProposalRegion: [],
             filterProposalActivity: 'All',
+            filterProposalApplicationType: 'All',
             filterProposalStatus: 'All',
             filterProposalLodgedFrom: '',
             filterProposalLodgedTo: '',
@@ -114,9 +151,10 @@ export default {
             },
             proposal_status:[],
             proposal_activityTitles : [],
+            proposal_applicationTypes : [],
             proposal_regions: [],
             proposal_submitters: [],
-            proposal_headers:["Number","Region","Activity","Title","Submitter","Proponent","Status","Lodged on","Action"],
+            //proposal_headers:["Number","Region","Activity","Title","Submitter","Proponent","Status","Lodged on","Action","Template Group"],
             proposal_options:{
                 customProposalSearch: true,
                 tableID: 'proposal-datatable-'+vm._uid,
@@ -126,6 +164,9 @@ export default {
                 responsive: true,
                 serverSide: true,
                 lengthMenu: [ [10, 25, 50, 100, -1], [10, 25, 50, 100, "All"] ],
+                order: [
+                    [0, 'desc']
+                    ],
                 ajax: {
                     //"url": helpers.add_endpoint_json(api_endpoints.referrals,'user_list'),
                     //"url": api_endpoints.list_referrals,
@@ -138,6 +179,10 @@ export default {
                         //d.processing_status = vm.filterProposalStatus;
                         d.date_from = vm.filterProposalLodgedFrom != '' && vm.filterProposalLodgedFrom != null ? moment(vm.filterProposalLodgedFrom, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
                         d.date_to = vm.filterProposalLodgedTo != '' && vm.filterProposalLodgedTo != null ? moment(vm.filterProposalLodgedTo, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
+                        d.application_type = vm.filterProposalApplicationType;
+                        d.proposal_activity = vm.filterProposalActivity;
+                        d.submitter = vm.filterProposalSubmitter;
+                        d.proposal_status = vm.filterProposalStatus;
         		    }
 
                 },
@@ -161,17 +206,19 @@ export default {
                     {
                         data: "region",
                         searchable: false, // handles by filter_queryset override method - class ProposalFilterBackend
-
+                        visible: false,
                     },
                     {
                         data: "activity",
                         name: "proposal__activity",
                         //searchable: false, // handles by filter_queryset override method - class ProposalFilterBackend
                     },
+                    /*
                     {
                         data: "title",
                         name: "proposal__title",
                     },
+                    */
                     {
                         data: "submitter",
                         mRender:function (data,type,full) {
@@ -226,9 +273,23 @@ export default {
                     {data: "can_be_processed", visible: false},
                     {data: "proposal_lodgement_number", visible: false},
                     {data: "id", visible: false},
+                    {
+                        data: 'template_group',
+                        searchable: false,
+                        orderable: false,
+                        visible: false,
+                    },
 
                 ],
                 processing: true,
+                initComplete: function() {
+                    // set column visibility and headers according to template group
+                    // region
+                    let regionColumn = vm.$refs.proposal_datatable.vmDataTable.columns(1);
+                    if (vm.dasTemplateGroup) {
+                        regionColumn.visible(true);
+                    }
+                },
                 /*
                 initComplete: function () {
                     // Grab Regions from the data in the table
@@ -294,6 +355,14 @@ export default {
                 vm.$refs.proposal_datatable.vmDataTable.columns(2).search('').draw();
             }
         },
+        filterProposalApplicationType: function() {
+            let vm = this;
+            if (vm.filterProposalApplicationType!= 'All') {
+                vm.$refs.proposal_datatable.vmDataTable.columns(3).search(vm.filterProposalApplicationType).draw();
+            } else {
+                vm.$refs.proposal_datatable.vmDataTable.columns(3).search('').draw();
+            }
+        },
         filterProposalStatus: function() {
             let vm = this;
             if (vm.filterProposalStatus!= 'All') {
@@ -325,6 +394,38 @@ export default {
         }
     },
     computed: {
+        /*
+        apiaryTemplateGroup: function() {
+            let returnVal = false;
+            if (this.template_group == 'apiary'){
+                returnVal = true
+            }
+            return returnVal;
+        },
+        dasTemplateGroup: function() {
+            let returnVal = false;
+            if (this.template_group == 'das'){
+                returnVal = true
+            }
+            return returnVal;
+        },
+        */
+        dashboardTitle: function() {
+            let title = ''
+            if (this.apiaryTemplateGroup) {
+                title = 'Applications referred to me';
+            } else {
+                title = 'Proposals referred to me';
+            }
+            return title;
+        },
+        proposal_headers: function() {
+            if (this.apiaryTemplateGroup) {
+                return ["Number","Region","Application Type",/*"Title",*/"Submitter","Applicant","Status","Lodged on","Action","Template Group"]
+            } else {
+                return ["Number","Region","Activity",/*"Title",*/"Submitter","Proponent","Status","Lodged on","Action","Template Group"]
+            }
+        },
     },
     methods:{
         fetchFilterLists: function(){
@@ -334,6 +435,7 @@ export default {
                 vm.proposal_regions = response.body.regions;
                 //vm.proposal_districts = response.body.districts;
                 vm.proposal_activityTitles = response.body.activities;
+                vm.proposal_applicationTypes = response.body.application_types;
                 vm.proposal_submitters = response.body.submitters;
                 vm.proposal_status = response.body.processing_status_choices;
             },(error) => {
@@ -371,20 +473,22 @@ export default {
                 var id = $(this).attr('data-discard-proposal');
                 vm.discardProposal(id);
             });
-            // Initialise select2 for region
-            $(vm.$refs.filterRegion).select2({
-                "theme": "bootstrap",
-                allowClear: true,
-                placeholder:"Select Region"
-            }).
-            on("select2:select",function (e) {
-                var selected = $(e.currentTarget);
-                vm.filterProposalRegion = selected.val();
-            }).
-            on("select2:unselect",function (e) {
-                var selected = $(e.currentTarget);
-                vm.filterProposalRegion = selected.val();
-            });
+            if (this.dasTemplateGroup) {
+                // Initialise select2 for region
+                $(vm.$refs.filterRegion).select2({
+                    "theme": "bootstrap",
+                    allowClear: true,
+                    placeholder:"Select Region"
+                }).
+                on("select2:select",function (e) {
+                    var selected = $(e.currentTarget);
+                    vm.filterProposalRegion = selected.val();
+                }).
+                on("select2:unselect",function (e) {
+                    var selected = $(e.currentTarget);
+                    vm.filterProposalRegion = selected.val();
+                });
+            }
         },
         initialiseSearch:function(){
             this.regionSearch();
@@ -469,11 +573,47 @@ export default {
                 $( chev ).toggleClass( "glyphicon-chevron-down glyphicon-chevron-up" );
             }, 100 );
         });
+        /*
         this.$nextTick(() => {
             vm.addEventListeners();
             vm.initialiseSearch();
         });
-    }
+        */
+    },
+    updated: function() {
+        this.$nextTick(() => {
+            this.initialiseSearch();
+            this.addEventListeners();
+        });
+    },
+    created: function() {
+        // retrieve template group
+        this.$http.get('/template_group',{
+            emulateJSON:true
+            }).then(res=>{
+                //this.template_group = res.body.template_group;
+                if (res.body.template_group === 'apiary') {
+                    this.apiaryTemplateGroup = true;
+                } else {
+                    this.dasTemplateGroup = true;
+                }
+        },err=>{
+        console.log(err);
+        });
+    },
+    /*
+    created: function() {
+        // retrieve template group
+        this.$http.get('/template_group',{
+            emulateJSON:true
+            }).then(res=>{
+                this.template_group = res.body.template_group;
+        },err=>{
+        console.log(err);
+        });
+
+    },
+    */
 }
 </script>
 <style scoped>

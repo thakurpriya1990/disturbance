@@ -154,6 +154,8 @@
                 this.proposal.apiary_temporary_use.to_date = moment(value, 'DD/MM/YYYY');
             },
             apiarySitesUpdated: function(apiary_sites){
+                console.log('apiary_sites')
+                console.log(apiary_sites)
                 for (let i=0; i<apiary_sites.length; i++){
                     let temporary_use_apiary_site = this.proposal.apiary_temporary_use.temporary_use_apiary_sites.find(element => element.apiary_site.id == apiary_sites[i].id)
                     // Update temporary_use_apiary_site, which is sent to the backend when saving
@@ -162,32 +164,6 @@
             },
             addEventListeners: function() {
 
-            },
-            processError: async function(err){
-                console.log('in processError');
-                let errorText = '';
-                if (err.body.non_field_errors) {
-                    // When non field errors raised
-                    for (let i=0; i<err.body.non_field_errors.length; i++){
-                        errorText += err.body.non_field_errors[i] + '<br />';
-                    }
-                } else if(Array.isArray(err.body)) {
-                    // When general errors raised
-                    for (let i=0; i<err.body.length; i++){
-                        errorText += err.body[i] + '<br />';
-                    }
-                } else {
-                    // When field errors raised
-                    for (let field_name in err.body){
-                        if (err.body.hasOwnProperty(field_name)){
-                            errorText += field_name + ':<br />';
-                            for (let j=0; j<err.body[field_name].length; j++){
-                                errorText += err.body[field_name][j] + '<br />';
-                            }
-                        }
-                    }
-                }
-                await swal("Error", errorText, "error");
             },
         },
         created: function() {

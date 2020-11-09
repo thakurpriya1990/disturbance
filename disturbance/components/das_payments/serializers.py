@@ -44,5 +44,12 @@ class AnnualRentalFeeSerializer(serializers.ModelSerializer):
         return '/payments/invoice-pdf/{}'.format(obj.invoice_reference) if obj.invoice_reference else None
 
     def get_payment_status(self, obj):
-        invoice = Invoice.objects.get(reference=obj.invoice_reference)
-        return invoice.payment_status
+        try:
+            invoice = Invoice.objects.get(reference=obj.invoice_reference)
+            return invoice.payment_status
+        except Invoice.DoesNotExist:
+            if obj.lines and obj.lines[0]:  # The default value of the JSONField is [''], that's why we have to check if lines[0] is not empty
+                return 'unpaid'
+            else:
+                raise
+

@@ -8,53 +8,101 @@
                         <alert :show.sync="showError" type="danger"><strong>{{errorString}}</strong></alert>
                         <div class="col-sm-12">
 
-                            <div v-if="!siteTransferApplication" class="form-group">
-                                <div class="row">
-                                    <div class="col-sm-3">
-                                        <label v-if="processing_status == 'With Approver'" class="control-label pull-left"  for="Name">Start Date</label>
-                                        <label v-else class="control-label pull-left"  for="Name">Proposed Start Date</label>
+                            <div v-if="!siteTransferApplication">
+                                <div class="form-group">
+                                    <div class="row">
+                                        <div class="col-sm-3">
+                                            <label v-if="processing_status == 'With Approver'" class="control-label pull-left"  for="Name">Start Date</label>
+                                            <label v-else class="control-label pull-left"  for="Name">Proposed Start Date</label>
+                                        </div>
+                                        <div class="col-sm-9">
+                                            <template v-if="!startDateCanBeModified">
+                                                {{ proposal.approval.start_date }}
+                                            </template>
+                                            <template v-else>
+                                                <div class="input-group date" ref="start_date" style="width: 70%;">
+                                                    <input type="text" class="form-control" name="start_date" placeholder="DD/MM/YYYY" v-model="approval.start_date">
+                                                    <span class="input-group-addon">
+                                                        <span class="glyphicon glyphicon-calendar"></span>
+                                                    </span>
+                                                </div>
+                                            </template>
+                                        </div>
                                     </div>
-                                    <div class="col-sm-9">
-                                        <template v-if="proposal.approval">
-                                            {{ proposal.approval.start_date }} (Start date of the licence)
-                                        </template>
-                                        <template v-else>
-                                            <div class="input-group date" ref="start_date" style="width: 70%;">
-                                                <input type="text" class="form-control" name="start_date" placeholder="DD/MM/YYYY" v-model="approval.start_date">
-                                                <span class="input-group-addon">
-                                                    <span class="glyphicon glyphicon-calendar"></span>
-                                                </span>
-                                            </div>
-                                        </template>
+                                    <div class="row" v-show="showstartDateError">
+                                        <alert  class="col-sm-12" type="danger"><strong>{{startDateErrorString}}</strong></alert>
                                     </div>
                                 </div>
-                                <div class="row" v-show="showstartDateError">
-                                    <alert  class="col-sm-12" type="danger"><strong>{{startDateErrorString}}</strong></alert>
+
+                                <div class="form-group">
+                                    <div class="row">
+                                        <div class="col-sm-3">
+                                            <label v-if="processing_status == 'With Approver'" class="control-label pull-left"  for="Name">Expiry Date</label>
+                                            <label v-else class="control-label pull-left"  for="Name">Proposed Expiry Date</label>
+                                        </div>
+                                        <div class="col-sm-9">
+                                            <template v-if="!expiryDateCanBeModified">
+                                                {{ proposal.approval.expiry_date }}
+                                            </template>
+                                            <template v-else>
+                                                <div class="input-group date" ref="due_date" style="width: 70%;">
+                                                    <input type="text" class="form-control" name="due_date" placeholder="DD/MM/YYYY" v-model="approval.expiry_date" :readonly="is_amendment">
+                                                    <span class="input-group-addon">
+                                                        <span class="glyphicon glyphicon-calendar"></span>
+                                                    </span>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </div>
+                                    <div class="row" v-show="showtoDateError">
+                                        <alert  class="col-sm-12" type="danger"><strong>{{toDateErrorString}}</strong></alert>
+                                    </div>
                                 </div>
                             </div>
-
-                            <div v-if="!siteTransferApplication" class="form-group">
-                                <div class="row">
-                                    <div class="col-sm-3">
-                                        <label v-if="processing_status == 'With Approver'" class="control-label pull-left"  for="Name">Expiry Date</label>
-                                        <label v-else class="control-label pull-left"  for="Name">Proposed Expiry Date</label>
+                            <div v-else>
+                                <div v-if="creatingSiteTransferTargetApproval" class="form-group">
+                                    <div class="row">
+                                        <div class="col-sm-3">
+                                            <label v-if="processing_status == 'With Approver'" class="control-label pull-left"  for="Name">Start Date</label>
+                                            <label v-else class="control-label pull-left"  for="Name">Proposed Start Date</label>
+                                        </div>
+                                        <div class="col-sm-9">
+                                            <template>
+                                                <div class="input-group date" ref="start_date" style="width: 70%;">
+                                                    <input type="text" class="form-control" name="start_date" placeholder="DD/MM/YYYY" v-model="approval.start_date">
+                                                    <span class="input-group-addon">
+                                                        <span class="glyphicon glyphicon-calendar"></span>
+                                                    </span>
+                                                </div>
+                                            </template>
+                                        </div>
                                     </div>
-                                    <div class="col-sm-9">
-                                        <template v-if="proposal.approval">
-                                            {{ proposal.approval.expiry_date }} (Expiry date of the licence)
-                                        </template>
-                                        <template v-else>
-                                            <div class="input-group date" ref="due_date" style="width: 70%;">
-                                                <input type="text" class="form-control" name="due_date" placeholder="DD/MM/YYYY" v-model="approval.expiry_date" :readonly="is_amendment">
-                                                <span class="input-group-addon">
-                                                    <span class="glyphicon glyphicon-calendar"></span>
-                                                </span>
-                                            </div>
-                                        </template>
+                                    <div class="row" v-show="showstartDateError">
+                                        <alert  class="col-sm-12" type="danger"><strong>{{startDateErrorString}}</strong></alert>
                                     </div>
                                 </div>
-                                <div class="row" v-show="showtoDateError">
-                                    <alert  class="col-sm-12" type="danger"><strong>{{toDateErrorString}}</strong></alert>
+
+                                <div v-if="creatingSiteTransferTargetApproval" class="form-group">
+                                    <div class="row">
+                                        <div class="col-sm-3">
+                                            <label v-if="processing_status == 'With Approver'" class="control-label pull-left"  for="Name">Expiry Date</label>
+                                            <label v-else class="control-label pull-left"  for="Name">Proposed Expiry Date</label>
+                                        </div>
+                                        <div class="col-sm-9">
+                                            <template>
+                                                <div class="input-group date" ref="due_date" style="width: 70%;">
+                                                    <input type="text" class="form-control" name="due_date" placeholder="DD/MM/YYYY" v-model="approval.expiry_date">
+                                                    <span class="input-group-addon">
+                                                        <span class="glyphicon glyphicon-calendar"></span>
+                                                    </span>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </div>
+                                    <div class="row" v-show="showtoDateError">
+                                        <alert  class="col-sm-12" type="danger"><strong>{{toDateErrorString}}</strong></alert>
+                                    </div>
+
                                 </div>
                             </div>
 
@@ -83,10 +131,10 @@
                             <div class="form-group">
                                 <div class="row">
                                     <div class="col-sm-12">
-                                        <label v-if="submitter_email && applicant_email" class="control-label pull-left"  for="Name">After approving this proposal, approval will be emailed to {{submitter_email}} and {{applicant_email}}.</label>
-                                        <label v-else class="control-label pull-left"  for="Name">After approving this proposal, approval will be emailed to {{submitter_email}}.</label>
+                                        <label v-if="submitter_email && applicant_email" class="control-label pull-left"  for="Name">After approving this application, the apiary authority will be emailed to {{proposalNotificationList}}.</label>
+                                        <label v-else class="control-label pull-left"  for="Name">After approving this application, licence will be emailed to {{submitter_email}}.</label>
                                     </div>
-                                    
+
                                 </div>
                             </div>
                         </div>
@@ -99,18 +147,35 @@
                         :is_internal="true"
                         :is_external="false"
                         :show_col_checkbox="true"
-                        :show_action_available_unavailable="false"
+                        :show_col_vacant="true"
                         :key="component_site_selection_key"
+                        :can_modify="true"
                         ref="component_site_selection"
                         @apiary_sites_updated="apiarySitesUpdated"
+                        @featureGeometryUpdated="featureGeometryUpdated"
                     />
                 </template>
 
             </div>
-            <p v-if="can_preview">Click <a href="#" @click.prevent="preview">here</a> to preview the approval letter.</p>
+            <div v-if="can_preview">
+                <div v-if="siteTransferApplication">
+                    <div>
+                        Click <a href="#" @click.prevent="preview_originating_approval">here</a> to preview the originating licence letter.
+                    </div>
+                    <div>
+                        Click <a href="#" @click.prevent="preview_target_approval">here</a> to preview the target licence letter.
+                    </div>
+                </div>
+                <div v-else>
+                    Click <a href="#" @click.prevent="preview">here</a> to preview the licence letter.
+                </div>
+            </div>
             <div slot="footer">
                 <button type="button" v-if="issuingApproval" disabled class="btn btn-default" @click="ok"><i class="fa fa-spinner fa-spin"></i> Processing</button>
-                <button type="button" v-else class="btn btn-default" @click="ok">Ok</button>
+                <span v-else-if="ok_button_disabled" class="d-inline-block" tabindex="0" data-toggle="tooltip" title="Please select at least one site to issue">
+                    <button type="button" style="pointer-events: none;" class="btn btn-default" @click="ok" disabled>Ok</button>
+                </span>
+                <button v-else type="button" class="btn btn-default" @click="ok" >Ok</button>
                 <button type="button" class="btn btn-default" @click="cancel">Cancel</button>
             </div>
         </modal>
@@ -193,9 +258,46 @@ export default {
             },
             warningString: 'Please attach Level of Approval document before issuing Approval',
             component_site_selection_key: '',
+            num_of_sites_selected: 0,
         }
     },
     computed: {
+        proposalNotificationList: function (){
+            let returnVal = `${this.submitter_email} and ${this.applicant_email}.`
+            if (this.submitter_email === this.applicant_email){
+                returnVal = `${this.submitter_email}.`
+            }
+            return returnVal;
+        },
+        ok_button_disabled: function(){
+            console.log('ok button disabled')
+            if (this.num_of_sites_selected > 0){
+                console.log('false')
+                return false
+            }
+            console.log('true')
+            return true
+        },
+        startDateCanBeModified: function() {
+            let returnVal = false;
+            if (this.proposal && this.proposal.approval && this.proposal.approval.reissued) {
+                returnVal = true;
+            } else if (this.proposal && !this.proposal.approval) {
+                returnVal = true;
+            }
+            return returnVal;
+        },
+        expiryDateCanBeModified: function() {
+            let returnVal = false;
+            if (this.proposal && this.proposal.approval && this.proposal.approval.reissued) {
+                returnVal = true;
+            } else if (this.proposal && !this.proposal.approval) {
+                returnVal = true;
+            } else if (this.proposal && this.proposal.proposal_type === 'Renewal') {
+                returnVal = true;
+            }
+            return returnVal;
+        },
         showError: function() {
             var vm = this;
             return vm.errors;
@@ -209,7 +311,8 @@ export default {
             return vm.startDateError;
         },
         title: function(){
-            return this.processing_status == 'With Approver' ? 'Issue Approval' : 'Propose to issue approval';
+            //return this.processing_status == 'With Approver' ? 'Issue Application' : 'Propose to issue licence';
+            return this.processing_status == 'With Approver' ? 'Issue Application' : 'Propose to approve';
         },
         is_amendment: function(){
             return this.proposal_type == 'Amendment' ? true : false;
@@ -255,8 +358,34 @@ export default {
             }
             return siteTransfer;
         },
+        creatingSiteTransferTargetApproval: function() {
+            let creatingApproval = false;
+            if (!this.siteTransferTargetApprovalExists || (this.proposal.proposal_apiary && this.proposal.proposal_apiary.transferee_id)) {
+                creatingApproval = true;
+            }
+            return creatingApproval;
+        },
+        siteTransferTargetApprovalExists: function() {
+            let targetApprovalExists = false;
+            if (this.proposal.proposal_apiary && this.proposal.proposal_apiary.target_approval_id) {
+                targetApprovalExists = true;
+            }
+            return targetApprovalExists;
+        },
+    },
+    watch: {
+
     },
     methods:{
+        featureGeometryUpdated: function(feature){
+            console.log('issuance')
+            console.log(feature)
+            for (let i=0; i<this.apiary_sites_updated.length; i++){
+                if (this.apiary_sites_updated[i].id == feature.id){
+                    this.apiary_sites_updated[i].coordinates_moved = feature.coordinates
+                }
+            }
+        },
         apiarySitesUpdated: function(apiary_sites) {
             console.log('in proposed_apiary_issuance.vue')
             console.log('apiarySitesUpdated')
@@ -264,19 +393,26 @@ export default {
             this.apiary_sites_updated = apiary_sites
             //this.proposal.proposal_apiary.apiary_sites = JSON.parse(JSON.stringify(apiary_sites))
             //console.log(this.proposal.proposal_apiary.apiary_sites)
+
+            // Update this.num_of_sites_selected
+            let temp = 0
+            for (let i=0; i<apiary_sites.length; i++){
+                if (apiary_sites[i].checked){
+                    temp += 1
+                }
+            }
+            this.num_of_sites_selected = temp
         },
         setApiarySiteCheckedStatuses: function() {
             if(this.proposal && this.proposal.proposal_apiary){
                 for (let i=0; i<this.proposal.proposal_apiary.apiary_sites.length; i++){
-                    console.log('checked status' + this.proposal.proposal_apiary.apiary_sites[i].workflow_selected_status)
-                    this.proposal.proposal_apiary.apiary_sites[i].checked = this.proposal.proposal_apiary.apiary_sites[i].workflow_selected_status
+                    this.proposal.proposal_apiary.apiary_sites[i].checked = this.proposal.proposal_apiary.apiary_sites[i].properties.workflow_selected_status
                 }
             }
         },
         setApiarySiteCheckedStatusesSiteTransfer: function() {
             if(this.proposal && this.proposal.proposal_apiary){
                 for (let i=0; i<this.proposal.proposal_apiary.transfer_apiary_sites.length; i++){
-                    console.log('checked status' + this.proposal.proposal_apiary.transfer_apiary_sites[i].internal_selected)
                     this.proposal.proposal_apiary.transfer_apiary_sites[i].apiary_site.checked = this.proposal.proposal_apiary.transfer_apiary_sites[i].internal_selected
                 }
             }
@@ -287,6 +423,7 @@ export default {
                 this.$refs.component_site_selection.forceToRefreshMap()
             }
         },
+        /*
         preview:function () {
             let vm =this;
             let formData = new FormData(vm.form)
@@ -301,6 +438,50 @@ export default {
             }
             vm.post_and_redirect(vm.preview_licence_url, {'csrfmiddlewaretoken' : vm.csrf_token, 'formData': JSON.stringify(jsonObject)});
         },
+        */
+        preview:function () {
+            //this.sendData(true);
+            console.log("preview")
+            this.previewData();
+        },
+        preview_originating_approval:function () {
+            this.previewData('originating');
+        },
+        preview_target_approval:function () {
+            this.previewData('target')
+        },
+        /*
+        preview_originating_approval:function () {
+            let vm =this;
+            let formData = new FormData(vm.form)
+            if (this.proposal.approval && this.proposal.approval.start_date && this.proposal.approval.expiry_date) {
+                formData.append('start_date', moment(this.proposal.approval.start_date, 'YYYY-MM-DD').format('DD/MM/YYYY'));
+                formData.append('due_date', moment(this.proposal.approval.expiry_date, 'YYYY-MM-DD').format('DD/MM/YYYY'));
+            }
+            // convert formData to json
+            let jsonObject = {};
+            for (const [key, value] of formData.entries()) {
+                jsonObject[key] = value;
+            }
+            jsonObject['originating_approval_id'] = this.proposal.proposal_apiary.originating_approval_id;
+            vm.post_and_redirect(vm.preview_licence_url, {'csrfmiddlewaretoken' : vm.csrf_token, 'formData': JSON.stringify(jsonObject)});
+        },
+        preview_target_approval:function () {
+            let vm =this;
+            let formData = new FormData(vm.form)
+            if (this.proposal.approval && this.proposal.approval.start_date && this.proposal.approval.expiry_date) {
+                formData.append('start_date', moment(this.proposal.approval.start_date, 'YYYY-MM-DD').format('DD/MM/YYYY'));
+                formData.append('due_date', moment(this.proposal.approval.expiry_date, 'YYYY-MM-DD').format('DD/MM/YYYY'));
+            }
+            // convert formData to json
+            let jsonObject = {};
+            for (const [key, value] of formData.entries()) {
+                jsonObject[key] = value;
+            }
+            jsonObject['target_approval_id'] = this.proposal.proposal_apiary.target_approval_id;
+            vm.post_and_redirect(vm.preview_licence_url, {'csrfmiddlewaretoken' : vm.csrf_token, 'formData': JSON.stringify(jsonObject)});
+        },
+        */
         post_and_redirect: function(url, postData) {
             /* http.post and ajax do not allow redirect from Django View (post method),
                this function allows redirect by mimicking a form submit.
@@ -350,19 +531,108 @@ export default {
                 console.log(error);
             } );
         },
-        sendData:function(){
+        previewData:function(originating_target=null){
+            //let previewWindow = window.open(' ', '_blank');
+            let previewWindow = window.open();
+
+            console.log("previewData")
+            this.approval.preview = true;
+            if (originating_target) {
+                this.approval.originating_target = originating_target;
+            }
+            this.approval.apiary_sites = this.apiary_sites_updated
+            if (!this.startDateCanBeModified && !this.siteTransferApplication){
+                // There is an existing licence. Therefore start_date and expiry_date are fixed to that dates
+                this.approval.start_date = moment(this.proposal.approval.start_date, 'YYYY-MM-DD').format('DD/MM/YYYY')
+            }
+            if (!this.expiryDateCanBeModified && !this.siteTransferApplication){
+                // There is an existing licence. Therefore start_date and expiry_date are fixed to that dates
+                this.approval.expiry_date = moment(this.proposal.approval.expiry_date, 'YYYY-MM-DD').format('DD/MM/YYYY')
+            }
+            if (!this.approval.start_date) {
+                delete this.approval.start_date;
+            }
+            if (!this.approval.expiry_date) {
+                delete this.approval.expiry_date;
+            }
+            let approval = JSON.parse(JSON.stringify(this.approval)); // Deep copy
+            console.log('approval to post')
+            console.log(approval)
+
+            this.issuingApproval = true;
+            if (this.state == 'final_approval'){
+                /*
+                vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal_apiary,vm.proposal_apiary_id+'/final_approval'),JSON.stringify(approval),{
+                        emulateJSON:true,
+                }).then((response) => {
+                        //const blob = new Blob([response.body],{type: 'image/pdf'});
+                        const pdfBlob = new Blob([response.body],{type: 'application/pdf'});
+                        const objectURL = window.URL.createObjectURL(pdfBlob);
+                        let link = document.createElement('a');
+                        link.href = objectURL;
+                        link.download="file.pdf";
+                        link.click();
+                    },(error)=>{
+                        vm.errors = true;
+                        //vm.issuingApproval = false;
+                        vm.errorString = helpers.apiVueResourceError(error);
+                    });
+                */
+                fetch(helpers.add_endpoint_json(api_endpoints.proposal_apiary,this.proposal_apiary_id+'/final_approval'), {
+                    method: 'POST',
+                    body: JSON.stringify(approval),
+                    //body: this.approval,
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": this.csrf_token,
+                    },
+                })
+                    /*
+                    .then((response) => {
+                        console.log(response);
+                        previewWindow.document.write(response);
+                        previewWindow.focus();
+                    });
+                    */
+
+                    .then(response => response.blob())
+                    .then(function(myBlob) {
+                        const objectURL = URL.createObjectURL(myBlob);
+                        previewWindow.location.href = objectURL;
+                    });
+
+            }
+            this.approval.preview = false;
+            this.issuingApproval = false;
+        },
+        //sendData:function(preview=false,originating_target=null){
+        sendData:function(preview=false){
             console.log('**********')
             console.log('in sendData')
             console.log('**********')
 
             let vm = this;
             vm.errors = false;
+            /*
+            if (preview) {
+                vm.approval.preview = preview;
+            }
+            */
             //vm.approval.apiary_sites = vm.proposal.proposal_apiary.apiary_sites
             vm.approval.apiary_sites = vm.apiary_sites_updated
-            if (this.proposal.approval){
+            if (!this.startDateCanBeModified  && !this.siteTransferApplication){
                 // There is an existing licence. Therefore start_date and expiry_date are fixed to that dates
                 this.approval.start_date = moment(this.proposal.approval.start_date, 'YYYY-MM-DD').format('DD/MM/YYYY')
+            }
+            if (!this.expiryDateCanBeModified && !this.siteTransferApplication){
+                // There is an existing licence. Therefore start_date and expiry_date are fixed to that dates
                 this.approval.expiry_date = moment(this.proposal.approval.expiry_date, 'YYYY-MM-DD').format('DD/MM/YYYY')
+            }
+            if (!this.approval.start_date) {
+                delete this.approval.start_date;
+            }
+            if (!this.approval.expiry_date) {
+                delete this.approval.expiry_date;
             }
             let approval = JSON.parse(JSON.stringify(vm.approval)); // Deep copy
             console.log('approval to post')
@@ -384,6 +654,47 @@ export default {
                         vm.errorString = helpers.apiVueResourceError(error);
                     });
             }
+            else if (vm.state == 'final_approval' && preview){
+                /*
+                vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal_apiary,vm.proposal_apiary_id+'/final_approval'),JSON.stringify(approval),{
+                        emulateJSON:true,
+                }).then((response) => {
+                        //const blob = new Blob([response.body],{type: 'image/pdf'});
+                        const pdfBlob = new Blob([response.body],{type: 'application/pdf'});
+                        const objectURL = window.URL.createObjectURL(pdfBlob);
+                        let link = document.createElement('a');
+                        link.href = objectURL;
+                        link.download="file.pdf";
+                        link.click();
+                    },(error)=>{
+                        vm.errors = true;
+                        //vm.issuingApproval = false;
+                        vm.errorString = helpers.apiVueResourceError(error);
+                    });
+                */
+                fetch(helpers.add_endpoint_json(api_endpoints.proposal_apiary,vm.proposal_apiary_id+'/final_approval'), {
+                    method: 'POST',
+                    body: JSON.stringify(approval),
+                    //body: this.approval,
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": vm.csrf_token,
+                    },
+                })
+                    .then(response => response.blob())
+                    .then(function(myBlob) {
+                        console.log(myBlob);
+                        //const blob = new Blob([response.body],{type: 'image/pdf'});
+                        //const blob = new Blob([response.body],{type: 'application/pdf'});
+                        const objectURL = URL.createObjectURL(myBlob);
+                        let link = document.createElement('a');
+                        link.href = objectURL;
+                        link.download="file.pdf";
+                        link.click();
+                        vm.issuingApproval = false;
+                    });
+
+            }
             else if (vm.state == 'final_approval'){
                 vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal_apiary,vm.proposal_apiary_id+'/final_approval'),JSON.stringify(approval),{
                         emulateJSON:true,
@@ -397,7 +708,6 @@ export default {
                         vm.errorString = helpers.apiVueResourceError(error);
                     });
             }
-            
         },
         addFormValidations: function() {
             let vm = this;
@@ -405,7 +715,7 @@ export default {
             if (this.siteTransferApplication) {
                 rulesVar = {
                     approval_details:"required",
-                } 
+                }
             } else {
                 rulesVar = {
                     start_date:"required",
@@ -444,10 +754,19 @@ export default {
             $(vm.$refs.due_date).datetimepicker(vm.datepickerOptions);
             $(vm.$refs.due_date).on('dp.change', function(e){
                 if ($(vm.$refs.due_date).data('DateTimePicker').date()) {
-                    if ($(vm.$refs.due_date).data('DateTimePicker').date() < $(vm.$refs.start_date).data('DateTimePicker').date()){
-                        vm.toDateError = true;
-                        vm.toDateErrorString = 'Please select Expiry date that is after Start date';
-                        vm.approval.expiry_date = ""
+                    //let proposalApprovalStartDate = moment(vm.proposal.approval.start_date, 'YYYY-MM-DD').format('DD/MM/YYYY')
+                    let proposalApprovalStartDate = vm.proposal.approval && vm.proposal.approval.start_date ?
+                        moment(vm.proposal.approval.start_date, 'YYYY-MM-DD') :
+                        null;
+                    let startDate = Object.keys($(vm.$refs.start_date)).length ?
+                        $(vm.$refs.start_date).data('DateTimePicker').date() :
+                        proposalApprovalStartDate;
+                    //console.log(startDate)
+                    //console.log($(vm.$refs.due_date).data('DateTimePicker').date())
+                    if ($(vm.$refs.due_date).data('DateTimePicker').date() < startDate) {
+                            vm.toDateError = true;
+                            vm.toDateErrorString = 'Please select Expiry date that is after Start date';
+                            vm.approval.expiry_date = ""
                     }
                     else{
                         vm.toDateError = false;
@@ -481,6 +800,11 @@ export default {
                     vm.approval.start_date = "";
                 }
              });
+             /*
+             $(document).ready(function() {
+                 $('[data-toggle="tooltip"]').tooltip();
+             });
+             */
        }
    },
     mounted:function () {

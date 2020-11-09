@@ -94,12 +94,14 @@ class HelpPageHistoryCompareView(HistoryCompareDetailView):
 
 class PreviewLicencePDFView(View):
     def post(self, request, *args, **kwargs):
+        #import ipdb; ipdb.set_trace()
         response = HttpResponse(content_type='application/pdf')
 
         proposal = self.get_object()
         details = json.loads(request.POST.get('formData'))
 
-        response.write(proposal.preview_approval(request, details))
+        #response.write(proposal.preview_approval(request, details))
+        response.content = proposal.preview_approval(request, details)
         return response
 
     def get_object(self):

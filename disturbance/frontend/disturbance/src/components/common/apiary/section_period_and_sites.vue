@@ -30,7 +30,6 @@
             :is_internal="false"
             :is_external="true"
             :enable_col_checkbox="is_checkbox_enabled"
-            :show_action_available_unavailable="is_external"
             :key="component_site_selection_key"
             @apiary_sites_updated="apiarySitesUpdated"
         />
@@ -49,12 +48,12 @@
             from_date: {
                 type: Object, // Expect moment obj
                 default: null,
-            }, 
+            },
             // If editing an existing proposal apiary temporary use, data is passed from the parent component
             to_date: {
                 type: Object, // Expect moment obj
                 default: null,
-            }, 
+            },
             // array of intermediate table, TemporaryUseApiarySite
             temporary_use_apiary_sites: {
                 type: Array,
@@ -62,7 +61,7 @@
                     return [];
                 }
             },
-            // all the ProposalApiaryTemporaryUse use objects under this licence 
+            // all the ProposalApiaryTemporaryUse use objects under this licence
             // to be used to calculate each apirary site availability at any moment given
             existing_temporary_uses: {
                 type: Array,
@@ -125,6 +124,7 @@
             }
             if (this.temporary_use_apiary_sites.length > 0){
                 for (let i=0; i<this.temporary_use_apiary_sites.length; i++){
+                    //let site = this.temporary_use_apiary_sites[i].apiary_site
                     let site = this.temporary_use_apiary_sites[i].apiary_site
 
                     // Add the status of the checkbox for this apiary site if needed
@@ -164,9 +164,9 @@
             //siteCheckboxClicked: function(e){
             //    let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
             //    this.$emit('site_checkbox_clicked', {
-            //        'apiary_site_id': apiary_site_id, 
+            //        'apiary_site_id': apiary_site_id,
             //        'checked': e.target.checked
-            //    }); 
+            //    });
             //},
             //constructApiarySitesTable: function(){
             //    // Clear table
@@ -210,7 +210,7 @@
             //    //                console.log('period_from');
             //    //                console.log(period_from);
             //    //                console.log('period_to');
-            //    //                console.log(period_to); 
+            //    //                console.log(period_to);
 
             //    //                if (period_to < used_from_date || used_to_date < period_from){
             //    //                    // Site is not used.  Do nothing

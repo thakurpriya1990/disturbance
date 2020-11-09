@@ -4,12 +4,12 @@
             <div class="col-md-12 alert alert-success" v-if="proposal.processing_status == 'Approved'">
                 <div v-if="proposal.proposal_apiary">
                     <p>The licence has been issued and has been emailed to {{proposal.applicant.name}}</p>
-                    <p>Expiry date: {{proposal.proposed_issuance_approval.expiry_date}}
-                    <p>Permit: <a target="_blank" :href="proposal.permit">licence.pdf</a></p>
+                    <p>Expiry date: {{approvalExpiryDate}}
+                    <p>Licence: <a target="_blank" :href="proposal.permit">licence.pdf</a></p>
                 </div>
                 <div v-else>
                     <p>The approval has been issued and has been emailed to {{proposal.applicant.name}}</p>
-                    <p>Expiry date: {{proposal.proposed_issuance_approval.expiry_date}}
+                    <p>Expiry date: {{approvalExpiryDate}}
                     <p>Permit: <a target="_blank" :href="proposal.permit">approval.pdf</a></p>
                 </div>
             </div>
@@ -25,14 +25,13 @@
 
         <template v-if="proposal.proposal_apiary">
             <FormSection :formCollapse="false" label="Site(s)" Index="sites">
-                <ComponentSiteSelection 
+                <ComponentSiteSelection
                     :apiary_sites="apiary_sites_prop"
                     :is_internal="true"
                     :is_external="false"
                     :key="component_site_selection_key"
                     :show_col_checkbox="showColCheckbox"
                     :enable_col_checkbox="false"
-                    :show_action_available_unavailable="false"
                 />
             </FormSection>
         </template>
@@ -53,20 +52,20 @@
                                 <div class="col-sm-12">
                                         <template v-if="!isFinalised">
                                             <p><strong>Level of approval: {{proposal.approval_level}}</strong></p>
-                                            
-                                        <div v-if="isApprovalLevel">    
+
+                                        <div v-if="isApprovalLevel">
                                             <p v-if="proposal.approval_level_document"><strong>Attach documents:</strong> <a :href="proposal.approval_level_document[1]" target="_blank">{{proposal.approval_level_document[0]}}</a>
                                             <span>
                                             <a @click="removeFile()" class="fa fa-trash-o" title="Remove file" style="cursor: pointer; color:red;"></a>
                                             </span></p>
                                             <div v-else>
                                                 <p><strong>Attach documents:</strong></p>
-                                                <div class="col-sm-12">                                           
+                                                <div class="col-sm-12">
                                                 <span class="btn btn-info btn-file pull-left">
                                                 Attach File <input type="file" ref="uploadedFile" @change="readFile()"/>
                                                 </span>
                                                 <!--<span class="pull-left" style="margin-left:10px;margin-top:10px;">{{uploadedFileName()}}</span>-->
-                                                
+
                                                 </div>
                                                 <div class="row"><p></p></div>
                                                 <div class="row"><p></p></div>
@@ -81,20 +80,20 @@
                                             </div>
 
                                         </div>
-                                        </template> 
+                                        </template>
 
                                         <template v-if="isFinalised">
                                             <p><strong>Level of approval: {{proposal.approval_level}}</strong></p>
-                                            
-                                            <div v-if="isApprovalLevel">    
+
+                                            <div v-if="isApprovalLevel">
                                                 <p v-if="proposal.approval_level_document"><strong>Attach documents: </strong><a :href="proposal.approval_level_document[1]" target="_blank">{{proposal.approval_level_document[0]}}</a>
                                                 </p>
                                                 <p v-if="proposal.approval_level_comment"><strong>Comments: {{proposal.approval_level_comment}}</strong>
                                                 </p>
                                             </div>
-                                        </template>                                    
+                                        </template>
                                 </div>
-                            </div> 
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -138,7 +137,7 @@
                                     <strong v-else>Decision: Decline</strong>
                                 </template>
                             </div>
-                        </div> 
+                        </div>
                     </div>
                 </div>
             </div>
@@ -178,6 +177,22 @@ export default {
         ComponentSiteSelection,
     },
     computed:{
+        /*
+        approvalStartDate: function() {
+            let returnDate = null;
+            if (this.proposal && this.proposal.approval) {
+                returnDate = moment(this.proposal.approval.start_date, 'YYYY-MM-DD').format('DD/MM/YYYY');
+            }
+            return returnDate;
+        },
+        */
+        approvalExpiryDate: function() {
+            let returnDate = null;
+            if (this.proposal && this.proposal.approval) {
+                returnDate = moment(this.proposal.approval.expiry_date, 'YYYY-MM-DD').format('DD/MM/YYYY');
+            }
+            return returnDate;
+        },
         hasAssessorMode(){
             return this.proposal.assessor_mode.has_assessor_mode;
         },
@@ -215,13 +230,17 @@ export default {
 
     },
     methods:{
+        updateComponentSiteSelectionKey: function(){
+            console.log('in updateComponentSiteSelectionKey')
+            this.component_site_selection_key = uuid()
+        },
         readFile: function() {
             let vm = this;
             let _file = null;
             var input = $(vm.$refs.uploadedFile)[0];
             if (input.files && input.files[0]) {
                 var reader = new FileReader();
-                reader.readAsDataURL(input.files[0]); 
+                reader.readAsDataURL(input.files[0]);
                 reader.onload = function(e) {
                     _file = e.target.result;
                 };
@@ -256,7 +275,7 @@ export default {
                 )
             });
 
-            
+
         },
         uploadedFileName: function() {
             return this.uploadedFile != null ? this.uploadedFile.name: '';
@@ -286,7 +305,7 @@ export default {
     },
     mounted: function(){
         let vm = this;
-        this.component_site_selection_key = uuid()
+        this.updateComponentSiteSelectionKey()
     }
 }
 </script>

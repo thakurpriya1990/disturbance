@@ -1,16 +1,21 @@
 import pytz
+from confy import env
 from django.conf import settings
-from datetime import datetime, timedelta, date
+from datetime import datetime
+
 from django.db.models import Q
 
 from ledger.settings_base import TIME_ZONE
 from rest_framework_gis.serializers import GeoFeatureModelSerializer
 
+from disturbance.components.approvals.serializers_apiary import ApiarySiteOnApprovalGeometrySerializer
+from disturbance.components.main.decorators import timeit
+from disturbance.components.main.utils import get_category, get_tenure, get_region_district, \
+    get_feature_in_wa_coastline_smoothed, validate_buffer, get_template_group
 from disturbance.components.organisations.serializers import OrganisationSerializer
 from disturbance.components.organisations.models import UserDelegation
 from disturbance.components.proposals.serializers_base import (
         BaseProposalSerializer, 
-        #ProposalReferralSerializer,
         ProposalDeclinedDetailsSerializer,
         EmailUserSerializer,
         )
@@ -18,9 +23,9 @@ from disturbance.components.proposals.models import (
     Proposal,
     ProposalApiary,
     ProposalApiaryTemporaryUse,
-    ProposalApiarySiteTransfer,
-    ApiaryApplicantChecklistQuestion,
-    ApiaryApplicantChecklistAnswer,
+    #ProposalApiarySiteTransfer,
+    ApiaryChecklistQuestion,
+    ApiaryChecklistAnswer,
     ProposalApiaryDocument,
     ApiarySite,
     OnSiteInformation,
@@ -28,15 +33,16 @@ from disturbance.components.proposals.models import (
     TemporaryUseApiarySite,
     SiteTransferApiarySite,
     ApiaryReferral,
-    Referral, 
-    ApiarySiteFeeType, 
-    ApiarySiteFeeRemainder, 
+    Referral,
+    ApiarySiteFee,
+    ApiarySiteFeeType,
+    ApiarySiteFeeRemainder,
     SiteCategory,
-    ProposalRequirement,
-    )
+    ProposalRequirement, ApiarySiteOnProposal,
+)
 from disturbance.components.approvals.models import (
-        Approval,
-        )
+    Approval
+)
 
 from rest_framework import serializers
 from ledger.accounts.models import Address
@@ -44,6 +50,9 @@ from reversion.models import Version
 from django.utils import timezone
 from django.contrib.contenttypes.models import ContentType
 from ledger.accounts.models import EmailUser
+from copy import deepcopy
+
+from disturbance.settings import SITE_STATUS_DRAFT, RESTRICTED_RADIUS
 
 
 class VersionSerializer(serializers.ModelSerializer):
@@ -87,11 +96,20 @@ class VersionSerializer(serializers.ModelSerializer):
                             ]:
                         continue
                     elif ContentType.objects.get(id=record.content_type_id).model == 'apiarysite':
-                        payload = record.field_dict
+                        #import ipdb;ipdb.set_trace()
+                        payload = deepcopy(record.field_dict)
                         # Exclude these fields from the result
                         payload.pop("wkb_geometry", None)
+                        payload.pop("wkb_geometry_applied", None)
+                        payload.pop("wkb_geometry_pending", None)
                         payload.pop("objects", None)
                         payload.pop("site_guid", None)
+                        wkb_geometry = record.field_dict.get('wkb_geometry')
+                        if wkb_geometry:
+                            payload['coords'] = wkb_geometry.get_coords()
+                        wkb_geometry_pending = record.field_dict.get('wkb_geometry_pending')
+                        if wkb_geometry_pending:
+                            payload['pending_coords'] = wkb_geometry_pending.get_coords()
                         apiary_sites.append({record.object._meta.model_name: payload})
                     else:
                         #print("record.object._meta.model_name")
@@ -120,10 +138,10 @@ class ProposalHistorySerializer(serializers.ModelSerializer):
         return entry_versions.data
 
 
-class ApiaryApplicantChecklistQuestionSerializer(serializers.ModelSerializer):
+class ApiaryChecklistQuestionSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = ApiaryApplicantChecklistQuestion
+        model = ApiaryChecklistQuestion
         fields=('id',
                 'text',
                 'answer_type',
@@ -131,16 +149,42 @@ class ApiaryApplicantChecklistQuestionSerializer(serializers.ModelSerializer):
                 'order'
                 )
 
-class ApiaryApplicantChecklistAnswerSerializer(serializers.ModelSerializer):
-    question = ApiaryApplicantChecklistQuestionSerializer()
+
+class ApiarySiteOnProposalChecklistSerializer(serializers.ModelSerializer):
+    #id = serializers.IntegerField(source='apiary_site.id')
+    site_category = serializers.CharField(source='site_category_processed.name')
+    #coords = serializers.SerializerMethodField()
+    #tenure = serializers.SerializerMethodField()
+    #region_district = serializers.SerializerMethodField()
 
     class Meta:
-        model = ApiaryApplicantChecklistAnswer
+        model = ApiarySiteOnProposal
+
+        fields = (
+            'id',
+            'apiary_site_id',
+            #'coords',
+            'site_category',
+            #'tenure',
+            #'region_district',
+        )
+
+
+class ApiaryChecklistAnswerSerializer(serializers.ModelSerializer):
+    question = ApiaryChecklistQuestionSerializer()
+    #site = ApiarySiteOnProposalChecklistSerializer()
+
+    class Meta:
+        model = ApiaryChecklistAnswer
         fields=('id',
                 'question',
                 'answer',
                 'proposal_id',
+                'apiary_referral_id',
+                'text_answer',
+                'apiary_site_id'
                 )
+
 
 class ApplicantAddressSerializer(serializers.ModelSerializer):
     class Meta:
@@ -157,41 +201,19 @@ class ApplicantAddressSerializer(serializers.ModelSerializer):
         )
 
 
-class ApiarySiteOptimisedSerializer(serializers.ModelSerializer):
-    proposal_apiary_id = serializers.IntegerField(write_only=True,)
-    site_category_id = serializers.IntegerField(write_only=True,)
-    coordinates = serializers.SerializerMethodField()
-
-    def get_coordinates(self, apiary_site):
-        try:
-            return {'lng': apiary_site.wkb_geometry.x, 'lat': apiary_site.wkb_geometry.y}
-        except:
-            return {'lng': '', 'lat': ''}
-
-    class Meta:
-        model = ApiarySite
-        fields = (
-            'id',
-            'available',
-            'site_guid',
-            'proposal_apiary_id',
-            'site_category_id',
-            'coordinates',
-            'status'
-        )
-
-
 class OnSiteInformationSerializer(serializers.ModelSerializer):
-    apiary_site_id = serializers.IntegerField(required=False)
-    apiary_site = ApiarySiteOptimisedSerializer(read_only=True)
+    apiary_site_id = serializers.IntegerField(read_only=True, source='apiary_site_on_approval.apiary_site.id')
+    # apiary_site = ApiarySiteOptimisedSerializer(read_only=True)
+    apiary_site_on_approval_id = serializers.IntegerField(required=False)
     datetime_deleted = serializers.DateTimeField(write_only=True, required=False)
 
     class Meta:
         model = OnSiteInformation
         fields = (
             'id',
-            'apiary_site',
+            # 'apiary_site',
             'apiary_site_id',
+            'apiary_site_on_approval_id',
             'period_from',
             'period_to',
             'comments',
@@ -207,8 +229,8 @@ class OnSiteInformationSerializer(serializers.ModelSerializer):
                 field_errors['Period from'] = ['Please select a date.',]
             if not data['period_to']:
                 field_errors['Period to'] = ['Please select a date.',]
-            if not data['apiary_site_id'] and not data['apiary_site_id'] > 0:
-                field_errors['Site'] = ['Please select a site',]
+            # if not data['apiary_site_id'] and not data['apiary_site_id'] > 0:
+            #     field_errors['Site'] = ['Please select a site',]
             if not data['comments']:
                 field_errors['comments'] = ['Please enter comments.',]
 
@@ -226,80 +248,280 @@ class OnSiteInformationSerializer(serializers.ModelSerializer):
             # Partial udpate, which means the dict data doesn't have all the field
             pass
 
-
         return data
 
 
-class ApiarySiteSerializer(serializers.ModelSerializer):
-    proposal_apiary_id = serializers.IntegerField(write_only=True, required=False)
-    site_category_id = serializers.IntegerField(write_only=True, required=False)
-    site_category = serializers.CharField(source='site_category.name', read_only=True)
-    onsiteinformation_set = OnSiteInformationSerializer(read_only=True, many=True,)
-    coordinates = serializers.SerializerMethodField()
-    as_geojson = serializers.SerializerMethodField()
+#def perform_validation(serializer, my_geometry):
+#    validate_distance = serializer.context.get('validate_distance', True)
+#
+#    if validate_distance:
+#        non_field_errors = []
+#        qs_sites_within = ApiarySite.objects.filter(
+#            wkb_geometry__distance_lte=(my_geometry, Distance(m=RESTRICTED_RADIUS))). \
+#            exclude(status__in=ApiarySite.NON_RESTRICTIVE_STATUSES, pending_payment=False).\
+#            exclude(id=serializer.instance.id)
+#        if qs_sites_within:
+#            # There is at least one existing apiary site which is too close to the site being created
+#            non_field_errors.append(
+#                'There is an existing apiary site which is too close to the apiary site you are adding at the coordinates: {}'.format(
+#                    my_geometry.coords))
+#
+#        # Raise errors
+#        if non_field_errors:
+#            raise serializers.ValidationError(non_field_errors)
+#
+#    # return attrs
+
+class ApiarySiteOnProposalDraftGeometrySerializer(GeoFeatureModelSerializer):
+    """
+    For reading as 'draft'
+    """
+    id = serializers.IntegerField(source='apiary_site.id')
+    site_guid = serializers.CharField(source='apiary_site.site_guid')
+    status = serializers.SerializerMethodField()
+    site_category = serializers.SerializerMethodField()
     previous_site_holder_or_applicant = serializers.SerializerMethodField()
-
-    def get_previous_site_holder_or_applicant(self, apiary_site):
-        if apiary_site.approval:
-            relevant_applicant = apiary_site.approval.relevant_applicant_name
-        else:
-            relevant_applicant = apiary_site.proposal_apiary.proposal.relevant_applicant_name
-
-        return relevant_applicant
-
-    def get_as_geojson(self, apiary_site):
-        return ApiarySiteGeojsonSerializer(apiary_site).data
-
-    def get_coordinates(self, apiary_site):
-        try:
-            return {'lng': apiary_site.wkb_geometry.x, 'lat': apiary_site.wkb_geometry.y}
-        except:
-            return {'lng': '', 'lat': ''}
+    is_vacant = serializers.SerializerMethodField()
+    stable_coords = serializers.SerializerMethodField()
 
     class Meta:
-        model = ApiarySite
+        model = ApiarySiteOnProposal
+        geo_field = 'wkb_geometry_draft'
         fields = (
             'id',
-            'available',
-            # 'temporary_used',
             'site_guid',
-            'proposal_apiary_id',
-            'site_category_id',
+            'is_vacant',
+            'wkb_geometry_draft',
             'site_category',
-            'onsiteinformation_set',
-            'coordinates',
-            'as_geojson',
             'status',
             'workflow_selected_status',
+            'for_renewal',
             'previous_site_holder_or_applicant',
+            'making_payment',
+            'stable_coords',
+            'application_fee_paid',
+        )
+
+    def get_stable_coords(self, obj):
+        return obj.wkb_geometry_draft.get_coords()
+
+    def get_is_vacant(self, obj):
+        return obj.apiary_site.is_vacant
+
+    def get_status(self, obj):
+        return obj.site_status
+
+    def get_site_category(self, obj):
+        return obj.site_category_draft.name
+
+    def get_previous_site_holder_or_applicant(self, obj):
+        try:
+            relevant_applicant_name = obj.proposal_apiary.proposal.relevant_applicant_name
+            return relevant_applicant_name
+        except:
+            return ''
+
+
+class ApiarySiteOnProposalDraftGeometryExportSerializer(ApiarySiteOnProposalDraftGeometrySerializer):
+    """
+    For export draft
+    """
+
+    class Meta(ApiarySiteOnProposalDraftGeometrySerializer.Meta):
+        fields = (
+            'id',
         )
 
 
-class ApiarySiteGeojsonSerializer(GeoFeatureModelSerializer):
-    site_category_name = serializers.CharField(source='site_category.name')
+class ApiarySiteOnProposalVacantDraftGeometrySerializer(ApiarySiteOnProposalDraftGeometrySerializer):
+    """
+    For vacant and 'draft'
+    """
+    application_fee_paid = serializers.SerializerMethodField()
+
+    def get_application_fee_paid(self, obj):
+        return False
+
+    class Meta(ApiarySiteOnProposalDraftGeometrySerializer.Meta):
+        pass
+
+
+class ApiarySiteOnProposalProcessedGeometrySerializer(GeoFeatureModelSerializer):
+    """
+    For reading as 'processed'
+    """
+    id = serializers.IntegerField(source='apiary_site.id')
+    site_guid = serializers.CharField(source='apiary_site.site_guid')
+    status = serializers.SerializerMethodField()
+    site_category = serializers.SerializerMethodField()
+    previous_site_holder_or_applicant = serializers.SerializerMethodField()
+    is_vacant = serializers.SerializerMethodField()
+    stable_coords = serializers.SerializerMethodField()
 
     class Meta:
-        model = ApiarySite
-        geo_field = 'wkb_geometry'
-
+        model = ApiarySiteOnProposal
+        geo_field = 'wkb_geometry_processed'
         fields = (
             'id',
             'site_guid',
-            'available',
-            'wkb_geometry',
-            'site_category_name',
+            'is_vacant',
+            'wkb_geometry_processed',
+            'site_category',
             'status',
             'workflow_selected_status',
+            'for_renewal',
+            'making_payment',
+            'previous_site_holder_or_applicant',
+            'stable_coords',
+            'application_fee_paid',
         )
+
+    def get_stable_coords(self, obj):
+        return obj.wkb_geometry_processed.get_coords()
+
+    def get_is_vacant(self, obj):
+        return obj.apiary_site.is_vacant
+
+    def get_status(self, apiary_site_on_proposal):
+        # if apiary_site_on_proposal.apiary_site.is_vacant:
+        #     return SITE_STATUS_VACANT
+        return apiary_site_on_proposal.site_status
+
+    def get_site_category(self, apiary_site_on_proposal):
+        return apiary_site_on_proposal.site_category_draft.name
+
+    def get_previous_site_holder_or_applicant(self, apiary_site_on_proposal):
+        try:
+            relevant_applicant_name = apiary_site_on_proposal.proposal_apiary.proposal.relevant_applicant_name
+            return relevant_applicant_name
+        except:
+            return ''
+
+
+class ApiarySiteOnProposalProcessedGeometryExportSerializer(ApiarySiteOnProposalProcessedGeometrySerializer):
+
+    class Meta(ApiarySiteOnProposalProcessedGeometrySerializer.Meta):
+        fields = (
+            'id',
+        )
+
+
+class ApiarySiteOnProposalVacantProcessedGeometrySerializer(ApiarySiteOnProposalProcessedGeometrySerializer):
+    application_fee_paid = serializers.SerializerMethodField()
+
+    def get_application_fee_paid(self, obj):
+        return False
+
+    class Meta(ApiarySiteOnProposalProcessedGeometrySerializer.Meta):
+        pass
+
+
+class ApiarySiteOnProposalDraftGeometrySaveSerializer(GeoFeatureModelSerializer):
+    """
+    For saving as 'draft'
+    """
+    def validate(self, attrs):
+        wkb_geometry = attrs.get('wkb_geometry_draft')
+
+        check_coastline = env('PERFORM_BACKEND_COAST_LINE_CHECK', False)
+        if check_coastline:
+            feature = get_feature_in_wa_coastline_smoothed(wkb_geometry)
+            if not feature:
+                raise serializers.ValidationError(['Apiary Site: {} (lat: {}, lng: {}) is out of bounds.'.format(
+                    self.instance.apiary_site.id,
+                    wkb_geometry.coords[1],
+                    wkb_geometry.coords[0],
+                )])
+
+        apiary_sites_to_exclude = [self.instance.apiary_site,] if self.instance.apiary_site else None
+        validate_buffer(wkb_geometry, apiary_sites_to_exclude)
+
+        site_category = get_category(attrs['wkb_geometry_draft'])
+        attrs['site_category_draft'] = site_category
+        return attrs
+
+    class Meta:
+        model = ApiarySiteOnProposal
+        geo_field = 'wkb_geometry_draft'
+        fields = (
+            'wkb_geometry_draft',
+            'workflow_selected_status',
+            'site_category_draft',
+        )
+
+
+class ApiarySiteOnProposalProcessedGeometrySaveSerializer(GeoFeatureModelSerializer):
+    """
+    For saving as 'processed'
+    """
+    def validate(self, attrs):
+        # TODO: validate 3km radius, etc
+        site_category = get_category(attrs['wkb_geometry_processed'])
+        attrs['site_category_processed'] = site_category
+        return attrs
+
+    class Meta:
+        model = ApiarySiteOnProposal
+        geo_field = 'wkb_geometry_processed'
+        fields = (
+            'wkb_geometry_processed',
+            'site_category_processed',
+        )
+
+
+class ApiarySiteSerializer(serializers.ModelSerializer):
+
+    def validate(self, attrs):
+        return attrs
+
+    class Meta:
+        model = ApiarySite
+        fields = (
+            'id',
+            'site_guid',
+        )
+
+
+#class ApiarySiteExportSerializer(GeoFeatureModelSerializer):
+#    site_category = serializers.CharField(source='latest_approval_link.site_category.name')
+#    address = serializers.CharField(source='latest_approval_link.relevant_applicant_address')
+#    name = serializers.CharField(source='latest_approval_link.relevant_applicant_name')
+#
+#    region = serializers.CharField(source='latest_approval_link.region')
+#    district = serializers.CharField(source='latest_approval_link.district')
+#    tenure = serializers.CharField(source='latest_approval_link.tenure')
+#
+#    class Meta:
+#        model = ApiarySite
+#        geo_field = 'wkb_geometry'
+#
+#        fields = (
+#            'id',
+#            'site_guid',
+#            'available',
+#            'wkb_geometry',
+#            'site_category',
+#            'status',
+#            'address',
+#            'region',
+#            'district',
+#            'tenure',
+#            'name',
+#        )
 
 
 class SiteTransferApiarySiteSerializer(serializers.ModelSerializer):
     proposal_apiary_id = serializers.IntegerField(write_only=True, required=False)
-    apiary_site_id = serializers.IntegerField(write_only=True, required=False)
-    apiary_site = ApiarySiteSerializer(read_only=True)
+    # apiary_site_id = serializers.IntegerField(write_only=True, required=False)
+    apiary_site_on_approval_id = serializers.IntegerField(write_only=True, required=False)
+    # apiary_site = ApiarySiteSerializer(read_only=True)
+    apiary_site = serializers.SerializerMethodField()
     # apiary_site_approval = ApiarySiteApprovalSerializer(read_only=True)
     # apiary_site_approval_id = serializers.IntegerField(write_only=True, required=False)
     # apiary_site = serializers.SerializerMethodField()
+
+    def get_apiary_site(self, obj):
+        return ApiarySiteOnApprovalGeometrySerializer(obj.apiary_site_on_approval).data
 
     def validate(self, attrs):
         # TODO: check if the site is not temporary used to another person for the period
@@ -311,9 +533,10 @@ class SiteTransferApiarySiteSerializer(serializers.ModelSerializer):
         fields = (
             'id',
             'proposal_apiary_id',
+            'apiary_site_on_approval_id',
             # 'apiary_site_approval',
             # 'apiary_site_approval_id',
-            'apiary_site_id',
+            # 'apiary_site_id',
             'apiary_site',
             'customer_selected',
             'internal_selected',
@@ -321,17 +544,27 @@ class SiteTransferApiarySiteSerializer(serializers.ModelSerializer):
 
 
 class ProposalApiarySerializer(serializers.ModelSerializer):
-    apiary_sites = ApiarySiteSerializer(read_only=True, many=True)
+    # apiary_sites = ApiarySiteSerializer(read_only=True, many=True)
+    apiary_sites = serializers.SerializerMethodField()
     #site_transfer_apiary_sites = SiteTransferApiarySiteSerializer(read_only=True, many=True)
     transfer_apiary_sites = serializers.SerializerMethodField()
-    on_site_information_list = serializers.SerializerMethodField()  # This is used for displaying OnSite table at the frontend
+    # on_site_information_list = serializers.SerializerMethodField()  # This is used for displaying OnSite table at the frontend
 
     #checklist_questions = serializers.SerializerMethodField()
-    checklist_answers = serializers.SerializerMethodField()
+    applicant_checklist_answers = serializers.SerializerMethodField()
+    assessor_checklist_answers = serializers.SerializerMethodField()
+    assessor_checklist_answers_per_site = serializers.SerializerMethodField()
+    referrer_checklist_answers = serializers.SerializerMethodField()
+    referrer_checklist_answers_per_site = serializers.SerializerMethodField()
+    site_transfer_assessor_checklist_answers = serializers.SerializerMethodField()
+    site_transfer_assessor_checklist_answers_per_site = serializers.SerializerMethodField()
+    site_transfer_referrer_checklist_answers = serializers.SerializerMethodField()
+    site_transfer_referrer_checklist_answers_per_site = serializers.SerializerMethodField()
     site_remainders = serializers.SerializerMethodField()
     originating_approval_lodgement_number = serializers.SerializerMethodField()
-    target_approval_id = serializers.SerializerMethodField()
+    originating_approval_licence_document = serializers.SerializerMethodField()
     target_approval_lodgement_number = serializers.SerializerMethodField()
+    target_approval_licence_document = serializers.SerializerMethodField()
     transferee_name = serializers.SerializerMethodField()
     transferee_org_name = serializers.SerializerMethodField()
     transferee_first_name = serializers.SerializerMethodField()
@@ -344,23 +577,64 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
             'title',
             'proposal',
             'apiary_sites',
+            # 'apiary_sites_2',
             #'site_transfer_apiary_sites',
             'transfer_apiary_sites',
             'longitude',
             'latitude',
-            'on_site_information_list',
+            # 'on_site_information_list',
             #'checklist_questions',
-            'checklist_answers',
+            'applicant_checklist_answers',
+            'assessor_checklist_answers',
+            'assessor_checklist_answers_per_site',
+            'referrer_checklist_answers',
+            'referrer_checklist_answers_per_site',
+            'site_transfer_assessor_checklist_answers',
+            'site_transfer_assessor_checklist_answers_per_site',
+            'site_transfer_referrer_checklist_answers',
+            'site_transfer_referrer_checklist_answers_per_site',
             'site_remainders',
             'originating_approval_id',
             'originating_approval_lodgement_number',
+            'originating_approval_licence_document',
             'target_approval_id',
             'target_approval_lodgement_number',
+            'target_approval_licence_document',
             'transferee_name',
             'transferee_org_name',
             'transferee_first_name',
             'transferee_last_name',
+            'transferee_email_text', 
+            'transferee_id',
+            'target_approval_organisation_id',
         )
+
+    def validate(self, attrs):
+        self.instance.validate_apiary_sites(raise_exception=True)
+        return attrs
+
+    def get_originating_approval_licence_document(self, proposal_apiary):
+        url = ''
+        if proposal_apiary.originating_approval:
+            url = proposal_apiary.originating_approval.documents.order_by('-uploaded_date')[0]._file.url
+        return url
+
+    def get_target_approval_licence_document(self, proposal_apiary):
+        url = ''
+        if proposal_apiary.target_approval and proposal_apiary.target_approval.documents.count():
+            url = proposal_apiary.target_approval.documents.order_by('-uploaded_date')[0]._file.url
+        return url
+
+    def get_apiary_sites(self, proposal_apiary):
+        ret = []
+        for apiary_site in proposal_apiary.apiary_sites.all():
+            inter_obj = ApiarySiteOnProposal.objects.get(apiary_site=apiary_site, proposal_apiary=proposal_apiary)
+            if inter_obj.site_status == SITE_STATUS_DRAFT:
+                serializer = ApiarySiteOnProposalDraftGeometrySerializer
+            else:
+                serializer = ApiarySiteOnProposalProcessedGeometrySerializer
+            ret.append(serializer(inter_obj).data)
+        return ret
 
     def get_transfer_apiary_sites(self, obj):
         #import ipdb;ipdb.set_trace()
@@ -373,38 +647,43 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
 
     def get_transferee_name(self, obj):
         name = None
-        if obj.proposal.approval:
-            name = obj.proposal.approval.relevant_applicant_name
+        #if obj.proposal.approval:
+         #   name = obj.proposal.approval.relevant_applicant_name
+        if obj.target_approval:
+            name = obj.target_approval.relevant_applicant_name
+        elif obj.transferee:
+            name = obj.transferee.get_full_name()
         return name
 
     def get_transferee_org_name(self, obj):
         name = None
-        if obj.proposal.approval and obj.proposal.approval.applicant:
-            name = obj.proposal.approval.applicant.name
+        if obj.target_approval and obj.target_approval.applicant:
+            name = obj.target_approval.applicant.name
+        elif obj.target_approval_organisation:
+            name = obj.target_approval_organisation.name
         return name
 
     def get_transferee_first_name(self, obj):
         name = None
-        if obj.proposal.approval and obj.proposal.approval.proxy_applicant:
-            name = obj.proposal.approval.proxy_applicant.first_name
+        if obj.target_approval and obj.target_approval.proxy_applicant:
+            name = obj.target_approval.proxy_applicant.first_name
+        elif obj.transferee:
+            name = obj.transferee.first_name
         return name
 
     def get_transferee_last_name(self, obj):
         name = None
-        if obj.proposal.approval and obj.proposal.approval.proxy_applicant:
-            name = obj.proposal.approval.proxy_applicant.last_name
+        if obj.target_approval and obj.target_approval.proxy_applicant:
+            name = obj.target_approval.proxy_applicant.last_name
+        elif obj.transferee:
+            name = obj.transferee.last_name
         return name
-
-    def get_target_approval_id(self, obj):
-        target_id = None
-        if obj.proposal.approval:
-            target_id = obj.proposal.approval.id
-        return target_id
 
     def get_target_approval_lodgement_number(self, obj):
         lodgement_number = None
-        if obj.proposal.approval:
-            lodgement_number = obj.proposal.approval.lodgement_number
+        if obj.target_approval:
+            #lodgement_number = obj.proposal.approval.lodgement_number
+            lodgement_number = obj.target_approval.lodgement_number
         return lodgement_number
 
     def get_originating_approval_lodgement_number(self, obj):
@@ -438,14 +717,27 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
                     filter_used
                 ).order_by('datetime_created')  # Older comes earlier
 
+                filter_site_fee_type = Q(apiary_site_fee_type=ApiarySiteFeeType.objects.get(name=ApiarySiteFeeType.FEE_TYPE_RENEWAL))
+                site_fee_remainders_renewal = ApiarySiteFeeRemainder.objects.filter(
+                    filter_site_category &
+                    filter_site_fee_type &
+                    filter_applicant &
+                    filter_proxy_applicant &
+                    # filter_expiry &
+                    filter_used
+                ).order_by('datetime_created')  # Older comes earlier
+
                 # Retrieve current fee
                 site_category = SiteCategory.objects.get(name=category[0])
                 fee = site_category.retrieve_fee_by_date_and_type(today_local, ApiarySiteFeeType.FEE_TYPE_APPLICATION)
+                fee_renewal = site_category.retrieve_fee_by_date_and_type(today_local, ApiarySiteFeeType.FEE_TYPE_RENEWAL)
 
                 remainder = {
                     'category_name': category[1],
                     'remainders': site_fee_remainders.count(),
+                    'remainders_renewal': site_fee_remainders_renewal.count(),
                     'fee': fee,
+                    'fee_renewal': fee_renewal,
                 }
                 ret_list.append(remainder)
             except:
@@ -453,37 +745,93 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
 
         return ret_list
 
-    def get_on_site_information_list(self, obj):
-        on_site_information_list = OnSiteInformation.objects.filter(
-            apiary_site__in=ApiarySite.objects.filter(proposal_apiary=obj),
-            datetime_deleted=None,
-        ).order_by('-period_from')
-        ret = OnSiteInformationSerializer(on_site_information_list, many=True).data
-        return ret
+    def get_applicant_checklist_answers(self, obj):
+        return ApiaryChecklistAnswerSerializer(
+                obj.apiary_checklist.filter(question__checklist_role='applicant').order_by('question__order'),
+                many=True).data
 
-    #def get_checklist_questions(self, obj):
-     #   checklistQuestion = ApiaryApplicantChecklistQuestion.objects.values('text')
-      #  ret = ApiaryApplicantChecklistQuestionSerializer(checklistQuestion, many=True).data
-       # return ret
+    def get_assessor_checklist_answers(self, obj):
+        return ApiaryChecklistAnswerSerializer(
+                obj.apiary_checklist.filter(question__checklist_role='assessor').filter(question__checklist_type='apiary').order_by('question__order'),
+                many=True).data
 
+    def get_assessor_checklist_answers_per_site(self, obj):
+        return ApiaryChecklistAnswerSerializer(
+                obj.apiary_checklist.filter(question__checklist_role='assessor').filter(question__checklist_type='apiary_per_site').order_by('question__order'),
+                #obj.apiary_checklist.filter(question__checklist_role='assessor').order_by('question__order'),
+                many=True).data
 
-        # checklistQuestion = ApiaryApplicantChecklistQuestion.objects.all()
-        # return_obj = []
-        # for question in checklistQuestion:
-        #     ret_obj = {}
-        #     answer = ApiaryApplicantChecklistAnswer.objects.filter(proposal=proposalapiaryobj, question=question)
-        #
-        #     serialized_q = ApiaryApplicantChecklistQuestionSerializer(question).data
-        #     serialized_a = ApiaryApplicantChecklistAnswerSerializer(answer).data
-        #     ret_obj['question'] = serialized_q
-        #     ret_obj['answer'] = serialized_a
-        #
-        #     return_obj.append(ret_obj)
-        #
-        # return return_obj
+    def get_referrer_checklist_answers(self, obj):
+        referral_list = []
+        for referral in obj.proposal.referrals.all():
+            qs = ApiaryChecklistAnswerSerializer(
+                obj.apiary_checklist.filter(apiary_referral_id=referral.apiary_referral.id).filter(question__checklist_type='apiary').order_by('question__order'),
+                many=True).data
+            referral_list.append({
+                "referral_id": referral.id, 
+                "apiary_referral_id": referral.apiary_referral.id, 
+                "referral_data": qs,
+                "referrer_group_name": referral.apiary_referral.referral_group.name,
+                })
+        return referral_list
 
-    def get_checklist_answers(self, obj):
-        return ApiaryApplicantChecklistAnswerSerializer(obj.apiary_applicant_checklist, many=True).data
+    def get_referrer_checklist_answers_per_site(self, obj):
+        referral_list = []
+        for referral in obj.proposal.referrals.all():
+            for site in obj.apiary_sites.all():
+                qs = ApiaryChecklistAnswerSerializer(
+                    #obj.apiary_checklist.filter(apiary_referral_id=referral.apiary_referral.id).order_by('question__order'),
+                    obj.apiary_checklist.filter(apiary_referral_id=referral.apiary_referral.id).filter(question__checklist_type='apiary_per_site').filter(site__apiary_site=site).order_by('question__order'),
+                    many=True).data
+                referral_list.append({
+                    "referral_id": referral.id, 
+                    "apiary_referral_id": referral.apiary_referral.id, 
+                    "referral_data": qs,
+                    "referrer_group_name": referral.apiary_referral.referral_group.name,
+                    })
+        return referral_list
+
+    def get_site_transfer_assessor_checklist_answers(self, obj):
+        return ApiaryChecklistAnswerSerializer(
+                obj.apiary_checklist.filter(question__checklist_role='assessor').filter(question__checklist_type='site_transfer').order_by('question__order'),
+                many=True).data
+
+    def get_site_transfer_assessor_checklist_answers_per_site(self, obj):
+        return ApiaryChecklistAnswerSerializer(
+                obj.apiary_checklist.filter(question__checklist_role='assessor').filter(question__checklist_type='site_transfer_per_site').order_by('question__order'),
+                #obj.apiary_checklist.filter(question__checklist_role='assessor').order_by('question__order'),
+                many=True).data
+
+    def get_site_transfer_referrer_checklist_answers(self, obj):
+        referral_list = []
+        for referral in obj.proposal.referrals.all():
+            qs = ApiaryChecklistAnswerSerializer(
+                obj.apiary_checklist.filter(apiary_referral_id=referral.apiary_referral.id).filter(question__checklist_type='site_transfer').order_by('question__order'),
+                many=True).data
+            referral_list.append({
+                "referral_id": referral.id, 
+                "apiary_referral_id": referral.apiary_referral.id, 
+                "referral_data": qs,
+                "referrer_group_name": referral.apiary_referral.referral_group.name,
+                })
+        return referral_list
+
+    def get_site_transfer_referrer_checklist_answers_per_site(self, obj):
+        referral_list = []
+        for referral in obj.proposal.referrals.all():
+            for site in obj.get_relations():
+                qs = ApiaryChecklistAnswerSerializer(
+                    #obj.apiary_checklist.filter(apiary_referral_id=referral.apiary_referral.id).order_by('question__order'),
+                    obj.apiary_checklist.filter(apiary_referral_id=referral.apiary_referral.id).filter(question__checklist_type='site_transfer_per_site').filter(apiary_site=site.apiary_site).order_by('question__order'),
+                    many=True).data
+                referral_list.append({
+                    "referral_id": referral.id, 
+                    "apiary_referral_id": referral.apiary_referral.id, 
+                    "referral_data": qs,
+                    "referrer_group_name": referral.apiary_referral.referral_group.name,
+                    })
+        return referral_list
+
 
 
 class CreateProposalApiarySiteTransferSerializer(serializers.ModelSerializer):
@@ -539,11 +887,17 @@ class SaveProposalApiarySerializer(serializers.ModelSerializer):
 
 class TemporaryUseApiarySiteSerializer(serializers.ModelSerializer):
     proposal_apiary_temporary_use_id = serializers.IntegerField(write_only=True, required=False)
-    apiary_site_id = serializers.IntegerField(write_only=True, required=False)
-    apiary_site = ApiarySiteSerializer(read_only=True)
+    apiary_site_on_approval_id = serializers.IntegerField(write_only=True, required=False)
+    # apiary_site_on_approval = ApiarySiteOnApprovalGeometrySerializer(read_only=True)
+    apiary_site = serializers.SerializerMethodField()
+    # apiary_site_id = serializers.IntegerField(write_only=True, required=False)
+    # apiary_site = ApiarySiteSerializer(read_only=True)
     # apiary_site_approval = ApiarySiteApprovalSerializer(read_only=True)
     # apiary_site_approval_id = serializers.IntegerField(write_only=True, required=False)
     # apiary_site = serializers.SerializerMethodField()
+
+    def get_apiary_site(self, obj):
+        return ApiarySiteOnApprovalGeometrySerializer(obj.apiary_site_on_approval).data
 
     def validate(self, attrs):
         # TODO: check if the site is not temporary used to another person for the period
@@ -555,10 +909,12 @@ class TemporaryUseApiarySiteSerializer(serializers.ModelSerializer):
         fields = (
             'id',
             'proposal_apiary_temporary_use_id',
-            # 'apiary_site_approval',
-            # 'apiary_site_approval_id',
-            'apiary_site_id',
+            'apiary_site_on_approval_id',
             'apiary_site',
+            # 'apiary_site_on_approval',
+            # 'apiary_site_approval_id',
+            # 'apiary_site_id',
+            # 'apiary_site',
             'selected',
         )
 
@@ -663,23 +1019,45 @@ class ProposalApiaryTemporaryUseSerializer(serializers.ModelSerializer):
         )
 
 
-class ProposalApiarySiteTransferSerializer(serializers.ModelSerializer):
+#class ProposalApiarySiteTransferSerializer(serializers.ModelSerializer):
+#
+#    class Meta:
+#        model = ProposalApiarySiteTransfer
+#        fields = '__all__'
+
+
+class SiteCategorySerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = ProposalApiarySiteTransfer
+        model = SiteCategory
         fields = '__all__'
+
+
+class ApiarySiteFeeTypeSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = ApiarySiteFeeType
+        fields = '__all__'
+
+
+class ApiarySiteFeeSerializer(serializers.ModelSerializer):
+    site_category = SiteCategorySerializer()
+    apiary_site_fee_type = ApiarySiteFeeTypeSerializer()
+
+    class Meta:
+        model = ApiarySiteFee
+        fields = (
+                'site_category',
+                'apiary_site_fee_type',
+                'amount',
+                'date_of_enforcement',
+                )
 
 
 class ProposalApiaryDocumentSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProposalApiaryDocument
         fields = ('id', 'name', '_file')
-
-
-class SaveProposalApiarySiteLocationSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ProposalApiary
-        fields = ('id', 'title', 'proposal')
 
 
 class ProposalApiaryTypeSerializer(serializers.ModelSerializer):
@@ -697,7 +1075,7 @@ class ProposalApiaryTypeSerializer(serializers.ModelSerializer):
     application_type = serializers.CharField(source='application_type.name', read_only=True)
     proposal_apiary = ProposalApiarySerializer()
     apiary_temporary_use = ProposalApiaryTemporaryUseSerializer(many=False, read_only=True)
-    apiary_site_transfer = ProposalApiarySiteTransferSerializer()
+    #apiary_site_transfer = ProposalApiarySiteTransferSerializer()
     apiary_group_application_type = serializers.SerializerMethodField()
 
     class Meta:
@@ -742,7 +1120,7 @@ class ProposalApiaryTypeSerializer(serializers.ModelSerializer):
                 'activity',
                 'proposal_apiary',
                 'apiary_temporary_use',
-                'apiary_site_transfer',
+                #'apiary_site_transfer',
                 'apiary_group_application_type',
 
                 )
@@ -808,6 +1186,7 @@ class ApiaryInternalApprovalSerializer(serializers.ModelSerializer):
                 'lodgement_number',
                 'start_date',
                 'expiry_date',
+                'reissued',
                 )
 
 # matches InternalProposalSerializer for apiary group proposals
@@ -847,9 +1226,8 @@ class ApiaryInternalProposalSerializer(BaseProposalSerializer):
 
     proposal_apiary = ProposalApiarySerializer()
     apiary_temporary_use = ProposalApiaryTemporaryUseSerializer(many=False, read_only=True)
-    apiary_site_transfer = ProposalApiarySiteTransferSerializer()
+    #apiary_site_transfer = ProposalApiarySiteTransferSerializer()
 
-    # apiary_applicant_checklist = ApiaryApplicantChecklistAnswerSerializer(many=True)
     applicant_checklist = serializers.SerializerMethodField()
     apiary_group_application_type = serializers.SerializerMethodField()
     # approval = ApiaryInternalApprovalSerializer()
@@ -915,10 +1293,10 @@ class ApiaryInternalProposalSerializer(BaseProposalSerializer):
                 'applicant_type',
                 'proposal_apiary',
                 'apiary_temporary_use',
-                'apiary_site_transfer',
+                #'apiary_site_transfer',
                 'applicant_address',
 
-                # 'apiary_applicant_checklist',
+                # 'apiary_checklist',
                 'applicant_checklist',
                 'applicant_address',
                 'applicant_first_name',
@@ -945,9 +1323,9 @@ class ApiaryInternalProposalSerializer(BaseProposalSerializer):
     def get_applicant_checklist(self, obj):
         checklist = []
         if hasattr(obj, 'proposal_apiary'):
-            if obj.proposal_apiary and obj.proposal_apiary.apiary_applicant_checklist.all():
-                for answer in obj.proposal_apiary.apiary_applicant_checklist.all():
-                    serialized_answer = ApiaryApplicantChecklistAnswerSerializer(answer)
+            if obj.proposal_apiary and obj.proposal_apiary.apiary_checklist.all():
+                for answer in obj.proposal_apiary.apiary_checklist.all().order_by('question__order'):
+                    serialized_answer = ApiaryChecklistAnswerSerializer(answer)
                     checklist.append(serialized_answer.data)
         return checklist
 
@@ -986,12 +1364,15 @@ class ApiaryInternalProposalSerializer(BaseProposalSerializer):
 
     def get_assessor_mode(self,obj):
         # TODO check if the proposal has been accepted or declined
+        #import ipdb; ipdb.set_trace()
         request = self.context['request']
+        template_group = get_template_group(request)#self.context.get('template_group')
         user = request.user._wrapped if hasattr(request.user,'_wrapped') else request.user
+        assessor_can_assess = obj.can_assess(user) if template_group == 'apiary' else False
         return {
             'assessor_mode': True,
             'has_assessor_mode': obj.has_assessor_mode(user),
-            'assessor_can_assess': obj.can_assess(user),
+            'assessor_can_assess': assessor_can_assess, #obj.can_assess(user),
             'assessor_level': 'assessor',
             'assessor_box_view': obj.assessor_comments_view(user)
         }
@@ -1035,13 +1416,14 @@ class ApiaryInternalProposalSerializer(BaseProposalSerializer):
 class ApiaryReferralSerializer(serializers.ModelSerializer):
     #processing_status = serializers.CharField(source='get_processing_status_display')
     #latest_referrals = ProposalReferralSerializer(many=True)
-    #can_be_completed = serializers.BooleanField()
+    can_process = serializers.BooleanField()
     referral_group = ApiaryReferralGroupSerializer()
     class Meta:
         model = ApiaryReferral
         fields = (
                 'id',
                 'referral_group',
+                'can_process',
                 )
 
     #def __init__(self,*args,**kwargs):
@@ -1121,60 +1503,88 @@ class DTApiaryReferralSerializer(serializers.ModelSerializer):
 
 
 class UserApiaryApprovalSerializer(serializers.ModelSerializer):
-    apiary_approvals = serializers.SerializerMethodField(read_only=True)
+    licence_holders = serializers.SerializerMethodField(read_only=True)
     class Meta:
         model = EmailUser
         fields = (
                 'id',
-                'apiary_approvals',
+                'licence_holders',
                 )
 
-    def get_apiary_approvals(self, obj):
-        sending_approval_id = self.context.get('sending_approval_id')
-        print(sending_approval_id)
+    def get_licence_holders(self, obj):
+        originating_approval_id = self.context.get('originating_approval_id')
+        print(originating_approval_id)
         #return 'apiary_approvals'
-        approvals = []
-        multiple_approvals = False
-        individual_approvals = False
-        organisation_approvals = False
+        licence_holders = []
+        #multiple_approvals = False
+        #individual_approvals = False
+        #organisation_approvals = False
         #Individual applications
         for individual_approval in obj.disturbance_proxy_approvals.filter(
                 status='current', 
                 apiary_approval=True
-                ).exclude(id=sending_approval_id
+                ).exclude(id=originating_approval_id
                         ):
             #approval = Approval.objects.filter(applicant=self.proposal.applicant, status='current', apiary_approval=True).first()
             if individual_approval.apiary_approval:
-                approvals.append({
+                licence_holders.append({
                     'type': 'individual',
                     'id':individual_approval.id,
                     'lodgement_number':individual_approval.lodgement_number,
+                    'licence_holder': individual_approval.relevant_applicant_name,
                     })
-                individual_approvals = True
+                #individual_approvals = True
+        # add user if no licence exists
+        if not licence_holders:
+            licence_holders.append({
+                'type': 'individual',
+                'id': None,
+                'lodgement_number': None,
+                'licence_holder': obj.get_full_name(),
+                'transferee_id': obj.id,
+                })
         #Organisation applications
         #import ipdb;ipdb.set_trace()
         user_delegations = UserDelegation.objects.filter(user=obj)
         #organisation_approvals = []
         for user_delegation in user_delegations:
             #organisation_approvals.append(user_delegation.organisation.disturbance_approvals.all())
-            for organisation_approval in user_delegation.organisation.disturbance_approvals.filter(
+            # add org even if no licence exists
+            if not user_delegation.organisation.disturbance_approvals.filter(
                     status='current',
                     apiary_approval=True
-                    ).exclude(id=sending_approval_id
+                    ).exclude(id=originating_approval_id
                             ):
-                if organisation_approval.apiary_approval:
-                    approvals.append({
-                        'type': 'organisation', 
-                        'id':organisation_approval.id,
-                        'lodgement_number':organisation_approval.lodgement_number,
-                        })
-                    organisation_approvals = True
-        #approvals.append(organisation_approvals)
+                licence_holders.append({
+                    'type': 'organisation', 
+                    'id': None,
+                    'lodgement_number':None,
+                    'licence_holder': user_delegation.organisation.name,
+                    'transferee_id': obj.id,
+                    'organisation_id': user_delegation.organisation.id,
+                    })
+            else:
+                # licence exists
+                for organisation_approval in user_delegation.organisation.disturbance_approvals.filter(
+                        status='current',
+                        apiary_approval=True
+                        ).exclude(id=originating_approval_id
+                                ):
+                    if organisation_approval.apiary_approval:
+                        licence_holders.append({
+                            'type': 'organisation', 
+                            'id':organisation_approval.id,
+                            'lodgement_number':organisation_approval.lodgement_number,
+                            'licence_holder': organisation_approval.relevant_applicant_name,
+                            })
+                        #organisation_approvals = True
+            #approvals.append(organisation_approvals)
 
-        if individual_approvals and organisation_approvals:
-            multiple_approvals = True
+        #if individual_approvals and organisation_approvals:
+         #   multiple_approvals = True
 
-        return {'approvals': approvals, 'multiple': multiple_approvals}
+        #return {'approvals': approvals, 'multiple': multiple_approvals}
+        return {'licence_holders': licence_holders}
 
 
 class ApiaryProposalRequirementSerializer(serializers.ModelSerializer):
@@ -1184,3 +1594,48 @@ class ApiaryProposalRequirementSerializer(serializers.ModelSerializer):
         fields = ('id','due_date','free_requirement','standard_requirement','standard','order','proposal','recurrence','recurrence_schedule','recurrence_pattern','requirement','is_deleted','copied_from')
         read_only_fields = ('order','requirement', 'copied_from')
 
+
+class ApiarySiteOnProposalLicenceDocSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='apiary_site.id')
+    site_category = serializers.CharField(source='site_category_processed.name')
+    coords = serializers.SerializerMethodField()
+    tenure = serializers.SerializerMethodField()
+    region_district = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ApiarySiteOnProposal
+
+        fields = (
+            'id',
+            'coords',
+            'site_category',
+            'tenure',
+            'region_district',
+        )
+
+    def get_tenure(self, apiary_site_on_proposal):
+        try:
+            res = get_tenure(apiary_site_on_proposal.wkb_geometry_processed)
+            return res
+        except:
+            return ''
+
+    def get_region_district(self, apiary_site_on_proposal):
+        try:
+            res = get_region_district(apiary_site_on_proposal.wkb_geometry_processed)
+            return res
+        except:
+            return ''
+
+    def get_coords(self, apiary_site_on_proposal):
+        try:
+            # geometry_condition = self.context.get('geometry_condition', ApiarySite.GEOMETRY_CONDITION_APPROVED)
+            # if geometry_condition == ApiarySite.GEOMETRY_CONDITION_APPLIED:
+            #     return {'lng': apiary_site.wkb_geometry_applied.x, 'lat': apiary_site.wkb_geometry_applied.y}
+            # elif geometry_condition == ApiarySite.GEOMETRY_CONDITION_PENDING:
+            #     return {'lng': apiary_site.wkb_geometry_pending.x, 'lat': apiary_site.wkb_geometry_pending.y}
+            # else:
+            #     return {'lng': apiary_site.wkb_geometry.x, 'lat': apiary_site.wkb_geometry.y}
+            return {'lng': apiary_site_on_proposal.wkb_geometry_processed.x, 'lat': apiary_site_on_proposal.wkb_geometry_processed.y}
+        except:
+            return {'lng': '', 'lat': ''}

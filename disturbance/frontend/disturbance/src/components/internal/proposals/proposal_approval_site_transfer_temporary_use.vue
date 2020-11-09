@@ -2,8 +2,9 @@
     <div>
         <template v-if="isFinalised">
             <div class="col-md-12 alert alert-success" v-if="proposal.processing_status == 'Approved'">
-                <p>The approval has been issued and has been emailed to {{proposal.applicant.name}}</p>
-                <p>Permit: <a target="_blank" :href="proposal.permit">approval.pdf</a></p>
+                <p>The licence has been issued and has been emailed to {{proposal.applicant.name}}</p>
+                <p>Licence (originating): <a target="_blank" :href="proposal.proposal_apiary.originating_approval_licence_document">licence.pdf</a></p>
+                <p>Licence (target): <a target="_blank" :href="proposal.proposal_apiary.target_approval_licence_document">licence.pdf</a></p>
             </div>
             <div v-else class="col-md-12 alert alert-warning">
                 <p>The proposal was declined. The decision was emailed to {{proposal.applicant.name}}</p>
@@ -19,7 +20,6 @@
                     :key="component_site_selection_key"
                     :show_col_checkbox="showColCheckbox"
                     :enable_col_checkbox="false"
-                    :show_action_available_unavailable="false"
                 />
             </FormSection>
         </template>
@@ -216,6 +216,10 @@ export default {
 
     },
     methods:{
+        updateComponentSiteSelectionKey: function(){
+            console.log('in updateComponentSiteSelectionKey')
+            this.component_site_selection_key = uuid()
+        },
         readFile: function() {
             let vm = this;
             let _file = null;

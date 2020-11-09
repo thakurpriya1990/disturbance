@@ -15,6 +15,7 @@ SYSTEM_MAINTENANCE_WARNING = env('SYSTEM_MAINTENANCE_WARNING', 24) # hours
 DISABLE_EMAIL = env('DISABLE_EMAIL', False)
 MEDIA_APP_DIR = env('MEDIA_APP_DIR', 'das')
 MEDIA_APIARY_DIR = env('MEDIA_APIARY_DIR', 'apiary')
+ANNUAL_RENTAL_FEE_GST_EXEMPT = True
 
 INSTALLED_APPS += [
     'reversion_compare',
@@ -75,6 +76,7 @@ MIDDLEWARE_CLASSES += [
 TEMPLATES[0]['DIRS'].append(os.path.join(BASE_DIR, 'disturbance', 'templates'))
 TEMPLATES[0]['DIRS'].append(os.path.join(BASE_DIR, 'disturbance','components','organisations', 'templates'))
 TEMPLATES[0]['DIRS'].append(os.path.join(BASE_DIR, 'disturbance','components','emails', 'templates'))
+TEMPLATES[0]['OPTIONS']['context_processors'].append('disturbance.context_processors.apiary_url')
 BOOTSTRAP3 = {
     'jquery_url': '//static.dpaw.wa.gov.au/static/libs/jquery/2.2.1/jquery.min.js',
     'base_url': '//static.dpaw.wa.gov.au/static/libs/twitter-bootstrap/3.3.6/',
@@ -102,10 +104,12 @@ DATA_UPLOAD_MAX_NUMBER_FIELDS = None
 
 # Department details
 SYSTEM_NAME = env('SYSTEM_NAME', 'Disturbance Approval System')
+APIARY_SYSTEM_NAME = env('APIARY_SYSTEM_NAME', 'Apiary System')
 SYSTEM_NAME_SHORT = env('SYSTEM_NAME_SHORT', 'DAS')
 SITE_PREFIX = env('SITE_PREFIX')
 SITE_DOMAIN = env('SITE_DOMAIN')
 SUPPORT_EMAIL = env('SUPPORT_EMAIL', SYSTEM_NAME_SHORT.lower() + '@' + SITE_DOMAIN).lower()
+APIARY_SUPPORT_EMAIL = env('APIARY_SUPPORT_EMAIL', SUPPORT_EMAIL).lower()
 DEP_URL = env('DEP_URL','www.' + SITE_DOMAIN)
 DEP_PHONE = env('DEP_PHONE','(08) 9219 9000')
 DEP_PHONE_SUPPORT = env('DEP_PHONE_SUPPORT','(08) 9219 9000')
@@ -117,6 +121,9 @@ SITE_URL = env('SITE_URL', 'https://' + SITE_PREFIX + '.' + SITE_DOMAIN)
 PUBLIC_URL=env('PUBLIC_URL', SITE_URL)
 DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', 'no-reply@' + SITE_DOMAIN).lower()
 ADMIN_GROUP = env('ADMIN_GROUP', 'Disturbance Admin')
+APIARY_ADMIN_GROUP = 'Apiary Admin'
+DAS_APIARY_ADMIN_GROUP = 'DAS-Apiary Admin'
+APIARY_PAYMENTS_OFFICERS_GROUP = 'Apiary Payments Officers'
 CRON_EMAIL = env('CRON_EMAIL', 'cron@' + SITE_DOMAIN).lower()
 TENURE_SECTION = env('TENURE_SECTION', None)
 ASSESSMENT_REMINDER_DAYS = env('ASSESSMENT_REMINDER_DAYS', 15)
@@ -126,8 +133,7 @@ PAYMENT_SYSTEM_ID = env('PAYMENT_SYSTEM_ID', 'S517')
 PS_PAYMENT_SYSTEM_ID = PAYMENT_SYSTEM_ID
 PAYMENT_SYSTEM_PREFIX = env('PAYMENT_SYSTEM_PREFIX', PAYMENT_SYSTEM_ID.replace('S','0')) # '0517'
 os.environ['LEDGER_PRODUCT_CUSTOM_FIELDS'] = "('ledger_description','quantity','price_incl_tax','price_excl_tax','oracle_code')"
-
-
+APIARY_URL = env('APIARY_URL', [])
 
 BASE_URL=env('BASE_URL')
 
@@ -145,6 +151,19 @@ CKEDITOR_CONFIGS = {
 
 DEV_APP_BUILD_URL = env('DEV_APP_BUILD_URL')  # URL of the Dev app.js served by webpack & express
 GEOCODING_ADDRESS_SEARCH_TOKEN = env('GEOCODING_ADDRESS_SEARCH_TOKEN', 'ACCESS_TOKEN_NOT_FOUND')
-
+RESTRICTED_RADIUS = 3000  # unit: [m]
+DBCA_ABN = '38 052 249 024'
 if env('CONSOLE_EMAIL_BACKEND', False):
    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+
+SITE_STATUS_DRAFT = 'draft'
+SITE_STATUS_PENDING = 'pending'
+SITE_STATUS_APPROVED = 'approved'
+SITE_STATUS_DENIED = 'denied'
+SITE_STATUS_CURRENT = 'current'
+SITE_STATUS_NOT_TO_BE_REISSUED = 'not_to_be_reissued'
+SITE_STATUS_SUSPENDED = 'suspended'
+SITE_STATUS_TRANSFERRED = 'transferred'
+SITE_STATUS_VACANT = 'vacant'
+

@@ -2,7 +2,7 @@
     <div v-if="proposal" class="container" id="internalProposal">
       <div class="row">
         <h3>Application: {{ proposal.lodgement_number }}</h3>
-        <h4>Application Type: {{proposal.application_type }}</h4>
+        <h4>Application Type: {{proposal.activity }}</h4>
         <div v-if="!proposal.apiary_group_application_type">
             <h4>Approval Level: {{proposal.approval_level }}</h4>
         </div>
@@ -255,13 +255,21 @@
             <div class="row">
                 <template v-if="proposal.processing_status == 'With Approver' || isFinalised">
                     <div v-if="siteTransferTemporaryUse">
-                        <ApprovalScreenSiteTransferTemporaryUse :proposal="proposal" @refreshFromResponse="refreshFromResponse"/>
+                        <ApprovalScreenSiteTransferTemporaryUse 
+                            :proposal="proposal" 
+                            ref="approval_screen"
+                            @refreshFromResponse="refreshFromResponse"
+                        />
                     </div>
                     <div v-else>
-                        <ApprovalScreen :proposal="proposal" @refreshFromResponse="refreshFromResponse"/>
+                        <ApprovalScreen 
+                            :proposal="proposal" 
+                            ref="approval_screen"
+                            @refreshFromResponse="refreshFromResponse"
+                        />
                     </div>
                 </template>
-                <template v-if="proposal.processing_status == 'With Assessor (Requirements)' || ((proposal.processing_status == 'With Approver' || isFinalised) && showingRequirements)">
+                <template v-if="canLimitedAction && proposal.processing_status == 'With Assessor (Requirements)' || ((proposal.processing_status == 'With Approver' || isFinalised) && showingRequirements)">
                     <div v-if="siteTransfer">
                         <OriginatingApprovalRequirements 
                         :proposal="proposal" 
@@ -419,7 +427,6 @@
                         <div class="row">
                             <form :action="proposal_form_url" method="post" name="new_proposal" enctype="multipart/form-data">
                                 <div v-if="proposal && proposal.application_type=='Apiary'">
-
                                     <ApiaryForm
                                         v-if="proposal"
                                         :proposal="proposal"
@@ -467,7 +474,12 @@
         </div>
         </div>
         <ProposedDecline ref="proposed_decline" :processing_status="proposal.processing_status" :proposal_id="proposal.id" @refreshFromResponse="refreshFromResponse"></ProposedDecline>
-        <AmendmentRequest ref="amendment_request" :proposal_id="proposal.id" @refreshFromResponse="refreshFromResponse"></AmendmentRequest>
+        <AmendmentRequest 
+        ref="amendment_request" 
+        :proposal_id="proposal.id" 
+        :is_apiary_proposal="isApiaryProposal"
+        @refreshFromResponse="refreshFromResponse"
+        />
         <ProposedApiaryIssuance 
             ref="proposed_approval" 
             :processing_status="proposal.processing_status" 
@@ -685,6 +697,13 @@ export default {
             }
             return iApplicant;
         },
+        isApiaryProposal: function() {
+            let returnVal = false;
+            if (this.proposal && this.proposal.proposal_apiary) {
+                returnVal = true;
+            }
+            return returnVal;
+        },
         apiaryProposal: function() {
             if (this.proposal && this.proposal.proposal_apiary) {
                 return this.proposal.proposal_apiary;
@@ -776,7 +795,11 @@ export default {
             this.$refs.proposed_decline.isModalOpen = true;
         },
         proposedApproval: function(){
-            this.$refs.proposed_approval.approval = this.proposal.proposed_issuance_approval != null ? helpers.copyObject(this.proposal.proposed_issuance_approval) : {};
+            let copiedProposedIssuanceApproval = helpers.copyObject(this.proposal.proposed_issuance_approval);
+            if (this.proposal.proposal_type == 'Renewal') {
+                copiedProposedIssuanceApproval.expiry_date = null;
+            }
+            this.$refs.proposed_approval.approval = this.proposal.proposed_issuance_approval != null ? copiedProposedIssuanceApproval : {};
             if(this.proposal.proposed_issuance_approval == null){
                 var test_approval={
                 'cc_email': this.proposal.referral_email_list
@@ -940,6 +963,9 @@ export default {
                 vm.initialiseAssignedOfficerSelect(true);
                 vm.updateAssignedOfficerSelect();
             });
+            if (vm.$refs.approval_screen){
+                vm.$refs.approval_screen.updateComponentSiteSelectionKey()
+            }
         },
         assignTo: function(){
             let vm = this;

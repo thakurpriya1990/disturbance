@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 import os
 
+from django.contrib.gis.db.models import MultiPolygonField
 from django.db import models
 from django.dispatch import receiver
 from django.db.models.signals import pre_delete
@@ -8,6 +9,7 @@ from django.utils.encoding import python_2_unicode_compatible
 from django.core.exceptions import ValidationError
 from ledger.accounts.models import EmailUser, Document, RevisionedMixin
 from django.contrib.postgres.fields.jsonb import JSONField
+
 
 @python_2_unicode_compatible
 class Region(models.Model):
@@ -35,6 +37,52 @@ class District(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class DistrictDbca(models.Model):
+    wkb_geometry = MultiPolygonField(srid=4326, blank=True, null=True)
+    district_name = models.CharField(max_length=200, blank=True, null=True)
+    office = models.CharField(max_length=200, blank=True, null=True)
+    object_id = models.PositiveIntegerField(blank=True, null=True)
+
+    class Meta:
+        ordering = ['object_id',]
+        app_label = 'disturbance'
+
+
+class RegionDbca(models.Model):
+    wkb_geometry = MultiPolygonField(srid=4326, blank=True, null=True)
+    region_name = models.CharField(max_length=200, blank=True, null=True)
+    office = models.CharField(max_length=200, blank=True, null=True)
+    object_id = models.PositiveIntegerField(blank=True, null=True)
+
+    class Meta:
+        ordering = ['object_id',]
+        app_label = 'disturbance'
+
+
+class CategoryDbca(models.Model):
+    '''
+    This model is used for defining the categories
+    '''
+    wkb_geometry = MultiPolygonField(srid=4326, blank=True, null=True)
+    category_name = models.CharField(max_length=20, blank=True, null=True)
+
+    class Meta:
+        app_label = 'disturbance'
+
+
+class WaCoast(models.Model):
+    '''
+    This model is used for validating if the apiary site is in the valid area
+    '''
+    wkb_geometry = MultiPolygonField(srid=4326, blank=True, null=True)
+    type = models.CharField(max_length=30, blank=True, null=True)
+    source = models.CharField(max_length=50, blank=True, null=True)
+    smoothed = models.BooleanField(default=False)
+
+    class Meta:
+        app_label = 'disturbance'
 
 
 @python_2_unicode_compatible
@@ -201,11 +249,44 @@ class SystemMaintenance(models.Model):
     def __str__(self):
         return 'System Maintenance: {} ({}) - starting {}, ending {}'.format(self.name, self.description, self.start_date, self.end_date)
 
+
+@python_2_unicode_compatible
+class ApiaryGlobalSettings(models.Model):
+    KEY_ORACLE_CODE_APIARY_SITE_ANNUAL_RENTAL_FEE = 'oracle_code_apiary_site_annural_rental_fee'
+    KEY_APIARY_SITES_LIST_TOKEN = 'apiary_sites_list_token'
+    KEY_APIARY_LICENCE_TEMPLATE_FILE = 'apiary_licence_template_file'
+
+    keys = (
+        (KEY_ORACLE_CODE_APIARY_SITE_ANNUAL_RENTAL_FEE, 'Oracle code for the apiary site annual site fee'),
+        (KEY_APIARY_SITES_LIST_TOKEN, 'Token to import the apiary sites list'),
+        (KEY_APIARY_LICENCE_TEMPLATE_FILE, 'Apiary licence template file'),
+    )
+
+    default_values = (
+        (KEY_ORACLE_CODE_APIARY_SITE_ANNUAL_RENTAL_FEE, 'APIARY_ANNUAL'),
+        (KEY_APIARY_SITES_LIST_TOKEN, 'abc123'),
+        (KEY_APIARY_LICENCE_TEMPLATE_FILE, ''),
+    )
+    key = models.CharField(max_length=255, choices=keys, blank=False, null=False, unique=True)
+    value = models.CharField(max_length=255)
+    _file = models.FileField(upload_to='apiary_licence_template', null=True, blank=True)
+
+    class Meta:
+        app_label = 'disturbance'
+        verbose_name_plural = "Apiary Global Settings"
+
+    def __str__(self):
+        return self.key
+
+
 @python_2_unicode_compatible
 class GlobalSettings(models.Model):
-    keys = (
-        ('assessment_reminder_days', 'Assessment reminder days'),
+    KEY_ASSESSMENT_REMINDER_DAYS = 'assessment_reminder_days'
 
+    keys = (
+        (KEY_ASSESSMENT_REMINDER_DAYS, 'Assessment reminder days'),
+    )
+    default_values = (
     )
     key = models.CharField(max_length=255, choices=keys, blank=False, null=False, unique=True)
     value = models.CharField(max_length=255)
@@ -213,7 +294,6 @@ class GlobalSettings(models.Model):
     class Meta:
         app_label = 'disturbance'
         verbose_name_plural = "Global Settings"
-        #unique_together = ('id', 'key')
 
     def __str__(self):
         return self.key

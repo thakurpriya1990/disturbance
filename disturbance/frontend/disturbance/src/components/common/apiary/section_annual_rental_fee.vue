@@ -3,7 +3,7 @@
 
         <template v-if="is_internal">
             <div class="form-group row">
-                <label class="col-sm-3">Do not charge annual rental fee until</label>
+                <label class="col-sm-3">Do not charge annual site fee until</label>
                 <div class="col-sm-3">
                     <div class="input-group date" ref="untilDatePicker">
                         <input type="text" class="form-control text-center" placeholder="DD/MM/YYYY" id="no_charge_until" :readonly="is_readonly"/>
@@ -51,12 +51,18 @@
                     <template v-if="annual_rental_fee_period.year_name == year_name_selected || year_name_selected == 'all'">
                         <template v-for="annual_rental_fee in annual_rental_fee_period.annual_rental_fees">
                             <div>
-                                <a :href="'/payments/invoice-pdf/' + annual_rental_fee.invoice_reference + '.pdf'" target='_blank'>
-                                    <i style='color:red;' class='fa fa-file-pdf-o'></i> Invoice
-                                </a>
-                                <strong>Status: {{ annual_rental_fee.payment_status }}</strong>
                                 <template v-if="annual_rental_fee.payment_status === 'unpaid'">
-                                    <a href="#">Pay (TODO: implement)</a>
+                                    <a :href="'/payments/awaiting-payment-pdf/' + annual_rental_fee.id" target='_blank'>
+                                        <i style='color:red;' class='fa fa-file-pdf-o'></i> Invoice
+                                    </a>
+                                    <strong>Payment status: {{ capitalize(annual_rental_fee.payment_status) }}</strong>
+                                    <a :href="'/annual_rental_fee/' + annual_rental_fee.id">Pay</a>
+                                </template>
+                                <template v-else>
+                                    <a :href="'/payments/invoice-pdf/' + annual_rental_fee.invoice_reference + '.pdf'" target='_blank'>
+                                        <i style='color:red;' class='fa fa-file-pdf-o'></i> #{{ annual_rental_fee.invoice_reference }}
+                                    </a>
+                                    <strong>Payment Status: {{ capitalize(annual_rental_fee.payment_status) }}</strong>
                                 </template>
                             </div>
                         </template>
@@ -142,6 +148,11 @@
 
         },
         methods: {
+            capitalize: function(s){
+                if (typeof s !== 'string') return ''
+                s = s.replace(/_/g, " ")
+                return s.charAt(0).toUpperCase() + s.slice(1)
+            },
             noChargeUntilButtonClicked: function() {
                 this.saving_date = true
                 let vm = this

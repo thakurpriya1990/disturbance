@@ -7,11 +7,11 @@
             <div class="row">
                 <div class="panel panel-default">
                     <div class="panel-heading">
-                       Submission 
+                       Submission
                     </div>
                     <div class="panel-body panel-collapse">
                         <div class="row">
-                            
+
                             <div class="col-sm-12 top-buffer-s">
                                 <strong>Issued on</strong><br/>
                                 {{ approval.issue_date | formatDate}}
@@ -32,14 +32,14 @@
             <div class="row">
                 <div class="panel panel-default">
                     <div class="panel-heading">
-                        Workflow 
+                        Workflow
                     </div>
                     <div class="panel-body panel-collapse">
                         <div class="row">
                             <div class="col-sm-12">
                                 <strong>Status</strong><br/>
                                 {{ approval.status }}
-                            </div>                        
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -54,7 +54,7 @@
                             <a class="panelClicker" :href="'#'+pBody" data-toggle="collapse" expanded="false"  data-parent="#userInfo" :aria-controls="pBody">
                             <span class="glyphicon glyphicon-chevron-down pull-right "></span>
                         </a>
-                        </h3> 
+                        </h3>
                     </div>
                     <div v-if="organisationApplicant">
                         <!--div class="panel-body panel-collapse collapse in" :id="detailsBody"-->
@@ -103,13 +103,13 @@
                                         <div class="col-sm-6">
                                             <input type="text" disabled class="form-control" name="name" placeholder="" v-model="org.name">
                                         </div>
-                                    </div>   
+                                    </div>
                                     <div class="form-group">
                                         <label for="" class="col-sm-3 control-label">ABN</label>
                                         <div class="col-sm-6">
                                             <input type="text" disabled class="form-control" name="abn" placeholder="" v-model="org.abn">
                                         </div>
-                                    </div>                                      
+                                    </div>
                                 </form>
                             </div>
                         </div>
@@ -118,10 +118,10 @@
             </div>
 
             <div class="row">
-               
+
                 <div class="panel panel-default">
                   <div class="panel-heading">
-                    <h3 class="panel-title">Address Details 
+                    <h3 class="panel-title">Address Details
                         <a class="panelClicker" :href="'#'+adBody" data-toggle="collapse" expanded="true"  data-parent="#userInfo" :aria-controls="adBody">
                             <span class="glyphicon glyphicon-chevron-down pull-right "></span>
                         </a>
@@ -161,14 +161,14 @@
                        </form>
                   </div>
                 </div>
-           
+
             </div>
 
             <div class="row">
-                
+
                 <div class="panel panel-default">
                   <div class="panel-heading">
-                    <h3 class="panel-title">Approval Details 
+                    <h3 class="panel-title">Licence Details
                         <a class="panelClicker" :href="'#'+oBody" data-toggle="collapse" expanded="true"  data-parent="#userInfo" :aria-controls="oBody">
                             <span class="glyphicon glyphicon-chevron-down pull-right "></span>
                         </a>
@@ -196,27 +196,27 @@
                             <div class="col-sm-3">
                                 <label for="" class="control-label pull-left">{{approval.expiry_date | formatDate}}</label>
                             </div>
-                            
+
                           </div>
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label" >Document</label>
                             <div class="col-sm-4">
                                 <!-- <p><a target="_blank" :href="approval.licence_document" class="control-label pull-left">Approval.pdf</a></p> -->
                                 <!--p><a :href="'#'+approval.id" class="control-label pull-left" @click="viewApprovalPDF(approval.id, approval.latest_apiary_licence_document)">Approval.pdf</a></p-->
-                                <p><a target="_blank" :href="approval.latest_apiary_licence_document" class="control-label pull-left">Approval.pdf</a></p>
+                                <p><a target="_blank" :href="approval.latest_apiary_licence_document" class="control-label pull-left">Licence.pdf</a></p>
                             </div>
                           </div>
-                          <div class="form-group">
+                          <!--div class="form-group">
                             <label for="" class="col-sm-3 control-label" >Document History</label>
                             <div class="col-sm-4">
                                 <div v-for="doc in approval.apiary_licence_document_history">
                                     <p><a target="_blank" :href="doc.url" class="control-label pull-left">{{doc.name}}</a></p>
                                 </div>
                             </div>
-                          </div>
+                          </div-->
                        </form>
                   </div>
-                </div>         
+                </div>
             </div>
 
             <div class="row">
@@ -232,7 +232,7 @@
             </div>
 
             <div class="row">
-                <FormSection :formCollapse="false" label="Annual Rental Fee" Index="annual_rental_fee">
+                <FormSection :formCollapse="false" label="Annual Site Fee" Index="annual_rental_fee">
                     <template v-if="approval && approval.id">
                         <SectionAnnualRentalFee
                             :is_readonly="false"
@@ -249,11 +249,11 @@
             <div class="row">
                 <FormSection :formCollapse="false" label="Temporary Use" Index="temporary_use">
                     <template v-if="approval && approval.id">
-                        <TemporaryUse 
+                        <TemporaryUse
                             :approval_id="approval.id"
                             :is_internal="true"
                             :is_external="false"
-                            ref="tempoary_use" 
+                            ref="tempoary_use"
                         />
                     </template>
                 </FormSection>
@@ -262,11 +262,11 @@
             <div class="row">
                 <FormSection :formCollapse="false" label="On Site" Index="on_site">
                     <template v-if="approval && approval.id">
-                        <OnSiteInformation 
+                        <OnSiteInformation
                             :approval_id="approval.id"
                             :is_internal="true"
                             :is_external="false"
-                            ref="on_site_information" 
+                            ref="on_site_information"
                         />
                     </template>
                 </FormSection>
@@ -295,7 +295,7 @@ export default {
         loading: [],
         approval: {
             applicant_id: null
-            
+
         },
         DATE_TIME_FORMAT: 'DD/MM/YYYY HH:mm:ss',
         adBody: 'adBody'+vm._uid,
@@ -305,10 +305,10 @@ export default {
         org: {
             address: {}
         },
-        
+
         // Filters
         logs_url: helpers.add_endpoint_json(api_endpoints.approvals,vm.$route.params.approval_id+'/action_log'),
-        comms_url: helpers.add_endpoint_json(api_endpoints.approvals,vm.$route.params.approval_id+'/comms_log'),  
+        comms_url: helpers.add_endpoint_json(api_endpoints.approvals,vm.$route.params.approval_id+'/comms_log'),
         comms_add_url: helpers.add_endpoint_json(api_endpoints.approvals,vm.$route.params.approval_id+'/add_comms_log'),
     }
   },
@@ -332,7 +332,7 @@ export default {
         }
     },(error) => {
         console.log(error);
-    }) 
+    })
   },
   components: {
         SectionAnnualRentalFee,
@@ -354,7 +354,7 @@ export default {
         }
         return oApplicant;
     },
-    
+
   },
   methods: {
     commaToNewline(s){
@@ -363,9 +363,9 @@ export default {
     fetchOrganisation(applicant_id){
         let vm=this;
         Vue.http.get(helpers.add_endpoint_json(api_endpoints.organisations,applicant_id)).then((response) => {
-        
+
             vm.org = response.body;
-            vm.org.address = response.body.address;         
+            vm.org.address = response.body.address;
     },(error) => {
         console.log(error);
     })
@@ -376,15 +376,15 @@ export default {
             //console.log(approval);
             vm.$http.get(helpers.add_endpoint_json(api_endpoints.approvals,(id+'/approval_pdf_view_log')),{
                 })
-                .then((response) => {  
-                    //console.log(response)  
+                .then((response) => {
+                    //console.log(response)
                 }, (error) => {
                     console.log(error);
                 });
             window.open(media_link, '_blank');
     },
-  
-  
+
+
   },
   mounted: function () {
     let vm = this;

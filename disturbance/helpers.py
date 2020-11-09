@@ -26,6 +26,14 @@ def is_disturbance_admin(request):
   #  #logger.info('settings.ADMIN_GROUP: {}'.format(settings.ADMIN_GROUP))
     return request.user.is_authenticated() and is_model_backend(request) and in_dbca_domain(request) and (belongs_to(request.user, settings.ADMIN_GROUP))
 
+def is_apiary_admin(request):
+  #  #logger.info('settings.ADMIN_GROUP: {}'.format(settings.ADMIN_GROUP))
+    return request.user.is_authenticated() and is_model_backend(request) and in_dbca_domain(request) and (belongs_to(request.user, settings.APIARY_ADMIN_GROUP))
+
+def is_das_apiary_admin(request):
+  #  #logger.info('settings.ADMIN_GROUP: {}'.format(settings.ADMIN_GROUP))
+    return request.user.is_authenticated() and is_model_backend(request) and in_dbca_domain(request) and (belongs_to(request.user, settings.DAS_APIARY_ADMIN_GROUP))
+
 def in_dbca_domain(request):
     user = request.user
     domain = user.email.split('@')[1]

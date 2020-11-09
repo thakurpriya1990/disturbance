@@ -11,15 +11,19 @@
                 </div>
                 <div class="panel-body panel-collapse collapse in" :id="panelBody">
                     <form class="form-horizontal" action="index.html" method="post">
-                        <div class="col-sm-12">
+                        <!--div class="col-sm-12">
                             <button v-if="hasAssessorMode" @click.prevent="addRequirement()" style="margin-bottom:10px;" class="btn btn-primary pull-right">Add Requirement</button>
-                        </div>
-                        <datatable ref="requirements_datatable" :id="'originating-approval-requirements-datatable-'+_uid" :dtOptions="requirement_options" :dtHeaders="requirement_headers"/>
+                        </div-->
+                        <datatable ref="originating_requirements_datatable" :id="'originating-approval-requirements-datatable-'+_uid" :dtOptions="requirement_options" :dtHeaders="requirement_headers"/>
                     </form>
                 </div>
             </div>
         </div>
-        <RequirementDetail ref="requirement_detail" :proposal_id="proposal.id" :requirements="requirements"/>
+        <!--RequirementDetail 
+        ref="originating_requirement_detail" 
+        :proposal_id="proposal.id" 
+        :requirements="requirements"
+        :approval_id="originatingApprovalId"/-->
     </div>
 </template>
 <script>
@@ -29,7 +33,7 @@ import {
 }
 from '@/utils/hooks'
 import datatable from '@vue-utils/datatable.vue'
-import RequirementDetail from './proposal_add_requirement.vue'
+//import RequirementDetail from './proposal_add_requirement.vue'
 export default {
     name: 'OriginatingApprovalRequirements',
     props: {
@@ -57,7 +61,7 @@ export default {
                 },
                 responsive: true,
                 ajax: {
-                    "url": helpers.add_endpoint_json(api_endpoints.approvals,vm.originatingApprovalId+'/requirements'),
+                    "url": helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/apiary_site_transfer_originating_approval_requirements'),
                     "dataSrc": ''
                 },
                 order: [],
@@ -132,11 +136,13 @@ export default {
                         mRender:function (data,type,full) {
                             let links = '';
                             if (vm.proposal.assessor_mode.has_assessor_mode){
+                                /*
                                 if(full.copied_from==null)
                                 {
                                     links +=  `<a href='#' class="editRequirement" data-id="${full.id}">Edit</a><br/>`;
                                 }
-                                //links +=  `<a href='#' class="editRequirement" data-id="${full.id}">Edit</a><br/>`;
+                                */
+                                links +=  `<a href='#' class="editRequirement" data-id="${full.id}">Edit</a><br/>`;
                                 links +=  `<a href='#' class="deleteRequirement" data-id="${full.id}">Delete</a><br/>`;
                             }
                             return links;
@@ -158,8 +164,8 @@ export default {
                 ],
                 processing: true,
                 drawCallback: function (settings) {
-                    $(vm.$refs.requirements_datatable.table).find('tr:last .dtMoveDown').remove();
-                    $(vm.$refs.requirements_datatable.table).children('tbody').find('tr:first .dtMoveUp').remove();
+                    $(vm.$refs.originating_requirements_datatable.table).find('tr:last .dtMoveDown').remove();
+                    $(vm.$refs.originating_requirements_datatable.table).children('tbody').find('tr:first .dtMoveUp').remove();
 
                     // Remove previous binding before adding it
                     $('.dtMoveUp').unbind('click');
@@ -181,7 +187,7 @@ export default {
     },
     components:{
         datatable,
-        RequirementDetail
+        //RequirementDetail
     },
     computed:{
         hasAssessorMode(){
@@ -214,7 +220,7 @@ export default {
     },
     methods:{
         addRequirement(){
-            this.$refs.requirement_detail.isModalOpen = true;
+            this.$refs.originating_requirement_detail.isModalOpen = true;
         },
         removeRequirement(_id){
             let vm = this;
@@ -235,7 +241,7 @@ export default {
 
                 vm.$http.get(helpers.add_endpoint_json(api_endpoints.proposal_requirements,_id+'/discard'))
                 .then((response) => {
-                    vm.$refs.requirements_datatable.vmDataTable.ajax.reload();
+                    vm.$refs.originating_requirements_datatable.vmDataTable.ajax.reload();
                 }, (error) => {
                     console.log(error);
                 });
@@ -255,25 +261,25 @@ export default {
         editRequirement(_id){
             let vm = this;
             vm.$http.get(helpers.add_endpoint_json(api_endpoints.proposal_requirements,_id)).then((response) => {
-                this.$refs.requirement_detail.requirement = response.body;
-                this.$refs.requirement_detail.requirement.due_date =  response.body.due_date != null && response.body.due_date != undefined ? moment(response.body.due_date).format('DD/MM/YYYY'): '';
-                response.body.standard ? $(this.$refs.requirement_detail.$refs.standard_req).val(response.body.standard_requirement).trigger('change'): '';
+                this.$refs.originating_requirement_detail.requirement = response.body;
+                this.$refs.originating_requirement_detail.requirement.due_date =  response.body.due_date != null && response.body.due_date != undefined ? moment(response.body.due_date).format('DD/MM/YYYY'): '';
+                response.body.standard ? $(this.$refs.originating_requirement_detail.$refs.standard_req).val(response.body.standard_requirement).trigger('change'): '';
                 this.addRequirement();
             },(error) => {
                 console.log(error);
             })
         },
         updatedRequirements(){
-            this.$refs.requirements_datatable.vmDataTable.ajax.reload();
+            this.$refs.originating_requirements_datatable.vmDataTable.ajax.reload();
         },
         eventListeners(){
             let vm = this;
-            vm.$refs.requirements_datatable.vmDataTable.on('click', '.deleteRequirement', function(e) {
+            vm.$refs.originating_requirements_datatable.vmDataTable.on('click', '.deleteRequirement', function(e) {
                 e.preventDefault();
                 var id = $(this).attr('data-id');
                 vm.removeRequirement(id);
             });
-            vm.$refs.requirements_datatable.vmDataTable.on('click', '.editRequirement', function(e) {
+            vm.$refs.originating_requirements_datatable.vmDataTable.on('click', '.editRequirement', function(e) {
                 e.preventDefault();
                 var id = $(this).attr('data-id');
                 vm.editRequirement(id);
@@ -305,7 +311,7 @@ export default {
         },
         moveRow(row, direction) {
             // Move up or down (depending...)
-            var table = this.$refs.requirements_datatable.vmDataTable;
+            var table = this.$refs.originating_requirements_datatable.vmDataTable;
             var index = table.row(row).index();
 
             var order = -1;

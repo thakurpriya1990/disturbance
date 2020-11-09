@@ -252,10 +252,16 @@ def _create_header(canvas, doc, draw_page_number=True):
 
 def _is_gst_exempt(proposal, invoice):
     # TODO need to fix, since individual parks can be exempt, Below calculation assumes NO PARK IS exempt
-    return proposal.application_type.is_gst_exempt if proposal and proposal.fee_invoice_reference == invoice.reference else False
+    if not proposal:
+        return True  # Expecting this is annual site fee
+
+    elif proposal.fee_invoice_reference == invoice.reference:
+        return proposal.application_type.is_gst_exempt
+    else:
+        return False
 
 
-def _create_invoice(invoice_buffer, invoice, proposal):
+def _create_invoice(invoice_buffer, invoice, url_var, proposal):
 
     global DPAW_HEADER_LOGO
 #    if  cols_var["TEMPLATE_GROUP"] == 'rottnest':
@@ -364,10 +370,10 @@ def _create_invoice(invoice_buffer, invoice, proposal):
 
     return invoice_buffer
 
-
-def create_invoice_pdf_bytes(filename, invoice, proposal):
+# proposal needs to be nullable for Annual site fees
+def create_invoice_pdf_bytes(filename, invoice, url_var, proposal=None):
     invoice_buffer = BytesIO()
-    _create_invoice(invoice_buffer, invoice, proposal)
+    _create_invoice(invoice_buffer, invoice, url_var, proposal)
 
     # Get the value of the BytesIO buffer
     value = invoice_buffer.getvalue()

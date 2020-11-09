@@ -17,6 +17,8 @@ module.exports = {
     referrals:"/api/referrals.json",
     compliances:"/api/compliances.json",
     proposal_standard_requirements:"/api/proposal_standard_requirements.json",
+    disturbance_standard_requirements:"/api/proposal_standard_requirements/disturbance_standard_requirements.json",
+    apiary_standard_requirements:"/api/proposal_standard_requirements/apiary_standard_requirements.json",
     proposal_requirements:"/api/proposal_requirements.json",
     amendment_request:"/api/amendment_request.json",
     regions:"/api/regions.json",
@@ -54,4 +56,5 @@ module.exports = {
     apiary_referral_groups:"/api/apiary_referral_groups.json",
     proposal_apiary:"/api/proposal_apiary.json",
     apiary_referrals:"/api/apiary_referrals.json",
+    apiary_site_transfer_fees:"/api/apiary_site_fees/get_site_transfer_fees.json",
 }

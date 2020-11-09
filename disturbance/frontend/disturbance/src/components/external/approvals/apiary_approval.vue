@@ -85,7 +85,7 @@
             </div>
 
             <div class="row">
-                <FormSection :formCollapse="false" label="Approval Details" Index="approval_details">
+                <FormSection :formCollapse="false" label="Licence Details" Index="approval_details">
                     <form class="form-horizontal" action="index.html" method="post">
                         <div class="form-group">
                             <label for="" class="col-sm-3 control-label">Issue Date</label>
@@ -108,7 +108,7 @@
                         <div class="form-group">
                             <label for="" class="col-sm-3 control-label" >Document</label>
                             <div class="col-sm-4">
-                                <p><a target="_blank" :href="approval.latest_apiary_licence_document" class="control-label pull-left">Approval.pdf</a></p>
+                                <p><a target="_blank" :href="approval.latest_apiary_licence_document" class="control-label pull-left">Licence.pdf</a></p>
                             </div>
                         </div>
                         <!--div class="form-group">
@@ -136,9 +136,8 @@
                     </template>
                 </FormSection>
             </div>
-
             <div class="row">
-                <FormSection :formCollapse="false" label="Annual Rental Fee" Index="annual_rental_fee">
+                <FormSection :formCollapse="false" label="Annual Site Fee" Index="annual_rental_fee">
                     <template v-if="approval && approval.id">
                         <SectionAnnualRentalFee
                             :is_readonly="false"
@@ -191,7 +190,6 @@ import FormSection from "@/components/forms/section_toggle.vue"
 import { api_endpoints, helpers } from '@/utils/hooks'
 import OnSiteInformation from '@/components/common/apiary/section_on_site_information.vue'
 import TemporaryUse from '@/components/common/apiary/section_temporary_use.vue'
-import ComponentSiteSelection from '@/components/common/apiary/component_site_selection.vue'
 import SiteAvailability from '@/components/common/apiary/section_site_availability.vue'
 import SectionAnnualRentalFee from '@/components/common/apiary/section_annual_rental_fee.vue'
 
@@ -229,7 +227,7 @@ export default {
             },
 
             // variables passed to the child component
-            on_site_information_list: [],
+            //on_site_information_list: [],
             // Filters
 
         }
@@ -242,13 +240,17 @@ export default {
 
                 // Construct the array, which is passed to the child component, SiteAvailability
                 // Construct the array, which is passed to the child component, OnSiteInformation
-                this.on_site_information_list = []
+                //this.on_site_information_list = []
 
-                for (let i=0; i<this.approval.apiary_sites.length; i++){
-                    for (let j=0; j<this.approval.apiary_sites[i].onsiteinformation_set.length; j++){
-                        this.on_site_information_list.push(this.approval.apiary_sites[i].onsiteinformation_set[j])
-                    }
-                }
+                console.log(this.approval)
+
+                //for (let i=0; i<this.approval.apiary_sites.length; i++){
+                    //console.log('in apiary_sites.length')
+                    //for (let j=0; j<this.approval.apiary_sites[i].onsiteinformation_set.length; j++){
+                        //console.log('in onsiteinformation_setgt.length')
+                        //this.on_site_information_list.push(this.approval.apiary_sites[i].onsiteinformation_set[j])
+                    //}
+                //}
 
                 // Construct the array, which is passed to the child component, TemporaryUse
 
@@ -281,7 +283,6 @@ export default {
     //},
     components: {
         SectionAnnualRentalFee,
-        ComponentSiteSelection,
         datatable,
         CommsLogs,
         FormSection,
