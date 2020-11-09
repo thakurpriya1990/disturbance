@@ -3807,6 +3807,8 @@ class ProposalApiaryDocument(DefaultDocument):
 
 
 class DeedPollDocument(Document):
+    DOC_TYPE_NAME = 'deed_poll_documents'
+
     proposal = models.ForeignKey(ProposalApiary, related_name='deed_poll_documents', blank=True, null=True)
     base_proposal = models.ForeignKey(Proposal, related_name='deed_poll_documents', blank=True, null=True)
     _file = models.FileField(max_length=255)
@@ -3825,16 +3827,26 @@ class DeedPollDocument(Document):
 
 
 class PublicLiabilityInsuranceDocument(Document):
+    DOC_TYPE_NAME = 'public_liability_document'
+
     proposal = models.ForeignKey(ProposalApiary, related_name='public_liability_insurance_documents', blank=True, null=True)
     _file = models.FileField(max_length=255)
+    input_name = models.CharField(max_length=255, blank=True, null=True)
+    can_delete = models.BooleanField(default=True)
+    visible = models.BooleanField(default=True)
 
     class Meta:
         app_label = 'disturbance'
 
 
 class SupportingApplicationDocument(Document):
+    DOC_TYPE_NAME = 'supporting_application_document'
+
     proposal = models.ForeignKey(ProposalApiary, related_name='supporting_application_documents', blank=True, null=True)
     _file = models.FileField(max_length=255)
+    input_name = models.CharField(max_length=255, blank=True, null=True)
+    can_delete = models.BooleanField(default=True)
+    visible = models.BooleanField(default=True)
 
     class Meta:
         app_label = 'disturbance'
