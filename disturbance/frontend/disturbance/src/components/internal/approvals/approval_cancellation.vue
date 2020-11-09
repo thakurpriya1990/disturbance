@@ -9,7 +9,7 @@
                             <div class="form-group">
                                 <div class="row">
                                     <div class="col-sm-3">
-                                        
+
                                         <label class="control-label pull-left"  for="Name">Cancellation Date</label>
                                     </div>
                                     <div class="col-sm-9">
@@ -22,11 +22,11 @@
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <div class="form-group">
                                 <div class="row">
                                     <div class="col-sm-3">
-                                        
+
                                         <label class="control-label pull-left"  for="Name">Cancellation Details</label>
                                     </div>
                                     <div class="col-sm-9">
@@ -34,7 +34,7 @@
                                     </div>
                                 </div>
                             </div>
-                           
+
                         </div>
                     </form>
                 </div>
@@ -102,7 +102,7 @@ export default {
             let vm =this;
             if($(vm.form).valid()){
                 vm.sendData();
-               
+
             }
         },
         cancel:function () {
@@ -129,7 +129,7 @@ export default {
             vm.errors = false;
             let approval = JSON.parse(JSON.stringify(vm.approval));
             vm.issuingApproval = true;
-            
+
             vm.$http.post(helpers.add_endpoint_json(api_endpoints.approvals,vm.approval_id+'/approval_cancellation'),JSON.stringify(approval),{
                         emulateJSON:true,
                     }).then((response)=>{
@@ -137,25 +137,25 @@ export default {
                         vm.close();
                         swal(
                              'Cancelled',
-                             'An email has been sent to proponent about cancellation of this approval',
+                             'An email has been sent to the proponent about cancellation of this approval',
                              'success'
                         );
                         vm.$emit('refreshFromResponse',response);
-                       
+
 
                     },(error)=>{
                         vm.errors = true;
                         vm.issuingApproval = false;
                         vm.errorString = helpers.apiVueResourceError(error);
                     });
-                        
-            
+
+
         },
         addFormValidations: function() {
             let vm = this;
             vm.validation_form = $(vm.form).validate({
                 rules: {
-                    cancellation_date:"required",                    
+                    cancellation_date:"required",
                     cancellation_details:"required",
                 },
                 messages: {
@@ -183,7 +183,7 @@ export default {
        eventListeners:function () {
             let vm = this;
             // Initialise Date Picker
-            
+
             $(vm.$refs.cancellation_date).datetimepicker(vm.datepickerOptions);
             $(vm.$refs.cancellation_date).on('dp.change', function(e){
                 if ($(vm.$refs.cancellation_date).data('DateTimePicker').date()) {
