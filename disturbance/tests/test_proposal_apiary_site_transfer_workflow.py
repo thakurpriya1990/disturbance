@@ -369,7 +369,7 @@ class ApiarySiteTransferIntegrationTests(APITestSetup):
         site_transfer_apiary_sites = []
         for site_transfer_site in saved_site_transfer_proposal.proposal_apiary.site_transfer_apiary_sites.all():
             site_transfer_apiary_sites.append({
-                "id": site_transfer_site.apiary_site.id,
+                "id": site_transfer_site.apiary_site_on_approval.id,
                 "checked": True
                 })
         site_transfer_propose_to_approve_data = {
