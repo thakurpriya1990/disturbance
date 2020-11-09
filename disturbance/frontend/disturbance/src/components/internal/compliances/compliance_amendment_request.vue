@@ -58,7 +58,7 @@ export default {
             amendment: {
                 reason:'',
                 amendingcompliance: false,
-                compliance: vm.compliance_id 
+                compliance: vm.compliance_id
             },
             reason_choices: {},
             errors: false,
@@ -93,14 +93,14 @@ export default {
             this.errors = false;
             $(this.$refs.reason).val(null).trigger('change');
             $('.has-error').removeClass('has-error');
-            
+
             this.validation_form.resetForm();
         },
         fetchAmendmentChoices: function(){
             let vm = this;
             vm.$http.get('/api/compliance_amendment_reason_choices.json').then((response) => {
                 vm.reason_choices = response.body;
-                
+
             },(error) => {
                 console.log(error);
             } );
@@ -109,31 +109,31 @@ export default {
             let vm = this;
             vm.errors = false;
             //console.log(vm.amendment);
-            let amendment = JSON.parse(JSON.stringify(vm.amendment));            
+            let amendment = JSON.parse(JSON.stringify(vm.amendment));
             vm.$http.post('/api/compliance_amendment_request.json',JSON.stringify(amendment),{
                         emulateJSON:true,
                     }).then((response)=>{
                         //vm.$parent.loading.splice('processing contact',1);
                         swal(
                              'Sent',
-                             'An email has been sent to proponent with the request to amend this compliance',
+                             'An email has been sent to the proponent with the request to amend this compliance',
                              'success'
                         );
                         vm.amendingcompliance = true;
                         console.log(response)
                         vm.close();
                         //vm.$emit('refreshFromResponse',response);
-                       
+
                         vm.$router.push({ path: '/internal' }); //Navigate to dashboard after creating Amendment request
-                     
+
                     },(error)=>{
                         console.log(error);
                         vm.errors = true;
                         vm.errorString = helpers.apiVueResourceError(error);
                         vm.amendingcompliance = true;
-                        
+
                     });
-                
+
 
         },
         addFormValidations: function() {
@@ -141,12 +141,12 @@ export default {
             vm.validation_form = $(vm.form).validate({
                 rules: {
                     reason: "required"
-                    
-                     
+
+
                 },
-                messages: {              
+                messages: {
                     reason: "field is required",
-                                         
+
                 },
                 showErrors: function(errorMap, errorList) {
                     $.each(this.validElements(), function(index, element) {
@@ -170,7 +170,7 @@ export default {
        },
        eventListerners:function () {
             let vm = this;
-            
+
             // Intialise select2
             $(vm.$refs.reason).select2({
                 "theme": "bootstrap",
@@ -192,7 +192,7 @@ export default {
        vm.form = document.forms.amendForm;
        vm.fetchAmendmentChoices();
        vm.addFormValidations();
-       this.$nextTick(()=>{  
+       this.$nextTick(()=>{
             vm.eventListerners();
         });
     //console.log(validate);
