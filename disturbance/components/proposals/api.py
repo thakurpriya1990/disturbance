@@ -29,7 +29,8 @@ from disturbance.components.proposals.utils import (
 )
 from disturbance.components.proposals.models import searchKeyWords, search_reference, \
     OnSiteInformation, ApiarySite, ApiaryChecklistQuestion, ApiaryChecklistAnswer, \
-    ProposalApiaryTemporaryUse, ApiarySiteOnProposal
+    ProposalApiaryTemporaryUse, ApiarySiteOnProposal, PublicLiabilityInsuranceDocument, DeedPollDocument, \
+    SupportingApplicationDocument
 from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_APPROVED, SITE_STATUS_CURRENT, SITE_STATUS_DENIED, \
     SITE_STATUS_NOT_TO_BE_REISSUED, SITE_STATUS_VACANT, SITE_STATUS_TRANSFERRED
 from disturbance.utils import search_tenure
@@ -788,7 +789,7 @@ class ProposalApiaryViewSet(viewsets.ModelViewSet):
     @basic_exception_handler
     def process_deed_poll_document(self, request, *args, **kwargs):
         instance = self.get_object()
-        returned_data = process_generic_document(request, instance, document_type='deed_poll_documents')
+        returned_data = process_generic_document(request, instance, document_type=DeedPollDocument.DOC_TYPE_NAME)
         if returned_data:
             return Response(returned_data)
         else:
@@ -798,16 +799,23 @@ class ProposalApiaryViewSet(viewsets.ModelViewSet):
     @renderer_classes((JSONRenderer,))
     @basic_exception_handler
     def process_public_liability_insurance_document(self, request, *args, **kwargs):
-
-        return Response()
+        instance = self.get_object()
+        returned_data = process_generic_document(request, instance, document_type=PublicLiabilityInsuranceDocument.DOC_TYPE_NAME)
+        if returned_data:
+            return Response(returned_data)
+        else:
+            return Response()
 
     @detail_route(methods=['POST'])
     @renderer_classes((JSONRenderer,))
     @basic_exception_handler
     def process_supporting_application_document(self, request, *args, **kwargs):
-
-        return Response()
-
+        instance = self.get_object()
+        returned_data = process_generic_document(request, instance, document_type=SupportingApplicationDocument.DOC_TYPE_NAME)
+        if returned_data:
+            return Response(returned_data)
+        else:
+            return Response()
 
     @detail_route(methods=['post'])
     @basic_exception_handler
@@ -1211,7 +1219,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
     def process_deed_poll_document(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
-            returned_data = process_generic_document(request, instance, document_type='deed_poll_documents')
+            returned_data = process_generic_document(request, instance, document_type=DeedPollDocument.DOC_TYPE_NAME)
             if returned_data:
                 return Response(returned_data)
             else:

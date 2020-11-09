@@ -166,10 +166,10 @@ export default {
                         emulateJSON:true,
                     }).then((response)=>{
                         //vm.$parent.loading.splice('processing contact',1);
-                        let proposal_or_licence = vm.is_apiary_proposal ? 'Licence' : 'Proposal'
+                        let proposal_or_licence = vm.is_apiary_proposal ? 'application' : 'proposal'
                         swal(
                              'Sent',
-                             'An email has been sent to proponent with the request to amend this ' + proposal_or_licence,
+                             'An email has been sent to the proponent with the request to amend this ' + proposal_or_licence,
                              'success'
                         );
                         vm.amendingProposal = true;
