@@ -2564,6 +2564,7 @@ class ProposalApiary(RevisionedMixin):
 
     apiary_sites = models.ManyToManyField('ApiarySite', through=ApiarySiteOnProposal, related_name='proposal_apiary_set')
     #self_clone = models.ForeignKey('self', on_delete=models.SET_NULL, blank=True, null=True)
+    public_liability_insurance_expiry_date = models.DateField(null=True, blank=True)
 
     def __str__(self):
         return 'id:{} - {}'.format(self.id, self.title)
