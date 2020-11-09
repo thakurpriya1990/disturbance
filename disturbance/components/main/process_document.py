@@ -5,7 +5,8 @@ import traceback
 from disturbance.components.main.models import TemporaryDocument
 from django.conf import settings
 
-from disturbance.components.proposals.models import ProposalApiary, Proposal
+from disturbance.components.proposals.models import ProposalApiary, Proposal, PublicLiabilityInsuranceDocument, \
+    DeedPollDocument, SupportingApplicationDocument
 
 
 def process_generic_document(request, instance, document_type=None, *args, **kwargs):
@@ -16,28 +17,18 @@ def process_generic_document(request, instance, document_type=None, *args, **kwa
         input_name = request.data.get('input_name')
         comms_log_id = request.data.get('comms_log_id')
         comms_instance = None
-        # returned_file_data = None
-        print("ACTION")
-        print(action)
 
         if document_type == 'comms_log' and comms_log_id and comms_log_id is not 'null':
-            comms_instance = instance.comms_logs.get(
-                    id=comms_log_id)
+            comms_instance = instance.comms_logs.get(id=comms_log_id)
         elif document_type == 'comms_log':
             comms_instance = instance.comms_logs.create()
 
-        print('comms_instance')
-        print(comms_instance)
-
         if action == 'list':
             pass
-
         elif action == 'delete':
             delete_document(request, instance, comms_instance, document_type, input_name)
-
         elif action == 'cancel':
             deleted = cancel_document(request, instance, comms_instance, document_type, input_name)
-
         elif action == 'save':
             save_document(request, instance, comms_instance, document_type, input_name)
 
@@ -45,32 +36,21 @@ def process_generic_document(request, instance, document_type=None, *args, **kwa
         if comms_instance and action == 'cancel' and deleted:
             return deleted
         elif comms_instance:
-            returned_file_data = [dict(
-                        file=d._file.url,
-                        id=d.id,
-                        name=d.name,
-                        ) for d in comms_instance.documents.all() if d._file]
-            return {'filedata': returned_file_data,
-                    'comms_instance_id': comms_instance.id}
+            returned_file_data = [dict(file=d._file.url, id=d.id, name=d.name,) for d in comms_instance.documents.all() if d._file]
+            return {'filedata': returned_file_data, 'comms_instance_id': comms_instance.id}
         # example document_type
-        elif document_type == 'deed_poll_documents' and input_name:
-            returned_file_data = [dict(
-                        file=d._file.url,
-                        id=d.id,
-                        name=d.name,
-                        #input_name=d.input_name,
-                        ) for d in instance.deed_poll_documents.filter(input_name=input_name) if d._file]
-            return {'filedata': returned_file_data}
+        elif input_name:
+            if document_type == DeedPollDocument.DOC_TYPE_NAME:
+                documents_qs = instance.deed_poll_documents
+            elif document_type == PublicLiabilityInsuranceDocument.DOC_TYPE_NAME:
+                documents_qs = instance.public_liability_insurance_documents
+            elif document_type == SupportingApplicationDocument.DOC_TYPE_NAME:
+                documents_qs = instance.supporting_application_documents
 
+            returned_file_data = [dict(file=d._file.url, id=d.id, name=d.name,) for d in documents_qs.filter(input_name=input_name) if d._file]
+            return { 'filedata': returned_file_data }
         else:
-            returned_file_data = [dict(
-                        file=d._file.url,
-                        id=d.id,
-                        name=d.name,
-                        ) for d in instance.documents.all() if d._file]
-            print("else RETURNED_FILE_DATA")
-            print(returned_file_data)
-            print(type(instance))
+            returned_file_data = [dict(file=d._file.url, id=d.id, name=d.name, ) for d in instance.documents.all() if d._file]
             return {'filedata': returned_file_data}
 
     except Exception as e:
@@ -80,10 +60,16 @@ def process_generic_document(request, instance, document_type=None, *args, **kwa
 
 def delete_document(request, instance, comms_instance, document_type, input_name=None):
     # example document_type
-    if document_type == 'deed_poll_documents' and 'document_id' in request.data:
-        document_id = request.data.get('document_id')
-        #document = instance.deed_poll_documents.get(id=document_id, input_name=input_name)
-        document = instance.deed_poll_documents.get(id=document_id)
+    if 'document_id' in request.data:
+        if document_type == DeedPollDocument.DOC_TYPE_NAME:
+            document_id = request.data.get('document_id')
+            document = instance.deed_poll_documents.get(id=document_id)
+        elif document_type == PublicLiabilityInsuranceDocument.DOC_TYPE_NAME:
+            document_id = request.data.get('document_id')
+            document = instance.public_liability_insurance_documents.get(id=document_id)
+        elif document_type == SupportingApplicationDocument.DOC_TYPE_NAME:
+            document_id = request.data.get('document_id')
+            document = instance.supporting_application_documents.get(id=document_id)
 
     # comms_log doc store delete
     elif comms_instance and 'document_id' in request.data:
@@ -104,36 +90,24 @@ def delete_document(request, instance, comms_instance, document_type, input_name
 
 
 def cancel_document(request, instance, comms_instance, document_type, input_name=None):
-        # example document_type
-        if document_type == 'deed_poll_documents':
+        if document_type == DeedPollDocument.DOC_TYPE_NAME:
             document_list = instance.deed_poll_documents.all()
-
-            for document in document_list:
-                if document._file and os.path.isfile(
-                        document._file.path):
-                    os.remove(document._file.path)
-                document.delete()
-
-        # comms_log doc cancel
+        elif document_type == PublicLiabilityInsuranceDocument.DOC_TYPE_NAME:
+            document_list = instance.public_liability_insurance_documents.all()
+        elif document_type == SupportingApplicationDocument.DOC_TYPE_NAME:
+            document_list = instance.supporting_application_documents.all()
         elif comms_instance:
             document_list = comms_instance.documents.all()
-
-            for document in document_list:
-                if document._file and os.path.isfile(
-                        document._file.path):
-                    os.remove(document._file.path)
-                document.delete()
-            return comms_instance.delete()
-
-        # default doc cancel
         else:
             document_list = instance.documents.all()
 
-            for document in document_list:
-                if document._file and os.path.isfile(
-                        document._file.path):
-                    os.remove(document._file.path)
-                document.delete()
+        for document in document_list:
+            if document._file and os.path.isfile(document._file.path):
+                os.remove(document._file.path)
+            document.delete()
+
+        if comms_instance:
+            return comms_instance.delete()
 
 
 def save_document(request, instance, comms_instance, document_type, input_name=None):
@@ -142,12 +116,19 @@ def save_document(request, instance, comms_instance, document_type, input_name=N
         # this document can be accessed or created by 'instance.documents'
 
         # example document_type
-        if document_type == 'deed_poll_documents' and 'filename' in request.data and input_name:
+        if 'filename' in request.data and input_name:
             filename = request.data.get('filename')
             _file = request.data.get('_file')
 
-            document = instance.deed_poll_documents.get_or_create(
-                input_name=input_name, name=filename)[0]
+            if document_type == DeedPollDocument.DOC_TYPE_NAME:
+                document = instance.deed_poll_documents.get_or_create(input_name=input_name, name=filename)[0]
+                path_format_string = '{}/proposals/{}/deed_poll_documents/{}'
+            elif document_type == PublicLiabilityInsuranceDocument.DOC_TYPE_NAME:
+                document = instance.public_liability_insurance_documents.get_or_create(input_name=input_name, name=filename)[0]
+                path_format_string = '{}/proposals/{}/public_liability_insurance_documents/{}'
+            elif document_type == SupportingApplicationDocument.DOC_TYPE_NAME:
+                document = instance.supporting_application_documents.get_or_create(input_name=input_name, name=filename)[0]
+                path_format_string = '{}/proposals/{}/supporting_application_documents/{}'
 
             if isinstance(instance, ProposalApiary):
                 id_number = instance.proposal.id
@@ -156,14 +137,7 @@ def save_document(request, instance, comms_instance, document_type, input_name=N
             else:
                 raise('Object type is wrong')
 
-            path = default_storage.save(
-                #'disturbance/{}/{}/deed_poll_documents/{}/{}'.format(
-                #'{}/{}/deed_poll_documents/{}'.format(
-                '{}/proposals/{}/deed_poll_documents/{}'.format(
-                    #instance._meta.model_name, instance.id, input_name, filename), ContentFile(
-                    settings.MEDIA_APIARY_DIR, id_number, filename), ContentFile(
-                    _file.read()))
-
+            path = default_storage.save(path_format_string.format(settings.MEDIA_APIARY_DIR, id_number, filename), ContentFile(_file.read()))
             document._file = path
             document.save()
 
