@@ -412,9 +412,9 @@ class ApiarySiteTransferIntegrationTests(APITestSetup):
         print(proposal_1_obj.processing_status)
         for site_1_output in proposal_1_obj.proposal_apiary.apiary_sites.all():
             print(site_1_output)
-        print("APPROVAL SITES customer 1")
-        for approval_site in ApiarySite.objects.filter(approval=customer1_approval):
-            print(approval_site)
+        #print("APPROVAL SITES customer 1")
+        #for approval_site in ApiarySite.objects.filter(approval=customer1_approval):
+         #   print(approval_site)
         print(customer1_approval.current_proposal)
         print(customer1_approval.current_proposal.application_type.name)
 
@@ -425,9 +425,9 @@ class ApiarySiteTransferIntegrationTests(APITestSetup):
         print(proposal_2_obj.processing_status)
         for site_2_output in proposal_2_obj.proposal_apiary.apiary_sites.all():
             print(site_2_output)
-        print("APPROVAL SITES customer 2")
-        for approval_site in ApiarySite.objects.filter(approval=customer2_approval):
-            print(approval_site)
+        #print("APPROVAL SITES customer 2")
+        #for approval_site in ApiarySite.objects.filter(approval=customer2_approval):
+         #   print(approval_site)
         print(customer2_approval.current_proposal)
         print(customer2_approval.current_proposal.application_type.name)
 
