@@ -484,7 +484,7 @@ def send_proposal_approval_email_notification(proposal,request):
 def send_site_transfer_approval_email_notification(proposal, request, approval):
     email = ApiaryProposalApprovalSiteTransferSendNotificationEmail()
     if approval.reissued:
-        email.subject= 'Your Approval has been reissued.'
+        email.subject= 'Your Licence has been reissued.'
 
     context = {
         'approval': approval,
