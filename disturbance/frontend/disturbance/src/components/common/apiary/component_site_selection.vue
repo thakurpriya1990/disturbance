@@ -269,7 +269,7 @@
                                 if (vm.show_action_available_unavailable){
                                     // Mark as Available/Unavailable
                                     let display_text = ''
-                                    if (vm.is_external && ['Current', 'current'].includes(apiary_site.properties.status)){
+                                    if (vm.is_external && ['current',].includes(apiary_site.properties.status.toLowerCase())){
                                         if (apiary_site.properties.available){
                                             display_text = 'Mark as unavailable';
                                         } else {
@@ -278,7 +278,7 @@
                                         let ret = '<a data-toggle-availability="' + apiary_site.id + '" data-apiary-site-available="' + apiary_site.properties.available + '">' + display_text + '</a>';
                                         action_list.push(ret);
                                     //} else if (vm.is_internal && ['Current', 'current'].includes(apiary_site.status.id)){
-                                    } else if (vm.is_internal && ['Current', 'current'].includes(apiary_site.properties.status)){
+                                    } else if (vm.is_internal && ['current',].includes(apiary_site.properties.status.toLowerCase())){
                                         if (apiary_site.properties.available){
                                             display_text = 'Available';
                                         } else {

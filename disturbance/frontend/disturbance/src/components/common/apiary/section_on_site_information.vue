@@ -2,7 +2,7 @@
     <div>
         <div class="row col-sm-12">
             <template v-if="is_external">
-                <button :disabled="!addButtonEnabled" class="btn btn-primary pull-right" @click="openOnSiteInformationModalToAdd">Add</button>
+                <button :disabled="!onSiteInformationEnabled" class="btn btn-primary pull-right" @click="openOnSiteInformationModalToAdd">Add</button>
             </template>
         </div>
 
@@ -33,37 +33,26 @@
     import uuid from 'uuid'
     import { api_endpoints, helpers, } from '@/utils/hooks'
     import OnSiteInformationModal from './on_site_information_modal'
-    //import uuid from 'uuid'
-   // import Swal from 'sweetalert2'
-    //import Swal from 'sweetalert2/dist/sweetalert2.js'
 
     export default {
         props:{
-           // on_site_information_list_initial: {
-           //     type: Array,
-           //     required: false,
-           //     default: function() {
-           //         return [];
-           //     }
-           // },
-           // proposal_apiary_id:{
-           //     type: Number,
-           //     required: true,
-           //     default: 0,
-           // },
             approval_id: {
                 type: Number,
                 required: true,
                 default: 0,
             },
             is_external:{
-              type: Boolean,
-              default: false
+                type: Boolean,
+                default: false
             },
             is_internal:{
-              type: Boolean,
-              default: false
+                type: Boolean,
+                default: false
             },
+            user_can_interact: {
+                type: Boolean,
+                default: false
+            }
         },
         data:function () {
             let vm=this;
@@ -147,7 +136,7 @@
                         {
                             visible: true,
                             mRender: function (data, type, full) {
-                                if (vm.is_external){
+                                if (vm.is_external && vm.onSiteInformationEnabled){
                                     if (full.action) {
                                         return full.action;
                                     } else {
@@ -170,10 +159,10 @@
             datatable,
         },
         computed:{
-            addButtonEnabled: function() {
+            onSiteInformationEnabled: function() {
                 let enabled = false;
                 try {
-                    if(this.approval_id){
+                    if(this.approval_id && this.user_can_interact){
                         enabled = true
                     }
                 } catch(err) { }

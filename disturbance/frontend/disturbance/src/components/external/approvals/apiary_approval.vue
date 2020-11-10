@@ -131,6 +131,7 @@
                             :approval_id="approval.id"
                             :is_internal="false"
                             :is_external="true"
+                            :user_can_site_transfer="user_can_interact"
                             ref="site_availability"
                         />
                     </template>
@@ -158,6 +159,7 @@
                             :approval_id="approval.id"
                             :is_internal="false"
                             :is_external="true"
+                            :user_can_temporary_use="user_can_interact"
                             ref="tempoary_use"
                         />
                     </template>
@@ -171,6 +173,7 @@
                             :approval_id="approval.id"
                             :is_internal="false"
                             :is_external="true"
+                            :user_can_interact="user_can_interact"
                             ref="on_site_information"
                         />
                     </template>
@@ -307,6 +310,9 @@ export default {
                 oApplicant = true;
             }
             return oApplicant;
+        },
+        user_can_interact: function() {
+            return this.approval.status.toLowerCase() === 'current' ? true : false
         },
     },
     methods: {
