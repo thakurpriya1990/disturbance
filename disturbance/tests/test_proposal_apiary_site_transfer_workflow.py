@@ -431,5 +431,5 @@ class ApiarySiteTransferIntegrationTests(APITestSetup):
         print(customer2_approval.current_proposal)
         print(customer2_approval.current_proposal.application_type.name)
 
-        self.assertEqual(len(customer1_approval.get_current_apiary_sites), 3)
+        self.assertEqual(len(customer2_approval.get_current_apiary_sites), 3)
 
