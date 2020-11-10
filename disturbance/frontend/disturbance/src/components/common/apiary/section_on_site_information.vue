@@ -136,8 +136,6 @@
                         {
                             visible: true,
                             mRender: function (data, type, full) {
-                                console.log('aho')
-                                console.log(full)
                                 if (vm.is_external && vm.onSiteInformationEnabled){
                                     if (full.action) {
                                         return full.action;
