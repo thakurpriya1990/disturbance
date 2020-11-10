@@ -317,7 +317,7 @@ class ApiarySiteTransferIntegrationTests(APITestSetup):
         draft_schema_site_transfer = {
             "proposal_apiary": {
                 "id": site_transfer_proposal_id,
-                "selected_licence": proposal_2_obj.approval.id,
+                #"selected_licence": proposal_2_obj.approval.id,
                 "title": "test_title",
                 "applicant_checklist_answers": [
                         {
@@ -335,7 +335,16 @@ class ApiarySiteTransferIntegrationTests(APITestSetup):
                     ]
                 }
             }
-
+        #import ipdb; ipdb.set_trace()
+        #selected_licence_holder_str = '{{"licence_holder":{0},"type":"individual","id":{1},"lodgement_number":{2}}}'.format(
+        #        self.customer2.email, proposal_2_obj.approval.id, proposal_2_obj.approval.lodgement_number)
+        selected_licence_holder_dict = {
+            "licence_holder": self.customer2.email,
+            "type":"individual",
+            "id": proposal_2_obj.approval.id,
+            "lodgement_number": proposal_2_obj.approval.lodgement_number,
+            "transferee_id": self.customer2.id,
+        }
         draft_site_transfer_proposal_data = {
                 "schema": json.dumps(draft_schema_site_transfer),
                 "apiary_sites_local": json.dumps([{
@@ -343,7 +352,9 @@ class ApiarySiteTransferIntegrationTests(APITestSetup):
                     "id": ApiarySiteOnApproval.objects.filter(approval=customer1_approval)[1].id,
                     "checked": True,
                     },
-                    ])
+                    ]),
+                "selected_licence_holder": json.dumps(selected_licence_holder_dict),
+                "transferee_email_text": self.customer2.email,
                 }
         draft_response_site_transfer = self.client.post(
                 '/api/proposal/{}/draft/'.format(site_transfer_proposal_id),
