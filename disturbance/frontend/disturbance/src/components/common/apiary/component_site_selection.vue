@@ -232,7 +232,9 @@
                             // Status
                             visible: vm.show_col_status,
                             mRender: function (data, type, apiary_site){
-                                let display_name = getDisplayNameFromStatus(apiary_site.properties.status)
+                                let dynamic_status = getStatusForColour(apiary_site)
+                                //let display_name = getDisplayNameFromStatus(apiary_site.properties.status)
+                                let display_name = getDisplayNameFromStatus(dynamic_status)
                                 return display_name
                             }
                         },
