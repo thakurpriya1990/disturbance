@@ -669,9 +669,11 @@ export default {
                 if( vm.$refs.proposal_apiary.getUnansweredChecklistQuestions ){
                     blank_fields.push(' You have unanswered checklist questions');
                 }
-
                 if(vm.$refs.proposal_apiary.$refs.deed_poll_documents.documents.length==0){
                     blank_fields.push(' Deed poll document is missing')
+                }
+                if(vm.$refs.proposal_apiary.$refs.public_liability_insurance_documents.documents.length==0){
+                    blank_fields.push(' Public liability insurance document is missing')
                 }
              }
              if(vm.proposal.application_type == 'Site Transfer'){

@@ -5,7 +5,9 @@
                 <!--button v-if="!creatingProposal" class="btn btn-primary pull-right" @click="openNewTemporaryUse">Site Transfer</button-->
                 <button 
                     class="btn btn-primary pull-right" 
-                    @click="openNewSiteTransfer">
+                    @click="openNewSiteTransfer"
+                    :disabled="!user_can_site_transfer"
+                >
                     Site Transfer
                 </button>
             </template>
@@ -18,7 +20,7 @@
             :key="component_site_selection_key"
             :show_col_checkbox="false"
             :show_col_status="true"
-            :show_action_available_unavailable="true"
+            :show_action_available_unavailable="show_action_available_unavailable"
         />
     </div>
 </template>
@@ -45,6 +47,10 @@
               type: Boolean,
               default: false
             },
+            user_can_site_transfer: {
+              type: Boolean,
+              default: false
+            }
         },
         data:function () {
             let vm=this;
@@ -60,6 +66,13 @@
             ComponentSiteSelection,
         },
         computed:{
+            show_action_available_unavailable: function() {
+                let show = false
+                if (this.is_external && this.user_can_site_transfer){
+                    show = true
+                }
+                return show
+            },
             addButtonEnabled: function() {
                 let enabled = false;
                 try {

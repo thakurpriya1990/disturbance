@@ -3,12 +3,10 @@ from django.utils import timezone
 from django.conf import settings
 from disturbance.components.approvals.models import Approval
 from ledger.accounts.models import EmailUser
-import datetime
-
-import itertools
 
 import logging
 logger = logging.getLogger(__name__)
+
 
 class Command(BaseCommand):
     help = 'Change the status of Approvals to Expired when past expiry date'

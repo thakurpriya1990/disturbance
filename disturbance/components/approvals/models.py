@@ -290,7 +290,7 @@ class Approval(RevisionedMixin):
     @property
     def can_action(self):
         if not (self.set_to_cancel or self.set_to_suspend or self.set_to_surrender):
-                return True
+            return True
         else:
             return False
 
