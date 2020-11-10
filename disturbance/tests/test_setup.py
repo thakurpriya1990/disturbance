@@ -233,7 +233,7 @@ class APITestSetup(APITestCase):
             u'profile': 132377, 
             u'application': self.site_transfer_application_type_id, 
             u'behalf_of': u'individual',
-            u'selected_licence_holder': u'firstname.lastname@test.com',
+            #u'selected_licence_holder': u'firstname.lastname@test.com',
             }
         # submit_proposal_data
         with open('disturbance/tests/all_the_features_1.json', 'r') as features_file_1:

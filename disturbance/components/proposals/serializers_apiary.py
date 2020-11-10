@@ -563,8 +563,10 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
     site_remainders = serializers.SerializerMethodField()
     originating_approval_lodgement_number = serializers.SerializerMethodField()
     originating_approval_licence_document = serializers.SerializerMethodField()
+    originating_approval_name = serializers.SerializerMethodField()
     target_approval_lodgement_number = serializers.SerializerMethodField()
     target_approval_licence_document = serializers.SerializerMethodField()
+    target_approval_name = serializers.SerializerMethodField()
     transferee_name = serializers.SerializerMethodField()
     transferee_org_name = serializers.SerializerMethodField()
     transferee_first_name = serializers.SerializerMethodField()
@@ -596,9 +598,11 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
             'originating_approval_id',
             'originating_approval_lodgement_number',
             'originating_approval_licence_document',
+            'originating_approval_name',
             'target_approval_id',
             'target_approval_lodgement_number',
             'target_approval_licence_document',
+            'target_approval_name',
             'transferee_name',
             'transferee_org_name',
             'transferee_first_name',
@@ -608,6 +612,14 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
             'target_approval_organisation_id',
             'public_liability_insurance_expiry_date',
         )
+
+    def get_originating_approval_name(self,obj):
+        if obj.originating_approval:
+            return obj.originating_approval.relevant_applicant_name
+
+    def get_target_approval_name(self,obj):
+        if obj.target_approval:
+            return obj.target_approval.relevant_applicant_name
 
     def validate(self, attrs):
         self.instance.validate_apiary_sites(raise_exception=True)
