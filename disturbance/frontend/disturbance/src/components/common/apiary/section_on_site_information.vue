@@ -136,6 +136,8 @@
                         {
                             visible: true,
                             mRender: function (data, type, full) {
+                                console.log('aho')
+                                console.log(full)
                                 if (vm.is_external && vm.onSiteInformationEnabled){
                                     if (full.action) {
                                         return full.action;
@@ -145,7 +147,7 @@
                                         ret += '<a><span class="edit_on_site_information" data-on-site-information-id="' + full.id + '"/>Edit</span></a>';
                                         return ret;
                                     }
-                                } else if (vm.is_internal) {
+                                } else {
                                     return ''
                                 }
                             }
