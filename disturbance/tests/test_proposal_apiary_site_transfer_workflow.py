@@ -412,24 +412,24 @@ class ApiarySiteTransferIntegrationTests(APITestSetup):
         print(proposal_1_obj.processing_status)
         for site_1_output in proposal_1_obj.proposal_apiary.apiary_sites.all():
             print(site_1_output)
-        #print("APPROVAL SITES customer 1")
-        #for approval_site in ApiarySite.objects.filter(approval=customer1_approval):
-         #   print(approval_site)
+        print("APPROVAL SITES customer 1")
+        for approval_site in customer1_approval.get_current_apiary_sites:
+            print(approval_site)
         print(customer1_approval.current_proposal)
         print(customer1_approval.current_proposal.application_type.name)
 
-        self.assertEqual(len(ApiarySite.objects.filter(approval=customer1_approval)), 2)
+        self.assertEqual(len(customer1_approval.get_current_apiary_sites), 2)
 
         proposal_2_obj = Proposal.objects.get(id=proposal_id_2)
         print(proposal_2_obj.approval.apiary_approval)
         print(proposal_2_obj.processing_status)
         for site_2_output in proposal_2_obj.proposal_apiary.apiary_sites.all():
             print(site_2_output)
-        #print("APPROVAL SITES customer 2")
-        #for approval_site in ApiarySite.objects.filter(approval=customer2_approval):
-         #   print(approval_site)
+        print("APPROVAL SITES customer 2")
+        for approval_site in customer2_approval.get_current_apiary_sites:
+            print(approval_site)
         print(customer2_approval.current_proposal)
         print(customer2_approval.current_proposal.application_type.name)
 
-        self.assertEqual(len(ApiarySite.objects.filter(approval=customer2_approval)), 4)
+        self.assertEqual(len(customer1_approval.get_current_apiary_sites), 3)
 
