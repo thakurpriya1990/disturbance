@@ -165,6 +165,12 @@ class Approval(RevisionedMixin):
         return relation_objs
 
     @property
+    def get_current_apiary_sites(self):
+        # relation_objs = ApiarySiteOnApproval.objects.filter(apiary_site__in=self.apiary_sites.all(), approval=self)
+        relation_objs = ApiarySiteOnApproval.objects.filter(apiary_site__in=self.apiary_sites.all(), approval=self).filter(site_status=SITE_STATUS_CURRENT)
+        return relation_objs
+
+    @property
     def relevant_renewal_document(self):
         if self.apiary_approval:
             # return self.renewal_documents.filter(expiry_date=self.expiry_date).first() if self.renewal_documents.filter(expiry_date=self.expiry_date) else None

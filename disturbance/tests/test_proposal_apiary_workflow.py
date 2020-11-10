@@ -297,7 +297,9 @@ class ApiaryIntegrationTests(APITestSetup):
         final_proposal_proposal_apiary_id = final_proposal.proposal_apiary.id
         print(Proposal.objects.get(id=proposal_id).approval.apiary_approval)
         print(Proposal.objects.get(id=proposal_id).processing_status)
-        #print("APPROVAL SITES")
+        print("APPROVAL SITES")
+        for approval_site in final_proposal.approval.get_current_apiary_sites:
+            print(approval_site)
         #for approval_site in ApiarySite.objects.filter(approval=final_proposal.approval):
             #print(approval_site)
         # Compliance creation test
