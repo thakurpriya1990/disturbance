@@ -312,7 +312,7 @@ export default {
         },
         title: function(){
             //return this.processing_status == 'With Approver' ? 'Issue Application' : 'Propose to issue licence';
-            return this.processing_status == 'With Approver' ? 'Issue Application' : 'Propose to approve';
+            return this.processing_status == 'With Approver' ? 'Issue Application' : 'Propose to Issue';
         },
         is_amendment: function(){
             return this.proposal_type == 'Amendment' ? true : false;
