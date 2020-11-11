@@ -54,14 +54,19 @@
             <FormSection :formCollapse="false" label="Supporting Application Documents" Index="supporting_application_documents">
                 <div class="row">
                     <div class="col-sm-12">
-                        Please provide supporting documents to your application this includes site photos, proposed access routes and details on native vegetation clearing (if applicable).
-                        <FileField
-                            ref="supporting_application_documents"
-                            name="supporting-application-documents"
-                            :isRepeatable="true"
-                            :documentActionUrl="supportingApplicationDocumentUrl"
-                            :readonly="readonly"
-                        />
+                        <label>
+                            Please provide supporting documents to your application this includes site photos, proposed access routes and details on native vegetation clearing (if applicable).
+                        </label>
+                        <div class="input-file-wrapper">
+                            <FileField
+                                ref="supporting_application_documents"
+                                name="supporting-application-documents"
+                                :isRepeatable="true"
+                                :documentActionUrl="supportingApplicationDocumentUrl"
+                                :readonly="readonly"
+                                :replace_button_by_text="true"
+                            />
+                        </div>
                     </div>
                 </div>
             </FormSection>
@@ -70,50 +75,55 @@
                 <div class="row">
                     <div class="col-sm-12">
                         <label>
-                            <ol type="a">
+                            <ol type="a" class="insurance-items">
                             <li>Attach your policy for public liability insurance that covers the areas and operations allowed under the apiary authority, and in the name of the applicant to the extent of its rights and interests, for a sum of not less than AU$10 million per event.</li>
                             <li>It is a requirement of all apiary authority holders to maintain appropriate public liability insurance.</li>
                             </ol>
                         </label>
                     </div>
-
-                    <div class="col-sm-6">
-                        <FileField
-                            ref="public_liability_insurance_documents"
-                            name="public-liability-insurance-documents"
-                            :isRepeatable="false"
-                            :documentActionUrl="publicLiabilityInsuranceDocumentUrl"
-                            :readonly="readonly"
-                        />
-                    </div>
-
-                    <div class="col-sm-6">
-                        <label>Expiry Date</label>
-                        <div class="input-group date" ref="expiryDatePicker">
-                            <input type="text" class="form-control" placeholder="DD/MM/YYYY" id="expiry_date_input_element" :readonly="readonly"/>
-                            <span class="input-group-addon">
-                                <span class="glyphicon glyphicon-calendar"></span>
-                            </span>
+                </div>
+                    <div class="my-container input-file-wrapper">
+                        <div class="grow1">
+                            <label>Certificate of currency</label>
+                        </div>
+                        <div class="grow2">
+                            <FileField
+                                ref="public_liability_insurance_documents"
+                                name="public-liability-insurance-documents"
+                                :isRepeatable="false"
+                                :documentActionUrl="publicLiabilityInsuranceDocumentUrl"
+                                :readonly="readonly"
+                                :replace_button_by_text="true"
+                            />
+                        </div>
+                        <div class="grow1">
+                            <label>Expiry Date</label>
+                        </div>
+                        <div class="grow1">
+                            <div class="input-group date" ref="expiryDatePicker">
+                                <input type="text" class="form-control" placeholder="DD/MM/YYYY" id="expiry_date_input_element" :readonly="readonly"/>
+                                <span class="input-group-addon">
+                                    <span class="glyphicon glyphicon-calendar"></span>
+                                </span>
+                            </div>
                         </div>
                     </div>
-                </div>
             </FormSection>
 
             <FormSection :formCollapse="false" label="Deed Poll" Index="deed_poll">
                 <div class="row">
                     <div class="col-sm-12">
                         <label>Print <a :href="deedPollUrl" target="_blank">the deed poll</a>, sign it, have it witnessed and attach it to this application.</label>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-sm-12">
-                        <FileField
-                            ref="deed_poll_documents"
-                            name="deed-poll-documents"
-                            :isRepeatable="false"
-                            :documentActionUrl="deedPollDocumentUrl"
-                            :readonly="readonly"
-                        />
+                        <div class="input-file-wrapper">
+                            <FileField
+                                ref="deed_poll_documents"
+                                name="deed-poll-documents"
+                                :isRepeatable="false"
+                                :documentActionUrl="deedPollDocumentUrl"
+                                :readonly="readonly"
+                                :replace_button_by_text="true"
+                            />
+                        </div>
                     </div>
                 </div>
             </FormSection>
@@ -561,6 +571,22 @@
         position: fixed;
         top:56px;
     }
-
+    .insurance-items {
+        padding-inline-start: 1em;
+    }
+    .my-container {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+    }
+    .grow1 {
+        flex-grow: 1;
+    }
+    .grow2 {
+        flex-grow: 2;
+    }
+    .input-file-wrapper {
+        margin: 1.5em 0 0 0;
+    }
 </style>
 

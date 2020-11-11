@@ -46,7 +46,7 @@ class DistrictDbca(models.Model):
     object_id = models.PositiveIntegerField(blank=True, null=True)
 
     class Meta:
-        ordering = ['object_id',]
+        ordering = ['object_id', ]
         app_label = 'disturbance'
 
 
@@ -57,7 +57,7 @@ class RegionDbca(models.Model):
     object_id = models.PositiveIntegerField(blank=True, null=True)
 
     class Meta:
-        ordering = ['object_id',]
+        ordering = ['object_id', ]
         app_label = 'disturbance'
 
 
@@ -87,7 +87,6 @@ class WaCoast(models.Model):
 
 @python_2_unicode_compatible
 class ApplicationType(models.Model):
-
     DISTURBANCE = 'Disturbance'
     POWERLINE_MAINTENANCE = 'Powerline Maintenance'
     APIARY = 'Apiary'
@@ -102,19 +101,18 @@ class ApplicationType(models.Model):
         (SITE_TRANSFER, 'Site Transfer'),
     )
 
-    #name = models.CharField(max_length=64, unique=True)
+    # name = models.CharField(max_length=64, unique=True)
     name = models.CharField(
-            verbose_name='Application Type name', 
-            max_length=64, 
-            choices=APPLICATION_TYPES, 
-            )
+        verbose_name='Application Type name',
+        max_length=64,
+        choices=APPLICATION_TYPES,
+    )
     order = models.PositiveSmallIntegerField(default=0)
     visible = models.BooleanField(default=True)
 
     application_fee = models.DecimalField(max_digits=6, decimal_places=2)
     oracle_code_application = models.CharField(max_length=50)
     is_gst_exempt = models.BooleanField(default=True)
-
 
     class Meta:
         ordering = ['order', 'name']
@@ -123,10 +121,12 @@ class ApplicationType(models.Model):
     def __str__(self):
         return self.name
 
+
 @python_2_unicode_compatible
 class ActivityMatrix(models.Model):
-    #name = models.CharField(verbose_name='Activity matrix name', max_length=24, choices=application_type_choicelist(), default='Disturbance')
-    name = models.CharField(verbose_name='Activity matrix name', max_length=24, choices=[('Disturbance', u'Disturbance')], default='Disturbance')
+    # name = models.CharField(verbose_name='Activity matrix name', max_length=24, choices=application_type_choicelist(), default='Disturbance')
+    name = models.CharField(verbose_name='Activity matrix name', max_length=24,
+                            choices=[('Disturbance', u'Disturbance')], default='Disturbance')
     description = models.CharField(max_length=256, blank=True, null=True)
     schema = JSONField()
     replaced_by = models.ForeignKey('self', on_delete=models.PROTECT, blank=True, null=True)
@@ -176,18 +176,18 @@ class UserAction(models.Model):
 
 class CommunicationsLogEntry(models.Model):
     TYPE_CHOICES = [
-            ('email', 'Email'), 
-            ('phone', 'Phone Call'), 
-            ('mail', 'Mail'), 
-            ('person', 'In Person'),
-            ('referral_complete','Referral Completed'),
-            ]
+        ('email', 'Email'),
+        ('phone', 'Phone Call'),
+        ('mail', 'Mail'),
+        ('person', 'In Person'),
+        ('referral_complete', 'Referral Completed'),
+    ]
     DEFAULT_TYPE = TYPE_CHOICES[0][0]
 
-    #to = models.CharField(max_length=200, blank=True, verbose_name="To")
+    # to = models.CharField(max_length=200, blank=True, verbose_name="To")
     to = models.TextField(blank=True, verbose_name="To")
     fromm = models.CharField(max_length=200, blank=True, verbose_name="From")
-    #cc = models.CharField(max_length=200, blank=True, verbose_name="cc")
+    # cc = models.CharField(max_length=200, blank=True, verbose_name="cc")
     cc = models.TextField(blank=True, verbose_name="cc")
 
     type = models.CharField(max_length=20, choices=TYPE_CHOICES, default=DEFAULT_TYPE)
@@ -218,7 +218,7 @@ class Document(models.Model):
 
     @property
     def path(self):
-        #return self.file.path
+        # return self.file.path
         return self._file.path
 
     @property
@@ -238,8 +238,9 @@ class SystemMaintenance(models.Model):
 
     def duration(self):
         """ Duration of system maintenance (in mins) """
-        return int( (self.end_date - self.start_date).total_seconds()/60.) if self.end_date and self.start_date else ''
-        #return (datetime.now(tz=tz) - self.start_date).total_seconds()/60.
+        return int((self.end_date - self.start_date).total_seconds() / 60.) if self.end_date and self.start_date else ''
+        # return (datetime.now(tz=tz) - self.start_date).total_seconds()/60.
+
     duration.short_description = 'Duration (mins)'
 
     class Meta:
@@ -247,12 +248,15 @@ class SystemMaintenance(models.Model):
         verbose_name_plural = "System maintenance"
 
     def __str__(self):
-        return 'System Maintenance: {} ({}) - starting {}, ending {}'.format(self.name, self.description, self.start_date, self.end_date)
+        return 'System Maintenance: {} ({}) - starting {}, ending {}'.format(self.name, self.description,
+                                                                             self.start_date, self.end_date)
 
 
 @python_2_unicode_compatible
 class ApiaryGlobalSettings(models.Model):
-    KEY_ORACLE_CODE_APIARY_SITE_ANNUAL_RENTAL_FEE = 'oracle_code_apiary_site_annural_rental_fee'
+    KEY_ORACLE_CODE_APIARY_SITE_ANNUAL_RENTAL_FEE = 'oracle_code_apiary_site_annural_rental_fee'  # ApplicationType object has an attribute 'oracle_code_application' to store oracle account code
+                                                                                                  # However for the annual rental fee, there are not proposals, which means no ApplicationType objects related.
+                                                                                                  # Therefore we store oracle account code for the annual site fee here.
     KEY_APIARY_SITES_LIST_TOKEN = 'apiary_sites_list_token'
     KEY_APIARY_LICENCE_TEMPLATE_FILE = 'apiary_licence_template_file'
 
@@ -263,7 +267,7 @@ class ApiaryGlobalSettings(models.Model):
     )
 
     default_values = (
-        (KEY_ORACLE_CODE_APIARY_SITE_ANNUAL_RENTAL_FEE, 'APIARY_ANNUAL'),
+        (KEY_ORACLE_CODE_APIARY_SITE_ANNUAL_RENTAL_FEE, 'T1 EXEMPT'),
         (KEY_APIARY_SITES_LIST_TOKEN, 'abc123'),
         (KEY_APIARY_LICENCE_TEMPLATE_FILE, ''),
     )
@@ -300,7 +304,7 @@ class GlobalSettings(models.Model):
 
 
 class TemporaryDocumentCollection(models.Model):
-    #input_name = models.CharField(max_length=255, null=True, blank=True)
+    # input_name = models.CharField(max_length=255, null=True, blank=True)
 
     class Meta:
         app_label = 'disturbance'
@@ -312,9 +316,8 @@ class TemporaryDocument(Document):
         TemporaryDocumentCollection,
         related_name='documents')
     _file = models.FileField(max_length=255)
-    #input_name = models.CharField(max_length=255, null=True, blank=True)
+
+    # input_name = models.CharField(max_length=255, null=True, blank=True)
 
     class Meta:
         app_label = 'disturbance'
-
-
