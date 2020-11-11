@@ -79,32 +79,33 @@
                             </ol>
                         </label>
                     </div>
-                    <div class="col-sm-3">
-                        <label>Certificate of currency</label>
-                    </div>
-                    <div class="col-sm-3">
-                        <FileField
-                            ref="public_liability_insurance_documents"
-                            name="public-liability-insurance-documents"
-                            :isRepeatable="false"
-                            :documentActionUrl="publicLiabilityInsuranceDocumentUrl"
-                            :readonly="readonly"
-                            :replace_button_by_text="true"
-                        />
-                    </div>
-
-                    <div class="col-sm-2">
-                        <label>Expiry Date</label>
-                    </div>
-                    <div class="col-sm-3">
-                        <div class="input-group date" ref="expiryDatePicker">
-                            <input type="text" class="form-control" placeholder="DD/MM/YYYY" id="expiry_date_input_element" :readonly="readonly"/>
-                            <span class="input-group-addon">
-                                <span class="glyphicon glyphicon-calendar"></span>
-                            </span>
+                </div>
+                    <div class="my-container">
+                        <div class="grow1">
+                            <label>Certificate of currency</label>
+                        </div>
+                        <div class="grow2">
+                            <FileField
+                                ref="public_liability_insurance_documents"
+                                name="public-liability-insurance-documents"
+                                :isRepeatable="false"
+                                :documentActionUrl="publicLiabilityInsuranceDocumentUrl"
+                                :readonly="readonly"
+                                :replace_button_by_text="true"
+                            />
+                        </div>
+                        <div class="grow1">
+                            <label>Expiry Date</label>
+                        </div>
+                        <div class="grow1">
+                            <div class="input-group date" ref="expiryDatePicker">
+                                <input type="text" class="form-control" placeholder="DD/MM/YYYY" id="expiry_date_input_element" :readonly="readonly"/>
+                                <span class="input-group-addon">
+                                    <span class="glyphicon glyphicon-calendar"></span>
+                                </span>
+                            </div>
                         </div>
                     </div>
-                </div>
             </FormSection>
 
             <FormSection :formCollapse="false" label="Deed Poll" Index="deed_poll">
@@ -567,6 +568,16 @@
     }
     .insurance-items {
         padding-inline-start: 1em;
+    }
+    .my-container {
+        display: flex;
+        flex-direction: row;
+    }
+    .grow1 {
+        flex-grow: 1;
+    }
+    .grow2 {
+        flex-grow: 2;
     }
 </style>
 

@@ -36,7 +36,7 @@
                     @change="handleChangeWrapper" 
                     :class="ffu_input_element_classname" />
                 <template v-if="replace_button_by_text">
-                    <div :id="'button-' + name + n" @click="button_clicked(name + n)" class="ffu-input-text">{{ text_string }}</div>
+                    <span :id="'button-' + name + n" @click="button_clicked(name + n)" class="ffu-input-text">{{ text_string }}</span>
                 </template>
             </template>
         </template>
@@ -349,7 +349,7 @@ export default {
         box-shadow:none;
     }
     .ffu-wrapper {
-        margin: 1em 0 0 0;
+
     }
     .ffu-input-elem {
         display: none !important;
