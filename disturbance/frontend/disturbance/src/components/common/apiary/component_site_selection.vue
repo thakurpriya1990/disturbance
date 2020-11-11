@@ -232,7 +232,9 @@
                             // Status
                             visible: vm.show_col_status,
                             mRender: function (data, type, apiary_site){
-                                let display_name = getDisplayNameFromStatus(apiary_site.properties.status)
+                                let dynamic_status = getStatusForColour(apiary_site)
+                                //let display_name = getDisplayNameFromStatus(apiary_site.properties.status)
+                                let display_name = getDisplayNameFromStatus(dynamic_status)
                                 return display_name
                             }
                         },
@@ -267,7 +269,7 @@
                                 if (vm.show_action_available_unavailable){
                                     // Mark as Available/Unavailable
                                     let display_text = ''
-                                    if (vm.is_external && ['Current', 'current'].includes(apiary_site.properties.status)){
+                                    if (vm.is_external && ['current',].includes(apiary_site.properties.status.toLowerCase())){
                                         if (apiary_site.properties.available){
                                             display_text = 'Mark as unavailable';
                                         } else {
@@ -276,7 +278,7 @@
                                         let ret = '<a data-toggle-availability="' + apiary_site.id + '" data-apiary-site-available="' + apiary_site.properties.available + '">' + display_text + '</a>';
                                         action_list.push(ret);
                                     //} else if (vm.is_internal && ['Current', 'current'].includes(apiary_site.status.id)){
-                                    } else if (vm.is_internal && ['Current', 'current'].includes(apiary_site.properties.status)){
+                                    } else if (vm.is_internal && ['current',].includes(apiary_site.properties.status.toLowerCase())){
                                         if (apiary_site.properties.available){
                                             display_text = 'Available';
                                         } else {

@@ -1,5 +1,5 @@
 <template lang="html">
-    <div>
+    <div class="ffu-wrapper">
         <label :id="id" :num_files="num_documents()" style="display: none;">{{label}}</label>
         <!--template v-if="help_text">
             <HelpText :help_text="help_text" />
@@ -15,22 +15,31 @@
             :field_data="field_data"
             /-->
 
-        <div v-if="files">
-            <div v-for="v in documents">
+        <template v-if="files">
+            <template v-for="v in documents">
                 <p>
                     File: <a :href="v.file" target="_blank">{{v.name}}</a> &nbsp;
                     <span v-if="!readonly">
                         <a @click="delete_document(v)" class="fa fa-trash-o" title="Remove file" :filename="v.name" style="cursor: pointer; color:red;"></a>
                     </span>
                 </p>
-            </div>
+            </template>
             <div v-if="show_spinner"><i class='fa fa-2x fa-spinner fa-spin'></i></div>
-        </div>
-        <div v-if="!readonly" v-for="n in repeat">
-            <div v-if="isRepeatable || (!isRepeatable && num_documents()==0)">
-                <input :name="name" type="file" :data-que="n" :accept="fileTypes" @change="handleChangeWrapper"/>
-            </div>
-        </div>
+        </template>
+        <template v-if="!readonly" v-for="n in repeat">
+            <template v-if="isRepeatable || (!isRepeatable && num_documents()==0)">
+                <input 
+                    :id="name + n" 
+                    :name="name" type="file" 
+                    :data-que="n" 
+                    :accept="fileTypes" 
+                    @change="handleChangeWrapper" 
+                    :class="ffu_input_element_classname" />
+                <template v-if="replace_button_by_text">
+                    <span :id="'button-' + name + n" @click="button_clicked(name + n)" class="ffu-input-text">{{ text_string }}</span>
+                </template>
+            </template>
+        </template>
     </div>
 </template>
 
@@ -47,13 +56,9 @@ import Vue from 'vue';
 export default {
     name: "FileField",
     props:{
-        //application_id: null,
         name:String,
         label:String,
         id:String,
-        //isRequired:String,
-        //help_text:String,
-        //field_data:Object,
         fileTypes:{
             default:function () {
                 var file_types = 
@@ -70,8 +75,16 @@ export default {
         isRepeatable:Boolean,
         readonly:Boolean,
         documentActionUrl: String,
-        //createDocumentActionUrl: Function,
-        //parent_id: Number,
+
+        // For optional text button
+        replace_button_by_text: {
+            type: Boolean,
+            default: false
+        },
+        text_string: {
+            type: String,
+            default: 'Attach Document'
+        }
     },
     //components: {CommentBlock, HelpText},
     data:function(){
@@ -88,6 +101,12 @@ export default {
         }
     },
     computed: {
+        ffu_input_element_classname: function(){
+            if (this.replace_button_by_text){
+                return 'ffu-input-elem'
+            }
+            return ''
+        },
         csrf_token: function() {
             return helpers.getCookie('csrftoken')
         },
@@ -116,7 +135,13 @@ export default {
     },
 
     methods:{
+        button_clicked: function(value){
+            if(this.replace_button_by_text){
+                $("#" + value).trigger('click');
+            }
+        },
         handleChange: function (e) {
+            console.log('in handleChange')
             let vm = this;
 
             if (vm.isRepeatable && e.target.files) {
@@ -151,7 +176,7 @@ export default {
         },
 
         get_documents: async function() {
-            console.log('get_documents');
+            console.log('in get_documents');
             this.show_spinner = true;
 
             if (this.document_action_url) {
@@ -173,6 +198,7 @@ export default {
         },
 
         delete_document: async function(file) {
+            console.log('in delete_document');
             this.show_spinner = true;
 
             var formData = new FormData();
@@ -195,6 +221,7 @@ export default {
 
         },
         cancel: async function(file) {
+            console.log('in cancel');
             this.show_spinner = true;
 
             let formData = new FormData();
@@ -211,6 +238,7 @@ export default {
         },
         
         uploadFile(e){
+            console.log('in uploadFile');
             let _file = null;
 
             if (e.target.files && e.target.files[0]) {
@@ -225,6 +253,7 @@ export default {
         },
 
         handleChangeWrapper: async function(e) {
+            console.log('in handleChangeWrapper');
             console.log(this.document_action_url)
             if (this.documentActionUrl === 'temporary_document' && !this.temporary_document_collection_id) {
                 // If temporary_document, create TemporaryDocumentCollection object and allow document_action_url to update
@@ -249,6 +278,7 @@ export default {
         },
 
         save_document: async function(e) {
+            console.log('in save_document');
             this.show_spinner = true;
 
             if (this.document_action_url) {
@@ -265,6 +295,12 @@ export default {
                 formData.append('_file', this.uploadFile(e));
                 formData.append('csrfmiddlewaretoken', this.csrf_token);
                 let res = await Vue.http.post(this.document_action_url, formData)
+
+                if (this.replace_button_by_text){
+                    let button_name = 'button-' + this.name + e.target.dataset.que
+                    let elem_to_remove = document.getElementById(button_name)
+                    elem_to_remove.remove()
+                }
                 
                 this.documents = res.body.filedata;
                 this.commsLogId = res.body.comms_instance_id;
@@ -276,6 +312,7 @@ export default {
         },
 
         num_documents: function() {
+            console.log('in num_documentssave_document');
             if (this.documents) {
                 return this.documents.length;
             }
@@ -310,5 +347,19 @@ export default {
 <style lang="css">
     input {
         box-shadow:none;
+    }
+    .ffu-wrapper {
+
+    }
+    .ffu-input-elem {
+        display: none !important;
+    }
+    .ffu-input-text {
+        color: #337ab7;
+        cursor: pointer;
+    }
+    .ffu-input-text:hover {
+        color: #23527c;
+        text-decoration: underline;
     }
 </style>
