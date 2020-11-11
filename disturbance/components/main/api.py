@@ -93,11 +93,12 @@ def oracle_integration(date, override):
     system = PAYMENT_SYSTEM_PREFIX
     #oracle_codes = oracle_parser(date, system, 'Commercial Operator Licensing', override=override)
     # oracle_codes = oracle_parser(date, system, 'WildlifeCompliance', override=override)
-    oracle_codes = oracle_parser(date, system, 'Disturbance Approval System', override=override)
+    oracle_codes = oracle_parser(date, system, 'Apiary Licensing System', override=override)
 
 
 class OracleJob(views.APIView):
     renderer_classes = [JSONRenderer]
+
     def get(self, request, format=None):
         try:
             data = {
