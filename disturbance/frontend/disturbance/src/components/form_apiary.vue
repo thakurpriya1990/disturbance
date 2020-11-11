@@ -57,14 +57,16 @@
                         <label>
                             Please provide supporting documents to your application this includes site photos, proposed access routes and details on native vegetation clearing (if applicable).
                         </label>
-                        <FileField
-                            ref="supporting_application_documents"
-                            name="supporting-application-documents"
-                            :isRepeatable="true"
-                            :documentActionUrl="supportingApplicationDocumentUrl"
-                            :readonly="readonly"
-                            :replace_button_by_text="true"
-                        />
+                        <div class="input-file-wrapper">
+                            <FileField
+                                ref="supporting_application_documents"
+                                name="supporting-application-documents"
+                                :isRepeatable="true"
+                                :documentActionUrl="supportingApplicationDocumentUrl"
+                                :readonly="readonly"
+                                :replace_button_by_text="true"
+                            />
+                        </div>
                     </div>
                 </div>
             </FormSection>
@@ -80,7 +82,7 @@
                         </label>
                     </div>
                 </div>
-                    <div class="my-container">
+                    <div class="my-container input-file-wrapper">
                         <div class="grow1">
                             <label>Certificate of currency</label>
                         </div>
@@ -112,18 +114,16 @@
                 <div class="row">
                     <div class="col-sm-12">
                         <label>Print <a :href="deedPollUrl" target="_blank">the deed poll</a>, sign it, have it witnessed and attach it to this application.</label>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-sm-12">
-                        <FileField
-                            ref="deed_poll_documents"
-                            name="deed-poll-documents"
-                            :isRepeatable="false"
-                            :documentActionUrl="deedPollDocumentUrl"
-                            :readonly="readonly"
-                            :replace_button_by_text="true"
-                        />
+                        <div class="input-file-wrapper">
+                            <FileField
+                                ref="deed_poll_documents"
+                                name="deed-poll-documents"
+                                :isRepeatable="false"
+                                :documentActionUrl="deedPollDocumentUrl"
+                                :readonly="readonly"
+                                :replace_button_by_text="true"
+                            />
+                        </div>
                     </div>
                 </div>
             </FormSection>
@@ -572,12 +572,16 @@
     .my-container {
         display: flex;
         flex-direction: row;
+        align-items: center;
     }
     .grow1 {
         flex-grow: 1;
     }
     .grow2 {
         flex-grow: 2;
+    }
+    .input-file-wrapper {
+        margin: 1.5em 0 0 0;
     }
 </style>
 
