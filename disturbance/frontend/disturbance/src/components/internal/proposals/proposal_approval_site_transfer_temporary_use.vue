@@ -2,8 +2,9 @@
     <div>
         <template v-if="isFinalised">
             <div class="col-md-12 alert alert-success" v-if="proposal.processing_status == 'Approved'">
-                <p>The licence has been issued and has been emailed to {{proposal.applicant.name}}</p>
+                <p>The licence has been issued and has been emailed to {{originatingApprovalName}}</p>
                 <p>Licence (originating): <a target="_blank" :href="proposal.proposal_apiary.originating_approval_licence_document">licence.pdf</a></p>
+                <p>The licence has been issued and has been emailed to {{targetApprovalName}}</p>
                 <p>Licence (target): <a target="_blank" :href="proposal.proposal_apiary.target_approval_licence_document">licence.pdf</a></p>
             </div>
             <div v-else class="col-md-12 alert alert-warning">
@@ -176,6 +177,20 @@ export default {
         ComponentSiteSelection,
     },
     computed:{
+        originatingApprovalName: function() {
+            let retVal = ''
+            if (this.proposal && this.proposal.proposal_apiary && this.proposal.proposal_apiary.originating_approval_id) {
+                retVal = this.proposal.proposal_apiary.originating_approval_name;
+            }
+            return retVal;
+        },
+        targetApprovalName: function() {
+            let retVal = ''
+            if (this.proposal && this.proposal.proposal_apiary && this.proposal.proposal_apiary.target_approval_id) {
+                retVal = this.proposal.proposal_apiary.target_approval_name;
+            }
+            return retVal;
+        },
         hasAssessorMode(){
             return this.proposal.assessor_mode.has_assessor_mode;
         },

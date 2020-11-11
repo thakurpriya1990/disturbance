@@ -5,10 +5,21 @@ from disturbance.components.proposals.models import Proposal, Referral, Proposal
 
 
 class EmailUserSerializer(serializers.ModelSerializer):
+    name = serializers.SerializerMethodField(read_only=True)
     class Meta:
         model = EmailUser
-        fields = ('id','email','first_name','last_name','title','organisation')
+        fields = (
+                'id',
+                'email',
+                'first_name',
+                'last_name',
+                'title',
+                'organisation',
+                'name'
+                )
 
+    def get_name(self, obj):
+        return obj.get_full_name()
 
 class BaseProposalSerializer(serializers.ModelSerializer):
     readonly = serializers.SerializerMethodField(read_only=True)

@@ -317,7 +317,7 @@ class ApiarySiteTransferIntegrationTests(APITestSetup):
         draft_schema_site_transfer = {
             "proposal_apiary": {
                 "id": site_transfer_proposal_id,
-                "selected_licence": proposal_2_obj.approval.id,
+                #"selected_licence": proposal_2_obj.approval.id,
                 "title": "test_title",
                 "applicant_checklist_answers": [
                         {
@@ -335,7 +335,16 @@ class ApiarySiteTransferIntegrationTests(APITestSetup):
                     ]
                 }
             }
-
+        #import ipdb; ipdb.set_trace()
+        #selected_licence_holder_str = '{{"licence_holder":{0},"type":"individual","id":{1},"lodgement_number":{2}}}'.format(
+        #        self.customer2.email, proposal_2_obj.approval.id, proposal_2_obj.approval.lodgement_number)
+        selected_licence_holder_dict = {
+            "licence_holder": self.customer2.email,
+            "type":"individual",
+            "id": proposal_2_obj.approval.id,
+            "lodgement_number": proposal_2_obj.approval.lodgement_number,
+            "transferee_id": self.customer2.id,
+        }
         draft_site_transfer_proposal_data = {
                 "schema": json.dumps(draft_schema_site_transfer),
                 "apiary_sites_local": json.dumps([{
@@ -343,7 +352,9 @@ class ApiarySiteTransferIntegrationTests(APITestSetup):
                     "id": ApiarySiteOnApproval.objects.filter(approval=customer1_approval)[1].id,
                     "checked": True,
                     },
-                    ])
+                    ]),
+                "selected_licence_holder": json.dumps(selected_licence_holder_dict),
+                "transferee_email_text": self.customer2.email,
                 }
         draft_response_site_transfer = self.client.post(
                 '/api/proposal/{}/draft/'.format(site_transfer_proposal_id),
@@ -402,12 +413,12 @@ class ApiarySiteTransferIntegrationTests(APITestSetup):
         for site_1_output in proposal_1_obj.proposal_apiary.apiary_sites.all():
             print(site_1_output)
         print("APPROVAL SITES customer 1")
-        for approval_site in ApiarySite.objects.filter(approval=customer1_approval):
+        for approval_site in customer1_approval.get_current_apiary_sites:
             print(approval_site)
         print(customer1_approval.current_proposal)
         print(customer1_approval.current_proposal.application_type.name)
 
-        self.assertEqual(len(ApiarySite.objects.filter(approval=customer1_approval)), 2)
+        self.assertEqual(len(customer1_approval.get_current_apiary_sites), 2)
 
         proposal_2_obj = Proposal.objects.get(id=proposal_id_2)
         print(proposal_2_obj.approval.apiary_approval)
@@ -415,10 +426,10 @@ class ApiarySiteTransferIntegrationTests(APITestSetup):
         for site_2_output in proposal_2_obj.proposal_apiary.apiary_sites.all():
             print(site_2_output)
         print("APPROVAL SITES customer 2")
-        for approval_site in ApiarySite.objects.filter(approval=customer2_approval):
+        for approval_site in customer2_approval.get_current_apiary_sites:
             print(approval_site)
         print(customer2_approval.current_proposal)
         print(customer2_approval.current_proposal.application_type.name)
 
-        self.assertEqual(len(ApiarySite.objects.filter(approval=customer2_approval)), 4)
+        self.assertEqual(len(customer2_approval.get_current_apiary_sites), 3)
 

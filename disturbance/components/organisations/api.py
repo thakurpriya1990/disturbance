@@ -830,9 +830,8 @@ class OrganisationRequestsViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(str(e))
 
     def create(self, request, *args, **kwargs):
+        #import ipdb; ipdb.set_trace()
         try:
-            template_group = get_template_group(request)
-            request.data['template_group'] = template_group
             serializer = self.get_serializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             serializer.validated_data['requester'] = request.user
@@ -845,6 +844,10 @@ class OrganisationRequestsViewSet(viewsets.ModelViewSet):
                 existing_org.is_valid(raise_exception=True)
             with transaction.atomic():
                 instance = serializer.save()
+                # now set template_group
+                template_group = get_template_group(request)
+                instance.template_group = template_group
+                instance.save()
                 instance.log_user_action(OrganisationRequestUserAction.ACTION_LODGE_REQUEST.format(instance.id),request)
                 instance.send_organisation_request_email_notification(request, template_group)
             return Response(serializer.data)
