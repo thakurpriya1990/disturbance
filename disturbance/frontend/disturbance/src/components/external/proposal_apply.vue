@@ -272,7 +272,8 @@ export default {
           let returnList = [];
           for (let applicationType of this.application_types) {
               // for individual applications, only Apiary should show
-              if (this.behalf_of === 'individual') {
+              //if (this.behalf_of === 'individual') {
+              if (this.apiaryTemplateGroup) {
                   if (applicationType.text === 'Apiary') {
                       returnList.push(applicationType);
                   }
