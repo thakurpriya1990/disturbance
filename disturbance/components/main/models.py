@@ -263,7 +263,7 @@ class ApiaryGlobalSettings(models.Model):
     )
 
     default_values = (
-        (KEY_ORACLE_CODE_APIARY_SITE_ANNUAL_RENTAL_FEE, 'APIARY_ANNUAL'),
+        (KEY_ORACLE_CODE_APIARY_SITE_ANNUAL_RENTAL_FEE, 'T1 EXEMPT'),
         (KEY_APIARY_SITES_LIST_TOKEN, 'abc123'),
         (KEY_APIARY_LICENCE_TEMPLATE_FILE, ''),
     )
