@@ -15,6 +15,7 @@ def apiary_url(request):
        displayed_system_name = settings.APIARY_SYSTEM_NAME
        support_email = settings.APIARY_SUPPORT_EMAIL
        settings.SYSTEM_NAME = settings.APIARY_SYSTEM_NAME
+       settings.SYSTEM_NAME_SHORT = 'Apiary'
        #print(settings.SYSTEM_NAME)
        
     else:
