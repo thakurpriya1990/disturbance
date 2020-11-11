@@ -1,6 +1,6 @@
 <template lang="html">
     <div>
-        <FormSection :formCollapse="false" :label="section_title" Index="checklist">
+        <FormSection :formCollapse="false" :label="section_title" :Index="index">
             <ul class="list-unstyled col-sm-12" v-for="q in checklist">
                 <div class="row">
                     <div class="col-sm-12">
@@ -48,6 +48,10 @@
             readonly: {
                 type: Boolean,
                 default: true,
+            },
+            index: {
+                type: String,
+                default: 'index',
             },
         },
         watch: {
