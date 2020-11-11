@@ -54,13 +54,16 @@
             <FormSection :formCollapse="false" label="Supporting Application Documents" Index="supporting_application_documents">
                 <div class="row">
                     <div class="col-sm-12">
-                        Please provide supporting documents to your application this includes site photos, proposed access routes and details on native vegetation clearing (if applicable).
+                        <label>
+                            Please provide supporting documents to your application this includes site photos, proposed access routes and details on native vegetation clearing (if applicable).
+                        </label>
                         <FileField
                             ref="supporting_application_documents"
                             name="supporting-application-documents"
                             :isRepeatable="true"
                             :documentActionUrl="supportingApplicationDocumentUrl"
                             :readonly="readonly"
+                            :replace_button_by_text="true"
                         />
                     </div>
                 </div>
@@ -70,25 +73,30 @@
                 <div class="row">
                     <div class="col-sm-12">
                         <label>
-                            <ol type="a">
+                            <ol type="a" class="insurance-items">
                             <li>Attach your policy for public liability insurance that covers the areas and operations allowed under the apiary authority, and in the name of the applicant to the extent of its rights and interests, for a sum of not less than AU$10 million per event.</li>
                             <li>It is a requirement of all apiary authority holders to maintain appropriate public liability insurance.</li>
                             </ol>
                         </label>
                     </div>
-
-                    <div class="col-sm-6">
+                    <div class="col-sm-3">
+                        <label>Certificate of currency</label>
+                    </div>
+                    <div class="col-sm-3">
                         <FileField
                             ref="public_liability_insurance_documents"
                             name="public-liability-insurance-documents"
                             :isRepeatable="false"
                             :documentActionUrl="publicLiabilityInsuranceDocumentUrl"
                             :readonly="readonly"
+                            :replace_button_by_text="true"
                         />
                     </div>
 
-                    <div class="col-sm-6">
+                    <div class="col-sm-2">
                         <label>Expiry Date</label>
+                    </div>
+                    <div class="col-sm-3">
                         <div class="input-group date" ref="expiryDatePicker">
                             <input type="text" class="form-control" placeholder="DD/MM/YYYY" id="expiry_date_input_element" :readonly="readonly"/>
                             <span class="input-group-addon">
@@ -113,6 +121,7 @@
                             :isRepeatable="false"
                             :documentActionUrl="deedPollDocumentUrl"
                             :readonly="readonly"
+                            :replace_button_by_text="true"
                         />
                     </div>
                 </div>
@@ -556,6 +565,8 @@
         position: fixed;
         top:56px;
     }
-
+    .insurance-items {
+        padding-inline-start: 1em;
+    }
 </style>
 
