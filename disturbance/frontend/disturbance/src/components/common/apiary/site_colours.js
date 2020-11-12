@@ -313,6 +313,9 @@ export function getDisplayNameFromStatus(status_name){
             return 'Vacant'
             break
         default:
+            if (status_name.toLowerCase().includes('vacant') && status_name.toLowerCase().includes('pending')){
+                return 'Pending (vacant)'
+            }
             return status_name
             break
     }
