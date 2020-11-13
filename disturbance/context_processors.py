@@ -14,6 +14,10 @@ def apiary_url(request):
        application_group = 'apiary'
        displayed_system_name = settings.APIARY_SYSTEM_NAME
        support_email = settings.APIARY_SUPPORT_EMAIL
+       settings.SYSTEM_NAME = settings.APIARY_SYSTEM_NAME
+       settings.SYSTEM_NAME_SHORT = 'Apiary'
+       #print(settings.SYSTEM_NAME)
+       
     else:
        template_group = 'das'
        #TERMS = "/know/online-mooring-site-booking-terms-and-conditions"
