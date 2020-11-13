@@ -564,9 +564,11 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
     originating_approval_lodgement_number = serializers.SerializerMethodField()
     originating_approval_licence_document = serializers.SerializerMethodField()
     originating_approval_name = serializers.SerializerMethodField()
+    originating_approval_reissued = serializers.SerializerMethodField()
     target_approval_lodgement_number = serializers.SerializerMethodField()
     target_approval_licence_document = serializers.SerializerMethodField()
     target_approval_name = serializers.SerializerMethodField()
+    target_approval_reissued = serializers.SerializerMethodField()
     transferee_name = serializers.SerializerMethodField()
     transferee_org_name = serializers.SerializerMethodField()
     transferee_first_name = serializers.SerializerMethodField()
@@ -599,10 +601,12 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
             'originating_approval_lodgement_number',
             'originating_approval_licence_document',
             'originating_approval_name',
+            'originating_approval_reissued',
             'target_approval_id',
             'target_approval_lodgement_number',
             'target_approval_licence_document',
             'target_approval_name',
+            'target_approval_reissued',
             'transferee_name',
             'transferee_org_name',
             'transferee_first_name',
@@ -611,7 +615,17 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
             'transferee_id',
             'target_approval_organisation_id',
             'public_liability_insurance_expiry_date',
+            'reissue_originating_approval',
+            'reissue_target_approval',
         )
+
+    def get_originating_approval_reissued(self,obj):
+        if obj.originating_approval:
+            return obj.originating_approval.reissued
+
+    def get_target_approval_reissued(self,obj):
+        if obj.target_approval:
+            return obj.target_approval.reissued
 
     def get_originating_approval_name(self,obj):
         if obj.originating_approval:

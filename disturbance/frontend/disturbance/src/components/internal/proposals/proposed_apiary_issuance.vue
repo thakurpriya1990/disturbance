@@ -131,8 +131,14 @@
                             <div class="form-group">
                                 <div class="row">
                                     <div class="col-sm-12">
-                                        <label v-if="submitter_email && applicant_email" class="control-label pull-left"  for="Name">After approving this application, the apiary authority will be emailed to {{proposalNotificationList}}.</label>
-                                        <label v-else class="control-label pull-left"  for="Name">After approving this application, licence will be emailed to {{submitter_email}}.</label>
+                                        <div v-if="!siteTransferApplication">
+                                            <label v-if="submitter_email && applicant_email" class="control-label pull-left"  for="Name">After approving this application, the apiary authority will be emailed to {{proposalNotificationList}}.</label>
+                                            <label v-else class="control-label pull-left"  for="Name">After approving this application, licence will be emailed to {{submitter_email}}.</label>
+                                        </div>
+                                        <div v-else>
+                                            <label class="control-label pull-left">After approving this application, the originating apiary authority will be emailed to {{originatingLicenceRecipients}}.</label>
+                                            <label class="control-label pull-left">After approving this application, the target apiary authority will be emailed to {{targetLicenceRecipients}}.</label>
+                                        </div>
                                     </div>
 
                                 </div>
@@ -312,7 +318,7 @@ export default {
         },
         title: function(){
             //return this.processing_status == 'With Approver' ? 'Issue Application' : 'Propose to issue licence';
-            return this.processing_status == 'With Approver' ? 'Issue Application' : 'Propose to approve';
+            return this.processing_status == 'With Approver' ? 'Issue Application' : 'Propose to Issue';
         },
         is_amendment: function(){
             return this.proposal_type == 'Amendment' ? true : false;
@@ -371,6 +377,16 @@ export default {
                 targetApprovalExists = true;
             }
             return targetApprovalExists;
+        },
+        targetLicenceRecipients: function() {
+            if (this.proposal.proposal_apiary && this.proposal.proposal_apiary.transferee_email_text){
+                return  this.proposal.proposal_apiary.transferee_email_text;
+            }
+        },
+        originatingLicenceRecipients: function() {
+            if (this.proposal.proposal_apiary && this.proposal.proposal_apiary.transferee_email_text && this.proposal.applicant){
+                return  this.proposal.applicant.email;
+            }
         },
     },
     watch: {
