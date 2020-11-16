@@ -138,6 +138,8 @@ APIARY_URL = env('APIARY_URL', [])
 
 BASE_URL=env('BASE_URL')
 
+
+
 CKEDITOR_CONFIGS = {
     'default': {
         'toolbar': 'full',
