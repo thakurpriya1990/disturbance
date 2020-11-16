@@ -323,6 +323,9 @@
                     }
                 });
             },
+            selectedLicenceHolder: function() {
+                this.$emit('selectedLicenceHolderChanged', this.selectedLicenceHolder)
+            },
         },
         computed:{
             readonlyLicenceHolders: function() {
