@@ -72,6 +72,7 @@
                     :is_external="true"
                     @button_text="button_text"
                     @site_transfer_application_fee="setSiteTransferApplicationFee"
+                    @selectedLicenceHolderChanged="selectedLicenceHolderChanged"
                 />
             </div>
 
@@ -227,7 +228,8 @@ export default {
             sectionShow: true,
             //submit_button_text: 'Pay and submit',
             submit_button_text: 'Submit',
-            pay_button_disabled: true,
+            //pay_button_disabled: true,
+            selectedHolder: null,
 
             // Fee
             total_fee_south_west: 0,
@@ -366,6 +368,12 @@ export default {
                 return '---'
             }
         },
+        pay_button_disabled: function(){
+            if (this.selectedHolder && this.siteTransferApplicationFee > 0){
+                return false
+            }
+            return true
+        }
     },
     watch: {
         sum_of_total_fees: function(){
@@ -376,15 +384,18 @@ export default {
                 this.submit_button_text = 'Submit'
             }
         },
-        siteTransferApplicationFee: function(){
-            if (this.siteTransferApplicationFee> 0){
-                this.pay_button_disabled = false
-            } else {
-                this.pay_button_disabled = true
-            }
-        }
+        //siteTransferApplicationFee: function(){
+        //    if (this.siteTransferApplicationFee> 0){
+        //        this.pay_button_disabled = false
+        //    } else {
+        //        this.pay_button_disabled = true
+        //    }
+        //}
     },
     methods: {
+        selectedLicenceHolderChanged: function(selectedHolder){
+            this.selectedHolder = selectedHolder
+        },
         total_num_of_sites_on_map_changed: function(value){
             this.total_num_of_sites_on_map = value
         },
