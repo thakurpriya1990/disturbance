@@ -114,7 +114,7 @@
             <FormSection :formCollapse="false" label="Deed Poll" Index="deed_poll">
                 <div class="row">
                     <div class="col-sm-12">
-                        <label>Print <a :href="deedPollUrl" target="_blank">the deed poll</a>, sign it, have it witnessed and attach it to this application.</label>
+                        <label>Print <a :href="deed_poll_url" target="_blank">the deed poll</a>, sign it, have it witnessed and attach it to this application.</label>
                         <div class="input-file-wrapper">
                             <FileField
                                 ref="deed_poll_documents"
@@ -261,6 +261,7 @@
                 pBody: 'pBody'+vm._uid,
                 component_site_selection_key: '',
                 expiry_date_local: '',
+                deed_poll_url: '',
             }
         },
         components: {
@@ -332,9 +333,6 @@
                 let title = 'Referral Checklist ';
                 if (this.referral &&
                 */
-            deedPollUrl: function() {
-                return '';
-            },
             readonly: function() {
                 let readonlyStatus = true;
                 if (this.proposal.customer_status === 'Draft' && !this.is_internal) {
@@ -425,6 +423,14 @@
           //},
         },
         methods:{
+            fetchDeedPollUrl: function(){
+                let vm = this;
+                vm.$http.get('/api/deed_poll_url').then((response) => {
+                    vm.deed_poll_url = response.body;
+                },(error) => {
+                    console.log(error);
+                });
+            },
             total_num_of_sites_on_map: function(value){
                 this.$emit('total_num_of_sites_on_map', value)
             },
@@ -549,6 +555,9 @@
             },
             */
 
+        },
+        created: function() {
+            this.fetchDeedPollUrl()
         },
         mounted: function() {
             let vm = this;
