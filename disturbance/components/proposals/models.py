@@ -3100,13 +3100,9 @@ class ProposalApiary(RevisionedMixin):
                     )
 
                     if line_items:
-                        ##### TODO #####
-
                         with transaction.atomic():
                             try:
                                 logger.info('Creating filming fee invoice')
-
-                                deferred_payment_date = timezone.now() + relativedelta(months=1)
 
                                 basket = createCustomBasket(line_items, request.user, PAYMENT_SYSTEM_ID)
                                 order = CreateInvoiceBasket(
@@ -3126,23 +3122,8 @@ class ProposalApiary(RevisionedMixin):
                                 )
 
                             except Exception as e:
-                                logger.error('Failed to create filming fee confirmation')
+                                logger.error('Failed to create annual site fee confirmation')
                                 logger.error('{}'.format(e))
-
-                        ##############
-
-                        # apiary_sites_to_be_charged = get_apiary_sites_to_be_charged(approval, annual_rental_fee_period)
-                        # products, details_dict = generate_line_items_for_annual_rental_fee(approval, today_now_local, (period_start_date, period_end_date), apiary_sites_to_be_charged)
-                        # line_items = make_serializable(line_items)  # Make line items serializable to store in the JSONField
-
-                        # annual_rental_fee = AnnualRentalFee.objects.create(
-                        #     approval=approval,
-                        #     annual_rental_fee_period=annual_rental_fee_period,
-                        #     invoice_reference=invoice.reference,
-                        #     invoice_period_start_date=invoice_period[0],
-                        #     invoice_period_end_date=invoice_period[1],
-                        #    #lines=line_items,  # This is used when generating the invoice at payment time
-                        # )
 
                         for site in sites_approved:
                             # Store the apiary sites which the invoice created above has been issued for
@@ -3156,7 +3137,7 @@ class ProposalApiary(RevisionedMixin):
                                 temp_use_apiary_site, created = TemporaryUseApiarySite.objects.get_or_create(apiary_site=site, proposal_apiary_temporary_use=proposal_apiary_temporary_use)
 
                         if not preview:
-                            email_data = send_annual_rental_fee_awaiting_payment_confirmation(approval, annual_rental_fee)
+                            email_data = send_annual_rental_fee_awaiting_payment_confirmation(approval, annual_rental_fee, invoice)
                         # TODO: Add comms log
 
                     #print approval,approval.id, created
