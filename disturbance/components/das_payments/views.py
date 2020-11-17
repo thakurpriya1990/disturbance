@@ -21,8 +21,7 @@ from disturbance.components.approvals.email import get_value_of_annual_rental_fe
     send_annual_rental_fee_invoice
 from disturbance.components.approvals.serializers import ApprovalLogEntrySerializer
 from disturbance.components.proposals.models import Proposal, ApiarySiteFeeRemainder, ApiarySiteFeeType, SiteCategory, \
-    ApiarySite, ProposalApiary, ApiarySiteOnProposal
-from disturbance.components.compliances.models import Compliance
+    ProposalApiary
 from disturbance.components.main.models import ApplicationType
 from disturbance.components.organisations.models import Organisation
 from disturbance.components.das_payments.context_processors import disturbance_url, template_context
@@ -48,15 +47,11 @@ from disturbance.components.das_payments.utils import (
 )
 
 from disturbance.components.das_payments.models import ApplicationFee, ApplicationFeeInvoice, AnnualRentalFee
-
-from ledger.checkout.utils import create_basket_session, create_checkout_session, place_order_submission, get_cookie_basket
-from ledger.payments.utils import oracle_parser_on_invoice,update_payments
-import json
+from ledger.payments.utils import update_payments
 from decimal import Decimal
 
 from ledger.payments.models import Invoice
 from ledger.basket.models import Basket
-from ledger.payments.mixins import InvoiceOwnerMixin
 from oscar.apps.order.models import Order
 from disturbance.helpers import is_internal, is_disturbance_admin, is_in_organisation_contacts
 from disturbance.context_processors import apiary_url, template_context
@@ -303,7 +298,7 @@ class AnnualRentalFeeSuccessView(TemplateView):
             #     pass
 
             # order = Order.objects.get(basket=basket[0])
-            invoice = Invoice.objects.get(order_number=annual_rental_fee.invoice_reference)
+            invoice = Invoice.objects.get(reference=annual_rental_fee.invoice_reference)
             # annual_rental_fee.invoice_reference = invoice.reference
             # annual_rental_fee.save()
 
