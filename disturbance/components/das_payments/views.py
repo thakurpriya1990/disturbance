@@ -42,7 +42,7 @@ from disturbance.components.das_payments.utils import (
     get_session_site_transfer_application_invoice,
     set_session_site_transfer_application_invoice,
     delete_session_site_transfer_application_invoice, set_session_annual_rental_fee, get_session_annual_rental_fee,
-    delete_session_annual_rental_fee, round_amount_according_to_env,
+    delete_session_annual_rental_fee, round_amount_according_to_env, checkout_existing_invoice,
     # create_bpay_invoice,
     # create_other_invoice,
 )
@@ -87,9 +87,11 @@ class AnnualRentalFeeView(TemplateView):
                 set_session_annual_rental_fee(request.session, annual_rental_fee)
 
                 lines = self.restore_original_format(annual_rental_fee.lines)
-                checkout_response = checkout(
+                invoice = Invoice.objects.get(reference=annual_rental_fee.invoice_reference)
+
+                checkout_response = checkout_existing_invoice(
                     request,
-                    None,
+                    invoice,
                     lines,
                     return_url_ns='annual_rental_fee_success',
                     return_preload_url_ns='annual_rental_fee_success',
@@ -289,21 +291,21 @@ class AnnualRentalFeeSuccessView(TemplateView):
 
         try:
             context = template_context(self.request)
-            basket = None
+            # basket = None
 
             # When accessed first time, there is a annual_rental_fee in the session which was set at AnnualRentalFeeView()
             # but when accessed sencond time, it is deleted therefore raise an error.
             annual_rental_fee = get_session_annual_rental_fee(request.session)
 
-            if self.request.user.is_authenticated():
-                basket = Basket.objects.filter(status='Submitted', owner=request.user).order_by('-id')[:1]
-            else:
-                pass
+            # if self.request.user.is_authenticated():
+            #     basket = Basket.objects.filter(status='Submitted', owner=request.user).order_by('-id')[:1]
+            # else:
+            #     pass
 
-            order = Order.objects.get(basket=basket[0])
-            invoice = Invoice.objects.get(order_number=order.number)
-            annual_rental_fee.invoice_reference = invoice.reference
-            annual_rental_fee.save()
+            # order = Order.objects.get(basket=basket[0])
+            invoice = Invoice.objects.get(order_number=annual_rental_fee.invoice_reference)
+            # annual_rental_fee.invoice_reference = invoice.reference
+            # annual_rental_fee.save()
 
             request.session['last_annual_rental_fee_id'] = annual_rental_fee.id
             delete_session_annual_rental_fee(request.session)
