@@ -112,22 +112,13 @@
             </FormSection>
 
             <FormSection :formCollapse="false" label="Deed Poll" Index="deed_poll">
-                <div class="row">
-                    <div class="col-sm-12">
-                        <label>Print <a :href="deed_poll_url" target="_blank">the deed poll</a>, sign it, have it witnessed and attach it to this application.</label>
-                        <div class="input-file-wrapper">
-                            <FileField
-                                ref="deed_poll_documents"
-                                name="deed-poll-documents"
-                                :isRepeatable="false"
-                                :documentActionUrl="deedPollDocumentUrl"
-                                :readonly="readonly"
-                                :replace_button_by_text="true"
-                            />
-                        </div>
-                    </div>
-                </div>
+                <DeedPoll
+                    :isRepeatable="false"
+                    :isReadonly="readonly"
+                    :documentActionUrl="deedPollDocumentUrl"
+                />
             </FormSection>
+
             <ApiaryChecklist
                 :checklist="applicantChecklistAnswers"
                 section_title="Applicant Checklist"
@@ -209,10 +200,8 @@
     import SiteLocations from '@/components/common/apiary/site_locations.vue'
     import ApiaryChecklist from '@/components/common/apiary/section_checklist.vue'
     import uuid from 'uuid'
-    import {
-        api_endpoints,
-        helpers
-    }from '@/utils/hooks'
+    import DeedPoll from "@/components/common/apiary/section_deed_poll.vue"
+    import { api_endpoints, helpers }from '@/utils/hooks'
 
     export default {
         name: 'ApiaryForm',
@@ -270,6 +259,7 @@
             FileField,
             FormSection,
             ApiaryChecklist,
+            DeedPoll,
         },
         computed:{
             showActionAvailableUnavailable: function() {
