@@ -1,4 +1,4 @@
-{%  extends 'disturbance/emails/base_email.html' %}
+{%  extends base_email_html %}
 
 {%  block content %}
     <p>The address for an organisation you are linked to has been updated by {{address_updated_by.get_full_name}} ({{address_updated_by.email}}).</p>
