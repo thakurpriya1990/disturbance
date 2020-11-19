@@ -155,10 +155,10 @@ def send_annual_rental_fee_awaiting_payment_confirmation(approval, annual_rental
     email = ApprovalAnnualRentalFeeAwaitingPaymentConfirmationEmail()
     path_to_pay = reverse('annual_rental_fee', kwargs={'annual_rental_fee_id': annual_rental_fee.id})
     url_to_pay = SITE_DOMAIN + path_to_pay
-    site_url = SITE_URL
-
-    url = settings.SITE_URL
-    url += path_to_pay
+    if 'localhost' in SITE_DOMAIN:
+        url = 'http://localhost:8071' + path_to_pay
+    else:
+        url = SITE_URL + path_to_pay
 
     context = {
         'approval': approval,
