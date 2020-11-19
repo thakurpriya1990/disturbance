@@ -59,6 +59,7 @@
                     @num_of_sites_south_west_renewal_to_add_as_remainder="update_num_of_sites_south_west_renewal_to_add_as_remainder"
                     @num_of_sites_remote_renewal_to_add_as_remainder="update_num_of_sites_remote_renewal_to_add_as_remainder"
                     @expiry_date_changed="expiry_date_changed"
+                    @total_num_of_sites_on_map="total_num_of_sites_on_map_changed"
                 />
             </div>
             <div v-else-if="proposal && proposal.application_type=='Site Transfer'">
@@ -162,7 +163,7 @@
                                     <button v-else disabled class="btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Submitting</button>
                                 </div>
                                 <div v-else>
-                                    <input v-if="!isSubmitting" type="button" @click.prevent="submit" class="btn btn-primary" :value="submit_button_text"/>
+                                    <input v-if="!isSubmitting" :disabled="submit_button_disabled" type="button" @click.prevent="submit" class="btn btn-primary" :value="submit_button_text"/>
                                     <button v-else disabled class="btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Submitting</button>
                                 </div>
 
@@ -245,6 +246,7 @@ export default {
             apiaryTemplateGroup: false,
             dasTemplateGroup: false,
             siteTransferApplicationFee: "0.00",
+            total_num_of_sites_on_map: 0,
         }
     },
     components: {
@@ -254,6 +256,13 @@ export default {
         ApiarySiteTransfer,
     },
     computed: {
+        submit_button_disabled: function() {
+            if (this.total_num_of_sites_on_map > 0){
+                return false
+            } else {
+                return true
+            }
+        },
         amendmentRequestText: function() {
             let requestText = 'An amendment has been requested for this proposal';
             if (this.apiaryTemplateGroup) {
@@ -376,8 +385,10 @@ export default {
         }
     },
     methods: {
+        total_num_of_sites_on_map_changed: function(value){
+            this.total_num_of_sites_on_map = value
+        },
         expiry_date_changed: function(value){
-            console.log(value)
             this.proposal.proposal_apiary.public_liability_insurance_expiry_date = moment(value, 'DD/MM/YYYY');
         },
         setSiteTransferApplicationFee: function(fee) {

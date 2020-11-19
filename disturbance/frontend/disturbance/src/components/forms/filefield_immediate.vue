@@ -17,17 +17,17 @@
 
         <template v-if="files">
             <template v-for="v in documents">
-                <p>
+                <div>
                     File: <a :href="v.file" target="_blank">{{v.name}}</a> &nbsp;
                     <span v-if="!readonly">
                         <a @click="delete_document(v)" class="fa fa-trash-o" title="Remove file" :filename="v.name" style="cursor: pointer; color:red;"></a>
                     </span>
-                </p>
+                </div>
             </template>
             <div v-if="show_spinner"><i class='fa fa-2x fa-spinner fa-spin'></i></div>
         </template>
         <template v-if="!readonly" v-for="n in repeat">
-            <template v-if="isRepeatable || (!isRepeatable && num_documents()==0)">
+            <template v-if="isRepeatable || (!isRepeatable && num_documents()==0) && !show_spinner">
                 <input 
                     :id="name + n" 
                     :name="name" type="file" 
@@ -299,7 +299,9 @@ export default {
                 if (this.replace_button_by_text){
                     let button_name = 'button-' + this.name + e.target.dataset.que
                     let elem_to_remove = document.getElementById(button_name)
-                    elem_to_remove.remove()
+                    if (elem_to_remove){
+                        elem_to_remove.remove()
+                    }
                 }
                 
                 this.documents = res.body.filedata;

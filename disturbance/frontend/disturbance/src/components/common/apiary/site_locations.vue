@@ -18,62 +18,54 @@
             Mark the location of the new proposed site either by entering the latitude and longitude or by clicking the location in the map.
         </div>
 
-        <div class="row">
-            <div class="col-sm-4">
-                <div class="form-group">
-                    <label class="inline">Latitude:</label>
-                    <input
-                        type="number"
-                        min="-90"
-                        max="90"
-                        class="form-control"
-                        v-model.number="proposal.proposal_apiary.latitude"
-                        :readonly="readonly"
-                    />
-                </div>
-            </div>
-            <div class="col-sm-4">
-                <div class="form-group">
-                    <label class="inline">Longitude:</label>
-                    <input
-                        type="number"
-                        min="-180"
-                        max="180"
-                        class="form-control"
-                        v-model.number="proposal.proposal_apiary.longitude"
-                        :readonly="readonly"
-                    />
-                </div>
-            </div>
-            <template v-if="!readonly">
-                <div class="col-sm-4">
-                    <input type="button" @click="tryCreateNewSiteFromForm" value="Add proposed site" class="btn btn-primary" style="margin: 1em 0 0 0;">
-                </div>
-            </template>
+        <div class="row col-sm-12 manual_coordinate_section mt-2 mb-4">
+            <label class="inline grow1">Latitude:</label>
+            <input
+                type="number"
+                min="-36"
+                max="-12"
+                class="form-control grow1 ml-1"
+                v-model.number="proposal.proposal_apiary.latitude"
+                :readonly="readonly"
+            />
+            <label class="inline grow1 ml-2">Longitude:</label>
+            <input
+                type="number"
+                min="110"
+                max="129"
+                class="form-control grow1 ml-1"
+                v-model.number="proposal.proposal_apiary.longitude"
+                :readonly="readonly"
+            />
+            <input 
+                v-if="!readonly" 
+                type="button" 
+                @click="tryCreateNewSiteFromForm" 
+                value="Add proposed site" 
+                class="btn btn-primary grow1 ml-3" 
+            />
         </div>
 
         <template v-if="display_debug_info && proposal && proposal.proposal_apiary">
-            <div class="row debug-info">
-                <div class="col-sm-12">
+            <div class="row col-sm-12 debug-info">
+                <div>
+                    <div><strong>New</strong></div>
                     <div>
-                        <div><strong>New</strong></div>
-                        <div>
-                            <div>Previously paid sites 'South West' region: {{ num_of_sites_remain_south_west }} (${{ fee_south_west }})</div>
-                            <div>Total fee: {{ total_fee_south_west }}</div>
-                        </div>
-                        <div>
-                            <div>Previously paid sites 'Remote' region: {{ num_of_sites_remain_remote }} (${{ fee_remote }})</div>
-                            <div>Total fee: {{ total_fee_remote }}</div>
-                        </div>
-                        <div><strong>Renewal</strong></div>
-                        <div>
-                            <div>Previously paid sites 'South West' region: {{ num_of_sites_remain_south_west_renewal }} (${{ fee_south_west_renewal }})</div>
-                            <div>Total fee: {{ total_fee_south_west_renewal }}</div>
-                        </div>
-                        <div>
-                            <div>Previously paid sites 'Remote' region: {{ num_of_sites_remain_remote_renewal }} (${{ fee_remote_renewal }})</div>
-                            <div>Total fee: {{ total_fee_remote_renewal }}</div>
-                        </div>
+                        <div>Previously paid sites 'South West' region: {{ num_of_sites_remain_south_west }} (${{ fee_south_west }})</div>
+                        <div>Total fee: {{ total_fee_south_west }}</div>
+                    </div>
+                    <div>
+                        <div>Previously paid sites 'Remote' region: {{ num_of_sites_remain_remote }} (${{ fee_remote }})</div>
+                        <div>Total fee: {{ total_fee_remote }}</div>
+                    </div>
+                    <div><strong>Renewal</strong></div>
+                    <div>
+                        <div>Previously paid sites 'South West' region: {{ num_of_sites_remain_south_west_renewal }} (${{ fee_south_west_renewal }})</div>
+                        <div>Total fee: {{ total_fee_south_west_renewal }}</div>
+                    </div>
+                    <div>
+                        <div>Previously paid sites 'Remote' region: {{ num_of_sites_remain_remote_renewal }} (${{ fee_remote_renewal }})</div>
+                        <div>Total fee: {{ total_fee_remote_renewal }}</div>
                     </div>
                 </div>
             </div>
@@ -504,6 +496,14 @@
                 let total_fee = this.num_of_sites_remote_renewal_calculate * this.fee_remote_renewal
                 return total_fee
             },
+
+            // Total
+            total_num_of_sites_on_map: function(){
+                return this.num_of_sites_south_west_applied + 
+                       this.num_of_sites_south_west_renewal_applied + 
+                       this.num_of_sites_remote_applied + 
+                       this.num_of_sites_remote_renewal_applied
+            }
         },
         watch:{
             existing_sites_loaded: function() {
@@ -511,6 +511,9 @@
                     this.load_apiary_sites_in_this_proposal()
                     this.displayAllFeatures()
                 }
+            },
+            total_num_of_sites_on_map: function() {
+                this.$emit('total_num_of_sites_on_map', this.total_num_of_sites_on_map)
             },
             num_of_sites_south_west_to_add_as_remainder: function(){
                 this.$emit('num_of_sites_south_west_to_add_as_remainder', this.num_of_sites_south_west_to_add_as_remainder)
@@ -1328,5 +1331,34 @@
     .popup-content {
         font-size: small;
     }
-</style>
+    .manual_coordinate_section {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .grow1 {
+        flex-grow: 1;
+    }
+    .ml-1 {
+        margin-left: 0.25em !important;
+    }
+    .ml-2 {
+        margin-left: 0.5em !important;
+    }
+    .ml-3 {
+        margin-left: 1em !important;
+    }
+    .mt-2 {
+        margin-top: 0.5em !important;
+    }
+    .mt-3 {
+        margin-top: 1em !important;
+    }
+    .mb-3 {
+        margin-bottom: 1em !important;
+    }
+    .mb-4 {
+        margin-bottom: 2em !important;
+    }
 </style>
