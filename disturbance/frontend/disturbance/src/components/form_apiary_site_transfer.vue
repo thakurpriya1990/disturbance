@@ -120,8 +120,31 @@
                   />
             </FormSection>
 
+            <!--
+            <FormSection :formCollapse="false" label="Deed Poll" Index="deed_poll">
+                <div class="row">
+                    <div class="col-sm-12">
+                        <label>Print <a :href="deedPollUrl" target="_blank">the deed poll</a>, sign it, have it witnessed and attach it to this application.</label>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-12">
+                        <FileField
+                            ref="deed_poll_documents"
+                            name="deed-poll-documents"
+                            :isRepeatable="false"
+                            :documentActionUrl="deedPollDocumentUrl"
+                            :readonly="readonly"
+                            :replace_button_by_text="true"
+                        />
+                    </div>
+                </div>
+            </FormSection>
+            -->
+
             <FormSection :formCollapse="false" label="Deed Poll" Index="deed_poll">
                 <DeedPoll
+                    ref="deed_poll_component"
                     :isRepeatable="false"
                     :isReadonly="readonly"
                     :documentActionUrl="deedPollDocumentUrl"
