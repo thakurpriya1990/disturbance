@@ -113,6 +113,7 @@
 
             <FormSection :formCollapse="false" label="Deed Poll" Index="deed_poll">
                 <DeedPoll
+                    ref="deed_poll_component"
                     :isRepeatable="false"
                     :isReadonly="readonly"
                     :documentActionUrl="deedPollDocumentUrl"
