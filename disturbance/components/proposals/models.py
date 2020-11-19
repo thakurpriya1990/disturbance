@@ -3104,7 +3104,7 @@ class ProposalApiary(RevisionedMixin):
                             try:
                                 logger.info('Creating filming fee invoice')
 
-                                basket = createCustomBasket(line_items, request.user, PAYMENT_SYSTEM_ID)
+                                basket = createCustomBasket(line_items, approval.relevant_applicant_email_user, PAYMENT_SYSTEM_ID)
                                 order = CreateInvoiceBasket(
                                     payment_method='other', system=PAYMENT_SYSTEM_PREFIX
                                 ).create_invoice_and_order(basket, 0, None, None, user=request.user,
