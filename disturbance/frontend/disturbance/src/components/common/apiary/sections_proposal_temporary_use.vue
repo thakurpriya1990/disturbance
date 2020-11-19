@@ -40,6 +40,7 @@
         <FormSection :formCollapse="false" label="Deed Poll" Index="deed_poll">
             <template v-if="proposal && proposal.apiary_temporary_use && documentActionUrl">
                 <DeedPoll
+
                     :isRepeatable="false"
                     :isReadonly="is_readonly"
                     :documentActionUrl="documentActionUrl"
