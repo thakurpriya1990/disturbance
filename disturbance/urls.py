@@ -5,6 +5,7 @@ from django.conf.urls.static import static
 from rest_framework import routers
 from disturbance import views
 from disturbance.admin import disturbance_admin_site
+from disturbance.components.main.views import deed_poll_url
 from disturbance.components.proposals import views as proposal_views
 from disturbance.components.organisations import views as organisation_views
 from disturbance.components.das_payments import views as payment_views
@@ -65,6 +66,7 @@ api_patterns = [
     url(r'^api/search_keywords',proposal_api.SearchKeywordsView.as_view(),name='search_keywords'),
     url(r'^api/search_reference',proposal_api.SearchReferenceView.as_view(),name='search_reference'),
     #url(r'^api/reports/payment_settlements$', main_api.PaymentSettlementReportView.as_view(),name='payment-settlements-report'),
+    url(r'^api/deed_poll_url', deed_poll_url, name='deed_poll_url')
 ]
 
 # URL Patterns

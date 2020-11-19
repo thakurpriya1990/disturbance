@@ -121,22 +121,11 @@
             </FormSection>
 
             <FormSection :formCollapse="false" label="Deed Poll" Index="deed_poll">
-                <div class="row">
-                    <div class="col-sm-12">
-                        <label>Print <a :href="deedPollUrl" target="_blank">the deed poll</a>, sign it, have it witnessed and attach it to this application.</label>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-sm-12">
-                        <FileField
-                            ref="deed_poll_documents"
-                            name="deed-poll-documents"
-                            :isRepeatable="false"
-                            :documentActionUrl="deedPollDocumentUrl"
-                            :readonly="readonly"
-                        />
-                    </div>
-                </div>
+                <DeedPoll
+                    :isRepeatable="false"
+                    :isReadonly="readonly"
+                    :documentActionUrl="deedPollDocumentUrl"
+                />
             </FormSection>
 
             <ApiaryChecklist
@@ -217,10 +206,8 @@
     import ComponentSiteSelection from '@/components/common/apiary/component_site_selection.vue'
     import ApiaryChecklist from '@/components/common/apiary/section_checklist.vue'
     import uuid from 'uuid'
-    import {
-        api_endpoints,
-        helpers
-    }from '@/utils/hooks'
+    import DeedPoll from "@/components/common/apiary/section_deed_poll.vue"
+    import { api_endpoints, helpers }from '@/utils/hooks'
 
     export default {
         name: 'ApiarySiteTransferForm',
@@ -288,6 +275,7 @@
             FileField,
             FormSection,
             ApiaryChecklist,
+            DeedPoll,
         },
         watch: {
             applicationFee: function() {
@@ -322,6 +310,9 @@
                         this.selectedLicenceHolder = null;
                     }
                 });
+            },
+            selectedLicenceHolder: function() {
+                this.$emit('selectedLicenceHolderChanged', this.selectedLicenceHolder)
             },
         },
         computed:{

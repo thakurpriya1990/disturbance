@@ -383,7 +383,7 @@ def save_proponent_data_apiary_site_transfer(proposal_obj, request, viewset):
                 proposal_obj.proposal_apiary.transferee_email_text = transferee_email_text
                 proposal_obj.proposal_apiary.save()
             selected_licence_holder_str = request.data.get('selected_licence_holder')
-            selected_licence_holder = json.loads(selected_licence_holder_str)
+            selected_licence_holder = json.loads(selected_licence_holder_str) if selected_licence_holder_str else ''
             if selected_licence_holder:
                 # for each path, ensure we remove any previously user selected licence holder data (target_approval, transferee, target_approval_organisation)
                 if not selected_licence_holder.get('id'):
