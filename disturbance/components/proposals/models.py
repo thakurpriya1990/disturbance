@@ -3005,7 +3005,6 @@ class ProposalApiary(RevisionedMixin):
                         elif self.proposal.proposal_type == 'renewal':
                             approval.expiry_date = details.get('expiry_date')
                         # always reset this flag
-                        approval.reissued = False
                         approval.renewal_sent = False  # For the apiary, we have to rest this to False for the next renewal
                         #self.proposal.proposed_issuance_approval['start_date'] = approval.start_date.strftime('%d/%m/%Y')
                         #self.proposal.proposed_issuance_approval['expiry_date'] = approval.expiry_date.strftime('%d/%m/%Y')
@@ -3100,30 +3099,34 @@ class ProposalApiary(RevisionedMixin):
                     )
 
                     if line_items:
-                        with transaction.atomic():
-                            try:
-                                logger.info('Creating filming fee invoice')
+                        # annual_rental_fee = None
+                        # invoice = None
+                        # with transaction.atomic():
+                        #     try:
+                        logger.info('Creating filming fee invoice')
 
-                                basket = createCustomBasket(line_items, approval.relevant_applicant_email_user, PAYMENT_SYSTEM_ID)
-                                order = CreateInvoiceBasket(
-                                    payment_method='other', system=PAYMENT_SYSTEM_PREFIX
-                                ).create_invoice_and_order(basket, 0, None, None, user=request.user,
-                                                           invoice_text='Payment Invoice')
-                                invoice = Invoice.objects.get(order_number=order.number)
+                        basket = createCustomBasket(line_items, approval.relevant_applicant_email_user, PAYMENT_SYSTEM_ID)
+                        order = CreateInvoiceBasket(
+                            payment_method='other', system=PAYMENT_SYSTEM_PREFIX
+                        ).create_invoice_and_order(basket, 0, None, None, user=approval.relevant_applicant_email_user,
+                                                   invoice_text='Payment Invoice')
+                        invoice = Invoice.objects.get(order_number=order.number)
 
-                                line_items = make_serializable(line_items)  # Make line items serializable to store in the JSONField
-                                annual_rental_fee = AnnualRentalFee.objects.create(
-                                    approval=approval,
-                                    annual_rental_fee_period=annual_rental_fee_period,
-                                    invoice_reference=invoice.reference,
-                                    invoice_period_start_date=invoice_period[0],
-                                    invoice_period_end_date=invoice_period[1],
-                                    lines=line_items,
-                                )
+                        print(invoice.reference)
 
-                            except Exception as e:
-                                logger.error('Failed to create annual site fee confirmation')
-                                logger.error('{}'.format(e))
+                        line_items = make_serializable(line_items)  # Make line items serializable to store in the JSONField
+                        annual_rental_fee = AnnualRentalFee.objects.create(
+                            approval=approval,
+                            annual_rental_fee_period=annual_rental_fee_period,
+                            invoice_reference=invoice.reference,
+                            invoice_period_start_date=invoice_period[0],
+                            invoice_period_end_date=invoice_period[1],
+                            lines=line_items,
+                        )
+
+                            # except Exception as e:
+                            #     logger.error('Failed to create annual site fee confirmation')
+                            #     logger.error('{}'.format(e))
 
                         for site in sites_approved:
                             # Store the apiary sites which the invoice created above has been issued for
@@ -3199,6 +3202,9 @@ class ProposalApiary(RevisionedMixin):
                     self.proposal.approval = approval
                     #send Proposal approval email with attachment
                     send_proposal_approval_email_notification(self.proposal,request)
+                    # flag must be reset after email is sent
+                    approval.reissued = False
+                    approval.save()
                     self.proposal.save(version_comment='Final Approval: {}'.format(self.proposal.approval.lodgement_number))
                     self.proposal.approval.documents.all().update(can_delete=False)
                 elif self.proposal.application_type.name == ApplicationType.SITE_TRANSFER and not preview:
@@ -3207,7 +3213,6 @@ class ProposalApiary(RevisionedMixin):
                     from disturbance.components.compliances.models import Compliance, ComplianceUserAction
                     ## Originating approval
                     if self.reissue_originating_approval or not originating_approval.reissued:
-                        originating_approval.reissued = False
                         originating_approval.issue_date = timezone.now()
                         originating_approval.current_proposal = checking_proposal
                         originating_approval.save()
@@ -3238,9 +3243,11 @@ class ProposalApiary(RevisionedMixin):
                                     )
                         #send Proposal approval email with attachment
                         send_site_transfer_approval_email_notification(self.proposal, request, originating_approval)
+                        # reset flag after email is sent
+                        originating_approval.reissued = False
+                        originating_approval.save()
                     ## Target approval
                     if self.reissue_target_approval or not target_approval.reissued:
-                        target_approval.reissued = False
                         target_approval.issue_date = timezone.now()
                         target_approval.current_proposal = checking_proposal
                         target_approval.save()
@@ -3269,6 +3276,9 @@ class ProposalApiary(RevisionedMixin):
                                     )
                         #send Proposal approval email with attachment
                         send_site_transfer_approval_email_notification(self.proposal, request, target_approval)
+                        # reset flag after approval is sent
+                        target_approval.reissued = False
+                        target_approval.save()
                         #self.proposal.save(version_comment='Final Approval: {}'.format(self.proposal.approval.lodgement_number))
                         self.proposal.save(version_comment='Originating Approval: {}, Target Approval: {}'.format(
                             originating_approval.lodgement_number,

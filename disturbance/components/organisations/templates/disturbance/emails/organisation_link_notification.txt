@@ -1,4 +1,4 @@
-{%  extends 'disturbance/emails/base_email.txt' %}
+{%  extends base_email_text %}
 
 {%  block content %}
     {% if linked_by.email != user.email %}
