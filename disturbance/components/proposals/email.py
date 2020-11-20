@@ -295,7 +295,7 @@ def send_amendment_email_notification(amendment_request, request, proposal):
     }
 
     all_ccs = []
-    if proposal.applicant and proposal.applicant.email != proposal.submitter.email:
+    if proposal.applicant and proposal.applicant.email != proposal.submitter.email and proposal.applicant.email:
             cc_list = proposal.applicant.email
             if cc_list:
                 all_ccs = [cc_list]
@@ -348,7 +348,8 @@ def send_external_submit_email_notification(request, proposal):
 
     all_ccs = []
     #if proposal.applicant and proposal.applicant.email:
-    if proposal.applicant and proposal.applicant.email != proposal.submitter.email:
+    #if proposal.applicant and proposal.applicant.email != proposal.submitter.email:
+    if proposal.applicant and proposal.applicant.email != proposal.submitter.email and proposal.applicant.email:
         cc_list = proposal.applicant.email
         if cc_list:
             all_ccs = [cc_list]
@@ -416,7 +417,8 @@ def send_proposal_decline_email_notification(proposal,request,proposal_decline):
     if cc_list:
         all_ccs = cc_list.split(',')
     #if proposal.applicant:
-    if proposal.applicant and proposal.applicant.email != proposal.submitter.email:
+    #if proposal.applicant and proposal.applicant.email != proposal.submitter.email:
+    if proposal.applicant and proposal.applicant.email != proposal.submitter.email and proposal.applicant.email:
      #   if proposal.applicant.email:
             all_ccs.append(proposal.applicant.email)
 
@@ -447,6 +449,7 @@ def send_proposal_approver_sendback_email_notification(request, proposal):
 
 
 def send_proposal_approval_email_notification(proposal,request):
+    #import ipdb; ipdb.set_trace()
     if proposal.apiary_group_application_type:
         email = ApiaryProposalApprovalSendNotificationEmail()
     else:
@@ -463,7 +466,7 @@ def send_proposal_approval_email_notification(proposal,request):
     if cc_list:
         all_ccs = cc_list.split(',')
     #if proposal.applicant:
-    if proposal.applicant and proposal.applicant.email != proposal.submitter.email:
+    if proposal.applicant and proposal.applicant.email != proposal.submitter.email and proposal.applicant.email:
      #   if proposal.applicant.email:
             all_ccs.append(proposal.applicant.email)
 
@@ -495,7 +498,7 @@ def send_site_transfer_approval_email_notification(proposal, request, approval):
     if cc_list:
         all_ccs = cc_list.split(',')
     #if proposal.applicant:
-    if proposal.applicant and proposal.applicant.email != proposal.submitter.email:
+    if proposal.applicant and proposal.applicant.email != proposal.submitter.email and proposal.applicant.email:
      #   if proposal.applicant.email:
             all_ccs.append(proposal.applicant.email)
 
@@ -567,7 +570,7 @@ def _log_proposal_referral_email(email_message, referral, sender=None):
     else:
         text = smart_text(email_message)
         subject = ''
-        to = proposal.applicant.email
+        to = proposal.applicant.email if proposal.applicant.email else ''
         fromm = smart_text(sender) if sender else SYSTEM_NAME
         all_ccs = ''
 
@@ -593,6 +596,7 @@ def _log_proposal_referral_email(email_message, referral, sender=None):
 def _log_proposal_email(email_message, proposal, sender=None):
     from disturbance.components.proposals.models import ProposalLogEntry
     if isinstance(email_message, (EmailMultiAlternatives, EmailMessage,)):
+        #import ipdb; ipdb.set_trace()
         # TODO this will log the plain text body, should we log the html instead
         text = email_message.body
         subject = email_message.subject
