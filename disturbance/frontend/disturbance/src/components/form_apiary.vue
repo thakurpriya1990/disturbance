@@ -112,22 +112,14 @@
             </FormSection>
 
             <FormSection :formCollapse="false" label="Deed Poll" Index="deed_poll">
-                <div class="row">
-                    <div class="col-sm-12">
-                        <label>Print <a :href="deedPollUrl" target="_blank">the deed poll</a>, sign it, have it witnessed and attach it to this application.</label>
-                        <div class="input-file-wrapper">
-                            <FileField
-                                ref="deed_poll_documents"
-                                name="deed-poll-documents"
-                                :isRepeatable="false"
-                                :documentActionUrl="deedPollDocumentUrl"
-                                :readonly="readonly"
-                                :replace_button_by_text="true"
-                            />
-                        </div>
-                    </div>
-                </div>
+                <DeedPoll
+                    ref="deed_poll_component"
+                    :isRepeatable="false"
+                    :isReadonly="readonly"
+                    :documentActionUrl="deedPollDocumentUrl"
+                />
             </FormSection>
+
             <ApiaryChecklist
                 :checklist="applicantChecklistAnswers"
                 section_title="Applicant Checklist"
@@ -209,10 +201,8 @@
     import SiteLocations from '@/components/common/apiary/site_locations.vue'
     import ApiaryChecklist from '@/components/common/apiary/section_checklist.vue'
     import uuid from 'uuid'
-    import {
-        api_endpoints,
-        helpers
-    }from '@/utils/hooks'
+    import DeedPoll from "@/components/common/apiary/section_deed_poll.vue"
+    import { api_endpoints, helpers }from '@/utils/hooks'
 
     export default {
         name: 'ApiaryForm',
@@ -261,6 +251,7 @@
                 pBody: 'pBody'+vm._uid,
                 component_site_selection_key: '',
                 expiry_date_local: '',
+                deed_poll_url: '',
             }
         },
         components: {
@@ -269,6 +260,7 @@
             FileField,
             FormSection,
             ApiaryChecklist,
+            DeedPoll,
         },
         computed:{
             showActionAvailableUnavailable: function() {
@@ -332,9 +324,6 @@
                 let title = 'Referral Checklist ';
                 if (this.referral &&
                 */
-            deedPollUrl: function() {
-                return '';
-            },
             readonly: function() {
                 let readonlyStatus = true;
                 if (this.proposal.customer_status === 'Draft' && !this.is_internal) {
@@ -425,6 +414,14 @@
           //},
         },
         methods:{
+            fetchDeedPollUrl: function(){
+                let vm = this;
+                vm.$http.get('/api/deed_poll_url').then((response) => {
+                    vm.deed_poll_url = response.body;
+                },(error) => {
+                    console.log(error);
+                });
+            },
             total_num_of_sites_on_map: function(value){
                 this.$emit('total_num_of_sites_on_map', value)
             },
@@ -549,6 +546,9 @@
             },
             */
 
+        },
+        created: function() {
+            this.fetchDeedPollUrl()
         },
         mounted: function() {
             let vm = this;
