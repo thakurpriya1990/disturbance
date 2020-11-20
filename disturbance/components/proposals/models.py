@@ -3106,9 +3106,11 @@ class ProposalApiary(RevisionedMixin):
                                 basket = createCustomBasket(line_items, approval.relevant_applicant_email_user, PAYMENT_SYSTEM_ID)
                                 order = CreateInvoiceBasket(
                                     payment_method='other', system=PAYMENT_SYSTEM_PREFIX
-                                ).create_invoice_and_order(basket, 0, None, None, user=request.user,
+                                ).create_invoice_and_order(basket, 0, None, None, user=approval.relevant_applicant_email_user,
                                                            invoice_text='Payment Invoice')
                                 invoice = Invoice.objects.get(order_number=order.number)
+
+                                print(invoice.reference)
 
                                 line_items = make_serializable(line_items)  # Make line items serializable to store in the JSONField
                                 annual_rental_fee = AnnualRentalFee.objects.create(
