@@ -120,6 +120,7 @@
                   />
             </FormSection>
 
+            <!--
             <FormSection :formCollapse="false" label="Deed Poll" Index="deed_poll">
                 <div class="row">
                     <div class="col-sm-12">
@@ -134,9 +135,20 @@
                             :isRepeatable="false"
                             :documentActionUrl="deedPollDocumentUrl"
                             :readonly="readonly"
+                            :replace_button_by_text="true"
                         />
                     </div>
                 </div>
+            </FormSection>
+            -->
+
+            <FormSection :formCollapse="false" label="Deed Poll" Index="deed_poll">
+                <DeedPoll
+                    ref="deed_poll_component"
+                    :isRepeatable="false"
+                    :isReadonly="readonly"
+                    :documentActionUrl="deedPollDocumentUrl"
+                />
             </FormSection>
 
             <ApiaryChecklist
@@ -222,10 +234,8 @@
     import ComponentSiteSelection from '@/components/common/apiary/component_site_selection.vue'
     import ApiaryChecklist from '@/components/common/apiary/section_checklist.vue'
     import uuid from 'uuid'
-    import {
-        api_endpoints,
-        helpers
-    }from '@/utils/hooks'
+    import DeedPoll from "@/components/common/apiary/section_deed_poll.vue"
+    import { api_endpoints, helpers }from '@/utils/hooks'
 
     export default {
         name: 'ApiarySiteTransferForm',
@@ -293,6 +303,7 @@
             FileField,
             FormSection,
             ApiaryChecklist,
+            DeedPoll,
         },
         watch: {
             applicationFee: function() {
@@ -327,6 +338,9 @@
                         this.selectedLicenceHolder = null;
                     }
                 });
+            },
+            selectedLicenceHolder: function() {
+                this.$emit('selectedLicenceHolderChanged', this.selectedLicenceHolder)
             },
         },
         computed:{

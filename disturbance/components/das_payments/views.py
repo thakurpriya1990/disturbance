@@ -21,8 +21,7 @@ from disturbance.components.approvals.email import get_value_of_annual_rental_fe
     send_annual_rental_fee_invoice
 from disturbance.components.approvals.serializers import ApprovalLogEntrySerializer
 from disturbance.components.proposals.models import Proposal, ApiarySiteFeeRemainder, ApiarySiteFeeType, SiteCategory, \
-    ApiarySite, ProposalApiary, ApiarySiteOnProposal
-from disturbance.components.compliances.models import Compliance
+    ProposalApiary
 from disturbance.components.main.models import ApplicationType
 from disturbance.components.organisations.models import Organisation
 from disturbance.components.das_payments.context_processors import disturbance_url, template_context
@@ -42,21 +41,17 @@ from disturbance.components.das_payments.utils import (
     get_session_site_transfer_application_invoice,
     set_session_site_transfer_application_invoice,
     delete_session_site_transfer_application_invoice, set_session_annual_rental_fee, get_session_annual_rental_fee,
-    delete_session_annual_rental_fee, round_amount_according_to_env,
+    delete_session_annual_rental_fee, round_amount_according_to_env, checkout_existing_invoice,
     # create_bpay_invoice,
     # create_other_invoice,
 )
 
 from disturbance.components.das_payments.models import ApplicationFee, ApplicationFeeInvoice, AnnualRentalFee
-
-from ledger.checkout.utils import create_basket_session, create_checkout_session, place_order_submission, get_cookie_basket
-from ledger.payments.utils import oracle_parser_on_invoice,update_payments
-import json
+from ledger.payments.utils import update_payments
 from decimal import Decimal
 
 from ledger.payments.models import Invoice
 from ledger.basket.models import Basket
-from ledger.payments.mixins import InvoiceOwnerMixin
 from oscar.apps.order.models import Order
 from disturbance.helpers import is_internal, is_disturbance_admin, is_in_organisation_contacts
 from disturbance.context_processors import apiary_url, template_context
@@ -87,9 +82,11 @@ class AnnualRentalFeeView(TemplateView):
                 set_session_annual_rental_fee(request.session, annual_rental_fee)
 
                 lines = self.restore_original_format(annual_rental_fee.lines)
-                checkout_response = checkout(
+                invoice = Invoice.objects.get(reference=annual_rental_fee.invoice_reference)
+
+                checkout_response = checkout_existing_invoice(
                     request,
-                    None,
+                    invoice,
                     lines,
                     return_url_ns='annual_rental_fee_success',
                     return_preload_url_ns='annual_rental_fee_success',
@@ -289,21 +286,21 @@ class AnnualRentalFeeSuccessView(TemplateView):
 
         try:
             context = template_context(self.request)
-            basket = None
+            # basket = None
 
             # When accessed first time, there is a annual_rental_fee in the session which was set at AnnualRentalFeeView()
             # but when accessed sencond time, it is deleted therefore raise an error.
             annual_rental_fee = get_session_annual_rental_fee(request.session)
 
-            if self.request.user.is_authenticated():
-                basket = Basket.objects.filter(status='Submitted', owner=request.user).order_by('-id')[:1]
-            else:
-                pass
+            # if self.request.user.is_authenticated():
+            #     basket = Basket.objects.filter(status='Submitted', owner=request.user).order_by('-id')[:1]
+            # else:
+            #     pass
 
-            order = Order.objects.get(basket=basket[0])
-            invoice = Invoice.objects.get(order_number=order.number)
-            annual_rental_fee.invoice_reference = invoice.reference
-            annual_rental_fee.save()
+            # order = Order.objects.get(basket=basket[0])
+            invoice = Invoice.objects.get(reference=annual_rental_fee.invoice_reference)
+            # annual_rental_fee.invoice_reference = invoice.reference
+            # annual_rental_fee.save()
 
             request.session['last_annual_rental_fee_id'] = annual_rental_fee.id
             delete_session_annual_rental_fee(request.session)

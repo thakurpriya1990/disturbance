@@ -7,6 +7,8 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 
 from datetime import datetime, timedelta, date
+
+from django.http.response import HttpResponse
 from django.utils import timezone
 from dateutil.relativedelta import relativedelta
 from ledger.accounts.models import EmailUser
@@ -17,7 +19,8 @@ from disturbance.components.proposals.models import SiteCategory, ApiarySiteFeeT
     ApiarySiteFeeRemainder, ApiaryAnnualRentalFee, ApiarySite, ApiarySiteOnProposal
 from disturbance.components.organisations.models import Organisation
 from disturbance.components.das_payments.models import ApplicationFee, AnnualRentalFee
-from ledger.checkout.utils import create_basket_session, create_checkout_session, calculate_excl_gst
+from ledger.checkout.utils import create_basket_session, create_checkout_session, calculate_excl_gst, \
+    use_existing_basket_from_invoice
 from ledger.payments.models import Invoice
 from ledger.payments.utils import oracle_parser
 import json
@@ -647,3 +650,43 @@ def generate_line_items_for_annual_rental_fee(approval, today_now, period, apiar
 #        },
 #    ]
 #    return line_items, apiary_sites_charged
+
+
+def checkout_existing_invoice(request, invoice, lines, return_url_ns='public_booking_success',
+                              return_preload_url_ns='public_booking_success', invoice_text=None, vouchers=[],
+                              proxy=False):
+    #basket_params = {
+    #    # 'products': invoice.order.basket.lines.all(),
+    #    'products': lines,
+    #    'vouchers': vouchers,
+    #    'system': settings.PAYMENT_SYSTEM_ID,
+    #    'custom_basket': True,
+    #}
+
+    basket, basket_hash = use_existing_basket_from_invoice(invoice.reference)
+    checkout_params = {
+        'system': settings.PAYMENT_SYSTEM_ID,
+        'fallback_url': request.build_absolute_uri('/'),
+        'return_url': request.build_absolute_uri(reverse(return_url_ns)),
+        'return_preload_url': request.build_absolute_uri(reverse(return_url_ns)),
+        'force_redirect': True,
+        'invoice_text': invoice.text,
+    }
+
+    create_checkout_session(request, checkout_params)
+
+    # response = HttpResponseRedirect(reverse('checkout:index'))
+    # use HttpResponse instead of HttpResponseRedirect - HttpResonseRedirect does not pass cookies which is important for ledger to get the correct basket
+    response = HttpResponse(
+        "<script> window.location='" + reverse('checkout:index') + "';</script> <a href='" + reverse(
+            'checkout:index') + "'> Redirecting please wait: " + reverse('checkout:index') + "</a>")
+
+    # inject the current basket into the redirect response cookies
+    # or else, anonymous users will be directionless
+    response.set_cookie(
+        settings.OSCAR_BASKET_COOKIE_OPEN, basket_hash,
+        max_age=settings.OSCAR_BASKET_COOKIE_LIFETIME,
+        secure=settings.OSCAR_BASKET_COOKIE_SECURE, httponly=True
+    )
+
+    return response

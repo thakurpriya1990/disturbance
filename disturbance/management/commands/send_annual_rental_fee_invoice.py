@@ -8,6 +8,9 @@ import logging
 
 from django.db import transaction
 from django.db.models import Q, Min
+from ledger.checkout.utils import createCustomBasket
+from ledger.payments.invoice.models import Invoice
+from ledger.payments.invoice.utils import CreateInvoiceBasket
 from ledger.settings_base import TIME_ZONE
 
 from disturbance.components.approvals.email import send_annual_rental_fee_awaiting_payment_confirmation
@@ -16,10 +19,9 @@ from disturbance.components.das_payments.models import AnnualRentalFee, AnnualRe
 from disturbance.components.das_payments.utils import generate_line_items_for_annual_rental_fee
 from disturbance.components.proposals.models import ApiaryAnnualRentalFeeRunDate, ApiaryAnnualRentalFeePeriodStartDate, \
     ApiarySite
-from disturbance.settings import SITE_STATUS_CURRENT, SITE_STATUS_SUSPENDED
+from disturbance.settings import SITE_STATUS_CURRENT, SITE_STATUS_SUSPENDED, PAYMENT_SYSTEM_ID, PAYMENT_SYSTEM_PREFIX
 
 logger = logging.getLogger(__name__)
-
 
 def get_annual_rental_fee_period(target_date):
     """
@@ -136,27 +138,43 @@ class Command(BaseCommand):
                                 apiary_sites_to_be_charged
                             )
 
-                            line_items = make_serializable(line_items)  # Make line items serializable to store in the JSONField
+                            if line_items:
+                                with transaction.atomic():
+                                    try:
+                                        logger.info('Creating filming fee invoice')
 
-                            annual_rental_fee = AnnualRentalFee.objects.create(
-                                approval=approval,
-                                annual_rental_fee_period=annual_rental_fee_period,
-                                # invoice_reference=invoice.reference,  #  We don't create an ledger invoice, but just store the lines
-                                invoice_period_start_date=invoice_period[0],
-                                invoice_period_end_date=invoice_period[1],
-                                lines=line_items,  # This is used when generating the invoice at payment time
-                            )
+                                        basket = createCustomBasket(line_items, approval.relevant_applicant_email_user, PAYMENT_SYSTEM_ID)
+                                        order = CreateInvoiceBasket(
+                                            payment_method='other', system=PAYMENT_SYSTEM_PREFIX
+                                        ).create_invoice_and_order(basket, 0, None, None, user=approval.relevant_applicant_email_user,
+                                                                   invoice_text='Payment Invoice')
+                                        invoice = Invoice.objects.get(order_number=order.number)
 
-                            # Store the apiary sites which the invoice created above has been issued for
-                            for apiary_site in apiary_sites_to_be_charged:
-                                annual_rental_fee_apiary_site = AnnualRentalFeeApiarySite(apiary_site=apiary_site, annual_rental_fee=annual_rental_fee)
-                                annual_rental_fee_apiary_site.save()
+                                        line_items = make_serializable(
+                                            line_items)  # Make line items serializable to store in the JSONField
+                                        annual_rental_fee = AnnualRentalFee.objects.create(
+                                            approval=approval,
+                                            annual_rental_fee_period=annual_rental_fee_period,
+                                            invoice_reference=invoice.reference,
+                                            invoice_period_start_date=invoice_period[0],
+                                            invoice_period_end_date=invoice_period[1],
+                                            lines=line_items,
+                                        )
 
-                            # TODO: Attach the invoice and send emails
-                            #   update invoice_sent attribute of the annual_rental_fee obj?
-                            email_data = send_annual_rental_fee_awaiting_payment_confirmation(approval, annual_rental_fee)
+                                    except Exception as e:
+                                        logger.error('Failed to create annual site fee confirmation')
+                                        logger.error('{}'.format(e))
 
-                            # TODO: Add comms log
+                                # Store the apiary sites which the invoice created above has been issued for
+                                for apiary_site in apiary_sites_to_be_charged:
+                                    annual_rental_fee_apiary_site = AnnualRentalFeeApiarySite(apiary_site=apiary_site, annual_rental_fee=annual_rental_fee)
+                                    annual_rental_fee_apiary_site.save()
+
+                                # TODO: Attach the invoice and send emails
+                                #   update invoice_sent attribute of the annual_rental_fee obj?
+                                email_data = send_annual_rental_fee_awaiting_payment_confirmation(approval, annual_rental_fee, invoice)
+
+                                # TODO: Add comms log
 
                 except Exception as e:
                     logger.error('Error command {}'.format(__name__))

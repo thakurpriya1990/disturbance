@@ -198,6 +198,13 @@ class Approval(RevisionedMixin):
             return self.proxy_applicant
 
     @property
+    def relevant_applicant_email_user(self):
+        if self.applicant:
+            return self.applicant.first_five_admin_names[0]
+        else:
+            return self.proxy_applicant
+
+    @property
     def relevant_applicant_email(self):
         if self.applicant and hasattr(self.applicant.organisation, 'email') and self.applicant.organisation.email:
             return self.applicant.organisation.email

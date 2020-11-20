@@ -51,18 +51,12 @@
                     <template v-if="annual_rental_fee_period.year_name == year_name_selected || year_name_selected == 'all'">
                         <template v-for="annual_rental_fee in annual_rental_fee_period.annual_rental_fees">
                             <div>
+                                <a :href="'/payments/invoice-pdf/' + annual_rental_fee.invoice_reference + '.pdf'" target='_blank'>
+                                    <i style='color:red;' class='fa fa-file-pdf-o'></i> #{{ annual_rental_fee.invoice_reference }}
+                                </a>
+                                <strong>Payment status: {{ capitalize(annual_rental_fee.payment_status) }}</strong>
                                 <template v-if="annual_rental_fee.payment_status === 'unpaid'">
-                                    <a :href="'/payments/awaiting-payment-pdf/' + annual_rental_fee.id" target='_blank'>
-                                        <i style='color:red;' class='fa fa-file-pdf-o'></i> Invoice
-                                    </a>
-                                    <strong>Payment status: {{ capitalize(annual_rental_fee.payment_status) }}</strong>
                                     <a :href="'/annual_rental_fee/' + annual_rental_fee.id">Pay</a>
-                                </template>
-                                <template v-else>
-                                    <a :href="'/payments/invoice-pdf/' + annual_rental_fee.invoice_reference + '.pdf'" target='_blank'>
-                                        <i style='color:red;' class='fa fa-file-pdf-o'></i> #{{ annual_rental_fee.invoice_reference }}
-                                    </a>
-                                    <strong>Payment Status: {{ capitalize(annual_rental_fee.payment_status) }}</strong>
                                 </template>
                             </div>
                         </template>
