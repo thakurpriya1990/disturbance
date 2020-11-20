@@ -254,16 +254,16 @@ class SiteTransferApplicationFeeSuccessView(TemplateView):
                 try:
                     if proposal.applicant:
                         recipient = proposal.applicant.email
-                        submitter = proposal.applicant
+                        #submitter = proposal.applicant
                     elif proposal.proxy_applicant:
                         recipient = proposal.proxy_applicant.email
-                        submitter = proposal.proxy_applicant
+                        #submitter = proposal.proxy_applicant
                     else:
                         recipient = proposal.submitter.email
-                        submitter = proposal.submitter
+                        #submitter = proposal.submitter
                 except:
                     recipient = proposal.submitter.email
-                    submitter = proposal.submitter
+                submitter = proposal.submitter
 
                 if ApplicationFeeInvoice.objects.filter(application_fee=application_fee).count() > 0:
                     afi = ApplicationFeeInvoice.objects.filter(application_fee=application_fee)
@@ -433,7 +433,6 @@ class ApplicationFeeSuccessView(TemplateView):
 
                     send_application_fee_invoice_apiary_email_notification(request, proposal, invoice, recipients=[recipient])
                     #send_application_fee_confirmation_apiary_email_notification(request, application_fee, invoice, recipients=[recipient])
-
                     context = {
                         'proposal': proposal,
                         'submitter': submitter,
@@ -449,16 +448,16 @@ class ApplicationFeeSuccessView(TemplateView):
                 try:
                     if proposal.applicant:
                         recipient = proposal.applicant.email
-                        submitter = proposal.applicant
+                        #submitter = proposal.applicant
                     elif proposal.proxy_applicant:
                         recipient = proposal.proxy_applicant.email
-                        submitter = proposal.proxy_applicant
+                        #submitter = proposal.proxy_applicant
                     else:
                         recipient = proposal.submitter.email
-                        submitter = proposal.submitter
+                        #submitter = proposal.submitter
                 except:
                     recipient = proposal.submitter.email
-                    submitter = proposal.submitter
+                submitter = proposal.submitter
 
                 if ApplicationFeeInvoice.objects.filter(application_fee=application_fee).count() > 0:
                     afi = ApplicationFeeInvoice.objects.filter(application_fee=application_fee)
