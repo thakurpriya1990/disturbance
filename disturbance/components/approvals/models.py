@@ -200,7 +200,7 @@ class Approval(RevisionedMixin):
     @property
     def relevant_applicant_email_user(self):
         if self.applicant:
-            return self.applicant.first_five_admin_names[0]
+            return self.applicant.delegates.all()[0]
         else:
             return self.proxy_applicant
 
