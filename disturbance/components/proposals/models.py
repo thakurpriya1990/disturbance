@@ -3099,6 +3099,8 @@ class ProposalApiary(RevisionedMixin):
                     )
 
                     if line_items:
+                        annual_rental_fee = None
+                        invoice = None
                         with transaction.atomic():
                             try:
                                 logger.info('Creating filming fee invoice')
