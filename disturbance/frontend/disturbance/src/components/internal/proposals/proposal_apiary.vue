@@ -352,29 +352,29 @@
                                           <div class="form-group">
                                             <label for="" class="col-sm-3 control-label">Street</label>
                                             <div class="col-sm-6">
-                                                <input disabled type="text" class="form-control" name="street" placeholder="" v-model="applicantAddress.line1">
+                                                <input disabled type="text" class="form-control" name="street" placeholder="" v-model="applicantAddressLine1">
                                             </div>
                                           </div>
                                           <div class="form-group">
                                             <label for="" class="col-sm-3 control-label" >Town/Suburb</label>
                                             <div class="col-sm-6">
-                                                <input disabled type="text" class="form-control" name="surburb" placeholder="" v-model="applicantAddress.locality">
+                                                <input disabled type="text" class="form-control" name="surburb" placeholder="" v-model="applicantAddressLocality">
                                             </div>
                                           </div>
                                           <div class="form-group">
                                             <label for="" class="col-sm-3 control-label">State</label>
                                             <div class="col-sm-2">
-                                                <input disabled type="text" class="form-control" name="country" placeholder="" v-model="applicantAddress.state">
+                                                <input disabled type="text" class="form-control" name="country" placeholder="" v-model="applicantAddressState">
                                             </div>
                                             <label for="" class="col-sm-2 control-label">Postcode</label>
                                             <div class="col-sm-2">
-                                                <input disabled type="text" class="form-control" name="postcode" placeholder="" v-model="applicantAddress.postcode">
+                                                <input disabled type="text" class="form-control" name="postcode" placeholder="" v-model="applicantAddressPostcode">
                                             </div>
                                           </div>
                                           <div class="form-group">
                                             <label for="" class="col-sm-3 control-label" >Country</label>
                                             <div class="col-sm-4">
-                                                <input disabled type="text" class="form-control" name="country" v-model="applicantAddress.country"/>
+                                                <input disabled type="text" class="form-control" name="country" v-model="applicantAddressCountry"/>
                                             </div>
                                           </div>
                                        </form>
@@ -681,6 +681,31 @@ export default {
         applicantAddress: function() {
             if (this.proposal && this.proposal.applicant_address) {
                 return this.proposal.applicant_address;
+            }
+        },
+        applicantAddressLine1: function() {
+            if (this.proposal && this.proposal.applicant_address) {
+                return this.proposal.applicant_address.line1;
+            }
+        },
+        applicantAddressCountry: function() {
+            if (this.proposal && this.proposal.applicant_address) {
+                return this.proposal.applicant_address.country;
+            }
+        },
+        applicantAddressLocality: function() {
+            if (this.proposal && this.proposal.applicant_address) {
+                return this.proposal.applicant_address.locality;
+            }
+        },
+        applicantAddressState: function() {
+            if (this.proposal && this.proposal.applicant_address) {
+                return this.proposal.applicant_address.state;
+            }
+        },
+        applicantAddressPostcode: function() {
+            if (this.proposal && this.proposal.applicant_address) {
+                return this.proposal.applicant_address.postcode;
             }
         },
         organisationApplicant: function() {
