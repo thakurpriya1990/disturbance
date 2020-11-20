@@ -169,4 +169,9 @@ SITE_STATUS_NOT_TO_BE_REISSUED = 'not_to_be_reissued'
 SITE_STATUS_SUSPENDED = 'suspended'
 SITE_STATUS_TRANSFERRED = 'transferred'
 SITE_STATUS_VACANT = 'vacant'
+BASE_EMAIL_TEXT = ''
+BASE_EMAIL_HTML = ''
+#BASE_EMAIL_TEXT = 'disturbance/emails/apiary_base_email.txt'
+#BASE_EMAIL_HTML = 'disturbance/emails/apiary_base_email.html'
+#APIARY_BASE_EMAIL = False
 
