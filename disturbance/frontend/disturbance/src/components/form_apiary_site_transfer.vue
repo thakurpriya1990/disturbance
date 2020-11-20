@@ -156,6 +156,7 @@
                 section_title="Applicant Checklist"
                 :readonly="readonly"
                 ref="applicant_checklist"
+                index="1"
             />
             <div v-if="assessorChecklistVisibility">
                 <ApiaryChecklist
@@ -163,6 +164,7 @@
                 section_title="Assessor Checklist"
                 :readonly="assessorChecklistReadonly"
                 ref="assessor_checklist"
+                index="2"
                 />
                 <div v-for="site in apiary_sites">
                     <ApiaryChecklist
@@ -170,6 +172,7 @@
                     :section_title="'Assessor checklist for site ' + site.id"
                     :readonly="assessorChecklistReadonly"
                     v-bind:key="'assessor_checklist_per_site_' + site.id"
+                    :index="'2_' + site.id"
                     />
                 </div>
             </div>
@@ -182,6 +185,7 @@
                     :section_title="'Referral Checklist: ' + r.referrer_group_name"
                     :readonly="referrerChecklistReadonly"
                     ref="referrer_checklist"
+                    index="3"
                     />
                     <div v-for="site in apiary_sites">
                         <ApiaryChecklist
@@ -189,6 +193,7 @@
                         :section_title="'Referral Checklist: ' + r.referrer_group_name + ' for site ' + site.id"
                         :readonly="referrerChecklistReadonly"
                         v-bind:key="'referrer_checklist_per_site_' + r.apiary_referral_id + site.id"
+                        :index="'3_' + r.apiary_referral_id + '_' + site.id"
                         />
                     </div>
                 </div>

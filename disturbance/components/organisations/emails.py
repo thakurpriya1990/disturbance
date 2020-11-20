@@ -86,7 +86,9 @@ def send_organisation_id_upload_email_notification(emails, organisation, org_con
     email = OrganisationIdUploadNotificationEmail()
 
     context = {
-        'organisation': organisation
+        'organisation': organisation,
+        'base_email_html': settings.BASE_EMAIL_HTML,
+        'base_email_text': settings.BASE_EMAIL_TEXT,
     }
 
     msg = email.send(emails, context=context)
@@ -103,6 +105,8 @@ def send_organisation_request_link_email_notification(
     context = {
         'request': org_request,
         'url': url,
+        'base_email_html': settings.BASE_EMAIL_HTML,
+        'base_email_text': settings.BASE_EMAIL_TEXT,
     }
 
     msg = email.send(contact, context=context)
@@ -115,7 +119,9 @@ def send_organisation_reinstate_email_notification(linked_user,linked_by,organis
     context = {
         'user': linked_user,
         'linked_by': linked_by,
-        'organisation': organisation
+        'organisation': organisation,
+        'base_email_html': settings.BASE_EMAIL_HTML,
+        'base_email_text': settings.BASE_EMAIL_TEXT,
     }
     all_ccs=[]
     if organisation.email:
@@ -134,7 +140,9 @@ def send_organisation_contact_suspend_email_notification(linked_user,linked_by,o
     context = {
         'user': linked_user,
         'linked_by': linked_by,
-        'organisation': organisation
+        'organisation': organisation,
+        'base_email_html': settings.BASE_EMAIL_HTML,
+        'base_email_text': settings.BASE_EMAIL_TEXT,
     }
     all_ccs=[]
     if organisation.email:
@@ -152,7 +160,9 @@ def send_organisation_contact_decline_email_notification(user_contact,deleted_by
     context = {
         'user': user_contact,
         'linked_by': deleted_by,
-        'organisation': organisation
+        'organisation': organisation,
+        'base_email_html': settings.BASE_EMAIL_HTML,
+        'base_email_text': settings.BASE_EMAIL_TEXT,
     }
     all_ccs=[]
     if organisation.email:
@@ -172,7 +182,9 @@ def send_organisation_contact_user_email_notification(linked_user,linked_by,orga
     context = {
         'user': linked_user,
         'linked_by': linked_by,
-        'organisation': organisation
+        'organisation': organisation,
+        'base_email_html': settings.BASE_EMAIL_HTML,
+        'base_email_text': settings.BASE_EMAIL_TEXT,
     }
     all_ccs=[]
     if organisation.email:
@@ -191,7 +203,9 @@ def send_organisation_contact_adminuser_email_notification(linked_user,linked_by
     context = {
         'user': linked_user,
         'linked_by': linked_by,
-        'organisation': organisation
+        'organisation': organisation,
+        'base_email_html': settings.BASE_EMAIL_HTML,
+        'base_email_text': settings.BASE_EMAIL_TEXT,
     }
 
     all_ccs=[]
@@ -210,7 +224,9 @@ def send_organisation_link_email_notification(linked_user,linked_by,organisation
     context = {
         'user': linked_user,
         'linked_by': linked_by,
-        'organisation': organisation
+        'organisation': organisation,
+        'base_email_html': settings.BASE_EMAIL_HTML,
+        'base_email_text': settings.BASE_EMAIL_TEXT,
     }
 
     all_ccs=[]
@@ -234,6 +250,8 @@ def send_organisation_request_email_notification(org_request, request, contact):
     context = {
         'request': request.data,
         'url': url,
+        'base_email_html': settings.BASE_EMAIL_HTML,
+        'base_email_text': settings.BASE_EMAIL_TEXT,
     }
 
     msg = email.send(contact, context=context)
@@ -247,7 +265,9 @@ def send_organisation_unlink_email_notification(unlinked_user,unlinked_by,organi
     context = {
         'user': unlinked_user,
         'unlinked_by': unlinked_by,
-        'organisation': organisation
+        'organisation': organisation,
+        'base_email_html': settings.BASE_EMAIL_HTML,
+        'base_email_text': settings.BASE_EMAIL_TEXT,
     }
     all_ccs=[]
     if organisation.email:
@@ -263,7 +283,9 @@ def send_organisation_request_accept_email_notification(org_request,organisation
     email = OrganisationRequestAcceptNotificationEmail()
 
     context = {
-        'request': org_request
+        'request': org_request,
+        'base_email_html': settings.BASE_EMAIL_HTML,
+        'base_email_text': settings.BASE_EMAIL_TEXT,
     }
 
     msg = email.send(org_request.requester.email, context=context)
@@ -282,6 +304,8 @@ def send_org_access_group_request_accept_email_notification(org_request, request
         'name': request.data.get('name'),
         'abn': request.data.get('abn'),
         'url': url,
+        'base_email_html': settings.BASE_EMAIL_HTML,
+        'base_email_text': settings.BASE_EMAIL_TEXT,
     }
 
     msg = email.send(recipient_list, context=context)
@@ -296,7 +320,9 @@ def send_organisation_request_decline_email_notification(org_request,request):
     email = OrganisationRequestDeclineNotificationEmail()
 
     context = {
-        'request': org_request
+        'request': org_request,
+        'base_email_html': settings.BASE_EMAIL_HTML,
+        'base_email_text': settings.BASE_EMAIL_TEXT,
     }
 
     msg = email.send(org_request.requester.email, context=context)
@@ -311,7 +337,9 @@ def send_organisation_address_updated_email_notification(address_updated_by,ledg
 
     context = {
         'address_updated_by': address_updated_by,
-        'organisation': ledger_organisation
+        'organisation': ledger_organisation,
+        'base_email_html': settings.BASE_EMAIL_HTML,
+        'base_email_text': settings.BASE_EMAIL_TEXT,
     }
 
     for org_contact in OrganisationContact.objects.filter(user_role='organisation_admin',organisation=wc_organisation):
