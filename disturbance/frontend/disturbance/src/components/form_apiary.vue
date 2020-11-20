@@ -472,7 +472,7 @@
                 if (this.proposal && this.proposal.proposal_apiary && this.proposal.proposal_apiary.assessor_checklist_answers_per_site &&
                     this.proposal.proposal_apiary.assessor_checklist_answers_per_site.length > 0) {
                     for (let answer of this.proposal.proposal_apiary.assessor_checklist_answers_per_site) {
-                        if (answer.site && answer.apiary_site_id === siteId) {
+                        if (answer.apiary_site_id === siteId) {
                             siteList.push(answer)
                         }
                     }
