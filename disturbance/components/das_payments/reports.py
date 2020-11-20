@@ -38,13 +38,25 @@ def booking_bpoint_settlement_report(_date):
                 if approval:
                     b_name = u'{}'.format(approval.relevant_applicant)
                     created = timezone.localtime(b.created, pytz.timezone('Australia/Perth'))
-                    settlement_date = invoice.settlement_date.strftime('%d/%m/%Y') if invoice.settlement_date else ''
-                    writer.writerow([created.strftime('%d/%m/%Y %H:%M:%S'), settlement_date, approval.lodgement_number, b_name.encode('utf-8'), invoice.get_payment_method_display(), invoice.amount, invoice.reference])
+                    settlement_date = b.settlement_date.strftime('%d/%m/%Y') if b.settlement_date else ''
+                    writer.writerow([created.strftime('%d/%m/%Y %H:%M:%S'),
+                                     settlement_date,
+                                     approval.lodgement_number,
+                                     b_name.encode('utf-8'),
+                                     invoice.get_payment_method_display(),
+                                     invoice.amount,
+                                     invoice.reference])
                 elif application_fee:
                     b_name = u'{}'.format(application_fee.proposal.applicant)
                     created = timezone.localtime(application_fee.created, pytz.timezone('Australia/Perth'))
-                    settlement_date = invoice.settlement_date.strftime('%d/%m/%Y') if invoice.settlement_date else ''
-                    writer.writerow([created.strftime('%d/%m/%Y %H:%M:%S'), settlement_date, application_fee.proposal.lodgement_number, b_name.encode('utf-8'),invoice.get_payment_method_display(),invoice.amount,invoice.reference])
+                    settlement_date = b.settlement_date.strftime('%d/%m/%Y') if b.settlement_date else ''
+                    writer.writerow([created.strftime('%d/%m/%Y %H:%M:%S'),
+                                     settlement_date,
+                                     application_fee.proposal.lodgement_number,
+                                     b_name.encode('utf-8'),
+                                     invoice.get_payment_method_display(),
+                                     invoice.amount,
+                                     invoice.reference])
                 else:
                     writer.writerow([b.created.strftime('%d/%m/%Y %H:%M:%S'),b.settlement_date.strftime('%d/%m/%Y'),'','',str(b.action),b.amount,invoice.reference])
             except Invoice.DoesNotExist:
