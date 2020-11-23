@@ -3631,6 +3631,20 @@ class ApiarySite(models.Model):
         super(ApiarySite, self).delete(using, keep_parents)
         print('ApiarySite: {}({}) has been deleted.'.format(self.id, self.is_vacant))
 
+    @property
+    def can_be_deleted_from_the_system(self):
+        """
+        We can delete the apiary site from the system only when it has never been applied.
+        """
+        can_be_deleted = False
+
+        if self.proposal_apiary_set.count() <= 1 and self.approval_set.count() == 0 and not self.is_vacant:
+            if not self.latest_proposal_link.application_fee_paid and self.latest_proposal_link.site_status == SITE_STATUS_DRAFT:
+                # application_fee_paid == False means that this apiary site has never been submitted
+                can_be_deleted = True
+
+        return can_be_deleted
+
     def make_vacant(self, vacant, relation):
         self.is_vacant = vacant
         from disturbance.components.approvals.models import ApiarySiteOnApproval

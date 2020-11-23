@@ -32,7 +32,7 @@ from disturbance.components.proposals.models import searchKeyWords, search_refer
     ProposalApiaryTemporaryUse, ApiarySiteOnProposal, PublicLiabilityInsuranceDocument, DeedPollDocument, \
     SupportingApplicationDocument
 from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_APPROVED, SITE_STATUS_CURRENT, SITE_STATUS_DENIED, \
-    SITE_STATUS_NOT_TO_BE_REISSUED, SITE_STATUS_VACANT, SITE_STATUS_TRANSFERRED
+    SITE_STATUS_NOT_TO_BE_REISSUED, SITE_STATUS_VACANT, SITE_STATUS_TRANSFERRED, SITE_STATUS_DISCARDED
 from disturbance.utils import search_tenure
 from disturbance.components.main.utils import (
     check_db_connection,
@@ -2219,13 +2219,26 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-    def destroy(self, request,*args,**kwargs):
+    def destroy(self, request, *args, **kwargs):
         try:
             http_status = status.HTTP_200_OK
             instance = self.get_object()
-            serializer = SaveProposalSerializer(instance,{'processing_status':'discarded', 'previous_application': None},partial=True)
+            serializer = SaveProposalSerializer(instance, {
+                'processing_status': Proposal.PROCESSING_STATUS_DISCARDED,
+                'previous_application': None
+            }, partial=True)
             serializer.is_valid(raise_exception=True)
             self.perform_update(serializer)
+            if instance.proposal_apiary and instance.proposal_apiary.apiary_sites.count():
+                for apiary_site in instance.proposal_apiary.apiary_sites.all():
+                    if apiary_site.can_be_deleted_from_the_system:
+                        # Apiary sites can be actually deleted from the system
+                        apiary_site.delete()
+                    else:
+                        # This apiary site was submitted at least once
+                        # Therefore we have to keep the record of this apiary site
+                        apiary_site.latest_proposal_link.site_status = SITE_STATUS_DISCARDED
+                        apiary_site.save()
             return Response(serializer.data,status=http_status)
         except Exception as e:
             print(traceback.print_exc())
