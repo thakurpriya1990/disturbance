@@ -892,6 +892,21 @@ class ApiaryOrganisationAccessGroupMembers(views.APIView):
         return Response(members)
 
 
+class ApiaryOrganisationAccessGroupMembers(views.APIView):
+
+    renderer_classes = [JSONRenderer,]
+    def get(self,request, format=None):
+        members = []
+        group = ApiaryOrganisationAccessGroup.objects.first()
+        if group:
+            for m in group.all_members:
+                members.append({'name': m.get_full_name(),'id': m.id})
+        else:
+            for m in EmailUser.objects.filter(is_superuser=True,is_staff=True,is_active=True):
+                members.append({'name': m.get_full_name(),'id': m.id})
+        return Response(members)
+
+
 class OrganisationContactViewSet(viewsets.ModelViewSet):
     serializer_class = OrganisationContactSerializer
     queryset = OrganisationContact.objects.all()

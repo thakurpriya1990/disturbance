@@ -139,6 +139,8 @@ export default {
   data() {
     let vm = this;
     return {
+        dasTemplateGroup: false,
+        apiaryTemplateGroup: false,
         loading: [],
         profile:{},
         access: {
@@ -330,17 +332,16 @@ export default {
     commaToNewline(s){
         return s.replace(/[,;]/g, '\n');
     },
-    fetchAccessGroupMembers: function(){
-        let vm = this;
-        vm.loading.push('Loading Access Group Members');
-        vm.$http.get(api_endpoints.organisation_access_group_members).then((response) => {
-            vm.members = response.body
-            vm.loading.splice('Loading Access Group Members',1);
-        },(error) => {
-            console.log(error);
-            vm.loading.splice('Loading Access Group Members',1);
-        })
-
+    fetchAccessGroupMembers: async function(){
+        //let vm = this;
+        this.loading.push('Loading Access Group Members');
+        let url = api_endpoints.organisation_access_group_members;
+        if (this.apiaryTemplateGroup) {
+            url = api_endpoints.apiary_organisation_access_group_members;
+        }
+        const response = await this.$http.get(url)
+        this.members = response.body
+        this.loading.splice('Loading Access Group Members',1);
     },
     assignMyself: function(){
         let vm = this;
@@ -419,16 +420,10 @@ export default {
         });
     },
 
-    fetchProfile: function(){
-        let vm = this;
-        Vue.http.get(api_endpoints.profile).then((response) => {
-            vm.profile = response.body
-                              
-         },(error) => {
-            console.log(error);
-                
-        })
-        },
+    fetchProfile: async function(){
+        const response = await Vue.http.get(api_endpoints.profile);
+        this.profile = response.body
+    },
 
     check_assessor: function(){
         let vm = this;
@@ -442,12 +437,28 @@ export default {
                     return false;
      },
   },
+/*
   mounted: function () {
     let vm = this;
     this.fetchAccessGroupMembers();
     this.fetchProfile();
     
-  }
+  },
+  */
+    created: async function() {
+        // retrieve template group
+        const res = await this.$http.get('/template_group',{
+            emulateJSON:true
+            })
+        if (res.body.template_group === 'apiary') {
+            this.apiaryTemplateGroup = true;
+        } else {
+            this.dasTemplateGroup = true;
+        }
+        await this.fetchAccessGroupMembers();
+        await this.fetchProfile();
+    },
+
 }
 </script>
 <style scoped>
