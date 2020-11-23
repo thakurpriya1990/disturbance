@@ -13,7 +13,7 @@ from rest_framework import serializers
 from disturbance.components.main.decorators import timeit
 from disturbance.components.main.models import CategoryDbca, RegionDbca, DistrictDbca, WaCoast
 from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_APPROVED, SITE_STATUS_TRANSFERRED, RESTRICTED_RADIUS, \
-    SITE_STATUS_PENDING
+    SITE_STATUS_PENDING, SITE_STATUS_DISCARDED
 
 
 def retrieve_department_users():
@@ -215,6 +215,7 @@ def get_qs_proposal():
 
     # 1.2. Exclude
     q_exclude_proposal |= Q(site_status__in=(SITE_STATUS_DRAFT,)) & Q(making_payment=False)  # Purely 'draft' site
+    q_exclude_proposal |= Q(site_status__in=(SITE_STATUS_DISCARDED,))
     q_exclude_proposal |= Q(site_status__in=(SITE_STATUS_APPROVED,))  # 'approved' site should be included in the approval as a 'current'
     q_exclude_proposal |= Q(apiary_site__in=ApiarySite.objects.filter(is_vacant=True))  # Vacant sites are already picked up above.  We don't want to pick up them again here.
 
