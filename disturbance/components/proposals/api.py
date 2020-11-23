@@ -327,15 +327,15 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         if template_group == 'apiary':
             #qs = self.get_queryset().filter(application_type__apiary_group_application_type=True)
             qs = self.get_queryset().filter(
-                    application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]
-                    ).exclude(processing_status='discarded')
+                application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]
+            )
         else:
             if is_das_apiary_admin(self.request):
                 qs = self.get_queryset()
             else:
                 qs = self.get_queryset().exclude(
-                        application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]
-                        ).exclude(processing_status='discarded')
+                    application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]
+                )
         #qs = self.filter_queryset(self.request, qs, self)
         #qs = self.filter_queryset(qs).order_by('-id')
         qs = self.filter_queryset(qs)
@@ -1147,16 +1147,20 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        #import ipdb; ipdb.set_trace()
-        if is_internal(self.request): #user.is_authenticated():
-            #return Proposal.objects.all()
-            return Proposal.objects.filter(Q(region__isnull=False)|
-                    Q(application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]))
+
+        if is_internal(self.request):
+            return Proposal.objects.filter(
+                Q(region__isnull=False) |
+                Q(application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE])
+            )
         elif is_customer(self.request):
             user_orgs = [org.id for org in user.disturbance_organisations.all()]
-            #queryset =  Proposal.objects.filter( Q(applicant_id__in = user_orgs) | Q(submitter = user) )
-            queryset =  Proposal.objects.filter(region__isnull=False).filter( Q(applicant_id__in = user_orgs) | Q(submitter = user) )
+            queryset = Proposal.objects.filter(region__isnull=False).filter(
+                Q(applicant_id__in=user_orgs) |
+                Q(submitter=user)
+            ).exclude(processing_status='')
             return queryset
+
         logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return Proposal.objects.none()
 
@@ -1247,22 +1251,16 @@ class ProposalViewSet(viewsets.ModelViewSet):
         application_type_qs = []
         if template_group == 'apiary':
             qs = self.get_queryset().filter(
-                    application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]
-                    ).exclude(processing_status='discarded')
-            #application_type_qs =  ApplicationType.objects.filter(
-             #   name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]).values_list(
-              #      'name', flat=True).distinct()
+                application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]
+            )
             submitter_qs = qs.filter(
-                    submitter__isnull=False).filter(
-                            application_type__name__in=[ApplicationType.APIARY,ApplicationType.SITE_TRANSFER,ApplicationType.TEMPORARY_USE]).distinct(
-                            'submitter__email').values_list('submitter__first_name','submitter__last_name','submitter__email')
+                submitter__isnull=False).filter(
+                    application_type__name__in=[ApplicationType.APIARY,ApplicationType.SITE_TRANSFER,ApplicationType.TEMPORARY_USE]).distinct(
+                    'submitter__email').values_list('submitter__first_name','submitter__last_name','submitter__email')
         else:
             qs = self.get_queryset().exclude(
-                    application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]
-                    ).exclude(processing_status='discarded')
+                application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE])
             region_qs =  qs.filter(region__isnull=False).values_list('region__name', flat=True).distinct()
-            #district_qs =  self.get_queryset().filter(district__isnull=False).values_list('district__name', flat=True).distinct()
-            #activity_qs =  qs.filter(activity__isnull=False).values_list('activity', flat=True).distinct()
             submitter_qs = qs.filter(submitter__isnull=False).distinct(
                             'submitter__email').values_list('submitter__first_name','submitter__last_name','submitter__email')
 
