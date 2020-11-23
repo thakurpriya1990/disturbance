@@ -75,6 +75,8 @@ export default {
   data() {
     let vm = this;
     return {
+        dasTemplateGroup: false,
+        apiaryTemplateGroup: false,
         // Filters
         pBody: 'pBody' + vm._uid,
         filterOrganisation: 'All',
@@ -230,6 +232,7 @@ export default {
         is_assessor: function(){
             return this.check_assessor()
         },
+        /*
 
         fetchAccessGroupMembers: function(){
         let vm = this;
@@ -252,6 +255,23 @@ export default {
                 
         })
         },
+        */
+        fetchAccessGroupMembers: async function(){
+            //let vm = this;
+            //this.loading.push('Loading Access Group Members');
+            let url = api_endpoints.organisation_access_group_members;
+            if (this.apiaryTemplateGroup) {
+                url = api_endpoints.apiary_organisation_access_group_members;
+            }
+            const response = await this.$http.get(url)
+            this.members = response.body
+            //this.loading.splice('Loading Access Group Members',1);
+        },
+        fetchProfile: async function(){
+            const response = await Vue.http.get(api_endpoints.profile);
+            this.profile = response.body
+        },
+
         check_assessor: function(){
             let vm = this;            
             var assessor = vm.members.filter(function(elem){
@@ -266,6 +286,20 @@ export default {
     mounted: function () {
         this.fetchAccessGroupMembers();
         this.fetchProfile();
-    }
+    },
+    created: async function() {
+        // retrieve template group
+        const res = await this.$http.get('/template_group',{
+            emulateJSON:true
+            })
+        if (res.body.template_group === 'apiary') {
+            this.apiaryTemplateGroup = true;
+        } else {
+            this.dasTemplateGroup = true;
+        }
+        await this.fetchAccessGroupMembers();
+        await this.fetchProfile();
+    },
+
 }
 </script>

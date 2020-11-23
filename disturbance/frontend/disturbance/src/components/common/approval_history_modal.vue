@@ -55,7 +55,6 @@ export default {
             approval_history_id: null,
             historyTable: null,
             popoversInitialised: false,
-            dtHeadersApprovalHistory: ["order","Date","Approval"],
             dtOptionsApprovalHistory:{
                 language: {
                     processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
@@ -101,6 +100,14 @@ export default {
 
     },
     computed: {
+        dtHeadersApprovalHistory: function() {
+            if (this.apiaryTemplateGroup) {
+                return  ["order","Date","Licence"]
+            } else {
+                return  ["order","Date","Approval"]
+            }
+        },
+
         is_external: function(){
             return this.level == 'external';
         },

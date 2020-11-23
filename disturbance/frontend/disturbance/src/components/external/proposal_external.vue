@@ -697,6 +697,9 @@ export default {
                 if(vm.$refs.proposal_apiary.$refs.public_liability_insurance_documents.documents.length==0){
                     blank_fields.push(' Public liability insurance document is missing')
                 }
+                if (!this.proposal.proposal_apiary.public_liability_insurance_expiry_date) {
+                    blank_fields.push(' Public liability expiry date is missing')
+                }
              }
              if(vm.proposal.application_type == 'Site Transfer'){
                 if( vm.$refs.apiary_site_transfer.getUnansweredChecklistQuestions ){
