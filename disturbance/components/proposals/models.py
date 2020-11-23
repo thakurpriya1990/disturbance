@@ -2426,7 +2426,7 @@ def searchKeyWords(searchWords, searchProposal, searchApproval, searchCompliance
     from disturbance.components.compliances.models import Compliance
     qs = []
     if is_internal:
-        proposal_list = Proposal.objects.filter(application_type__name='Disturbance').exclude(processing_status__in=['discarded','draft'])
+        proposal_list = Proposal.objects.filter(application_type__name='Disturbance').exclude(processing_status__in=[Proposal.PROCESSING_STATUS_DISCARDED, Proposal.PROCESSING_STATUS_DRAFT])
         approval_list = Approval.objects.all().order_by('lodgement_number', '-issue_date').distinct('lodgement_number')
         compliance_list = Compliance.objects.all()
     if searchWords:
@@ -2469,7 +2469,7 @@ def searchKeyWords(searchWords, searchProposal, searchApproval, searchCompliance
 def search_reference(reference_number):
     from disturbance.components.approvals.models import Approval
     from disturbance.components.compliances.models import Compliance
-    proposal_list = Proposal.objects.all().exclude(processing_status__in=['discarded'])
+    proposal_list = Proposal.objects.all().exclude(processing_status__in=[Proposal.PROCESSING_STATUS_DISCARDED,])
     approval_list = Approval.objects.all().order_by('lodgement_number', '-issue_date').distinct('lodgement_number')
     compliance_list = Compliance.objects.all().exclude(processing_status__in=['future'])
     record = {}

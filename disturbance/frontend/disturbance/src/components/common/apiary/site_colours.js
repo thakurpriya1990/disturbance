@@ -55,6 +55,10 @@ export const SiteColours = {
         'fill': '#40e0d0',
         'stroke': '#000000'
     },
+    'discarded': {
+        'fill': '#ffe0d0',
+        'stroke': '#ff0000'
+    },
     'default': {
         'fill': '#40e0d0',
         'stroke': '#000000'
@@ -80,14 +84,30 @@ export function getStatusForColour(feature_or_apiary_site){
         making_payment = feature_or_apiary_site.properties.making_payment
     }
 
-    if (is_vacant){
-        if (status == 'pending'){
-            status = 'pending_vacant'
-        } else {
-            status = 'vacant'
-        }
-    } else if (making_payment){
+    //if (is_vacant){
+    //    // Vacant
+    //    if (status == 'pending'){
+    //        status = 'pending_vacant'
+    //    } else {
+    //        status = 'vacant'
+    //    }
+    //} else {
+    //    // Not vacant
+    //    if (making_payment){
+    //        status = 'making_payment'
+    //    }
+    //}
+    if (making_payment){
         status = 'making_payment'
+    } else {
+        if (is_vacant){
+            // Vacant
+            if (status == 'pending'){
+                status = 'pending_vacant'
+            } else {
+                status = 'vacant'
+            }
+        }
     }
 
     return status
@@ -203,6 +223,20 @@ export function getApiaryFeatureStyle(status, selected=false, stroke_width_when_
                 })
             });
             break;
+        case 'discarded':
+            return new Style({
+                image: new CircleStyle({
+                    radius: existingSiteRadius,
+                    fill: new Fill({
+                        color: SiteColours.discarded.fill
+                    }),
+                    stroke: new Stroke({
+                        color: SiteColours.discarded.stroke,
+                        width: 1 + additional_width
+                    })
+                })
+            });
+            break;
         case 'vacant':
             return new Style({
                 image: new CircleStyle({
@@ -311,6 +345,9 @@ export function getDisplayNameFromStatus(status_name){
             break
         case 'vacant':
             return 'Vacant'
+            break
+        case 'discarded':
+            return 'Discarded'
             break
         default:
             if (status_name.toLowerCase().includes('vacant') && status_name.toLowerCase().includes('pending')){

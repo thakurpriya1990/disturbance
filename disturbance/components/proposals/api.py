@@ -434,18 +434,13 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         template_group = get_template_group(request)
         #import ipdb; ipdb.set_trace()
         if template_group == 'apiary':
-            #qs = self.get_queryset().filter(application_type__apiary_group_application_type=True).exclude(processing_status='discarded')
             qs = self.get_queryset().filter(
                     application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]
-                    ).exclude(processing_status='discarded')
+                    ).exclude(processing_status=Proposal.PROCESSING_STATUS_DISCARDED)
         else:
             qs = self.get_queryset().exclude(
                     application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]
-                    ).exclude(processing_status='discarded')
-            #qs = self.get_queryset().filter(application_type__apiary_group_application_type=False).exclude(processing_status='discarded')
-        #qs = self.get_queryset().exclude(processing_status='discarded')
-        #qs = self.filter_queryset(self.request, qs, self)
-        #qs = self.filter_queryset(qs).order_by('-id')
+                    ).exclude(processing_status=Proposal.PROCESSING_STATUS_DISCARDED)
         qs = self.filter_queryset(qs)
 
         # on the internal organisations dashboard, filter the Proposal/Approval/Compliance datatables by applicant/organisation
@@ -1508,7 +1503,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
     @list_route(methods=['GET',])
     def user_list(self, request, *args, **kwargs):
-        qs = self.get_queryset().exclude(processing_status='discarded')
+        qs = self.get_queryset().exclude(processing_status=Proposal.PROCESSING_STATUS_DISCARDED)
         #serializer = DTProposalSerializer(qs, many=True)
         serializer = ListProposalSerializer(qs,context={'request':request}, many=True)
         return Response(serializer.data)
@@ -1521,7 +1516,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
         https://stackoverflow.com/questions/29128225/django-rest-framework-3-1-breaks-pagination-paginationserializer
         """
-        proposals = self.get_queryset().exclude(processing_status='discarded')
+        proposals = self.get_queryset().exclude(processing_status=Proposal.PROCESSING_STATUS_DISCARDED)
         paginator = DatatablesPageNumberPagination()
         paginator.page_size = proposals.count()
         result_page = paginator.paginate_queryset(proposals, request)
@@ -2238,7 +2233,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                         # This apiary site was submitted at least once
                         # Therefore we have to keep the record of this apiary site
                         apiary_site.latest_proposal_link.site_status = SITE_STATUS_DISCARDED
-                        apiary_site.save()
+                        apiary_site.latest_proposal_link.save()
             return Response(serializer.data,status=http_status)
         except Exception as e:
             print(traceback.print_exc())
