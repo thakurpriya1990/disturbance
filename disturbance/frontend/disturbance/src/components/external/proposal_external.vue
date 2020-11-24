@@ -59,6 +59,7 @@
                     @num_of_sites_south_west_renewal_to_add_as_remainder="update_num_of_sites_south_west_renewal_to_add_as_remainder"
                     @num_of_sites_remote_renewal_to_add_as_remainder="update_num_of_sites_remote_renewal_to_add_as_remainder"
                     @expiry_date_changed="expiry_date_changed"
+                    @total_num_of_sites_on_map_unpaid="total_num_of_sites_on_map_unpaid_changed"
                     @total_num_of_sites_on_map="total_num_of_sites_on_map_changed"
                 />
             </div>
@@ -160,12 +161,32 @@
                                 <input type="button" @click.prevent="save_exit" class="btn btn-primary" value="Save and Exit"/>
                                 <input type="button" @click.prevent="save(true)" class="btn btn-primary" value="Save and Continue"/>
                                 <div v-if="proposal_type_name==='transfer'">
-                                    <input v-if="!isSubmitting" type="button" @click.prevent="submit" class="btn btn-primary" value="Pay and Submit" :disabled="pay_button_disabled"/>
-                                    <button v-else disabled class="btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Submitting</button>
+                                    <template v-if="!isSubmitting">
+                                        <input 
+                                            type="button" 
+                                            @click.prevent="submit" 
+                                            class="btn btn-primary" 
+                                            value="Pay and Submit" 
+                                            :disabled="pay_button_disabled"
+                                        />
+                                    </template>
+                                    <template v-else>
+                                        <button disabled class="btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Submitting</button>
+                                    </template>
                                 </div>
                                 <div v-else>
-                                    <input v-if="!isSubmitting" :disabled="submit_button_disabled" type="button" @click.prevent="submit" class="btn btn-primary" :value="submit_button_text"/>
-                                    <button v-else disabled class="btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Submitting</button>
+                                    <template v-if="!isSubmitting">
+                                        <input 
+                                            type="button" 
+                                            @click.prevent="submit" 
+                                            class="btn btn-primary" 
+                                            :value="submit_button_text"
+                                            :disabled="!total_num_of_sites_on_map > 0"
+                                        />
+                                    </template>
+                                    <template v-else>
+                                        <button disabled class="btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Submitting</button>
+                                    </template>
                                 </div>
 
                                 <input id="save_and_continue_btn" type="hidden" @click.prevent="save(false)" class="btn btn-primary" value="Save Without Confirmation"/>
@@ -248,6 +269,7 @@ export default {
             apiaryTemplateGroup: false,
             dasTemplateGroup: false,
             siteTransferApplicationFee: "0.00",
+            total_num_of_sites_on_map_unpaid: 0,
             total_num_of_sites_on_map: 0,
         }
     },
@@ -258,13 +280,6 @@ export default {
         ApiarySiteTransfer,
     },
     computed: {
-        submit_button_disabled: function() {
-            if (this.total_num_of_sites_on_map > 0){
-                return false
-            } else {
-                return true
-            }
-        },
         amendmentRequestText: function() {
             let requestText = 'An amendment has been requested for this proposal';
             if (this.apiaryTemplateGroup) {
@@ -395,6 +410,9 @@ export default {
     methods: {
         selectedLicenceHolderChanged: function(selectedHolder){
             this.selectedHolder = selectedHolder
+        },
+        total_num_of_sites_on_map_unpaid_changed: function(value){
+            this.total_num_of_sites_on_map_unpaid = value
         },
         total_num_of_sites_on_map_changed: function(value){
             this.total_num_of_sites_on_map = value

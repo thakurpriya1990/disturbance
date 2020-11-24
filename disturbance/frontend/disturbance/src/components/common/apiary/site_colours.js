@@ -99,6 +99,8 @@ export function getStatusForColour(feature_or_apiary_site){
     //}
     if (making_payment){
         status = 'making_payment'
+    } else if (status == 'discarded'){
+        // leave status 'discarded'
     } else {
         if (is_vacant){
             // Vacant
