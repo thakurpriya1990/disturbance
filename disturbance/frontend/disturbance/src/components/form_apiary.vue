@@ -33,6 +33,7 @@
                         @num_of_sites_remote_to_add_as_remainder="num_of_sites_remote_to_add_as_remainder"
                         @num_of_sites_south_west_renewal_to_add_as_remainder="num_of_sites_south_west_renewal_to_add_as_remainder"
                         @num_of_sites_remote_renewal_to_add_as_remainder="num_of_sites_remote_renewal_to_add_as_remainder"
+                        @total_num_of_sites_on_map_unpaid="total_num_of_sites_on_map_unpaid"
                         @total_num_of_sites_on_map="total_num_of_sites_on_map"
                     />
 
@@ -424,6 +425,9 @@
             },
             total_num_of_sites_on_map: function(value){
                 this.$emit('total_num_of_sites_on_map', value)
+            },
+            total_num_of_sites_on_map_unpaid: function(value){
+                this.$emit('total_num_of_sites_on_map_unpaid', value)
             },
             addEventListeners: function () {
                 let vm = this;
