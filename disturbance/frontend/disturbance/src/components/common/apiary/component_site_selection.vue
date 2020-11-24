@@ -189,7 +189,7 @@
                             // Site
                             visible: vm.show_col_site,
                             mRender: function (data, type, apiary_site) {
-                                let status_for_colour = getStatusForColour(apiary_site)
+                                let status_for_colour = getStatusForColour(apiary_site, false)
                                 let fillColour = SiteColours[status_for_colour].fill
                                 let strokeColour = SiteColours[status_for_colour].stroke
                                 let sub_str = ''
@@ -232,7 +232,7 @@
                             // Status
                             visible: vm.show_col_status,
                             mRender: function (data, type, apiary_site){
-                                let dynamic_status = getStatusForColour(apiary_site)
+                                let dynamic_status = getStatusForColour(apiary_site, false)
                                 //let display_name = getDisplayNameFromStatus(apiary_site.properties.status)
                                 let display_name = getDisplayNameFromStatus(dynamic_status)
                                 return display_name

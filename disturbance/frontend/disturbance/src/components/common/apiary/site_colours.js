@@ -67,7 +67,7 @@ export const SiteColours = {
 export default SiteColours
 export let existingSiteRadius = 5
 export let drawingSiteRadius = 7
-export function getStatusForColour(feature_or_apiary_site){
+export function getStatusForColour(feature_or_apiary_site, vacant_suppress_discard = true){
     let status = ''
     let is_vacant = false
     let making_payment = false
@@ -84,30 +84,20 @@ export function getStatusForColour(feature_or_apiary_site){
         making_payment = feature_or_apiary_site.properties.making_payment
     }
 
-    //if (is_vacant){
-    //    // Vacant
-    //    if (status == 'pending'){
-    //        status = 'pending_vacant'
-    //    } else {
-    //        status = 'vacant'
-    //    }
-    //} else {
-    //    // Not vacant
-    //    if (making_payment){
-    //        status = 'making_payment'
-    //    }
-    //}
     if (making_payment){
         status = 'making_payment'
-    } else if (status == 'discarded'){
-        // leave status 'discarded'
     } else {
         if (is_vacant){
             // Vacant
             if (status == 'pending'){
                 status = 'pending_vacant'
             } else {
-                status = 'vacant'
+                if (!vacant_suppress_discard && status == 'discarded'){
+                    // When the site is 'vacant' and 'discarded', status remains the 'discarded'
+                } else {
+                    // Set 'vacant' to the site status
+                    status = 'vacant'
+                }
             }
         }
     }
