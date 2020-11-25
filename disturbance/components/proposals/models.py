@@ -2523,6 +2523,7 @@ class ApiarySiteOnProposal(RevisionedMixin):
     apiary_site = models.ForeignKey('ApiarySite',)
     proposal_apiary = models.ForeignKey('ProposalApiary',)
     apiary_site_status_when_submitted = models.CharField(max_length=40, blank=True)
+    apiary_site_is_vacant_when_submitted = models.BooleanField(default=False)
     for_renewal = models.BooleanField(default=False)
     site_status = models.CharField(default=SITE_STATUS_DRAFT, max_length=20)
     making_payment = models.BooleanField(default=False)
