@@ -46,7 +46,7 @@
                         :show_col_checkbox="false"
                         :show_action_available_unavailable="showActionAvailableUnavailable"
                         :show_col_status="showColStatus"
-                        :show_col_vacant="is_internal"
+                        :show_col_vacant_when_submitted="showVacantWhenSubmitted"
                         :key="component_site_selection_key"
                       />
                 </div>
@@ -264,6 +264,9 @@
             DeedPoll,
         },
         computed:{
+            showVacantWhenSubmitted: function(){
+                return this.is_internal
+            },
             showActionAvailableUnavailable: function() {
                 let show = false
                 if(this.is_external){
