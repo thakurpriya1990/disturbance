@@ -2629,6 +2629,7 @@ class ProposalApiary(RevisionedMixin):
             # if relation.apiary_site.is_vacant:
             #     relation.apiary_site.is_vacant = False
             relation.apiary_site_status_when_submitted = relation.site_status
+            relation.apiary_site_is_vacant_when_submitted = relation.apiary_site.is_vacant
             relation.wkb_geometry_processed = relation.wkb_geometry_draft
             relation.site_category_processed = relation.site_category_draft
             relation.site_status = SITE_STATUS_PENDING
