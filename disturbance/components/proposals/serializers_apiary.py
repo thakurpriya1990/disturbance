@@ -300,6 +300,8 @@ class ApiarySiteOnProposalDraftGeometrySerializer(GeoFeatureModelSerializer):
             'making_payment',
             'stable_coords',
             'application_fee_paid',
+            'apiary_site_status_when_submitted',
+            'apiary_site_is_vacant_when_submitted',
         )
 
     def get_stable_coords(self, obj):
@@ -421,6 +423,8 @@ class ApiarySiteOnProposalProcessedGeometrySerializer(GeoFeatureModelSerializer)
             'previous_site_holder_or_applicant',
             'stable_coords',
             'application_fee_paid',
+            'apiary_site_status_when_submitted',
+            'apiary_site_is_vacant_when_submitted',
         )
 
     def get_stable_coords(self, obj):
