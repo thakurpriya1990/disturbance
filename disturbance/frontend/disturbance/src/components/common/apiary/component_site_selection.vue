@@ -100,6 +100,10 @@
                 type: Boolean,
                 default: false,
             },
+            show_col_vacant_when_submitted: {
+                type: Boolean,
+                default: false,
+            },
             show_view_all_features_button: {
                 type: Boolean,
                 default: true,
@@ -141,7 +145,8 @@
                     'Latitude',
                     'District',
                     'Status',
-                    'Vacant',
+                    'Vacant',  // current status of the 'is_vacant'
+                    'Vacant',  // status of the 'is_vacant' when the application submitted
                     'Previous Site Holder<br>Applicant',
                     'Action',
                 ],
@@ -245,6 +250,18 @@
                                 let status = apiary_site.properties.status
                                 let is_vacant = apiary_site.properties.is_vacant
                                 if(status === 'vacant' || is_vacant === true){
+                                    return '<i class="fa fa-check" aria-hidden="true"></i>'
+                                }
+                                return ''
+                            }
+                        },
+                        {
+                            // Vacant2
+                            visible: vm.show_col_vacant_when_submitted,
+                            mRender: function (data, type, apiary_site) {
+                                let status = apiary_site.properties.status
+                                let is_vacant = apiary_site.properties.apiary_site_is_vacant_when_submitted
+                                if(is_vacant === true){
                                     return '<i class="fa fa-check" aria-hidden="true"></i>'
                                 }
                                 return ''

@@ -60,25 +60,6 @@ class ApiarySiteOnApprovalGeometryExportSerializer(ApiarySiteOnApprovalGeometryS
         )
 
 
-class ApiarySiteOnApprovalGeometrySaveSerializer(GeoFeatureModelSerializer):
-    """
-    For saving
-    """
-    def validate(self, attrs):
-        # TODO: validate 3km radius, etc
-        site_category = get_category(attrs['wkb_geometry'])
-        attrs['site_category'] = site_category
-        return attrs
-
-    class Meta:
-        model = ApiarySiteOnApproval
-        geo_field = 'wkb_geometry'
-        fields = (
-            'wkb_geometry',
-            'site_category',
-        )
-
-
 class ApiarySiteOnApprovalLicenceDocSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(source='apiary_site.id')
     # site_category = serializers.CharField(source='site_category.name')
