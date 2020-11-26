@@ -13,7 +13,7 @@ from rest_framework import serializers
 from disturbance.components.main.decorators import timeit
 from disturbance.components.main.models import CategoryDbca, RegionDbca, DistrictDbca, WaCoast
 from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_APPROVED, SITE_STATUS_TRANSFERRED, RESTRICTED_RADIUS, \
-    SITE_STATUS_PENDING, SITE_STATUS_DISCARDED
+    SITE_STATUS_PENDING, SITE_STATUS_DISCARDED, SITE_STATUS_VACANT
 
 
 def retrieve_department_users():
@@ -175,12 +175,7 @@ def get_region_district(wkb_geometry):
 
 
 def get_vacant_apiary_site():
-    from disturbance.components.proposals.models import ApiarySite, ApiarySiteOnProposal
-
-    # ApiarySite with is_vacant==True and making_payment==False
-    q = Q(making_payment=True)  # Making payment is True from CC screen to success screen
-    q |= Q(site_status=SITE_STATUS_PENDING)  # Once payment success, site_status gets PENDING
-    # qs_vacant_site = ApiarySite.objects.filter(is_vacant=True).exclude(apiarysiteonproposal__in=ApiarySiteOnProposal.objects.filter(q)).distinct()
+    from disturbance.components.proposals.models import ApiarySite
     qs_vacant_site = ApiarySite.objects.filter(is_vacant=True).distinct()
     return qs_vacant_site
 
@@ -193,9 +188,13 @@ def get_qs_vacant_site():
 
     # apiary_site_proposal_ids = qs_vacant_site.all().values('proposal_link_for_vacant__id')
     apiary_site_proposal_ids = qs_vacant_site.all().values('latest_proposal_link__id')
-    apiary_site_proposal_ids2 = qs_vacant_site.filter(latest_proposal_link__isnull=True).values('proposal_link_for_vacant__id')  # When the 'vacant' site is selected, saved, deselected and then saved again, the latest_proposal_link gets None
+    # When the 'vacant' site is selected, saved, deselected and then saved again, the latest_proposal_link gets None
+    # That's why we need following line too to pick up all the vacant sites
+    apiary_site_proposal_ids2 = qs_vacant_site.filter(latest_proposal_link__isnull=True).values('proposal_link_for_vacant__id')
     qs_vacant_site_proposal = ApiarySiteOnProposal.objects.filter(Q(id__in=apiary_site_proposal_ids) | Q(id__in=apiary_site_proposal_ids2))
 
+    # At any moment, either approval_link_for_vacant or proposal_link_for_vacant is True at most.  Never both are True.  (See make_vacant() method of the ApiarySite model)
+    # Therefore qs_vacant_site_proposal and qs_vacant_site_approval shouldn't overlap each other
     apiary_site_approval_ids = qs_vacant_site.all().values('approval_link_for_vacant__id')
     qs_vacant_site_approval = ApiarySiteOnApproval.objects.filter(id__in=apiary_site_approval_ids)
 
@@ -293,3 +292,18 @@ def validate_buffer(wkb_geometry, apiary_sites_to_exclude=None):
     sites = qs_on_approval.exclude(apiary_site__in=apiary_sites_to_exclude).filter(Q(wkb_geometry__distance_lte=(wkb_geometry, Distance(m=RESTRICTED_RADIUS))))
     if sites:
         raise site_too_close_error
+
+
+def get_status_for_export(relation):
+    if relation.apiary_site.is_vacant:
+        return_status = SITE_STATUS_VACANT
+    else:
+        if hasattr(relation, 'making_payment') and relation.making_payment:
+            return_status = SITE_STATUS_PENDING
+        else:
+            if relation.site_status in (
+                    SITE_STATUS_DRAFT, SITE_STATUS_APPROVED, SITE_STATUS_TRANSFERRED, SITE_STATUS_DISCARDED,):
+                raise Exception('Apiary site with wrong status: {} is picked up'.format(relation.site_status))
+            else:
+                return_status = relation.site_status
+    return return_status

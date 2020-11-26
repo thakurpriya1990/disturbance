@@ -531,7 +531,6 @@ class Proposal(RevisionedMixin):
         else:
             return 'submitter'
 
-
     @property
     def reference(self):
         return '{}-{}'.format(self.lodgement_number, self.lodgement_sequence)
@@ -3101,20 +3100,12 @@ class ProposalApiary(RevisionedMixin):
                     )
 
                     if line_items:
-                        # annual_rental_fee = None
-                        # invoice = None
-                        # with transaction.atomic():
-                        #     try:
-                        logger.info('Creating filming fee invoice')
-
                         basket = createCustomBasket(line_items, approval.relevant_applicant_email_user, PAYMENT_SYSTEM_ID)
                         order = CreateInvoiceBasket(
                             payment_method='other', system=PAYMENT_SYSTEM_PREFIX
                         ).create_invoice_and_order(basket, 0, None, None, user=approval.relevant_applicant_email_user,
                                                    invoice_text='Payment Invoice')
                         invoice = Invoice.objects.get(order_number=order.number)
-
-                        print(invoice.reference)
 
                         line_items = make_serializable(line_items)  # Make line items serializable to store in the JSONField
                         annual_rental_fee = AnnualRentalFee.objects.create(
@@ -3125,10 +3116,6 @@ class ProposalApiary(RevisionedMixin):
                             invoice_period_end_date=invoice_period[1],
                             lines=line_items,
                         )
-
-                            # except Exception as e:
-                            #     logger.error('Failed to create annual site fee confirmation')
-                            #     logger.error('{}'.format(e))
 
                         for site in sites_approved:
                             # Store the apiary sites which the invoice created above has been issued for
@@ -3413,7 +3400,7 @@ class ProposalApiary(RevisionedMixin):
             # Reset selected status to make the checkboxes unticked when renewal or so
             apiary_site_on_proposal.workflow_selected_status = False
             apiary_site_on_proposal.save()
-            a_site.is_vacant = False
+            a_site.make_vacant(False, apiary_site_on_proposal)
             a_site.save()
 
             # Apiary Site can be moved by assessor and/or approver
@@ -3652,9 +3639,9 @@ class ApiarySite(models.Model):
         from disturbance.components.approvals.models import ApiarySiteOnApproval
         if isinstance(relation, ApiarySiteOnProposal):
             self.proposal_link_for_vacant = relation if vacant else None
-            self.approval_link_for_vacant = None
+            self.approval_link_for_vacant = None  # make sure either proposal_link_for_vacant or approval_link_for_vacant is True at most.
         elif isinstance(relation, ApiarySiteOnApproval):
-            self.proposal_link_for_vacant = None
+            self.proposal_link_for_vacant = None  # make sure either proposal_link_for_vacant or approval_link_for_vacant is True at most.
             self.approval_link_for_vacant = relation if vacant else None
         self.save()
 
