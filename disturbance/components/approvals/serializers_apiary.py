@@ -1,8 +1,9 @@
+from ledger.accounts.models import EmailUser
 from rest_framework import serializers
 from rest_framework_gis.serializers import GeoFeatureModelSerializer
 
 from disturbance.components.approvals.models import ApiarySiteOnApproval
-from disturbance.components.main.utils import get_category, get_tenure, get_region_district
+from disturbance.components.main.utils import get_category, get_tenure, get_region_district, get_status_for_export
 
 
 class ApiarySiteOnApprovalGeometrySerializer(GeoFeatureModelSerializer):
@@ -53,11 +54,68 @@ class ApiarySiteOnApprovalGeometrySerializer(GeoFeatureModelSerializer):
 
 
 class ApiarySiteOnApprovalGeometryExportSerializer(ApiarySiteOnApprovalGeometrySerializer):
+    status = serializers.SerializerMethodField()
+    category = serializers.SerializerMethodField()
+    surname = serializers.SerializerMethodField()
+    first_name = serializers.SerializerMethodField()
+    address = serializers.SerializerMethodField()
+    telephone = serializers.SerializerMethodField()
+    mobile = serializers.SerializerMethodField()
+    email = serializers.SerializerMethodField()
 
     class Meta(ApiarySiteOnApprovalGeometrySerializer.Meta):
         fields = (
             'id',
+            'status',
+            'category',
+            'surname',
+            'first_name',
+            'address',
+            'telephone',
+            'mobile',
+            'email',
         )
+
+    def get_status(self, relation):
+        return get_status_for_export(relation)
+
+    def get_category(self, relation):
+        return relation.site_category.name
+
+    def get_surname(self, relation):
+        relevant_applicant = relation.approval.relevant_applicant
+        if isinstance(relevant_applicant, EmailUser):
+            return relevant_applicant.last_name
+        else:
+            return relevant_applicant.organisation.name
+
+    def get_first_name(self, relation):
+        relevant_applicant = relation.approval.relevant_applicant
+        if isinstance(relevant_applicant, EmailUser):
+            return relevant_applicant.first_name
+        else:
+            return ''
+
+    def get_address(self, relation):
+        address = relation.approval.relevant_applicant_address
+        return address.summary
+
+    def get_telephone(self, relation):
+        relevant_applicant = relation.approval.relevant_applicant
+        if isinstance(relevant_applicant, EmailUser):
+            return relevant_applicant.phone_number
+        else:
+            return ''
+
+    def get_mobile(self, relation):
+        relevant_applicant = relation.approval.relevant_applicant
+        if isinstance(relevant_applicant, EmailUser):
+            return relevant_applicant.phone_number
+        else:
+            return ''
+
+    def get_email(self, relation):
+        return relation.approval.relevant_applicant_email
 
 
 class ApiarySiteOnApprovalLicenceDocSerializer(serializers.ModelSerializer):
