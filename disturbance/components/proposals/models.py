@@ -531,7 +531,6 @@ class Proposal(RevisionedMixin):
         else:
             return 'submitter'
 
-
     @property
     def reference(self):
         return '{}-{}'.format(self.lodgement_number, self.lodgement_sequence)
@@ -3640,9 +3639,9 @@ class ApiarySite(models.Model):
         from disturbance.components.approvals.models import ApiarySiteOnApproval
         if isinstance(relation, ApiarySiteOnProposal):
             self.proposal_link_for_vacant = relation if vacant else None
-            self.approval_link_for_vacant = None
+            self.approval_link_for_vacant = None  # make sure either proposal_link_for_vacant or approval_link_for_vacant is True at most.
         elif isinstance(relation, ApiarySiteOnApproval):
-            self.proposal_link_for_vacant = None
+            self.proposal_link_for_vacant = None  # make sure either proposal_link_for_vacant or approval_link_for_vacant is True at most.
             self.approval_link_for_vacant = relation if vacant else None
         self.save()
 

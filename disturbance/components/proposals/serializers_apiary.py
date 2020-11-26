@@ -9,9 +9,8 @@ from ledger.settings_base import TIME_ZONE
 from rest_framework_gis.serializers import GeoFeatureModelSerializer
 
 from disturbance.components.approvals.serializers_apiary import ApiarySiteOnApprovalGeometrySerializer
-from disturbance.components.main.decorators import timeit
 from disturbance.components.main.utils import get_category, get_tenure, get_region_district, \
-    get_feature_in_wa_coastline_smoothed, validate_buffer, get_template_group
+    get_feature_in_wa_coastline_smoothed, validate_buffer, get_template_group, get_status_for_export
 from disturbance.components.organisations.serializers import OrganisationSerializer
 from disturbance.components.organisations.models import UserDelegation
 from disturbance.components.proposals.serializers_base import (
@@ -23,7 +22,6 @@ from disturbance.components.proposals.models import (
     Proposal,
     ProposalApiary,
     ProposalApiaryTemporaryUse,
-    #ProposalApiarySiteTransfer,
     ApiaryChecklistQuestion,
     ApiaryChecklistAnswer,
     ProposalApiaryDocument,
@@ -52,7 +50,7 @@ from django.contrib.contenttypes.models import ContentType
 from ledger.accounts.models import EmailUser
 from copy import deepcopy
 
-from disturbance.settings import SITE_STATUS_DRAFT, RESTRICTED_RADIUS
+from disturbance.settings import SITE_STATUS_DRAFT
 
 
 class VersionSerializer(serializers.ModelSerializer):
@@ -328,12 +326,14 @@ class ApiarySiteOnProposalDraftGeometryExportSerializer(ApiarySiteOnProposalDraf
     """
     For export draft
     """
+    status = serializers.SerializerMethodField()
     category = serializers.SerializerMethodField()
     surname = serializers.SerializerMethodField()
     first_name = serializers.SerializerMethodField()
     address = serializers.SerializerMethodField()
     telephone = serializers.SerializerMethodField()
     mobile = serializers.SerializerMethodField()
+    email = serializers.SerializerMethodField()
 
     class Meta(ApiarySiteOnProposalDraftGeometrySerializer.Meta):
         fields = (
@@ -345,42 +345,49 @@ class ApiarySiteOnProposalDraftGeometryExportSerializer(ApiarySiteOnProposalDraf
             'address',
             'telephone',
             'mobile',
+            'email',
         )
 
-    def get_status(self, intermediate_obj):
-        # apiary_site.is_vacant
-        # intermediate_obj.site_status
+    def get_status(self, relation):
+        return get_status_for_export(relation)
 
-        # intermediate_obj.making_payment  <== Same as 'pending'?
-        # SITE_STATUS_DRAFT = 'draft'  <== Should not be picked up
-        # SITE_STATUS_PENDING = 'pending'
-        # SITE_STATUS_APPROVED = 'approved'  <== Should not be picked up
-        # SITE_STATUS_DENIED = 'denied'
-        # SITE_STATUS_CURRENT = 'current'
-        # SITE_STATUS_NOT_TO_BE_REISSUED = 'not_to_be_reissued'
-        # SITE_STATUS_SUSPENDED = 'suspended'  <== Should not be picked up
-        # SITE_STATUS_TRANSFERRED = 'transferred'
-        # SITE_STATUS_DISCARDED = 'discarded'
+    def get_category(self, relation):
+        return relation.site_category_draft.name
 
-        return 'TODO'
+    def get_surname(self, relation):
+        relevant_applicant = relation.proposal_apiary.proposal.relevant_applicant
+        if isinstance(relevant_applicant, EmailUser):
+            return relevant_applicant.last_name
+        else:
+            return relevant_applicant.organisation.name
 
-    def get_category(self, intermediate_obj):
-        return intermediate_obj.site_category_draft.name
+    def get_first_name(self, relation):
+        relevant_applicant = relation.proposal_apiary.proposal.relevant_applicant
+        if isinstance(relevant_applicant, EmailUser):
+            return relevant_applicant.first_name
+        else:
+            return ''
 
-    def get_surname(self, intermediate_obj):
-        return 'TODO'
+    def get_address(self, relation):
+        address = relation.proposal_apiary.proposal.relevant_applicant_address
+        return address.summary
 
-    def get_first_name(self, intermediate_obj):
-        return 'TODO'
+    def get_telephone(self, relation):
+        relevant_applicant = relation.proposal_apiary.proposal.relevant_applicant
+        if isinstance(relevant_applicant, EmailUser):
+            return relevant_applicant.phone_number
+        else:
+            return ''
 
-    def get_address(self, intermediate_obj):
-        return 'TODO'
+    def get_mobile(self, relation):
+        relevant_applicant = relation.proposal_apiary.proposal.relevant_applicant
+        if isinstance(relevant_applicant, EmailUser):
+            return relevant_applicant.phone_number
+        else:
+            return ''
 
-    def get_telephone(self, intermediate_obj):
-        return 'TODO'
-
-    def get_mobile(self, intermediate_obj):
-        return 'TODO'
+    def get_email(self, relation):
+        return relation.proposal_apiary.proposal.relevant_applicant_email
 
 
 class ApiarySiteOnProposalVacantDraftGeometrySerializer(ApiarySiteOnProposalDraftGeometrySerializer):
@@ -451,11 +458,29 @@ class ApiarySiteOnProposalProcessedGeometrySerializer(GeoFeatureModelSerializer)
 
 
 class ApiarySiteOnProposalProcessedGeometryExportSerializer(ApiarySiteOnProposalProcessedGeometrySerializer):
+    """
+    For export draft
+    """
+    status = serializers.SerializerMethodField()
+    category = serializers.SerializerMethodField()
+    # surname = serializers.SerializerMethodField()
+    # first_name = serializers.SerializerMethodField()
+    # address = serializers.SerializerMethodField()
+    # telephone = serializers.SerializerMethodField()
+    # mobile = serializers.SerializerMethodField()
 
     class Meta(ApiarySiteOnProposalProcessedGeometrySerializer.Meta):
         fields = (
             'id',
+            'status',
+            'category',
         )
+
+    def get_status(self, relation):
+        return get_status_for_export(relation)
+
+    def get_category(self, intermediate_obj):
+        return intermediate_obj.site_category_processed.name
 
 
 class ApiarySiteOnProposalVacantProcessedGeometrySerializer(ApiarySiteOnProposalProcessedGeometrySerializer):
