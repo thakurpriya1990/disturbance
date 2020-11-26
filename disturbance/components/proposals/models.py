@@ -2426,7 +2426,7 @@ def searchKeyWords(searchWords, searchProposal, searchApproval, searchCompliance
     from disturbance.components.compliances.models import Compliance
     qs = []
     if is_internal:
-        proposal_list = Proposal.objects.filter(application_type__name='Disturbance').exclude(processing_status__in=['discarded','draft'])
+        proposal_list = Proposal.objects.filter(application_type__name='Disturbance').exclude(processing_status__in=[Proposal.PROCESSING_STATUS_DISCARDED, Proposal.PROCESSING_STATUS_DRAFT])
         approval_list = Approval.objects.all().order_by('lodgement_number', '-issue_date').distinct('lodgement_number')
         compliance_list = Compliance.objects.all()
     if searchWords:
@@ -2469,7 +2469,7 @@ def searchKeyWords(searchWords, searchProposal, searchApproval, searchCompliance
 def search_reference(reference_number):
     from disturbance.components.approvals.models import Approval
     from disturbance.components.compliances.models import Compliance
-    proposal_list = Proposal.objects.all().exclude(processing_status__in=['discarded'])
+    proposal_list = Proposal.objects.all().exclude(processing_status__in=[Proposal.PROCESSING_STATUS_DISCARDED,])
     approval_list = Approval.objects.all().order_by('lodgement_number', '-issue_date').distinct('lodgement_number')
     compliance_list = Compliance.objects.all().exclude(processing_status__in=['future'])
     record = {}
@@ -2523,6 +2523,7 @@ class ApiarySiteOnProposal(RevisionedMixin):
     apiary_site = models.ForeignKey('ApiarySite',)
     proposal_apiary = models.ForeignKey('ProposalApiary',)
     apiary_site_status_when_submitted = models.CharField(max_length=40, blank=True)
+    apiary_site_is_vacant_when_submitted = models.BooleanField(default=False)
     for_renewal = models.BooleanField(default=False)
     site_status = models.CharField(default=SITE_STATUS_DRAFT, max_length=20)
     making_payment = models.BooleanField(default=False)
@@ -2628,6 +2629,7 @@ class ProposalApiary(RevisionedMixin):
             # if relation.apiary_site.is_vacant:
             #     relation.apiary_site.is_vacant = False
             relation.apiary_site_status_when_submitted = relation.site_status
+            relation.apiary_site_is_vacant_when_submitted = relation.apiary_site.is_vacant
             relation.wkb_geometry_processed = relation.wkb_geometry_draft
             relation.site_category_processed = relation.site_category_draft
             relation.site_status = SITE_STATUS_PENDING
@@ -3630,6 +3632,20 @@ class ApiarySite(models.Model):
     def delete(self, using=None, keep_parents=False):
         super(ApiarySite, self).delete(using, keep_parents)
         print('ApiarySite: {}({}) has been deleted.'.format(self.id, self.is_vacant))
+
+    @property
+    def can_be_deleted_from_the_system(self):
+        """
+        We can delete the apiary site from the system only when it has never been applied.
+        """
+        can_be_deleted = False
+
+        if self.proposal_apiary_set.count() <= 1 and self.approval_set.count() == 0 and not self.is_vacant:
+            if not self.latest_proposal_link.application_fee_paid and self.latest_proposal_link.site_status == SITE_STATUS_DRAFT:
+                # application_fee_paid == False means that this apiary site has never been submitted
+                can_be_deleted = True
+
+        return can_be_deleted
 
     def make_vacant(self, vacant, relation):
         self.is_vacant = vacant

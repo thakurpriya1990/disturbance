@@ -300,6 +300,8 @@ class ApiarySiteOnProposalDraftGeometrySerializer(GeoFeatureModelSerializer):
             'making_payment',
             'stable_coords',
             'application_fee_paid',
+            'apiary_site_status_when_submitted',
+            'apiary_site_is_vacant_when_submitted',
         )
 
     def get_stable_coords(self, obj):
@@ -326,11 +328,58 @@ class ApiarySiteOnProposalDraftGeometryExportSerializer(ApiarySiteOnProposalDraf
     """
     For export draft
     """
+    category = serializers.SerializerMethodField()
+    surname = serializers.SerializerMethodField()
+    first_name = serializers.SerializerMethodField()
+    address = serializers.SerializerMethodField()
+    telephone = serializers.SerializerMethodField()
+    mobile = serializers.SerializerMethodField()
 
     class Meta(ApiarySiteOnProposalDraftGeometrySerializer.Meta):
         fields = (
             'id',
+            'status',
+            'category',
+            'surname',
+            'first_name',
+            'address',
+            'telephone',
+            'mobile',
         )
+
+    def get_status(self, intermediate_obj):
+        # apiary_site.is_vacant
+        # intermediate_obj.site_status
+        # intermediate_obj.making_payment
+        # SITE_STATUS_DRAFT = 'draft'
+        # SITE_STATUS_PENDING = 'pending'
+        # SITE_STATUS_APPROVED = 'approved'
+        # SITE_STATUS_DENIED = 'denied'
+        # SITE_STATUS_CURRENT = 'current'
+        # SITE_STATUS_NOT_TO_BE_REISSUED = 'not_to_be_reissued'
+        # SITE_STATUS_SUSPENDED = 'suspended'
+        # SITE_STATUS_TRANSFERRED = 'transferred'
+        # SITE_STATUS_DISCARDED = 'discarded'
+
+        return 'TODO'
+
+    def get_category(self, intermediate_obj):
+        return intermediate_obj.site_category_draft.name
+
+    def get_surname(self, intermediate_obj):
+        return 'TODO'
+
+    def get_first_name(self, intermediate_obj):
+        return 'TODO'
+
+    def get_address(self, intermediate_obj):
+        return 'TODO'
+
+    def get_telephone(self, intermediate_obj):
+        return 'TODO'
+
+    def get_mobile(self, intermediate_obj):
+        return 'TODO'
 
 
 class ApiarySiteOnProposalVacantDraftGeometrySerializer(ApiarySiteOnProposalDraftGeometrySerializer):
@@ -374,6 +423,8 @@ class ApiarySiteOnProposalProcessedGeometrySerializer(GeoFeatureModelSerializer)
             'previous_site_holder_or_applicant',
             'stable_coords',
             'application_fee_paid',
+            'apiary_site_status_when_submitted',
+            'apiary_site_is_vacant_when_submitted',
         )
 
     def get_stable_coords(self, obj):

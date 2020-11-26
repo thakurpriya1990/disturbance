@@ -645,7 +645,10 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
 
 def get_local_date(date_string):
     if date_string:
-        date_utc = datetime.strptime(date_string, '%Y-%m-%dT%H:%M:%S.%fZ')
+        try:
+            date_utc = datetime.strptime(date_string, '%Y-%m-%dT%H:%M:%S.%fZ')
+        except:
+            date_utc = datetime.strptime(date_string, '%Y-%m-%d')
         date_utc = date_utc.replace(tzinfo=pytz.UTC)
         date_wa = date_utc.astimezone(pytz.timezone(TIME_ZONE))
         return date_wa

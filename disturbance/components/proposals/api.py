@@ -32,7 +32,7 @@ from disturbance.components.proposals.models import searchKeyWords, search_refer
     ProposalApiaryTemporaryUse, ApiarySiteOnProposal, PublicLiabilityInsuranceDocument, DeedPollDocument, \
     SupportingApplicationDocument
 from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_APPROVED, SITE_STATUS_CURRENT, SITE_STATUS_DENIED, \
-    SITE_STATUS_NOT_TO_BE_REISSUED, SITE_STATUS_VACANT, SITE_STATUS_TRANSFERRED
+    SITE_STATUS_NOT_TO_BE_REISSUED, SITE_STATUS_VACANT, SITE_STATUS_TRANSFERRED, SITE_STATUS_DISCARDED
 from disturbance.utils import search_tenure
 from disturbance.components.main.utils import (
     check_db_connection,
@@ -327,15 +327,15 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         if template_group == 'apiary':
             #qs = self.get_queryset().filter(application_type__apiary_group_application_type=True)
             qs = self.get_queryset().filter(
-                    application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]
-                    ).exclude(processing_status='discarded')
+                application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]
+            )
         else:
             if is_das_apiary_admin(self.request):
                 qs = self.get_queryset()
             else:
                 qs = self.get_queryset().exclude(
-                        application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]
-                        ).exclude(processing_status='discarded')
+                    application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]
+                )
         #qs = self.filter_queryset(self.request, qs, self)
         #qs = self.filter_queryset(qs).order_by('-id')
         qs = self.filter_queryset(qs)
@@ -434,18 +434,13 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         template_group = get_template_group(request)
         #import ipdb; ipdb.set_trace()
         if template_group == 'apiary':
-            #qs = self.get_queryset().filter(application_type__apiary_group_application_type=True).exclude(processing_status='discarded')
             qs = self.get_queryset().filter(
                     application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]
-                    ).exclude(processing_status='discarded')
+                    ).exclude(processing_status=Proposal.PROCESSING_STATUS_DISCARDED)
         else:
             qs = self.get_queryset().exclude(
                     application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]
-                    ).exclude(processing_status='discarded')
-            #qs = self.get_queryset().filter(application_type__apiary_group_application_type=False).exclude(processing_status='discarded')
-        #qs = self.get_queryset().exclude(processing_status='discarded')
-        #qs = self.filter_queryset(self.request, qs, self)
-        #qs = self.filter_queryset(qs).order_by('-id')
+                    ).exclude(processing_status=Proposal.PROCESSING_STATUS_DISCARDED)
         qs = self.filter_queryset(qs)
 
         # on the internal organisations dashboard, filter the Proposal/Approval/Compliance datatables by applicant/organisation
@@ -1147,16 +1142,20 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        #import ipdb; ipdb.set_trace()
-        if is_internal(self.request): #user.is_authenticated():
-            #return Proposal.objects.all()
-            return Proposal.objects.filter(Q(region__isnull=False)|
-                    Q(application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]))
+
+        if is_internal(self.request):
+            return Proposal.objects.filter(
+                Q(region__isnull=False) |
+                Q(application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE])
+            )
         elif is_customer(self.request):
             user_orgs = [org.id for org in user.disturbance_organisations.all()]
-            #queryset =  Proposal.objects.filter( Q(applicant_id__in = user_orgs) | Q(submitter = user) )
-            queryset =  Proposal.objects.filter(region__isnull=False).filter( Q(applicant_id__in = user_orgs) | Q(submitter = user) )
+            queryset = Proposal.objects.filter(region__isnull=False).filter(
+                Q(applicant_id__in=user_orgs) |
+                Q(submitter=user)
+            ).exclude(processing_status='')
             return queryset
+
         logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return Proposal.objects.none()
 
@@ -1247,22 +1246,16 @@ class ProposalViewSet(viewsets.ModelViewSet):
         application_type_qs = []
         if template_group == 'apiary':
             qs = self.get_queryset().filter(
-                    application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]
-                    ).exclude(processing_status='discarded')
-            #application_type_qs =  ApplicationType.objects.filter(
-             #   name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]).values_list(
-              #      'name', flat=True).distinct()
+                application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]
+            )
             submitter_qs = qs.filter(
-                    submitter__isnull=False).filter(
-                            application_type__name__in=[ApplicationType.APIARY,ApplicationType.SITE_TRANSFER,ApplicationType.TEMPORARY_USE]).distinct(
-                            'submitter__email').values_list('submitter__first_name','submitter__last_name','submitter__email')
+                submitter__isnull=False).filter(
+                    application_type__name__in=[ApplicationType.APIARY,ApplicationType.SITE_TRANSFER,ApplicationType.TEMPORARY_USE]).distinct(
+                    'submitter__email').values_list('submitter__first_name','submitter__last_name','submitter__email')
         else:
             qs = self.get_queryset().exclude(
-                    application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]
-                    ).exclude(processing_status='discarded')
+                application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE])
             region_qs =  qs.filter(region__isnull=False).values_list('region__name', flat=True).distinct()
-            #district_qs =  self.get_queryset().filter(district__isnull=False).values_list('district__name', flat=True).distinct()
-            #activity_qs =  qs.filter(activity__isnull=False).values_list('activity', flat=True).distinct()
             submitter_qs = qs.filter(submitter__isnull=False).distinct(
                             'submitter__email').values_list('submitter__first_name','submitter__last_name','submitter__email')
 
@@ -1510,7 +1503,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
     @list_route(methods=['GET',])
     def user_list(self, request, *args, **kwargs):
-        qs = self.get_queryset().exclude(processing_status='discarded')
+        qs = self.get_queryset().exclude(processing_status=Proposal.PROCESSING_STATUS_DISCARDED)
         #serializer = DTProposalSerializer(qs, many=True)
         serializer = ListProposalSerializer(qs,context={'request':request}, many=True)
         return Response(serializer.data)
@@ -1523,7 +1516,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
         https://stackoverflow.com/questions/29128225/django-rest-framework-3-1-breaks-pagination-paginationserializer
         """
-        proposals = self.get_queryset().exclude(processing_status='discarded')
+        proposals = self.get_queryset().exclude(processing_status=Proposal.PROCESSING_STATUS_DISCARDED)
         paginator = DatatablesPageNumberPagination()
         paginator.page_size = proposals.count()
         result_page = paginator.paginate_queryset(proposals, request)
@@ -2221,13 +2214,26 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-    def destroy(self, request,*args,**kwargs):
+    def destroy(self, request, *args, **kwargs):
         try:
             http_status = status.HTTP_200_OK
             instance = self.get_object()
-            serializer = SaveProposalSerializer(instance,{'processing_status':'discarded', 'previous_application': None},partial=True)
+            serializer = SaveProposalSerializer(instance, {
+                'processing_status': Proposal.PROCESSING_STATUS_DISCARDED,
+                'previous_application': None
+            }, partial=True)
             serializer.is_valid(raise_exception=True)
             self.perform_update(serializer)
+            if instance.proposal_apiary and instance.proposal_apiary.apiary_sites.count():
+                for apiary_site in instance.proposal_apiary.apiary_sites.all():
+                    if apiary_site.can_be_deleted_from_the_system:
+                        # Apiary sites can be actually deleted from the system
+                        apiary_site.delete()
+                    else:
+                        # This apiary site was submitted at least once
+                        # Therefore we have to keep the record of this apiary site
+                        apiary_site.latest_proposal_link.site_status = SITE_STATUS_DISCARDED
+                        apiary_site.latest_proposal_link.save()
             return Response(serializer.data,status=http_status)
         except Exception as e:
             print(traceback.print_exc())

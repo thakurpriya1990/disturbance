@@ -100,6 +100,10 @@
                 type: Boolean,
                 default: false,
             },
+            show_col_vacant_when_submitted: {
+                type: Boolean,
+                default: false,
+            },
             show_view_all_features_button: {
                 type: Boolean,
                 default: true,
@@ -141,7 +145,8 @@
                     'Latitude',
                     'District',
                     'Status',
-                    'Vacant',
+                    'Vacant',  // current status of the 'is_vacant'
+                    'Vacant',  // status of the 'is_vacant' when the application submitted
                     'Previous Site Holder<br>Applicant',
                     'Action',
                 ],
@@ -189,7 +194,7 @@
                             // Site
                             visible: vm.show_col_site,
                             mRender: function (data, type, apiary_site) {
-                                let status_for_colour = getStatusForColour(apiary_site)
+                                let status_for_colour = getStatusForColour(apiary_site, false)
                                 let fillColour = SiteColours[status_for_colour].fill
                                 let strokeColour = SiteColours[status_for_colour].stroke
                                 let sub_str = ''
@@ -232,7 +237,7 @@
                             // Status
                             visible: vm.show_col_status,
                             mRender: function (data, type, apiary_site){
-                                let dynamic_status = getStatusForColour(apiary_site)
+                                let dynamic_status = getStatusForColour(apiary_site, false)
                                 //let display_name = getDisplayNameFromStatus(apiary_site.properties.status)
                                 let display_name = getDisplayNameFromStatus(dynamic_status)
                                 return display_name
@@ -245,6 +250,18 @@
                                 let status = apiary_site.properties.status
                                 let is_vacant = apiary_site.properties.is_vacant
                                 if(status === 'vacant' || is_vacant === true){
+                                    return '<i class="fa fa-check" aria-hidden="true"></i>'
+                                }
+                                return ''
+                            }
+                        },
+                        {
+                            // Vacant2
+                            visible: vm.show_col_vacant_when_submitted,
+                            mRender: function (data, type, apiary_site) {
+                                let status = apiary_site.properties.status
+                                let is_vacant = apiary_site.properties.apiary_site_is_vacant_when_submitted
+                                if(is_vacant === true){
                                     return '<i class="fa fa-check" aria-hidden="true"></i>'
                                 }
                                 return ''

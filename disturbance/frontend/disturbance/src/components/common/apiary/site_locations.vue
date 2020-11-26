@@ -214,10 +214,10 @@
                 num_of_sites_remain_remote_renewal_base: 0,
 
                 // Sites on the map
-                num_of_sites_south_west_applied: 0,
-                num_of_sites_south_west_renewal_applied: 0,
-                num_of_sites_remote_applied: 0,
-                num_of_sites_remote_renewal_applied: 0,
+                num_of_sites_south_west_applied_unpaid: 0,
+                num_of_sites_south_west_renewal_applied_unpaid: 0,
+                num_of_sites_remote_applied_unpaid: 0,
+                num_of_sites_remote_renewal_applied_unpaid: 0,
 
                 // Fee
                 fee_south_west: 0,
@@ -375,12 +375,12 @@
             // 1.1 New
             num_of_sites_remain_south_west: function(){
                 // Number of sites paid left - number of sites to be applied
-                let value = this.num_of_sites_remain_south_west_base - this.num_of_sites_south_west_applied
+                let value = this.num_of_sites_remain_south_west_base - this.num_of_sites_south_west_applied_unpaid
                 value = value >= 0 ? value : 0
                 return value
             },
             num_of_sites_south_west_after_deduction: function(){
-                let value = this.num_of_sites_south_west_applied - this.num_of_sites_remain_south_west_base
+                let value = this.num_of_sites_south_west_applied_unpaid - this.num_of_sites_remain_south_west_base
                 return value >= 0 ? value : 0
             },
             quotient_south_west: function(){
@@ -406,12 +406,12 @@
             // 1.2 Renewal
             num_of_sites_remain_south_west_renewal: function(){
                 // Number of sites paid left
-                let value = this.num_of_sites_remain_south_west_renewal_base - this.num_of_sites_south_west_renewal_applied
+                let value = this.num_of_sites_remain_south_west_renewal_base - this.num_of_sites_south_west_renewal_applied_unpaid
                 value = value >= 0 ? value : 0
                 return value
             },
             num_of_sites_south_west_renewal_after_deduction: function(){
-                let value = this.num_of_sites_south_west_renewal_applied - this.num_of_sites_remain_south_west_renewal_base
+                let value = this.num_of_sites_south_west_renewal_applied_unpaid - this.num_of_sites_remain_south_west_renewal_base
                 return value >= 0 ? value : 0
             },
             quotient_south_west_renewal: function(){
@@ -438,12 +438,12 @@
             // 2. Remote
             // 2.1 New
             num_of_sites_remain_remote: function(){
-                let value = this.num_of_sites_remain_remote_base - this.num_of_sites_remote_applied
+                let value = this.num_of_sites_remain_remote_base - this.num_of_sites_remote_applied_unpaid
                 value = value >= 0 ? value : 0
                 return value
             },
             num_of_sites_remote_after_deduction: function(){
-                let value = this.num_of_sites_remote_applied - this.num_of_sites_remain_remote_base
+                let value = this.num_of_sites_remote_applied_unpaid - this.num_of_sites_remain_remote_base
                 return value >= 0 ? value : 0
             },
             quotient_remote: function(){
@@ -468,12 +468,12 @@
             },
             // 2.2 Renewal
             num_of_sites_remain_remote_renewal: function(){
-                let value = this.num_of_sites_remain_remote_renewal_base - this.num_of_sites_remote_renewal_applied
+                let value = this.num_of_sites_remain_remote_renewal_base - this.num_of_sites_remote_renewal_applied_unpaid
                 value = value >= 0 ? value : 0
                 return value
             },
             num_of_sites_remote_renewal_after_deduction: function(){
-                let value = this.num_of_sites_remote_renewal_applied - this.num_of_sites_remain_remote_renewal_base
+                let value = this.num_of_sites_remote_renewal_applied_unpaid - this.num_of_sites_remain_remote_renewal_base
                 return value >= 0 ? value : 0
             },
             quotient_remote_renewal: function(){
@@ -498,22 +498,29 @@
             },
 
             // Total
+            total_num_of_sites_on_map_unpaid: function(){
+                return this.num_of_sites_south_west_applied_unpaid + 
+                       this.num_of_sites_south_west_renewal_applied_unpaid + 
+                       this.num_of_sites_remote_applied_unpaid + 
+                       this.num_of_sites_remote_renewal_applied_unpaid
+            },
             total_num_of_sites_on_map: function(){
-                return this.num_of_sites_south_west_applied + 
-                       this.num_of_sites_south_west_renewal_applied + 
-                       this.num_of_sites_remote_applied + 
-                       this.num_of_sites_remote_renewal_applied
+                let features = this.drawingLayerSource.getFeatures()
+                return features.length
             }
         },
         watch:{
+            total_num_of_sites_on_map: function() {
+                this.$emit('total_num_of_sites_on_map', this.total_num_of_sites_on_map)
+            },
             existing_sites_loaded: function() {
                 if (this.existing_sites_loaded){
                     this.load_apiary_sites_in_this_proposal()
                     this.displayAllFeatures()
                 }
             },
-            total_num_of_sites_on_map: function() {
-                this.$emit('total_num_of_sites_on_map', this.total_num_of_sites_on_map)
+            total_num_of_sites_on_map_unpaid: function() {
+                this.$emit('total_num_of_sites_on_map_unpaid', this.total_num_of_sites_on_map_unpaid)
             },
             num_of_sites_south_west_to_add_as_remainder: function(){
                 this.$emit('num_of_sites_south_west_to_add_as_remainder', this.num_of_sites_south_west_to_add_as_remainder)
@@ -739,10 +746,10 @@
                 if (this.proposal.application_type === 'Apiary') {
                     remainders = this.proposal.proposal_apiary.site_remainders;
                 }
-                this.num_of_sites_south_west_applied = 0
-                this.num_of_sites_remote_applied = 0
-                this.num_of_sites_south_west_renewal_applied = 0
-                this.num_of_sites_remote_renewal_applied = 0
+                this.num_of_sites_south_west_applied_unpaid = 0
+                this.num_of_sites_remote_applied_unpaid = 0
+                this.num_of_sites_south_west_renewal_applied_unpaid = 0
+                this.num_of_sites_remote_renewal_applied_unpaid = 0
 
                 for (let i=0; i<features.length; i++){
                     console.log(features[i])
@@ -760,28 +767,28 @@
                         if (site_status === 'vacant'){
                             if (site_category == 'south_west'){
                                 console.log('vacant south_west')
-                                this.num_of_sites_south_west_applied += 1
+                                this.num_of_sites_south_west_applied_unpaid += 1
                             } else if (site_category == 'remote'){
                                 console.log('vacant remote')
-                                this.num_of_sites_remote_applied += 1
+                                this.num_of_sites_remote_applied_unpaid += 1
                             }
                         } else {
                             if (new_or_renewal === 'renewal'){
                                 if (site_category == 'south_west'){
                                     console.log('renewal south_west')
-                                    this.num_of_sites_south_west_renewal_applied += 1
+                                    this.num_of_sites_south_west_renewal_applied_unpaid += 1
                                 } else if (site_category == 'remote'){
                                     console.log('renewal remote')
-                                    this.num_of_sites_remote_renewal_applied += 1
+                                    this.num_of_sites_remote_renewal_applied_unpaid += 1
                                 }
                             }
                             if (new_or_renewal === 'new'){
                                 if (site_category == 'south_west'){
                                     console.log('new south_west')
-                                    this.num_of_sites_south_west_applied += 1
+                                    this.num_of_sites_south_west_applied_unpaid += 1
                                 } else if (site_category == 'remote'){
                                     console.log('new remote')
-                                    this.num_of_sites_remote_applied += 1
+                                    this.num_of_sites_remote_applied_unpaid += 1
                                 }
                             }
                         }
@@ -845,16 +852,16 @@
                 } else {
                     if (new_or_renewal === 'new'){
                         if (site_category === 'south_west'){
-                            this.num_of_sites_south_west_applied -= 1
+                            this.num_of_sites_south_west_applied_unpaid -= 1
                         } else {
-                            this.num_of_sites_remote_applied -= 1
+                            this.num_of_sites_remote_applied_unpaid -= 1
                         }
                     }
                     if (new_or_renewal === 'renewal'){
                         if (site_category === 'south_west'){
-                            this.num_of_sites_south_west_renewal_applied -= 1
+                            this.num_of_sites_south_west_renewal_applied_unpaid -= 1
                         } else {
-                            this.num_of_sites_remote_renewal_applied -= 1
+                            this.num_of_sites_remote_renewal_applied_unpaid -= 1
                         }
                     }
                 }
