@@ -350,14 +350,15 @@ class ApiarySiteOnProposalDraftGeometryExportSerializer(ApiarySiteOnProposalDraf
     def get_status(self, intermediate_obj):
         # apiary_site.is_vacant
         # intermediate_obj.site_status
-        # intermediate_obj.making_payment
-        # SITE_STATUS_DRAFT = 'draft'
+
+        # intermediate_obj.making_payment  <== Same as 'pending'?
+        # SITE_STATUS_DRAFT = 'draft'  <== Should not be picked up
         # SITE_STATUS_PENDING = 'pending'
-        # SITE_STATUS_APPROVED = 'approved'
+        # SITE_STATUS_APPROVED = 'approved'  <== Should not be picked up
         # SITE_STATUS_DENIED = 'denied'
         # SITE_STATUS_CURRENT = 'current'
         # SITE_STATUS_NOT_TO_BE_REISSUED = 'not_to_be_reissued'
-        # SITE_STATUS_SUSPENDED = 'suspended'
+        # SITE_STATUS_SUSPENDED = 'suspended'  <== Should not be picked up
         # SITE_STATUS_TRANSFERRED = 'transferred'
         # SITE_STATUS_DISCARDED = 'discarded'
 
