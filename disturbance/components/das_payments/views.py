@@ -100,7 +100,7 @@ class AnnualRentalFeeView(TemplateView):
                 ))
                 return checkout_response
 
-        except Exception, e:
+        except Exception as e:
             logger.error('Error Creating Annual Site Fee: {}'.format(e))
             raise
 
@@ -154,7 +154,7 @@ class ApplicationFeeView(TemplateView):
                 logger.info('{} built payment line item {} for Application Fee and handing over to payment gateway'.format('User {} with id {}'.format(proposal.submitter.get_full_name(),proposal.submitter.id), proposal.id))
                 return checkout_response
 
-        except Exception, e:
+        except Exception as e:
             logger.error('Error Creating Application Fee: {}'.format(e))
             if application_fee:
                 application_fee.delete()

@@ -87,7 +87,7 @@ class ApiaryLicenceReader():
 
         except Exception as e:
             import ipdb; ipdb.set_trace()
-            print e
+            print(e)
 
     def run_migration(self):
         with transaction.atomic():
@@ -190,7 +190,7 @@ class ApiaryLicenceReader():
                     ##   print data['first_name'], data['last_name'], data['email1'], data['abn']
                     ##   print
 
-        except Exception, e:
+        except Exception as e:
             #import ipdb; ipdb.set_trace()
             #logger.info('{}'.format(e))
             if data:
@@ -291,7 +291,7 @@ class ApiaryLicenceReader():
             abn_existing.append(data['abn'])
             print '{}, Existing ABN: {}'.format(count, data['abn'])
             process = False
-        except Exception, e:
+        except Exception as e:
             print '{}, Add ABN: {}'.format(count, data['abn'])
         #print 'DATA: {}'.format(data)
 
@@ -322,7 +322,7 @@ class ApiaryLicenceReader():
                 country=country.code
             ).first()
 
-        except Exception, e:
+        except Exception as e:
             print 'Country 2: {}'.format(data['country'])
             import ipdb; ipdb.set_trace()
             raise
@@ -341,13 +341,13 @@ class ApiaryLicenceReader():
                 }
             )
 
-        except Exception, e:
+        except Exception as e:
             print 'Error creating Organisation: {} - {}'.format(data['licencee'], data['abn'])
             raise
 
         try:
             org, created = Organisation.objects.get_or_create(organisation=lo)
-        except Exception, e:
+        except Exception as e:
             print 'Error: Org: {}'.format(org)
             #raise
 
@@ -360,7 +360,7 @@ class ApiaryLicenceReader():
 
             UserDelegation.objects.filter(organisation=org).delete()
             delegate, created = UserDelegation.objects.get_or_create(organisation=org, user=user)
-        except Exception, e:
+        except Exception as e:
             import ipdb; ipdb.set_trace()
             print 'Delegate Creation Failed: {}'.format(user)
             #raise
@@ -390,7 +390,7 @@ class ApiaryLicenceReader():
                 oc.user_status ='active'
                 oc.save()
 
-        except Exception, e:
+        except Exception as e:
             #import ipdb; ipdb.set_trace()
             print 'Org Contact: {}'.format(user)
             #raise
@@ -526,7 +526,7 @@ class ApiaryLicenceReader():
             apiary_site.latest_proposal_link=intermediary_proposal_site
             apiary_site.save()
 
-        except Exception, e:
+        except Exception as e:
             logger.error('{}'.format(e))
             import ipdb; ipdb.set_trace()
             return None

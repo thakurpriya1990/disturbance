@@ -223,50 +223,50 @@ def compare_data(dict1, dict2, schema):
 
 
 def create_helppage_object(application_type='Disturbance', help_type=HelpPage.HELP_TEXT_EXTERNAL):
-	"""
-	Create a new HelpPage object, with latest help_text/label anchors defined in the latest ProposalType.schema
-	"""
-	try:
-		application_type_id = ApplicationType.objects.get(name=application_type).id
-	except Exception as e:
-		print 'application type: {} does not exist, maybe!'.format(application_type, e)
+    """
+    Create a new HelpPage object, with latest help_text/label anchors defined in the latest ProposalType.schema
+    """
+    try:
+        application_type_id = ApplicationType.objects.get(name=application_type).id
+    except Exception as e:
+        print('application type: {} does not exist, maybe!'.format(application_type, e))
 
-	try:
-		help_page = HelpPage.objects.filter(application_type_id=application_type_id, help_type=help_type).latest('version')
-		next_version = help_page.version + 1
-	except Exception as e:
-		next_version = 1
+    try:
+        help_page = HelpPage.objects.filter(application_type_id=application_type_id, help_type=help_type).latest('version')
+        next_version = help_page.version + 1
+    except Exception as e:
+        next_version = 1
 
-	try:
-		proposal_type = ProposalType.objects.filter(name=application_type).latest('version')
-	except Exception as e:
-		print 'proposal type: {} does not exist, maybe!'.format(application_type, e)
+    try:
+        proposal_type = ProposalType.objects.filter(name=application_type).latest('version')
+    except Exception as e:
+        print('proposal type: {} does not exist, maybe!'.format(application_type, e))
 
 
- 	help_text = 'help_text_url' if help_type==HelpPage.HELP_TEXT_EXTERNAL else 'help_text_assessor_url'
-	help_list = search_keys(proposal_type.schema, search_list=[help_text,'label'])
-	richtext = create_richtext_help(help_list, help_text)
+    help_text = 'help_text_url' if help_type==HelpPage.HELP_TEXT_EXTERNAL else 'help_text_assessor_url'
+    help_list = search_keys(proposal_type.schema, search_list=[help_text,'label'])
+    richtext = create_richtext_help(help_list, help_text)
 
-	HelpPage.objects.create(application_type_id=application_type_id, help_type=help_type, version=next_version, content=richtext)
+    HelpPage.objects.create(application_type_id=application_type_id, help_type=help_type, version=next_version, content=richtext)
 
 def create_richtext_help(help_list=None, help_text='help_text'):
 
-	# for testing
-	#if not help_list:
-	#	pt = ProposalType.objects.all()[4]
-	#	help_list = search_keys(pt.schema, search_list=['help_text','label'])[:3]
+    # for testing
+    #if not help_list:
+    #	pt = ProposalType.objects.all()[4]
+    #	help_list = search_keys(pt.schema, search_list=['help_text','label'])[:3]
 
-	richtext = u''
-	for i in help_list:
-		if i.has_key(help_text) and 'anchor=' in i[help_text]:
-			anchor = i[help_text].split("anchor=")[1].split("\"")[0]
-			#print anchor, i['label']
+    richtext = u''
+    for i in help_list:
+        if i.has_key(help_text) and 'anchor=' in i[help_text]:
+            anchor = i[help_text].split("anchor=")[1].split("\"")[0]
+            #print anchor, i['label']
 
-			richtext += u'<h1><a id="{0}" name="{0}"> {1} </a></h1><p>&nbsp;</p>'.format(anchor, i['label'])
-		else:
-			richtext += u'<h1> {} </h1><p>&nbsp;</p>'.format(i['label'])
+            richtext += u'<h1><a id="{0}" name="{0}"> {1} </a></h1><p>&nbsp;</p>'.format(anchor, i['label'])
+        else:
+            richtext += u'<h1> {} </h1><p>&nbsp;</p>'.format(i['label'])
 
-	return richtext
+    return richtext
 
 def search_keys(dictionary, search_list=['help_text', 'label']):
     """
@@ -298,7 +298,7 @@ def search_keys(dictionary, search_list=['help_text', 'label']):
                         help_list.append({search_item2: j[key_label], search_item1: i[key]})
         except Exception as e:
             #import ipdb; ipdb.set_trace()
-            print e
+            print(e)
 
     return help_list
 
@@ -366,7 +366,7 @@ def search_multiple_keys(dictionary, primary_search='isRequired', search_list=['
 
         except Exception as e:
             #import ipdb; ipdb.set_trace()
-            print e
+            print(e)
 
     return help_list
 
