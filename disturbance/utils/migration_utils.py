@@ -229,7 +229,7 @@ class ApiaryLicenceReader():
             #print '{} {} {}'.format(data['first_name'], data['last_name'], EmailUser.objects.filter(first_name=data['first_name'], last_name=data['last_name']))
             #print data['email1']
         except Exception:
-            print 'user: {}   *********** 1 *********** FAILED'.format(data['email'])
+            print('user: {}   *********** 1 *********** FAILED'.format(data['email']))
             #return
 
         lo=ledger_organisation.objects.filter(abn=data['abn'])
@@ -265,7 +265,7 @@ class ApiaryLicenceReader():
                 ).first()
 
             except Exception:
-                print 'Country 2: {}'.format(data['country'])
+                print('Country 2: {}'.format(data['country']))
                 raise
 
                 lo, created_lo = ledger_organisation.objects.create(
@@ -289,10 +289,10 @@ class ApiaryLicenceReader():
                         contact.save()
 
             abn_existing.append(data['abn'])
-            print '{}, Existing ABN: {}'.format(count, data['abn'])
+            print('{}, Existing ABN: {}'.format(count, data['abn']))
             process = False
         except Exception as e:
-            print '{}, Add ABN: {}'.format(count, data['abn'])
+            print('{}, Add ABN: {}'.format(count, data['abn']))
         #print 'DATA: {}'.format(data)
 
         try:
@@ -323,7 +323,7 @@ class ApiaryLicenceReader():
             ).first()
 
         except Exception as e:
-            print 'Country 2: {}'.format(data['country'])
+            print('Country 2: {}'.format(data['country']))
             import ipdb; ipdb.set_trace()
             raise
 
@@ -342,13 +342,13 @@ class ApiaryLicenceReader():
             )
 
         except Exception as e:
-            print 'Error creating Organisation: {} - {}'.format(data['licencee'], data['abn'])
+            print('Error creating Organisation: {} - {}'.format(data['licencee'], data['abn']))
             raise
 
         try:
             org, created = Organisation.objects.get_or_create(organisation=lo)
         except Exception as e:
-            print 'Error: Org: {}'.format(org)
+            print('Error: Org: {}'.format(org))
             #raise
 
         try:
@@ -362,7 +362,7 @@ class ApiaryLicenceReader():
             delegate, created = UserDelegation.objects.get_or_create(organisation=org, user=user)
         except Exception as e:
             import ipdb; ipdb.set_trace()
-            print 'Delegate Creation Failed: {}'.format(user)
+            print('Delegate Creation Failed: {}'.format(user))
             #raise
 
         try:
@@ -392,7 +392,7 @@ class ApiaryLicenceReader():
 
         except Exception as e:
             #import ipdb; ipdb.set_trace()
-            print 'Org Contact: {}'.format(user)
+            print('Org Contact: {}'.format(user))
             #raise
 
         #return abn_new, abn_existing
