@@ -32,6 +32,7 @@
                     :key="component_site_selection_key"
                     :show_col_checkbox="showColCheckbox"
                     :enable_col_checkbox="false"
+                    :show_col_vacant_when_submitted="true"
                 />
             </FormSection>
         </template>
