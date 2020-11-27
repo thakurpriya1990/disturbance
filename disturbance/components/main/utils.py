@@ -307,3 +307,17 @@ def get_status_for_export(relation):
             else:
                 return_status = relation.site_status
     return return_status
+
+
+def handle_validation_error(e):
+    # if hasattr(e, 'error_dict'):
+    #     raise serializers.ValidationError(repr(e.error_dict))
+    # else:
+    #     raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+    if hasattr(e, 'error_dict'):
+        raise serializers.ValidationError(repr(e.error_dict))
+    else:
+        if hasattr(e, 'message'):
+            raise serializers.ValidationError(e.message)
+        else:
+            raise

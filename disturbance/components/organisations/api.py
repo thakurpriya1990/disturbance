@@ -68,7 +68,7 @@ from disturbance.components.organisations.emails import (
                         send_organisation_id_upload_email_notification,
                         send_organisation_request_email_notification,
                     )
-from disturbance.components.main.utils import get_template_group
+from disturbance.components.main.utils import get_template_group, handle_validation_error
 
 
 class OrganisationViewSet(viewsets.ModelViewSet):
@@ -318,11 +318,7 @@ class OrganisationViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise
         except ValidationError as e:
-            print(traceback.print_exc())
-            if hasattr(e,'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+            handle_validation_error(e)
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
