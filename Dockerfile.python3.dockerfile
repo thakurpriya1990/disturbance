@@ -68,7 +68,7 @@ RUN rm /app/libgeos.py.patch
 
 # Install the project (ensure that frontend projects have been built prior to this step).
 FROM python_libs_cols
-COPY gunicorn.ini manage_co.py ./
+COPY gunicorn.ini manage_ds.py ./
 #COPY timezone /etc/timezone
 RUN echo "Australia/Perth" > /etc/timezone
 ENV TZ=Australia/Perth
@@ -76,7 +76,7 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 RUN touch /app/.env
 COPY .git ./.git
 COPY disturbance ./disturbance
-RUN python manage_co.py collectstatic --noinput
+RUN python manage_ds.py collectstatic --noinput
 
 RUN mkdir /app/tmp/
 RUN chmod 777 /app/tmp/
