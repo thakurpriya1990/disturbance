@@ -7,15 +7,32 @@ ENV DEBUG=True
 ENV TZ=Australia/Perth
 ENV EMAIL_HOST="smtp.corporateict.domain"
 ENV DEFAULT_FROM_EMAIL='no-reply@dbca.wa.gov.au'
-ENV NOTIFICATION_EMAIL='jawaid.mushtaq@dbca.wa.gov.au'
-ENV NON_PROD_EMAIL='brendan.blackford@dbca.wa.gov.au, walter.genuit@dbca.wa.gov.au, katsufumi.shibata@dbca.wa.gov.au, mohammed.ahmed@dbca.wa.gov.au, test_licensing@dpaw.wa.gov.au, jawaid.mushtaq@dbca.wa.gov.au'
+#ENV NOTIFICATION_EMAIL='jawaid.mushtaq@dbca.wa.gov.au'
+#ENV NON_PROD_EMAIL='brendan.blackford@dbca.wa.gov.au, walter.genuit@dbca.wa.gov.au, katsufumi.shibata@dbca.wa.gov.au, mohammed.ahmed@dbca.wa.gov.au, test_licensing@dpaw.wa.gov.au, jawaid.mushtaq@dbca.wa.gov.au'
+#ENV PRODUCTION_EMAIL=False
+#ENV EMAIL_INSTANCE='DEV'
+#ENV SECRET_KEY="ThisisNotRealKey"
+#ENV SITE_PREFIX='cols'
+#ENV SITE_DOMAIN='dbca.wa.gov.au'
+#ENV OSCAR_SHOP_NAME='Parks & Wildlife'
+#ENV BPAY_ALLOWED=False
+ENV NOTIFICATION_EMAIL='brendan.blackford@dbca.wa.gov.au'
+ENV NON_PROD_EMAIL='brendan.blackford@dbca.wa.gov.au, walter.genuit@dbca.wa.gov.au, katsufumi.shibata@dbca.wa.gov.au,test_licensing@dpaw.wa.gov.au,jawaid.mushtaq@dbca.wa.gov.au,kelly.thomas@dbca.wa.gov.au,matthew.king@dbca.wa.gov.au,ashlee.russell@dbca.wa.gov.au,aaron.farr@dbca.wa.gov.au'
 ENV PRODUCTION_EMAIL=False
 ENV EMAIL_INSTANCE='DEV'
 ENV SECRET_KEY="ThisisNotRealKey"
-ENV SITE_PREFIX='cols'
+ENV SITE_PREFIX='das-apiary'
 ENV SITE_DOMAIN='dbca.wa.gov.au'
 ENV OSCAR_SHOP_NAME='Parks & Wildlife'
 ENV BPAY_ALLOWED=False
+ENV APIARY_SUPPORT_EMAIL="apiary@example.com"
+ENV SUPPORT_EMAIL="test@example.com"
+ENV SYSTEM_NAME_SHORT="apiary"
+ENV SITE_DOMAIN="localhost"
+ENV APIARY_URL=[u'apiary-uat-internal.dbca.wa.gov.au',u'apiary-uat.dbca.wa.gov.au',u'localhost:8071']
+ENV SYSTEM_NAME="Disturbance Assessment System"
+ENV APIARY_SYSTEM_NAME="Apiary System"
+ENV PAYMENT_OFFICERS_GROUP="Apiary Payments Officers"
 
 RUN apt-get clean
 RUN apt-get update
@@ -58,7 +75,7 @@ ENV TZ=Australia/Perth
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 RUN touch /app/.env
 COPY .git ./.git
-COPY commercialoperator ./commercialoperator
+COPY disturbance ./disturbance
 RUN python manage_co.py collectstatic --noinput
 
 RUN mkdir /app/tmp/
