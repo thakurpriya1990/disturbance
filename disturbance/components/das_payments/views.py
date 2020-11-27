@@ -67,7 +67,7 @@ class AnnualRentalFeeView(TemplateView):
     def restore_original_format(self, lines):
         for line in lines:
             for key in line:
-                if key in ('price_incl_tax', 'price_excl_tax') and isinstance(line[key], (str, unicode)):
+                if key in ('price_incl_tax', 'price_excl_tax') and isinstance(line[key], (str, bytes)):  # Python 3 renamed the unicode type to str, the old str type has been replaced by bytes
                     amount_f = float(line[key])  # string to float
                     round_f = round_amount_according_to_env(amount_f)
                     decimal_f = Decimal(str(round_f))  # Generate Decimal with 2 decimal places string
