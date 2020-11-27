@@ -258,7 +258,8 @@ def create_richtext_help(help_list=None, help_text='help_text'):
 
     richtext = u''
     for i in help_list:
-        if i.has_key(help_text) and 'anchor=' in i[help_text]:
+        # if i.has_key(help_text) and 'anchor=' in i[help_text]:
+        if help_text in i and 'anchor=' in i[help_text]:
             anchor = i[help_text].split("anchor=")[1].split("\"")[0]
             #print anchor, i['label']
 
