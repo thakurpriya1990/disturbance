@@ -31,7 +31,7 @@ class Command(BaseCommand):
         assessment_days_record= GlobalSettings.objects.filter(key='assessment_reminder_days')
         if assessment_days_record:
             assessment_days_record=assessment_days_record[0]
-            assessment_reminder_days=assessment_days_record.value.encode('UTF-8')
+            assessment_reminder_days=assessment_days_record.value
             assessment_reminder_days=int(assessment_reminder_days)
         else:
             assessment_reminder_days= settings.ASSESSMENT_REMINDER_DAYS

@@ -3,7 +3,7 @@ language: python
 cache: pip
 python:
     - "2.7"
-    - "3.5"
+    - "3.6"
 addons:
     postgresql: "9.6"
 services:
@@ -14,7 +14,8 @@ branches:
         - disturbance_v3
         - apiary
         - apiary_dev
-        
+        - working-3.6
+
 env:
     global:
         - SECRET_KEY=SecretKeyForTravis

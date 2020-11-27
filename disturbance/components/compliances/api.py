@@ -46,6 +46,7 @@ from disturbance.components.compliances.serializers import (
     ComplianceAmendmentRequestSerializer,
     CompAmendmentRequestDisplaySerializer
 )
+from disturbance.components.main.utils import handle_validation_error
 from disturbance.helpers import is_customer, is_internal
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 from disturbance.components.proposals.api import ProposalFilterBackend, ProposalRenderer
@@ -340,7 +341,7 @@ class ComplianceViewSet(viewsets.ModelViewSet):
             raise
         except ValidationError as e:
             print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+            handle_validation_error(e)
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -375,7 +376,7 @@ class ComplianceViewSet(viewsets.ModelViewSet):
             raise
         except ValidationError as e:
             print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+            handle_validation_error(e)
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -538,10 +539,7 @@ class ComplianceAmendmentRequestViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise
         except ValidationError as e:
-            if hasattr(e,'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+            handle_validation_error(e)
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))

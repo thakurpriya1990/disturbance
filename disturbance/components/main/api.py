@@ -18,6 +18,7 @@ from disturbance.components.main.serializers import RegionSerializer, DistrictSe
     ApplicationTypeSerializer, ActivityMatrixSerializer, BookingSettlementReportSerializer, OracleSerializer
 from django.core.exceptions import ValidationError
 
+from disturbance.components.main.utils import handle_validation_error
 from disturbance.settings import PAYMENT_SYSTEM_PREFIX
 
 
@@ -114,7 +115,8 @@ class OracleJob(views.APIView):
             print(traceback.print_exc())
             raise
         except ValidationError as e:
-            raise serializers.ValidationError(repr(e.error_dict)) if hasattr(e, 'error_dict') else serializers.ValidationError(e)
+            handle_validation_error(e)
+            # raise serializers.ValidationError(repr(e.error_dict)) if hasattr(e, 'error_dict') else serializers.ValidationError(e)
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e[0]))

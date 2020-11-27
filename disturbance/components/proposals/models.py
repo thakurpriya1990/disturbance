@@ -2437,7 +2437,7 @@ def searchKeyWords(searchWords, searchProposal, searchApproval, searchCompliance
                         final_results = {}
                         if results:
                             for r in results:
-                                for key, value in r.iteritems():
+                                for key, value in r.items():
                                     final_results.update({'key': key, 'value': value})
                             res = {
                                 'number': p.lodgement_number,
