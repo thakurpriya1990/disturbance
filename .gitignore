@@ -3,7 +3,7 @@
 *.swo
 venv/
 venv2/
-venv3.6/
+venv3/
 node_modules/
 cronjobs
 mooring/cache/*
