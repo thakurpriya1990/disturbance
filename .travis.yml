@@ -14,7 +14,8 @@ branches:
         - disturbance_v3
         - apiary
         - apiary_dev
-        
+        - working-3.6
+
 env:
     global:
         - SECRET_KEY=SecretKeyForTravis
