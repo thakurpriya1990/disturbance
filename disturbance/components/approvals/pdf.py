@@ -178,7 +178,7 @@ def _create_approval(approval_buffer, approval, proposal, copied_to_permit, user
 
     title = ''
     if approval.title:
-        title = approval.title.encode('UTF-8')
+        title = approval.title
 
     #Organization details
 
@@ -330,8 +330,8 @@ def _create_approval(approval_buffer, approval, proposal, copied_to_permit, user
         #     elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
         for item in copied_to_permit:
             for key in item:
-               elements.append(Paragraph(key.encode('UTF-8'), styles['Left']))
-               elements.append(Paragraph(item[key].encode('UTF-8'), styles['Left']))
+               elements.append(Paragraph(key, styles['Left']))
+               elements.append(Paragraph(item[key], styles['Left']))
     else:
         elements.append(Paragraph('There are no management actions.', styles['Left']))
 
@@ -524,7 +524,7 @@ def _create_renewal(renewal_buffer, approval, proposal):
 
     title = ''
     if approval.title:
-        title = approval.title.encode('UTF-8')
+        title = approval.title
 
     # additional information
     '''if approval.additional_information:
