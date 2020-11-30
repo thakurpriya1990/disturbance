@@ -2039,7 +2039,9 @@ class ProposalUserAction(UserAction):
     ACTION_ENTER_CONDITIONS = "Enter requirement"
     ACTION_CREATE_CONDITION_ = "Create requirement {}"
     ACTION_ISSUE_APPROVAL_ = "Issue Approval for proposal {}"
+    ACTION_ISSUE_APIARY_APPROVAL = "Application {} has been approved with start date {}, expirty date {} for the apiary sites {}"
     ACTION_UPDATE_APPROVAL_ = "Update Approval for proposal {}"
+    ACTION_UPDATE_APPROVAL_FOR_PROPOSAL = "Update Approval {} for proposal {}"
     ACTION_EXPIRED_APPROVAL_ = "Expire Approval for proposal {}"
     ACTION_DISCARD_PROPOSAL = "Discard proposal {}"
     ACTION_APPROVAL_LEVEL_DOCUMENT = "Assign Approval level document {}"
@@ -2049,7 +2051,7 @@ class ProposalUserAction(UserAction):
     ACTION_SAVE_ASSESSMENT_ = "Save assessment {}"
     ACTION_CONCLUDE_ASSESSMENT_ = "Conclude assessment {}"
     ACTION_PROPOSED_APPROVAL = "Proposal {} has been proposed for approval"
-    ACTION_PROPOSED_APIARY_APPROVAL = "Proposal {} has been proposed for issue with start date {}, expiry date {} and apiary sites {}"
+    ACTION_PROPOSED_APIARY_APPROVAL = "Proposal {} has been proposed for issue with start date {}, expiry date {} for apiary sites {}"
     ACTION_PROPOSED_APIARY_APPROVAL_SITE_TRANSFER = "Proposal {} has been proposed for issue with originating approval {}, target approval {} and apiary sites {}"
     ACTION_PROPOSED_DECLINE = "Proposal {} has been proposed for decline"
     # Referrals
@@ -2843,35 +2845,32 @@ class ProposalApiary(RevisionedMixin):
     # ProposalApiary final approval
     def final_approval(self,request,details,preview=False):
         from disturbance.components.approvals.models import Approval
-        #with transaction.atomic():
         try:
-
-            #approval = None
-            #approval = self.retrieve_approval()
-            created = None
+            approval_created = None
             if not self.proposal.can_assess(request.user):
                 raise exceptions.ProposalNotAuthorized()
-            if self.proposal.processing_status != 'with_approver':
+            if self.proposal.processing_status != Proposal.PROCESSING_STATUS_WITH_APPROVER:
                 raise ValidationError('You cannot issue the approval if it is not with an approver')
-            #if not self.applicant.organisation.postal_address:
             if not self.proposal.relevant_applicant_address:
                 raise ValidationError('The applicant needs to have set their postal address before approving this proposal.')
             start_date = details.get('start_date').strftime('%d/%m/%Y') if details.get('start_date') else None
             expiry_date = details.get('expiry_date').strftime('%d/%m/%Y') if details.get('expiry_date') else None
             self.proposal.proposed_issuance_approval = {
-                    'start_date' : start_date,
-                    'expiry_date' : expiry_date,
-                    'details' : details.get('details'),
-                    'cc_email' : details.get('cc_email'),
+                    'start_date': start_date,
+                    'expiry_date': expiry_date,
+                    'details': details.get('details'),
+                    'cc_email': details.get('cc_email'),
             }
+            sites_received = request.data.get('apiary_sites', [])
+            sites_approved = [site for site in sites_received if site['checked']]
+            if len(sites_approved) == 0:
+                raise ValidationError("There must be at least one apiary site to approve")
             self.save()
 
             approval = None
-            if self.proposal.application_type.name == 'Apiary':
-            #if self.proposal.application_type.name == ApplicationType.APIARY:
+            if self.proposal.application_type.name == ApplicationType.APIARY:
                 approval = self.retrieve_approval
-            elif self.proposal.application_type.name == 'Site Transfer':
-            #elif self.proposal.application_type.name == ApplicationType.SITE_TRANSFER:
+            elif self.proposal.application_type.name == ApplicationType.SITE_TRANSFER:
                 #approval = self.proposal.approval
                 target_approval = self.target_approval
                 originating_approval = self.originating_approval
@@ -2902,381 +2901,375 @@ class ProposalApiary(RevisionedMixin):
                     self.target_approval.save()
 
             self.proposal.proposed_decline_status = False
-            self.proposal.processing_status = 'approved'
-            self.proposal.customer_status = 'approved'
+            self.proposal.processing_status = Proposal.PROCESSING_STATUS_APPROVED
+            self.proposal.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
             # Log proposal action
-            self.proposal.log_user_action(ProposalUserAction.ACTION_ISSUE_APPROVAL_.format(self.proposal.id), request)
-            # Log entry for organisation
-            if self.proposal.applicant:
-                self.proposal.applicant.log_user_action(ProposalUserAction.ACTION_ISSUE_APPROVAL_.format(self.proposal.id), request)
-            #import ipdb;ipdb.set_trace()
 
-            if self.proposal.processing_status == 'approved':
-                #import ipdb; ipdb.set_trace()
-                checking_proposal = self.proposal
+            checking_proposal = self.proposal
 
-                if self.proposal.proposal_type == 'amendment':
-                    # TODO - fix for apiary approval
-                    pass
-                #    if self.proposal.previous_application:
-                #        previous_approval = self.proposal.previous_application.approval
-                #        approval,created = Approval.objects.update_or_create(
-                #            current_proposal = checking_proposal,
-                #            defaults = {
-                #                #'activity' : self.activity,
-                #                #'region' : self.region,
-                #                #'tenure' : self.tenure,
-                #                #'title' : self.title,
-                #                'issue_date' : timezone.now(),
-                #                'expiry_date' : details.get('expiry_date'),
-                #                'start_date' : details.get('start_date'),
-                #                'applicant' : self.proposal.applicant,
-                #                'proxy_applicant' : self.proposal.proxy_applicant,
-                #                'lodgement_number': previous_approval.lodgement_number,
-                #                'apiary_approval': self.proposal.apiary_group_application_type,
-                #                #'extracted_fields' = JSONField(blank=True, null=True)
-                #            }
-                #        )
-                #        if created:
-                #            previous_approval.replaced_by = approval
-                #            previous_approval.save()
-                #            # Get apiary sites from proposal
-                #            #if self.proposal.application_type == ApplicationType.APIARY:
-                #            #    for site in self.apiary_sites.all():
-                #            #        site.approval = approval
-                #            #elif self.proposal.application_type == ApplicationType.SITE_TRANSFER:
-                #            #    for site in self.apiary_site_transfer.apiary_sites.all():
-                #            #        site.approval = approval
-                #            for site in self.apiary_sites.all():
-                #                site.approval = approval
+            if self.proposal.proposal_type == 'amendment':
+                # TODO - fix for apiary approval
+                pass
+            #    if self.proposal.previous_application:
+            #        previous_approval = self.proposal.previous_application.approval
+            #        approval,created = Approval.objects.update_or_create(
+            #            current_proposal = checking_proposal,
+            #            defaults = {
+            #                #'activity' : self.activity,
+            #                #'region' : self.region,
+            #                #'tenure' : self.tenure,
+            #                #'title' : self.title,
+            #                'issue_date' : timezone.now(),
+            #                'expiry_date' : details.get('expiry_date'),
+            #                'start_date' : details.get('start_date'),
+            #                'applicant' : self.proposal.applicant,
+            #                'proxy_applicant' : self.proposal.proxy_applicant,
+            #                'lodgement_number': previous_approval.lodgement_number,
+            #                'apiary_approval': self.proposal.apiary_group_application_type,
+            #                #'extracted_fields' = JSONField(blank=True, null=True)
+            #            }
+            #        )
+            #        if created:
+            #            previous_approval.replaced_by = approval
+            #            previous_approval.save()
+            #            # Get apiary sites from proposal
+            #            #if self.proposal.application_type == ApplicationType.APIARY:
+            #            #    for site in self.apiary_sites.all():
+            #            #        site.approval = approval
+            #            #elif self.proposal.application_type == ApplicationType.SITE_TRANSFER:
+            #            #    for site in self.apiary_site_transfer.apiary_sites.all():
+            #            #        site.approval = approval
+            #            for site in self.apiary_sites.all():
+            #                site.approval = approval
 
-                #import ipdb; ipdb.set_trace()
-                if self.proposal.application_type.name == ApplicationType.SITE_TRANSFER:
-                    # approval must already exist - we reissue with same start and expiry dates
-                    # does thhis need to be reissued with self.reissue_approval() ?
-                    #if originating_approval.reissued:
-                     #   originating_approval.expiry_date = details.get('expiry_date')
-                      #  originating_approval.start_date = details.get('start_date')
+            #import ipdb; ipdb.set_trace()
+            if self.proposal.application_type.name == ApplicationType.SITE_TRANSFER:
+                # approval must already exist - we reissue with same start and expiry dates
+                # does thhis need to be reissued with self.reissue_approval() ?
+                #if originating_approval.reissued:
+                 #   originating_approval.expiry_date = details.get('expiry_date')
+                  #  originating_approval.start_date = details.get('start_date')
+                # always reset this flag
+                #originating_approval.reissued = False
+                #self.proposal.proposed_issuance_approval['start_date'] = originating_approval.start_date.strftime('%d/%m/%Y')
+                #self.proposal.proposed_issuance_approval['expiry_date'] = originating_approval.expiry_date.strftime('%d/%m/%Y')
+                #self.proposal.proposed_issuance_approval['details'] = ''
+                #self.proposal.proposed_issuance_approval['cc_email'] = ''
+                #originating_approval.save()
+                #target_approval.current_proposal = checking_proposal
+                #target_approval.reissued = False
+                #target_approval.save()
+                if preview:
+                    # do this instead of generate compliances section below
+                    self.link_apiary_approval_requirements(originating_approval)
+                    self.link_apiary_approval_requirements(target_approval)
+            else:
+                # Apiary approval
+                if not approval:
+                    # There are no existing approvals.  Create a new one.
+                    approval, approval_created = Approval.objects.update_or_create(
+                        current_proposal = checking_proposal,
+                        defaults = {
+                        #'activity' : self.activity,
+                        #'region' : self.region.name,
+                        #'tenure' : self.tenure.name,
+                        #'title' : self.title,
+                        'issue_date' : timezone.now(),
+                        'expiry_date' : details.get('expiry_date'),
+                        'start_date' : details.get('start_date'),
+                        'applicant' : self.proposal.applicant,
+                        'proxy_applicant' : self.proposal.proxy_applicant,
+                        'apiary_approval': self.proposal.apiary_group_application_type,
+                        #'extracted_fields' = JSONField(blank=True, null=True)
+                        }
+                    )
+                    if approval_created:
+                        from disturbance.components.approvals.models import ApprovalUserAction
+                        ApprovalUserAction.log_action(approval, ApprovalUserAction.ACTION_CREATE_APPROVAL.format(approval.id), request.user)
+                else:
+                    approval.issue_date = timezone.now()
+                    # ensure current_proposal is updated with this proposal
+                    #if self.proposal.application_type.name != ApplicationType.SITE_TRANSFER:
+                    approval.current_proposal = checking_proposal
+                    if approval.reissued:
+                        approval.expiry_date = details.get('expiry_date')
+                        approval.start_date = details.get('start_date')
+                    elif self.proposal.proposal_type == 'renewal':
+                        approval.expiry_date = details.get('expiry_date')
                     # always reset this flag
-                    #originating_approval.reissued = False
-                    #self.proposal.proposed_issuance_approval['start_date'] = originating_approval.start_date.strftime('%d/%m/%Y')
-                    #self.proposal.proposed_issuance_approval['expiry_date'] = originating_approval.expiry_date.strftime('%d/%m/%Y')
+                    approval.renewal_sent = False  # For the apiary, we have to rest this to False for the next renewal
+                    #self.proposal.proposed_issuance_approval['start_date'] = approval.start_date.strftime('%d/%m/%Y')
+                    #self.proposal.proposed_issuance_approval['expiry_date'] = approval.expiry_date.strftime('%d/%m/%Y')
                     #self.proposal.proposed_issuance_approval['details'] = ''
                     #self.proposal.proposed_issuance_approval['cc_email'] = ''
-                    #originating_approval.save()
-                    #target_approval.current_proposal = checking_proposal
-                    #target_approval.reissued = False
-                    #target_approval.save()
-                    if preview:
-                        # do this instead of generate compliances section below
-                        self.link_apiary_approval_requirements(originating_approval)
-                        self.link_apiary_approval_requirements(target_approval)
-
-                # Apiary approval
-                else:
-                    if not approval:
-                        # There are no existing approvals.  Create a new one.
-                        approval, created = Approval.objects.update_or_create(
-                            current_proposal = checking_proposal,
-                            defaults = {
-                            #'activity' : self.activity,
-                            #'region' : self.region.name,
-                            #'tenure' : self.tenure.name,
-                            #'title' : self.title,
-                            'issue_date' : timezone.now(),
-                            'expiry_date' : details.get('expiry_date'),
-                            'start_date' : details.get('start_date'),
-                            'applicant' : self.proposal.applicant,
-                            'proxy_applicant' : self.proposal.proxy_applicant,
-                            'apiary_approval': self.proposal.apiary_group_application_type,
-                            #'extracted_fields' = JSONField(blank=True, null=True)
-                            }
-                        )
-                        if created:
-                            from disturbance.components.approvals.models import ApprovalUserAction
-                            ApprovalUserAction.log_action(approval, ApprovalUserAction.ACTION_CREATE_APPROVAL.format(approval.id), request.user)
-                    else:
-                        approval.issue_date = timezone.now()
-                        # ensure current_proposal is updated with this proposal
-                        #if self.proposal.application_type.name != ApplicationType.SITE_TRANSFER:
-                        approval.current_proposal = checking_proposal
-                        if approval.reissued:
-                            approval.expiry_date = details.get('expiry_date')
-                            approval.start_date = details.get('start_date')
-                        elif self.proposal.proposal_type == 'renewal':
-                            approval.expiry_date = details.get('expiry_date')
-                        # always reset this flag
-                        approval.renewal_sent = False  # For the apiary, we have to rest this to False for the next renewal
-                        #self.proposal.proposed_issuance_approval['start_date'] = approval.start_date.strftime('%d/%m/%Y')
-                        #self.proposal.proposed_issuance_approval['expiry_date'] = approval.expiry_date.strftime('%d/%m/%Y')
-                        #self.proposal.proposed_issuance_approval['details'] = ''
-                        #self.proposal.proposed_issuance_approval['cc_email'] = ''
-                        approval.save()
-                    if preview:
-                        # do this instead of generate compliances section below
-                        self.link_apiary_approval_requirements(approval)
+                    approval.save()
+                if preview:
+                    # do this instead of generate compliances section below
+                    self.link_apiary_approval_requirements(approval)
 
 
-                # Get apiary sites from proposal
-                #if self.proposal.application_type == ApplicationType.APIARY:
-                #    for site in self.proposal_apiary.apiary_sites.all():
-                #        site.approval = approval
-                #elif self.proposal.application_type == ApplicationType.SITE_TRANSFER:
-                #    for site in self.apiary_site_transfer.apiary_sites.all():
-                #        site.approval = approval
-                #import ipdb;ipdb.set_trace(:
-                # for site in self.apiary_sites.all():
-                if self.proposal.application_type.name == ApplicationType.SITE_TRANSFER:
-                    #import ipdb; ipdb.set_trace()
-                    # updated apiary_site.selected with 'checked' flag status
-                    apiary_sites = request.data.get('apiary_sites', [])
-                    for apiary_site in apiary_sites:
-                        transfer_site = SiteTransferApiarySite.objects.get(
-                                proposal_apiary=self,
-                                apiary_site_on_approval__apiary_site_id=apiary_site.get('id')
-                                )
-                        transfer_site.internal_selected = apiary_site.get('checked') if transfer_site.customer_selected else False
-                        transfer_site.save()
-                    # update approval for all selected apiary sites
-                    transfer_sites = SiteTransferApiarySite.objects.filter(
+            # Get apiary sites from proposal
+            #if self.proposal.application_type == ApplicationType.APIARY:
+            #    for site in self.proposal_apiary.apiary_sites.all():
+            #        site.approval = approval
+            #elif self.proposal.application_type == ApplicationType.SITE_TRANSFER:
+            #    for site in self.apiary_site_transfer.apiary_sites.all():
+            #        site.approval = approval
+            #import ipdb;ipdb.set_trace(:
+            # for site in self.apiary_sites.all():
+            if self.proposal.application_type.name == ApplicationType.SITE_TRANSFER:
+                #import ipdb; ipdb.set_trace()
+                # updated apiary_site.selected with 'checked' flag status
+                apiary_sites = request.data.get('apiary_sites', [])
+                for apiary_site in apiary_sites:
+                    transfer_site = SiteTransferApiarySite.objects.get(
                             proposal_apiary=self,
-                            internal_selected=True,
-                            customer_selected=True
+                            apiary_site_on_approval__apiary_site_id=apiary_site.get('id')
                             )
-                    for site_transfer_apiary_site in transfer_sites:
-                        relation_original = site_transfer_apiary_site.apiary_site_on_approval
-                        from disturbance.components.approvals.models import ApiarySiteOnApproval
-                        relation_target, created = ApiarySiteOnApproval.objects.get_or_create(
-                            apiary_site=relation_original.apiary_site,
-                            approval=target_approval,
+                    transfer_site.internal_selected = apiary_site.get('checked') if transfer_site.customer_selected else False
+                    transfer_site.save()
+                # update approval for all selected apiary sites
+                transfer_sites = SiteTransferApiarySite.objects.filter(
+                        proposal_apiary=self,
+                        internal_selected=True,
+                        customer_selected=True
                         )
-                        if relation_original.site_status != SITE_STATUS_TRANSFERRED:  # Reissue both licences
-                            relation_target.site_status = relation_original.site_status  # Copy the site status from the original to the target
-                            # if at least one site is transferred, both licences should be reissued
-                            self.reissue_originating_approval = True
-                            self.reissue_target_approval = True
-                        relation_original.site_status = SITE_STATUS_TRANSFERRED  # Set the site status of the original site to 'transferred'
-                        relation_original.available = False
-                        relation_original.save()
-                        relation_target.wkb_geometry = relation_original.wkb_geometry
-                        relation_target.site_category = relation_original.site_category
-                        relation_target.save()
-                        self.save()
-                else:
-                    # could this be refactored into a separate method?
-                    from disturbance.management.commands.send_annual_rental_fee_invoice import get_annual_rental_fee_period
-                    from disturbance.components.das_payments.models import AnnualRentalFeePeriod
-                    from disturbance.components.das_payments.utils import generate_line_items_for_annual_rental_fee
-                    from disturbance.management.commands.send_annual_rental_fee_invoice import make_serializable
-                    from disturbance.components.das_payments.models import AnnualRentalFee, AnnualRentalFeeApiarySite
-                    from disturbance.components.approvals.email import send_annual_rental_fee_awaiting_payment_confirmation
-                    # from disturbance.management.commands.send_annual_rental_fee_invoice import get_apiary_sites_to_be_charged
+                for site_transfer_apiary_site in transfer_sites:
+                    relation_original = site_transfer_apiary_site.apiary_site_on_approval
+                    from disturbance.components.approvals.models import ApiarySiteOnApproval
+                    relation_target, asoa_created = ApiarySiteOnApproval.objects.get_or_create(
+                        apiary_site=relation_original.apiary_site,
+                        approval=target_approval,
+                    )
+                    if relation_original.site_status != SITE_STATUS_TRANSFERRED:  # Reissue both licences
+                        relation_target.site_status = relation_original.site_status  # Copy the site status from the original to the target
+                        # if at least one site is transferred, both licences should be reissued
+                        self.reissue_originating_approval = True
+                        self.reissue_target_approval = True
+                    relation_original.site_status = SITE_STATUS_TRANSFERRED  # Set the site status of the original site to 'transferred'
+                    relation_original.available = False
+                    relation_original.save()
+                    relation_target.wkb_geometry = relation_original.wkb_geometry
+                    relation_target.site_category = relation_original.site_category
+                    relation_target.save()
+                    self.save()
+            else:
+                # could this be refactored into a separate method?
+                from disturbance.management.commands.send_annual_rental_fee_invoice import get_annual_rental_fee_period
+                from disturbance.components.das_payments.models import AnnualRentalFeePeriod
+                from disturbance.components.das_payments.utils import generate_line_items_for_annual_rental_fee
+                from disturbance.management.commands.send_annual_rental_fee_invoice import make_serializable
+                from disturbance.components.das_payments.models import AnnualRentalFee, AnnualRentalFeeApiarySite
+                from disturbance.components.approvals.email import send_annual_rental_fee_awaiting_payment_confirmation
 
-                    count_approved_site = 0
-                    sites_received = request.data.get('apiary_sites', [])
+                # sites_received = request.data.get('apiary_sites', [])
+                # sites_approved = [site for site in sites_received if site['checked']]
+                # if len(sites_approved) == 0:
+                #     raise ValidationError("There must be at least one apiary site to approve")
 
-                    # Check the number of sites to be approved
-                    sites_approved = [site for site in sites_received if site['checked']]
-                    if len(sites_approved) == 0:
-                        raise ValidationError("There must be at least one apiary site to approve")
+                self._update_apiary_sites(approval, sites_received, request)
 
-                    self._update_apiary_sites(approval, sites_received, request)
+                # Check the current annual site fee period
+                # Determine the start and end date of the annual site fee, for which the invoices should be issued
+                today_now_local = datetime.datetime.now(pytz.timezone(TIME_ZONE))
+                today_date_local = today_now_local.date()
+                period_start_date, period_end_date = get_annual_rental_fee_period(today_date_local)
 
-                    # Check the current annual site fee period
-                    # Determine the start and end date of the annual site fee, for which the invoices should be issued
-                    today_now_local = datetime.datetime.now(pytz.timezone(TIME_ZONE))
-                    today_date_local = today_now_local.date()
-                    period_start_date, period_end_date = get_annual_rental_fee_period(today_date_local)
+                # Retrieve annual site fee period object for the period calculated above
+                # This period should not overwrap the existings, otherwise you will need a refund
+                annual_rental_fee_period, perioed_created = AnnualRentalFeePeriod.objects.get_or_create(period_start_date=period_start_date, period_end_date=period_end_date)
 
-                    # Retrieve annual site fee period object for the period calculated above
-                    # This period should not overwrap the existings, otherwise you will need a refund
-                    annual_rental_fee_period, created = AnnualRentalFeePeriod.objects.get_or_create(period_start_date=period_start_date, period_end_date=period_end_date)
+                line_items, apiary_sites_charged, invoice_period = generate_line_items_for_annual_rental_fee(
+                    approval,
+                    today_now_local,
+                    (annual_rental_fee_period.period_start_date, annual_rental_fee_period.period_end_date),
+                    sites_approved
+                )
 
-                    line_items, apiary_sites_charged, invoice_period = generate_line_items_for_annual_rental_fee(
-                        approval,
-                        today_now_local,
-                        (annual_rental_fee_period.period_start_date, annual_rental_fee_period.period_end_date),
-                        sites_approved
+                if line_items:
+                    basket = createCustomBasket(line_items, approval.relevant_applicant_email_user, PAYMENT_SYSTEM_ID)
+                    order = CreateInvoiceBasket(
+                        payment_method='other', system=PAYMENT_SYSTEM_PREFIX
+                    ).create_invoice_and_order(basket, 0, None, None, user=approval.relevant_applicant_email_user,
+                                               invoice_text='Payment Invoice')
+                    invoice = Invoice.objects.get(order_number=order.number)
+
+                    line_items = make_serializable(line_items)  # Make line items serializable to store in the JSONField
+                    annual_rental_fee = AnnualRentalFee.objects.create(
+                        approval=approval,
+                        annual_rental_fee_period=annual_rental_fee_period,
+                        invoice_reference=invoice.reference,
+                        invoice_period_start_date=invoice_period[0],
+                        invoice_period_end_date=invoice_period[1],
+                        lines=line_items,
                     )
 
-                    if line_items:
-                        basket = createCustomBasket(line_items, approval.relevant_applicant_email_user, PAYMENT_SYSTEM_ID)
-                        order = CreateInvoiceBasket(
-                            payment_method='other', system=PAYMENT_SYSTEM_PREFIX
-                        ).create_invoice_and_order(basket, 0, None, None, user=approval.relevant_applicant_email_user,
-                                                   invoice_text='Payment Invoice')
-                        invoice = Invoice.objects.get(order_number=order.number)
+                    for site in sites_approved:
+                        # Store the apiary sites which the invoice created above has been issued for
+                        apiary_site = ApiarySite.objects.get(id=site['id'])
+                        annual_rental_fee_apiary_site = AnnualRentalFeeApiarySite(apiary_site=apiary_site, annual_rental_fee=annual_rental_fee)
+                        annual_rental_fee_apiary_site.save()
 
-                        line_items = make_serializable(line_items)  # Make line items serializable to store in the JSONField
-                        annual_rental_fee = AnnualRentalFee.objects.create(
-                            approval=approval,
-                            annual_rental_fee_period=annual_rental_fee_period,
-                            invoice_reference=invoice.reference,
-                            invoice_period_start_date=invoice_period[0],
-                            invoice_period_end_date=invoice_period[1],
-                            lines=line_items,
-                        )
+                        # Add approved sites to the existing temporary use proposal with status 'draft'
+                        proposal_apiary_temporary_use_qs = ProposalApiaryTemporaryUse.objects.filter(loaning_approval=approval, proposal__processing_status=Proposal.PROCESSING_STATUS_DRAFT)
+                        for proposal_apiary_temporary_use in proposal_apiary_temporary_use_qs:
+                            temp_use_apiary_site, temp_created = TemporaryUseApiarySite.objects.get_or_create(apiary_site=site, proposal_apiary_temporary_use=proposal_apiary_temporary_use)
 
-                        for site in sites_approved:
-                            # Store the apiary sites which the invoice created above has been issued for
-                            apiary_site = ApiarySite.objects.get(id=site['id'])
-                            annual_rental_fee_apiary_site = AnnualRentalFeeApiarySite(apiary_site=apiary_site, annual_rental_fee=annual_rental_fee)
-                            annual_rental_fee_apiary_site.save()
+                    if not preview:
+                        email_data = send_annual_rental_fee_awaiting_payment_confirmation(approval, annual_rental_fee, invoice)
+                    # TODO: Add comms log
 
-                            # Add approved sites to the existing temporary use proposal with status 'draft'
-                            proposal_apiary_temporary_use_qs = ProposalApiaryTemporaryUse.objects.filter(loaning_approval=approval, proposal__processing_status=Proposal.PROCESSING_STATUS_DRAFT)
-                            for proposal_apiary_temporary_use in proposal_apiary_temporary_use_qs:
-                                temp_use_apiary_site, created = TemporaryUseApiarySite.objects.get_or_create(apiary_site=site, proposal_apiary_temporary_use=proposal_apiary_temporary_use)
+                #print approval,approval.id, created
+            # Generate compliances
+            #self.generate_compliances(approval, request)
+            if self.proposal.application_type.name == ApplicationType.APIARY and not preview:
+                from disturbance.components.compliances.models import Compliance, ComplianceUserAction
+                if approval_created:
+                    # ProposalType set during def create api method
+                    #if self.proposal.proposal_type == 'amendment':
+                    ## Delete future dated compliances for approval
 
-                        if not preview:
-                            email_data = send_annual_rental_fee_awaiting_payment_confirmation(approval, annual_rental_fee, invoice)
-                        # TODO: Add comms log
+                    #if self.proposal.previous_application:
+                    #    approval_compliances = Compliance.objects.filter(
+                    #            approval= approval,
+                    #            #proposal = self.proposal.previous_application,
+                    #            processing_status='future'
+                    #            )
+                    #    if approval_compliances:
+                    #        for c in approval_compliances:
+                    #            c.delete()
 
-                    #print approval,approval.id, created
-                # Generate compliances
-                #self.generate_compliances(approval, request)
-                if self.proposal.application_type.name == ApplicationType.APIARY and not preview:
-                    from disturbance.components.compliances.models import Compliance, ComplianceUserAction
-                    if created:
-                        # ProposalType set during def create api method
-                        #if self.proposal.proposal_type == 'amendment':
-                        ## Delete future dated compliances for approval
+                    # Log creation
+                    # Generate the document
+                    self.link_apiary_approval_requirements(approval)
+                    approval.generate_doc(request.user)
+                    self.generate_apiary_compliances(approval, request)
+                    # send the doc and log in approval and org
+                    self.proposal.log_user_action(ProposalUserAction.ACTION_ISSUE_APIARY_APPROVAL.format(
+                        self.proposal.id,
+                        start_date,
+                        expiry_date,
+                        str([site['id'] for site in sites_approved]).lstrip('[').rstrip(']')
+                    ), request)
+                    # Log entry for organisation
+                    if self.proposal.applicant:
+                        self.proposal.applicant.log_user_action(
+                            ProposalUserAction.ACTION_ISSUE_APPROVAL_.format(self.proposal.id), request)
+                else:
+                    #approval.replaced_by = request.user
+                    #approval.replaced_by = self.approval
+                    # Generate the document
 
-                        #if self.proposal.previous_application:
-                        #    approval_compliances = Compliance.objects.filter(
-                        #            approval= approval, 
-                        #            #proposal = self.proposal.previous_application, 
-                        #            processing_status='future'
-                        #            )
-                        #    if approval_compliances:
-                        #        for c in approval_compliances:
-                        #            c.delete()
+                    #Delete the future compliances if Approval is reissued and generate the compliances again.
+                    approval_compliances = Compliance.objects.filter(
+                            approval= approval,
+                            #proposal = self.proposal,
 
-                        # Log creation
-                        # Generate the document
-                        self.link_apiary_approval_requirements(approval)
-                        approval.generate_doc(request.user)
-                        self.generate_apiary_compliances(approval, request)
-                        # send the doc and log in approval and org
-                    else:
-                        #approval.replaced_by = request.user
-                        #approval.replaced_by = self.approval
-                        # Generate the document
-
-                        #Delete the future compliances if Approval is reissued and generate the compliances again.
-                        approval_compliances = Compliance.objects.filter(
-                                approval= approval, 
-                                #proposal = self.proposal, 
-
-                                processing_status='future'
-                                )
-                        if approval_compliances:
-                            for c in approval_compliances:
-                                c.delete()
-                        self.link_apiary_approval_requirements(approval)
-                        approval.generate_doc(request.user)
-                        self.generate_apiary_compliances(approval, request)
-                        # Log proposal action
-                        self.proposal.log_user_action(
-                                ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.proposal.id),
-                                request
-                                )
-                        # Log entry for organisation
-                        if self.proposal.applicant:
-                            self.proposal.applicant.log_user_action(
-                                    ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.proposal.id),
-                                    request
-                                    )
-
-                    self.proposal.approval = approval
-                    #send Proposal approval email with attachment
-                    send_proposal_approval_email_notification(self.proposal,request)
-                    # flag must be reset after email is sent
-                    approval.reissued = False
-                    approval.save()
-                    self.proposal.save(version_comment='Final Approval: {}'.format(self.proposal.approval.lodgement_number))
-                    self.proposal.approval.documents.all().update(can_delete=False)
-                elif self.proposal.application_type.name == ApplicationType.SITE_TRANSFER and not preview:
-                    #import ipdb;ipdb.set_trace()
-                    # add Site Transfer Compliance/Requirements logic here
-                    from disturbance.components.compliances.models import Compliance, ComplianceUserAction
-                    ## Originating approval
-                    if self.reissue_originating_approval or not originating_approval.reissued:
-                        originating_approval.issue_date = timezone.now()
-                        originating_approval.current_proposal = checking_proposal
-                        originating_approval.save()
-                        #Delete the future compliances if Approval is reissued and generate the compliances again.
-                        approval_compliances = Compliance.objects.filter(
-                                approval= originating_approval,
-                                #proposal = self.proposal, 
-                                processing_status='future'
-                                )
-                        if approval_compliances:
-                            for c in approval_compliances:
-                                c.delete()
-                        #self.generate_apiary_site_transfer_compliances(originating_approval, request)
-                        self.link_apiary_approval_requirements(originating_approval)
-                        originating_approval.generate_apiary_site_transfer_doc(request.user, site_transfer_proposal=self.proposal)
-                        self.generate_apiary_compliances(originating_approval, request)
-                        # Log proposal action
-                        self.proposal.log_user_action(
-                                ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.proposal.id),
-                                request
-                                )
-                        # Log entry for organisation
-                        if self.proposal.applicant:
-                            self.proposal.applicant.log_user_action(
-                                    ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.proposal.id),
-                                    request
-
-                                    )
-                        #send Proposal approval email with attachment
-                        send_site_transfer_approval_email_notification(self.proposal, request, originating_approval)
-                        # reset flag after email is sent
-                        originating_approval.reissued = False
-                        originating_approval.save()
-                    ## Target approval
-                    if self.reissue_target_approval or not target_approval.reissued:
-                        target_approval.issue_date = timezone.now()
-                        target_approval.current_proposal = checking_proposal
-                        target_approval.save()
-                        #Delete the future compliances if Approval is reissued and generate the compliances again.
-                        approval_compliances = Compliance.objects.filter(
-                                approval= target_approval,
-                                #proposal = self.proposal, 
-                                processing_status='future'
-                                )
-                        if approval_compliances:
-                            for c in approval_compliances:
-                                c.delete()
-                        self.link_apiary_approval_requirements(target_approval)
-                        target_approval.generate_apiary_site_transfer_doc(request.user, site_transfer_proposal=self.proposal)
-                        self.generate_apiary_compliances(target_approval, request)
-                        # Log proposal action
-                        self.proposal.log_user_action(
-                                ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.proposal.id),
-                                request
-                                )
-                        # Log entry for organisation
-                        if self.proposal.applicant:
-                            self.proposal.applicant.log_user_action(
-                                    ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.proposal.id),
-                                    request
-                                    )
-                        #send Proposal approval email with attachment
-                        send_site_transfer_approval_email_notification(self.proposal, request, target_approval)
-                        # reset flag after approval is sent
-                        target_approval.reissued = False
-                        target_approval.save()
-                        #self.proposal.save(version_comment='Final Approval: {}'.format(self.proposal.approval.lodgement_number))
-                        self.proposal.save(version_comment='Originating Approval: {}, Target Approval: {}'.format(
-                            originating_approval.lodgement_number,
-                            target_approval.lodgement_number,
+                            processing_status='future'
                             )
+                    if approval_compliances:
+                        for c in approval_compliances:
+                            c.delete()
+                    self.link_apiary_approval_requirements(approval)
+                    approval.generate_doc(request.user)
+                    self.generate_apiary_compliances(approval, request)
+                    # Log proposal action
+                    self.proposal.log_user_action(ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(
+                        self.proposal.id
+                    ), request)
+                    # Log entry for organisation
+                    if self.proposal.applicant:
+                        self.proposal.applicant.log_user_action(
+                                ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.proposal.id), request)
+
+                self.proposal.approval = approval
+                #send Proposal approval email with attachment
+                send_proposal_approval_email_notification(self.proposal,request)
+                # flag must be reset after email is sent
+                approval.reissued = False
+                approval.save()
+                self.proposal.save(version_comment='Final Approval: {}'.format(self.proposal.approval.lodgement_number))
+                self.proposal.approval.documents.all().update(can_delete=False)
+            elif self.proposal.application_type.name == ApplicationType.SITE_TRANSFER and not preview:
+                #import ipdb;ipdb.set_trace()
+                # add Site Transfer Compliance/Requirements logic here
+                from disturbance.components.compliances.models import Compliance, ComplianceUserAction
+                ## Originating approval
+                if self.reissue_originating_approval or not originating_approval.reissued:
+                    originating_approval.issue_date = timezone.now()
+                    originating_approval.current_proposal = checking_proposal
+                    originating_approval.save()
+                    #Delete the future compliances if Approval is reissued and generate the compliances again.
+                    approval_compliances = Compliance.objects.filter(
+                            approval= originating_approval,
+                            #proposal = self.proposal,
+                            processing_status='future'
+                            )
+                    if approval_compliances:
+                        for c in approval_compliances:
+                            c.delete()
+                    #self.generate_apiary_site_transfer_compliances(originating_approval, request)
+                    self.link_apiary_approval_requirements(originating_approval)
+                    originating_approval.generate_apiary_site_transfer_doc(request.user, site_transfer_proposal=self.proposal)
+                    self.generate_apiary_compliances(originating_approval, request)
+                    # Log proposal action
+                    self.proposal.log_user_action(
+                        ProposalUserAction.ACTION_UPDATE_APPROVAL_FOR_PROPOSAL.format(
+                            originating_approval.lodgement_number,
+                            self.proposal.id), request)
+                    # Log entry for organisation
+                    if self.proposal.applicant:
+                        self.proposal.applicant.log_user_action(
+                            ProposalUserAction.ACTION_UPDATE_APPROVAL_FOR_PROPOSAL.format(
+                                originating_approval.lodgement_number,
+                                self.proposal.id), request)
+                    #send Proposal approval email with attachment
+                    send_site_transfer_approval_email_notification(self.proposal, request, originating_approval)
+                    # reset flag after email is sent
+                    originating_approval.reissued = False
+                    originating_approval.save()
+                ## Target approval
+                if self.reissue_target_approval or not target_approval.reissued:
+                    target_approval.issue_date = timezone.now()
+                    target_approval.current_proposal = checking_proposal
+                    target_approval.save()
+                    #Delete the future compliances if Approval is reissued and generate the compliances again.
+                    approval_compliances = Compliance.objects.filter(
+                            approval=target_approval,
+                            #proposal = self.proposal,
+                            processing_status='future'
+                            )
+                    if approval_compliances:
+                        for c in approval_compliances:
+                            c.delete()
+                    self.link_apiary_approval_requirements(target_approval)
+                    target_approval.generate_apiary_site_transfer_doc(request.user, site_transfer_proposal=self.proposal)
+                    self.generate_apiary_compliances(target_approval, request)
+                    # Log proposal action
+                    self.proposal.log_user_action(
+                        ProposalUserAction.ACTION_UPDATE_APPROVAL_FOR_PROPOSAL.format(
+                            target_approval.lodgement_number,
+                            self.proposal.id), request)
+                    # Log entry for organisation
+                    if self.proposal.applicant:
+                        self.proposal.applicant.log_user_action(
+                                ProposalUserAction.ACTION_UPDATE_APPROVAL_FOR_PROPOSAL.format(
+                                    target_approval.lodgement_number,
+                                    self.proposal.id), request)
+                    #send Proposal approval email with attachment
+                    send_site_transfer_approval_email_notification(self.proposal, request, target_approval)
+                    # reset flag after approval is sent
+                    target_approval.reissued = False
+                    target_approval.save()
+                    #self.proposal.save(version_comment='Final Approval: {}'.format(self.proposal.approval.lodgement_number))
+                    self.proposal.save(version_comment='Originating Approval: {}, Target Approval: {}'.format(
+                        originating_approval.lodgement_number,
+                        target_approval.lodgement_number,
                         )
-                        #self.proposal.approval.documents.all().update(can_delete=False)
-                        originating_approval.documents.all().update(can_delete=False)
-                        target_approval.documents.all().update(can_delete=False)
+                    )
+                    #self.proposal.approval.documents.all().update(can_delete=False)
+                    originating_approval.documents.all().update(can_delete=False)
+                    target_approval.documents.all().update(can_delete=False)
 
             return self
         except:
@@ -3419,7 +3412,7 @@ class ProposalApiary(RevisionedMixin):
             from disturbance.components.approvals.models import ApiarySiteOnApproval
             if apiary_site_on_proposal.site_status == SITE_STATUS_APPROVED:
                 # Create a relation between the approved apairy site and the approval
-                apiary_site_on_approval, created = ApiarySiteOnApproval.objects.get_or_create(apiary_site=a_site, approval=approval)
+                apiary_site_on_approval, asoa_created = ApiarySiteOnApproval.objects.get_or_create(apiary_site=a_site, approval=approval)
                 apiary_site_on_approval.wkb_geometry = apiary_site_on_proposal.wkb_geometry_processed
                 apiary_site_on_approval.site_category = apiary_site_on_proposal.site_category_processed
                 apiary_site_on_approval.site_status = SITE_STATUS_CURRENT

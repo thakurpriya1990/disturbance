@@ -145,8 +145,8 @@
                     'Latitude',
                     'District',
                     'Status',
-                    'Vacant',  // current status of the 'is_vacant'
-                    'Vacant',  // status of the 'is_vacant' when the application submitted
+                    'Vacant<br>(current status)',  // current status of the 'is_vacant'
+                    'Vacant<br>(at time of submit)',  // status of the 'is_vacant' when the application submitted
                     'Previous Site Holder<br>Applicant',
                     'Action',
                 ],
