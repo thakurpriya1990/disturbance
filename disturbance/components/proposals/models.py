@@ -2848,7 +2848,7 @@ class ProposalApiary(RevisionedMixin):
 
             #approval = None
             #approval = self.retrieve_approval()
-            created = None
+            approval_created = None
             if not self.proposal.can_assess(request.user):
                 raise exceptions.ProposalNotAuthorized()
             if self.proposal.processing_status != 'with_approver':
@@ -2976,7 +2976,7 @@ class ProposalApiary(RevisionedMixin):
                 else:
                     if not approval:
                         # There are no existing approvals.  Create a new one.
-                        approval, created = Approval.objects.update_or_create(
+                        approval, approval_created = Approval.objects.update_or_create(
                             current_proposal = checking_proposal,
                             defaults = {
                             #'activity' : self.activity,
@@ -2992,7 +2992,7 @@ class ProposalApiary(RevisionedMixin):
                             #'extracted_fields' = JSONField(blank=True, null=True)
                             }
                         )
-                        if created:
+                        if approval_created:
                             from disturbance.components.approvals.models import ApprovalUserAction
                             ApprovalUserAction.log_action(approval, ApprovalUserAction.ACTION_CREATE_APPROVAL.format(approval.id), request.user)
                     else:
@@ -3046,7 +3046,7 @@ class ProposalApiary(RevisionedMixin):
                     for site_transfer_apiary_site in transfer_sites:
                         relation_original = site_transfer_apiary_site.apiary_site_on_approval
                         from disturbance.components.approvals.models import ApiarySiteOnApproval
-                        relation_target, created = ApiarySiteOnApproval.objects.get_or_create(
+                        relation_target, asoa_created = ApiarySiteOnApproval.objects.get_or_create(
                             apiary_site=relation_original.apiary_site,
                             approval=target_approval,
                         )
@@ -3090,7 +3090,7 @@ class ProposalApiary(RevisionedMixin):
 
                     # Retrieve annual site fee period object for the period calculated above
                     # This period should not overwrap the existings, otherwise you will need a refund
-                    annual_rental_fee_period, created = AnnualRentalFeePeriod.objects.get_or_create(period_start_date=period_start_date, period_end_date=period_end_date)
+                    annual_rental_fee_period, perioed_created = AnnualRentalFeePeriod.objects.get_or_create(period_start_date=period_start_date, period_end_date=period_end_date)
 
                     line_items, apiary_sites_charged, invoice_period = generate_line_items_for_annual_rental_fee(
                         approval,
@@ -3126,7 +3126,7 @@ class ProposalApiary(RevisionedMixin):
                             # Add approved sites to the existing temporary use proposal with status 'draft'
                             proposal_apiary_temporary_use_qs = ProposalApiaryTemporaryUse.objects.filter(loaning_approval=approval, proposal__processing_status=Proposal.PROCESSING_STATUS_DRAFT)
                             for proposal_apiary_temporary_use in proposal_apiary_temporary_use_qs:
-                                temp_use_apiary_site, created = TemporaryUseApiarySite.objects.get_or_create(apiary_site=site, proposal_apiary_temporary_use=proposal_apiary_temporary_use)
+                                temp_use_apiary_site, temp_created = TemporaryUseApiarySite.objects.get_or_create(apiary_site=site, proposal_apiary_temporary_use=proposal_apiary_temporary_use)
 
                         if not preview:
                             email_data = send_annual_rental_fee_awaiting_payment_confirmation(approval, annual_rental_fee, invoice)
@@ -3137,7 +3137,7 @@ class ProposalApiary(RevisionedMixin):
                 #self.generate_compliances(approval, request)
                 if self.proposal.application_type.name == ApplicationType.APIARY and not preview:
                     from disturbance.components.compliances.models import Compliance, ComplianceUserAction
-                    if created:
+                    if approval_created:
                         # ProposalType set during def create api method
                         #if self.proposal.proposal_type == 'amendment':
                         ## Delete future dated compliances for approval
@@ -3419,7 +3419,7 @@ class ProposalApiary(RevisionedMixin):
             from disturbance.components.approvals.models import ApiarySiteOnApproval
             if apiary_site_on_proposal.site_status == SITE_STATUS_APPROVED:
                 # Create a relation between the approved apairy site and the approval
-                apiary_site_on_approval, created = ApiarySiteOnApproval.objects.get_or_create(apiary_site=a_site, approval=approval)
+                apiary_site_on_approval, asoa_created = ApiarySiteOnApproval.objects.get_or_create(apiary_site=a_site, approval=approval)
                 apiary_site_on_approval.wkb_geometry = apiary_site_on_proposal.wkb_geometry_processed
                 apiary_site_on_approval.site_category = apiary_site_on_proposal.site_category_processed
                 apiary_site_on_approval.site_status = SITE_STATUS_CURRENT
