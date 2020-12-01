@@ -18,7 +18,7 @@ export const SiteColours = {
         'stroke': '#000000',
     },
     'approved': {
-        'fill': '#00ff00', 
+        'fill': '#0070ff', 
         'stroke': '#000000',
     },
     'suspended': {
