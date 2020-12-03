@@ -1,6 +1,5 @@
 <template lang="html">
     <div>
-
         <div class="row col-sm-12">
             <ComponentMap
                 ref="component_map"
@@ -8,6 +7,7 @@
                 :key="component_map_key"
                 @featuresDisplayed="updateTableByFeatures"
                 :can_modify="can_modify"
+                :display_at_time_of_submitted="show_col_status_when_submitted"
                 @featureGeometryUpdated="featureGeometryUpdated"
                 @popupClosed="popupClosed"
             />
@@ -74,7 +74,7 @@
             },
             show_col_site_when_submitted: {
                 type: Boolean,
-                default: true,
+                default: false,
             },
             show_col_longitude: {
                 type: Boolean,
@@ -136,9 +136,6 @@
                 type: Boolean,
                 default: false,
             }
-        },
-        watch: {
-
         },
         data: function(){
             let vm = this;
@@ -232,7 +229,7 @@
                             visible: vm.show_col_site_when_submitted,
                             mRender: function (data, type, apiary_site){
                                 let status_when_submitted = 'pending'
-                                if (apiary_site.properties.is_vacant){
+                                if (apiary_site.properties.apiary_site_is_vacant_when_submitted){
                                     status_when_submitted = 'vacant'
                                 }
                                 let fillColour = SiteColours[status_when_submitted].fill
@@ -398,6 +395,7 @@
             datatable,
         },
         computed: {
+
 
         },
         methods: {

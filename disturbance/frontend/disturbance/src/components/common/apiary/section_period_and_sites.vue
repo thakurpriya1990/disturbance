@@ -1,6 +1,5 @@
 <template lang="html">
     <div>
-
         <div class="form-group"><div class="row">
             <label class="col-sm-2">Period From</label>
             <div class="col-sm-4">

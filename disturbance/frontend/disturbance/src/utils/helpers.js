@@ -1,4 +1,10 @@
 module.exports = {
+    is_local: function(){
+        if(location.host === 'localhost:8071'){
+            return true
+        }
+        return false
+    },
   apiError: function ( resp ) {
     var error_str = '';
     if ( resp.status === 400 ) {

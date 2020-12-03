@@ -1,6 +1,9 @@
 <template lang="html">
     <div id="proposedIssuanceApproval">
         <modal transition="modal fade" @ok="ok()" @cancel="cancel()" :title="title" large>
+            <template v-if="is_local">
+                proposed_apiary_issuance.vue
+            </template>
             <div class="container-fluid">
                 <div class="row">
                     <form class="form-horizontal" name="approvalForm">
@@ -152,8 +155,11 @@
                         :apiary_sites="apiary_sites_prop"
                         :is_internal="true"
                         :is_external="false"
+                        :show_col_site="false"
+                        :show_col_site_when_submitted="true"
                         :show_col_checkbox="true"
-                        :show_col_vacant="true"
+                        :show_col_status_when_submitted="true"
+                        :show_col_decision="true"
                         :key="component_site_selection_key"
                         :can_modify="true"
                         ref="component_site_selection"
@@ -265,6 +271,7 @@ export default {
             warningString: 'Please attach Level of Approval document before issuing Approval',
             component_site_selection_key: '',
             num_of_sites_selected: 0,
+            is_local: helpers.is_local(),
         }
     },
     computed: {
@@ -422,7 +429,8 @@ export default {
         setApiarySiteCheckedStatuses: function() {
             if(this.proposal && this.proposal.proposal_apiary){
                 for (let i=0; i<this.proposal.proposal_apiary.apiary_sites.length; i++){
-                    this.proposal.proposal_apiary.apiary_sites[i].checked = this.proposal.proposal_apiary.apiary_sites[i].properties.workflow_selected_status
+                    //this.proposal.proposal_apiary.apiary_sites[i].checked = (this.proposal.proposal_apiary.apiary_sites[i].properties.workflow_selected_status || this.proposal.proposal_apiary.apiary_sites[i].properties.status === 'approved')
+                    this.proposal.proposal_apiary.apiary_sites[i].checked = (this.proposal.proposal_apiary.apiary_sites[i].properties.workflow_selected_status)
                 }
             }
         },
