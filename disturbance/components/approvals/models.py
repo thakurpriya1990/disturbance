@@ -631,7 +631,7 @@ class ApprovalLogDocument(Document):
 
 class ApprovalUserAction(UserAction):
     ACTION_CREATE_APPROVAL = "Create approval {}"
-    ACTION_UPDATE_APPROVAL = "Update approval {}"
+    ACTION_UPDATE_APPROVAL = "Reissue approval {}"
     ACTION_EXPIRE_APPROVAL = "Expire approval {}"
     ACTION_CANCEL_APPROVAL = "Cancel approval {}"
     ACTION_SUSPEND_APPROVAL = "Suspend approval {}"
