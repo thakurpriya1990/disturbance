@@ -150,7 +150,7 @@
                     'Id',
                     '',
                     'Site',
-                    'Site<br>(at time of submit)',  // site coloured when the application completed its life cycle
+                    'Site',  // coloured by the status when submitted
                     'Longitude',
                     'Latitude',
                     'District',

@@ -429,8 +429,8 @@ export default {
         setApiarySiteCheckedStatuses: function() {
             if(this.proposal && this.proposal.proposal_apiary){
                 for (let i=0; i<this.proposal.proposal_apiary.apiary_sites.length; i++){
-                    //this.proposal.proposal_apiary.apiary_sites[i].checked = (this.proposal.proposal_apiary.apiary_sites[i].properties.workflow_selected_status || this.proposal.proposal_apiary.apiary_sites[i].properties.status === 'approved')
-                    this.proposal.proposal_apiary.apiary_sites[i].checked = (this.proposal.proposal_apiary.apiary_sites[i].properties.workflow_selected_status)
+                    this.proposal.proposal_apiary.apiary_sites[i].checked = (this.proposal.proposal_apiary.apiary_sites[i].properties.workflow_selected_status || this.proposal.proposal_apiary.apiary_sites[i].properties.status === 'approved')
+                    //this.proposal.proposal_apiary.apiary_sites[i].checked = (this.proposal.proposal_apiary.apiary_sites[i].properties.workflow_selected_status)
                 }
             }
         },
