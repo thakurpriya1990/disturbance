@@ -439,8 +439,8 @@ class Approval(RevisionedMixin):
                     self.change_apiary_site_status(self.status)
 
                     proposal = self.current_proposal
-                    ApprovalUserAction.log_action(self,ApprovalUserAction.ACTION_EXPIRE_APPROVAL.format(self.id),user)
-                    ProposalUserAction.log_action(proposal,ProposalUserAction.ACTION_EXPIRED_APPROVAL_.format(proposal.id),user)
+                    ApprovalUserAction.log_action(self,ApprovalUserAction.ACTION_EXPIRE_APPROVAL.format(self.lodgement_number), user)
+                    ProposalUserAction.log_action(proposal,ProposalUserAction.ACTION_EXPIRED_APPROVAL_.format(proposal.lodgement_number), user)
             except:
                 raise
 

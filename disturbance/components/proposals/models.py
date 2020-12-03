@@ -4109,7 +4109,7 @@ class ApiaryReferral(RevisionedMixin):
             self.referral.proposal.log_user_action(
                 ProposalUserAction.APIARY_RECALL_REFERRAL.format(
                     self.referral.id,
-                    self.referral.proposal.id
+                    self.referral.proposal.lodgement_number
                     ),
                 request
                 )
@@ -4121,7 +4121,7 @@ class ApiaryReferral(RevisionedMixin):
             applicant_field.log_user_action(
                 ProposalUserAction.APIARY_RECALL_REFERRAL.format(
                     self.referral.id,
-                    self.referral.proposal.id
+                    self.referral.proposal.lodgement_number
                     ),
                 request
                 )
