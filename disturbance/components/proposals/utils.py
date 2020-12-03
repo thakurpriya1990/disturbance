@@ -789,7 +789,7 @@ def save_proponent_data_disturbance(instance,request,viewset):
             serializer = SaveProposalSerializer(instance, data, partial=True)
             serializer.is_valid(raise_exception=True)
             viewset.perform_update(serializer)
-            instance.log_user_action(ProposalUserAction.ACTION_SAVE_APPLICATION.format(instance.id),request)
+            instance.log_user_action(ProposalUserAction.ACTION_SAVE_APPLICATION.format(instance.lodgement_number), request)
 
             # Save Documents
         #            for f in request.FILES:
@@ -848,7 +848,7 @@ def save_assessor_data(instance,request,viewset):
                 document._file = request.FILES[f]
                 document.save()
             # End Save Documents
-            instance.log_user_action(ProposalUserAction.ACTION_SAVE_APPLICATION.format(instance.id),request)
+            instance.log_user_action(ProposalUserAction.ACTION_SAVE_APPLICATION.format(instance.lodgement_number), request)
         except:
             raise
 
@@ -920,7 +920,7 @@ def save_apiary_assessor_data(instance,request,viewset):
             if site_transfer_referrer_checklist_answers_per_site:
                 save_checklist_answers('referrer', site_transfer_referrer_checklist_answers_per_site)
 
-            instance.log_user_action(ProposalUserAction.APIARY_ACTION_SAVE_APPLICATION.format(instance.id),request)
+            instance.log_user_action(ProposalUserAction.APIARY_ACTION_SAVE_APPLICATION.format(instance.lodgement_number), request)
         except:
             raise
 
@@ -939,11 +939,11 @@ def proposal_submit_apiary(proposal, request):
                         q.save()
 
             # Create a log entry for the proposal
-            proposal.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(proposal.id),request)
+            proposal.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(proposal.lodgement_number), request)
             # Create a log entry for the organisation
             #proposal.applicant.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(proposal.id),request)
             applicant_field=getattr(proposal, proposal.applicant_field)
-            applicant_field.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(proposal.id),request)
+            applicant_field.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(proposal.lodgement_number), request)
 
             ret1 = send_submit_email_notification(request, proposal)
             ret2 = send_external_submit_email_notification(request, proposal)

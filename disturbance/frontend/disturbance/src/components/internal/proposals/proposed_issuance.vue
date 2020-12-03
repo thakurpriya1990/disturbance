@@ -1,6 +1,9 @@
 <template lang="html">
     <div id="proposedIssuanceApproval">
         <modal transition="modal fade" @ok="ok()" @cancel="cancel()" :title="title" large>
+            <template v-if="is_local">
+                proposed_issuance.vue
+            </template>
             <div class="container-fluid">
                 <div class="row">
                     <form class="form-horizontal" name="approvalForm">
@@ -98,7 +101,7 @@
 //import $ from 'jquery'
 import modal from '@vue-utils/bootstrap-modal.vue'
 import alert from '@vue-utils/alert.vue'
-import {helpers,api_endpoints} from "@/utils/hooks.js"
+import {helpers, api_endpoints} from "@/utils/hooks.js"
 export default {
     name:'Proposed-Approval',
     components:{
@@ -156,6 +159,7 @@ export default {
                 allowInputToggle:true
             },
             warningString: 'Please attach Level of Approval document before issuing Approval',
+            is_local: helpers.is_local(),
         }
     },
     computed: {

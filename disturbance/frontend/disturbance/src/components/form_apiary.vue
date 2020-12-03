@@ -1,6 +1,8 @@
 <template lang="html">
     <div>
-
+        <template v-if="is_local">
+            form_apiary.vue
+        </template>
         <div v-if="is_external" class="col-md-3">
             <div>
                 <h3>Application: {{ proposal.lodgement_number }}</h3>
@@ -43,10 +45,12 @@
                         :apiary_sites="apiary_sites"
                         :is_internal="is_internal"
                         :is_external="is_external"
+                        :show_col_site="false"
+                        :show_col_site_when_submitted="true"
                         :show_col_checkbox="false"
                         :show_action_available_unavailable="showActionAvailableUnavailable"
-                        :show_col_status="showColStatus"
-                        :show_col_vacant_when_submitted="showVacantWhenSubmitted"
+                        :show_col_status="false"
+                        :show_col_status_when_submitted="true"
                         :key="component_site_selection_key"
                       />
                 </div>
@@ -253,6 +257,7 @@
                 component_site_selection_key: '',
                 expiry_date_local: '',
                 deed_poll_url: '',
+                is_local: helpers.is_local(),
             }
         },
         components: {
@@ -274,13 +279,6 @@
                         show = true
                     }
                 }
-                return show
-            },
-            showColStatus: function() {
-                let show = false
-
-                show = true
-
                 return show
             },
             apiary_sections_classname: function() {

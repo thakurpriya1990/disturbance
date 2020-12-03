@@ -10,10 +10,12 @@
                         <div v-if="q.question.answer_type === 'yes_no'">
                             <ul  class="list-inline col-sm-6">
                                 <li class="list-inline-item">
-                                    <input  class="form-check-input" v-model="q.answer" type="radio" :name="'option'+q.id" :id="'answer_one'+q.id" :value="true" data-parsley-required :disabled="readonly"/> Yes
+                                    <input  class="form-check-input" v-model="q.answer" type="radio" :name="'option'+q.id" :id="'answer_one'+q.id" :value="true" data-parsley-required :disabled="readonly"/>
+                                    <label :for="'answer_one'+q.id">Yes</label>
                                 </li>
                                 <li class="list-inline-item">
-                                    <input  class="form-check-input" v-model="q.answer" type="radio" :name="'option'+q.id" :id="'answer_two'+q.id" :value="false" data-parsley-required :disabled="readonly"/> No
+                                    <input  class="form-check-input" v-model="q.answer" type="radio" :name="'option'+q.id" :id="'answer_two'+q.id" :value="false" data-parsley-required :disabled="readonly"/> 
+                                    <label :for="'answer_two'+q.id">No</label>
                                 </li>
                             </ul>
                         </div>
