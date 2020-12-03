@@ -3417,6 +3417,14 @@ class ProposalApiary(RevisionedMixin):
                 apiary_site_on_approval.site_category = apiary_site_on_proposal.site_category_processed
                 apiary_site_on_approval.site_status = SITE_STATUS_CURRENT
                 apiary_site_on_approval.save()
+            else:
+                try:
+                    qs = ApiarySiteOnApproval.objects.filter(apiary_site=a_site, approval=approval)
+                    if qs:
+                        apiary_site_on_approval = qs[0]
+                        apiary_site_on_approval.delete()
+                except:
+                    pass
 
 
 class SiteCategory(models.Model):
