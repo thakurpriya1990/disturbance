@@ -46,7 +46,7 @@ class Command(BaseCommand):
 
                         proposal = a.current_proposal
                         ApprovalUserAction.log_action(a,ApprovalUserAction.ACTION_SUSPEND_APPROVAL.format(a.id),user)  
-                        ProposalUserAction.log_action(proposal,ProposalUserAction.ACTION_SUSPEND_APPROVAL.format(proposal.id),user)
+                        ProposalUserAction.log_action(proposal,ProposalUserAction.ACTION_SUSPEND_APPROVAL.format(proposal.lodgement_number),user)
                         logger.info('Updated Approval {} status to {}'.format(a.id,a.status))
                     except:
                         logger.info('Error suspending Approval {} status'.format(a.id))
@@ -64,7 +64,7 @@ class Command(BaseCommand):
 
                         proposal = a.current_proposal
                         ApprovalUserAction.log_action(a,ApprovalUserAction.ACTION_CANCEL_APPROVAL.format(a.id),user)  
-                        ProposalUserAction.log_action(proposal,ProposalUserAction.ACTION_CANCEL_APPROVAL.format(proposal.id),user)
+                        ProposalUserAction.log_action(proposal,ProposalUserAction.ACTION_CANCEL_APPROVAL.format(proposal.lodgement_number),user)
                         logger.info('Updated Approval {} status to {}'.format(a.id,a.status))
                     except:
                         logger.info('Error cancelling Approval {} status'.format(a.id))
@@ -84,7 +84,7 @@ class Command(BaseCommand):
 
                         proposal = a.current_proposal
                         ApprovalUserAction.log_action(a,ApprovalUserAction.ACTION_SURRENDER_APPROVAL.format(a.id),user)  
-                        ProposalUserAction.log_action(proposal,ProposalUserAction.ACTION_SURRENDER_APPROVAL.format(proposal.id),user)
+                        ProposalUserAction.log_action(proposal,ProposalUserAction.ACTION_SURRENDER_APPROVAL.format(proposal.lodgement_number), user)
                         logger.info('Updated Approval {} status to {}'.format(a.id,a.status))
                     except:
                         logger.info('Error surrendering Approval {} status'.format(a.id))
@@ -103,7 +103,7 @@ class Command(BaseCommand):
 
                         proposal = a.current_proposal
                         ApprovalUserAction.log_action(a,ApprovalUserAction.ACTION_REINSTATE_APPROVAL.format(a.id),user)  
-                        ProposalUserAction.log_action(proposal,ProposalUserAction.ACTION_REINSTATE_APPROVAL.format(proposal.id),user)
+                        ProposalUserAction.log_action(proposal,ProposalUserAction.ACTION_REINSTATE_APPROVAL.format(proposal.lodgement_number), user)
                         logger.info('Updated Approval {} status to {}'.format(a.id,a.status))
                     except:
                         logger.info('Error suspending Approval {} status'.format(a.id))
@@ -121,7 +121,7 @@ class Command(BaseCommand):
                         send_approval_cancel_email_notification(a)
                         proposal = a.current_proposal
                         ApprovalUserAction.log_action(a,ApprovalUserAction.ACTION_CANCEL_APPROVAL.format(a.id),user)  
-                        ProposalUserAction.log_action(proposal,ProposalUserAction.ACTION_CANCEL_APPROVAL.format(proposal.id),user)
+                        ProposalUserAction.log_action(proposal,ProposalUserAction.ACTION_CANCEL_APPROVAL.format(proposal.lodgement_number),user)
                         logger.info('Updated Approval {} status to {}'.format(a.id,a.status))
                     except:
                         logger.info('Error cancelling Approval {} status'.format(a.id))
@@ -141,7 +141,7 @@ class Command(BaseCommand):
                         send_approval_surrender_email_notification(a)
                         proposal = a.current_proposal
                         ApprovalUserAction.log_action(a,ApprovalUserAction.ACTION_SURRENDER_APPROVAL.format(a.id),user)  
-                        ProposalUserAction.log_action(proposal,ProposalUserAction.ACTION_SURRENDER_APPROVAL.format(proposal.id),user)
+                        ProposalUserAction.log_action(proposal,ProposalUserAction.ACTION_SURRENDER_APPROVAL.format(proposal.lodgement_number),user)
                         logger.info('Updated Approval {} status to {}'.format(a.id,a.status))
                     except:
                         logger.info('Error surrendering Approval {} status'.format(a.id))

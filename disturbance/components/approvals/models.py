@@ -439,8 +439,8 @@ class Approval(RevisionedMixin):
                     self.change_apiary_site_status(self.status)
 
                     proposal = self.current_proposal
-                    ApprovalUserAction.log_action(self,ApprovalUserAction.ACTION_EXPIRE_APPROVAL.format(self.id),user)
-                    ProposalUserAction.log_action(proposal,ProposalUserAction.ACTION_EXPIRED_APPROVAL_.format(proposal.id),user)
+                    ApprovalUserAction.log_action(self,ApprovalUserAction.ACTION_EXPIRE_APPROVAL.format(self.lodgement_number), user)
+                    ProposalUserAction.log_action(proposal,ProposalUserAction.ACTION_EXPIRED_APPROVAL_.format(proposal.lodgement_number), user)
             except:
                 raise
 
@@ -482,7 +482,7 @@ class Approval(RevisionedMixin):
                 #import ipdb; ipdb.set_trace()
                 self.save()
                 # Log proposal action
-                self.log_user_action(ApprovalUserAction.ACTION_CANCEL_APPROVAL.format(self.id),request)
+                self.log_user_action(ApprovalUserAction.ACTION_CANCEL_APPROVAL.format(self.lodgement_number), request)
                 # Log entry for organisation
                 #self.current_proposal.log_user_action(ProposalUserAction.ACTION_CANCEL_APPROVAL.format(self.current_proposal.id),request)
             except:
@@ -521,7 +521,7 @@ class Approval(RevisionedMixin):
                     send_approval_suspend_email_notification(self, future_suspend=True)
                 self.save()
                 # Log approval action
-                self.log_user_action(ApprovalUserAction.ACTION_SUSPEND_APPROVAL.format(self.id),request)
+                self.log_user_action(ApprovalUserAction.ACTION_SUSPEND_APPROVAL.format(self.lodgement_number), request)
                 # Log entry for proposal
                 #self.current_proposal.log_user_action(ProposalUserAction.ACTION_SUSPEND_APPROVAL.format(self.current_proposal.id),request)
             except:
@@ -556,7 +556,7 @@ class Approval(RevisionedMixin):
                 self.change_apiary_site_status(self.status)
 
                 # Log approval action
-                self.log_user_action(ApprovalUserAction.ACTION_REINSTATE_APPROVAL.format(self.id),request)
+                self.log_user_action(ApprovalUserAction.ACTION_REINSTATE_APPROVAL.format(self.lodgement_number), request)
                 # Log entry for proposal
                 #self.current_proposal.log_user_action(ProposalUserAction.ACTION_REINSTATE_APPROVAL.format(self.current_proposal.id),request)
             except:
@@ -592,14 +592,14 @@ class Approval(RevisionedMixin):
                     send_approval_surrender_email_notification(self, future_surrender=True)
                 self.save()
                 # Log approval action
-                self.log_user_action(ApprovalUserAction.ACTION_SURRENDER_APPROVAL.format(self.id),request)
+                self.log_user_action(ApprovalUserAction.ACTION_SURRENDER_APPROVAL.format(self.lodgement_number), request)
                 # Log entry for proposal
                 #self.current_proposal.log_user_action(ProposalUserAction.ACTION_SURRENDER_APPROVAL.format(self.current_proposal.id),request)
             except:
                 raise
 
     def pdf_view_log(self,request):
-        self.log_user_action(ApprovalUserAction.ACTION_APPROVAL_PDF_VIEW.format(self.id),request)
+        self.log_user_action(ApprovalUserAction.ACTION_APPROVAL_PDF_VIEW.format(self.lodgement_number), request)
         return self
 
 class PreviewTempApproval(Approval):

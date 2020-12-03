@@ -272,7 +272,7 @@ class ApiaryGlobalSettings(models.Model):
         (KEY_ORACLE_CODE_APIARY_SITE_ANNUAL_RENTAL_FEE, 'T1 EXEMPT'),
         (KEY_APIARY_SITES_LIST_TOKEN, 'abc123'),
         (KEY_APIARY_LICENCE_TEMPLATE_FILE, ''),
-        (KEY_PRINT_DEED_POLL_URL, 'https://parks.dpaw.wa.gov.au/sites/default/files/downloads/know/DBCA%20Commercial%20operator%20licence%20deed%20poll.pdf')
+        (KEY_PRINT_DEED_POLL_URL, 'https://parks.dpaw.wa.gov.au/sites/default/files/downloads/know/DBCA%20apiary%20deed%20poll.pdf')
     )
     key = models.CharField(max_length=255, choices=keys, blank=False, null=False, unique=True)
     value = models.CharField(max_length=255)

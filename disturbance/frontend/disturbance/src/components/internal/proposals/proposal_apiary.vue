@@ -1,5 +1,8 @@
 <template lang="html">
     <div v-if="proposal" class="container" id="internalProposal">
+        <template v-if="is_local">
+            proposal_apiary.vue
+        </template>
       <div class="row">
         <h3>Application: {{ proposal.lodgement_number }}</h3>
         <h4>Application Type: {{proposal.activity }}</h4>
@@ -517,7 +520,6 @@ import ResponsiveDatatablesHelper from "@/utils/responsive_datatable_helper.js"
 import { api_endpoints, helpers } from '@/utils/hooks'
 //import MapLocations from '@common-utils/map_locations.vue'
 import ApiarySiteTransfer from '@/components/form_apiary_site_transfer.vue'
-
 import FileField from '@/components/forms/filefield.vue'
 
 export default {
@@ -589,6 +591,7 @@ export default {
             logs_url: helpers.add_endpoint_json(api_endpoints.proposals,vm.$route.params.proposal_id+'/action_log'),
             panelClickersInitialised: false,
             sendingReferral: false,
+            is_local: helpers.is_local(),
         }
     },
     components: {

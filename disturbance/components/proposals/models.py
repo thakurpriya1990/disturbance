@@ -865,10 +865,10 @@ class Proposal(RevisionedMixin):
                             q.save()
 
                 # Create a log entry for the proposal
-                self.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.id),request)
+                self.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.lodgement_number), request)
                 # Create a log entry for the organisation
                 if self.applicant:
-                    self.applicant.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.id),request)
+                    self.applicant.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.lodgement_number), request)
 
                 #import ipdb; ipdb.set_trace()
                 ret1 = send_submit_email_notification(request, self)
@@ -933,10 +933,10 @@ class Proposal(RevisionedMixin):
                             text=referral_text
                         )
                     # Create a log entry for the proposal
-                    self.log_user_action(ProposalUserAction.ACTION_SEND_REFERRAL_TO.format(referral.id,self.id,'{}({})'.format(user.get_full_name(),user.email)),request)
+                    self.log_user_action(ProposalUserAction.ACTION_SEND_REFERRAL_TO.format(referral.id, self.lodgement_number, '{}({})'.format(user.get_full_name(), user.email)), request)
                     # Create a log entry for the organisation
                     if self.applicant:
-                        self.applicant.log_user_action(ProposalUserAction.ACTION_SEND_REFERRAL_TO.format(referral.id,self.id,'{}({})'.format(user.get_full_name(),user.email)),request)
+                        self.applicant.log_user_action(ProposalUserAction.ACTION_SEND_REFERRAL_TO.format(referral.id, self.lodgement_number, '{}({})'.format(user.get_full_name(), user.email)), request)
                     # send email
                     send_referral_email_notification(referral,request)
                 else:
@@ -956,19 +956,19 @@ class Proposal(RevisionedMixin):
                         self.assigned_approver = officer
                         self.save()
                         # Create a log entry for the proposal
-                        self.log_user_action(ProposalUserAction.ACTION_ASSIGN_TO_APPROVER.format(self.id,'{}({})'.format(officer.get_full_name(),officer.email)),request)
+                        self.log_user_action(ProposalUserAction.ACTION_ASSIGN_TO_APPROVER.format(self.lodgement_number, '{}({})'.format(officer.get_full_name(),officer.email)), request)
                         # Create a log entry for the organisation
                         if self.applicant:
-                            self.applicant.log_user_action(ProposalUserAction.ACTION_ASSIGN_TO_APPROVER.format(self.id,'{}({})'.format(officer.get_full_name(),officer.email)),request)
+                            self.applicant.log_user_action(ProposalUserAction.ACTION_ASSIGN_TO_APPROVER.format(self.lodgement_number, '{}({})'.format(officer.get_full_name(), officer.email)), request)
                 else:
                     if officer != self.assigned_officer:
                         self.assigned_officer = officer
                         self.save()
                         # Create a log entry for the proposal
-                        self.log_user_action(ProposalUserAction.ACTION_ASSIGN_TO_ASSESSOR.format(self.id,'{}({})'.format(officer.get_full_name(),officer.email)),request)
+                        self.log_user_action(ProposalUserAction.ACTION_ASSIGN_TO_ASSESSOR.format(self.lodgement_number, '{}({})'.format(officer.get_full_name(), officer.email)), request)
                         # Create a log entry for the organisation
                         if self.applicant:
-                            self.applicant.log_user_action(ProposalUserAction.ACTION_ASSIGN_TO_ASSESSOR.format(self.id,'{}({})'.format(officer.get_full_name(),officer.email)),request)
+                            self.applicant.log_user_action(ProposalUserAction.ACTION_ASSIGN_TO_ASSESSOR.format(self.lodgement_number, '{}({})'.format(officer.get_full_name(), officer.email)), request)
             except:
                 raise
 
@@ -995,10 +995,10 @@ class Proposal(RevisionedMixin):
                     comment = 'Approval Level Document Deleted: {}'.format(request.data['approval_level_document_name'])
                 #self.save()
                 self.save(version_comment=comment) # to allow revision to be added to reversion history
-                self.log_user_action(ProposalUserAction.ACTION_APPROVAL_LEVEL_DOCUMENT.format(self.id),request)
+                self.log_user_action(ProposalUserAction.ACTION_APPROVAL_LEVEL_DOCUMENT.format(self.lodgement_number), request)
                 # Create a log entry for the organisation
                 if self.applicant:
-                    self.applicant.log_user_action(ProposalUserAction.ACTION_APPROVAL_LEVEL_DOCUMENT.format(self.id),request)
+                    self.applicant.log_user_action(ProposalUserAction.ACTION_APPROVAL_LEVEL_DOCUMENT.format(self.lodgement_number), request)
                 return self
             except:
                 raise
@@ -1009,10 +1009,10 @@ class Proposal(RevisionedMixin):
                 approval_level_comment = request.data['approval_level_comment']
                 self.approval_level_comment=approval_level_comment
                 self.save()
-                self.log_user_action(ProposalUserAction.ACTION_APPROVAL_LEVEL_COMMENT.format(self.id),request)
+                self.log_user_action(ProposalUserAction.ACTION_APPROVAL_LEVEL_COMMENT.format(self.lodgement_number), request)
                 # Create a log entry for the organisation
                 if self.applicant:
-                    self.applicant.log_user_action(ProposalUserAction.ACTION_APPROVAL_LEVEL_COMMENT.format(self.id),request)
+                    self.applicant.log_user_action(ProposalUserAction.ACTION_APPROVAL_LEVEL_COMMENT.format(self.lodgement_number), request)
                 return self
             except:
                 raise
@@ -1027,19 +1027,19 @@ class Proposal(RevisionedMixin):
                         self.assigned_approver = None
                         self.save()
                         # Create a log entry for the proposal
-                        self.log_user_action(ProposalUserAction.ACTION_UNASSIGN_APPROVER.format(self.id),request)
+                        self.log_user_action(ProposalUserAction.ACTION_UNASSIGN_APPROVER.format(self.lodgement_number), request)
                         # Create a log entry for the organisation
                         if self.applicant:
-                            self.applicant.log_user_action(ProposalUserAction.ACTION_UNASSIGN_APPROVER.format(self.id),request)
+                            self.applicant.log_user_action(ProposalUserAction.ACTION_UNASSIGN_APPROVER.format(self.lodgement_number), request)
                 else:
                     if self.assigned_officer:
                         self.assigned_officer = None
                         self.save()
                         # Create a log entry for the proposal
-                        self.log_user_action(ProposalUserAction.ACTION_UNASSIGN_ASSESSOR.format(self.id),request)
+                        self.log_user_action(ProposalUserAction.ACTION_UNASSIGN_ASSESSOR.format(self.lodgement_number), request)
                         # Create a log entry for the organisation
                         if self.applicant:
-                            self.applicant.log_user_action(ProposalUserAction.ACTION_UNASSIGN_ASSESSOR.format(self.id),request)
+                            self.applicant.log_user_action(ProposalUserAction.ACTION_UNASSIGN_ASSESSOR.format(self.lodgement_number), request)
             except:
                 raise
 
@@ -1060,9 +1060,9 @@ class Proposal(RevisionedMixin):
 
                 # Create a log entry for the proposal
                 if self.processing_status == self.PROCESSING_STATUS_WITH_ASSESSOR:
-                    self.log_user_action(ProposalUserAction.ACTION_BACK_TO_PROCESSING.format(self.id),request)
+                    self.log_user_action(ProposalUserAction.ACTION_BACK_TO_PROCESSING.format(self.lodgement_number), request)
                 elif self.processing_status == self.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS:
-                    self.log_user_action(ProposalUserAction.ACTION_ENTER_REQUIREMENTS.format(self.id),request)
+                    self.log_user_action(ProposalUserAction.ACTION_ENTER_REQUIREMENTS.format(self.lodgement_number), request)
         else:
             raise ValidationError('The provided status cannot be found.')
 
@@ -1095,14 +1095,14 @@ class Proposal(RevisionedMixin):
                     self.approval.reissued=True
                     self.approval.save()
                     # Create a log entry for the proposal
-                    self.log_user_action(ProposalUserAction.ACTION_REISSUE_APPROVAL.format(self.id),request)
+                    self.log_user_action(ProposalUserAction.ACTION_REISSUE_APPROVAL.format(self.lodgement_number), request)
                 elif self.__approver_group() in request.user.proposalapprovergroup_set.all():
                     self.processing_status = status
                     self.save()
                     self.approval.reissued=True
                     self.approval.save()
                     # Create a log entry for the proposal
-                    self.log_user_action(ProposalUserAction.ACTION_REISSUE_APPROVAL.format(self.id),request)
+                    self.log_user_action(ProposalUserAction.ACTION_REISSUE_APPROVAL.format(self.lodgement_number), request)
                 else:
                     raise ValidationError('Cannot reissue Approval')
             else:
@@ -1125,10 +1125,10 @@ class Proposal(RevisionedMixin):
                 approver_comment = ''
                 self.move_to_status(request,'with_approver', approver_comment)
                 # Log proposal action
-                self.log_user_action(ProposalUserAction.ACTION_PROPOSED_DECLINE.format(self.id),request)
+                self.log_user_action(ProposalUserAction.ACTION_PROPOSED_DECLINE.format(self.lodgement_number), request)
                 # Log entry for organisation
                 if self.applicant:
-                    self.applicant.log_user_action(ProposalUserAction.ACTION_PROPOSED_DECLINE.format(self.id),request)
+                    self.applicant.log_user_action(ProposalUserAction.ACTION_PROPOSED_DECLINE.format(self.lodgement_number), request)
 
                 send_approver_decline_email_notification(reason, request, self)
             except:
@@ -1156,10 +1156,10 @@ class Proposal(RevisionedMixin):
                     self.proposal_apiary.final_decline()
 
                 # Log proposal action
-                self.log_user_action(ProposalUserAction.ACTION_DECLINE.format(self.id),request)
+                self.log_user_action(ProposalUserAction.ACTION_DECLINE.format(self.lodgement_number), request)
                 # Log entry for organisation
                 if self.applicant:
-                    self.applicant.log_user_action(ProposalUserAction.ACTION_DECLINE.format(self.id),request)
+                    self.applicant.log_user_action(ProposalUserAction.ACTION_DECLINE.format(self.lodgement_number), request)
                 send_proposal_decline_email_notification(self,request, proposal_decline)
             except:
                 raise
@@ -1328,25 +1328,25 @@ class Proposal(RevisionedMixin):
                         ), request)
                     else:
                         self.log_user_action(ProposalUserAction.ACTION_PROPOSED_APIARY_APPROVAL.format(
-                            self.id,
+                            self.lodgement_number,
                             self.proposed_issuance_approval.get('start_date'),
                             self.proposed_issuance_approval.get('expiry_date'),
                             str(apiary_sites_list).lstrip('[').rstrip(']')
                             ), request)
                 else:
-                    self.log_user_action(ProposalUserAction.ACTION_PROPOSED_APPROVAL.format(self.id),request)
+                    self.log_user_action(ProposalUserAction.ACTION_PROPOSED_APPROVAL.format(self.lodgement_number), request)
                 # Log entry for organisation
                 if self.applicant:
                     if self.apiary_group_application_type:
                         self.applicant.log_user_action(ProposalUserAction.ACTION_PROPOSED_APIARY_APPROVAL.format(
-                            self.id,
+                            self.lodgement_number,
                             self.proposed_issuance_approval.get('start_date'),
                             self.proposed_issuance_approval.get('expiry_date'),
                             str(apiary_sites_list).lstrip('[').rstrip(']')
                             #', '.join(apiary_sites_list)
                             ),request)
                     else:
-                        self.applicant.log_user_action(ProposalUserAction.ACTION_PROPOSED_APPROVAL.format(self.id),request)
+                        self.applicant.log_user_action(ProposalUserAction.ACTION_PROPOSED_APPROVAL.format(self.lodgement_number), request)
 
                 send_approver_approve_email_notification(request, self)
             except:
@@ -1366,10 +1366,10 @@ class Proposal(RevisionedMixin):
                 self.customer_status = 'approved'
 
                 # Log proposal action
-                self.log_user_action(ProposalUserAction.ACTION_ISSUE_APPROVAL_.format(self.id),request)
+                self.log_user_action(ProposalUserAction.ACTION_ISSUE_APPROVAL_.format(self.lodgement_number), request)
                 # Log entry for organisation
                 if self.applicant:
-                    self.applicant.log_user_action(ProposalUserAction.ACTION_ISSUE_APPROVAL_.format(self.id),request)
+                    self.applicant.log_user_action(ProposalUserAction.ACTION_ISSUE_APPROVAL_.format(self.lodgement_number), request)
 
                 # TODO: Email?
 
@@ -1397,10 +1397,10 @@ class Proposal(RevisionedMixin):
                 self.customer_status = 'declined'
                 self.save()
                 # Log proposal action
-                self.log_user_action(ProposalUserAction.ACTION_DECLINE.format(self.id), request)
+                self.log_user_action(ProposalUserAction.ACTION_DECLINE.format(self.lodgement_number), request)
                 # Log entry for organisation
                 if self.applicant:
-                    self.applicant.log_user_action(ProposalUserAction.ACTION_DECLINE.format(self.id), request)
+                    self.applicant.log_user_action(ProposalUserAction.ACTION_DECLINE.format(self.lodgement_number), request)
 
                 # TODO: Email?
                 # send_proposal_decline_email_notification(self,request, proposal_decline)
@@ -1430,10 +1430,10 @@ class Proposal(RevisionedMixin):
                 self.processing_status = 'approved'
                 self.customer_status = 'approved'
                 # Log proposal action
-                self.log_user_action(ProposalUserAction.ACTION_ISSUE_APPROVAL_.format(self.id),request)
+                self.log_user_action(ProposalUserAction.ACTION_ISSUE_APPROVAL_.format(self.lodgement_number), request)
                 # Log entry for organisation
                 if self.applicant:
-                    self.applicant.log_user_action(ProposalUserAction.ACTION_ISSUE_APPROVAL_.format(self.id),request)
+                    self.applicant.log_user_action(ProposalUserAction.ACTION_ISSUE_APPROVAL_.format(self.lodgement_number), request)
                 #import ipdb;ipdb.set_trace()
 
                 if self.processing_status == 'approved':
@@ -1531,10 +1531,10 @@ class Proposal(RevisionedMixin):
                                 c.delete()
                         self.generate_compliances(approval, request)
                         # Log proposal action
-                        self.log_user_action(ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.id),request)
+                        self.log_user_action(ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.lodgement_number), request)
                         # Log entry for organisation
                         if self.applicant:
-                            self.applicant.log_user_action(ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.id),request)
+                            self.applicant.log_user_action(ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.lodgement_number), request)
                     self.approval = approval
                 #send Proposal approval email with attachment
                 send_proposal_approval_email_notification(self,request)
@@ -1623,7 +1623,7 @@ class Proposal(RevisionedMixin):
                                     approval=approval,
                                     requirement=req,
                         )
-                        compliance.log_user_action(ComplianceUserAction.ACTION_CREATE.format(compliance.id),request)
+                        compliance.log_user_action(ComplianceUserAction.ACTION_CREATE.format(compliance.lodgement_number), request)
                     if req.recurrence:
                         while current_date < approval.expiry_date:
                             for x in range(req.recurrence_schedule):
@@ -1649,7 +1649,7 @@ class Proposal(RevisionedMixin):
                                                 approval=approval,
                                                 requirement=req,
                                     )
-                                    compliance.log_user_action(ComplianceUserAction.ACTION_CREATE.format(compliance.id),request)
+                                    compliance.log_user_action(ComplianceUserAction.ACTION_CREATE.format(compliance.lodgement_number), request)
             except:
                 raise
 
@@ -1674,13 +1674,13 @@ class Proposal(RevisionedMixin):
                 proposal.submitter = request.user
                 proposal.previous_application = self
                 # Create a log entry for the proposal
-                self.log_user_action(ProposalUserAction.ACTION_RENEW_PROPOSAL.format(self.id),request)
+                self.log_user_action(ProposalUserAction.ACTION_RENEW_PROPOSAL.format(self.lodgement_number), request)
                 # Create a log entry for the organisation
                 if self.applicant:
-                    self.applicant.log_user_action(ProposalUserAction.ACTION_RENEW_PROPOSAL.format(self.id),request)
+                    self.applicant.log_user_action(ProposalUserAction.ACTION_RENEW_PROPOSAL.format(self.lodgement_number), request)
                 #Log entry for approval
                 from disturbance.components.approvals.models import ApprovalUserAction
-                self.approval.log_user_action(ApprovalUserAction.ACTION_RENEW_APPROVAL.format(self.approval.id),request)
+                self.approval.log_user_action(ApprovalUserAction.ACTION_RENEW_APPROVAL.format(self.approval.lodgement_number), request)
                 proposal.save(version_comment='New Amendment/Renewal Proposal created, from origin {}'.format(proposal.previous_application_id))
                 #proposal.save()
             return proposal
@@ -1717,19 +1717,19 @@ class Proposal(RevisionedMixin):
                         r.id = None
                         r.save()
                 # Create a log entry for the proposal
-                self.log_user_action(ProposalUserAction.ACTION_AMEND_PROPOSAL.format(self.id),request)
+                self.log_user_action(ProposalUserAction.ACTION_AMEND_PROPOSAL.format(self.lodgement_number), request)
                 # Create a log entry for the organisation
                 if self.applicant:
-                    self.applicant.log_user_action(ProposalUserAction.ACTION_AMEND_PROPOSAL.format(self.id),request)
+                    self.applicant.log_user_action(ProposalUserAction.ACTION_AMEND_PROPOSAL.format(self.lodgement_number), request)
                 #Log entry for approval
                 from disturbance.components.approvals.models import ApprovalUserAction
-                self.approval.log_user_action(ApprovalUserAction.ACTION_AMEND_APPROVAL.format(self.approval.id),request)
+                self.approval.log_user_action(ApprovalUserAction.ACTION_AMEND_APPROVAL.format(self.approval.lodgement_number), request)
                 proposal.save(version_comment='New Amendment/Renewal Proposal created, from origin {}'.format(proposal.previous_application_id))
                 #proposal.save()
             return proposal
 
     def internal_view_log(self,request):
-        self.log_user_action(ProposalUserAction.ACTION_VIEW_PROPOSAL.format(self.id),request)
+        self.log_user_action(ProposalUserAction.ACTION_VIEW_PROPOSAL.format(self.lodgement_number), request)
         return self
 
     def apiary_requirements(self, approval=None):
@@ -2152,18 +2152,18 @@ class Referral(models.Model):
             self.save()
             send_referral_recall_email_notification(self, request)
             # TODO Log proposal action
-            self.proposal.log_user_action(ProposalUserAction.RECALL_REFERRAL.format(self.id,self.proposal.id),request)
+            self.proposal.log_user_action(ProposalUserAction.RECALL_REFERRAL.format(self.id, self.proposal.lodgement_number), request)
             # TODO log organisation action
-            self.proposal.applicant.log_user_action(ProposalUserAction.RECALL_REFERRAL.format(self.id,self.proposal.id),request)
+            self.proposal.applicant.log_user_action(ProposalUserAction.RECALL_REFERRAL.format(self.id, self.proposal.lodgement_number), request)
 
     def remind(self,request):
         with transaction.atomic():
             if not self.proposal.can_assess(request.user):
                 raise exceptions.ProposalNotAuthorized()
             # Create a log entry for the proposal
-            self.proposal.log_user_action(ProposalUserAction.ACTION_REMIND_REFERRAL.format(self.id,self.proposal.id,'{}({})'.format(self.referral.get_full_name(),self.referral.email)),request)
+            self.proposal.log_user_action(ProposalUserAction.ACTION_REMIND_REFERRAL.format(self.id,self.proposal.lodgement_number,'{}({})'.format(self.referral.get_full_name(),self.referral.email)),request)
             # Create a log entry for the organisation
-            self.proposal.applicant.log_user_action(ProposalUserAction.ACTION_REMIND_REFERRAL.format(self.id,self.proposal.id,'{}({})'.format(self.referral.get_full_name(),self.referral.email)),request)
+            self.proposal.applicant.log_user_action(ProposalUserAction.ACTION_REMIND_REFERRAL.format(self.id,self.proposal.lodgement_number,'{}({})'.format(self.referral.get_full_name(),self.referral.email)),request)
             # send email
             send_referral_email_notification(self,request,reminder=True)
 
@@ -2177,9 +2177,9 @@ class Referral(models.Model):
             self.sent_from = 1
             self.save()
             # Create a log entry for the proposal
-            self.proposal.log_user_action(ProposalUserAction.ACTION_RESEND_REFERRAL_TO.format(self.id,self.proposal.id,'{}({})'.format(self.referral.get_full_name(),self.referral.email)),request)
+            self.proposal.log_user_action(ProposalUserAction.ACTION_RESEND_REFERRAL_TO.format(self.id,self.proposal.lodgement_number,'{}({})'.format(self.referral.get_full_name(),self.referral.email)),request)
             # Create a log entry for the organisation
-            self.proposal.applicant.log_user_action(ProposalUserAction.ACTION_RESEND_REFERRAL_TO.format(self.id,self.proposal.id,'{}({})'.format(self.referral.get_full_name(),self.referral.email)),request)
+            self.proposal.applicant.log_user_action(ProposalUserAction.ACTION_RESEND_REFERRAL_TO.format(self.id,self.proposal.lodgement_number,'{}({})'.format(self.referral.get_full_name(),self.referral.email)),request)
             # send email
             send_referral_email_notification(self,request)
 
@@ -2192,9 +2192,9 @@ class Referral(models.Model):
                 self.referral_text = referral_comment
                 self.save()
                 # TODO Log proposal action
-                self.proposal.log_user_action(ProposalUserAction.CONCLUDE_REFERRAL.format(self.id,self.proposal.id,'{}({})'.format(self.referral.get_full_name(),self.referral.email)),request)
+                self.proposal.log_user_action(ProposalUserAction.CONCLUDE_REFERRAL.format(self.id,self.proposal.lodgement_number,'{}({})'.format(self.referral.get_full_name(),self.referral.email)),request)
                 # TODO log organisation action
-                self.proposal.applicant.log_user_action(ProposalUserAction.CONCLUDE_REFERRAL.format(self.id,self.proposal.id,'{}({})'.format(self.referral.get_full_name(),self.referral.email)),request)
+                self.proposal.applicant.log_user_action(ProposalUserAction.CONCLUDE_REFERRAL.format(self.id,self.proposal.lodgement_number,'{}({})'.format(self.referral.get_full_name(),self.referral.email)),request)
                 send_referral_complete_email_notification(self,request)
             except:
                 raise
@@ -2242,9 +2242,9 @@ class Referral(models.Model):
                             text=referral_text
                         )
                     # Create a log entry for the proposal
-                    self.proposal.log_user_action(ProposalUserAction.ACTION_SEND_REFERRAL_TO.format(referral.id,self.proposal.id,'{}({})'.format(user.get_full_name(),user.email)),request)
+                    self.proposal.log_user_action(ProposalUserAction.ACTION_SEND_REFERRAL_TO.format(referral.id,self.proposal.lodgement_number,'{}({})'.format(user.get_full_name(),user.email)),request)
                     # Create a log entry for the organisation
-                    self.proposal.applicant.log_user_action(ProposalUserAction.ACTION_SEND_REFERRAL_TO.format(referral.id,self.proposal.id,'{}({})'.format(user.get_full_name(),user.email)),request)
+                    self.proposal.applicant.log_user_action(ProposalUserAction.ACTION_SEND_REFERRAL_TO.format(referral.id,self.proposal.lodgement_number,'{}({})'.format(user.get_full_name(),user.email)),request)
                     # send email
                     send_referral_email_notification(referral,request)
                 else:
@@ -2787,7 +2787,7 @@ class ProposalApiary(RevisionedMixin):
                         self.proposal.log_user_action(
                                 ProposalUserAction.APIARY_ACTION_SEND_REFERRAL_TO.format(
                                     referral.id,
-                                    self.proposal.id,
+                                    self.proposal.lodgement_number,
                                     '{}'.format(referral_group.name)
                                     ),
                                 request
@@ -2798,7 +2798,7 @@ class ProposalApiary(RevisionedMixin):
                         applicant_field.log_user_action(
                                 ProposalUserAction.APIARY_ACTION_SEND_REFERRAL_TO.format(
                                     referral.id,
-                                    self.proposal.id,
+                                    self.proposal.lodgement_number,
                                     '{}'.format(referral_group.name)),
                                 request
                                 )
@@ -2965,6 +2965,7 @@ class ProposalApiary(RevisionedMixin):
                     self.link_apiary_approval_requirements(target_approval)
             else:
                 # Apiary approval
+                from disturbance.components.approvals.models import ApprovalUserAction
                 if not approval:
                     # There are no existing approvals.  Create a new one.
                     approval, approval_created = Approval.objects.update_or_create(
@@ -2984,8 +2985,11 @@ class ProposalApiary(RevisionedMixin):
                         }
                     )
                     if approval_created:
-                        from disturbance.components.approvals.models import ApprovalUserAction
-                        ApprovalUserAction.log_action(approval, ApprovalUserAction.ACTION_CREATE_APPROVAL.format(approval.id), request.user)
+                        ApprovalUserAction.log_action(approval, ApprovalUserAction.ACTION_CREATE_APPROVAL.format(approval.lodgement_number), request.user)
+                    else:
+                        # approval already exist
+                        # But should not reach here
+                        ApprovalUserAction.log_action(approval, ApprovalUserAction.ACTION_UPDATE_APPROVAL.format(approval.lodgement_number), request.user)
                 else:
                     approval.issue_date = timezone.now()
                     # ensure current_proposal is updated with this proposal
@@ -3003,6 +3007,7 @@ class ProposalApiary(RevisionedMixin):
                     #self.proposal.proposed_issuance_approval['details'] = ''
                     #self.proposal.proposed_issuance_approval['cc_email'] = ''
                     approval.save()
+                    ApprovalUserAction.log_action(approval, ApprovalUserAction.ACTION_UPDATE_APPROVAL.format(approval.lodgement_number), request.user)
                 if preview:
                     # do this instead of generate compliances section below
                     self.link_apiary_approval_requirements(approval)
@@ -3146,7 +3151,7 @@ class ProposalApiary(RevisionedMixin):
                     self.generate_apiary_compliances(approval, request)
                     # send the doc and log in approval and org
                     self.proposal.log_user_action(ProposalUserAction.ACTION_ISSUE_APIARY_APPROVAL.format(
-                        self.proposal.id,
+                        self.proposal.lodgement_number,
                         start_date,
                         expiry_date,
                         str([site['id'] for site in sites_approved]).lstrip('[').rstrip(']')
@@ -3154,7 +3159,7 @@ class ProposalApiary(RevisionedMixin):
                     # Log entry for organisation
                     if self.proposal.applicant:
                         self.proposal.applicant.log_user_action(
-                            ProposalUserAction.ACTION_ISSUE_APPROVAL_.format(self.proposal.id), request)
+                            ProposalUserAction.ACTION_ISSUE_APPROVAL_.format(self.proposal.lodgement_number), request)
                 else:
                     #approval.replaced_by = request.user
                     #approval.replaced_by = self.approval
@@ -3174,13 +3179,10 @@ class ProposalApiary(RevisionedMixin):
                     approval.generate_doc(request.user)
                     self.generate_apiary_compliances(approval, request)
                     # Log proposal action
-                    self.proposal.log_user_action(ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(
-                        self.proposal.id
-                    ), request)
+                    self.proposal.log_user_action(ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.proposal.lodgement_number), request)
                     # Log entry for organisation
                     if self.proposal.applicant:
-                        self.proposal.applicant.log_user_action(
-                                ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.proposal.id), request)
+                        self.proposal.applicant.log_user_action(ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.proposal.lodgement_number), request)
 
                 self.proposal.approval = approval
                 #send Proposal approval email with attachment
@@ -3349,7 +3351,7 @@ class ProposalApiary(RevisionedMixin):
                                     requirement=req,
                                     apiary_compliance=True
                         )
-                        compliance.log_user_action(ComplianceUserAction.ACTION_CREATE.format(compliance.id),request)
+                        compliance.log_user_action(ComplianceUserAction.ACTION_CREATE.format(compliance.lodgement_number), request)
                     if req.recurrence:
                         while current_date < approval.expiry_date:
                             for x in range(req.recurrence_schedule):
@@ -3376,7 +3378,7 @@ class ProposalApiary(RevisionedMixin):
                                                 requirement=req,
                                                 apiary_compliance=True
                                     )
-                                    compliance.log_user_action(ComplianceUserAction.ACTION_CREATE.format(compliance.id),request)
+                                    compliance.log_user_action(ComplianceUserAction.ACTION_CREATE.format(compliance.lodgement_number),request)
             except:
                 raise
 
@@ -3417,6 +3419,14 @@ class ProposalApiary(RevisionedMixin):
                 apiary_site_on_approval.site_category = apiary_site_on_proposal.site_category_processed
                 apiary_site_on_approval.site_status = SITE_STATUS_CURRENT
                 apiary_site_on_approval.save()
+            else:
+                try:
+                    qs = ApiarySiteOnApproval.objects.filter(apiary_site=a_site, approval=approval)
+                    if qs:
+                        apiary_site_on_approval = qs[0]
+                        apiary_site_on_approval.delete()
+                except:
+                    pass
 
 
 class SiteCategory(models.Model):
@@ -4099,7 +4109,7 @@ class ApiaryReferral(RevisionedMixin):
             self.referral.proposal.log_user_action(
                 ProposalUserAction.APIARY_RECALL_REFERRAL.format(
                     self.referral.id,
-                    self.referral.proposal.id
+                    self.referral.proposal.lodgement_number
                     ),
                 request
                 )
@@ -4111,7 +4121,7 @@ class ApiaryReferral(RevisionedMixin):
             applicant_field.log_user_action(
                 ProposalUserAction.APIARY_RECALL_REFERRAL.format(
                     self.referral.id,
-                    self.referral.proposal.id
+                    self.referral.proposal.lodgement_number
                     ),
                 request
                 )
@@ -4125,7 +4135,7 @@ class ApiaryReferral(RevisionedMixin):
             self.referral.proposal.log_user_action(
                 ProposalUserAction.APIARY_ACTION_REMIND_REFERRAL.format(
                 self.referral.id,
-                self.referral.proposal.id,'{}'.format(self.referral_group.name)
+                self.referral.proposal.lodgement_number,'{}'.format(self.referral_group.name)
                 ),
                 request
                 )
@@ -4137,7 +4147,7 @@ class ApiaryReferral(RevisionedMixin):
             applicant_field.log_user_action(
                 ProposalUserAction.APIARY_ACTION_REMIND_REFERRAL.format(
                 self.referral.id,
-                self.referral.proposal.id,'{}'.format(self.referral_group.name)
+                self.referral.proposal.lodgement_number,'{}'.format(self.referral_group.name)
                 ),
                 request
                 )
@@ -4159,7 +4169,7 @@ class ApiaryReferral(RevisionedMixin):
             self.referral.proposal.log_user_action(
                 ProposalUserAction.APIARY_ACTION_RESEND_REFERRAL_TO.format(
                     self.referral.id,
-                    self.referral.proposal.id,'{}'.format(self.referral_group.name)
+                    self.referral.proposal.lodgement_number,'{}'.format(self.referral_group.name)
                     ),
                 request)
             # Create a log entry for the organisation
@@ -4171,7 +4181,7 @@ class ApiaryReferral(RevisionedMixin):
             applicant_field.log_user_action(
                     ProposalUserAction.APIARY_ACTION_RESEND_REFERRAL_TO.format(
                         self.referral.id,
-                        self.referral.proposal.id,
+                        self.referral.proposal.lodgement_number,
                         '{}'.format(
                             self.referral_group.name)
                         ),
@@ -4201,7 +4211,7 @@ class ApiaryReferral(RevisionedMixin):
                         ProposalUserAction.APIARY_CONCLUDE_REFERRAL.format(
                             request.user.get_full_name(),
                             self.referral.id,
-                            self.referral.proposal.id,
+                            self.referral.proposal.lodgement_number,
                             '{}'.format(
                                 self.referral_group.name)
                             ),
@@ -4218,7 +4228,7 @@ class ApiaryReferral(RevisionedMixin):
                         ProposalUserAction.APIARY_CONCLUDE_REFERRAL.format(
                             request.user.get_full_name(),
                             self.referral.id,
-                            self.referral.proposal.id,
+                            self.referral.proposal.lodgement_number,
                             '{}'.format(self.referral_group.name)
                             ),
                         request
