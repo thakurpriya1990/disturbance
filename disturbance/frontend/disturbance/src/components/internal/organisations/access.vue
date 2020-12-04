@@ -429,8 +429,10 @@ export default {
         let vm = this;
         
         var assessor = vm.members.filter(function(elem){
-                    return(elem.name==vm.profile.full_name);
-                });
+            return(elem.name==vm.profile.full_name);
+        });
+        console.log(vm.members)
+        console.log(assessor)
                 if (assessor.length > 0)
                     return true;
                 else

@@ -52,7 +52,7 @@
             </div>
         </div>
     </div>
-    <datatable ref="org_access_table" id="org-access-table" :dtOptions="dtOptions" :dtHeaders="dtHeaders"></datatable>
+    <datatable ref="org_access_table" id="org-access-table" :dtOptions="dtOptions" :dtHeaders="dtHeaders" :key="table_id"></datatable>
 </div>
 </div>
 </div>
@@ -70,6 +70,7 @@ import {
   helpers
 }
 from '@/utils/hooks'
+import uuid from 'uuid'
 export default {
   name: 'OrganisationAccessDashboard',
   data() {
@@ -89,6 +90,7 @@ export default {
         roleChoices: [],
         members:[],
         profile: {},
+        table_id: 'aho',
         dtOptions:{
                 language: {
                     processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
@@ -131,9 +133,8 @@ export default {
                                 var column = "<a href='/internal/organisations/access/\__ID__\' >View </a>";
                             }
                             else{
-                                if(vm.is_assessor)
-                                {
-                                   var column = "<a href='/internal/organisations/access/\__ID__\'> Process </a>"; 
+                                if(vm.is_assessor){
+                                    var column = "<a href='/internal/organisations/access/\__ID__\'> Process </a>"; 
                                 }
                                 else{
                                     var column = "<a href='/internal/organisations/access/\__ID__\' >View </a>";
@@ -226,12 +227,12 @@ export default {
     computed: {
         isLoading: function () {
             return this.loading.length == 0;
-        }
-    },
-    methods: {
+        },
         is_assessor: function(){
             return this.check_assessor()
         },
+    },
+    methods: {
         /*
 
         fetchAccessGroupMembers: function(){
@@ -241,7 +242,6 @@ export default {
             vm.members = response.body
             //vm.loading.splice('Loading Access Group Members',1);
         },(error) => {
-            console.log(error);
             //vm.loading.splice('Loading Access Group Members',1);
         })
         },
@@ -251,7 +251,6 @@ export default {
             vm.profile = response.body
                               
          },(error) => {
-            console.log(error);
                 
         })
         },
@@ -266,6 +265,7 @@ export default {
             const response = await this.$http.get(url)
             this.members = response.body
             //this.loading.splice('Loading Access Group Members',1);
+            this.table_id = uuid()
         },
         fetchProfile: async function(){
             const response = await Vue.http.get(api_endpoints.profile);
@@ -273,19 +273,17 @@ export default {
         },
 
         check_assessor: function(){
-            let vm = this;            
-            var assessor = vm.members.filter(function(elem){
-                        return(elem.name==vm.profile.full_name);
-                    });
-                    if (assessor.length > 0)
-                        return true;
-                    else
-                        return false;
+            let vm = this
+            let assessor = vm.members.filter(elem => elem.id == vm.profile.id)
+            if (assessor.length > 0)
+                return true;
+            else
+                return false;
         },
     },
-    mounted: function () {
-        this.fetchAccessGroupMembers();
-        this.fetchProfile();
+    mounted: async function () {
+        //await this.fetchAccessGroupMembers();
+        //await this.fetchProfile();
     },
     created: async function() {
         // retrieve template group
@@ -297,8 +295,8 @@ export default {
         } else {
             this.dasTemplateGroup = true;
         }
-        await this.fetchAccessGroupMembers();
         await this.fetchProfile();
+        await this.fetchAccessGroupMembers();
     },
 
 }

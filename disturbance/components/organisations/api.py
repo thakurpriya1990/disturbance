@@ -588,7 +588,7 @@ class OrganisationRequestsViewSet(viewsets.ModelViewSet):
         try:
             template_group = get_template_group(request)
             qs = self.get_queryset().filter(template_group=template_group)
-            serializer = OrganisationRequestDTSerializer(qs,many=True)
+            serializer = OrganisationRequestDTSerializer(qs, many=True)
             return Response(serializer.data) 
         except serializers.ValidationError:
             print(traceback.print_exc())
