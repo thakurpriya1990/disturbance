@@ -52,7 +52,15 @@
             </div>
         </div>
     </div>
-    <datatable ref="org_access_table" id="org-access-table" :dtOptions="dtOptions" :dtHeaders="dtHeaders" :key="table_id"></datatable>
+    <template v-if="table_id">
+        <datatable 
+            ref="org_access_table" 
+            id="org-access-table" 
+            :dtOptions="dtOptions" 
+            :dtHeaders="dtHeaders" 
+            :key="table_id">
+        </datatable>
+    </template>
 </div>
 </div>
 </div>
@@ -90,7 +98,7 @@ export default {
         roleChoices: [],
         members:[],
         profile: {},
-        table_id: 'aho',
+        table_id: 0,
         dtOptions:{
                 language: {
                     processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
