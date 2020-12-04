@@ -1,5 +1,8 @@
 <template>
     <div class="container">
+        <template v-if="is_local">
+            site_transitions.vue
+        </template>
         <FormSection :formCollapse="false" label="Site(s)" Index="site_avaiability">
             <ComponentSiteSelection
                 :apiary_sites="apiary_sites"
@@ -21,6 +24,7 @@
     import ComponentSiteSelection from '@/components/common/apiary/component_site_selection.vue'
     import uuid from 'uuid'
     import Vue from 'vue'
+    import { helpers, } from "@/utils/hooks.js"
 
     export default {
         name: 'SiteTransitions',
@@ -28,6 +32,7 @@
             return {
                 component_site_selection_key: uuid(),
                 apiary_sites: [],
+                is_local: helpers.is_local(),
             }
         },
         components: {

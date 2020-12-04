@@ -18,7 +18,7 @@ export const SiteColours = {
         'stroke': '#000000',
     },
     'approved': {
-        'fill': '#00ff00', 
+        'fill': '#0070ff', 
         'stroke': '#000000',
     },
     'suspended': {
@@ -67,9 +67,10 @@ export const SiteColours = {
 export default SiteColours
 export let existingSiteRadius = 5
 export let drawingSiteRadius = 7
-export function getStatusForColour(feature_or_apiary_site, vacant_suppress_discard = true){
+export function getStatusForColour(feature_or_apiary_site, vacant_suppress_discard = true, display_at_time_of_submitted = false){
     let status = ''
     let is_vacant = false
+    let is_vacant_when_submitted = false
     let making_payment = false
 
     if (feature_or_apiary_site.hasOwnProperty('ol_uid')){
@@ -77,26 +78,35 @@ export function getStatusForColour(feature_or_apiary_site, vacant_suppress_disca
         status = feature_or_apiary_site.get("status");
         is_vacant = feature_or_apiary_site.get('is_vacant')
         making_payment = feature_or_apiary_site.get('making_payment')
+        is_vacant_when_submitted = feature_or_apiary_site.get('apiary_site_is_vacant_when_submitted')
     } else {
         // feature_or_apiary_site is apiary_site object
         status = feature_or_apiary_site.properties.status
         is_vacant = feature_or_apiary_site.properties.is_vacant
         making_payment = feature_or_apiary_site.properties.making_payment
+        is_vacant_when_submitted = feature_or_apiary_site.properties.apiary_site_is_vacant_when_submitted
     }
 
-    if (making_payment){
-        status = 'making_payment'
+    if (display_at_time_of_submitted){
+        status = 'pending'
+        if (is_vacant_when_submitted){
+            status = 'vacant'
+        }
     } else {
-        if (is_vacant){
-            // Vacant
-            if (status == 'pending'){
-                status = 'pending_vacant'
-            } else {
-                if (!vacant_suppress_discard && status == 'discarded'){
-                    // When the site is 'vacant' and 'discarded', status remains the 'discarded'
+        if (making_payment){
+            status = 'making_payment'
+        } else {
+            if (is_vacant){
+                // Vacant
+                if (status == 'pending'){
+                    status = 'pending_vacant'
                 } else {
-                    // Set 'vacant' to the site status
-                    status = 'vacant'
+                    if (!vacant_suppress_discard && status == 'discarded'){
+                        // When the site is 'vacant' and 'discarded', status remains the 'discarded'
+                    } else {
+                        // Set 'vacant' to the site status
+                        status = 'vacant'
+                    }
                 }
             }
         }
