@@ -12,7 +12,7 @@ from disturbance.components.approvals.serializers_apiary import ApiarySiteOnAppr
 from disturbance.components.main.utils import get_category, get_tenure, get_region_district, \
     get_feature_in_wa_coastline_smoothed, validate_buffer, get_template_group, get_status_for_export
 from disturbance.components.organisations.serializers import OrganisationSerializer
-from disturbance.components.organisations.models import UserDelegation
+from disturbance.components.organisations.models import UserDelegation, Organisation
 from disturbance.components.proposals.serializers_base import (
         BaseProposalSerializer, 
         ProposalDeclinedDetailsSerializer,
@@ -334,6 +334,7 @@ class ApiarySiteOnProposalDraftGeometryExportSerializer(ApiarySiteOnProposalDraf
     telephone = serializers.SerializerMethodField()
     mobile = serializers.SerializerMethodField()
     email = serializers.SerializerMethodField()
+    organisation_name = serializers.SerializerMethodField()
 
     class Meta(ApiarySiteOnProposalDraftGeometrySerializer.Meta):
         fields = (
@@ -346,7 +347,15 @@ class ApiarySiteOnProposalDraftGeometryExportSerializer(ApiarySiteOnProposalDraf
             'telephone',
             'mobile',
             'email',
+            'organisation_name',
         )
+
+    def get_organisation_name(self, relation):
+        relevant_applicant = relation.proposal_apiary.proposal.relevant_applicant
+        if isinstance(relevant_applicant, Organisation):
+            return relevant_applicant.organisation.name
+        else:
+            return ''
 
     def get_status(self, relation):
         return get_status_for_export(relation)
@@ -359,7 +368,7 @@ class ApiarySiteOnProposalDraftGeometryExportSerializer(ApiarySiteOnProposalDraf
         if isinstance(relevant_applicant, EmailUser):
             return relevant_applicant.last_name
         else:
-            return relevant_applicant.organisation.name
+            return ''
 
     def get_first_name(self, relation):
         relevant_applicant = relation.proposal_apiary.proposal.relevant_applicant
@@ -463,24 +472,75 @@ class ApiarySiteOnProposalProcessedGeometryExportSerializer(ApiarySiteOnProposal
     """
     status = serializers.SerializerMethodField()
     category = serializers.SerializerMethodField()
-    # surname = serializers.SerializerMethodField()
-    # first_name = serializers.SerializerMethodField()
-    # address = serializers.SerializerMethodField()
-    # telephone = serializers.SerializerMethodField()
-    # mobile = serializers.SerializerMethodField()
+    surname = serializers.SerializerMethodField()
+    first_name = serializers.SerializerMethodField()
+    address = serializers.SerializerMethodField()
+    telephone = serializers.SerializerMethodField()
+    mobile = serializers.SerializerMethodField()
+    email = serializers.SerializerMethodField()
+    organisation_name = serializers.SerializerMethodField()
 
     class Meta(ApiarySiteOnProposalProcessedGeometrySerializer.Meta):
         fields = (
             'id',
             'status',
             'category',
+            'surname',
+            'first_name',
+            'address',
+            'telephone',
+            'mobile',
+            'email',
+            'organisation_name',
         )
+
+    def get_organisation_name(self, relation):
+        relevant_applicant = relation.proposal_apiary.proposal.relevant_applicant
+        if isinstance(relevant_applicant, Organisation):
+            return relevant_applicant.organisation.name
+        else:
+            return ''
 
     def get_status(self, relation):
         return get_status_for_export(relation)
 
-    def get_category(self, intermediate_obj):
-        return intermediate_obj.site_category_processed.name
+    def get_category(self, relation):
+        return relation.site_category_draft.name
+
+    def get_surname(self, relation):
+        relevant_applicant = relation.proposal_apiary.proposal.relevant_applicant
+        if isinstance(relevant_applicant, EmailUser):
+            return relevant_applicant.last_name
+        else:
+            return ''
+
+    def get_first_name(self, relation):
+        relevant_applicant = relation.proposal_apiary.proposal.relevant_applicant
+        if isinstance(relevant_applicant, EmailUser):
+            return relevant_applicant.first_name
+        else:
+            return ''
+
+    def get_address(self, relation):
+        address = relation.proposal_apiary.proposal.relevant_applicant_address
+        return address.summary
+
+    def get_telephone(self, relation):
+        relevant_applicant = relation.proposal_apiary.proposal.relevant_applicant
+        if isinstance(relevant_applicant, EmailUser):
+            return relevant_applicant.phone_number
+        else:
+            return ''
+
+    def get_mobile(self, relation):
+        relevant_applicant = relation.proposal_apiary.proposal.relevant_applicant
+        if isinstance(relevant_applicant, EmailUser):
+            return relevant_applicant.phone_number
+        else:
+            return ''
+
+    def get_email(self, relation):
+        return relation.proposal_apiary.proposal.relevant_applicant_email
 
 
 class ApiarySiteOnProposalVacantProcessedGeometrySerializer(ApiarySiteOnProposalProcessedGeometrySerializer):
