@@ -3530,6 +3530,8 @@ class ApiaryAnnualRentalFee(RevisionedMixin):
     class Meta:
         app_label = 'disturbance'
         ordering = ('date_from', )  # oldest record first, latest record last
+        verbose_name = 'Annual Site Fee'
+
 
     def __str__(self):
         return 'Amount: ${}: From: {}'.format(self.amount, self.date_from)

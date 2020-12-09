@@ -7,6 +7,7 @@ from disturbance import helpers
 def apiary_url(request):
     #web_url = request.META['HTTP_HOST']
     web_url = request.META.get('HTTP_HOST', None)
+    temp = settings
     if web_url in settings.APIARY_URL:
         template_group = 'apiary'
         PUBLIC_URL='https://apiary.dbca.wa.gov.au/'

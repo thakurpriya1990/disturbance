@@ -4,6 +4,7 @@ from rest_framework_gis.serializers import GeoFeatureModelSerializer
 
 from disturbance.components.approvals.models import ApiarySiteOnApproval
 from disturbance.components.main.utils import get_category, get_tenure, get_region_district, get_status_for_export
+from disturbance.components.organisations.models import Organisation
 
 
 class ApiarySiteOnApprovalGeometrySerializer(GeoFeatureModelSerializer):
@@ -62,6 +63,7 @@ class ApiarySiteOnApprovalGeometryExportSerializer(ApiarySiteOnApprovalGeometryS
     telephone = serializers.SerializerMethodField()
     mobile = serializers.SerializerMethodField()
     email = serializers.SerializerMethodField()
+    organisation_name = serializers.SerializerMethodField()
 
     class Meta(ApiarySiteOnApprovalGeometrySerializer.Meta):
         fields = (
@@ -74,7 +76,15 @@ class ApiarySiteOnApprovalGeometryExportSerializer(ApiarySiteOnApprovalGeometryS
             'telephone',
             'mobile',
             'email',
+            'organisation_name',
         )
+
+    def get_organisation_name(self, relation):
+        relevant_applicant = relation.approval.relevant_applicant
+        if isinstance(relevant_applicant, Organisation):
+            return relevant_applicant.organisation.name
+        else:
+            return ''
 
     def get_status(self, relation):
         return get_status_for_export(relation)
@@ -87,7 +97,7 @@ class ApiarySiteOnApprovalGeometryExportSerializer(ApiarySiteOnApprovalGeometryS
         if isinstance(relevant_applicant, EmailUser):
             return relevant_applicant.last_name
         else:
-            return relevant_applicant.organisation.name
+            return ''
 
     def get_first_name(self, relation):
         relevant_applicant = relation.approval.relevant_applicant
