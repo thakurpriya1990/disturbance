@@ -187,17 +187,13 @@ class DefaultDataManager(object):
         for type_name in ApplicationType.APPLICATION_TYPES:
             q_set = ApplicationType.objects.filter(name=type_name[0])
             if not q_set:
-                visibility = True if type_name[0] in (
-                        ApplicationType.DISTURBANCE, 
-                        ApplicationType.APIARY, 
-                        ApplicationType.POWERLINE_MAINTENANCE
-                        ) else False
+                domain_used = 'apiary' if type_name[0] in ApplicationType.APIARY_APPLICATION_TYPES else 'das'
                 obj = ApplicationType.objects.create(
-                        name=type_name[0],
-                        application_fee=0,
-                        oracle_code_application='',
-                        visible=visibility,
-                        )
+                    name=type_name[0],
+                    application_fee=0,
+                    oracle_code_application='',
+                    domain_used=domain_used,
+                )
                 logger.info("Created application type: %s" % obj)
 
         for name in [ApplicationType.APIARY, ApplicationType.TEMPORARY_USE, ApplicationType.SITE_TRANSFER]:

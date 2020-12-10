@@ -270,35 +270,20 @@ export default {
           return returnStr;
       },
       applicationTypesList: function() {
-          console.log("applicationTypesList")
           let returnList = [];
           for (let applicationType of this.application_types) {
               // for individual applications, only Apiary should show
               //if (this.behalf_of === 'individual') {
               if (this.apiaryTemplateGroup) {
-                  if (applicationType.text === 'Apiary') {
+                  if (applicationType.domain_used === 'apiary') {
                       returnList.push(applicationType);
                   }
-              } else {
-                  returnList.push(applicationType);
+              } else if (this.dasTemplateGroup){
+                  if (applicationType.domain_used === 'das') {
+                      returnList.push(applicationType);
+                  }
               }
           }
-
-          console.log(returnList)
-
-          let index = -100
-          if (this.dasTemplateGroup){
-              for (let i=0; i<returnList.length; i++){
-                 if (returnList[i].text === 'Apiary'){
-                    index = i
-                 }
-              }
-          }
-
-          if (index > -1){
-              returnList.splice(index, 1)
-          }
-
           return returnList;
       },
     isLoading: function() {
@@ -472,6 +457,7 @@ export default {
                     this.application_types.push( {
                         text: vm.api_app_types[i].name,
                         value: vm.api_app_types[i].id,
+                        domain_used: vm.api_app_types[i].domain_used,
                         //activities: (vm.api_app_types[i].activity_app_types.length > 0) ? vm.api_app_types[i].activity_app_types : [],
                         //tenures: (vm.api_app_types[i].tenure_app_types.length > 0) ? vm.api_app_types[i].tenure_app_types : [],
                     } );

@@ -87,17 +87,14 @@ def application_type_choicelist():
         # required because on first DB tables creation, there are no ApplicationType objects -- setting a default value
         return ( ('Disturbance', 'Disturbance'), )
 
+
 class ProposalType(models.Model):
-    #name = models.CharField(verbose_name='Application name (eg. Disturbance, Apiary)', max_length=24)
-    #application_type = models.ForeignKey(ApplicationType, related_name='aplication_types')
     description = models.CharField(max_length=256, blank=True, null=True)
-    #name = models.CharField(verbose_name='Application name (eg. Disturbance, Apiary)', max_length=24, choices=application_type_choicelist(), default=application_type_choicelist()[0][0])
     name = models.CharField(verbose_name='Application name (eg. Disturbance, Apiary)', max_length=64, choices=application_type_choicelist(), default='Disturbance')
     schema = JSONField()
-    #activities = TaggableManager(verbose_name="Activities",help_text="A comma-separated list of activities.")
-    #site = models.OneToOneField(Site, default='1')
     replaced_by = models.ForeignKey('self', on_delete=models.PROTECT, blank=True, null=True)
     version = models.SmallIntegerField(default=1, blank=False, null=False)
+    # domain_used = models.CharField(max_length=40, choices=DOMAIN_USED_CHOICES, default=DOMAIN_USED_CHOICES[0][0])
 
     def __str__(self):
         return '{} - v{}'.format(self.name, self.version)
