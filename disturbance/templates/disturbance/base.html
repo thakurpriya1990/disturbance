@@ -41,7 +41,7 @@
         {% endif %}
     </head>
     <body>
-        {{ DOMAIN_DETECTED }}
+        {% if DEBUG %}<div style="position: absolute; color: white; font-size: 0.8em;">{{ DOMAIN_DETECTED }}</div>{% endif %}
         <header class="topmast">
             {% block header %}
                 {% include 'disturbance/header.html' %}

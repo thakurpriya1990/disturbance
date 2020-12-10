@@ -26,6 +26,7 @@ def apiary_url(request):
 
     return {
         'DOMAIN_DETECTED': settings.DOMAIN_DETECTED,
+        'DEBUG': settings.DEBUG,
         'DEV_STATIC': settings.DEV_STATIC,
         'DEV_STATIC_URL': settings.DEV_STATIC_URL,
         'TEMPLATE_GROUP': template_group,

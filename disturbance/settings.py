@@ -178,4 +178,3 @@ BASE_EMAIL_HTML = ''
 # default: 'das'
 # This value is determined at the middleware, DomainDetectMiddleware by where the request comes from
 DOMAIN_DETECTED = 'das'
-
