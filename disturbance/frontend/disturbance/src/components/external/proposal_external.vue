@@ -1,5 +1,8 @@
 <template lang="html">
     <div class="container" >
+        <template v-if="is_local">
+            proposal_external.vue
+        </template>
         <form :action="proposal_form_url" method="post" name="new_proposal" enctype="multipart/form-data">
             <div v-if="!proposal_readonly">
               <div v-if="hasAmendmentRequest" class="row" style="color:red;">
@@ -37,8 +40,7 @@
                 </ul>
             </div>
 
-            <div v-if="proposal && proposal.application_type=='Apiary'">
-
+            <template v-if="proposal && proposal.application_type=='Apiary'">
                 <ProposalApiary
                     v-if="proposal"
                     :proposal="proposal"
@@ -62,8 +64,8 @@
                     @total_num_of_sites_on_map_unpaid="total_num_of_sites_on_map_unpaid_changed"
                     @total_num_of_sites_on_map="total_num_of_sites_on_map_changed"
                 />
-            </div>
-            <div v-else-if="proposal && proposal.application_type=='Site Transfer'">
+            </template>
+            <template v-else-if="proposal && proposal.application_type=='Site Transfer'">
                 <ApiarySiteTransfer
                     v-if="proposal"
                     :proposal="proposal"
@@ -75,145 +77,143 @@
                     @site_transfer_application_fee="setSiteTransferApplicationFee"
                     @selectedLicenceHolderChanged="selectedLicenceHolderChanged"
                 />
-            </div>
+            </template>
 
-            <div v-else>
-                <ProposalDisturbance v-if="proposal" :proposal="proposal" id="proposalStart" :showSections="sectionShow"></ProposalDisturbance>
+            <template v-else>
+                <ProposalDisturbance v-if="proposal" :proposal="proposal" id="proposalStart" :showSections="sectionShow">
                 <NewApply v-if="proposal" :proposal="proposal"></NewApply>
-            </div>
+                <div>
+                    <input type="hidden" name="csrfmiddlewaretoken" :value="csrf_token"/>
+                    <input type='hidden' name="schema" :value="JSON.stringify(proposal)" />
+                    <input type='hidden' name="proposal_id" :value="1" />
 
-            <div>
-                <input type="hidden" name="csrfmiddlewaretoken" :value="csrf_token"/>
-                <input type='hidden' name="schema" :value="JSON.stringify(proposal)" />
-                <input type='hidden' name="proposal_id" :value="1" />
+                    <div class="row" style="margin-bottom: 50px">
+                      <div class="navbar navbar-fixed-bottom" style="background-color: #f5f5f5 ">
+                      <div class="navbar-inner">
+                        <div v-if="proposal && !proposal.readonly" class="container">
+                            <template v-if="proposal.apiary_group_application_type">
+                                <div class="row payment-details-buttons">
+                                    <!--button id="sectionHide" @click.prevent="sectionHide" class="btn btn-primary">Show/Hide sections</button-->
+                                    <!--
+                                    <input type="button" @click.prevent="save_exit" class="btn btn-primary" value="Save and Exit"/>
+                                    <input type="button" @click.prevent="save" class="btn btn-primary" value="Save and Continue"/>
 
-                <div class="row" style="margin-bottom: 50px">
-                  <div class="navbar navbar-fixed-bottom" style="background-color: #f5f5f5 ">
-                  <div class="navbar-inner">
-                    <div v-if="proposal && !proposal.readonly" class="container">
-                        <!--
-                      <p class="pull-right" style="margin-top:5px;">
-                        -->
-                        <!--div v-if="proposal && !proposal.apiary_group_application_type"-->
-                        <input
+                                    <input v-if="!isSubmitting" type="button" @click.prevent="submit" class="btn btn-primary" value="Submit"/>
+                                    <button v-else disabled class="btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Submitting</button>
+
+                                    <input id="save_and_continue_btn" type="hidden" @click.prevent="save_wo_confirm" class="btn btn-primary" value="Save Without Confirmation"/>
+                                    -->
+                                    <template v-if="is_proposal_type_new">
+                                        <div class="col-sm-3 text-right">
+                                        </div>
+                                        <div class="col-sm-3 text-right">
+                                            <div class="text-center payment-description-title">New sites</div>
+                                            <div>{{ num_of_sites_south_west_remain_after_payment }}</div>
+                                            <div>{{ num_of_sites_remote_remain_after_payment }}</div>
+                                        </div>
+
+                                    </template>
+                                    <template v-if="is_proposal_type_transfer">
+                                        <div class="col-sm-3 text-right">
+                                        </div>
+                                        <div class="col-sm-3 text-right">
+                                            <div class="text-center payment-description-title"> </div>
+                                            <div> </div>
+                                            <div> </div>
+                                        </div>
+
+                                    </template>
+
+                                    <template v-if="is_proposal_type_renewal">
+                                        <div class="col-sm-3 text-right">
+                                            <div class="text-center payment-description-title">New sites</div>
+                                            <div>{{ num_of_sites_south_west_remain_after_payment }}</div>
+                                            <div>{{ num_of_sites_remote_remain_after_payment }}</div>
+                                        </div>
+                                        <div class="col-sm-3 text-right">
+                                            <div class="text-center payment-description-title">Renew sites</div>
+                                            <div>{{ num_of_sites_south_west_renewal_remain_after_payment }}</div>
+                                            <div>{{ num_of_sites_remote_renewal_remain_after_payment }}</div>
+                                        </div>
+                                    </template>
+
+                                    <div class="col-sm-2 text-center">
+                                        <div class="payment-description-title">Application fee</div>
+                                        <div v-if="is_proposal_type_transfer">
+                                            <div class="payment-description-total-fee">${{ siteTransferApplicationFee }}</div>
+                                        </div>
+                                        <div v-else>
+                                            <div class="payment-description-total-fee">${{ sum_of_total_fees }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-4 text-right no-padding">
+                                        <input type="button" @click.prevent="save_exit" class="btn btn-primary" value="Save and Exit"/>
+                                        <input type="button" @click.prevent="save(true)" class="btn btn-primary" value="Save and Continue"/>
+                                        <div v-if="proposal_type_name==='transfer'">
+                                            <template v-if="!isSubmitting">
+                                                <input
+                                                    type="button"
+                                                    @click.prevent="submit"
+                                                    class="btn btn-primary"
+                                                    value="Pay and Submit"
+                                                    :disabled="pay_button_disabled"
+                                                />
+                                            </template>
+                                            <template v-else>
+                                                <button disabled class="btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Submitting</button>
+                                            </template>
+                                        </div>
+                                        <div v-else>
+                                            <template v-if="!isSubmitting">
+                                                <input
+                                                    type="button"
+                                                    @click.prevent="submit"
+                                                    class="btn btn-primary"
+                                                    :value="submit_button_text"
+                                                    :disabled="!total_num_of_sites_on_map > 0"
+                                                />
+                                            </template>
+                                            <template v-else>
+                                                <button disabled class="btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Submitting</button>
+                                            </template>
+                                        </div>
+
+                                        <input id="save_and_continue_btn" type="hidden" @click.prevent="save(false)" class="btn btn-primary" value="Save Without Confirmation"/>
+                                    </div>
+                                </div>
+                            </template>
+                            <template v-else>
+                                <p class="pull-right" style="margin-top:5px;">
+                                    <button id="sectionHide" @click.prevent="sectionHide" class="btn btn-primary">Show/Hide sections</button>
+                                    <input type="button" @click.prevent="save_exit" class="btn btn-primary" value="Save and Exit"/>
+                                    <input type="button" @click.prevent="save" class="btn btn-primary" value="Save and Continue"/>
+                                    <input v-if="!isSubmitting" type="button" @click.prevent="submit" class="btn btn-primary" value="Submit"/>
+                                    <button v-else disabled class="btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Submitting</button>
+                                    <input id="save_and_continue_btn" type="hidden" @click.prevent="save_wo_confirm" class="btn btn-primary" value="Save Without Confirmation"/>
+                                </p>
+                            </template>
+                        </div>
+                        <div v-else class="container">
+                          <p class="pull-right" style="margin-top:5px;">
+                            <!--button id="sectionHide" @click.prevent="sectionHide" class="btn btn-primary">Show/Hide sections</button-->
+                            <input
                             id="sectionHide"
                             v-if="proposal && !proposal.apiary_group_application_type"
                             type="button"
                             @click.prevent="sectionHide"
                             class="btn btn-primary"
-                            value="Show/Hide Sections"
-                        />
-                        <div class="row payment-details-buttons">
-                            <!--button id="sectionHide" @click.prevent="sectionHide" class="btn btn-primary">Show/Hide sections</button-->
-                            <!--
-                            <input type="button" @click.prevent="save_exit" class="btn btn-primary" value="Save and Exit"/>
-                            <input type="button" @click.prevent="save" class="btn btn-primary" value="Save and Continue"/>
+                            value="Show/Hide Sections"/>
 
-                            <input v-if="!isSubmitting" type="button" @click.prevent="submit" class="btn btn-primary" value="Submit"/>
-                            <button v-else disabled class="btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Submitting</button>
-
-                            <input id="save_and_continue_btn" type="hidden" @click.prevent="save_wo_confirm" class="btn btn-primary" value="Save Without Confirmation"/>
-                            -->
-                            <template v-if="is_proposal_type_new">
-                                <div class="col-sm-3 text-right">
-                                </div>
-                                <div class="col-sm-3 text-right">
-                                    <div class="text-center payment-description-title">New sites</div>
-                                    <div>{{ num_of_sites_south_west_remain_after_payment }}</div>
-                                    <div>{{ num_of_sites_remote_remain_after_payment }}</div>
-                                </div>
-
-                            </template>
-                            <template v-if="is_proposal_type_transfer">
-                                <div class="col-sm-3 text-right">
-                                </div>
-                                <div class="col-sm-3 text-right">
-                                    <div class="text-center payment-description-title"> </div>
-                                    <div> </div>
-                                    <div> </div>
-                                </div>
-
-                            </template>
-
-                            <template v-if="is_proposal_type_renewal">
-                                <div class="col-sm-3 text-right">
-                                    <div class="text-center payment-description-title">New sites</div>
-                                    <div>{{ num_of_sites_south_west_remain_after_payment }}</div>
-                                    <div>{{ num_of_sites_remote_remain_after_payment }}</div>
-                                </div>
-                                <div class="col-sm-3 text-right">
-                                    <div class="text-center payment-description-title">Renew sites</div>
-                                    <div>{{ num_of_sites_south_west_renewal_remain_after_payment }}</div>
-                                    <div>{{ num_of_sites_remote_renewal_remain_after_payment }}</div>
-                                </div>
-                            </template>
-
-                            <div class="col-sm-2 text-center">
-                                <div class="payment-description-title">Application fee</div>
-                                <div v-if="is_proposal_type_transfer">
-                                    <div class="payment-description-total-fee">${{ siteTransferApplicationFee }}</div>
-                                </div>
-                                <div v-else>
-                                    <div class="payment-description-total-fee">${{ sum_of_total_fees }}</div>
-                                </div>
-                            </div>
-                            <div class="col-sm-4 text-right no-padding">
-                                <input type="button" @click.prevent="save_exit" class="btn btn-primary" value="Save and Exit"/>
-                                <input type="button" @click.prevent="save(true)" class="btn btn-primary" value="Save and Continue"/>
-                                <div v-if="proposal_type_name==='transfer'">
-                                    <template v-if="!isSubmitting">
-                                        <input 
-                                            type="button" 
-                                            @click.prevent="submit" 
-                                            class="btn btn-primary" 
-                                            value="Pay and Submit" 
-                                            :disabled="pay_button_disabled"
-                                        />
-                                    </template>
-                                    <template v-else>
-                                        <button disabled class="btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Submitting</button>
-                                    </template>
-                                </div>
-                                <div v-else>
-                                    <template v-if="!isSubmitting">
-                                        <input 
-                                            type="button" 
-                                            @click.prevent="submit" 
-                                            class="btn btn-primary" 
-                                            :value="submit_button_text"
-                                            :disabled="!total_num_of_sites_on_map > 0"
-                                        />
-                                    </template>
-                                    <template v-else>
-                                        <button disabled class="btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Submitting</button>
-                                    </template>
-                                </div>
-
-                                <input id="save_and_continue_btn" type="hidden" @click.prevent="save(false)" class="btn btn-primary" value="Save Without Confirmation"/>
-                            </div>
+                            <router-link class="btn btn-primary" :to="{name: 'external-proposals-dash'}">Back to Dashboard</router-link>
+                          </p>
                         </div>
-                        <!--
-                      </p>
-                        -->
+                      </div>
+                      </div>
                     </div>
-                    <div v-else class="container">
-                      <p class="pull-right" style="margin-top:5px;">
-                        <!--button id="sectionHide" @click.prevent="sectionHide" class="btn btn-primary">Show/Hide sections</button-->
-                        <input
-                        id="sectionHide"
-                        v-if="proposal && !proposal.apiary_group_application_type"
-                        type="button"
-                        @click.prevent="sectionHide"
-                        class="btn btn-primary"
-                        value="Show/Hide Sections"/>
-
-                        <router-link class="btn btn-primary" :to="{name: 'external-proposals-dash'}">Back to Dashboard</router-link>
-                      </p>
-                    </div>
-                  </div>
-                  </div>
                 </div>
-            </div>
+                </ProposalDisturbance>
+            </template>
+
 
         </form>
         <div v-if="isSubmitting" id="overlay">
@@ -271,6 +271,8 @@ export default {
             siteTransferApplicationFee: "0.00",
             total_num_of_sites_on_map_unpaid: 0,
             total_num_of_sites_on_map: 0,
+
+            is_local: helpers.is_local(),
         }
     },
     components: {
