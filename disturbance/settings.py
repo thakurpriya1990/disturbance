@@ -70,7 +70,8 @@ REST_FRAMEWORK = {
 MIDDLEWARE_CLASSES += [
     'disturbance.middleware.BookingTimerMiddleware',
     'disturbance.middleware.FirstTimeNagScreenMiddleware',
-    'disturbance.middleware.RevisionOverrideMiddleware'
+    'disturbance.middleware.RevisionOverrideMiddleware',
+    'disturbance.middleware.DomainDetectMiddleware',
 ]
 
 TEMPLATES[0]['DIRS'].append(os.path.join(BASE_DIR, 'disturbance', 'templates'))
@@ -172,7 +173,9 @@ SITE_STATUS_VACANT = 'vacant'
 SITE_STATUS_DISCARDED = 'discarded'
 BASE_EMAIL_TEXT = ''
 BASE_EMAIL_HTML = ''
-#BASE_EMAIL_TEXT = 'disturbance/emails/apiary_base_email.txt'
-#BASE_EMAIL_HTML = 'disturbance/emails/apiary_base_email.html'
-#APIARY_BASE_EMAIL = False
+
+# This is either 'das'/'apiary'
+# default: 'das'
+# This value is determined at the middleware, DomainDetectMiddleware by where the request comes from
+DOMAIN_DETECTED = 'das'
 

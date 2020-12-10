@@ -54,7 +54,7 @@ from ledger.payments.models import Invoice
 from ledger.basket.models import Basket
 from oscar.apps.order.models import Order
 from disturbance.helpers import is_internal, is_disturbance_admin, is_in_organisation_contacts
-from disturbance.context_processors import apiary_url, template_context
+from disturbance.context_processors import apiary_url
 
 import logging
 logger = logging.getLogger('payment_checkout')
@@ -172,9 +172,6 @@ class SiteTransferApplicationFeeSuccessView(TemplateView):
         submitter = None
         invoice = None
         try:
-            context = template_context(self.request)
-            basket = None
-
             application_fee = get_session_site_transfer_application_invoice(request.session)
             proposal = application_fee.proposal
             try:
@@ -285,9 +282,6 @@ class AnnualRentalFeeSuccessView(TemplateView):
         invoice = None
 
         try:
-            context = template_context(self.request)
-            # basket = None
-
             # When accessed first time, there is a annual_rental_fee in the session which was set at AnnualRentalFeeView()
             # but when accessed sencond time, it is deleted therefore raise an error.
             annual_rental_fee = get_session_annual_rental_fee(request.session)
@@ -362,9 +356,6 @@ class ApplicationFeeSuccessView(TemplateView):
         submitter = None
         invoice = None
         try:
-            context = template_context(self.request)
-            basket = None
-
             # Retrieve db processes stored when calculating the fee, and delete the session
             db_operations = request.session['db_processes']
             del request.session['db_processes']
