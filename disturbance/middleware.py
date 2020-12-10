@@ -8,7 +8,7 @@ import datetime
 from django.http import HttpResponseRedirect
 from django.utils import timezone
 
-from disturbance import settings
+from django.conf import settings
 from disturbance.components.das_payments.models import ApplicationFee
 from reversion.middleware  import RevisionMiddleware
 from reversion.views import _request_creates_revision
