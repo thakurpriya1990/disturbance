@@ -79,7 +79,7 @@
                 />
             </template>
 
-            <template v-if="proposal.apiary_group_application_type">
+            <template v-if="proposal && proposal.apiary_group_application_type">
                 <div>
                     <input type="hidden" name="csrfmiddlewaretoken" :value="csrf_token"/>
                     <input type='hidden' name="schema" :value="JSON.stringify(proposal)" />
