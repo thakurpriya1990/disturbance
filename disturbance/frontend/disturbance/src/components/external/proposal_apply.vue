@@ -16,11 +16,13 @@
 
                             <div class="col-sm-12">
                                 <div class="form-group" v-if="!isLoading">
-                                    <div class="radio">
-                                        <label>
-                                          <input type="radio" name="behalf_of_individual" v-model="behalf_of" value="individual"> On behalf of yourself
-                                        </label>
-                                    </div>
+                                    <template v-if="apiaryTemplateGroup">
+                                        <div class="radio">
+                                            <label>
+                                              <input type="radio" name="behalf_of_individual" v-model="behalf_of" value="individual"> On behalf of yourself
+                                            </label>
+                                        </div>
+                                    </template>
                                     <div v-if="profile.disturbance_organisations.length > 0">
                                         <div v-for="org in profile.disturbance_organisations" class="radio">
                                             <label>
@@ -110,7 +112,7 @@
                                         </select>
                                     </div>
                                 </div>
-                            </div> 
+                            </div>
 
                             <div v-if="display_region_selectbox && selected_region">
                                 <label for="" class="control-label" style="font-weight: normal;">District <a :href="district_help_url" target="_blank"><i class="fa fa-question-circle" style="color:blue">&nbsp;</i></a></label>
@@ -268,17 +270,18 @@ export default {
           return returnStr;
       },
       applicationTypesList: function() {
-          console.log("applicationTypesList")
           let returnList = [];
           for (let applicationType of this.application_types) {
               // for individual applications, only Apiary should show
               //if (this.behalf_of === 'individual') {
               if (this.apiaryTemplateGroup) {
-                  if (applicationType.text === 'Apiary') {
+                  if (applicationType.domain_used === 'apiary') {
                       returnList.push(applicationType);
                   }
-              } else {
-                  returnList.push(applicationType);
+              } else if (this.dasTemplateGroup){
+                  if (applicationType.domain_used === 'das') {
+                      returnList.push(applicationType);
+                  }
               }
           }
           return returnList;
@@ -332,7 +335,7 @@ export default {
         } else {
             text = "Are you sure you want to create " + this.alertText() + " proposal on behalf of "+vm.org+" ?"
         }
-			
+
         swal({
             title: "Create " + vm.selected_application_name,
             //text: "Are you sure you want to create " + this.alertText() + " proposal on behalf of "+vm.org+" ?",
@@ -452,8 +455,9 @@ export default {
 
                 for (var i = 0; i < vm.api_app_types.length; i++) {
                     this.application_types.push( {
-                        text: vm.api_app_types[i].name, 
-                        value: vm.api_app_types[i].id, 
+                        text: vm.api_app_types[i].name,
+                        value: vm.api_app_types[i].id,
+                        domain_used: vm.api_app_types[i].domain_used,
                         //activities: (vm.api_app_types[i].activity_app_types.length > 0) ? vm.api_app_types[i].activity_app_types : [],
                         //tenures: (vm.api_app_types[i].tenure_app_types.length > 0) ? vm.api_app_types[i].tenure_app_types : [],
                     } );
@@ -611,7 +615,7 @@ export default {
                     //return [sub_activities[activity_name], "null"];
                 }
             }
-           
+
             // not a sub_matrix --> this is the main activity_matrix data (as provided by the REST API)
             return [sub_activities[activity_name], true];
         }
@@ -636,7 +640,7 @@ export default {
                 vm.approval_level = vm.categories[i]['approval'];
             }
         }
-        
+
     }
 
   },
@@ -651,7 +655,7 @@ export default {
 
     let initialisers = [
         utils.fetchProfile(),
-        
+
         //utils.fetchProposal(to.params.proposal_id)
     ]
     next(vm => {
@@ -662,7 +666,7 @@ export default {
             vm.loading.splice('fetching profile', 1)
         })
     })
-    
+
   },
     created: function() {
         // retrieve template group

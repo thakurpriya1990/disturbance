@@ -101,6 +101,13 @@ class ApplicationType(models.Model):
         (SITE_TRANSFER, 'Site Transfer'),
     )
 
+    APIARY_APPLICATION_TYPES = (APIARY, TEMPORARY_USE, SITE_TRANSFER,)
+
+    DOMAIN_USED_CHOICES = (
+        ('das', 'DAS'),
+        ('apiary', 'Apiary'),
+    )
+
     # name = models.CharField(max_length=64, unique=True)
     name = models.CharField(
         verbose_name='Application Type name',
@@ -109,10 +116,10 @@ class ApplicationType(models.Model):
     )
     order = models.PositiveSmallIntegerField(default=0)
     visible = models.BooleanField(default=True)
-
     application_fee = models.DecimalField(max_digits=6, decimal_places=2)
     oracle_code_application = models.CharField(max_length=50)
     is_gst_exempt = models.BooleanField(default=True)
+    domain_used = models.CharField(max_length=40, choices=DOMAIN_USED_CHOICES, default=DOMAIN_USED_CHOICES[0][0])
 
     class Meta:
         ordering = ['order', 'name']

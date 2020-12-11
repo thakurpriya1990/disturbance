@@ -7,6 +7,8 @@ import datetime
 
 from django.http import HttpResponseRedirect
 from django.utils import timezone
+
+from django.conf import settings
 from disturbance.components.das_payments.models import ApplicationFee
 from reversion.middleware  import RevisionMiddleware
 from reversion.views import _request_creates_revision
@@ -55,6 +57,7 @@ class BookingTimerMiddleware(object):
 
         return
 
+
 class RevisionOverrideMiddleware(RevisionMiddleware):
 
     """
@@ -63,6 +66,52 @@ class RevisionOverrideMiddleware(RevisionMiddleware):
         override venv/lib/python2.7/site-packages/reversion/middleware.py
     """
 
-	# exclude ledger payments/checkout from revision - hack to overcome basket (lagging status) issue/conflict with reversion
+    # exclude ledger payments/checkout from revision - hack to overcome basket (lagging status) issue/conflict with reversion
     def request_creates_revision(self, request):
         return _request_creates_revision(request) and 'checkout' not in request.get_full_path()
+
+
+class DomainDetectMiddleware(object):
+    def __init__(self, next_layer=None):
+        """
+        We allow next_layer to be None because old-style middlewares
+        won't accept any argument.
+        """
+        self.get_response = next_layer
+
+    def process_request(self, request):
+        """
+        Handle old-style request processing here, as usual.
+        Any request goes through this function
+        """
+        # Do something with request
+        # Probably return None
+        # Or return an HttpResponse in some cases
+        http_host = request.META.get('HTTP_HOST', None)
+        if 'apiary' in http_host.lower() or http_host in settings.APIARY_URL:
+            settings.DOMAIN_DETECTED = 'apiary'
+        else:
+            settings.DOMAIN_DETECTED = 'das'
+
+        return None
+
+    def process_response(self, request, response):
+        """
+        Handle old-style response processing here, as usual.
+        """
+        # Do something with response, possibly using request.
+
+        return response
+
+    def __call__(self, request):
+        """
+        Handle new-style middleware here.
+        """
+        response = self.process_request(request)
+        if response is None:
+            # If process_request returned None, we must call the next middleware or
+            # the view. Note that here, we are sure that self.get_response is not
+            # None because this method is executed only in new-style middlewares.
+            response = self.get_response(request)
+        response = self.process_response(request, response)
+        return response
