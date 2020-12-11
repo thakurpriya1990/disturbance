@@ -205,7 +205,7 @@ class SystemMaintenanceAdmin(admin.ModelAdmin):
 
 @admin.register(ApplicationType)
 class ApplicationTypeAdmin(admin.ModelAdmin):
-    list_display = ['name', 'order', 'visible']
+    list_display = ['name', 'order', 'visible', 'domain_used',]
     ordering = ('order',)
 
 

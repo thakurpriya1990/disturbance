@@ -118,7 +118,7 @@ def _create_data_from_item(item, post_data, file_data, repetition, suffix):
 
 def generate_item_data(item_name,item,item_data,post_data,file_data,repetition,suffix):
     item_data_list = []
-    for rep in xrange(0, repetition):
+    for rep in range(0, repetition):
         #import ipdb; ipdb.set_trace()
         child_data = {}
         for child_item in item.get('children'):
@@ -196,7 +196,7 @@ class AssessorDataSearch(object):
 
     def generate_item_data_special_field(self,item_name,item,item_data,post_data,file_data,repetition,suffix):
         item_data_list = []
-        for rep in xrange(0, repetition):
+        for rep in range(0, repetition):
             child_data = {}
             for child_item in item.get('children'):
                 child_data.update(self.extract_special_fields(child_item, post_data, file_data, 0,
@@ -278,7 +278,7 @@ class CommentDataSearch(object):
 
     def generate_item_data_special_field(self,item_name,item,item_data,post_data,file_data,repetition,suffix):
         item_data_list = []
-        for rep in xrange(0, repetition):
+        for rep in range(0, repetition):
             child_data = {}
             for child_item in item.get('children'):
                 child_data.update(self.extract_special_fields(child_item, post_data, file_data, 0,
@@ -335,7 +335,7 @@ class SpecialFieldsSearch(object):
 
     def generate_item_data_special_field(self,item_name,item,item_data,post_data,file_data,repetition,suffix):
         item_data_list = []
-        for rep in xrange(0, repetition):
+        for rep in range(0, repetition):
             child_data = {}
             for child_item in item.get('children'):
                 child_data.update(self.extract_special_fields(child_item, post_data, file_data, 0,

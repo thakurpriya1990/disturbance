@@ -53,13 +53,15 @@ class TenureViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Tenure.objects.all().order_by('order')
     serializer_class = TenureSerializer
 
+
 class ApplicationTypeViewSet(viewsets.ReadOnlyModelViewSet):
     #queryset = ApplicationType.objects.all().order_by('order')
     queryset = ApplicationType.objects.none()
     serializer_class = ApplicationTypeSerializer
 
     def get_queryset(self):
-        return ApplicationType.objects.order_by('order').filter(visible=True)
+        my_list = ApplicationType.objects.order_by('order').filter(visible=True)
+        return my_list
 
 
 class BookingSettlementReportView(views.APIView):
