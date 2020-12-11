@@ -275,8 +275,10 @@ export default {
               // for individual applications, only Apiary should show
               //if (this.behalf_of === 'individual') {
               if (this.apiaryTemplateGroup) {
-                  if (applicationType.domain_used === 'apiary') {
-                      returnList.push(applicationType);
+                  if (applicationType.domain_used.toLowerCase() === 'apiary') {
+                      if (applicationType.text.toLowerCase() === 'apiary'){
+                          returnList.push(applicationType);
+                      }
                   }
               } else if (this.dasTemplateGroup){
                   if (applicationType.domain_used === 'das') {
