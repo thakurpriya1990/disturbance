@@ -107,8 +107,11 @@ class ApiarySiteOnApprovalGeometryExportSerializer(ApiarySiteOnApprovalGeometryS
             return ''
 
     def get_address(self, relation):
-        address = relation.approval.relevant_applicant_address
-        return address.summary
+        try:
+            address = relation.approval.relevant_applicant_address
+            return address.summary
+        except:
+            return ''
 
     def get_telephone(self, relation):
         relevant_applicant = relation.approval.relevant_applicant
