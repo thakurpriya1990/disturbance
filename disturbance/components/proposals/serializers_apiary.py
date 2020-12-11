@@ -378,8 +378,11 @@ class ApiarySiteOnProposalDraftGeometryExportSerializer(ApiarySiteOnProposalDraf
             return ''
 
     def get_address(self, relation):
-        address = relation.proposal_apiary.proposal.relevant_applicant_address
-        return address.summary
+        try:
+            address = relation.proposal_apiary.proposal.relevant_applicant_address
+            return address.summary
+        except:
+            return ''
 
     def get_telephone(self, relation):
         relevant_applicant = relation.proposal_apiary.proposal.relevant_applicant
@@ -522,8 +525,11 @@ class ApiarySiteOnProposalProcessedGeometryExportSerializer(ApiarySiteOnProposal
             return ''
 
     def get_address(self, relation):
-        address = relation.proposal_apiary.proposal.relevant_applicant_address
-        return address.summary
+        try:
+            address = relation.proposal_apiary.proposal.relevant_applicant_address
+            return address.summary
+        except:
+            return ''
 
     def get_telephone(self, relation):
         relevant_applicant = relation.proposal_apiary.proposal.relevant_applicant

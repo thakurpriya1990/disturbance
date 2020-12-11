@@ -1,3 +1,4 @@
+from confy import env
 from django.conf import settings
 from ledger.payments.helpers import is_payment_admin
 
@@ -14,6 +15,11 @@ def apiary_url(request):
         settings.BASE_EMAIL_TEXT = 'disturbance/emails/apiary_base_email.txt'
         settings.BASE_EMAIL_HTML = 'disturbance/emails/apiary_base_email.html'
     else:
+        # These variables may be overwritten by the conditional above when user accessing the apiary site
+        # Therefore we need to restore the default value here.
+        settings.SYSTEM_NAME = env('SYSTEM_NAME', 'Disturbance Approval System')
+        settings.SYSTEM_NAME_SHORT = env('SYSTEM_NAME_SHORT', 'DAS')
+
         template_group = 'das'
         PUBLIC_URL = 'https://das.dbca.wa.gov.au'
         application_group = 'das'
