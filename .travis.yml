@@ -14,7 +14,8 @@ branches:
         - disturbance_v3
         - apiary
         - apiary_dev
-        - working-3.6
+        - working-python3
+        - apiary-python3
 
 env:
     global:
