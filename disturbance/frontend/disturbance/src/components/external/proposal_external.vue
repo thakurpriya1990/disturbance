@@ -186,7 +186,7 @@
                       <div class="navbar navbar-fixed-bottom" style="background-color: #f5f5f5 ">
                       <div class="navbar-inner">
                         <div v-if="proposal && !proposal.readonly" class="container">
-                            <template v-if="proposal.apiary_group_application_type">
+                            <template v-if="proposal && proposal.apiary_group_application_type">
                             </template>
                             <template v-else>
                                 <p class="pull-right" style="margin-top:5px;">
