@@ -88,19 +88,19 @@ class DomainDetectMiddleware(object):
         # Do something with request
         # Probably return None
         # Or return an HttpResponse in some cases
+        settings.DOMAIN_DETECTED = 'das'
+        settings.SYSTEM_NAME = env('SYSTEM_NAME', 'Disturbance Approval System')
+        settings.SYSTEM_NAME_SHORT = 'DAS'
+        settings.BASE_EMAIL_TEXT = 'disturbance/emails/base_email.txt'
+        settings.BASE_EMAIL_HTML = 'disturbance/emails/base_email.html'
+
         http_host = request.META.get('HTTP_HOST', None)
-        if 'apiary' in http_host.lower() or http_host in settings.APIARY_URL:
+        if http_host and 'apiary' in http_host.lower() or http_host in settings.APIARY_URL:
             settings.DOMAIN_DETECTED = 'apiary'
             settings.SYSTEM_NAME = settings.APIARY_SYSTEM_NAME
             settings.SYSTEM_NAME_SHORT = 'Apiary'
             settings.BASE_EMAIL_TEXT = 'disturbance/emails/apiary_base_email.txt'
             settings.BASE_EMAIL_HTML = 'disturbance/emails/apiary_base_email.html'
-        else:
-            settings.DOMAIN_DETECTED = 'das'
-            settings.SYSTEM_NAME = env('SYSTEM_NAME', 'Disturbance Approval System')
-            settings.SYSTEM_NAME_SHORT = 'DAS'
-            settings.BASE_EMAIL_TEXT = 'disturbance/emails/base_email.txt'
-            settings.BASE_EMAIL_HTML = 'disturbance/emails/base_email.html'
 
         return None
 
