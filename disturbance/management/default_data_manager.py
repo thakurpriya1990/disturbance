@@ -6,6 +6,7 @@ import os
 import pytz
 from django.contrib.auth.models import Group
 from django.contrib.gis.geos import GEOSGeometry, fromfile
+from django.core.exceptions import MultipleObjectsReturned
 from ledger.settings_base import TIME_ZONE
 
 from disturbance import settings
@@ -52,9 +53,12 @@ class DefaultDataManager(object):
         # Groups
         CUSTOM_GROUPS = [settings.ADMIN_GROUP, settings.APIARY_ADMIN_GROUP, settings.DAS_APIARY_ADMIN_GROUP, settings.APIARY_PAYMENTS_OFFICERS_GROUP,]
         for group_name in CUSTOM_GROUPS:
-            group, created = Group.objects.get_or_create(name=group_name)
-            if created:
-                logger.info("Created group: {}".format(group_name))
+            try:
+                group, created = Group.objects.get_or_create(name=group_name)
+                if created:
+                    logger.info("Created group: {}".format(group_name))
+            except Exception as e:
+                logger.error(e)
 
         # WA coast (original)
         file_path_original = os.path.join(settings.BASE_DIR, 'disturbance', 'static', 'disturbance', 'gis', 'wa_coast.geojson')
@@ -188,11 +192,13 @@ class DefaultDataManager(object):
             q_set = ApplicationType.objects.filter(name=type_name[0])
             if not q_set:
                 domain_used = 'apiary' if type_name[0] in ApplicationType.APIARY_APPLICATION_TYPES else 'das'
+                visibility = False if type_name[0] in ApplicationType.APIARY_APPLICATION_TYPES else True  # Apiary is hidden until Jan 2021
                 obj = ApplicationType.objects.create(
                     name=type_name[0],
                     application_fee=0,
                     oracle_code_application='',
                     domain_used=domain_used,
+                    visible=visibility,
                 )
                 logger.info("Created application type: %s" % obj)
 
