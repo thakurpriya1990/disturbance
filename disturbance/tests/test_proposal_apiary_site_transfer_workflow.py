@@ -1,3 +1,4 @@
+from disturbance.settings import HTTP_HOST_FOR_TEST
 from disturbance.tests.test_setup import APITestSetup
 import json
 from disturbance.components.proposals.models import (
@@ -18,7 +19,8 @@ class ApiarySiteTransferIntegrationTests(APITestSetup):
         create_response_1 = self.client.post(
                 '/api/proposal/', 
                 self.create_proposal_data_customer1,
-                format='json'
+                format='json',
+                HTTP_HOST=HTTP_HOST_FOR_TEST,
                 #content_type='application/json'
                 )
         proposal_id_1 = create_response_1.data.get('id')
@@ -52,7 +54,8 @@ class ApiarySiteTransferIntegrationTests(APITestSetup):
         draft_response_1 = self.client.post(
                 '/api/proposal/{}/draft/'.format(proposal_id_1),
                 draft_proposal_data_1, 
-                format='json'
+                format='json',
+                HTTP_HOST=HTTP_HOST_FOR_TEST,
                 )
         self.assertEqual(draft_response_1.status_code, 302)
         # Simulate Proposal submission by changing status instead of going through the payment gateway
@@ -86,7 +89,8 @@ class ApiarySiteTransferIntegrationTests(APITestSetup):
         add_requirements_response_1 = self.client.post(
                 '/api/proposal_requirements.json', 
                 add_requirements_data_1, 
-                format='json'
+                format='json',
+                HTTP_HOST=HTTP_HOST_FOR_TEST,
                 )
         self.assertEqual(add_requirements_response_1.status_code, 201)
 
@@ -103,7 +107,8 @@ class ApiarySiteTransferIntegrationTests(APITestSetup):
         add_requirements_response_2 = self.client.post(
                 '/api/proposal_requirements.json', 
                 add_requirements_data_2, 
-                format='json'
+                format='json',
+                HTTP_HOST=HTTP_HOST_FOR_TEST,
                 )
         self.assertEqual(add_requirements_response_2.status_code, 201)
 
@@ -125,7 +130,8 @@ class ApiarySiteTransferIntegrationTests(APITestSetup):
         propose_to_approve_response_1 = self.client.post(
                 '/api/proposal/{}/proposed_approval/'.format(proposal_id_1), 
                 propose_to_approve_data_1, 
-                format='json'
+                format='json',
+                HTTP_HOST=HTTP_HOST_FOR_TEST,
                 )
 
         self.assertEqual(propose_to_approve_response_1.status_code, 200)
@@ -135,7 +141,8 @@ class ApiarySiteTransferIntegrationTests(APITestSetup):
         final_approval_response_1 = self.client.post(
                 '/api/proposal_apiary/{}/final_approval/'.format(proposal_id_1), 
                 final_approval_data_1, 
-                format='json'
+                format='json',
+                HTTP_HOST=HTTP_HOST_FOR_TEST,
                 )
 
         self.assertEqual(final_approval_response_1.status_code, 200)
@@ -161,7 +168,8 @@ class ApiarySiteTransferIntegrationTests(APITestSetup):
         create_response_2 = self.client.post(
                 '/api/proposal/', 
                 self.create_proposal_data_customer2,
-                format='json'
+                format='json',
+                HTTP_HOST=HTTP_HOST_FOR_TEST,
                 )
         proposal_id_2 = create_response_2.data.get('id')
         # save draft proposal
@@ -194,7 +202,8 @@ class ApiarySiteTransferIntegrationTests(APITestSetup):
         draft_response_2 = self.client.post(
                 '/api/proposal/{}/draft/'.format(proposal_id_2),
                 draft_proposal_data_2, 
-                format='json'
+                format='json',
+                HTTP_HOST=HTTP_HOST_FOR_TEST,
                 )
         self.assertEqual(draft_response_2.status_code, 302)
         # Simulate Proposal submission by changing status instead of going through the payment gateway
@@ -228,7 +237,8 @@ class ApiarySiteTransferIntegrationTests(APITestSetup):
         add_requirements_response_3 = self.client.post(
                 '/api/proposal_requirements.json', 
                 add_requirements_data_3, 
-                format='json'
+                format='json',
+                HTTP_HOST=HTTP_HOST_FOR_TEST,
                 )
         self.assertEqual(add_requirements_response_3.status_code, 201)
 
@@ -246,7 +256,8 @@ class ApiarySiteTransferIntegrationTests(APITestSetup):
         add_requirements_response_4 = self.client.post(
                 '/api/proposal_requirements.json', 
                 add_requirements_data_4, 
-                format='json'
+                format='json',
+                HTTP_HOST=HTTP_HOST_FOR_TEST,
                 )
         self.assertEqual(add_requirements_response_4.status_code, 201)
 
@@ -268,7 +279,8 @@ class ApiarySiteTransferIntegrationTests(APITestSetup):
         propose_to_approve_response_2 = self.client.post(
                 '/api/proposal/{}/proposed_approval/'.format(proposal_id_2),
                 propose_to_approve_data_2,
-                format='json'
+                format='json',
+                HTTP_HOST=HTTP_HOST_FOR_TEST,
                 )
 
         self.assertEqual(propose_to_approve_response_2.status_code, 200)
@@ -278,7 +290,8 @@ class ApiarySiteTransferIntegrationTests(APITestSetup):
         final_approval_response_2 = self.client.post(
                 '/api/proposal_apiary/{}/final_approval/'.format(proposal_id_2),
                 final_approval_data_2,
-                format='json'
+                format='json',
+                HTTP_HOST=HTTP_HOST_FOR_TEST,
                 )
 
         self.assertEqual(final_approval_response_2.status_code, 200)
@@ -307,7 +320,8 @@ class ApiarySiteTransferIntegrationTests(APITestSetup):
         create_response_site_transfer = self.client.post(
                 '/api/proposal/',
                 self.create_site_transfer_proposal_data,
-                format='json'
+                format='json',
+                HTTP_HOST=HTTP_HOST_FOR_TEST,
                 )
         print("create_response_site_transfer.status_code")
         print(create_response_site_transfer.status_code)
@@ -359,7 +373,8 @@ class ApiarySiteTransferIntegrationTests(APITestSetup):
         draft_response_site_transfer = self.client.post(
                 '/api/proposal/{}/draft/'.format(site_transfer_proposal_id),
                 draft_site_transfer_proposal_data, 
-                format='json'
+                format='json',
+                HTTP_HOST=HTTP_HOST_FOR_TEST,
                 )
         self.assertEqual(draft_response_2.status_code, 302)
         # Simulate Proposal submission by changing status instead of going through the payment gateway
@@ -391,7 +406,8 @@ class ApiarySiteTransferIntegrationTests(APITestSetup):
         site_transfer_propose_to_approve_response = self.client.post(
                 '/api/proposal/{}/proposed_approval/'.format(site_transfer_proposal_id),
                 site_transfer_propose_to_approve_data,
-                format='json'
+                format='json',
+                HTTP_HOST=HTTP_HOST_FOR_TEST,
                 )
 
         self.assertEqual(site_transfer_propose_to_approve_response.status_code, 200)
@@ -401,7 +417,8 @@ class ApiarySiteTransferIntegrationTests(APITestSetup):
         site_transfer_final_approval_response = self.client.post(
                 '/api/proposal_apiary/{}/final_approval/'.format(site_transfer_proposal_id),
                 site_transfer_final_approval_data,
-                format='json'
+                format='json',
+                HTTP_HOST=HTTP_HOST_FOR_TEST,
                 )
 
         self.assertEqual(site_transfer_final_approval_response.status_code, 200)
