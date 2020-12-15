@@ -265,6 +265,7 @@ class Approval(RevisionedMixin):
     def next_id(self):
         #ids = map(int,[(i.lodgement_number.split('A')[1]) for i in Approval.objects.all()])
         ids = map(int,[i.split('A')[1] for i in Approval.objects.all().values_list('lodgement_number', flat=True) if i])
+        ids = list(ids)  # In python 3, map returns map object.  Therefore before 'if ids' it should be converted to the list(/tuple,...) otherwise 'if ids' is always True
         return max(ids) + 1 if ids else 1
 
     def save(self, *args, **kwargs):
