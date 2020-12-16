@@ -1983,7 +1983,7 @@ class ProposalRequirement(OrderedModel):
         super(ProposalRequirement, self).save(*args,**kwargs)
         # update reissue flags as needed
         #import ipdb; ipdb.set_trace()
-        if self.proposal and self.proposal.proposal_apiary and self.proposal.application_type.name == 'Site Transfer':
+        if self.proposal and hasattr(self.proposal, 'proposal_apiary') and self.proposal.proposal_apiary and self.proposal.application_type.name == 'Site Transfer':
             #if self.sitetransfer_approval == self.apiary_approval:
                 # therefore, we know that the requirement is already attached to the target/originating approval, i.e. is not new
                 # now find out whether it is target/originating
