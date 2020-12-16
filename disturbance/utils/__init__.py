@@ -212,7 +212,7 @@ def compare_data(dict1, dict2, schema):
     #name_map=search_keys2(flatten(schema), search_list=['name', 'label'])
     name_map=search_keys(schema, search_list=['name', 'label'])
     for item in result:
-        k = item.keys()[0]
+        k = list(item.keys())[0]
         v = item[k]
         section = k.split('.')[-1]
         label = [i['label'] for i in name_map if section in i['name'] ]
@@ -289,11 +289,11 @@ def search_keys(dictionary, search_list=['help_text', 'label']):
     help_list = []
     for i in result:
         try:
-            key = i.keys()[0]
+            key = list(i.keys())[0]
             if key and key.endswith(search_item1):
                 corresponding_label_key = '.'.join(key.split('.')[:-1]) + '.' + search_item2
                 for j in result:
-                    key_label = j.keys()[0]
+                    key_label = list(j.keys())[0]
                     if key_label and key_label.endswith(search_item2) and key_label == corresponding_label_key: # and result.has_key(key):
                         #import ipdb; ipdb.set_trace()
                         help_list.append({search_item2: j[key_label], search_item1: i[key]})
@@ -352,12 +352,13 @@ def search_multiple_keys(dictionary, primary_search='isRequired', search_list=['
     for i in result:
         try:
             tmp_dict = {}
-            key = i.keys()[0]
+            # key = i.keys()[0]
+            key = list(i.keys())[0]  # n Python 3 dict.keys() returns an iterable but not indexable object.  Therefore convert it to an iterable, which is list.
             if key and key.endswith(primary_search):
                 for item in all_search_list:
                     corresponding_label_key = '.'.join(key.split('.')[:-1]) + '.' + item
                     for j in result:
-                        key_label = j.keys()[0]
+                        key_label = list(j.keys())[0]
                         if key_label and key_label.endswith(item) and key_label == corresponding_label_key: # and result.has_key(key):
                             tmp_dict.update({item: j[key_label]})
                 if tmp_dict:
