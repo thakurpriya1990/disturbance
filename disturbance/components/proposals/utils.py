@@ -109,7 +109,7 @@ def _create_data_from_item(item, post_data, file_data, repetition, suffix):
 
 
     if 'conditions' in item:
-        for condition in item['conditions'].keys():
+        for condition in list(item['conditions'].keys()):
             for child in item['conditions'][condition]:
                 item_data.update(_create_data_from_item(child, post_data, file_data, repetition, suffix))
 
@@ -174,7 +174,7 @@ class AssessorDataSearch(object):
 
         if 'children' not in item:
             if 'conditions' in item:
-                for condition in item['conditions'].keys():
+                for condition in list(item['conditions'].keys()):
                     for child in item['conditions'][condition]:
                         item_data.update(self.extract_special_fields(child, post_data, file_data, repetition, suffix))
 
@@ -188,7 +188,7 @@ class AssessorDataSearch(object):
                 item_data = self.generate_item_data_special_field(extended_item_name, item, item_data, post_data, file_data,1,suffix)
 
             if 'conditions' in item:
-                for condition in item['conditions'].keys():
+                for condition in list(item['conditions'].keys()):
                     for child in item['conditions'][condition]:
                         item_data.update(self.extract_special_fields(child, post_data, file_data, repetition, suffix))
 
@@ -270,7 +270,7 @@ class CommentDataSearch(object):
 
 
         if 'conditions' in item:
-            for condition in item['conditions'].keys():
+            for condition in list(item['conditions'].keys()):
                 for child in item['conditions'][condition]:
                     item_data.update(self.extract_special_fields(child, post_data, file_data, repetition, suffix))
 
@@ -327,7 +327,7 @@ class SpecialFieldsSearch(object):
 
 
         if 'conditions' in item:
-            for condition in item['conditions'].keys():
+            for condition in list(item['conditions'].keys()):
                 for child in item['conditions'][condition]:
                     item_data.update(self.extract_special_fields(child, post_data, file_data, repetition, suffix))
 
