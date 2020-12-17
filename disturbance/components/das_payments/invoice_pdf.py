@@ -318,14 +318,14 @@ def _create_invoice(invoice_buffer, invoice, url_var, proposal):
         )
         val += 1
     # Discounts
-    data.append(
-        [
-            '',
-            '',
-            '',
-            ''
-        ]
-    )
+    # data.append(
+    #     [
+    #         '',
+    #         '',
+    #         '',
+    #         ''
+    #     ]
+    # )
     for discount in discounts:
         data.append(
             [
@@ -428,14 +428,14 @@ def create_annual_rental_fee_invoice(invoice_buffer, approval, invoice):
         )
         val += 1
     # Discounts
-    data.append(
-        [
-            '',
-            '',
-            '',
-            ''
-        ]
-    )
+    # data.append(
+    #     [
+    #         '',
+    #         '',
+    #         '',
+    #         ''
+    #     ]
+    # )
     for discount in discounts:
         data.append(
             [
