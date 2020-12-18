@@ -88,8 +88,7 @@
                     </div>
                     <div class="row">
                         <div class="col-lg-12">
-                            <datatable v-if="level=='external'" ref="proposal_datatable" :id="datatable_id" :dtOptions="proposal_ex_options" :dtHeaders="proposal_ex_headers"/>
-                            <datatable v-else ref="proposal_datatable" :id="datatable_id" :dtOptions="proposal_options" :dtHeaders="proposal_headers"/>
+                            <datatable ref="proposal_datatable" :id="datatable_id" :dtOptions="dt_options" :dtHeaders="dt_headers"/>
                         </div>
                     </div>
                 </div>
@@ -178,231 +177,10 @@ export default {
             proposal_regions: [],
             proposal_submitters: [],
             proposal_status: [],
-            /*
-            proposal_ex_headers:[
-                "Number","Region",
-                //"District",
-                "Activity","Title","Submitter","Proponent/Applicant","Status","Lodged on","Invoice/Confirmation","Action","Template Group"
-                //"LodgementNo","ProcessingStatus","AssessorProcess","CanUserEdit",
-            ],
-            */
             is_local: helpers.is_local(),
 
-            proposal_ex_options:{
+            dt_options:{
                 autoWidth: false,
-                language: {
-                    processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
-                },
-                responsive: true,
-                serverSide: true,
-                lengthMenu: [ [10, 25, 50, 100, -1], [10, 25, 50, 100, "All"] ],
-                order: [
-                    [0, 'desc']
-                    ],
-                ajax: {
-                    "url": vm.url,
-                    "dataSrc": 'data',
-
-                    // adding extra GET params for Custom filtering
-                    "data": function ( d ) {
-                        d.regions = vm.filterProposalRegion.join();
-                        d.date_from = vm.filterProposalLodgedFrom != '' && vm.filterProposalLodgedFrom != null ? moment(vm.filterProposalLodgedFrom, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
-                        d.date_to = vm.filterProposalLodgedTo != '' && vm.filterProposalLodgedTo != null ? moment(vm.filterProposalLodgedTo, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
-                        d.application_type = vm.filterProposalApplicationType;
-                        d.proposal_activity = vm.filterProposalActivity;
-                        d.submitter = vm.filterProposalSubmitter;
-                        d.proposal_status = vm.filterProposalStatus;
-        		    }
-
-                },
-                dom: 'lBfrtip',
-                buttons:[
-                    {
-                        extend: 'excel',
-                        exportOptions: {
-                            columns: ':visible'
-                        }
-                    },
-                    {
-                        extend: 'csv',
-                        exportOptions: {
-                            columns: ':visible'
-                        }
-                    },
-                ],
-                columns: [
-                    {
-                        // Number
-                        data: "id",
-                        mRender:function(data,type,full){
-                            return full.lodgement_number;
-                        },
-                        name: "id, lodgement_number",
-                    },
-                    {
-                        // Region
-                        data: "region",
-                        'render': function (value) {
-                            return helpers.dtPopover(value);
-                        },
-                        'createdCell': helpers.dtPopoverCellFn,
-                        searchable: false, // handles by filter_queryset override method - class ProposalFilterBackend
-                        visible: false,
-                    },
-                    {
-                        // Activity/Application Type
-                        data: "activity",
-                        name: "activity"
-                    },
-                    {
-                        // Submitter
-                        data: "submitter",
-                        mRender:function (data,type,full) {
-                            if (data) {
-                                return `${data.first_name} ${data.last_name}`;
-                            }
-                            return ''
-                        },
-                        name: "submitter__email",
-                    },
-                    {
-                        // Proponent/Applicant
-                        data: "relevant_applicant_name",
-                    },
-                    {
-                        // Status
-                        data: "customer_status",
-                        name: "customer_status",
-                    },
-                    {
-                        // Lodged on
-                        data: "lodgement_date",
-                        mRender:function (data,type,full) {
-                            return data != '' && data != null ? moment(data).format(vm.dateFormat): '';
-                        },
-                        searchable: false, // handles by filter_queryset override method - class ProposalFilterBackend
-                    },
-                    {
-                        // Invoice
-                        data: '',
-                        mRender:function (data,type,full) {
-                            let links = '';
-                            if (full.fee_paid) {
-                                links +=  `<a href='/payments/invoice-pdf/${full.fee_invoice_reference}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i></a> &nbsp`;
-                                if (!full.apiary_group_application_type) {
-                                    links +=  `<a href='/payments/confirmation-pdf/${full.fee_invoice_reference}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i></a><br/>`;
-                                }
-                            }
-                            return links;
-                        },
-                        name: '',
-                        searchable: false,
-                        orderable: false
-                    },
-                    {
-                        // Action
-                        data: "",
-                        mRender:function (data,type,full) {
-                            let links = '';
-                            if (!vm.is_external){
-                                if(full.assessor_process){
-                                    links +=  `<a href='/internal/proposal/${full.id}'>Process</a><br/>`;
-                                } else {
-                                    links +=  `<a href='/internal/proposal/${full.id}'>View</a><br/>`;
-                                }
-                            }
-                            else{
-                                if (full.can_user_edit) {
-                                    links +=  `<a href='/external/proposal/${full.id}'>Continue</a><br/>`;
-                                    links +=  `<a href='#${full.id}' data-discard-proposal='${full.id}'>Discard</a><br/>`;
-                                }
-                                else if (full.can_user_view) {
-                                    links +=  `<a href='/external/proposal/${full.id}'>View</a><br/>`;
-                                }
-                            }
-                            return links;
-                        },
-                        name: '',
-                        searchable: false,
-                        orderable: false
-                    },
-                    {
-                        // Template Group
-                        data: 'template_group',
-                        searchable: false,
-                        orderable: false,
-                        visible: false,
-                    },
-
-                ],
-                processing: true,
-                initComplete: function() {
-                    // set column visibility and headers according to template group
-                    // region
-                    let regionColumn = vm.$refs.proposal_datatable.vmDataTable.columns(1);
-                    if (vm.dasTemplateGroup) {
-                        regionColumn.visible(true);
-                    }
-                },
-
-                /*
-                initComplete: function () {
-                    // Grab Regions from the data in the table
-                    var regionColumn = vm.$refs.proposal_datatable.vmDataTable.columns(1);
-                    regionColumn.data().unique().sort().each( function ( d, j ) {
-                        let regionTitles = [];
-                        $.each(d,(index,a) => {
-                            // Split region string to array
-                            if (a != null){
-                                $.each(a.split(','),(i,r) => {
-                                    r != null && regionTitles.indexOf(r) < 0 ? regionTitles.push(r): '';
-                                });
-                            }
-                        })
-                        vm.proposal_regions = regionTitles;
-                    });
-                    // Grab Activity from the data in the table
-                    var titleColumn = vm.$refs.proposal_datatable.vmDataTable.columns(2);
-                    titleColumn.data().unique().sort().each( function ( d, j ) {
-                        let activityTitles = [];
-                        $.each(d,(index,a) => {
-                            a != null && activityTitles.indexOf(a) < 0 ? activityTitles.push(a): '';
-                        })
-                        vm.proposal_activityTitles = activityTitles;
-                    });
-                    // Grab submitters from the data in the table
-                    var submittersColumn = vm.$refs.proposal_datatable.vmDataTable.columns(4);
-                    submittersColumn.data().unique().sort().each( function ( d, j ) {
-                        var submitters = [];
-                        $.each(d,(index,s) => {
-                            if (!submitters.find(submitter => submitter.email == s.email) || submitters.length == 0){
-                                submitters.push({
-                                    'email':s.email,
-                                    'search_term': `${s.first_name} ${s.last_name} (${s.email})`
-                                });
-                            }
-                        });
-                        vm.proposal_submitters = submitters;
-                    });
-                    // Grab Status from the data in the table
-                    var statusColumn = vm.$refs.proposal_datatable.vmDataTable.columns(6);
-                    statusColumn.data().unique().sort().each( function ( d, j ) {
-                        let statusTitles = [];
-                        $.each(d,(index,a) => {
-                            a != null && statusTitles.indexOf(a) < 0 ? statusTitles.push(a): '';
-                        })
-                        vm.proposal_status = statusTitles;
-                    });
-                }
-                */
-            },
-            proposal_options:{
-                autoWidth: false,
-                /*
-                rowCallback: function (row, data) {
-                    $(row).addClass('appRecordRow');
-                },
-                */
                 language: {
                     processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
                 },
@@ -428,10 +206,6 @@ export default {
         		    }
                 },
                 dom: 'lBfrtip',
-                /*
-                buttons:[
-                'excel', 'csv', ],
-                */
                 buttons:[
                     {
                         extend: 'excel',
@@ -448,12 +222,12 @@ export default {
                 ],
                 columns: [
                     {
-                        // Number
+                        // 1. Number
                         data: "lodgement_number",
                         orderable: true
                     },
                     {
-                        // Region
+                        // 2. Region
                         data: "region",
                         'render': function (value) {
                             return helpers.dtPopover(value);
@@ -461,13 +235,14 @@ export default {
                         'createdCell': helpers.dtPopoverCellFn,
                         searchable: false, // handles by filter_queryset override method - class ProposalFilterBackend
                         visible: false,
+                        name: 'region_column',
                     },
                     {
-                        // Activity/Application Type
+                        // 3. Activity/Application Type
                         data: "activity"
                     },
                     {
-                        // Submitter
+                        // 4. Submitter
                         data: "submitter",
                         mRender:function (data,type,full) {
                             if (data) {
@@ -478,16 +253,20 @@ export default {
                         name: "submitter__email",
                     },
                     {
-                        // Proponent/Applicant
+                        // 5. Proponent/Applicant
                         data: "relevant_applicant_name",
                     },
                     {
-                        // Status
-                        data: "processing_status",
-                        name: "processing_status",
+                        // 6. Status
+                        mRender:function (data, type, full) {
+                            if (vm.is_external){
+                                return full.customer_status
+                            }
+                            return full.processing_status
+                        },
                     },
                     {
-                        // Lodged on
+                        // 7. Lodged on
                         data: "lodgement_date",
                         mRender:function (data,type,full) {
                             return data != '' && data != null ? moment(data).format(vm.dateFormat): '';
@@ -495,13 +274,13 @@ export default {
                         searchable: false, // handles by filter_queryset override method - class ProposalFilterBackend
                     },
                     {
-                        // Assigned Officer
+                        // 8. Assigned Officer
                         data: "assigned_officer",
-                        name: "assigned_officer__first_name, assigned_officer__last_name",
+                        visible: false,
+                        name: "assigned_officer_column",
                     },
                     {
-                        // Invoice
-                        data: '',
+                        // 9. Invoice
                         mRender:function (data,type,full) {
                             let links = '';
                             if (full.fee_paid) {
@@ -509,17 +288,19 @@ export default {
                                 if (!full.apiary_group_application_type) {
                                     links +=  `<a href='/payments/confirmation-pdf/${full.fee_invoice_reference}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i></a><br/>`;
                                 }
-                                links +=  `<a href='/ledger/payments/invoice/payment?invoice=${full.fee_invoice_reference}' target='_blank'>View Payment</a><br/>`;
+                                if (!vm.is_external){
+                                    links +=  `<a href='/ledger/payments/invoice/payment?invoice=${full.fee_invoice_reference}' target='_blank'>View Payment</a><br/>`;
+                                }
                             }
                             return links;
                         },
-                        name: '',
+                        name: 'invoice_column',
                         searchable: false,
-                        orderable: false
+                        orderable: false,
+                        visible: false,
                     },
                     {
-                        // Action
-                        data: '',
+                        // 10. Action
                         mRender:function (data,type,full) {
                             let links = '';
                             if (!vm.is_external){
@@ -544,77 +325,25 @@ export default {
                         searchable: false,
                         orderable: false
                     },
-                    {
-                        // Template Group
-                        data: 'template_group',
-                        searchable: false,
-                        orderable: false,
-                        visible: false,
-                    },
                 ],
                 processing: true,
                 initComplete: function() {
-                    // set column visibility and headers according to template group
-                    // region
-                    let regionColumn = vm.$refs.proposal_datatable.vmDataTable.columns(1);
+                    let regionColumn = vm.$refs.proposal_datatable.vmDataTable.column('region_column:name');
                     if (vm.dasTemplateGroup) {
                         regionColumn.visible(true);
                     }
-                },
-                /*
-                initComplete: function () {
-                    // Grab Regions from the data in the table
-                    var regionColumn = vm.$refs.proposal_datatable.vmDataTable.columns(1);
-                    regionColumn.data().unique().sort().each( function ( d, j ) {
-                        let regionTitles = [];
-                        $.each(d,(index,a) => {
-                            // Split region string to array
-                            if (a != null){
-                                $.each(a.split(','),(i,r) => {
-                                    r != null && regionTitles.indexOf(r) < 0 ? regionTitles.push(r): '';
-                                });
-                            }
-                        })
-                        vm.proposal_regions = regionTitles;
-                    });
-                    // Grab Activity from the data in the table
-                    var titleColumn = vm.$refs.proposal_datatable.vmDataTable.columns(2);
-                    titleColumn.data().unique().sort().each( function ( d, j ) {
-                        let activityTitles = [];
-                        $.each(d,(index,a) => {
-                            a != null && activityTitles.indexOf(a) < 0 ? activityTitles.push(a): '';
-                        })
-                        vm.proposal_activityTitles = activityTitles;
-                    });
-                    // Grab submitters from the data in the table
-                    var submittersColumn = vm.$refs.proposal_datatable.vmDataTable.columns(4);
-                    submittersColumn.data().unique().sort().each( function ( d, j ) {
-                        var submitters = [];
-                        $.each(d,(index,s) => {
-                            if (!submitters.find(submitter => submitter.email == s.email) || submitters.length == 0){
-                                submitters.push({
-                                    'email':s.email,
-                                    'search_term': `${s.first_name} ${s.last_name} (${s.email})`
-                                });
-                            }
-                        });
-                        vm.proposal_submitters = submitters;
-                    });
-                    // Grab Status from the data in the table
-                    var statusColumn = vm.$refs.proposal_datatable.vmDataTable.columns(6);
-                    statusColumn.data().unique().sort().each( function ( d, j ) {
-                        let statusTitles = [];
-                        $.each(d,(index,a) => {
-                            a != null && statusTitles.indexOf(a) < 0 ? statusTitles.push(a): '';
-                        })
-                        vm.proposal_status = statusTitles;
-                    });
 
-                    // Fix the table rendering columns
-                    vm.$refs.proposal_datatable.vmDataTable.columns.adjust().responsive.recalc();
-                }
-                */
-            }
+                    let invoiceColumn = vm.$refs.proposal_datatable.vmDataTable.column('invoice_column:name');
+                    if ((!vm.is_external && vm.dasTemplateGroup && vm.is_das_apiary_admin) || vm.apiaryTemplateGroup){
+                        invoiceColumn.visible(true);
+                    }
+
+                    let assignedOfficerColumn = vm.$refs.proposal_datatable.vmDataTable.column('assigned_officer_column:name')
+                    if (!vm.is_external){
+                        assignedOfficerColumn.visible(true)
+                    }
+                },
+            },
         }
     },
     components:{
@@ -676,56 +405,27 @@ export default {
             }
             return label;
         },
-        proposal_headers: function() {
-            // Internal
-            if (this.apiaryTemplateGroup) {
-                // Apiary
-                return [
-                    "Number", "Region",
-                    "Application Type", "Submitter",
-                    "Applicant", "Status", "Lodged on", "Assigned Officer",
-                    "Invoice", "Action", "Template Group"
-                ]
-            } else {
-                // DAS
-                if (this.is_das_apiary_admin){
-                    // DasApiaryAdmin
-                    return [
-                        "Number", "Region",
-                        "Activity", "Submitter",
-                        "Proponent", "Status", "Lodged on", "Assigned Officer",
-                        "Invoice", "Action", "Template Group"
-                    ]
-                } else {
-                    // DasAdmin
-                    return [
-                        "Number", "Region",
-                        "Activity", "Submitter",
-                        "Proponent", "Status", "Lodged on", "Assigned Officer",
-                        "Action", "Template Group"
-                    ]
-                }
+        dt_headers: function(){
+            // Defautl DAS
+            let activity_or_application_type = 'Activity'
+            let proponent_or_applicant = 'Proponent'
+            if (this.apiaryTemplateGroup){
+                // Overwrite for Apiary
+                activity_or_application_type = 'Application Type'
+                proponent_or_applicant = 'Applicant'
             }
-        },
-        proposal_ex_headers: function() {
-            // External
-            if (this.apiaryTemplateGroup) {
-                // Apiary
-                return [
-                    "Number", "Region",
-                    "Application Type", "Submitter",
-                    "Applicant", "Status", "Lodged on",
-                    "Invoice", "Action", "Template Group"
-                ]
-            } else {
-                // DAS
-                return [
-                    "Number", "Region",
-                    "Activity", "Submitter",
-                    "Proponent", "Status", "Lodged on",
-                    "Action", "Template Group"
-                ]
-            }
+            return [
+                "Number",
+                "Region",
+                activity_or_application_type,
+                "Submitter",
+                proponent_or_applicant,
+                "Status",
+                "Lodged on",
+                "Assigned Officer",
+                "Invoice",
+                "Action",
+            ]
         },
         is_external: function(){
             return this.level == 'external';
