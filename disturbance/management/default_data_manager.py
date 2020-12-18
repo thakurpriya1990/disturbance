@@ -18,13 +18,6 @@ from disturbance.components.proposals.models import ApiarySiteFeeType, SiteCateg
 logger = logging.getLogger(__name__)
 
 
-def construct_name_values(mul):
-    ret = []
-    for i in range(1, 21):
-        ret.append({'name': str(i), 'value': i})
-    return ret
-
-
 class DefaultDataManager(object):
 
     def insert_wa_coast(self, file_path, smoothed):

@@ -208,12 +208,13 @@ export default {
                         name: "proposal__activity",
                         visible: false,
                     },
-                    /*
+                    
                     {
                         data: "title",
                         name: "proposal__title",
+                        visible: false,
                     },
-                    */
+                    
                     {
                         data: "approval_lodgement_number",
                         mRender:function (data,type,full) {
@@ -242,6 +243,7 @@ export default {
                         // visible: false
                     },
                     {
+                        // Action
                         data: '',
                         mRender:function (data,type,full) {
                             let links = '';
@@ -276,11 +278,14 @@ export default {
                 initComplete: function() {
                     // set column visibility and headers according to template group
                     // region
-                    let regionColumn = vm.$refs.proposal_datatable.vmDataTable.columns(1);
-                    let activityColumn = vm.$refs.proposal_datatable.vmDataTable.columns(2);
+                    let regionColumn = vm.$refs.proposal_datatable.vmDataTable.column('proposal__region__name:name');
+                    let activityColumn = vm.$refs.proposal_datatable.vmDataTable.column('proposal__activity:name');
+                    let titleColumn = vm.$refs.proposal_datatable.vmDataTable.column('proposal__title:name');
                     if (vm.dasTemplateGroup) {
                         regionColumn.visible(true);
                         activityColumn.visible(true);
+                        titleColumn.visible(true);
+
                     }
                 },
 
@@ -387,11 +392,11 @@ export default {
         proposal_headers: function() {
             if (this.apiaryTemplateGroup) {
                 return [
-                    "Number","Region/District","Activity",/*"Title",*/"Licence","Holder","Status",
+                    "Number","Region/District","Activity","Title","Licence","Holder","Status",
                     "Due Date","Assigned To", "CustomerStatus", "Reference","Action"]
             } else {
                 return [
-                    "Number","Region/District","Activity",/*"Title",*/"Approval","Holder","Status",
+                    "Number","Region/District","Activity","Title","Approval","Holder","Status",
                     "Due Date","Assigned To", "CustomerStatus", "Reference","Action"]
             }
         },

@@ -1,5 +1,8 @@
 <template lang="html">
     <div v-if="proposal" class="container" id="internalProposal">
+        <template v-if="is_local">
+            proposal.vue
+        </template>
       <div class="row">
         <h3>Proposal: {{ proposal.lodgement_number }}</h3>
         <h4>Proposal Type: {{proposal.proposal_type }}</h4>
@@ -343,30 +346,6 @@
 
                     <div class="col-md-12">
                         <div class="row">
-                            <div class="panel panel-default">
-                                <div class="panel-heading">
-                                    <h3 class="panel-title">Site Locations
-                                        <a class="panelClicker" :href="'#'+siteLocations" data-toggle="collapse"  data-parent="#userInfo" expanded="false" :aria-controls="siteLocations">
-                                            <span class="glyphicon glyphicon-chevron-down pull-right "></span>
-                                        </a>
-                                    </h3>
-                                </div>
-                                <div class="panel-body panel-collapse collapse" :id="siteLocations">
-                                    <MapLocations
-                                        :key="defaultKey"
-                                        ref="mapLocationsComponent"
-                                        :readonly="false"
-                                        :marker_longitude="130"
-                                        :marker_latitude="-30"
-                                        @location-updated="locationUpdated"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-md-12">
-                        <div class="row">
                             <form :action="proposal_form_url" method="post" name="new_proposal" enctype="multipart/form-data">
 
                                 <div v-if="proposal.application_type=='Apiary'">
@@ -409,7 +388,6 @@
 </template>
 <script>
 import ProposalDisturbance from '../../form.vue'
-//import ProposalApiary from '../../form_apiary.vue'
 import ProposalApiary from '@/components/form_apiary.vue'
 import NewApply from '../../external/proposal_apply_new.vue'
 import Vue from 'vue'
@@ -450,6 +428,7 @@ export default {
             hasAmendmentRequest: false,
             state_options: ['requirements','processing'],
             contacts_table_id: vm._uid+'contacts-table',
+            is_local: helpers.is_local(),
             contacts_options:{
                 language: {
                     processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"

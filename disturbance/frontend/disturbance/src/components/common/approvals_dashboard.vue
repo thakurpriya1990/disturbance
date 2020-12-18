@@ -289,16 +289,15 @@ export default {
                         name: "current_proposal__activity",
                         visible: false,
                     },
-                    /*
                     {
                         data: "title",
                         'render': function (value) {
                             return helpers.dtPopover(value);
                         },
                         'createdCell': helpers.dtPopoverCellFn,
-                        name: "current_proposal__title"
+                        name: "current_proposal__title",
+                        visible: false,
                     },
-                    */
                     {
                         data: "applicant",
                         //name: "applicant__organisation__name" // will be use like: Approval.objects.all().order_by('applicant__organisation__nane')
@@ -419,9 +418,11 @@ export default {
                     // region
                     let regionColumn = vm.$refs.proposal_datatable.vmDataTable.columns(1);
                     let activityColumn = vm.$refs.proposal_datatable.vmDataTable.columns(2);
+                    let titleColumn = vm.$refs.proposal_datatable.vmDataTable.column('current_proposal__title:name');
                     if (vm.dasTemplateGroup) {
                         regionColumn.visible(true);
                         activityColumn.visible(true);
+                        titleColumn.visible(true)
                     }
                 },
 
@@ -528,15 +529,23 @@ export default {
             return this.level == 'referral';
         },
         proposal_headers: function() {
+            let approval_or_licence = 'Approval'
             if (this.apiaryTemplateGroup) {
-                return [
-            "Number","Region","Activity",/*"Title",*/"Holder","Status","Start Date","Expiry Date","Licence","Action",""
-            ]
-            } else {
-                return [
-            "Number","Region","Activity",/*"Title",*/"Holder","Status","Start Date","Expiry Date","Approval","Action",""
-            ]
+                approval_or_licence = 'Licence'
             }
+            return [
+                "Number",
+                "Region",
+                "Activity",
+                "Title",
+                "Holder",
+                "Status",
+                "Start Date",
+                "Expiry Date",
+                approval_or_licence,
+                "Action",
+                ""
+            ]
         },
     },
     methods:{

@@ -823,12 +823,13 @@ export default {
                 console.log('in then()');
                 vm.submittingProposal = true;
                 // Only Apiary has an application fee
-                if (!vm.proposal.fee_paid || ['Apiary', 'Site Transfer'].includes(vm.proposal.application_type)) {
-                //if (this.submit_button_text === 'Pay and submit' && ['Apiary', 'Site Transfer'].includes(vm.proposal.application_type)) {
+                if (!vm.proposal.fee_paid && ['Apiary', 'Site Transfer'].includes(vm.proposal.application_type)) {
+                    //if (this.submit_button_text === 'Pay and submit' && ['Apiary', 'Site Transfer'].includes(vm.proposal.application_type)) {
+                    console.log('--- save and pay ---')
                     vm.save_and_redirect();
                 } else {
                     /* just save and submit - no payment required (probably application was pushed back by assessor for amendment */
-                    //vm.save_wo_confirm()
+                    console.log('--- just save ---')
                     vm.save(false)
                     vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/submit'),formData).then(res=>{
                         vm.proposal = res.body;

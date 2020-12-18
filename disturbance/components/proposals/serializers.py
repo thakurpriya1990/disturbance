@@ -163,6 +163,7 @@ class ListProposalSerializer(BaseProposalSerializer):
                 'apiary_group_application_type',
                 'template_group',
                 )
+
     def get_relevant_applicant_name(self,obj):
         return obj.relevant_applicant_name
 
