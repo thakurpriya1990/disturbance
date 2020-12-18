@@ -1,5 +1,8 @@
 <template id="proposal_dashboard">
     <div class="row">
+        <template v-if="is_local">
+            proposal_external.vue
+        </template>
         <div class="col-sm-12">
             <div class="panel panel-default">
                 <div class="panel-heading">
@@ -131,6 +134,9 @@ export default {
             //template_group: '',
             apiaryTemplateGroup: false,
             dasTemplateGroup: false,
+            is_das_admin: false,
+            is_apiary_admin: false,
+            is_das_apiary_admin: false,
             // Filters for Proposals
             filterProposalRegion: [],
             filterProposalActivity: 'All',
@@ -180,6 +186,7 @@ export default {
                 //"LodgementNo","ProcessingStatus","AssessorProcess","CanUserEdit",
             ],
             */
+            is_local: helpers.is_local(),
 
             proposal_ex_options:{
                 autoWidth: false,
@@ -225,6 +232,7 @@ export default {
                 ],
                 columns: [
                     {
+                        // Number
                         data: "id",
                         mRender:function(data,type,full){
                             return full.lodgement_number;
@@ -232,38 +240,22 @@ export default {
                         name: "id, lodgement_number",
                     },
                     {
+                        // Region
                         data: "region",
                         'render': function (value) {
                             return helpers.dtPopover(value);
                         },
                         'createdCell': helpers.dtPopoverCellFn,
                         searchable: false, // handles by filter_queryset override method - class ProposalFilterBackend
-                        //visible: this.dasTemplateGroup,
                         visible: false,
                     },
-                    /*
                     {
-                        data: "district",
-                        //name: "District",
-                        visible: false,
-                        searchable: false,
+                        // Activity/Application Type
+                        data: "activity",
+                        name: "activity"
                     },
-                    */
                     {
-						data: "activity",
-						name: "activity"
-					},
-                    /*
-                    {
-                        data: "title",
-                        visible: false,
-                        'render': function (value) {
-                            return helpers.dtPopover(value);
-                        },
-                        'createdCell': helpers.dtPopoverCellFn
-                    },
-                    */
-                    {
+                        // Submitter
                         data: "submitter",
                         mRender:function (data,type,full) {
                             if (data) {
@@ -273,28 +265,17 @@ export default {
                         },
                         name: "submitter__email",
                     },
-                    /*
                     {
-                        data: "submitter_full_name"
-                    },
-                    */
-                    /*
-                    {
-                        data: "applicant",
-                        name: "applicant__organisation__name",
-                    },
-                    */
-                    {
+                        // Proponent/Applicant
                         data: "relevant_applicant_name",
                     },
                     {
+                        // Status
                         data: "customer_status",
-                        //mRender:function(data,type,full){
-                        //    return vm.level == 'internal' ? full.processing_status: data; //Fix the issue with External dashboard Status dropdown shoing internal statuses.
-                        //},
                         name: "customer_status",
                     },
                     {
+                        // Lodged on
                         data: "lodgement_date",
                         mRender:function (data,type,full) {
                             return data != '' && data != null ? moment(data).format(vm.dateFormat): '';
@@ -302,6 +283,7 @@ export default {
                         searchable: false, // handles by filter_queryset override method - class ProposalFilterBackend
                     },
                     {
+                        // Invoice
                         data: '',
                         mRender:function (data,type,full) {
                             let links = '';
@@ -310,7 +292,6 @@ export default {
                                 if (!full.apiary_group_application_type) {
                                     links +=  `<a href='/payments/confirmation-pdf/${full.fee_invoice_reference}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i></a><br/>`;
                                 }
-                                //links +=  `<a href='/ledger/payments/invoice/payment?invoice=${full.fee_invoice_reference}' target='_blank'>View Payment</a><br/>`;
                             }
                             return links;
                         },
@@ -319,17 +300,14 @@ export default {
                         orderable: false
                     },
                     {
+                        // Action
                         data: "",
                         mRender:function (data,type,full) {
                             let links = '';
                             if (!vm.is_external){
-                                /*if(vm.check_assessor(full) && full.can_officer_process)*/
                                 if(full.assessor_process){
-
                                     links +=  `<a href='/internal/proposal/${full.id}'>Process</a><br/>`;
-
-                            }
-                                else{
+                                } else {
                                     links +=  `<a href='/internal/proposal/${full.id}'>View</a><br/>`;
                                 }
                             }
@@ -349,6 +327,7 @@ export default {
                         orderable: false
                     },
                     {
+                        // Template Group
                         data: 'template_group',
                         searchable: false,
                         orderable: false,
@@ -468,25 +447,13 @@ export default {
                     },
                 ],
                 columns: [
-                    /*
                     {
-                        data: "id",
-                        visible: false,
-                    },
-                    */
-                    {
-                        //data: "id",
-                        /*
-                        mRender:function(data,type,full){
-                            return full.lodgement_number;
-                        },
-                        */
-                        //name: "lodgement_number",
-                        //data: "id, lodgement_number"
+                        // Number
                         data: "lodgement_number",
                         orderable: true
                     },
                     {
+                        // Region
                         data: "region",
                         'render': function (value) {
                             return helpers.dtPopover(value);
@@ -495,25 +462,12 @@ export default {
                         searchable: false, // handles by filter_queryset override method - class ProposalFilterBackend
                         visible: false,
                     },
-                    /*
                     {
-                        data: "district",
-                        //name: "District",
-                        visible: false,
-                        searchable: false,
+                        // Activity/Application Type
+                        data: "activity"
                     },
-                    */
-                    {data: "activity"},
-                    /*
                     {
-                        data: "title",
-                        'render': function (value) {
-                            return helpers.dtPopover(value);
-                        },
-                        'createdCell': helpers.dtPopoverCellFn
-                    },
-                    */
-                    {
+                        // Submitter
                         data: "submitter",
                         mRender:function (data,type,full) {
                             if (data) {
@@ -523,41 +477,30 @@ export default {
                         },
                         name: "submitter__email",
                     },
-                    /*
                     {
-                        data: "submitter_full_name"
-                    },
-                    */
-                    {
+                        // Proponent/Applicant
                         data: "relevant_applicant_name",
                     },
-                    /*
                     {
-                        data: "applicant",
-                        name: "applicant__organisation__name",
-                    },
-                    */
-                    {
+                        // Status
                         data: "processing_status",
-                        //mRender:function(data,type,full){
-                        //    return vm.level == 'external' ? full.customer_status: data;
-                        //},
                         name: "processing_status",
                     },
                     {
+                        // Lodged on
                         data: "lodgement_date",
                         mRender:function (data,type,full) {
                             return data != '' && data != null ? moment(data).format(vm.dateFormat): '';
-                            //return data != '' && data != null ? moment(data): '';
                         },
-                        //name: "assigned_officer__first_name, assigned_officer__last_name",
                         searchable: false, // handles by filter_queryset override method - class ProposalFilterBackend
                     },
                     {
+                        // Assigned Officer
                         data: "assigned_officer",
                         name: "assigned_officer__first_name, assigned_officer__last_name",
                     },
                     {
+                        // Invoice
                         data: '',
                         mRender:function (data,type,full) {
                             let links = '';
@@ -575,32 +518,16 @@ export default {
                         orderable: false
                     },
                     {
+                        // Action
                         data: '',
                         mRender:function (data,type,full) {
                             let links = '';
                             if (!vm.is_external){
-                                /*if(vm.check_assessor(full) && full.can_officer_process)*/
-                                /*
-                                if(full.assessor_process){
-                                    if (full.application_type === 'Apiary') {
-                                        links +=  `<a href='/internal/proposal/${full.id}/apiary'>Process</a><br/>`;
-                                    } else {
-                                        links +=  `<a href='/internal/proposal/${full.id}'>Process</a><br/>`;
-                                    }
-                                } else {
-                                    if (full.application_type === 'Apiary') {
-                                        links +=  `<a href='/internal/proposal/${full.id}/apiary'>View</a><br/>`;
-                                    } else {
-                                        links +=  `<a href='/internal/proposal/${full.id}'>View</a><br/>`;
-                                    }
-                                }
-                                */
                                 if(full.assessor_process){
                                     links +=  `<a href='/internal/proposal/${full.id}'>Process</a><br/>`;
                                 } else {
                                     links +=  `<a href='/internal/proposal/${full.id}'>View</a><br/>`;
-                                    }
-
+                                }
                             }
                             else{
                                 if (full.can_user_edit) {
@@ -618,25 +545,12 @@ export default {
                         orderable: false
                     },
                     {
+                        // Template Group
                         data: 'template_group',
                         searchable: false,
                         orderable: false,
                         visible: false,
                     },
-                    /*
-                    {
-                        data: "relevant_applicant_name",
-                        visible: false,
-                        searchable: false,
-                        orderable: false
-                    },
-                    {
-                        data: "apiary_group_application_type",
-                        visible: false,
-                        searchable: false,
-                        orderable: false
-                    },
-                    */
                 ],
                 processing: true,
                 initComplete: function() {
@@ -763,41 +677,54 @@ export default {
             return label;
         },
         proposal_headers: function() {
+            // Internal
             if (this.apiaryTemplateGroup) {
+                // Apiary
                 return [
-            "Number","Region",
-            //"District",
-            "Application Type",/*"Title",*/"Submitter",
-            "Applicant","Status","Lodged on","Assigned Officer",
-            "Invoice","Action","Template Group"
-            ]
+                    "Number", "Region",
+                    "Application Type", "Submitter",
+                    "Applicant", "Status", "Lodged on", "Assigned Officer",
+                    "Invoice", "Action", "Template Group"
+                ]
             } else {
-                return [
-            "Number","Region",
-            //"District",
-            "Activity",/*"Title",*/"Submitter",
-            "Proponent","Status","Lodged on","Assigned Officer",
-            "Invoice/Confirmation","Action","Template Group"
-            ]
+                // DAS
+                if (this.is_das_apiary_admin){
+                    // DasApiaryAdmin
+                    return [
+                        "Number", "Region",
+                        "Activity", "Submitter",
+                        "Proponent", "Status", "Lodged on", "Assigned Officer",
+                        "Invoice", "Action", "Template Group"
+                    ]
+                } else {
+                    // DasAdmin
+                    return [
+                        "Number", "Region",
+                        "Activity", "Submitter",
+                        "Proponent", "Status", "Lodged on", "Assigned Officer",
+                        "Action", "Template Group"
+                    ]
+                }
             }
         },
         proposal_ex_headers: function() {
+            // External
             if (this.apiaryTemplateGroup) {
+                // Apiary
                 return [
-            "Number","Region",
-            //"District",
-            "Application Type",/*"Title",*/"Submitter",
-            "Applicant","Status","Lodged on",
-            "Invoice","Action","Template Group"
-            ]
+                    "Number", "Region",
+                    "Application Type", "Submitter",
+                    "Applicant", "Status", "Lodged on",
+                    "Invoice", "Action", "Template Group"
+                ]
             } else {
+                // DAS
                 return [
-            "Number","Region",
-            //"District",
-            "Activity",/*"Title",*/"Submitter",
-            "Proponent","Status","Lodged on",
-            "Invoice/Confirmation","Action","Template Group"
-            ]
+                    "Number", "Region",
+                    "Activity", "Submitter",
+                    "Proponent", "Status", "Lodged on",
+                    "Action", "Template Group"
+                ]
             }
         },
         is_external: function(){
@@ -1003,7 +930,6 @@ export default {
             );
         },
 
-
         fetchProfile: function(){
             let vm = this;
             Vue.http.get(api_endpoints.profile).then((response) => {
@@ -1040,7 +966,6 @@ export default {
         },
     },
 
-
     mounted: function(){
         this.fetchFilterLists();
         this.fetchProfile();
@@ -1076,18 +1001,22 @@ export default {
     },
     created: function() {
         // retrieve template group
-        this.$http.get('/template_group',{
-            emulateJSON:true
-            }).then(res=>{
+        this.$http.get('/template_group',{ emulateJSON: true }).then(
+            res=>{
                 //this.template_group = res.body.template_group;
                 if (res.body.template_group === 'apiary') {
                     this.apiaryTemplateGroup = true;
                 } else {
                     this.dasTemplateGroup = true;
                 }
-        },err=>{
-        console.log(err);
-        });
+                this.is_das_admin = res.body.is_das_admin
+                this.is_apiary_admin = res.body.is_apiary_admin
+                this.is_das_apiary_admin = res.body.is_das_apiary_admin
+            },
+            err=>{
+                console.log(err);
+            }
+        );
     },
 }
 </script>
