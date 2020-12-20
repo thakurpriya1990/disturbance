@@ -115,7 +115,10 @@ class ComplianceFilterBackend(DatatablesFilterBackend):
                 #    ordering[num] = '-status'
             queryset = queryset.order_by(*ordering)
 
-        #queryset = super(ProposalFilterBackend, self).filter_queryset(request, queryset, view)
+        try:
+            queryset = super(ComplianceFilterBackend, self).filter_queryset(request, queryset, view)
+        except Exception as e:
+            print(e)
         setattr(view, '_datatables_total_count', total_count)
         return queryset
 
