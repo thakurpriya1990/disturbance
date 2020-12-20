@@ -224,7 +224,8 @@ export default {
                     {
                         // 1. Number
                         data: "lodgement_number",
-                        orderable: true
+                        orderable: true,
+                        searchable: true, // handles by filter_queryset override method - class ProposalFilterBackend
                     },
                     {
                         // 2. Region
@@ -233,13 +234,14 @@ export default {
                             return helpers.dtPopover(value);
                         },
                         'createdCell': helpers.dtPopoverCellFn,
-                        searchable: false, // handles by filter_queryset override method - class ProposalFilterBackend
                         visible: false,
                         name: 'region_column',
+                        searchable: false,
                     },
                     {
                         // 3. Activity/Application Type
-                        data: "activity"
+                        data: "activity",
+                        searchable: true,
                     },
                     {
                         // 4. Submitter
@@ -251,10 +253,12 @@ export default {
                             return ''
                         },
                         name: "submitter__email",
+                        searchable: true,
                     },
                     {
                         // 5. Proponent/Applicant
                         data: "relevant_applicant_name",
+                        searchable: false, // handles by filter_queryset override method - class ProposalFilterBackend
                     },
                     {
                         // 6. Status
@@ -264,6 +268,8 @@ export default {
                             }
                             return full.processing_status
                         },
+                        searchable: false, // handles by filter_queryset override method - class ProposalFilterBackend
+                        name: 'status',
                     },
                     {
                         // 7. Lodged on
@@ -271,13 +277,14 @@ export default {
                         mRender:function (data,type,full) {
                             return data != '' && data != null ? moment(data).format(vm.dateFormat): '';
                         },
-                        searchable: false, // handles by filter_queryset override method - class ProposalFilterBackend
+                        searchable: true, // handles by filter_queryset override method - class ProposalFilterBackend
                     },
                     {
                         // 8. Assigned Officer
                         data: "assigned_officer",
                         visible: false,
                         name: "assigned_officer_column",
+                        searchable: false,
                     },
                     {
                         // 9. Invoice
@@ -295,9 +302,9 @@ export default {
                             return links;
                         },
                         name: 'invoice_column',
-                        searchable: false,
                         orderable: false,
                         visible: false,
+                        searchable: false,
                     },
                     {
                         // 10. Action
