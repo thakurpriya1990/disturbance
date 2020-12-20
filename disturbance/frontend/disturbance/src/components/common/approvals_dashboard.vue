@@ -274,6 +274,7 @@ export default {
                         },
                         'createdCell': helpers.dtPopoverCellFn,
                         name: "id, lodgement_number",
+                        searchable: true,
                     },
                     {
                         data: "region",
@@ -283,11 +284,13 @@ export default {
                         'createdCell': helpers.dtPopoverCellFn,
                         name: 'current_proposal__region__name',// will be use like: Approval.objects.filter(current_proposal__region__name='Kimberley')
                         visible: false,
+                        searchable: false,
                     },
                     {
                         data: "activity",
                         name: "current_proposal__activity",
                         visible: false,
+                        searchable: true,
                     },
                     {
                         data: "title",
@@ -297,10 +300,12 @@ export default {
                         'createdCell': helpers.dtPopoverCellFn,
                         name: "current_proposal__title",
                         visible: false,
+                        searchable: true,
                     },
                     {
                         data: "applicant",
                         //name: "applicant__organisation__name" // will be use like: Approval.objects.all().order_by('applicant__organisation__nane')
+                        searchable: false,
                     },
                     {data: "status"},
                     {
@@ -335,7 +340,8 @@ export default {
                             }
                             //return link;
                         },
-                        name: 'licence_document__name'
+                        name: 'licence_document__name',
+                        searchable: false,
                     },
                     {
                         data: '',

@@ -152,6 +152,7 @@ class ProposalFilterBackend(DatatablesFilterBackend):
     """
 
     def filter_queryset(self, request, queryset, view):
+        search_text = request.GET.get('search[value]', '')
         #import ipdb; ipdb.set_trace()
         total_count = queryset.count()
 
@@ -259,7 +260,10 @@ class ProposalFilterBackend(DatatablesFilterBackend):
                 #    ordering[num] = '-status'
             queryset = queryset.order_by(*ordering)
 
-        #queryset = super(ProposalFilterBackend, self).filter_queryset(request, queryset, view)
+        try:
+            queryset = super(ProposalFilterBackend, self).filter_queryset(request, queryset, view)
+        except Exception as e:
+            print(e)
         setattr(view, '_datatables_total_count', total_count)
         return queryset
 
@@ -268,7 +272,7 @@ class ProposalRenderer(DatatablesRenderer):
         #import ipdb; ipdb.set_trace()
         if 'view' in renderer_context and hasattr(renderer_context['view'], '_datatables_total_count'):
             data['recordsTotal'] = renderer_context['view']._datatables_total_count
-            #data.pop('recordsTotal')
+            # data.pop('recordsTotal')
             #data.pop('recordsFiltered')
         return super(ProposalRenderer, self).render(data, accepted_media_type, renderer_context)
 
@@ -283,6 +287,7 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
     renderer_classes = (ProposalRenderer,)
     queryset = Proposal.objects.none()
     serializer_class = ListProposalSerializer
+    search_fields = ['lodgement_number',]
     #serializer_class = DTProposalSerializer
     page_size = 10
 
