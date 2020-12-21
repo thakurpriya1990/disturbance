@@ -284,7 +284,7 @@ export default {
                         'createdCell': helpers.dtPopoverCellFn,
                         name: 'current_proposal__region__name',// will be use like: Approval.objects.filter(current_proposal__region__name='Kimberley')
                         visible: false,
-                        searchable: false,
+                        searchable: true,
                     },
                     {
                         data: "activity",
@@ -304,8 +304,8 @@ export default {
                     },
                     {
                         data: "applicant",
-                        //name: "applicant__organisation__name" // will be use like: Approval.objects.all().order_by('applicant__organisation__nane')
-                        searchable: false,
+                        name: "applicant__organisation__name", // will be use like: Approval.objects.all().order_by('applicant__organisation__nane')
+                        searchable: true,
                     },
                     {data: "status"},
                     {
@@ -320,7 +320,7 @@ export default {
                         mRender:function (data,type,full) {
                             return data != '' && data != null ? moment(data).format(vm.dateFormat): '';
                         },
-                        searchable: false
+                        searchable: true
                     },
                     {
                         data: "licence_document",

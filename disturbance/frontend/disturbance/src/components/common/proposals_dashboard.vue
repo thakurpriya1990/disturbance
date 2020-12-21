@@ -125,6 +125,10 @@ export default {
     },
     data() {
         let vm = this;
+        let assigned_officer_column_name = "assigned_officer__first_name, assigned_officer__last_name, assigned_officer__email"
+        let submitter_column_name = "submitter__email, submitter__first_name, submitter__last_name"
+        let proponent_applicant_column_name = 'applicant__organisation__name, proxy_applicant__first_name, proxy_applicant__last_name, proxy_applicant__email'
+
         return {
             pBody: 'pBody' + vm._uid,
             datatable_id: 'proposal-datatable-'+vm._uid,
@@ -203,7 +207,7 @@ export default {
                         d.proposal_activity = vm.filterProposalActivity;
                         d.submitter = vm.filterProposalSubmitter;
                         d.proposal_status = vm.filterProposalStatus;
-        		    }
+                    }
                 },
                 dom: 'lBfrtip',
                 buttons:[
@@ -225,7 +229,7 @@ export default {
                         // 1. Number
                         data: "lodgement_number",
                         orderable: true,
-                        searchable: true, // handles by filter_queryset override method - class ProposalFilterBackend
+                        searchable: true,
                     },
                     {
                         // 2. Region
@@ -235,8 +239,8 @@ export default {
                         },
                         'createdCell': helpers.dtPopoverCellFn,
                         visible: false,
-                        name: 'region_column',
-                        searchable: false,
+                        name: 'region__name',
+                        searchable: true,
                     },
                     {
                         // 3. Activity/Application Type
@@ -252,13 +256,14 @@ export default {
                             }
                             return ''
                         },
-                        name: "submitter__email",
+                        name: submitter_column_name,
                         searchable: true,
                     },
                     {
                         // 5. Proponent/Applicant
                         data: "relevant_applicant_name",
-                        searchable: false, // handles by filter_queryset override method - class ProposalFilterBackend
+                        name: proponent_applicant_column_name,
+                        searchable: true,
                     },
                     {
                         // 6. Status
@@ -268,7 +273,7 @@ export default {
                             }
                             return full.processing_status
                         },
-                        searchable: false, // handles by filter_queryset override method - class ProposalFilterBackend
+                        searchable: false,
                         name: 'status',
                     },
                     {
@@ -277,14 +282,14 @@ export default {
                         mRender:function (data,type,full) {
                             return data != '' && data != null ? moment(data).format(vm.dateFormat): '';
                         },
-                        searchable: true, // handles by filter_queryset override method - class ProposalFilterBackend
+                        searchable: true,
                     },
                     {
                         // 8. Assigned Officer
                         data: "assigned_officer",
                         visible: false,
-                        name: "assigned_officer_column",
-                        searchable: false,
+                        name: assigned_officer_column_name,
+                        searchable: true,
                     },
                     {
                         // 9. Invoice
@@ -335,7 +340,7 @@ export default {
                 ],
                 processing: true,
                 initComplete: function() {
-                    let regionColumn = vm.$refs.proposal_datatable.vmDataTable.column('region_column:name');
+                    let regionColumn = vm.$refs.proposal_datatable.vmDataTable.column('region__name:name');
                     if (vm.dasTemplateGroup) {
                         regionColumn.visible(true);
                     }
@@ -345,7 +350,8 @@ export default {
                         invoiceColumn.visible(true);
                     }
 
-                    let assignedOfficerColumn = vm.$refs.proposal_datatable.vmDataTable.column('assigned_officer_column:name')
+                    //let assignedOfficerColumn = vm.$refs.proposal_datatable.vmDataTable.column('assigned_officer_column:name')
+                    let assignedOfficerColumn = vm.$refs.proposal_datatable.vmDataTable.column(assigned_officer_column_name + ':name')
                     if (!vm.is_external){
                         assignedOfficerColumn.visible(true)
                     }

@@ -209,7 +209,7 @@ export default {
                         // 3. Activity
                         data: "activity",
                         name: "proposal__activity",
-                        visible: false,
+                        visible: true,
                     },
                     {
                         // 4. Title
@@ -233,7 +233,7 @@ export default {
                     {
                         // 7. Status
                         data: vm.level == 'external'? "customer_status" : "processing_status",
-                        searchable: false,
+                        searchable: false,  // There is a filter dropdown for 'Status'
                     },
                     {
                         // 8. Due Date
