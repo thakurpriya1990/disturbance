@@ -181,7 +181,7 @@ export default {
             proposal_submitters: [],
             proposal_status: [],
             is_local: helpers.is_local(),
-
+            select2Applied: false,
             dt_options:{
                 autoWidth: false,
                 language: {
@@ -552,7 +552,14 @@ export default {
                 vm.discardProposal(id);
             });
             if (this.dasTemplateGroup) {
+                this.applySelect2()
                 // Initialise select2 for region
+            }
+        },
+        applySelect2: function(){
+            let vm = this
+
+            if (!vm.select2Applied){
                 $(vm.$refs.filterRegion).select2({
                     "theme": "bootstrap",
                     allowClear: true,
@@ -566,6 +573,7 @@ export default {
                     var selected = $(e.currentTarget);
                     vm.filterProposalRegion = selected.val();
                 });
+                vm.select2Applied = true
             }
         },
         initialiseSearch:function(){
@@ -678,8 +686,9 @@ export default {
         },
     },
 
-    mounted: function(){
-        this.fetchFilterLists();
+    mounted: async function(){
+        console.log('in mounted')
+        await this.fetchFilterLists();
         this.fetchProfile();
         let vm = this;
         $( 'a[data-toggle="collapse"]' ).on( 'click', function () {
@@ -697,21 +706,23 @@ export default {
         },err=>{
         console.log(err);
         });
+        */
 
         this.$nextTick(() => {
-            vm.initialiseSearch();
+            //vm.initialiseSearch();
             vm.addEventListeners();
         });
-        */
     },
     updated: function() {
+        console.log('in updated')
         this.$nextTick(() => {
             this.initialiseSearch();
-            this.addEventListeners();
+            //this.addEventListeners();
             this.setDashboardText();
         });
     },
     created: function() {
+        console.log('in created')
         // retrieve template group
         this.$http.get('/template_group',{ emulateJSON: true }).then(
             res=>{
@@ -721,6 +732,8 @@ export default {
                 } else {
                     this.dasTemplateGroup = true;
                 }
+                console.log('templateGroup updated')
+                this.applySelect2()
                 this.is_das_admin = res.body.is_das_admin
                 this.is_apiary_admin = res.body.is_apiary_admin
                 this.is_das_apiary_admin = res.body.is_das_apiary_admin

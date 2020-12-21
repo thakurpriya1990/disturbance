@@ -19,23 +19,11 @@
                                         <option value="All">All</option>
                                         <option v-for="r in proposal_regions" :value="r">{{r}}</option>
                                     </select>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="form-group">
-                                    <label for="">Activity</label>
-                                    <select class="form-control" v-model="filterProposalActivity">
-                                        <option value="All">All</option>
-                                        <option v-for="a in proposal_activityTitles" :value="a">{{a}}</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <!--div class="col-md-3">
-                                <div class="form-group">
-                                    <label for="">Region</label>
+                                    <!--
                                     <select style="width:100%" class="form-control input-sm" multiple ref="filterRegion" >
                                         <option v-for="r in proposal_regions" :value="r">{{r}}</option>
                                     </select>
+                                    -->
                                 </div>
                             </div>
                             <div class="col-md-3">
@@ -46,7 +34,7 @@
                                         <option v-for="a in proposal_activityTitles" :value="a">{{a}}</option>
                                     </select>
                                 </div>
-                            </div-->
+                            </div>
                         </div>
 
                         <!--div class="col-md-3">
@@ -174,6 +162,7 @@ export default {
             //template_group: '',
             dasTemplateGroup: false,
             apiaryTemplateGroup: false,
+            select2Applied: false,
             /*
             proposal_headers:[
                 "Number","Region","Activity","Title","Holder","Status","Start Date","Expiry Date","Approval","Action",""
@@ -947,6 +936,28 @@ export default {
                 });
             window.open(media_link, '_blank');
         },
+        applySelect2: function(){
+            console.log('in applySelect2')
+            let vm = this
+
+            if (!vm.select2Applied){
+                console.log('select2 is being applied')
+                $(vm.$refs.filterRegion).select2({
+                    "theme": "bootstrap",
+                    allowClear: true,
+                    placeholder:"Select Region"
+                }).
+                on("select2:select",function (e) {
+                    var selected = $(e.currentTarget);
+                    vm.filterProposalRegion = selected.val();
+                }).
+                on("select2:unselect",function (e) {
+                    var selected = $(e.currentTarget);
+                    vm.filterProposalRegion = selected.val();
+                });
+            }
+            vm.select2Applied = true
+        },
 
     },
     mounted: function(){
@@ -974,11 +985,14 @@ export default {
             vm.initialiseSearch();
         });
         */
+        this.$nextTick(() => {
+            this.addEventListeners();
+        });
     },
     updated: function() {
         this.$nextTick(() => {
             this.initialiseSearch();
-            this.addEventListeners();
+            //this.addEventListeners();
             this.setDashboardText();
         });
     },
@@ -993,6 +1007,7 @@ export default {
                 } else {
                     this.dasTemplateGroup = true;
                 }
+                //this.applySelect2()
         },err=>{
         console.log(err);
         });

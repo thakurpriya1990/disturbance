@@ -20,6 +20,11 @@
                                         <option value="All">All</option>
                                         <option v-for="r in proposal_regions" :value="r">{{r}}</option>
                                     </select>
+                                    <!--
+                                    <select style="width:100%" class="form-control input-sm" multiple ref="filterRegion" >
+                                        <option v-for="r in proposal_regions" :value="r">{{r}}</option>
+                                    </select>
+                                    -->
                                 </div>
                             </div>
                             <div class="col-md-3">
@@ -75,6 +80,8 @@
 <script>
 import datatable from '@/utils/vue/datatable.vue'
 import Vue from 'vue'
+require("select2/dist/css/select2.min.css");
+require("select2-bootstrap-theme/dist/select2-bootstrap.min.css");
 import {
     api_endpoints,
     helpers
@@ -119,6 +126,7 @@ export default {
                 keepInvalid:true,
                 allowInputToggle:true
             },
+            select2Applied: false,
             /*
             external_status:[
                 'Due',
@@ -450,21 +458,30 @@ export default {
             });
             // End Proposal Date Filters
 
-
             // Initialise select2 for region
-            $(vm.$refs.filterRegion).select2({
-                "theme": "bootstrap",
-                allowClear: true,
-                placeholder:"Select Region"
-            }).
-            on("select2:select",function (e) {
-                var selected = $(e.currentTarget);
-                vm.filterProposalRegion = selected.val();
-            }).
-            on("select2:unselect",function (e) {
-                var selected = $(e.currentTarget);
-                vm.filterProposalRegion = selected.val();
-            });
+            //vm.applySelect2()
+        },
+        applySelect2: function(){
+            console.log('in applySelect2')
+            let vm = this
+
+            if (!vm.select2Applied){
+                console.log('select2 is being applied')
+                $(vm.$refs.filterRegion).select2({
+                    "theme": "bootstrap",
+                    allowClear: true,
+                    placeholder:"Select Region"
+                }).
+                on("select2:select",function (e) {
+                    var selected = $(e.currentTarget);
+                    vm.filterProposalRegion = selected.val();
+                }).
+                on("select2:unselect",function (e) {
+                    var selected = $(e.currentTarget);
+                    vm.filterProposalRegion = selected.val();
+                });
+            }
+            vm.select2Applied = true
         },
         initialiseSearch:function(){
             this.regionSearch();
@@ -567,6 +584,7 @@ export default {
         }
     },
     created: function() {
+        console.log('in created')
         // retrieve template group
         this.$http.get('/template_group',{
             emulateJSON:true
@@ -577,19 +595,22 @@ export default {
                 } else {
                     this.dasTemplateGroup = true;
                 }
+                console.log('templateGroup updated')
+                //this.applySelect2()
         },err=>{
         console.log(err);
         });
     },
     updated: function() {
         this.$nextTick(() => {
-            this.addEventListeners();
+            //this.addEventListeners();
             this.initialiseSearch();
         });
     },
-    mounted: function(){
+    mounted: async function(){
+        console.log('in mounted')
         let vm = this;
-        vm.fetchFilterLists();
+        await vm.fetchFilterLists();
         vm.fetchProfile();
         $( 'a[data-toggle="collapse"]' ).on( 'click', function () {
             var chev = $( this ).children()[ 0 ];
@@ -601,6 +622,9 @@ export default {
             var column = vm.$refs.proposal_datatable.vmDataTable.columns(8); //Hide 'Assigned To column for external'
             column.visible(false);
         }
+        this.$nextTick(() => {
+            this.addEventListeners();
+        });
     }
 }
 </script>
