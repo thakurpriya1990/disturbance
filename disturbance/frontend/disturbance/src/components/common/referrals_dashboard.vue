@@ -135,6 +135,7 @@ export default {
             //template_group: '',
             dasTemplateGroup: false,
             apiaryTemplateGroup: false,
+            select2Applied: false,
             // Filters for Proposals
             filterProposalRegion: [],
             filterProposalActivity: 'All',
@@ -519,6 +520,28 @@ export default {
                 }
             );
         },
+        applySelect2: function(){
+            console.log('in applySelect2')
+            let vm = this
+
+            if (!vm.select2Applied){
+                console.log('select2 is being applied')
+                $(vm.$refs.filterRegion).select2({
+                    "theme": "bootstrap",
+                    allowClear: true,
+                    placeholder:"Select Region"
+                }).
+                on("select2:select",function (e) {
+                    var selected = $(e.currentTarget);
+                    vm.filterProposalRegion = selected.val();
+                }).
+                on("select2:unselect",function (e) {
+                    var selected = $(e.currentTarget);
+                    vm.filterProposalRegion = selected.val();
+                });
+            }
+            vm.select2Applied = true
+        },
         submitterSearch:function(){
             let vm = this;
             vm.$refs.proposal_datatable.table.dataTableExt.afnFiltering.push(
@@ -575,17 +598,15 @@ export default {
                 $( chev ).toggleClass( "glyphicon-chevron-down glyphicon-chevron-up" );
             }, 100 );
         });
-        /*
         this.$nextTick(() => {
             vm.addEventListeners();
-            vm.initialiseSearch();
+            //vm.initialiseSearch();
         });
-        */
     },
     updated: function() {
         this.$nextTick(() => {
             this.initialiseSearch();
-            this.addEventListeners();
+            //this.addEventListeners();
         });
     },
     created: function() {
@@ -599,6 +620,7 @@ export default {
                 } else {
                     this.dasTemplateGroup = true;
                 }
+                this.applySelect2()
         },err=>{
         console.log(err);
         });
