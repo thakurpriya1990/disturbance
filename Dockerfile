@@ -34,23 +34,37 @@ ENV SYSTEM_NAME="Disturbance Assessment System"
 ENV APIARY_SYSTEM_NAME="Apiary System"
 ENV PAYMENT_OFFICERS_GROUP="Apiary Payments Officers"
 
-RUN apt-get clean
-RUN apt-get update
-RUN apt-get upgrade -y
-RUN apt-get install --no-install-recommends -y wget git libmagic-dev gcc binutils libproj-dev gdal-bin python3-setuptools python3-pip tzdata cron rsyslog gunicorn libreoffice
-RUN apt-get install --no-install-recommends -y libpq-dev patch
-RUN apt-get install --no-install-recommends -y postgresql-client mtr htop vim ssh
-RUN apt-get install --no-install-recommends -y python3-gevent software-properties-common imagemagick
+RUN apt-get clean && apt-get update && apt-get upgrade -y
+RUN apt-get install --no-install-recommends -y \
+wget \
+git \
+libmagic-dev \
+gcc \
+binutils \
+libproj-dev \
+gdal-bin \
+python3-setuptools \
+python3-pip \
+tzdata \
+cron \
+rsyslog \
+gunicorn \
+libreoffice
+libpq-dev \
+patch \
+postgresql-client \
+mtr \
+htop \
+vim \
+ssh \
+python3-gevent \
+software-properties-common \
+imagemagick
 
-RUN add-apt-repository ppa:deadsnakes/ppa
-RUN apt-get update
-RUN apt-get install --no-install-recommends -y python3.7 python3.7-dev
-
-RUN ln -s /usr/bin/python3.7 /usr/bin/python && \
-    ln -s /usr/bin/pip3 /usr/bin/pip
+RUN add-apt-repository ppa:deadsnakes/ppa && apt-get update && apt-get install --no-install-recommends -y python3.7 python3.7-dev
+RUN ln -s /usr/bin/python3.7 /usr/bin/python && ln -s /usr/bin/pip3 /usr/bin/pip
 #RUN pip install --upgrade pip
-RUN python3.7 -m pip install --upgrade pip
-RUN apt-get install -yq vim
+RUN python3.7 -m pip install --upgrade pip && apt-get install -yq vim
 
 # Install Python libs from requirements.txt.
 FROM builder_base_cols as python_libs_cols
@@ -63,8 +77,7 @@ RUN python3.7 -m pip install --no-cache-dir -r requirements.txt \
   && rm -rf /var/lib/{apt,dpkg,cache,log}/ /tmp/* /var/tmp/*
 
 COPY libgeos.py.patch /app/
-RUN patch /usr/local/lib/python3.7/dist-packages/django/contrib/gis/geos/libgeos.py /app/libgeos.py.patch
-RUN rm /app/libgeos.py.patch
+RUN patch /usr/local/lib/python3.7/dist-packages/django/contrib/gis/geos/libgeos.py /app/libgeos.py.patch && rm /app/libgeos.py.patch
 
 # Install the project (ensure that frontend projects have been built prior to this step).
 FROM python_libs_cols
@@ -72,24 +85,20 @@ COPY gunicorn.ini manage_ds.py ./
 #COPY timezone /etc/timezone
 RUN echo "Australia/Perth" > /etc/timezone
 ENV TZ=Australia/Perth
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
-RUN touch /app/.env
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone && touch /app/.env
 COPY .git ./.git
 COPY disturbance ./disturbance
-RUN python manage_ds.py collectstatic --noinput
-
-RUN mkdir /app/tmp/
-RUN chmod 777 /app/tmp/
+RUN python manage_ds.py collectstatic --noinput && mkdir /app/tmp/ && chmod 777 /app/tmp/
 
 COPY cron /etc/cron.d/dockercron
 COPY startup.sh /
 # Cron start
-RUN service rsyslog start
-RUN chmod 0644 /etc/cron.d/dockercron
-RUN crontab /etc/cron.d/dockercron
-RUN touch /var/log/cron.log
-RUN service cron start
-RUN chmod 755 /startup.sh
+RUN service rsyslog start && \
+chmod 0644 /etc/cron.d/dockercron && \
+crontab /etc/cron.d/dockercron && \
+touch /var/log/cron.log && \
+service cron start && \
+chmod 755 /startup.sh
 # cron end
 
 EXPOSE 8080
