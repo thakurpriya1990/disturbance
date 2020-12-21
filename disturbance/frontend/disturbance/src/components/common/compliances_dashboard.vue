@@ -191,6 +191,7 @@ export default {
                 ],
                 columns: [
                     {
+                        // 1. Number
                         data: "id",
                         mRender:function (data,type,full) {
                             //return `C${data}`;
@@ -199,23 +200,25 @@ export default {
                         name: "id, lodgement_number",
                     },
                     {
+                        // 2. Region/District
                         data: "regions",
                         name: "proposal__region__name", // will be use like: Approval.objects.filter(proposal__region__name='Kimberley')
                         visible: false,
                     },
                     {
+                        // 3. Activity
                         data: "activity",
                         name: "proposal__activity",
                         visible: false,
                     },
-                    
                     {
+                        // 4. Title
                         data: "title",
                         name: "proposal__title",
                         visible: false,
                     },
-                    
                     {
+                        // 5. Approval/Licence
                         data: "approval_lodgement_number",
                         mRender:function (data,type,full) {
                             return `A${data}`;
@@ -223,27 +226,30 @@ export default {
                         name: "approval__lodgement_number"
                     },
                     {
+                        // 6. Holder
                         data: "holder",
                         name: "proposal__applicant__organisation__name"
                     },
-
                     {
+                        // 7. Status
                         data: vm.level == 'external'? "customer_status" : "processing_status",
                         searchable: false,
                     },
                     {
+                        // 8. Due Date
                         data: "due_date",
                         mRender:function (data,type,full) {
                             return data != '' && data != null ? moment(data).format(vm.dateFormat): '';
                         }
                     },
                     {
+                        // 9. Assigned To
                         data: "assigned_to",
                         name: "assigned_to__first_name, assigned_to__last_name, assigned_to__email"
                         // visible: false
                     },
                     {
-                        // Action
+                        // 10. Action
                         data: '',
                         mRender:function (data,type,full) {
                             let links = '';
@@ -364,7 +370,7 @@ export default {
         }
     },
     computed: {
-       /* status: function(){
+        /* status: function(){
             return this.is_external ? this.external_status : this.internal_status;
             //return [];
         }, */
@@ -372,35 +378,38 @@ export default {
             return this.level == 'external';
         },
         status_values: function() {
+            let under_review_or_with_assessor = 'With Assessor'
             if (this.is_external) {
-                return [
-                    'Due',
-                    'Future',
-                    'Under Review',
-                    'Approved',
-                ]
-            } else {
-                return [
-                    'Due',
-                    'Future',
-                    'With Assessor',
-                    'Approved',
-                ]
+                under_review_or_with_assessor = 'Under Review'
             }
+            return [
+                'Due',
+                'Future',
+                under_review_or_with_assessor,
+                'Approved',
+            ]
         },
 
         proposal_headers: function() {
+            let approval_or_licence = 'Approval'
             if (this.apiaryTemplateGroup) {
-                return [
-                    "Number","Region/District","Activity","Title","Licence","Holder","Status",
-                    "Due Date","Assigned To", "CustomerStatus", "Reference","Action"]
-            } else {
-                return [
-                    "Number","Region/District","Activity","Title","Approval","Holder","Status",
-                    "Due Date","Assigned To", "CustomerStatus", "Reference","Action"]
+                approval_or_licence = 'Licence'
             }
+            return [
+                "Number",           // 1
+                "Region/District",  // 2
+                "Activity",         // 3
+                "Title",            // 4
+                approval_or_licence,// 5
+                "Holder",           // 6
+                "Status",           // 7
+                "Due Date",         // 8
+                "Assigned To",      // 9
+                "Action",           // 10
+                "Reference",        // 11
+                "CustomerStatus",   // 12
+            ]
         },
-
     },
     methods:{
         fetchFilterLists: function(){
