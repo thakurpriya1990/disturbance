@@ -164,7 +164,6 @@ export default {
                 {value: 'with_assessor', name: 'Under Review'},
                 {value: 'approved', name: 'Approved'},
                 {value: 'declined', name: 'Declined'},
-                {value: 'discarded', name: 'Discarded'},
             ],
             internal_status:[
                 {value: 'draft', name: 'Draft'},
