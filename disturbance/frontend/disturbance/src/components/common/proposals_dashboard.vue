@@ -239,6 +239,16 @@ export default {
                         name: 'activity',
                     },
                     {
+                        // 3.5 Title
+                        data: "title",
+                        'render': function (value) {
+                            return helpers.dtPopover(value);
+                        },
+                        'createdCell': helpers.dtPopoverCellFn,
+                        visible: false,
+                        name: 'title_column',
+                    },
+                    {
                         // 4. Submitter
                         data: "submitter",
                         mRender:function (data,type,full) {
@@ -332,8 +342,10 @@ export default {
                 processing: true,
                 initComplete: function() {
                     let regionColumn = vm.$refs.proposal_datatable.vmDataTable.column('region__name:name');
+                    let titleColumn = vm.$refs.proposal_datatable.vmDataTable.column('title_column:name');
                     if (vm.dasTemplateGroup) {
                         regionColumn.visible(true);
+                        titleColumn.visible(true);
                     }
 
                     let invoiceColumn = vm.$refs.proposal_datatable.vmDataTable.column('invoice_column:name');
@@ -346,6 +358,7 @@ export default {
                     if (!vm.is_external){
                         assignedOfficerColumn.visible(true)
                     }
+
                 },
             },
         }
@@ -423,6 +436,7 @@ export default {
                 "Number",
                 "Region",
                 activity_or_application_type,
+                "Title",
                 "Submitter",
                 proponent_or_applicant,
                 "Status",
