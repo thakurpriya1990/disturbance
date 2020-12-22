@@ -11,7 +11,7 @@
                 </div>
                 <div class="panel-body collapse in" :id="pBody">
                     <div class="row">
-                        <div v-if="!apiaryTemplateGroup">
+                        <div v-if="templateGroupDetermined && !apiaryTemplateGroup">
                             <div class="col-md-3">
                                 <div class="form-group">
                                     <label for="">Region</label>
@@ -162,6 +162,7 @@ export default {
             //template_group: '',
             dasTemplateGroup: false,
             apiaryTemplateGroup: false,
+            templateGroupDetermined: false,
             select2Applied: false,
             /*
             proposal_headers:[
@@ -271,7 +272,7 @@ export default {
                             return helpers.dtPopover(value);
                         },
                         'createdCell': helpers.dtPopoverCellFn,
-                        name: 'current_proposal__region__name',// will be use like: Approval.objects.filter(current_proposal__region__name='Kimberley')
+                        name: 'current_proposal__region__name',
                         visible: false,
                         searchable: true,
                     },
@@ -293,7 +294,7 @@ export default {
                     },
                     {
                         data: "applicant",
-                        name: "applicant__organisation__name", // will be use like: Approval.objects.all().order_by('applicant__organisation__nane')
+                        name: "applicant__organisation__name, proxy_applicant__first_name, proxy_applicant__last_name, proxy_applicant__email",
                         searchable: true,
                     },
                     {
@@ -972,30 +973,9 @@ export default {
                 $( chev ).toggleClass( "glyphicon-chevron-down glyphicon-chevron-up" );
             }, 100 );
         });
-        /*
-        // retrieve template group
-        vm.$http.get('/template_group',{
-            emulateJSON:true
-            }).then(res=>{
-                vm.template_group = res.body.template_group;
-        },err=>{
-        console.log(err);
-        });
-
-        this.$nextTick(() => {
-            vm.addEventListeners();
-            vm.initialiseSearch();
-        });
-        */
-        this.$nextTick(() => {
-            this.addEventListeners();
-        });
-    },
-    updated: function() {
         this.$nextTick(() => {
             this.initialiseSearch();
-            //this.addEventListeners();
-            this.setDashboardText();
+            this.addEventListeners();
         });
     },
     created: function() {
@@ -1009,12 +989,12 @@ export default {
                 } else {
                     this.dasTemplateGroup = true;
                 }
+                this.setDashboardText();
                 //this.applySelect2()
         },err=>{
         console.log(err);
         });
     },
-
 }
 </script>
 <style scoped>

@@ -488,25 +488,6 @@ export default {
         },
         regionSearch:function(){
             let vm = this;
-            //vm.$refs.proposal_datatable.table.dataTableExt.afnFiltering.push(
-            //    function(settings,data,dataIndex,original){
-            //        let found = false;
-            //        let filtered_regions = vm.filterProposalRegion.split(',');
-            //        if (filtered_regions == 'All'){ return true; }
-
-            //        let regions = original.regions != '' && original.regions != null ? original.regions.split(','): [];
-
-            //        $.each(regions,(i,r) => {
-            //            if (filtered_regions.indexOf(r) != -1){
-            //                found = true;
-            //                return false;
-            //            }
-            //        });
-            //        if  (found) { return true; }
-
-            //        return false;
-            //    }
-            //);
             vm.$refs.proposal_datatable.table.dataTableExt.afnFiltering.push(
                 function(settings,data,dataIndex,original){
                     let found = false;
@@ -619,12 +600,6 @@ export default {
         console.log(err);
         });
     },
-    updated: function() {
-        this.$nextTick(() => {
-            //this.addEventListeners();
-            this.initialiseSearch();
-        });
-    },
     mounted: function(){
         console.log('in mounted')
         let vm = this;
@@ -641,6 +616,7 @@ export default {
             column.visible(false);
         }
         this.$nextTick(() => {
+            this.initialiseSearch();
             this.addEventListeners();
         });
     }

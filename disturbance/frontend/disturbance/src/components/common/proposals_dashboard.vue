@@ -704,16 +704,8 @@ export default {
         */
 
         this.$nextTick(() => {
-            //vm.initialiseSearch();
+            vm.initialiseSearch();
             vm.addEventListeners();
-        });
-    },
-    updated: function() {
-        console.log('in updated')
-        this.$nextTick(() => {
-            this.initialiseSearch();
-            //this.addEventListeners();
-            this.setDashboardText();
         });
     },
     created: function() {
@@ -728,7 +720,7 @@ export default {
                     this.dasTemplateGroup = true;
                     this.applySelect2()
                 }
-                console.log('templateGroup updated')
+                this.setDashboardText();
                 this.is_das_admin = res.body.is_das_admin
                 this.is_apiary_admin = res.body.is_apiary_admin
                 this.is_das_apiary_admin = res.body.is_das_apiary_admin
