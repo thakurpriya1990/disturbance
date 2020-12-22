@@ -19,7 +19,7 @@
                                 <div class="form-group">
                                     <template v-show="select2Applied">
                                         <label for="">Region</label>
-                                        <select style="width:100%" class="form-control input-sm" multiple ref="filterRegion" >
+                                        <select style="width:100%" class="form-control input-sm" ref="filterRegion" >
                                             <option v-for="r in proposal_regions" :value="r">{{r}}</option>
                                         </select>
                                     </template>
@@ -556,7 +556,8 @@ export default {
                 $(vm.$refs.filterRegion).select2({
                     "theme": "bootstrap",
                     allowClear: true,
-                    placeholder:"Select Region"
+                    placeholder:"Select Region",
+                    multiple:true,
                 }).
                 on("select2:select",function (e) {
                     var selected = $(e.currentTarget);
@@ -567,6 +568,7 @@ export default {
                     vm.filterProposalRegion = selected.val();
                 });
                 vm.select2Applied = true
+                console.log('select2Applied')
             }
         },
         initialiseSearch:function(){
@@ -679,9 +681,9 @@ export default {
         },
     },
 
-    mounted: async function(){
+    mounted: function(){
         console.log('in mounted')
-        await this.fetchFilterLists();
+        this.fetchFilterLists();
         this.fetchProfile();
         let vm = this;
         $( 'a[data-toggle="collapse"]' ).on( 'click', function () {

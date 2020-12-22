@@ -78,11 +78,9 @@ class ComplianceFilterBackend(DatatablesFilterBackend):
                 if i[1]==status:
                     return i[0]
             return None
-        #import ipdb; ipdb.set_trace()
-        # on the internal dashboard, the Region filter is multi-select - have to use the custom filter below
-        region = request.GET.get('region')
-        if region and not region.lower() == 'all':
-            queryset = queryset.filter(proposal__region__name=region)
+        regions = request.GET.get('regions')
+        if regions:
+            queryset = queryset.filter(proposal__region__name__iregex=regions.replace(',', '|'))
         proposal_activity = request.GET.get('proposal_activity')
         if proposal_activity and not proposal_activity.lower() == 'all':
             queryset = queryset.filter(proposal__activity=proposal_activity)
