@@ -19,23 +19,11 @@
                                         <option value="All">All</option>
                                         <option v-for="r in proposal_regions" :value="r">{{r}}</option>
                                     </select>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="form-group">
-                                    <label for="">Activity</label>
-                                    <select class="form-control" v-model="filterProposalActivity">
-                                        <option value="All">All</option>
-                                        <option v-for="a in proposal_activityTitles" :value="a">{{a}}</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <!--div class="col-md-3">
-                                <div class="form-group">
-                                    <label for="">Region</label>
+                                    <!--
                                     <select style="width:100%" class="form-control input-sm" multiple ref="filterRegion" >
                                         <option v-for="r in proposal_regions" :value="r">{{r}}</option>
                                     </select>
+                                    -->
                                 </div>
                             </div>
                             <div class="col-md-3">
@@ -46,7 +34,7 @@
                                         <option v-for="a in proposal_activityTitles" :value="a">{{a}}</option>
                                     </select>
                                 </div>
-                            </div-->
+                            </div>
                         </div>
 
                         <!--div class="col-md-3">
@@ -174,6 +162,7 @@ export default {
             //template_group: '',
             dasTemplateGroup: false,
             apiaryTemplateGroup: false,
+            select2Applied: false,
             /*
             proposal_headers:[
                 "Number","Region","Activity","Title","Holder","Status","Start Date","Expiry Date","Approval","Action",""
@@ -274,6 +263,7 @@ export default {
                         },
                         'createdCell': helpers.dtPopoverCellFn,
                         name: "id, lodgement_number",
+                        searchable: true,
                     },
                     {
                         data: "region",
@@ -283,27 +273,33 @@ export default {
                         'createdCell': helpers.dtPopoverCellFn,
                         name: 'current_proposal__region__name',// will be use like: Approval.objects.filter(current_proposal__region__name='Kimberley')
                         visible: false,
+                        searchable: true,
                     },
                     {
                         data: "activity",
                         name: "current_proposal__activity",
                         visible: false,
+                        searchable: true,
                     },
-                    /*
                     {
                         data: "title",
                         'render': function (value) {
                             return helpers.dtPopover(value);
                         },
                         'createdCell': helpers.dtPopoverCellFn,
-                        name: "current_proposal__title"
+                        name: "current_proposal__title",
+                        visible: false,
+                        searchable: true,
                     },
-                    */
                     {
                         data: "applicant",
-                        //name: "applicant__organisation__name" // will be use like: Approval.objects.all().order_by('applicant__organisation__nane')
+                        name: "applicant__organisation__name", // will be use like: Approval.objects.all().order_by('applicant__organisation__nane')
+                        searchable: true,
                     },
-                    {data: "status"},
+                    {
+                        data: "status",
+                        name: 'status',
+                    },
                     {
                         data: "start_date",
                         mRender:function (data,type,full) {
@@ -316,7 +312,7 @@ export default {
                         mRender:function (data,type,full) {
                             return data != '' && data != null ? moment(data).format(vm.dateFormat): '';
                         },
-                        searchable: false
+                        searchable: true
                     },
                     {
                         data: "licence_document",
@@ -336,7 +332,8 @@ export default {
                             }
                             //return link;
                         },
-                        name: 'licence_document__name'
+                        name: 'licence_document__name',
+                        searchable: false,
                     },
                     {
                         data: '',
@@ -419,9 +416,11 @@ export default {
                     // region
                     let regionColumn = vm.$refs.proposal_datatable.vmDataTable.columns(1);
                     let activityColumn = vm.$refs.proposal_datatable.vmDataTable.columns(2);
+                    let titleColumn = vm.$refs.proposal_datatable.vmDataTable.column('current_proposal__title:name');
                     if (vm.dasTemplateGroup) {
                         regionColumn.visible(true);
                         activityColumn.visible(true);
+                        titleColumn.visible(true)
                     }
                 },
 
@@ -478,17 +477,17 @@ export default {
             //this.$refs.proposal_datatable.vmDataTable.draw();
             let vm = this;
             if (vm.filterProposalRegion!= 'All') {
-                vm.$refs.proposal_datatable.vmDataTable.columns(1).search(vm.filterProposalRegion).draw();
+                vm.$refs.proposal_datatable.vmDataTable.column('current_proposal__region__name:name').search(vm.filterProposalRegion).draw();
             } else {
-                vm.$refs.proposal_datatable.vmDataTable.columns(1).search('').draw();
+                vm.$refs.proposal_datatable.vmDataTable.column('current_proposal__region__name:name').search('').draw();
             }
         },
         filterProposalActivity: function() {
             let vm = this;
             if (vm.filterProposalActivity!= 'All') {
-                vm.$refs.proposal_datatable.vmDataTable.columns(2).search(vm.filterProposalActivity).draw();
+                vm.$refs.proposal_datatable.vmDataTable.column('current_proposal__activity:name').search(vm.filterProposalActivity).draw();
             } else {
-                vm.$refs.proposal_datatable.vmDataTable.columns(2).search('').draw();
+                vm.$refs.proposal_datatable.vmDataTable.column('current_proposal__activity:name').search('').draw();
             }
         },
         filterProposalSubmitter: function(){
@@ -499,14 +498,13 @@ export default {
             } else {
                 vm.$refs.proposal_datatable.vmDataTable.columns(4).search('').draw();
             }
-
         },
         filterProposalStatus: function() {
             let vm = this;
             if (vm.filterProposalStatus!= 'All') {
-                vm.$refs.proposal_datatable.vmDataTable.columns(5).search(vm.filterProposalStatus).draw();
+                vm.$refs.proposal_datatable.vmDataTable.column('status:name').search(vm.filterProposalStatus).draw();
             } else {
-                vm.$refs.proposal_datatable.vmDataTable.columns(5).search('').draw();
+                vm.$refs.proposal_datatable.vmDataTable.column('status:name').search('').draw();
             }
         },
         filterProposalLodgedFrom: function(){
@@ -528,15 +526,23 @@ export default {
             return this.level == 'referral';
         },
         proposal_headers: function() {
+            let approval_or_licence = 'Approval'
             if (this.apiaryTemplateGroup) {
-                return [
-            "Number","Region","Activity",/*"Title",*/"Holder","Status","Start Date","Expiry Date","Licence","Action",""
-            ]
-            } else {
-                return [
-            "Number","Region","Activity",/*"Title",*/"Holder","Status","Start Date","Expiry Date","Approval","Action",""
-            ]
+                approval_or_licence = 'Licence'
             }
+            return [
+                "Number",
+                "Region",
+                "Activity",
+                "Title",
+                "Holder",
+                "Status",
+                "Start Date",
+                "Expiry Date",
+                approval_or_licence,
+                "Action",
+                ""
+            ]
         },
     },
     methods:{
@@ -932,6 +938,28 @@ export default {
                 });
             window.open(media_link, '_blank');
         },
+        applySelect2: function(){
+            console.log('in applySelect2')
+            let vm = this
+
+            if (!vm.select2Applied){
+                console.log('select2 is being applied')
+                $(vm.$refs.filterRegion).select2({
+                    "theme": "bootstrap",
+                    allowClear: true,
+                    placeholder:"Select Region"
+                }).
+                on("select2:select",function (e) {
+                    var selected = $(e.currentTarget);
+                    vm.filterProposalRegion = selected.val();
+                }).
+                on("select2:unselect",function (e) {
+                    var selected = $(e.currentTarget);
+                    vm.filterProposalRegion = selected.val();
+                });
+            }
+            vm.select2Applied = true
+        },
 
     },
     mounted: function(){
@@ -959,11 +987,14 @@ export default {
             vm.initialiseSearch();
         });
         */
+        this.$nextTick(() => {
+            this.addEventListeners();
+        });
     },
     updated: function() {
         this.$nextTick(() => {
             this.initialiseSearch();
-            this.addEventListeners();
+            //this.addEventListeners();
             this.setDashboardText();
         });
     },
@@ -978,6 +1009,7 @@ export default {
                 } else {
                     this.dasTemplateGroup = true;
                 }
+                //this.applySelect2()
         },err=>{
         console.log(err);
         });

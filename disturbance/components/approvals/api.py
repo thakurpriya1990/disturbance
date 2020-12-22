@@ -119,7 +119,10 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
                 #    ordering[num] = '-status'
             queryset = queryset.order_by(*ordering)
 
-        #queryset = super(ProposalFilterBackend, self).filter_queryset(request, queryset, view)
+        try:
+            queryset = super(ApprovalFilterBackend, self).filter_queryset(request, queryset, view)
+        except Exception as e:
+            print(e)
         setattr(view, '_datatables_total_count', total_count)
         return queryset
 
@@ -596,11 +599,14 @@ class ApprovalViewSet(viewsets.ModelViewSet):
         try:
             qs = None
             approval_history_id = request.query_params['approval_history_id']
+            return_list = []
             if approval_history_id:
                 instance = Approval.objects.get(id=approval_history_id)
                 qs = instance.documents.all().order_by("-uploaded_date")
-            serializer = ApprovalDocumentHistorySerializer(qs, many=True)
-            return Response(serializer.data)
+                for item in qs:
+                    se = ApprovalDocumentHistorySerializer(item)
+                    return_list.append(se.data)
+            return Response(return_list)
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise

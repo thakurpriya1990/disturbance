@@ -340,7 +340,7 @@ def create_fee_lines_apiary(proposal):
             # Avoid ledger error
             # ledger doesn't accept quantity=0). Alternatively, set quantity=1 and price=0
             if number_of_sites_calculate == 0:
-                number_of_sites_calculate = 1
+                number_of_sites_calculate = len(relations)
                 application_price = 0
 
             line_item = {
