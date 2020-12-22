@@ -12,19 +12,13 @@
 
                 <div class="panel-body collapse in" :id="pBody">
                     <div class="row">
-                        <div v-if="!apiaryTemplateGroup">
+                        <div v-show="!apiaryTemplateGroup && select2Applied">
                             <div class="col-md-3">
                                 <div class="form-group">
                                     <label for="">Region</label>
-                                    <select class="form-control" v-model="filterProposalRegion">
-                                        <option value="All">All</option>
+                                    <select style="width:100%" class="form-control input-sm" ref="filterRegion" >
                                         <option v-for="r in proposal_regions" :value="r">{{r}}</option>
                                     </select>
-                                    <!--
-                                    <select style="width:100%" class="form-control input-sm" multiple ref="filterRegion" >
-                                        <option v-for="r in proposal_regions" :value="r">{{r}}</option>
-                                    </select>
-                                    -->
                                 </div>
                             </div>
                             <div class="col-md-3">
@@ -112,7 +106,7 @@ export default {
             dasTemplateGroup: false,
             apiaryTemplateGroup: false,
             // Filters for Proposals
-            filterProposalRegion: 'All',
+            filterProposalRegion: [],
             filterProposalActivity: 'All',
             filterComplianceStatus: 'All',
             filterComplianceDueFrom: '',
@@ -175,6 +169,7 @@ export default {
                         d.region = vm.filterProposalRegion;
                         d.proposal_activity = vm.filterProposalActivity;
                         d.is_external = vm.is_external;
+                        d.regions = vm.filterProposalRegion.join();
                     }
 
                 },
@@ -347,15 +342,18 @@ export default {
         datatable
     },
     watch:{
-        filterProposalRegion: function() {
-            //this.$refs.proposal_datatable.vmDataTable.draw();
-            let vm = this;
-            if (vm.filterProposalRegion!= 'All') {
-                vm.$refs.proposal_datatable.vmDataTable.column('proposal__region__name:name').search(vm.filterProposalRegion).draw();
-            } else {
-                vm.$refs.proposal_datatable.vmDataTable.column('proposal__region__name:name').search('').draw();
-            }
+        filterProposalRegion: function(){
+            this.$refs.proposal_datatable.vmDataTable.draw();
         },
+        //filterProposalRegion: function() {
+        //    //this.$refs.proposal_datatable.vmDataTable.draw();
+        //    let vm = this;
+        //    if (vm.filterProposalRegion!= 'All') {
+        //        vm.$refs.proposal_datatable.vmDataTable.column('proposal__region__name:name').search(vm.filterProposalRegion).draw();
+        //    } else {
+        //        vm.$refs.proposal_datatable.vmDataTable.column('proposal__region__name:name').search('').draw();
+        //    }
+        //},
         filterProposalActivity: function() {
             let vm = this;
             if (vm.filterProposalActivity!= 'All') {
@@ -470,7 +468,8 @@ export default {
                 $(vm.$refs.filterRegion).select2({
                     "theme": "bootstrap",
                     allowClear: true,
-                    placeholder:"Select Region"
+                    placeholder: "Select Region",
+                    multiple: true,
                 }).
                 on("select2:select",function (e) {
                     var selected = $(e.currentTarget);
@@ -492,10 +491,10 @@ export default {
             vm.$refs.proposal_datatable.table.dataTableExt.afnFiltering.push(
                 function(settings,data,dataIndex,original){
                     let found = false;
-                    let filtered_regions = vm.filterProposalRegion.split(',');
-                    if (filtered_regions == 'All'){ return true; }
+                    let filtered_regions = vm.filterProposalRegion;
+                    if (filtered_regions.length == 0){ return true; }
 
-                    let regions = original.regions != '' && original.regions != null ? original.regions.split(','): [];
+                    let regions = original.region != '' && original.region != null ? original.region.split(','): [];
 
                     $.each(regions,(i,r) => {
                         if (filtered_regions.indexOf(r) != -1){
@@ -596,21 +595,15 @@ export default {
                     this.dasTemplateGroup = true;
                 }
                 console.log('templateGroup updated')
-                //this.applySelect2()
+                this.applySelect2()
         },err=>{
         console.log(err);
         });
     },
-    updated: function() {
-        this.$nextTick(() => {
-            //this.addEventListeners();
-            this.initialiseSearch();
-        });
-    },
-    mounted: async function(){
+    mounted: function(){
         console.log('in mounted')
         let vm = this;
-        await vm.fetchFilterLists();
+        vm.fetchFilterLists();
         vm.fetchProfile();
         $( 'a[data-toggle="collapse"]' ).on( 'click', function () {
             var chev = $( this ).children()[ 0 ];
@@ -623,6 +616,7 @@ export default {
             column.visible(false);
         }
         this.$nextTick(() => {
+            this.initialiseSearch();
             this.addEventListeners();
         });
     }

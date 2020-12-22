@@ -16,7 +16,7 @@
                                 <div class="form-group">
                                     <label for="">Region</label>
                                     <template v-show="select2Applied">
-                                        <select style="width:100%" class="form-control input-sm" multiple id="region_dropdown">
+                                        <select style="width:100%" class="form-control input-sm" id="region_dropdown">
                                             <option v-for="r in proposal_regions" :value="r">{{r}}</option>
                                         </select>
                                     </template>
@@ -526,7 +526,8 @@ export default {
                 target.select2({
                     "theme": "bootstrap",
                     allowClear: true,
-                    placeholder:"Select Region"
+                    placeholder: "Select Region",
+                    multiple: true,
                 }).
                 on("select2:select",function (e) {
                     var selected = $(e.currentTarget);
