@@ -11,31 +11,15 @@
                 </div>
                 <div class="panel-body collapse in" :id="pBody">
                     <div class="row">
-                        <!--div class="col-md-3">
-                            <div class="form-group">
-                                <label for="">Region</label>
-                                <select style="width:100%" class="form-control" multiple ref="filterRegion" >
-                                    <option v-for="r in proposal_regions" :value="r">{{r}}</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="form-group">
-                                <label for="">Activity</label>
-                                <select class="form-control" v-model="filterProposalActivity">
-                                    <option value="All">All</option>
-                                    <option v-for="a in proposal_activityTitles" :value="a">{{a}}</option>
-                                </select>
-                            </div>
-                        </div-->
-
                         <div v-if="!apiaryTemplateGroup">
                             <div class="col-md-3">
                                 <div class="form-group">
                                     <label for="">Region</label>
-                                    <select style="width:100%" class="form-control input-sm" multiple ref="filterRegion" >
-                                        <option v-for="r in proposal_regions" :value="r">{{r}}</option>
-                                    </select>
+                                    <template v-show="select2Applied">
+                                        <select style="width:100%" class="form-control input-sm" multiple id="region_dropdown">
+                                            <option v-for="r in proposal_regions" :value="r">{{r}}</option>
+                                        </select>
+                                    </template>
                                 </div>
                             </div>
                             <div class="col-md-3">
@@ -52,7 +36,7 @@
                             <div class="col-md-3">
                                 <div class="form-group">
                                     <label for="">Application Type</label>
-                                    <select class="form-control" v-model="filterProposalApplicationType" ref="filterApplicationType">
+                                    <select class="form-control" v-model="filterProposalApplicationType">
                                         <option value="All">All</option>
                                         <option v-for="a in proposal_applicationTypes" :value="a">{{a}}</option>
                                     </select>
@@ -353,28 +337,27 @@ export default {
         filterProposalActivity: function() {
             let vm = this;
             if (vm.filterProposalActivity!= 'All') {
-                vm.$refs.proposal_datatable.vmDataTable.columns(2).search(vm.filterProposalActivity).draw();
+                vm.$refs.proposal_datatable.vmDataTable.column('proposal__activity:name').search(vm.filterProposalActivity).draw();
             } else {
-                vm.$refs.proposal_datatable.vmDataTable.columns(2).search('').draw();
+                vm.$refs.proposal_datatable.vmDataTable.column('proposal__activity:name').search('').draw();
             }
         },
         filterProposalApplicationType: function() {
             let vm = this;
             if (vm.filterProposalApplicationType!= 'All') {
-                vm.$refs.proposal_datatable.vmDataTable.columns(3).search(vm.filterProposalApplicationType).draw();
+                vm.$refs.proposal_datatable.vmDataTable.column('proposal__activity:name').search(vm.filterProposalApplicationType).draw();
             } else {
-                vm.$refs.proposal_datatable.vmDataTable.columns(3).search('').draw();
+                vm.$refs.proposal_datatable.vmDataTable.column('proposal__activity:name').search('').draw();
             }
         },
         filterProposalStatus: function() {
             let vm = this;
             if (vm.filterProposalStatus!= 'All') {
-                vm.$refs.proposal_datatable.vmDataTable.columns(6).search(vm.filterProposalStatus).draw();
+                vm.$refs.proposal_datatable.vmDataTable.column('proposal__processing_status:name').search(vm.filterProposalStatus).draw();
             } else {
-                vm.$refs.proposal_datatable.vmDataTable.columns(6).search('').draw();
+                vm.$refs.proposal_datatable.vmDataTable.column('proposal__processing_status:name').search('').draw();
             }
         },
-
         filterProposalRegion: function(){
             this.$refs.proposal_datatable.vmDataTable.draw();
         },
@@ -382,12 +365,10 @@ export default {
             //this.$refs.proposal_datatable.vmDataTable.draw();
             let vm = this;
             if (vm.filterProposalSubmitter!= 'All') {
-                vm.$refs.proposal_datatable.vmDataTable.columns(4).search(vm.filterProposalSubmitter).draw();
+                vm.$refs.proposal_datatable.vmDataTable.column('proposal__submitter__email:name').search(vm.filterProposalSubmitter).draw();
             } else {
-                vm.$refs.proposal_datatable.vmDataTable.columns(4).search('').draw();
+                vm.$refs.proposal_datatable.vmDataTable.column('proposal__submitter__email:name').search('').draw();
             }
-
-
         },
         filterProposalLodgedFrom: function(){
             this.$refs.proposal_datatable.vmDataTable.draw();
@@ -423,11 +404,24 @@ export default {
             return title;
         },
         proposal_headers: function() {
+            let activity_or_application_type = 'Activity'
+            let proponent_or_applicant = 'Proponent'
             if (this.apiaryTemplateGroup) {
-                return ["Number","Region","Application Type",/*"Title",*/"Submitter","Applicant","Status","Lodged on","Action","Template Group"]
-            } else {
-                return ["Number","Region","Activity",/*"Title",*/"Submitter","Proponent","Status","Lodged on","Action","Template Group"]
+                activity_or_application_type = 'Application Type'
+                proponent_or_applicant = 'Applicant'
             }
+            return [
+                "Number",
+                "Region",
+                activity_or_application_type,
+                /*"Title",*/
+                "Submitter",
+                proponent_or_applicant,
+                "Status",
+                "Lodged on",
+                "Action",
+                "Template Group"
+            ]
         },
     },
     methods:{
@@ -476,22 +470,22 @@ export default {
                 var id = $(this).attr('data-discard-proposal');
                 vm.discardProposal(id);
             });
-            if (this.dasTemplateGroup) {
-                // Initialise select2 for region
-                $(vm.$refs.filterRegion).select2({
-                    "theme": "bootstrap",
-                    allowClear: true,
-                    placeholder:"Select Region"
-                }).
-                on("select2:select",function (e) {
-                    var selected = $(e.currentTarget);
-                    vm.filterProposalRegion = selected.val();
-                }).
-                on("select2:unselect",function (e) {
-                    var selected = $(e.currentTarget);
-                    vm.filterProposalRegion = selected.val();
-                });
-            }
+            //if (this.dasTemplateGroup) {
+            //    // Initialise select2 for region
+            //    $(vm.$refs.filterRegion).select2({
+            //        "theme": "bootstrap",
+            //        allowClear: true,
+            //        placeholder:"Select Region"
+            //    }).
+            //    on("select2:select",function (e) {
+            //        var selected = $(e.currentTarget);
+            //        vm.filterProposalRegion = selected.val();
+            //    }).
+            //    on("select2:unselect",function (e) {
+            //        var selected = $(e.currentTarget);
+            //        vm.filterProposalRegion = selected.val();
+            //    });
+            //}
         },
         initialiseSearch:function(){
             this.regionSearch();
@@ -526,7 +520,10 @@ export default {
 
             if (!vm.select2Applied){
                 console.log('select2 is being applied')
-                $(vm.$refs.filterRegion).select2({
+                //$(vm.$refs.filterRegion).select2({
+                let target = $('#region_dropdown')
+                console.log(target)
+                target.select2({
                     "theme": "bootstrap",
                     allowClear: true,
                     placeholder:"Select Region"
@@ -619,8 +616,8 @@ export default {
                     this.apiaryTemplateGroup = true;
                 } else {
                     this.dasTemplateGroup = true;
+                    this.applySelect2()
                 }
-                this.applySelect2()
         },err=>{
         console.log(err);
         });

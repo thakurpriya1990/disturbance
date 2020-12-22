@@ -17,10 +17,12 @@
                         <div v-if="!apiaryTemplateGroup">
                             <div class="col-md-3">
                                 <div class="form-group">
-                                    <label for="">Region</label>
-                                    <select style="width:100%" class="form-control input-sm" multiple ref="filterRegion" >
-                                        <option v-for="r in proposal_regions" :value="r">{{r}}</option>
-                                    </select>
+                                    <template v-show="select2Applied">
+                                        <label for="">Region</label>
+                                        <select style="width:100%" class="form-control input-sm" multiple ref="filterRegion" >
+                                            <option v-for="r in proposal_regions" :value="r">{{r}}</option>
+                                        </select>
+                                    </template>
                                 </div>
                             </div>
                         </div>
@@ -33,17 +35,6 @@
                                 </select>
                             </div>
                         </div>
-                        <!--div v-else>
-                            <div class="col-md-3">
-                                <div class="form-group">
-                                    <label for="">Application Type</label>
-                                    <select class="form-control" v-model="filterProposalApplicationType" ref="filterApplicationType">
-                                        <option value="All">All</option>
-                                        <option v-for="a in proposal_applicationTypes" :value="a">{{a}}</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div-->
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="">Status</label>
@@ -245,6 +236,7 @@ export default {
                         // 3. Activity/Application Type
                         data: "activity",
                         searchable: true,
+                        name: 'activity',
                     },
                     {
                         // 4. Submitter
@@ -370,34 +362,35 @@ export default {
         filterProposalActivity: function() {
             let vm = this;
             if (vm.filterProposalActivity!= 'All') {
-                vm.$refs.proposal_datatable.vmDataTable.columns(3).search(vm.filterProposalActivity).draw();
+                vm.$refs.proposal_datatable.vmDataTable.column('activity:name').search(vm.filterProposalActivity).draw();
             } else {
-                vm.$refs.proposal_datatable.vmDataTable.columns(3).search('').draw();
+                vm.$refs.proposal_datatable.vmDataTable.column('activity:name').search('').draw();
             }
         },
         filterProposalApplicationType: function() {
             let vm = this;
             if (vm.filterProposalApplicationType!= 'All') {
-                vm.$refs.proposal_datatable.vmDataTable.columns(3).search(vm.filterProposalApplicationType).draw();
+                vm.$refs.proposal_datatable.vmDataTable.column('activity:name').search(vm.filterProposalApplicationType).draw();
             } else {
-                vm.$refs.proposal_datatable.vmDataTable.columns(3).search('').draw();
+                vm.$refs.proposal_datatable.vmDataTable.column('activity:name').search('').draw();
             }
         },
         filterProposalSubmitter: function(){
             //this.$refs.proposal_datatable.vmDataTable.draw();
             let vm = this;
             if (vm.filterProposalSubmitter!= 'All') {
-                vm.$refs.proposal_datatable.vmDataTable.columns(5).search(vm.filterProposalSubmitter).draw();
+                vm.$refs.proposal_datatable.vmDataTable.column('submitter_column_name:name').search(vm.filterProposalSubmitter).draw();
+
             } else {
-                vm.$refs.proposal_datatable.vmDataTable.columns(5).search('').draw();
+                vm.$refs.proposal_datatable.vmDataTable.column('submitter_column_name:name').search('').draw();
             }
         },
         filterProposalStatus: function() {
             let vm = this;
             if (vm.filterProposalStatus!= 'All') {
-                vm.$refs.proposal_datatable.vmDataTable.columns(7).search(vm.filterProposalStatus).draw();
+                vm.$refs.proposal_datatable.vmDataTable.column('status:name').search(vm.filterProposalStatus).draw();
             } else {
-                vm.$refs.proposal_datatable.vmDataTable.columns(7).search('').draw();
+                vm.$refs.proposal_datatable.vmDataTable.column('status:name').search('').draw();
             }
         },
         filterProposalLodgedFrom: function(){
@@ -551,10 +544,10 @@ export default {
                 var id = $(this).attr('data-discard-proposal');
                 vm.discardProposal(id);
             });
-            if (this.dasTemplateGroup) {
-                this.applySelect2()
-                // Initialise select2 for region
-            }
+            //if (this.dasTemplateGroup) {
+            //    this.applySelect2()
+            //    // Initialise select2 for region
+            //}
         },
         applySelect2: function(){
             let vm = this
@@ -731,9 +724,9 @@ export default {
                     this.apiaryTemplateGroup = true;
                 } else {
                     this.dasTemplateGroup = true;
+                    this.applySelect2()
                 }
                 console.log('templateGroup updated')
-                this.applySelect2()
                 this.is_das_admin = res.body.is_das_admin
                 this.is_apiary_admin = res.body.is_apiary_admin
                 this.is_das_apiary_admin = res.body.is_das_apiary_admin

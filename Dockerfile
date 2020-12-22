@@ -34,8 +34,10 @@ ENV SYSTEM_NAME="Disturbance Assessment System"
 ENV APIARY_SYSTEM_NAME="Apiary System"
 ENV PAYMENT_OFFICERS_GROUP="Apiary Payments Officers"
 
-RUN apt-get clean && apt-get update && apt-get upgrade -y
-RUN apt-get install --no-install-recommends -y \
+RUN apt-get clean && \
+apt-get update && \
+apt-get upgrade -y && \
+apt-get install --no-install-recommends -y \
 wget \
 git \
 libmagic-dev \
@@ -49,7 +51,7 @@ tzdata \
 cron \
 rsyslog \
 gunicorn \
-libreoffice
+libreoffice \
 libpq-dev \
 patch \
 postgresql-client \
@@ -61,10 +63,13 @@ python3-gevent \
 software-properties-common \
 imagemagick
 
-RUN add-apt-repository ppa:deadsnakes/ppa && apt-get update && apt-get install --no-install-recommends -y python3.7 python3.7-dev
-RUN ln -s /usr/bin/python3.7 /usr/bin/python && ln -s /usr/bin/pip3 /usr/bin/pip
-#RUN pip install --upgrade pip
-RUN python3.7 -m pip install --upgrade pip && apt-get install -yq vim
+RUN add-apt-repository ppa:deadsnakes/ppa && \
+apt-get update && \
+apt-get install --no-install-recommends -y python3.7 python3.7-dev && \
+ln -s /usr/bin/python3.7 /usr/bin/python && \
+ln -s /usr/bin/pip3 /usr/bin/pip && \
+python3.7 -m pip install --upgrade pip && \
+apt-get install -yq vim
 
 # Install Python libs from requirements.txt.
 FROM builder_base_cols as python_libs_cols
@@ -77,18 +82,23 @@ RUN python3.7 -m pip install --no-cache-dir -r requirements.txt \
   && rm -rf /var/lib/{apt,dpkg,cache,log}/ /tmp/* /var/tmp/*
 
 COPY libgeos.py.patch /app/
-RUN patch /usr/local/lib/python3.7/dist-packages/django/contrib/gis/geos/libgeos.py /app/libgeos.py.patch && rm /app/libgeos.py.patch
+RUN patch /usr/local/lib/python3.7/dist-packages/django/contrib/gis/geos/libgeos.py /app/libgeos.py.patch && \
+rm /app/libgeos.py.patch
 
 # Install the project (ensure that frontend projects have been built prior to this step).
 FROM python_libs_cols
 COPY gunicorn.ini manage_ds.py ./
 #COPY timezone /etc/timezone
-RUN echo "Australia/Perth" > /etc/timezone
 ENV TZ=Australia/Perth
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone && touch /app/.env
+RUN echo "Australia/Perth" > /etc/timezone && \
+ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
+echo $TZ > /etc/timezone && \
+touch /app/.env
 COPY .git ./.git
 COPY disturbance ./disturbance
-RUN python manage_ds.py collectstatic --noinput && mkdir /app/tmp/ && chmod 777 /app/tmp/
+RUN python manage_ds.py collectstatic --noinput && \
+mkdir /app/tmp/ && \
+chmod 777 /app/tmp/
 
 COPY cron /etc/cron.d/dockercron
 COPY startup.sh /
