@@ -296,7 +296,10 @@ export default {
                         name: "applicant__organisation__name", // will be use like: Approval.objects.all().order_by('applicant__organisation__nane')
                         searchable: true,
                     },
-                    {data: "status"},
+                    {
+                        data: "status",
+                        name: 'status',
+                    },
                     {
                         data: "start_date",
                         mRender:function (data,type,full) {
@@ -474,17 +477,17 @@ export default {
             //this.$refs.proposal_datatable.vmDataTable.draw();
             let vm = this;
             if (vm.filterProposalRegion!= 'All') {
-                vm.$refs.proposal_datatable.vmDataTable.columns(1).search(vm.filterProposalRegion).draw();
+                vm.$refs.proposal_datatable.vmDataTable.column('current_proposal__region__name:name').search(vm.filterProposalRegion).draw();
             } else {
-                vm.$refs.proposal_datatable.vmDataTable.columns(1).search('').draw();
+                vm.$refs.proposal_datatable.vmDataTable.column('current_proposal__region__name:name').search('').draw();
             }
         },
         filterProposalActivity: function() {
             let vm = this;
             if (vm.filterProposalActivity!= 'All') {
-                vm.$refs.proposal_datatable.vmDataTable.columns(2).search(vm.filterProposalActivity).draw();
+                vm.$refs.proposal_datatable.vmDataTable.column('current_proposal__activity:name').search(vm.filterProposalActivity).draw();
             } else {
-                vm.$refs.proposal_datatable.vmDataTable.columns(2).search('').draw();
+                vm.$refs.proposal_datatable.vmDataTable.column('current_proposal__activity:name').search('').draw();
             }
         },
         filterProposalSubmitter: function(){
@@ -495,14 +498,13 @@ export default {
             } else {
                 vm.$refs.proposal_datatable.vmDataTable.columns(4).search('').draw();
             }
-
         },
         filterProposalStatus: function() {
             let vm = this;
             if (vm.filterProposalStatus!= 'All') {
-                vm.$refs.proposal_datatable.vmDataTable.columns(5).search(vm.filterProposalStatus).draw();
+                vm.$refs.proposal_datatable.vmDataTable.column('status:name').search(vm.filterProposalStatus).draw();
             } else {
-                vm.$refs.proposal_datatable.vmDataTable.columns(5).search('').draw();
+                vm.$refs.proposal_datatable.vmDataTable.column('status:name').search('').draw();
             }
         },
         filterProposalLodgedFrom: function(){
