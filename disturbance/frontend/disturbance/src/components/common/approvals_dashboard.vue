@@ -415,10 +415,11 @@ export default {
                 initComplete: function() {
                     // set column visibility and headers according to template group
                     // region
-                    let regionColumn = vm.$refs.proposal_datatable.vmDataTable.columns(1);
-                    let activityColumn = vm.$refs.proposal_datatable.vmDataTable.columns(2);
+                    let regionColumn = vm.$refs.proposal_datatable.vmDataTable.column('current_proposal__region__name:name');
+                    let activityColumn = vm.$refs.proposal_datatable.vmDataTable.column('current_proposal__activity:name');
                     let titleColumn = vm.$refs.proposal_datatable.vmDataTable.column('current_proposal__title:name');
                     if (vm.dasTemplateGroup) {
+                        console.log('initComplete aho')
                         regionColumn.visible(true);
                         activityColumn.visible(true);
                         titleColumn.visible(true)
@@ -990,7 +991,7 @@ export default {
                     this.dasTemplateGroup = true;
                 }
                 this.setDashboardText();
-                //this.applySelect2()
+                this.templateGroupDetermined = true;
         },err=>{
         console.log(err);
         });

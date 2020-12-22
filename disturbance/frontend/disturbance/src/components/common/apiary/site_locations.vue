@@ -72,7 +72,7 @@
         </template>
 
         <div class="row col-sm-12">
-            <datatable ref="site_locations_table" id="site-locations-table" :dtOptions="dtOptions" :dtHeaders="dtHeaders" />
+            <datatable @hook:mounted="datatable_mounted" ref="site_locations_table" id="site-locations-table" :dtOptions="dtOptions" :dtHeaders="dtHeaders" />
             <span class="view_all_button action_link" @click="displayAllFeatures">View All Proposed Sites On Map</span>
         </div>
 
@@ -515,8 +515,9 @@
             },
             existing_sites_loaded: function() {
                 if (this.existing_sites_loaded){
-                    this.load_apiary_sites_in_this_proposal()
-                    this.displayAllFeatures()
+                    //this.load_apiary_sites_in_this_proposal()
+                    //this.displayAllFeatures()
+                    //this.constructSiteLocationsTable();
                 }
             },
             total_num_of_sites_on_map_unpaid: function() {
@@ -567,6 +568,9 @@
             }
         },
         methods:{
+            datatable_mounted: function(){
+                this.constructSiteLocationsTable();
+            },
             load_apiary_sites_in_this_proposal: function(){
                 // Load the apiary sites in this proposal on the map
                 let vm = this
@@ -805,7 +809,7 @@
             },
             constructSiteLocationsTable: function(){
                 console.log('in constructSiteLocationsTable')
-                if (this.drawingLayerSource){
+                if (this.drawingLayerSource && this.$refs.site_locations_table){
                     // Clear table
                     this.$refs.site_locations_table.vmDataTable.clear().draw();
 
@@ -1204,6 +1208,8 @@
             },
         },
         created: function() {
+            this.load_apiary_sites_in_this_proposal()
+            this.displayAllFeatures()
             let vm = this
             this.$http.get('/api/apiary_site/list_existing/?proposal_id=' + this.proposal.id)
             .then(
