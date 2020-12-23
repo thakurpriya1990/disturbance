@@ -2190,7 +2190,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             }, partial=True)
             serializer.is_valid(raise_exception=True)
             self.perform_update(serializer)
-            if instance.proposal_apiary and instance.proposal_apiary.apiary_sites.count():
+            if hasattr(instance, 'proposal_apiary') and instance.proposal_apiary and instance.proposal_apiary.apiary_sites.count():
                 for apiary_site in instance.proposal_apiary.apiary_sites.all():
                     if apiary_site.can_be_deleted_from_the_system:
                         # Apiary sites can be actually deleted from the system
