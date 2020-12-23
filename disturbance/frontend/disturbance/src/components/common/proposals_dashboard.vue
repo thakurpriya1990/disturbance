@@ -1,7 +1,7 @@
 <template id="proposal_dashboard">
     <div class="row">
         <template v-if="is_local">
-            proposal_external.vue
+            proposals_dashboard.vue
         </template>
         <div class="col-sm-12">
             <div class="panel panel-default">
@@ -298,9 +298,6 @@ export default {
                             let links = '';
                             if (full.fee_paid) {
                                 links +=  `<a href='/payments/invoice-pdf/${full.fee_invoice_reference}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i></a> &nbsp`;
-                                if (!full.apiary_group_application_type) {
-                                    links +=  `<a href='/payments/confirmation-pdf/${full.fee_invoice_reference}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i></a><br/>`;
-                                }
                                 if (!vm.is_external){
                                     links +=  `<a href='/ledger/payments/invoice/payment?invoice=${full.fee_invoice_reference}' target='_blank'>View Payment</a><br/>`;
                                 }
