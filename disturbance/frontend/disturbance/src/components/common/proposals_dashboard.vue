@@ -246,7 +246,7 @@ export default {
                         },
                         'createdCell': helpers.dtPopoverCellFn,
                         visible: false,
-                        name: 'title_column',
+                        name: 'title',
                     },
                     {
                         // 4. Submitter
@@ -339,7 +339,7 @@ export default {
                 processing: true,
                 initComplete: function() {
                     let regionColumn = vm.$refs.proposal_datatable.vmDataTable.column('region__name:name');
-                    let titleColumn = vm.$refs.proposal_datatable.vmDataTable.column('title_column:name');
+                    let titleColumn = vm.$refs.proposal_datatable.vmDataTable.column('title:name');
                     if (vm.dasTemplateGroup) {
                         regionColumn.visible(true);
                         titleColumn.visible(true);
