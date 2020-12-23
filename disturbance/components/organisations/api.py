@@ -577,7 +577,8 @@ class OrganisationRequestsViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if is_internal(self.request):
-            return OrganisationRequest.objects.all()
+            qs = OrganisationRequest.objects.all().order_by('-lodgement_date')
+            return qs
         elif is_customer(self.request):
             return user.organisationrequest_set.all()
         return OrganisationRequest.objects.none()
