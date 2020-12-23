@@ -422,7 +422,7 @@ class Proposal(RevisionedMixin):
 
     @property
     def fee_paid(self):
-        if self.apiary_group_application_type:
+        if not self.apiary_group_application_type:
             return False
         else:
             return True if self.fee_invoice_reference or self.proposal_type == 'amendment' else False
