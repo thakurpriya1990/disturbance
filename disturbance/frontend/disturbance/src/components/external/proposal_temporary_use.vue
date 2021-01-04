@@ -38,7 +38,7 @@
     import uuid from 'uuid'
     import { api_endpoints, helpers } from '@/utils/hooks'
     import SectionsProposalTemporaryUse from '@/components/common/apiary/sections_proposal_temporary_use.vue'
-    
+
     export default {
         name: 'ExternalProposalTemporaryUse',
         props: {
@@ -78,7 +78,7 @@
                 }
                 return retVal;
             },
-    
+
         },
         created: function() {
             if (this.$route.params.proposal_id) {
@@ -127,8 +127,9 @@
             },
             exit: function() {
                 console.log('in exit()');
-                //this.$router.push({ name: 'external-proposals-dash' });
-                this.$router.push({ name: 'external-approval', params: {approval_id: this.apiary_temporary_use.loaning_approval_id }})
+                this.$router.push({
+                    name: 'external-proposals-dash'
+                });
             },
             _get_basic_data: function(){
                 let data = {

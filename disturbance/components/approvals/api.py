@@ -44,7 +44,7 @@ from disturbance.components.approvals.serializers import (
     ApprovalDocumentHistorySerializer,
 )
 from disturbance.components.main.decorators import basic_exception_handler
-from disturbance.components.proposals.models import ApiarySite, OnSiteInformation
+from disturbance.components.proposals.models import ApiarySite, OnSiteInformation, Proposal
 from disturbance.components.proposals.serializers_apiary import (
         OnSiteInformationSerializer,
         ProposalApiaryTemporaryUseSerializer,
@@ -372,6 +372,7 @@ class ApprovalViewSet(viewsets.ModelViewSet):
     def temporary_use(self, request, *args, **kwargs):
         instance = self.get_object()
         qs = instance.proposalapiarytemporaryuse_set
+        qs = qs.exclude(proposal__processing_status=Proposal.PROCESSING_STATUS_DISCARDED)
         serializer = ProposalApiaryTemporaryUseSerializer(qs, many=True)
         return Response(serializer.data)
 
