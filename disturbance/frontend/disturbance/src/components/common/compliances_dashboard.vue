@@ -403,7 +403,7 @@ export default {
             }
             return [
                 "Number",           // 1
-                "Region/District",  // 2
+                "Region",  // 2
                 "Activity",         // 3
                 "Title",            // 4
                 approval_or_licence,// 5
