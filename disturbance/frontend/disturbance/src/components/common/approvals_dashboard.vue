@@ -335,6 +335,7 @@ export default {
                         },
                         name: 'licence_document__name',
                         searchable: false,
+                        visible: false,
                     },
                     {
                         data: '',
@@ -418,11 +419,16 @@ export default {
                     let regionColumn = vm.$refs.proposal_datatable.vmDataTable.column('current_proposal__region__name:name');
                     let activityColumn = vm.$refs.proposal_datatable.vmDataTable.column('current_proposal__activity:name');
                     let titleColumn = vm.$refs.proposal_datatable.vmDataTable.column('current_proposal__title:name');
+                    let approvalColumn = vm.$refs.proposal_datatable.vmDataTable.column('licence_document__name:name');
                     if (vm.dasTemplateGroup) {
-                        console.log('initComplete aho')
                         regionColumn.visible(true);
                         activityColumn.visible(true);
                         titleColumn.visible(true)
+                        if (!vm.is_external){
+                            approvalColumn.visible(true)
+                        }
+                    } else {
+                        approvalColumn.visible(true)
                     }
                 },
 
