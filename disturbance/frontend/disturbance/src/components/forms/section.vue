@@ -33,6 +33,9 @@ export default {
         vm.$nextTick(()=>{
             if (!vm.eventInitialised){
                 $('.panelClicker[data-toggle="collapse"]').on('click',function () {
+
+                    console.log('clicked');
+
                     var chev = $(this).children()[0];
                     window.setTimeout(function () {
                         $(chev).toggleClass("glyphicon-chevron-down glyphicon-chevron-up");

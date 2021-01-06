@@ -121,7 +121,11 @@ export default {
             requirements: {
                 type: Array,
                 required: true
-            }
+            },
+            sitetransfer_approval_id:{
+                type:Number,
+                required: false
+            },
     },
     data:function () {
         let vm = this;
@@ -133,7 +137,8 @@ export default {
                 standard: true,
                 recurrence: false,
                 recurrence_pattern: '1',
-                proposal: vm.proposal_id
+                proposal: vm.proposal_id,
+                sitetransfer_approval: vm.sitetransfer_approval_id,
             },
             addingRequirement: false,
             updatingRequirement: false,

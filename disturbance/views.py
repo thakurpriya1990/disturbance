@@ -1,3 +1,6 @@
+import json
+
+from django.contrib.gis.geos import GEOSGeometry
 from django.http import Http404, HttpResponse, JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, get_object_or_404, redirect
@@ -9,12 +12,20 @@ from django.contrib.auth.mixins import UserPassesTestMixin, LoginRequiredMixin
 
 from datetime import datetime, timedelta
 
-from disturbance.helpers import is_internal
+from rest_framework.decorators import api_view, renderer_classes
+from rest_framework.renderers import JSONRenderer
+
+from disturbance.components.main.decorators import timeit
+from disturbance.components.main.serializers import WaCoastSerializer, WaCoastOptimisedSerializer
+from disturbance.components.main.utils import get_feature_in_wa_coastline_smoothed, get_feature_in_wa_coastline_original
+from disturbance.helpers import is_internal, is_disturbance_admin, is_apiary_admin, is_das_apiary_admin
 from disturbance.forms import *
 from disturbance.components.proposals.models import Referral, Proposal, HelpPage
 from disturbance.components.compliances.models import Compliance
 from disturbance.components.proposals.mixins import ReferralOwnerMixin
 from django.core.management import call_command
+from rest_framework.response import Response
+from rest_framework import serializers, views, status
 
 
 class InternalView(UserPassesTestMixin, TemplateView):
@@ -27,7 +38,10 @@ class InternalView(UserPassesTestMixin, TemplateView):
         context = super(InternalView, self).get_context_data(**kwargs)
         context['dev'] = settings.DEV_STATIC
         context['dev_url'] = settings.DEV_STATIC_URL
+        if hasattr(settings, 'DEV_APP_BUILD_URL') and settings.DEV_APP_BUILD_URL:
+            context['app_build_url'] = settings.DEV_APP_BUILD_URL
         return context
+
 
 class ExternalView(LoginRequiredMixin, TemplateView):
     template_name = 'disturbance/dash/index.html'
@@ -36,6 +50,8 @@ class ExternalView(LoginRequiredMixin, TemplateView):
         context = super(ExternalView, self).get_context_data(**kwargs)
         context['dev'] = settings.DEV_STATIC
         context['dev_url'] = settings.DEV_STATIC_URL
+        if hasattr(settings, 'DEV_APP_BUILD_URL') and settings.DEV_APP_BUILD_URL:
+            context['app_build_url'] = settings.DEV_APP_BUILD_URL
         return context
 
 class ReferralView(ReferralOwnerMixin, DetailView):
@@ -143,10 +159,43 @@ class ManagementCommandsView(LoginRequiredMixin, TemplateView):
         data = {}
         command_script = request.POST.get('script', None)
         if command_script:
-            print 'running {}'.format(command_script)
+            print('running {}'.format(command_script))
             call_command(command_script)
             data.update({command_script: 'true'})
 
         return render(request, self.template_name, data)
 
 
+class TemplateGroupView(views.APIView):
+
+    def get(self, request, format=None):
+        return Response({
+            'template_group': settings.DOMAIN_DETECTED,
+            'is_das_admin': True if is_disturbance_admin(request) else False,
+            'is_apiary_admin': True if is_apiary_admin(request) else False,
+            'is_das_apiary_admin': True if is_das_apiary_admin(request) else False,
+        })
+
+
+@timeit
+@api_view(('GET',))
+@renderer_classes((JSONRenderer,))
+def gisdata(request):
+    layer = request.GET.get('layer', None)
+    lat = request.GET.get('lat', None)
+    lng = request.GET.get('lng', None)
+    include_feature = request.GET.get('include_feature', False)  # feature(polygon) data could be large
+
+    geom_str = GEOSGeometry('POINT(' + lng + ' ' + lat + ')', srid=4326)
+
+    if layer == 'wa_coast_smoothed':
+        feature = get_feature_in_wa_coastline_smoothed(geom_str)
+    elif layer == 'wa_coast_original':
+        feature = get_feature_in_wa_coastline_original(geom_str)
+
+    if include_feature:
+        serializer = WaCoastSerializer(feature)
+    else:
+        serializer = WaCoastOptimisedSerializer(feature)
+
+    return Response(serializer.data)

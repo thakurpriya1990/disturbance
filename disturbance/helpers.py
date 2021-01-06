@@ -1,8 +1,9 @@
 from __future__ import unicode_literals
 from ledger.accounts.models import EmailUser
 from django.conf import settings
-from ledger.accounts.utils import in_dbca_domain
 
+import logging
+logger = logging.getLogger(__name__)
 
 def belongs_to(user, group_name):
     """
@@ -22,10 +23,33 @@ def is_email_auth_backend(request):
     return 'EmailAuth' in request.session.get('_auth_user_backend')
 
 def is_disturbance_admin(request):
-    return request.user.is_authenticated() and is_model_backend(request) and in_dbca_domain(request.user) and (belongs_to(request.user, 'Disturbance Admin'))
+  #  #logger.info('settings.ADMIN_GROUP: {}'.format(settings.ADMIN_GROUP))
+    return request.user.is_authenticated() and is_model_backend(request) and in_dbca_domain(request) and (belongs_to(request.user, settings.ADMIN_GROUP))
+
+def is_apiary_admin(request):
+  #  #logger.info('settings.ADMIN_GROUP: {}'.format(settings.ADMIN_GROUP))
+    return request.user.is_authenticated() and is_model_backend(request) and in_dbca_domain(request) and (belongs_to(request.user, settings.APIARY_ADMIN_GROUP))
+
+def is_das_apiary_admin(request):
+  #  #logger.info('settings.ADMIN_GROUP: {}'.format(settings.ADMIN_GROUP))
+    return request.user.is_authenticated() and is_model_backend(request) and in_dbca_domain(request) and (belongs_to(request.user, settings.DAS_APIARY_ADMIN_GROUP))
+
+def in_dbca_domain(request):
+    user = request.user
+    domain = user.email.split('@')[1]
+    if domain in settings.DEPT_DOMAINS:
+        if not user.is_staff:
+            # hack to reset department user to is_staff==True, if the user logged in externally (external departmentUser login defaults to is_staff=False)
+            user.is_staff = True
+            user.save()
+        return True
+    return False
+
+def is_in_organisation_contacts(request, organisation):
+    return request.user.email in organisation.contacts.all().values_list('email', flat=True)
 
 def is_departmentUser(request):
-    return request.user.is_authenticated() and is_model_backend(request) and in_dbca_domain(request.user)
+    return request.user.is_authenticated() and is_model_backend(request) and in_dbca_domain(request)
 
 def is_customer(request):
     return request.user.is_authenticated() and is_email_auth_backend(request)
@@ -35,3 +59,4 @@ def is_internal(request):
 
 def get_all_officers():
     return EmailUser.objects.filter(groups__name='Disturbance Admin')
+

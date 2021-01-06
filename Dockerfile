@@ -1,13 +1,23 @@
 # Prepare the base environment.
-FROM ubuntu:18.04 as builder_base_das
+# Based on the Dockerfile: https://github.com/dbca-wa/commercialoperator/blob/cols_fe_py3/Dockerfile
+FROM ubuntu:20.04 as builder_base_cols
 MAINTAINER asi@dbca.wa.gov.au
 ENV DEBIAN_FRONTEND=noninteractive
 ENV DEBUG=True
 ENV TZ=Australia/Perth
 ENV EMAIL_HOST="smtp.corporateict.domain"
 ENV DEFAULT_FROM_EMAIL='no-reply@dbca.wa.gov.au'
-ENV NOTIFICATION_EMAIL='jawaid.mushtaq@dbca.wa.gov.au'
-ENV NON_PROD_EMAIL='brendan.blackford@dbca.wa.gov.au, walter.genuit@dbca.wa.gov.au, katsufumi.shibata@dbca.wa.gov.au, mohammed.ahmed@dbca.wa.gov.au, test_licensing@dpaw.wa.gov.au, jawaid.mushtaq@dbca.wa.gov.au'
+#ENV NOTIFICATION_EMAIL='jawaid.mushtaq@dbca.wa.gov.au'
+#ENV NON_PROD_EMAIL='brendan.blackford@dbca.wa.gov.au, walter.genuit@dbca.wa.gov.au, katsufumi.shibata@dbca.wa.gov.au, mohammed.ahmed@dbca.wa.gov.au, test_licensing@dpaw.wa.gov.au, jawaid.mushtaq@dbca.wa.gov.au'
+#ENV PRODUCTION_EMAIL=False
+#ENV EMAIL_INSTANCE='DEV'
+#ENV SECRET_KEY="ThisisNotRealKey"
+#ENV SITE_PREFIX='cols'
+#ENV SITE_DOMAIN='dbca.wa.gov.au'
+#ENV OSCAR_SHOP_NAME='Parks & Wildlife'
+#ENV BPAY_ALLOWED=False
+ENV NOTIFICATION_EMAIL='brendan.blackford@dbca.wa.gov.au'
+ENV NON_PROD_EMAIL='brendan.blackford@dbca.wa.gov.au, walter.genuit@dbca.wa.gov.au, katsufumi.shibata@dbca.wa.gov.au,test_licensing@dpaw.wa.gov.au,jawaid.mushtaq@dbca.wa.gov.au,kelly.thomas@dbca.wa.gov.au,matthew.king@dbca.wa.gov.au,ashlee.russell@dbca.wa.gov.au,aaron.farr@dbca.wa.gov.au'
 ENV PRODUCTION_EMAIL=False
 ENV EMAIL_INSTANCE='DEV'
 ENV SECRET_KEY="ThisisNotRealKey"
@@ -15,57 +25,93 @@ ENV SITE_PREFIX='das-apiary'
 ENV SITE_DOMAIN='dbca.wa.gov.au'
 ENV OSCAR_SHOP_NAME='Parks & Wildlife'
 ENV BPAY_ALLOWED=False
-RUN apt-get clean \
-  && apt-get update --fix-missing \
-  && apt-get upgrade -y \
-  && apt-get install -yq git mercurial gcc gdal-bin libsasl2-dev libpq-dev \
-  python python-setuptools python-dev python-pip \
-  imagemagick poppler-utils \
-  libldap2-dev libssl-dev wget build-essential \
-  libmagic-dev binutils libproj-dev gunicorn tzdata \
-  postgresql-client mtr \
-  cron rsyslog iproute2
-RUN pip install --upgrade pip
-RUN apt-get install -yq vim
+ENV APIARY_SUPPORT_EMAIL="apiary@dbca.wa.gov.au"
+ENV SUPPORT_EMAIL="das@dbca.wa.gov.au"
+ENV SYSTEM_NAME_SHORT="apiary"
+ENV SITE_DOMAIN="localhost"
+ENV APIARY_URL=[u'apiary-uat-internal.dbca.wa.gov.au',u'apiary-uat.dbca.wa.gov.au',u'localhost:8071']
+ENV SYSTEM_NAME="Disturbance Assessment System"
+ENV APIARY_SYSTEM_NAME="Apiary System"
+ENV PAYMENT_OFFICERS_GROUP="Apiary Payments Officers"
+
+RUN apt-get clean && \
+apt-get update && \
+apt-get upgrade -y && \
+apt-get install --no-install-recommends -y \
+wget \
+git \
+libmagic-dev \
+gcc \
+binutils \
+libproj-dev \
+gdal-bin \
+python3-setuptools \
+python3-pip \
+tzdata \
+cron \
+rsyslog \
+gunicorn \
+libreoffice \
+libpq-dev \
+patch \
+postgresql-client \
+mtr \
+htop \
+vim \
+ssh \
+python3-gevent \
+software-properties-common \
+imagemagick
+
+RUN add-apt-repository ppa:deadsnakes/ppa && \
+apt-get update && \
+apt-get install --no-install-recommends -y python3.7 python3.7-dev && \
+ln -s /usr/bin/python3.7 /usr/bin/python && \
+ln -s /usr/bin/pip3 /usr/bin/pip && \
+python3.7 -m pip install --upgrade pip && \
+apt-get install -yq vim
 
 # Install Python libs from requirements.txt.
-FROM builder_base_das as python_libs_das
+FROM builder_base_cols as python_libs_cols
 WORKDIR /app
 COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt \
+RUN python3.7 -m pip install --no-cache-dir -r requirements.txt \
   # Update the Django <1.11 bug in django/contrib/gis/geos/libgeos.py
   # Reference: https://stackoverflow.com/questions/18643998/geodjango-geosexception-error
-  && sed -i -e "s/ver = geos_version().decode()/ver = geos_version().decode().split(' ')[0]/" /usr/local/lib/python2.7/dist-packages/django/contrib/gis/geos/libgeos.py \
+  # && sed -i -e "s/ver = geos_version().decode()/ver = geos_version().decode().split(' ')[0]/" /usr/local/lib/python2.7/dist-packages/django/contrib/gis/geos/libgeos.py \
   && rm -rf /var/lib/{apt,dpkg,cache,log}/ /tmp/* /var/tmp/*
 
+COPY libgeos.py.patch /app/
+RUN patch /usr/local/lib/python3.7/dist-packages/django/contrib/gis/geos/libgeos.py /app/libgeos.py.patch && \
+rm /app/libgeos.py.patch
 
 # Install the project (ensure that frontend projects have been built prior to this step).
-FROM python_libs_das
+FROM python_libs_cols
 COPY gunicorn.ini manage_ds.py ./
-COPY timezone /etc/timezone
+#COPY timezone /etc/timezone
 ENV TZ=Australia/Perth
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
-RUN touch /app/.env
+RUN echo "Australia/Perth" > /etc/timezone && \
+ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
+echo $TZ > /etc/timezone && \
+touch /app/.env
 COPY .git ./.git
-#COPY ledger ./ledger
 COPY disturbance ./disturbance
-RUN python manage_ds.py collectstatic --noinput
-
-RUN mkdir /app/tmp/
-RUN chmod 777 /app/tmp/
+RUN python manage_ds.py collectstatic --noinput && \
+mkdir /app/tmp/ && \
+chmod 777 /app/tmp/
 
 COPY cron /etc/cron.d/dockercron
 COPY startup.sh /
 # Cron start
-RUN service rsyslog start
-RUN chmod 0644 /etc/cron.d/dockercron
-RUN crontab /etc/cron.d/dockercron
-RUN touch /var/log/cron.log
-RUN service cron start
-RUN chmod 755 /startup.sh
+RUN service rsyslog start && \
+chmod 0644 /etc/cron.d/dockercron && \
+crontab /etc/cron.d/dockercron && \
+touch /var/log/cron.log && \
+service cron start && \
+chmod 755 /startup.sh
 # cron end
 
 EXPOSE 8080
 HEALTHCHECK --interval=1m --timeout=5s --start-period=10s --retries=3 CMD ["wget", "-q", "-O", "-", "http://localhost:8080/"]
 CMD ["/startup.sh"]
-#CMD ["gunicorn", "disturbance.wsgi", "--bind", ":8080", "--config", "gunicorn.ini"]
+#CMD ["gunicorn", "commercialoperator.wsgi", "--bind", ":8080", "--config", "gunicorn.ini"]

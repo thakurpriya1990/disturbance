@@ -1,4 +1,10 @@
 module.exports = {
+    is_local: function(){
+        if(location.host === 'localhost:8071'){
+            return true
+        }
+        return false
+    },
   apiError: function ( resp ) {
     var error_str = '';
     if ( resp.status === 400 ) {
@@ -83,6 +89,10 @@ module.exports = {
         } );
     } );
   },
+  add_endpoint_join: function ( api_string, addition ) {
+    // assumes api_string has trailing forward slash "/" character required for POST
+    return api_string + addition;
+  },
   add_endpoint_json: function ( string, addition ) {
     var res = string.split( ".json" )
     return res[ 0 ] + '/' + addition + '.json';
@@ -117,5 +127,40 @@ module.exports = {
                 e.preventDefault();
                 return true;
             });
-    } 
+    }, 
+    guid: function(){
+      function s4(){
+        return Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1);
+      }
+      return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
+    },
+    processError: async function(err){
+        console.log(err)
+        let errorText = '';
+        if (err.body.non_field_errors) {
+            console.log('non_field_errors')
+            // When non field errors raised
+            for (let i=0; i<err.body.non_field_errors.length; i++){
+                errorText += err.body.non_field_errors[i] + '<br />';
+            }
+        } else if(Array.isArray(err.body)) {
+            console.log('isArray')
+            // When serializers.ValidationError raised
+            for (let i=0; i<err.body.length; i++){
+                errorText += err.body[i] + '<br />';
+            }
+        } else {
+            console.log('else')
+            // When field errors raised
+            for (let field_name in err.body){
+                if (err.body.hasOwnProperty(field_name)){
+                    errorText += field_name + ':<br />';
+                    for (let j=0; j<err.body[field_name].length; j++){
+                        errorText += err.body[field_name][j] + '<br />';
+                    }
+                }
+            }
+        }
+        await swal("Error", errorText, "error");
+    },
 };

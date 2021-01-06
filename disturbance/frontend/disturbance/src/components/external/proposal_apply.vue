@@ -16,6 +16,13 @@
 
                             <div class="col-sm-12">
                                 <div class="form-group" v-if="!isLoading">
+                                    <template v-if="apiaryTemplateGroup">
+                                        <div class="radio">
+                                            <label>
+                                              <input type="radio" name="behalf_of_individual" v-model="behalf_of" value="individual"> On behalf of yourself
+                                            </label>
+                                        </div>
+                                    </template>
                                     <div v-if="profile.disturbance_organisations.length > 0">
                                         <div v-for="org in profile.disturbance_organisations" class="radio">
                                             <label>
@@ -30,7 +37,7 @@
                                         </div>
                                         -->
                                     </div>
-                                    <div v-else>
+                                    <div v-else-if="behalf_of !== 'individual' && dasTemplateGroup">
                                         <p style="color:red"> You cannot add a New Disturbance because you do not have an associated Organisation. First add an Organisation. </p>
                                     </div>
                                 </div>
@@ -80,12 +87,12 @@
                         </div>
                         <div class="panel-body collapse in" :id="pBody2">
                             <div>
-                                <label for="" class="control-label" >Proposal Type * <a :href="proposal_type_help_url" target="_blank"><i class="fa fa-question-circle" style="color:blue">&nbsp;</i></a></label>
+                                <label for="" class="control-label" >{{ objectTypeLabel }}<a v-if="dasTemplateGroup" :href="proposal_type_help_url" target="_blank"><i class="fa fa-question-circle" style="color:blue">&nbsp;</i></a></label>
                                 <div class="col-sm-12">
                                     <div class="form-group">
                                         <select class="form-control" style="width:40%" v-model="selected_application_id" @change="chainedSelectAppType(selected_application_id)">
-											<option value="" selected disabled>Select proposal type*</option>
-                                            <option v-for="application_type in application_types" :value="application_type.value">
+                                            <option value="" selected disabled>{{ objectTypeListLabel }}</option>
+                                            <option v-for="application_type in applicationTypesList" :value="application_type.value">
                                                 {{ application_type.text }}
                                             </option>
                                         </select>
@@ -105,7 +112,7 @@
                                         </select>
                                     </div>
                                 </div>
-                            </div> 
+                            </div>
 
                             <div v-if="display_region_selectbox && selected_region">
                                 <label for="" class="control-label" style="font-weight: normal;">District <a :href="district_help_url" target="_blank"><i class="fa fa-question-circle" style="color:blue">&nbsp;</i></a></label>
@@ -192,7 +199,6 @@
                         <button v-if="!creatingProposal" :disabled="isDisabled()" @click.prevent="submit()" class="btn btn-primary pull-right">Continue</button>
                         <button v-else disabled class="pull-right btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Creating</button>
                     </div>
-                  </div>
                 </form>
             </div>
         </div>
@@ -242,20 +248,59 @@ export default {
         display_region_selectbox: false,
         display_activity_matrix_selectbox: false,
         site_url: (api_endpoints.site_url.endsWith("/")) ? (api_endpoints.site_url): (api_endpoints.site_url + "/"),
+        apiaryTemplateGroup: false,
+        dasTemplateGroup: false,
     }
   },
   components: {
   },
   computed: {
+      objectTypeLabel: function() {
+          let returnStr = 'Proposal Type * ';
+          if (this.apiaryTemplateGroup) {
+              returnStr = 'Application Type';
+          }
+          return returnStr;
+      },
+      objectTypeListLabel: function() {
+          let returnStr = 'Select proposal type* ';
+          if (this.apiaryTemplateGroup) {
+              returnStr = 'Select application type';
+          }
+          return returnStr;
+      },
+      applicationTypesList: function() {
+          let returnList = [];
+          for (let applicationType of this.application_types) {
+              // for individual applications, only Apiary should show
+              //if (this.behalf_of === 'individual') {
+              if (this.apiaryTemplateGroup) {
+                  if (applicationType.domain_used.toLowerCase() === 'apiary') {
+                      if (applicationType.text.toLowerCase() === 'apiary'){
+                          returnList.push(applicationType);
+                      }
+                  }
+              } else if (this.dasTemplateGroup){
+                  if (applicationType.domain_used === 'das') {
+                      returnList.push(applicationType);
+                  }
+              }
+          }
+          return returnList;
+      },
     isLoading: function() {
       return this.loading.length > 0
     },
     org: function() {
         let vm = this;
-        if (vm.behalf_of != '' || vm.behalf_of != 'other'){
-            return vm.profile.disturbance_organisations.find(org => parseInt(org.id) === parseInt(vm.behalf_of)).name;
+        let org_value = ''
+        //if (vm.behalf_of != '' || vm.behalf_of != 'other' || vm.behalf_of != 'individual'){
+        if (vm.behalf_of === '' || vm.behalf_of === 'other' || vm.behalf_of === 'individual'){
+            // pass
+        } else {
+            org_value = vm.profile.disturbance_organisations.find(org => parseInt(org.id) === parseInt(vm.behalf_of)).name;
         }
-        return '';
+        return org_value;
     },
     manyDistricts: function() {
       return this.districts.length > 1;
@@ -286,10 +331,17 @@ export default {
   methods: {
     submit: function() {
         let vm = this;
-			
+        let text = '';
+        if (this.behalf_of === 'individual' && this.profile && this.profile.full_name) {
+            text = "Are you sure you want to create " + this.alertText() + " proposal on behalf of "+ this.profile.full_name +" ?"
+        } else {
+            text = "Are you sure you want to create " + this.alertText() + " proposal on behalf of "+vm.org+" ?"
+        }
+
         swal({
             title: "Create " + vm.selected_application_name,
-            text: "Are you sure you want to create " + this.alertText() + " proposal on behalf of "+vm.org+" ?",
+            //text: "Are you sure you want to create " + this.alertText() + " proposal on behalf of "+vm.org+" ?",
+            text: text,
             type: "question",
             showCancelButton: true,
             confirmButtonText: 'Accept'
@@ -307,6 +359,7 @@ export default {
 		}
 	},
     createProposal:function () {
+        console.log('createProposal');
         let vm = this;
         vm.creatingProposal = true;
 		vm.$http.post('/api/proposal.json',{
@@ -319,7 +372,8 @@ export default {
             sub_activity1: vm.selected_sub_activity1,
             sub_activity2: vm.selected_sub_activity2,
             category: vm.selected_category,
-            approval_level: vm.approval_level
+            approval_level: vm.approval_level,
+            profile: this.profile.id,
 		}).then(res => {
 		    vm.proposal = res.body;
 			vm.$router.push({
@@ -330,6 +384,19 @@ export default {
 		},
 		err => {
 			console.log(err);
+            console.log(err.bodyText);
+            if (err.bodyText.includes("null_applicant_address")) {
+                swal({
+                    title: "Cannot create application",
+                    text: "Please add your address",
+                    type: "error",
+                    confirmButtonText: 'Ok'
+                }).then(() => {
+                    vm.$router.push({
+                        name:"account",
+                    });
+                });
+            }
 		});
     },
     isDisabled: function() {
@@ -390,8 +457,9 @@ export default {
 
                 for (var i = 0; i < vm.api_app_types.length; i++) {
                     this.application_types.push( {
-                        text: vm.api_app_types[i].name, 
-                        value: vm.api_app_types[i].id, 
+                        text: vm.api_app_types[i].name,
+                        value: vm.api_app_types[i].id,
+                        domain_used: vm.api_app_types[i].domain_used,
                         //activities: (vm.api_app_types[i].activity_app_types.length > 0) ? vm.api_app_types[i].activity_app_types : [],
                         //tenures: (vm.api_app_types[i].tenure_app_types.length > 0) ? vm.api_app_types[i].tenure_app_types : [],
                     } );
@@ -549,7 +617,7 @@ export default {
                     //return [sub_activities[activity_name], "null"];
                 }
             }
-           
+
             // not a sub_matrix --> this is the main activity_matrix data (as provided by the REST API)
             return [sub_activities[activity_name], true];
         }
@@ -574,7 +642,7 @@ export default {
                 vm.approval_level = vm.categories[i]['approval'];
             }
         }
-        
+
     }
 
   },
@@ -589,7 +657,7 @@ export default {
 
     let initialisers = [
         utils.fetchProfile(),
-        
+
         //utils.fetchProposal(to.params.proposal_id)
     ]
     next(vm => {
@@ -600,8 +668,24 @@ export default {
             vm.loading.splice('fetching profile', 1)
         })
     })
-    
-  }
+
+  },
+    created: function() {
+        // retrieve template group
+        this.$http.get('/template_group',{
+            emulateJSON:true
+            }).then(res=>{
+                //this.template_group = res.body.template_group;
+                if (res.body.template_group === 'apiary') {
+                    this.apiaryTemplateGroup = true;
+                } else {
+                    this.dasTemplateGroup = true;
+                }
+        },err=>{
+        console.log(err);
+        });
+    },
+
 }
 </script>
 

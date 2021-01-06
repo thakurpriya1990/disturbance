@@ -1,14 +1,24 @@
+import os
+
 from django.contrib import admin
 from ledger.accounts.models import EmailUser
+
+import disturbance
 from disturbance.components.proposals import models
 from disturbance.components.proposals import forms
-from disturbance.components.main.models import ActivityMatrix, SystemMaintenance, ApplicationType, GlobalSettings
+from disturbance.components.main.models import ActivityMatrix, SystemMaintenance, ApplicationType, GlobalSettings, \
+    ApiaryGlobalSettings
 #from disturbance.components.main.models import Activity, SubActivityLevel1, SubActivityLevel2, SubCategory
 from reversion.admin import VersionAdmin
 from django.conf.urls import url
 from django.template.response import TemplateResponse
 from django.http import HttpResponse, HttpResponseRedirect
+
+from disturbance.components.proposals.models import SiteCategory, ApiarySiteFee, ApiarySiteFeeType, \
+    ApiaryAnnualRentalFee, \
+    ApiaryAnnualRentalFeeRunDate, ApiaryAnnualRentalFeePeriodStartDate
 from disturbance.utils import create_helppage_object
+from disturbance.helpers import is_apiary_admin, is_disturbance_admin, is_das_apiary_admin
 # Register your models here.
 
 @admin.register(models.ProposalType)
@@ -56,9 +66,91 @@ class ProposalApproverGroupAdmin(admin.ModelAdmin):
             return False
         return super(ProposalApproverGroupAdmin, self).has_delete_permission(request, obj)
 
+@admin.register(models.ApiaryReferralGroup)
+class ApiaryReferralGroupAdmin(admin.ModelAdmin):
+    filter_horizontal = ('members',)
+    list_display = ['name']
+    exclude = ('site',)
+    actions = None
+
+    def formfield_for_manytomany(self, db_field, request, **kwargs):
+        if db_field.name == "members":
+            kwargs["queryset"] = EmailUser.objects.filter(is_staff=True)
+        return super(ApiaryReferralGroupAdmin, self).formfield_for_manytomany(db_field, request, **kwargs)
+
+
+@admin.register(models.ApiaryAssessorGroup)
+class ApiaryAssessorGroupAdmin(admin.ModelAdmin):
+    filter_horizontal = ('members',)
+    exclude = ('site',)
+    actions = None
+
+    def formfield_for_manytomany(self, db_field, request, **kwargs):
+        if db_field.name == "members":
+            #kwargs["queryset"] = EmailUser.objects.filter(email__icontains='@dbca.wa.gov.au')
+            kwargs["queryset"] = EmailUser.objects.filter(is_staff=True)
+        return super(ApiaryAssessorGroupAdmin, self).formfield_for_manytomany(db_field, request, **kwargs)
+
+    def has_add_permission(self, request):
+        return True if models.ApiaryAssessorGroup.objects.count() == 0 else False
+
+    def has_delete_permission(self, request, obj=None):
+        return False 
+
+
+@admin.register(models.ApiaryApproverGroup)
+class ApiaryApproverGroupAdmin(admin.ModelAdmin):
+    filter_horizontal = ('members',)
+    exclude = ('site',)
+    actions = None
+
+    def formfield_for_manytomany(self, db_field, request, **kwargs):
+        if db_field.name == "members":
+            #kwargs["queryset"] = EmailUser.objects.filter(email__icontains='@dbca.wa.gov.au')
+            kwargs["queryset"] = EmailUser.objects.filter(is_staff=True)
+        return super(ApiaryApproverGroupAdmin, self).formfield_for_manytomany(db_field, request, **kwargs)
+
+    def has_add_permission(self, request):
+        return True if models.ApiaryApproverGroup.objects.count() == 0 else False
+
+    def has_delete_permission(self, request, obj=None):
+        return False 
+
+
 @admin.register(models.ProposalStandardRequirement)
 class ProposalStandardRequirementAdmin(admin.ModelAdmin):
-    list_display = ['code','text','obsolete']
+    list_display = ['code','text','system','obsolete']
+    #readonly_fields=('system',)
+    #list_filter=('system',)
+
+    def get_queryset(self, request):
+        #import ipdb;ipdb.set_trace()
+        # filter based on membership of Apiary Admin or Disturbance Admin
+        qs = super(ProposalStandardRequirementAdmin, self).get_queryset(request)
+        if request.user.is_superuser or is_das_apiary_admin(request):
+            return qs
+        group_list = []
+        if is_apiary_admin(request):
+            group_list.append('apiary')
+        if is_disturbance_admin(request):
+            group_list.append('disturbance')
+        return qs.filter(system__in=group_list)
+
+    def formfield_for_choice_field(self, db_field, request, **kwargs):
+        if db_field.name == 'system':
+            if (request.user.is_superuser or is_das_apiary_admin(request) or 
+                    (is_apiary_admin(request) and is_disturbance_admin(request))
+                    ):
+                # user will see both choices
+                kwargs["choices"] = (
+                        ('apiary', 'Apiary'),
+                        ('disturbance', 'Disturbance'),
+                        )
+            elif is_apiary_admin(request):
+                kwargs["choices"] = (('apiary', 'Apiary'),)
+            elif is_disturbance_admin(request):
+                kwargs["choices"] = (('disturbance', 'Disturbance'),)
+        return super(ProposalStandardRequirementAdmin, self).formfield_for_choice_field(db_field, request, **kwargs)
 
 
 @admin.register(models.HelpPage)
@@ -96,6 +188,7 @@ class HelpPageAdmin(admin.ModelAdmin):
         create_helppage_object(application_type='Apiary', help_type=models.HelpPage.HELP_TEXT_INTERNAL)
         return HttpResponseRedirect("../")
 
+
 @admin.register(ActivityMatrix)
 class ActivityMatrixAdmin(admin.ModelAdmin):
     list_display = ['name', 'description', 'version']
@@ -109,12 +202,89 @@ class SystemMaintenanceAdmin(admin.ModelAdmin):
     readonly_fields = ('duration',)
     form = forms.SystemMaintenanceAdminForm
 
+
 @admin.register(ApplicationType)
 class ApplicationTypeAdmin(admin.ModelAdmin):
-    list_display = ['name', 'order', 'visible']
+    list_display = ['name', 'order', 'visible', 'domain_used',]
     ordering = ('order',)
+
 
 @admin.register(GlobalSettings)
 class GlobalSettingsAdmin(admin.ModelAdmin):
     list_display = ['key', 'value']
     ordering = ('key',)
+
+
+@admin.register(ApiaryGlobalSettings)
+class ApiaryGlobalSettingsAdmin(admin.ModelAdmin):
+    def get_fields(self, request, obj=None):
+        if obj.key == ApiaryGlobalSettings.KEY_APIARY_LICENCE_TEMPLATE_FILE:
+            return ['key', '_file',]
+        else:
+            return ['key', 'value',]
+
+    def get_readonly_fields(self, request, obj=None):
+        return ['key',]
+
+    def get_form(self, request, obj=None, **kwargs):
+        form = super(ApiaryGlobalSettingsAdmin, self).get_form(request, obj, **kwargs)
+        if obj.key == ApiaryGlobalSettings.KEY_APIARY_SITES_LIST_TOKEN:
+            link_to = '/api/apiary_site/export/?' + ApiaryGlobalSettings.KEY_APIARY_SITES_LIST_TOKEN + '=' + obj.value
+            http_host = request.META['HTTP_HOST']
+            display_link_to = http_host + link_to
+            form.base_fields['value'].help_text = '<a href="' + link_to + '">' + display_link_to + '</a>'
+        return form
+
+    list_display = ['key', 'value', '_file',]
+    ordering = ('key',)
+
+
+@admin.register(ApiaryAnnualRentalFee)
+class ApiaryAnnualRentalFeeAdmin(admin.ModelAdmin):
+    pass
+
+
+@admin.register(ApiaryAnnualRentalFeeRunDate)
+class ApiaryAnnualRentalFeeRunDateAdmin(admin.ModelAdmin):
+    pass
+
+
+# @admin.register(ApiaryAnnualRentalFeePeriodStartDate)
+# class ApiaryAnnualRentalFeePeriodStartDateAdmin(admin.ModelAdmin):
+#     pass
+
+# class SiteApplicationFeeInline(admin.TabularInline):
+#     model = SiteApplicationFee
+#     extra = 0
+#     can_delete = True
+
+
+class ApiarySiteFeeInline(admin.TabularInline):
+    model = ApiarySiteFee
+    extra = 0
+    can_delete = True
+    fields = ('apiary_site_fee_type', 'amount', 'date_of_enforcement',)
+
+
+@admin.register(ApiarySiteFeeType)
+class ApiarySiteFeeTypeAdmin(admin.ModelAdmin):
+    pass
+
+
+# @admin.register(SiteApplicationFee)
+# class SiteApplicationFeeAdmin(admin.ModelAdmin):
+#     pass
+
+
+class SiteCategoryAdmin(admin.ModelAdmin):
+
+    inlines = [ApiarySiteFeeInline,]
+
+
+admin.site.register(disturbance.components.proposals.models.SiteCategory, SiteCategoryAdmin)
+
+@admin.register(models.ApiaryChecklistQuestion)
+class ApiaryChecklistQuestionAdmin(admin.ModelAdmin):
+    #list_display = ['text', 'answer_type', 'order']
+    ordering = ('order',)
+
