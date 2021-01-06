@@ -35,6 +35,9 @@ from disturbance.components.compliances.models import (
    ComplianceAmendmentRequest,
    ComplianceAmendmentReason
 )
+#from disturbance.components.proposals.models import (
+ #       Proposal
+  #      )
 from disturbance.components.compliances.serializers import (
     ComplianceSerializer,
     SaveComplianceSerializer,
@@ -43,25 +46,119 @@ from disturbance.components.compliances.serializers import (
     ComplianceAmendmentRequestSerializer,
     CompAmendmentRequestDisplaySerializer
 )
+from disturbance.components.main.utils import handle_validation_error
 from disturbance.helpers import is_customer, is_internal
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 from disturbance.components.proposals.api import ProposalFilterBackend, ProposalRenderer
+from rest_framework_datatables.filters import DatatablesFilterBackend
+from rest_framework_datatables.renderers import DatatablesRenderer
+
+
+class ComplianceFilterBackend(DatatablesFilterBackend):
+    """
+    Custom filters
+    """
+
+    def filter_queryset(self, request, queryset, view):
+        total_count = queryset.count()
+
+        #def get_choice(status, choices=Approval.STATUS_CHOICES):
+        #    for i in choices:
+        #        if i[1]==status:
+        #            return i[0]
+        #    return None
+
+        def get_processing_choice(status, choices=Compliance.PROCESSING_STATUS_CHOICES):
+            for i in choices:
+                if i[1]==status:
+                    return i[0]
+            return None
+        def get_customer_choice(status, choices=Compliance.CUSTOMER_STATUS_CHOICES):
+            for i in choices:
+                if i[1]==status:
+                    return i[0]
+            return None
+        regions = request.GET.get('regions')
+        if regions:
+            queryset = queryset.filter(proposal__region__name__iregex=regions.replace(',', '|'))
+        proposal_activity = request.GET.get('proposal_activity')
+        if proposal_activity and not proposal_activity.lower() == 'all':
+            queryset = queryset.filter(proposal__activity=proposal_activity)
+        compliance_status = request.GET.get('compliance_status')
+        if compliance_status and not compliance_status.lower() == 'all':
+            is_external = request.GET.get('is_external')
+            if is_external == 'true':
+                queryset = queryset.filter(customer_status=get_customer_choice(compliance_status))
+            else:
+                queryset = queryset.filter(processing_status=get_processing_choice(compliance_status))
+
+        date_from = request.GET.get('date_from')
+        date_to = request.GET.get('date_to')
+        #import ipdb; ipdb.set_trace()
+        if date_from:
+            queryset = queryset.filter(approval__start_date__gte=date_from)
+        if date_to:
+            queryset = queryset.filter(approval__expiry_date__lte=date_to)
+
+        getter = request.query_params.get
+        fields = self.get_fields(getter)
+        #import ipdb; ipdb.set_trace()
+        ordering = self.get_ordering(getter, fields)
+        queryset = queryset.order_by(*ordering)
+        if len(ordering):
+            #for num, item in enumerate(ordering):
+             #   if item == 'status__name':
+              #      ordering[num] = 'status'
+               # elif item == '-status__name':
+                #    ordering[num] = '-status'
+            queryset = queryset.order_by(*ordering)
+
+        try:
+            queryset = super(ComplianceFilterBackend, self).filter_queryset(request, queryset, view)
+        except Exception as e:
+            print(e)
+        setattr(view, '_datatables_total_count', total_count)
+        return queryset
+
+
+class ComplianceRenderer(DatatablesRenderer):
+    def render(self, data, accepted_media_type=None, renderer_context=None):
+        #import ipdb; ipdb.set_trace()
+        if 'view' in renderer_context and hasattr(renderer_context['view'], '_datatables_total_count'):
+            data['recordsTotal'] = renderer_context['view']._datatables_total_count
+            #data.pop('recordsTotal')
+            #data.pop('recordsFiltered')
+        return super(ComplianceRenderer, self).render(data, accepted_media_type, renderer_context)
+
 
 class CompliancePaginatedViewSet(viewsets.ModelViewSet):
-    filter_backends = (ProposalFilterBackend,)
+    filter_backends = (ComplianceFilterBackend,)
     pagination_class = DatatablesPageNumberPagination
-    renderer_classes = (ProposalRenderer,)
+    renderer_classes = (ComplianceRenderer,)
     page_size = 10
     queryset = Compliance.objects.none()
     serializer_class = ComplianceSerializer
 
     def get_queryset(self):
+        #import ipdb; ipdb.set_trace()
         if is_internal(self.request):
             #return Compliance.objects.all()
             return Compliance.objects.all().exclude(processing_status='discarded')
         elif is_customer(self.request):
             user_orgs = [org.id for org in self.request.user.disturbance_organisations.all()]
-            queryset =  Compliance.objects.filter( Q(proposal__applicant_id__in = user_orgs) | Q(proposal__submitter = self.request.user) ).exclude(processing_status='discarded')
+            compliance_id_list = []
+            # Apiary logic for individual applicants
+            for apiary_compliance in Compliance.objects.filter( 
+                    Q(approval__applicant_id__in = user_orgs) | Q(approval__proxy_applicant = self.request.user
+                        )).exclude(processing_status='discarded'):
+                        compliance_id_list.append(apiary_compliance.id)
+            # DAS logic
+            for das_compliance in Compliance.objects.filter( 
+                    Q(proposal__applicant_id__in = user_orgs) | Q(proposal__submitter = self.request.user
+                        ) ).exclude(processing_status='discarded'):
+                        compliance_id_list.append(das_compliance.id)
+            # Return all records
+            queryset =  Compliance.objects.filter(id__in=compliance_id_list)
             return queryset
         return Compliance.objects.none()
 
@@ -74,6 +171,7 @@ class CompliancePaginatedViewSet(viewsets.ModelViewSet):
 
     @list_route(methods=['GET',])
     def compliances_external(self, request, *args, **kwargs):
+        #import ipdb; ipdb.set_trace()
         """
         Paginated serializer for datatables - used by the external dashboard
 
@@ -81,9 +179,25 @@ class CompliancePaginatedViewSet(viewsets.ModelViewSet):
             http://localhost:8000/api/compliance_paginated/compliances_external/?format=datatables&draw=1&length=2
         """
 
-        qs = self.get_queryset().exclude(processing_status='future')
-        qs = ProposalFilterBackend().filter_queryset(self.request, qs, self)
-        #qs = self.filter_queryset(qs)
+        web_url = request.META.get('HTTP_HOST', None)
+        template_group = None
+        if web_url in settings.APIARY_URL:
+           template_group = 'apiary'
+        else:
+           template_group = 'das'
+        #import ipdb; ipdb.set_trace()
+        if template_group == 'apiary':
+            #qs = self.get_queryset().filter(application_type__apiary_group_application_type=True).exclude(processing_status='discarded')
+            qs = self.get_queryset().filter(
+                    apiary_compliance=True
+                    )
+        else:
+            qs = self.get_queryset().exclude(
+                    apiary_compliance=True
+                    )
+        #qs = self.get_queryset().exclude(processing_status='future')
+        #qs = ProposalFilterBackend().filter_queryset(self.request, qs, self)
+        qs = self.filter_queryset(qs)
         #qs = qs.order_by('lodgement_number', '-issue_date').distinct('lodgement_number')
 
         # on the internal organisations dashboard, filter the Proposal/Approval/Compliance datatables by applicant/organisation
@@ -103,13 +217,37 @@ class ComplianceViewSet(viewsets.ModelViewSet):
     queryset = Compliance.objects.none()
 
     def get_queryset(self):
+        #import ipdb; ipdb.set_trace()
         if is_internal(self.request):
+            #return Compliance.objects.all()
             return Compliance.objects.all().exclude(processing_status='discarded')
         elif is_customer(self.request):
             user_orgs = [org.id for org in self.request.user.disturbance_organisations.all()]
-            queryset =  Compliance.objects.filter( Q(proposal__applicant_id__in = user_orgs) | Q(proposal__submitter = self.request.user) ).exclude(processing_status='discarded')
+            compliance_id_list = []
+            # Apiary logic for individual applicants
+            for apiary_compliance in Compliance.objects.filter( 
+                    Q(approval__applicant_id__in = user_orgs) | Q(approval__proxy_applicant = self.request.user
+                        )).exclude(processing_status='discarded'):
+                        compliance_id_list.append(apiary_compliance.id)
+            # DAS logic
+            for das_compliance in Compliance.objects.filter( 
+                    Q(proposal__applicant_id__in = user_orgs) | Q(proposal__submitter = self.request.user
+                        ) ).exclude(processing_status='discarded'):
+                        compliance_id_list.append(das_compliance.id)
+            # Return all records
+            queryset =  Compliance.objects.filter(id__in=compliance_id_list)
             return queryset
         return Compliance.objects.none()
+
+    #def get_queryset(self):
+    #    #import ipdb; ipdb.set_trace()
+    #    if is_internal(self.request):
+    #        return Compliance.objects.all().exclude(processing_status='discarded')
+    #    elif is_customer(self.request):
+    #        user_orgs = [org.id for org in self.request.user.disturbance_organisations.all()]
+    #        queryset =  Compliance.objects.filter( Q(proposal__applicant_id__in = user_orgs) | Q(proposal__submitter = self.request.user) ).exclude(processing_status='discarded')
+    #        return queryset
+    #    return Compliance.objects.none()
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
@@ -186,7 +324,10 @@ class ComplianceViewSet(viewsets.ModelViewSet):
                 serializer = SaveComplianceSerializer(instance, data=data)
                 serializer.is_valid(raise_exception=True)
                 instance = serializer.save()
-                instance.submit(request)
+                if instance.apiary_compliance:
+                    instance.apiary_submit(request)
+                else:
+                    instance.submit(request)
                 serializer = self.get_serializer(instance)
                 # Save the files
                 '''for f in request.FILES:
@@ -201,7 +342,7 @@ class ComplianceViewSet(viewsets.ModelViewSet):
             raise
         except ValidationError as e:
             print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+            handle_validation_error(e)
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -236,7 +377,7 @@ class ComplianceViewSet(viewsets.ModelViewSet):
             raise
         except ValidationError as e:
             print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+            handle_validation_error(e)
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -399,10 +540,7 @@ class ComplianceAmendmentRequestViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise
         except ValidationError as e:
-            if hasattr(e,'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+            handle_validation_error(e)
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))

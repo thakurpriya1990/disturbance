@@ -3,7 +3,7 @@
         <div class="col-sm-12">
             <div class="panel panel-default">
                 <div class="panel-heading">
-                    <h3 class="panel-title">Proposals referred to me
+                    <h3 class="panel-title">{{ dashboardTitle }}
                         <a :href="'#'+pBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="pBody">
                             <span class="glyphicon glyphicon-chevron-up pull-right "></span>
                         </a>
@@ -11,23 +11,40 @@
                 </div>
                 <div class="panel-body collapse in" :id="pBody">
                     <div class="row">
-                        <div class="col-md-3">
-                            <div class="form-group">
-                                <label for="">Region</label>
-                                <select style="width:100%" class="form-control" multiple ref="filterRegion" >
-                                    <option v-for="r in proposal_regions" :value="r">{{r}}</option>
-                                </select>
+                        <div v-if="!apiaryTemplateGroup">
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="">Region</label>
+                                    <template v-show="select2Applied">
+                                        <select style="width:100%" class="form-control input-sm" id="region_dropdown">
+                                            <option v-for="r in proposal_regions" :value="r">{{r}}</option>
+                                        </select>
+                                    </template>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="">Activity</label>
+                                    <select class="form-control" v-model="filterProposalActivity">
+                                        <option value="All">All</option>
+                                        <option v-for="a in proposal_activityTitles" :value="a">{{a}}</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
-                        <div class="col-md-3">
-                            <div class="form-group">
-                                <label for="">Activity</label>
-                                <select class="form-control" v-model="filterProposalActivity">
-                                    <option value="All">All</option>
-                                    <option v-for="a in proposal_activityTitles" :value="a">{{a}}</option>
-                                </select>
+                        <div v-else>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="">Application Type</label>
+                                    <select class="form-control" v-model="filterProposalApplicationType">
+                                        <option value="All">All</option>
+                                        <option v-for="a in proposal_applicationTypes" :value="a">{{a}}</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
+
+
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="">Status</label>
@@ -79,12 +96,14 @@
 </template>
 <script>
 import datatable from '@/utils/vue/datatable.vue'
+require("select2/dist/css/select2.min.css");
+require("select2-bootstrap-theme/dist/select2-bootstrap.min.css");
 import {
     api_endpoints,
     helpers
 }from '@/utils/hooks'
 export default {
-    name: 'ProposalTableDash',
+    name: 'RefferralsTableDash',
     props: {
         url:{
             type: String,
@@ -97,9 +116,14 @@ export default {
         return {
             pBody: 'pBody' + vm._uid,
             datatable_id: 'proposal-datatable-'+vm._uid,
+            //template_group: '',
+            dasTemplateGroup: false,
+            apiaryTemplateGroup: false,
+            select2Applied: false,
             // Filters for Proposals
             filterProposalRegion: [],
             filterProposalActivity: 'All',
+            filterProposalApplicationType: 'All',
             filterProposalStatus: 'All',
             filterProposalLodgedFrom: '',
             filterProposalLodgedTo: '',
@@ -114,9 +138,10 @@ export default {
             },
             proposal_status:[],
             proposal_activityTitles : [],
+            proposal_applicationTypes : [],
             proposal_regions: [],
             proposal_submitters: [],
-            proposal_headers:["Number","Region","Activity","Title","Submitter","Proponent","Status","Lodged on","Action"],
+            //proposal_headers:["Number","Region","Activity","Title","Submitter","Proponent","Status","Lodged on","Action","Template Group"],
             proposal_options:{
                 customProposalSearch: true,
                 tableID: 'proposal-datatable-'+vm._uid,
@@ -126,6 +151,9 @@ export default {
                 responsive: true,
                 serverSide: true,
                 lengthMenu: [ [10, 25, 50, 100, -1], [10, 25, 50, 100, "All"] ],
+                order: [
+                    [0, 'desc']
+                    ],
                 ajax: {
                     //"url": helpers.add_endpoint_json(api_endpoints.referrals,'user_list'),
                     //"url": api_endpoints.list_referrals,
@@ -138,6 +166,10 @@ export default {
                         //d.processing_status = vm.filterProposalStatus;
                         d.date_from = vm.filterProposalLodgedFrom != '' && vm.filterProposalLodgedFrom != null ? moment(vm.filterProposalLodgedFrom, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
                         d.date_to = vm.filterProposalLodgedTo != '' && vm.filterProposalLodgedTo != null ? moment(vm.filterProposalLodgedTo, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
+                        d.application_type = vm.filterProposalApplicationType;
+                        d.proposal_activity = vm.filterProposalActivity;
+                        d.submitter = vm.filterProposalSubmitter;
+                        d.proposal_status = vm.filterProposalStatus;
         		    }
 
                 },
@@ -161,7 +193,7 @@ export default {
                     {
                         data: "region",
                         searchable: false, // handles by filter_queryset override method - class ProposalFilterBackend
-
+                        visible: false,
                     },
                     {
                         data: "activity",
@@ -182,9 +214,24 @@ export default {
                         },
                         name: "proposal__submitter__email",
                     },
+                    /*
                     {
                         data: "applicant",
+                        mRender:function (data,type,full) {
+                            if (data) {
+                                return `${data}`;
+                            } else if (full.proposal_proxy_applicant) {
+                                return full.proposal_proxy_applicant.name;
+                            } else {
+                                return '';
+                            }
+                        },
                         name: "proposal__applicant__organisation__name",
+                    },
+                    */
+                    {
+                        data: "relevant_applicant_name",
+                        name: "proposal__relevant_applicant_name",
                     },
                     {
                         data: "processing_status",
@@ -211,9 +258,23 @@ export default {
                     {data: "can_be_processed", visible: false},
                     {data: "proposal_lodgement_number", visible: false},
                     {data: "id", visible: false},
+                    {
+                        data: 'template_group',
+                        searchable: false,
+                        orderable: false,
+                        visible: false,
+                    },
 
                 ],
                 processing: true,
+                initComplete: function() {
+                    // set column visibility and headers according to template group
+                    // region
+                    let regionColumn = vm.$refs.proposal_datatable.vmDataTable.columns(1);
+                    if (vm.dasTemplateGroup) {
+                        regionColumn.visible(true);
+                    }
+                },
                 /*
                 initComplete: function () {
                     // Grab Regions from the data in the table
@@ -274,20 +335,27 @@ export default {
         filterProposalActivity: function() {
             let vm = this;
             if (vm.filterProposalActivity!= 'All') {
-                vm.$refs.proposal_datatable.vmDataTable.columns(2).search(vm.filterProposalActivity).draw();
+                vm.$refs.proposal_datatable.vmDataTable.column('proposal__activity:name').search(vm.filterProposalActivity).draw();
             } else {
-                vm.$refs.proposal_datatable.vmDataTable.columns(2).search('').draw();
+                vm.$refs.proposal_datatable.vmDataTable.column('proposal__activity:name').search('').draw();
+            }
+        },
+        filterProposalApplicationType: function() {
+            let vm = this;
+            if (vm.filterProposalApplicationType!= 'All') {
+                vm.$refs.proposal_datatable.vmDataTable.column('proposal__activity:name').search(vm.filterProposalApplicationType).draw();
+            } else {
+                vm.$refs.proposal_datatable.vmDataTable.column('proposal__activity:name').search('').draw();
             }
         },
         filterProposalStatus: function() {
             let vm = this;
             if (vm.filterProposalStatus!= 'All') {
-                vm.$refs.proposal_datatable.vmDataTable.columns(6).search(vm.filterProposalStatus).draw();
+                vm.$refs.proposal_datatable.vmDataTable.column('proposal__processing_status:name').search(vm.filterProposalStatus).draw();
             } else {
-                vm.$refs.proposal_datatable.vmDataTable.columns(6).search('').draw();
+                vm.$refs.proposal_datatable.vmDataTable.column('proposal__processing_status:name').search('').draw();
             }
         },
-
         filterProposalRegion: function(){
             this.$refs.proposal_datatable.vmDataTable.draw();
         },
@@ -295,12 +363,10 @@ export default {
             //this.$refs.proposal_datatable.vmDataTable.draw();
             let vm = this;
             if (vm.filterProposalSubmitter!= 'All') {
-                vm.$refs.proposal_datatable.vmDataTable.columns(4).search(vm.filterProposalSubmitter).draw();
+                vm.$refs.proposal_datatable.vmDataTable.column('proposal__submitter__email:name').search(vm.filterProposalSubmitter).draw();
             } else {
-                vm.$refs.proposal_datatable.vmDataTable.columns(4).search('').draw();
+                vm.$refs.proposal_datatable.vmDataTable.column('proposal__submitter__email:name').search('').draw();
             }
-
-
         },
         filterProposalLodgedFrom: function(){
             this.$refs.proposal_datatable.vmDataTable.draw();
@@ -310,6 +376,51 @@ export default {
         }
     },
     computed: {
+        /*
+        apiaryTemplateGroup: function() {
+            let returnVal = false;
+            if (this.template_group == 'apiary'){
+                returnVal = true
+            }
+            return returnVal;
+        },
+        dasTemplateGroup: function() {
+            let returnVal = false;
+            if (this.template_group == 'das'){
+                returnVal = true
+            }
+            return returnVal;
+        },
+        */
+        dashboardTitle: function() {
+            let title = ''
+            if (this.apiaryTemplateGroup) {
+                title = 'Applications referred to me';
+            } else {
+                title = 'Proposals referred to me';
+            }
+            return title;
+        },
+        proposal_headers: function() {
+            let activity_or_application_type = 'Activity'
+            let proponent_or_applicant = 'Proponent'
+            if (this.apiaryTemplateGroup) {
+                activity_or_application_type = 'Application Type'
+                proponent_or_applicant = 'Applicant'
+            }
+            return [
+                "Number",
+                "Region",
+                activity_or_application_type,
+                "Title",
+                "Submitter",
+                proponent_or_applicant,
+                "Status",
+                "Lodged on",
+                "Action",
+                "Template Group"
+            ]
+        },
     },
     methods:{
         fetchFilterLists: function(){
@@ -319,6 +430,7 @@ export default {
                 vm.proposal_regions = response.body.regions;
                 //vm.proposal_districts = response.body.districts;
                 vm.proposal_activityTitles = response.body.activities;
+                vm.proposal_applicationTypes = response.body.application_types;
                 vm.proposal_submitters = response.body.submitters;
                 vm.proposal_status = response.body.processing_status_choices;
             },(error) => {
@@ -356,20 +468,22 @@ export default {
                 var id = $(this).attr('data-discard-proposal');
                 vm.discardProposal(id);
             });
-            // Initialise select2 for region
-            $(vm.$refs.filterRegion).select2({
-                "theme": "bootstrap",
-                allowClear: true,
-                placeholder:"Select Region"
-            }).
-            on("select2:select",function (e) {
-                var selected = $(e.currentTarget);
-                vm.filterProposalRegion = selected.val();
-            }).
-            on("select2:unselect",function (e) {
-                var selected = $(e.currentTarget);
-                vm.filterProposalRegion = selected.val();
-            });
+            //if (this.dasTemplateGroup) {
+            //    // Initialise select2 for region
+            //    $(vm.$refs.filterRegion).select2({
+            //        "theme": "bootstrap",
+            //        allowClear: true,
+            //        placeholder:"Select Region"
+            //    }).
+            //    on("select2:select",function (e) {
+            //        var selected = $(e.currentTarget);
+            //        vm.filterProposalRegion = selected.val();
+            //    }).
+            //    on("select2:unselect",function (e) {
+            //        var selected = $(e.currentTarget);
+            //        vm.filterProposalRegion = selected.val();
+            //    });
+            //}
         },
         initialiseSearch:function(){
             this.regionSearch();
@@ -382,7 +496,7 @@ export default {
                 function(settings,data,dataIndex,original){
                     let found = false;
                     let filtered_regions = vm.filterProposalRegion;
-                    if (filtered_regions.length == 0){ return true; } 
+                    if (filtered_regions.length == 0){ return true; }
 
                     let regions = original.region != '' && original.region != null ? original.region.split(','): [];
 
@@ -398,12 +512,38 @@ export default {
                 }
             );
         },
+        applySelect2: function(){
+            console.log('in applySelect2')
+            let vm = this
+
+            if (!vm.select2Applied){
+                console.log('select2 is being applied')
+                //$(vm.$refs.filterRegion).select2({
+                let target = $('#region_dropdown')
+                console.log(target)
+                target.select2({
+                    "theme": "bootstrap",
+                    allowClear: true,
+                    placeholder: "Select Region",
+                    multiple: true,
+                }).
+                on("select2:select",function (e) {
+                    var selected = $(e.currentTarget);
+                    vm.filterProposalRegion = selected.val();
+                }).
+                on("select2:unselect",function (e) {
+                    var selected = $(e.currentTarget);
+                    vm.filterProposalRegion = selected.val();
+                });
+            }
+            vm.select2Applied = true
+        },
         submitterSearch:function(){
             let vm = this;
             vm.$refs.proposal_datatable.table.dataTableExt.afnFiltering.push(
                 function(settings,data,dataIndex,original){
                     let filtered_submitter = vm.filterProposalSubmitter;
-                    if (filtered_submitter == 'All'){ return true; } 
+                    if (filtered_submitter == 'All'){ return true; }
                     return filtered_submitter == original.submitter.email;
                 }
             );
@@ -437,7 +577,7 @@ export default {
                         else{
                             return false;
                         }
-                    } 
+                    }
                     else{
                         return false;
                     }
@@ -456,9 +596,44 @@ export default {
         });
         this.$nextTick(() => {
             vm.addEventListeners();
-            vm.initialiseSearch();
+            //vm.initialiseSearch();
         });
-    }
+    },
+    updated: function() {
+        this.$nextTick(() => {
+            this.initialiseSearch();
+            //this.addEventListeners();
+        });
+    },
+    created: function() {
+        // retrieve template group
+        this.$http.get('/template_group',{
+            emulateJSON:true
+            }).then(res=>{
+                //this.template_group = res.body.template_group;
+                if (res.body.template_group === 'apiary') {
+                    this.apiaryTemplateGroup = true;
+                } else {
+                    this.dasTemplateGroup = true;
+                    this.applySelect2()
+                }
+        },err=>{
+        console.log(err);
+        });
+    },
+    /*
+    created: function() {
+        // retrieve template group
+        this.$http.get('/template_group',{
+            emulateJSON:true
+            }).then(res=>{
+                this.template_group = res.body.template_group;
+        },err=>{
+        console.log(err);
+        });
+
+    },
+    */
 }
 </script>
 <style scoped>

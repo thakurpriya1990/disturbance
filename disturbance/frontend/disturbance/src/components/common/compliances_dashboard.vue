@@ -1,4 +1,4 @@
-a<template id="proposal_dashboard">
+<template id="proposal_dashboard">
     <div class="row">
         <div class="col-sm-12">
             <div class="panel panel-default">
@@ -9,24 +9,26 @@ a<template id="proposal_dashboard">
                         </a>
                     </h3>
                 </div>
+
                 <div class="panel-body collapse in" :id="pBody">
                     <div class="row">
-                        <div class="col-md-3">
-                            <div class="form-group">
-                                <label for="">Region</label>
-                                <select class="form-control" v-model="filterProposalRegion">
-                                    <option value="All">All</option>
-                                    <option v-for="r in proposal_regions" :value="r">{{r}}</option>
-                                </select>
+                        <div v-show="!apiaryTemplateGroup && select2Applied">
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="">Region</label>
+                                    <select style="width:100%" class="form-control input-sm" ref="filterRegion" >
+                                        <option v-for="r in proposal_regions" :value="r">{{r}}</option>
+                                    </select>
+                                </div>
                             </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="form-group">
-                                <label for="">Activity</label>
-                                <select class="form-control" v-model="filterProposalActivity">
-                                    <option value="All">All</option>
-                                    <option v-for="a in proposal_activityTitles" :value="a">{{a}}</option>
-                                </select>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="">Activity</label>
+                                    <select class="form-control" v-model="filterProposalActivity">
+                                        <option value="All">All</option>
+                                        <option v-for="a in proposal_activityTitles" :value="a">{{a}}</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
                         <div class="col-md-3">
@@ -34,7 +36,7 @@ a<template id="proposal_dashboard">
                                 <label for="">Status</label>
                                 <select class="form-control" v-model="filterComplianceStatus">
                                     <option value="All">All</option>
-                                    <option v-for="s in status" :value="s">{{s}}</option>
+                                    <option v-for="s in status_values" :value="s">{{s}}</option>
                                 </select>
                             </div>
                         </div>
@@ -72,12 +74,14 @@ a<template id="proposal_dashboard">
 <script>
 import datatable from '@/utils/vue/datatable.vue'
 import Vue from 'vue'
+require("select2/dist/css/select2.min.css");
+require("select2-bootstrap-theme/dist/select2-bootstrap.min.css");
 import {
     api_endpoints,
     helpers
 }from '@/utils/hooks'
 export default {
-    name: 'ProposalTableDash',
+    name: 'CompliancesTableDash',
     props: {
         level:{
             type: String,
@@ -99,8 +103,11 @@ export default {
             datatable_id: 'proposal-datatable-'+vm._uid,
             //Profile to check if user has access to process Proposal
             profile: {},
+            dasTemplateGroup: false,
+            apiaryTemplateGroup: false,
+            templateGroupDetermined: false,
             // Filters for Proposals
-            filterProposalRegion: 'All',
+            filterProposalRegion: [],
             filterProposalActivity: 'All',
             filterComplianceStatus: 'All',
             filterComplianceDueFrom: '',
@@ -114,6 +121,8 @@ export default {
                 keepInvalid:true,
                 allowInputToggle:true
             },
+            select2Applied: false,
+            /*
             external_status:[
                 'Due',
                 'Future',
@@ -125,12 +134,13 @@ export default {
                 'Future',
                 'With Assessor',
                 'Approved',
-                
+
             ],
+            */
             proposal_activityTitles : [],
             proposal_regions: [],
             proposal_submitters: [],
-            proposal_headers:["Number","Region/District","Activity","Title","Approval","Holder","Status","Due Date","Assigned To", "CustomerStatus", "Reference","Action"],
+            //proposal_headers:["Number","Region/District","Activity","Title","Approval","Holder","Status","Due Date","Assigned To", "CustomerStatus", "Reference","Action"],
             proposal_options:{
                 language: {
                     processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
@@ -147,6 +157,7 @@ export default {
                         //d.regions = vm.filterProposalRegion.join();
                         d.date_from = vm.filterComplianceDueFrom != '' && vm.filterComplianceDueFrom != null ? moment(vm.filterComplianceDueFrom, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
                         d.date_to = vm.filterComplianceDueTo != '' && vm.filterComplianceDueTo != null ? moment(vm.filterComplianceDueTo, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
+                        /*
                         if (vm.level == 'external') { // hack to allow for correct Django choicelist in qs filter ProposalFilterBackend.filter_quesryset()
                             d.customer_status = vm.filterComplianceStatus == 'Under Review' ? 'with_assessor': vm.filterComplianceStatus != 'All' ? vm.filterComplianceStatus: '';
                             d.processing_status = '';
@@ -154,14 +165,37 @@ export default {
                             d.processing_status = vm.filterComplianceStatus == 'With Assessor' ? 'with_assessor': vm.filterComplianceStatus != 'All' ? vm.filterComplianceStatus: '';
                             d.customer_status = '';
                         }
+                        */
+                        d.compliance_status = vm.filterComplianceStatus;
+                        d.region = vm.filterProposalRegion;
+                        d.proposal_activity = vm.filterProposalActivity;
+                        d.is_external = vm.is_external;
+                        d.regions = vm.filterProposalRegion.join();
                     }
 
                 },
                 dom: 'lBfrtip',
+                /*
                 buttons:[
                 'excel', 'csv', ],
+                */
+                buttons:[
+                    {
+                        extend: 'excel',
+                        exportOptions: {
+                            columns: ':visible'
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        exportOptions: {
+                            columns: ':visible'
+                        }
+                    },
+                ],
                 columns: [
                     {
+                        // 1. Number
                         data: "id",
                         mRender:function (data,type,full) {
                             //return `C${data}`;
@@ -170,18 +204,25 @@ export default {
                         name: "id, lodgement_number",
                     },
                     {
+                        // 2. Region/District
                         data: "regions",
-                        name: "proposal__region__name" // will be use like: Approval.objects.filter(proposal__region__name='Kimberley')
+                        name: "proposal__region__name", // will be use like: Approval.objects.filter(proposal__region__name='Kimberley')
+                        visible: false,
                     },
                     {
+                        // 3. Activity
                         data: "activity",
                         name: "proposal__activity",
+                        visible: true,
                     },
                     {
+                        // 4. Title
                         data: "title",
                         name: "proposal__title",
+                        visible: false,
                     },
                     {
+                        // 5. Approval/Licence
                         data: "approval_lodgement_number",
                         mRender:function (data,type,full) {
                             return `A${data}`;
@@ -189,33 +230,37 @@ export default {
                         name: "approval__lodgement_number"
                     },
                     {
+                        // 6. Holder
                         data: "holder",
                         name: "proposal__applicant__organisation__name"
                     },
-
                     {
+                        // 7. Status
                         data: vm.level == 'external'? "customer_status" : "processing_status",
-                        searchable: false,
+                        searchable: false,  // There is a filter dropdown for 'Status'
                     },
                     {
+                        // 8. Due Date
                         data: "due_date",
                         mRender:function (data,type,full) {
                             return data != '' && data != null ? moment(data).format(vm.dateFormat): '';
                         }
                     },
                     {
+                        // 9. Assigned To
                         data: "assigned_to",
                         name: "assigned_to__first_name, assigned_to__last_name, assigned_to__email"
                         // visible: false
                     },
                     {
+                        // 10. Action
                         data: '',
                         mRender:function (data,type,full) {
                             let links = '';
                             if (!vm.is_external){
                                 if (full.processing_status=='With Assessor' && vm.check_assessor(full)) {
                                     links +=  `<a href='/internal/compliance/${full.id}'>Process</a><br/>`;
-                                    
+
                                 }
                                 else {
                                     links +=  `<a href='/internal/compliance/${full.id}'>View</a><br/>`;
@@ -224,7 +269,7 @@ export default {
                             else{
                                 if (full.can_user_view) {
                                     links +=  `<a href='/external/compliance/${full.id}'>View</a><br/>`;
-                                    
+
                                 }
                                 else {
                                     links +=  `<a href='/external/compliance/${full.id}'>Submit</a><br/>`;
@@ -240,6 +285,10 @@ export default {
                     {data: "allowed_assessors", visible: false},
                 ],
                 processing: true,
+                initComplete: function() {
+                    vm.showHideColumns()
+                },
+
                 /*
                 initComplete: function () {
                     // Grab Regions from the data in the table
@@ -284,21 +333,27 @@ export default {
         datatable
     },
     watch:{
-        filterProposalRegion: function() {
-            //this.$refs.proposal_datatable.vmDataTable.draw();
-            let vm = this;
-            if (vm.filterProposalRegion!= 'All') {
-                vm.$refs.proposal_datatable.vmDataTable.columns(1).search(vm.filterProposalRegion).draw();
-            } else {
-                vm.$refs.proposal_datatable.vmDataTable.columns(1).search('').draw();
-            }
+        templateGroupDetermined: function(){
+            this.showHideColumns()
         },
+        filterProposalRegion: function(){
+            this.$refs.proposal_datatable.vmDataTable.draw();
+        },
+        //filterProposalRegion: function() {
+        //    //this.$refs.proposal_datatable.vmDataTable.draw();
+        //    let vm = this;
+        //    if (vm.filterProposalRegion!= 'All') {
+        //        vm.$refs.proposal_datatable.vmDataTable.column('proposal__region__name:name').search(vm.filterProposalRegion).draw();
+        //    } else {
+        //        vm.$refs.proposal_datatable.vmDataTable.column('proposal__region__name:name').search('').draw();
+        //    }
+        //},
         filterProposalActivity: function() {
             let vm = this;
             if (vm.filterProposalActivity!= 'All') {
-                vm.$refs.proposal_datatable.vmDataTable.columns(2).search(vm.filterProposalActivity).draw();
+                vm.$refs.proposal_datatable.vmDataTable.column('proposal__activity:name').search(vm.filterProposalActivity).draw();
             } else {
-                vm.$refs.proposal_datatable.vmDataTable.columns(2).search('').draw();
+                vm.$refs.proposal_datatable.vmDataTable.column('proposal__activity:name').search('').draw();
             }
         },
         filterComplianceStatus: function(){
@@ -315,16 +370,60 @@ export default {
         }
     },
     computed: {
-       /* status: function(){
+        /* status: function(){
             return this.is_external ? this.external_status : this.internal_status;
             //return [];
         }, */
         is_external: function(){
             return this.level == 'external';
         },
-        
+        status_values: function() {
+            let under_review_or_with_assessor = 'With Assessor'
+            if (this.is_external) {
+                under_review_or_with_assessor = 'Under Review'
+            }
+            return [
+                'Due',
+                'Future',
+                under_review_or_with_assessor,
+                'Approved',
+            ]
+        },
+
+        proposal_headers: function() {
+            let approval_or_licence = 'Approval'
+            if (this.apiaryTemplateGroup) {
+                approval_or_licence = 'Licence'
+            }
+            return [
+                "Number",           // 1
+                "Region",  // 2
+                "Activity",         // 3
+                "Title",            // 4
+                approval_or_licence,// 5
+                "Holder",           // 6
+                "Status",           // 7
+                "Due Date",         // 8
+                "Assigned To",      // 9
+                "Action",           // 10
+                "Reference",        // 11
+                "CustomerStatus",   // 12
+            ]
+        },
     },
     methods:{
+        showHideColumns: function(){
+            let vm = this
+            // set column visibility and headers according to template group
+            let regionColumn = vm.$refs.proposal_datatable.vmDataTable.column('proposal__region__name:name');
+            let activityColumn = vm.$refs.proposal_datatable.vmDataTable.column('proposal__activity:name');
+            let titleColumn = vm.$refs.proposal_datatable.vmDataTable.column('proposal__title:name');
+            if (vm.dasTemplateGroup) {
+                regionColumn.visible(true);
+                activityColumn.visible(true);
+                titleColumn.visible(true);
+            }
+        },
         fetchFilterLists: function(){
             let vm = this;
 
@@ -361,23 +460,33 @@ export default {
                     vm.filterComplianceDueFrom = "";
                 }
             });
-            // End Proposal Date Filters          
-            
+            // End Proposal Date Filters
 
             // Initialise select2 for region
-            $(vm.$refs.filterRegion).select2({
-                "theme": "bootstrap",
-                allowClear: true,
-                placeholder:"Select Region"
-            }).
-            on("select2:select",function (e) {
-                var selected = $(e.currentTarget);
-                vm.filterProposalRegion = selected.val();
-            }).
-            on("select2:unselect",function (e) {
-                var selected = $(e.currentTarget);
-                vm.filterProposalRegion = selected.val();
-            });
+            //vm.applySelect2()
+        },
+        applySelect2: function(){
+            console.log('in applySelect2')
+            let vm = this
+
+            if (!vm.select2Applied){
+                console.log('select2 is being applied')
+                $(vm.$refs.filterRegion).select2({
+                    "theme": "bootstrap",
+                    allowClear: true,
+                    placeholder: "Select Region",
+                    multiple: true,
+                }).
+                on("select2:select",function (e) {
+                    var selected = $(e.currentTarget);
+                    vm.filterProposalRegion = selected.val();
+                }).
+                on("select2:unselect",function (e) {
+                    var selected = $(e.currentTarget);
+                    vm.filterProposalRegion = selected.val();
+                });
+            }
+            vm.select2Applied = true
         },
         initialiseSearch:function(){
             this.regionSearch();
@@ -388,10 +497,10 @@ export default {
             vm.$refs.proposal_datatable.table.dataTableExt.afnFiltering.push(
                 function(settings,data,dataIndex,original){
                     let found = false;
-                    let filtered_regions = vm.filterProposalRegion.split(',');
-                    if (filtered_regions == 'All'){ return true; } 
+                    let filtered_regions = vm.filterProposalRegion;
+                    if (filtered_regions.length == 0){ return true; }
 
-                    let regions = original.regions != '' && original.regions != null ? original.regions.split(','): [];
+                    let regions = original.region != '' && original.region != null ? original.region.split(','): [];
 
                     $.each(regions,(i,r) => {
                         if (filtered_regions.indexOf(r) != -1){
@@ -410,7 +519,7 @@ export default {
             vm.$refs.proposal_datatable.table.dataTableExt.afnFiltering.push(
                 function(settings,data,dataIndex,original){
                     let filtered_submitter = vm.filterProposalSubmitter;
-                    if (filtered_submitter == 'All'){ return true; } 
+                    if (filtered_submitter == 'All'){ return true; }
                     return filtered_submitter == original.submitter.email;
                 }
             );
@@ -444,7 +553,7 @@ export default {
                         else{
                             return false;
                         }
-                    } 
+                    }
                     else{
                         return false;
                     }
@@ -455,30 +564,48 @@ export default {
             let vm = this;
             Vue.http.get(api_endpoints.profile).then((response) => {
                 vm.profile = response.body
-                              
+
             },(error) => {
                 console.log(error);
-                
+
             })
         },
         check_assessor: function(compliance){
-            let vm = this;         
-            
-            var assessor = compliance.allowed_assessors.filter(function(elem){
-                    return(elem.id==vm.profile.id)
-                });
-                
-            if (assessor.length > 0){
-                //console.log(proposal.id, assessor)
-                return true;
+            let vm = this;
+            if (compliance.allowed_assessors) {
+                var assessor = compliance.allowed_assessors.filter(function(elem){
+                        return(elem.id==vm.profile.id)
+                    });
+
+                if (assessor.length > 0){
+                    //console.log(proposal.id, assessor)
+                    return true;
+                }
+                else
+                    return false;
+            } else {
+                return false;
             }
-            else
-                return false;       
-            
-            return false;       
         }
     },
+    created: function() {
+        let vm = this
+        vm.$http.get('/template_group',{
+            emulateJSON:true
+            }).then(res=>{
+                if (res.body.template_group === 'apiary') {
+                    vm.apiaryTemplateGroup = true;
+                } else {
+                    vm.dasTemplateGroup = true;
+                }
+                vm.templateGroupDetermined = true
+                vm.applySelect2()
+        },err=>{
+        console.log(err);
+        });
+    },
     mounted: function(){
+        console.log('in mounted')
         let vm = this;
         vm.fetchFilterLists();
         vm.fetchProfile();
@@ -488,15 +615,14 @@ export default {
                 $( chev ).toggleClass( "glyphicon-chevron-down glyphicon-chevron-up" );
             }, 100 );
         });
-        this.$nextTick(() => {
-            vm.addEventListeners();
-            vm.initialiseSearch();
-        });
         if(vm.is_external){
             var column = vm.$refs.proposal_datatable.vmDataTable.columns(8); //Hide 'Assigned To column for external'
             column.visible(false);
         }
-        
+        this.$nextTick(() => {
+            this.initialiseSearch();
+            this.addEventListeners();
+        });
     }
 }
 </script>

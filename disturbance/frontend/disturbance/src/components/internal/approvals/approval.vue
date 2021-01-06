@@ -217,6 +217,21 @@ export default {
         return moment(data).format('DD/MM/YYYY');
     }
   },
+    props: {
+        approvalId: {
+            type: Number,
+        },
+    },
+  created: function(){
+    Vue.http.get(helpers.add_endpoint_json(api_endpoints.approvals,this.approvalId)).then((response) => {
+        this.approval = response.body;
+        this.approval.applicant_id = response.body.applicant_id;
+        this.fetchOrganisation(this.approval.applicant_id)
+    },(error) => {
+        console.log(error);
+    }) 
+  },
+/*
   beforeRouteEnter: function(to, from, next){
     Vue.http.get(helpers.add_endpoint_json(api_endpoints.approvals,to.params.approval_id)).then((response) => {
         next(vm => {
@@ -229,6 +244,7 @@ export default {
         console.log(error);
     }) 
   },
+  */
   components: {
     datatable,
     CommsLogs

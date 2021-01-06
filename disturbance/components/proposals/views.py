@@ -1,4 +1,4 @@
-from django.http import HttpResponse,JsonResponse
+from django.http import HttpResponse, JsonResponse, Http404
 from django.urls import reverse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import View, TemplateView
@@ -36,12 +36,27 @@ class ProposalHistoryCompareView(HistoryCompareDetailView):
     model = Proposal
     template_name = 'disturbance/reversion_history.html'
 
+
 class ReferralHistoryCompareView(HistoryCompareDetailView):
     """
     View for reversion_compare
     """
     model = Referral
     template_name = 'disturbance/reversion_history.html'
+
+
+class ExternalProposalTemporaryUseSubmitSuccessView(TemplateView):
+    model = Proposal
+    template_name = 'disturbance/temporary_use_submit_success.html'
+
+    def post(self, request, *args, **kwargs):
+        proposal_id = kwargs['proposal_pk']
+        p = Proposal.objects.get(id=proposal_id)
+        return render(request, self.template_name, context={'modified_date': p.modified_date})
+
+
+# def success_view(request):
+#     pass
 
 
 class ApprovalHistoryCompareView(HistoryCompareDetailView):
@@ -79,12 +94,14 @@ class HelpPageHistoryCompareView(HistoryCompareDetailView):
 
 class PreviewLicencePDFView(View):
     def post(self, request, *args, **kwargs):
+        #import ipdb; ipdb.set_trace()
         response = HttpResponse(content_type='application/pdf')
 
         proposal = self.get_object()
         details = json.loads(request.POST.get('formData'))
 
-        response.write(proposal.preview_approval(request, details))
+        #response.write(proposal.preview_approval(request, details))
+        response.content = proposal.preview_approval(request, details)
         return response
 
     def get_object(self):
