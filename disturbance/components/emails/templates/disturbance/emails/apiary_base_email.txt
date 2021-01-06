@@ -8,7 +8,7 @@ Dear Sir/Madam,
 {% block signature %}
 Yours sincerely,
 
-{{ settings.APIARY_SYSTEM_NAME_SHORT }} Section
+Apiary Section
 {% endblock %}
 
 
