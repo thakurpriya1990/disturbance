@@ -1,7 +1,7 @@
 <template id="proposal_dashboard">
     <div class="row">
         <template v-if="is_local">
-            proposal_external.vue
+            proposals_dashboard.vue
         </template>
         <div class="col-sm-12">
             <div class="panel panel-default">
@@ -116,11 +116,14 @@ export default {
     },
     data() {
         let vm = this;
-        let assigned_officer_column_name = "assigned_officer__first_name, assigned_officer__last_name, assigned_officer__email"
-        let submitter_column_name = "submitter__email, submitter__first_name, submitter__last_name"
-        let proponent_applicant_column_name = 'applicant__organisation__name, proxy_applicant__first_name, proxy_applicant__last_name, proxy_applicant__email'
+        //let assigned_officer_column_name = "assigned_officer__first_name, assigned_officer__last_name, assigned_officer__email"
+        //let submitter_column_name = "submitter__email, submitter__first_name, submitter__last_name"
+        //let proponent_applicant_column_name = 'applicant__organisation__name, proxy_applicant__first_name, proxy_applicant__last_name, proxy_applicant__email'
 
         return {
+            assigned_officer_column_name: "assigned_officer__first_name, assigned_officer__last_name, assigned_officer__email",
+            submitter_column_name: "submitter__email, submitter__first_name, submitter__last_name",
+            proponent_applicant_column_name: 'applicant__organisation__name, proxy_applicant__first_name, proxy_applicant__last_name, proxy_applicant__email',
             pBody: 'pBody' + vm._uid,
             datatable_id: 'proposal-datatable-'+vm._uid,
             //Profile to check if user has access to process Proposal
@@ -128,6 +131,7 @@ export default {
             //template_group: '',
             apiaryTemplateGroup: false,
             dasTemplateGroup: false,
+            templateGroupDetermined: false,
             is_das_admin: false,
             is_apiary_admin: false,
             is_das_apiary_admin: false,
@@ -239,6 +243,16 @@ export default {
                         name: 'activity',
                     },
                     {
+                        // 3.5 Title
+                        data: "title",
+                        'render': function (value) {
+                            return helpers.dtPopover(value);
+                        },
+                        'createdCell': helpers.dtPopoverCellFn,
+                        visible: false,
+                        name: 'title',
+                    },
+                    {
                         // 4. Submitter
                         data: "submitter",
                         mRender:function (data,type,full) {
@@ -247,13 +261,13 @@ export default {
                             }
                             return ''
                         },
-                        name: submitter_column_name,
+                        name: vm.submitter_column_name,
                         searchable: true,
                     },
                     {
                         // 5. Proponent/Applicant
                         data: "relevant_applicant_name",
-                        name: proponent_applicant_column_name,
+                        name: vm.proponent_applicant_column_name,
                         searchable: true,
                     },
                     {
@@ -279,7 +293,7 @@ export default {
                         // 8. Assigned Officer
                         data: "assigned_officer",
                         visible: false,
-                        name: assigned_officer_column_name,
+                        name: vm.assigned_officer_column_name,
                         searchable: true,
                     },
                     {
@@ -288,9 +302,6 @@ export default {
                             let links = '';
                             if (full.fee_paid) {
                                 links +=  `<a href='/payments/invoice-pdf/${full.fee_invoice_reference}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i></a> &nbsp`;
-                                if (!full.apiary_group_application_type) {
-                                    links +=  `<a href='/payments/confirmation-pdf/${full.fee_invoice_reference}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i></a><br/>`;
-                                }
                                 if (!vm.is_external){
                                     links +=  `<a href='/ledger/payments/invoice/payment?invoice=${full.fee_invoice_reference}' target='_blank'>View Payment</a><br/>`;
                                 }
@@ -331,21 +342,8 @@ export default {
                 ],
                 processing: true,
                 initComplete: function() {
-                    let regionColumn = vm.$refs.proposal_datatable.vmDataTable.column('region__name:name');
-                    if (vm.dasTemplateGroup) {
-                        regionColumn.visible(true);
-                    }
-
-                    let invoiceColumn = vm.$refs.proposal_datatable.vmDataTable.column('invoice_column:name');
-                    if ((!vm.is_external && vm.dasTemplateGroup && vm.is_das_apiary_admin) || vm.apiaryTemplateGroup){
-                        invoiceColumn.visible(true);
-                    }
-
-                    //let assignedOfficerColumn = vm.$refs.proposal_datatable.vmDataTable.column('assigned_officer_column:name')
-                    let assignedOfficerColumn = vm.$refs.proposal_datatable.vmDataTable.column(assigned_officer_column_name + ':name')
-                    if (!vm.is_external){
-                        assignedOfficerColumn.visible(true)
-                    }
+                    console.log('in initComplete')
+                    vm.showHideColumns()
                 },
             },
         }
@@ -354,6 +352,10 @@ export default {
         datatable
     },
     watch:{
+        templateGroupDetermined: function(){
+            console.log('in templateGroupDetermined')
+            this.showHideColumns()
+        },
         filterProposalRegion: function(){
             this.$refs.proposal_datatable.vmDataTable.draw();
             //let vm = this;
@@ -379,10 +381,9 @@ export default {
             //this.$refs.proposal_datatable.vmDataTable.draw();
             let vm = this;
             if (vm.filterProposalSubmitter!= 'All') {
-                vm.$refs.proposal_datatable.vmDataTable.column('submitter_column_name:name').search(vm.filterProposalSubmitter).draw();
-
+                vm.$refs.proposal_datatable.vmDataTable.column(vm.submitter_column_name + ':name').search(vm.filterProposalSubmitter).draw();
             } else {
-                vm.$refs.proposal_datatable.vmDataTable.column('submitter_column_name:name').search('').draw();
+                vm.$refs.proposal_datatable.vmDataTable.column(vm.submitter_column_name + ':name').search('').draw();
             }
         },
         filterProposalStatus: function() {
@@ -423,6 +424,7 @@ export default {
                 "Number",
                 "Region",
                 activity_or_application_type,
+                "Title",
                 "Submitter",
                 proponent_or_applicant,
                 "Status",
@@ -457,6 +459,24 @@ export default {
 
     },
     methods:{
+        showHideColumns: function(){
+            console.log('in showHideColumns')
+            let vm = this
+            let regionColumn = vm.$refs.proposal_datatable.vmDataTable.column('region__name:name');
+            let titleColumn = vm.$refs.proposal_datatable.vmDataTable.column('title:name');
+            if (vm.dasTemplateGroup) {
+                regionColumn.visible(true);
+                titleColumn.visible(true);
+            }
+            let invoiceColumn = vm.$refs.proposal_datatable.vmDataTable.column('invoice_column:name');
+            if ((!vm.is_external && vm.dasTemplateGroup && vm.is_das_apiary_admin) || vm.apiaryTemplateGroup){
+                invoiceColumn.visible(true);
+            }
+            let assignedOfficerColumn = vm.$refs.proposal_datatable.vmDataTable.column(vm.assigned_officer_column_name + ':name')
+            if (!vm.is_external){
+                assignedOfficerColumn.visible(true)
+            }
+        },
         setDashboardText: function() {
             if (this.apiaryTemplateGroup) {
                 this.dashboardTitle = 'Applications';
@@ -720,6 +740,7 @@ export default {
                     this.dasTemplateGroup = true;
                     this.applySelect2()
                 }
+                this.templateGroupDetermined = true;
                 this.setDashboardText();
                 this.is_das_admin = res.body.is_das_admin
                 this.is_apiary_admin = res.body.is_apiary_admin

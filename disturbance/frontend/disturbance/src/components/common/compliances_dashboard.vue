@@ -105,6 +105,7 @@ export default {
             profile: {},
             dasTemplateGroup: false,
             apiaryTemplateGroup: false,
+            templateGroupDetermined: false,
             // Filters for Proposals
             filterProposalRegion: [],
             filterProposalActivity: 'All',
@@ -285,17 +286,7 @@ export default {
                 ],
                 processing: true,
                 initComplete: function() {
-                    // set column visibility and headers according to template group
-                    // region
-                    let regionColumn = vm.$refs.proposal_datatable.vmDataTable.column('proposal__region__name:name');
-                    let activityColumn = vm.$refs.proposal_datatable.vmDataTable.column('proposal__activity:name');
-                    let titleColumn = vm.$refs.proposal_datatable.vmDataTable.column('proposal__title:name');
-                    if (vm.dasTemplateGroup) {
-                        regionColumn.visible(true);
-                        activityColumn.visible(true);
-                        titleColumn.visible(true);
-
-                    }
+                    vm.showHideColumns()
                 },
 
                 /*
@@ -342,6 +333,9 @@ export default {
         datatable
     },
     watch:{
+        templateGroupDetermined: function(){
+            this.showHideColumns()
+        },
         filterProposalRegion: function(){
             this.$refs.proposal_datatable.vmDataTable.draw();
         },
@@ -403,7 +397,7 @@ export default {
             }
             return [
                 "Number",           // 1
-                "Region/District",  // 2
+                "Region",  // 2
                 "Activity",         // 3
                 "Title",            // 4
                 approval_or_licence,// 5
@@ -418,6 +412,18 @@ export default {
         },
     },
     methods:{
+        showHideColumns: function(){
+            let vm = this
+            // set column visibility and headers according to template group
+            let regionColumn = vm.$refs.proposal_datatable.vmDataTable.column('proposal__region__name:name');
+            let activityColumn = vm.$refs.proposal_datatable.vmDataTable.column('proposal__activity:name');
+            let titleColumn = vm.$refs.proposal_datatable.vmDataTable.column('proposal__title:name');
+            if (vm.dasTemplateGroup) {
+                regionColumn.visible(true);
+                activityColumn.visible(true);
+                titleColumn.visible(true);
+            }
+        },
         fetchFilterLists: function(){
             let vm = this;
 
@@ -583,19 +589,17 @@ export default {
         }
     },
     created: function() {
-        console.log('in created')
-        // retrieve template group
-        this.$http.get('/template_group',{
+        let vm = this
+        vm.$http.get('/template_group',{
             emulateJSON:true
             }).then(res=>{
-                //this.template_group = res.body.template_group;
                 if (res.body.template_group === 'apiary') {
-                    this.apiaryTemplateGroup = true;
+                    vm.apiaryTemplateGroup = true;
                 } else {
-                    this.dasTemplateGroup = true;
+                    vm.dasTemplateGroup = true;
                 }
-                console.log('templateGroup updated')
-                this.applySelect2()
+                vm.templateGroupDetermined = true
+                vm.applySelect2()
         },err=>{
         console.log(err);
         });

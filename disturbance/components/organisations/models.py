@@ -613,7 +613,6 @@ class OrganisationRequest(models.Model):
     role = models.CharField(max_length=100,choices=ROLE_CHOICES, default="employee")
     template_group = models.CharField(max_length=100,choices=TEMPLATE_GROUP_CHOICES, default="das")
 
-
     class Meta:
         app_label = 'disturbance'
 
@@ -704,6 +703,9 @@ class OrganisationRequest(models.Model):
 
     def log_user_action(self, action, request):
         return OrganisationRequestUserAction.log_action(self, action, request.user)
+
+    def __str__(self):
+        return 'name: {}, id {}'.format(self.name, self.id)
 
 
 class ApiaryOrganisationAccessGroup(models.Model):
