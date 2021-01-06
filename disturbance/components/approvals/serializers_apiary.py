@@ -13,10 +13,10 @@ class ApiarySiteOnApprovalGeometrySerializer(GeoFeatureModelSerializer):
     """
     id = serializers.IntegerField(source='apiary_site.id')
     site_guid = serializers.CharField(source='apiary_site.site_guid')
-    status = serializers.SerializerMethodField()
-    site_category = serializers.SerializerMethodField()
+    status = serializers.CharField(source='site_status')
+    site_category = serializers.CharField(source='site_category.name')
     previous_site_holder_or_applicant = serializers.SerializerMethodField()
-    is_vacant = serializers.SerializerMethodField()
+    is_vacant = serializers.BooleanField(source='apiary_site.is_vacant')
     stable_coords = serializers.SerializerMethodField()
 
     class Meta:
@@ -37,15 +37,6 @@ class ApiarySiteOnApprovalGeometrySerializer(GeoFeatureModelSerializer):
     def get_stable_coords(self, obj):
         return obj.wkb_geometry.get_coords()
 
-    def get_is_vacant(self, obj):
-        return obj.apiary_site.is_vacant
-
-    def get_status(self, obj):
-        return obj.site_status
-
-    def get_site_category(self, obj):
-        return obj.site_category.name
-
     def get_previous_site_holder_or_applicant(self, obj):
         try:
             relevant_applicant_name = obj.approval.relevant_applicant_name
@@ -56,7 +47,7 @@ class ApiarySiteOnApprovalGeometrySerializer(GeoFeatureModelSerializer):
 
 class ApiarySiteOnApprovalGeometryExportSerializer(ApiarySiteOnApprovalGeometrySerializer):
     status = serializers.SerializerMethodField()
-    category = serializers.SerializerMethodField()
+    category = serializers.CharField(source='site_category.name')
     surname = serializers.SerializerMethodField()
     first_name = serializers.SerializerMethodField()
     address = serializers.SerializerMethodField()
@@ -89,8 +80,8 @@ class ApiarySiteOnApprovalGeometryExportSerializer(ApiarySiteOnApprovalGeometryS
     def get_status(self, relation):
         return get_status_for_export(relation)
 
-    def get_category(self, relation):
-        return relation.site_category.name
+    # def get_category(self, relation):
+    #     return relation.site_category.name
 
     def get_surname(self, relation):
         relevant_applicant = relation.approval.relevant_applicant

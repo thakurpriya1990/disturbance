@@ -11,6 +11,7 @@
             <button type="submit" name="script" value="update_approval_status" {% if update_approval_status == 'true' %}style="color:green" {% endif %} title="Change the status of Approvals to Surrender/Cancelled/Suspended">Run Script 'update_approval_status'</button><br><br>
             <button type="submit" name="script" value="update_compliance_status" {% if update_compliance_status == 'true' %}style="color:green" {% endif %} title="Change the status of Compliances from future to due when they are close to due date (eg. within 14 days)">Run Script 'update_compliance_status'</button><br><br>
             <button type="submit" name="script" value="send_annual_rental_fee_invoice" {% if send_annual_rental_fee_invoice == 'true' %}style="color:green" {% endif %} title="Send annual site fee invoices.">Run Script 'send_annual_rental_fee_invoice'</button><br><br>
+            <button type="submit" name="script" value="save_apiary_sites" {% if save_apiary_sites == 'true' %}style="color:green" {% endif %} title="Save apiary sites.">Run Script 'save_apiary_sites'</button><br><br>
         </form>
         <br>
     </div>

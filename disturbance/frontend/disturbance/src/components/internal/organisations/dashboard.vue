@@ -53,11 +53,11 @@
         </div>
     </div>
     <template v-if="table_id">
-        <datatable 
-            ref="org_access_table" 
-            id="org-access-table" 
-            :dtOptions="dtOptions" 
-            :dtHeaders="dtHeaders" 
+        <datatable
+            ref="org_access_table"
+            id="org-access-table"
+            :dtOptions="dtOptions"
+            :dtHeaders="dtHeaders"
             :key="table_id">
         </datatable>
     </template>
@@ -105,6 +105,7 @@ export default {
                 },
                 responsive: true,
                 processing:true,
+                order: [[0, "desc"]],
                 ajax: {
                     "url": helpers.add_endpoint_json(api_endpoints.organisation_requests,'datatable_list'),
                     "dataSrc": '',
@@ -142,7 +143,7 @@ export default {
                             }
                             else{
                                 if(vm.is_assessor){
-                                    var column = "<a href='/internal/organisations/access/\__ID__\'> Process </a>"; 
+                                    var column = "<a href='/internal/organisations/access/\__ID__\'> Process </a>";
                                 }
                                 else{
                                     var column = "<a href='/internal/organisations/access/\__ID__\' >View </a>";
@@ -257,9 +258,9 @@ export default {
         let vm = this;
         Vue.http.get(api_endpoints.profile).then((response) => {
             vm.profile = response.body
-                              
+
          },(error) => {
-                
+
         })
         },
         */

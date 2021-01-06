@@ -200,12 +200,10 @@ export default {
                         name: "proposal__activity",
                         //searchable: false, // handles by filter_queryset override method - class ProposalFilterBackend
                     },
-                    /*
                     {
                         data: "title",
                         name: "proposal__title",
                     },
-                    */
                     {
                         data: "submitter",
                         mRender:function (data,type,full) {
@@ -414,7 +412,7 @@ export default {
                 "Number",
                 "Region",
                 activity_or_application_type,
-                /*"Title",*/
+                "Title",
                 "Submitter",
                 proponent_or_applicant,
                 "Status",

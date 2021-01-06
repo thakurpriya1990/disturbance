@@ -72,7 +72,7 @@
         </template>
 
         <div class="row col-sm-12">
-            <datatable ref="site_locations_table" id="site-locations-table" :dtOptions="dtOptions" :dtHeaders="dtHeaders" />
+            <datatable @hook:mounted="datatable_mounted" ref="site_locations_table" id="site-locations-table" :dtOptions="dtOptions" :dtHeaders="dtHeaders" />
             <span class="view_all_button action_link" @click="displayAllFeatures">View All Proposed Sites On Map</span>
         </div>
 
@@ -176,7 +176,6 @@
                 buffer_radius: 3000, // [m]
                 min_num_of_sites_for_renewal: 5,
                 min_num_of_sites_for_new: 5,
-                existing_sites_loaded: false,
                 style_for_vacant_selected: new Style({
                     image: new CircleStyle({
                         radius: existingSiteRadius,
@@ -239,6 +238,17 @@
                 vacant_site_being_selected: null,
                 swZoneSource: null,
                 //
+
+                // for timing
+                proposal_vacant_draft_loaded: false,
+                proposal_vacant_processed_loaded: false,
+                approval_vacant_loaded: false,
+                proposal_draft_loaded: false,
+                proposal_processed_loaded: false,
+                approval_loaded: false,
+                startTime: null,
+                endTime: null,
+
                 dtHeaders: [
                     'Id',
                     'Latitude',
@@ -513,12 +523,6 @@
             total_num_of_sites_on_map: function() {
                 this.$emit('total_num_of_sites_on_map', this.total_num_of_sites_on_map)
             },
-            existing_sites_loaded: function() {
-                if (this.existing_sites_loaded){
-                    this.load_apiary_sites_in_this_proposal()
-                    this.displayAllFeatures()
-                }
-            },
             total_num_of_sites_on_map_unpaid: function() {
                 this.$emit('total_num_of_sites_on_map_unpaid', this.total_num_of_sites_on_map_unpaid)
             },
@@ -567,6 +571,9 @@
             }
         },
         methods:{
+            datatable_mounted: function(){
+                this.constructSiteLocationsTable();
+            },
             load_apiary_sites_in_this_proposal: function(){
                 // Load the apiary sites in this proposal on the map
                 let vm = this
@@ -805,7 +812,7 @@
             },
             constructSiteLocationsTable: function(){
                 console.log('in constructSiteLocationsTable')
-                if (this.drawingLayerSource){
+                if (this.drawingLayerSource && this.$refs.site_locations_table){
                     // Clear table
                     this.$refs.site_locations_table.vmDataTable.clear().draw();
 
@@ -1202,19 +1209,93 @@
                 this.createBufferForSite(feature);
                 return true;
             },
+            display_duration: function(label){
+                let finishedDate = new Date()
+                let delta = finishedDate - this.startTime
+                console.log(label + ' ' + delta + ' [ms]')
+                if (this.proposal_vacant_draft_loaded && 
+                    this.proposal_vacant_processed_loaded && 
+                    this.approval_vacant_loaded && 
+                    this.proposal_draft_loaded && 
+                    this.proposal_processed_loaded && 
+                    this.approval_loaded){
+                        this.endTime = new Date()
+                        let timeDiff = this.endTime - this.startTime
+                        console.log('total time: ' + timeDiff + ' [ms]')
+                    }
+            },
+            load_existing_sites: function(){
+                let vm = this
+                this.$http.get('/api/apiary_site/list_existing_proposal_vacant_draft/?proposal_id=' + this.proposal.id).then(
+                    res => {
+                        vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
+                        vm.proposal_vacant_draft_loaded = true
+                        vm.display_duration('1(' + res.body.features.length + ' sites)')
+                    },
+                    err => {}
+                )
+                this.$http.get('/api/apiary_site/list_existing_proposal_vacant_processed/?proposal_id=' + this.proposal.id).then(
+                    res => {
+                        vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
+                        vm.proposal_vacant_processed_loaded = true
+                        vm.display_duration('2(' + res.body.features.length + ' sites)')
+                    },
+                    err => {}
+                )
+                this.$http.get('/api/apiary_site/list_existing_vacant_approval/?proposal_id=' + this.proposal.id).then(
+                    res => {
+                        vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
+                        vm.approval_vacant_loaded = true
+                        vm.display_duration('3(' + res.body.features.length + ' sites)')
+                    },
+                    err => {}
+                )
+                this.$http.get('/api/apiary_site/list_existing_proposal_draft/?proposal_id=' + this.proposal.id).then(
+                    res => {
+                        vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
+                        vm.proposal_draft_loaded = true
+                        vm.display_duration('4(' + res.body.features.length + ' sites)')
+                    },
+                    err => {}
+                )
+                this.$http.get('/api/apiary_site/list_existing_proposal_processed/?proposal_id=' + this.proposal.id).then(
+                    res => {
+                        vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
+                        vm.proposal_processed_loaded = true
+                        vm.display_duration('5(' + res.body.features.length + ' sites)')
+                    },
+                    err => {}
+                )
+                this.$http.get('/api/apiary_site/list_existing_approval/?proposal_id=' + this.proposal.id).then(
+                    res => {
+                        vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
+                        vm.approval_loaded = true
+                        vm.display_duration('6(' + res.body.features.length + ' sites)')
+                    },
+                    err => {}
+                )
+            }
         },
-        created: function() {
+        created: async function() {
+            this.load_apiary_sites_in_this_proposal()
+            this.displayAllFeatures()
             let vm = this
-            this.$http.get('/api/apiary_site/list_existing/?proposal_id=' + this.proposal.id)
-            .then(
-                res => {
-                    vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
-                    vm.existing_sites_loaded = true
-                },
-                err => {
+            let at_once = false
+            vm.startTime = new Date()
 
-                }
-            )
+            if (at_once){
+                await this.$http.get('/api/apiary_site/list_existing/?proposal_id=' + this.proposal.id)
+                .then(
+                    res => {vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))},
+                    err => {}
+                )
+                vm.endTime = new Date()
+                let timeDiff = vm.endTime - vm.startTime
+                console.log('total time: ' + timeDiff + ' [ms]')
+            } else {
+                await this.load_existing_sites()
+            }
+
             this.make_remainders_reactive()
         },
         mounted: function() {
