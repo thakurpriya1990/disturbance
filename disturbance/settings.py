@@ -79,17 +79,18 @@ TEMPLATES[0]['DIRS'].append(os.path.join(BASE_DIR, 'disturbance', 'templates'))
 TEMPLATES[0]['DIRS'].append(os.path.join(BASE_DIR, 'disturbance','components','organisations', 'templates'))
 TEMPLATES[0]['DIRS'].append(os.path.join(BASE_DIR, 'disturbance','components','emails', 'templates'))
 TEMPLATES[0]['OPTIONS']['context_processors'].append('disturbance.context_processors.apiary_url')
-BOOTSTRAP3 = {
-    'jquery_url': '//static.dpaw.wa.gov.au/static/libs/jquery/2.2.1/jquery.min.js',
-    'base_url': '//static.dpaw.wa.gov.au/static/libs/twitter-bootstrap/3.3.6/',
-    'css_url': None,
-    'theme_url': None,
-    'javascript_url': None,
-    'javascript_in_head': False,
-    'include_jquery': False,
-    'required_css_class': 'required-form-field',
-    'set_placeholder': False,
-}
+del BOOTSTRAP3['css_url']
+#BOOTSTRAP3 = {
+#    'jquery_url': '//static.dpaw.wa.gov.au/static/libs/jquery/2.2.1/jquery.min.js',
+#    'base_url': '//static.dpaw.wa.gov.au/static/libs/twitter-bootstrap/3.3.6/',
+#    'css_url': None,
+#    'theme_url': None,
+#    'javascript_url': None,
+#    'javascript_in_head': False,
+#    'include_jquery': False,
+#    'required_css_class': 'required-form-field',
+#    'set_placeholder': False,
+#}
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
