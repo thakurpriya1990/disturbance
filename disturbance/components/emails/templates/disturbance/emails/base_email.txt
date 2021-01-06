@@ -8,7 +8,7 @@ Dear Sir/Madam,
 {% block signature %}
 Yours sincerely,
 
-{{ settings.SYSTEM_NAME_SHORT }} Section
+DAS Section
 {% endblock %}
 
 
