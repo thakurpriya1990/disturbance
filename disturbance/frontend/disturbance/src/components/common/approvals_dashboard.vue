@@ -414,22 +414,7 @@ export default {
                 ],
                 processing: true,
                 initComplete: function() {
-                    // set column visibility and headers according to template group
-                    // region
-                    let regionColumn = vm.$refs.proposal_datatable.vmDataTable.column('current_proposal__region__name:name');
-                    let activityColumn = vm.$refs.proposal_datatable.vmDataTable.column('current_proposal__activity:name');
-                    let titleColumn = vm.$refs.proposal_datatable.vmDataTable.column('current_proposal__title:name');
-                    let approvalColumn = vm.$refs.proposal_datatable.vmDataTable.column('licence_document__name:name');
-                    if (vm.dasTemplateGroup) {
-                        regionColumn.visible(true);
-                        activityColumn.visible(true);
-                        titleColumn.visible(true)
-                        if (!vm.is_external){
-                            approvalColumn.visible(true)
-                        }
-                    } else {
-                        approvalColumn.visible(true)
-                    }
+                    vm.showHideColumns()
                 },
 
 				/*
@@ -481,6 +466,9 @@ export default {
         ApprovalHistory
     },
     watch:{
+        templateGroupDetermined: function(){
+            this.showHideColumns()
+        },
         filterProposalRegion: function(){
             //this.$refs.proposal_datatable.vmDataTable.draw();
             let vm = this;
@@ -554,6 +542,22 @@ export default {
         },
     },
     methods:{
+        showHideColumns: function(){
+            let vm = this
+            // set column visibility and headers according to template group
+            let regionColumn = vm.$refs.proposal_datatable.vmDataTable.column('current_proposal__region__name:name');
+            let activityColumn = vm.$refs.proposal_datatable.vmDataTable.column('current_proposal__activity:name');
+            let titleColumn = vm.$refs.proposal_datatable.vmDataTable.column('current_proposal__title:name');
+            let approvalColumn = vm.$refs.proposal_datatable.vmDataTable.column('licence_document__name:name');
+            if (vm.dasTemplateGroup) {
+                regionColumn.visible(true);
+                activityColumn.visible(true);
+                titleColumn.visible(true)
+                approvalColumn.visible(true)
+            } else {
+                approvalColumn.visible(true)
+            }
+        },
         setDashboardText: function() {
             //let title = ''
             if (this.apiaryTemplateGroup) {
