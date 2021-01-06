@@ -6,6 +6,7 @@
 {% load utils %}
 {% is_internal as is_internal_login %}
 {% is_disturbance_admin as is_disturbance_admin_user %}
+{% is_apiary_admin as is_apiary_admin_user %}
 {% system_maintenance_due as system_maintenance_due %}
 {% system_name_short as short_name %}
 {% dept_name as department_name %}
@@ -29,14 +30,18 @@
             {% endblock %}
             <title>
                 {% block title %}
-                {{ short_name }} - {{ department_name }}
+                {{ DISPLAYED_SYSTEM_NAME }} - {{ department_name }}
                 {% endblock %}
             </title>
 
         </meta>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        {% if DOMAIN_DETECTED == 'apiary' %}
+            <link rel="shortcut icon" type="image/ico" href="/static/favicon.ico"/>
+        {% endif %}
     </head>
     <body>
+        {% if DEBUG %}<div style="position: absolute; color: dodgerblue; font-size: 0.5em;">{{ DOMAIN_DETECTED }}</div>{% endif %}
         <header class="topmast">
             {% block header %}
                 {% include 'disturbance/header.html' %}
@@ -54,16 +59,30 @@
                                     <span class="icon-bar"></span>
                                     <span class="icon-bar"></span>
                                 </button>
-                                <a class="navbar-brand" href="{% url 'ds_home' %}"><div style="inline"><img src="{% static 'disturbance/img/dpaw_small.png' %}">{% if is_internal_login %}Proposals {% else %}Home {% endif %}</div></a>
+
+                                <a class="navbar-brand" href="{% url 'ds_home' %}"><div style="inline"><img src="{% static 'disturbance/img/dpaw_small.png' %}">{% if is_internal_login %}{% if TEMPLATE_GROUP == 'apiary' %}Applications{% else %}Proposals{% endif %}{% else %}Home {% endif %}</div></a>
+
                             </div>
                             <div id="navbar" class="navbar-collapse collapse">
                                 <ul class="nav navbar-nav">
                                     {% block left_menu_items %}
                                         {% if is_internal_login %}
-                                        <li><a href="/internal/approvals">Approvals</a></li>
-                                        <li><a href="/internal/compliances">Compliance with Requirements</a></li>
-                                        <li><a href="/internal/organisations/access">Organisation Access</a></li>
-                                        <li><a href="/internal/search">Search</a></li>
+                                            {% if TEMPLATE_GROUP == 'apiary' %}
+                                                <li><a href="/internal/approvals">Licences</a></li>
+                                            {% else %}
+                                                <li><a href="/internal/approvals">Approvals</a></li>
+                                            {% endif %}
+                                            <li><a href="/internal/compliances">Compliance with Requirements</a></li>
+                                            <li><a href="/internal/organisations/access">Organisation Access</a></li>
+                                            <li><a href="/internal/search">Search</a></li>
+                                            {% if TEMPLATE_GROUP == 'apiary' %}
+                                                <li><a href="/internal/site_transitions">Site Transitions</a></li>
+                                                <li><a href="/internal/available_sites">Available Sites</a></li>
+                                            {% endif %}
+                                        {% else %}
+                                            {% if TEMPLATE_GROUP == 'apiary' %}
+                                                <li><a href="/external/available_sites">Available Sites</a></li>
+                                            {% endif %}
                                         {% endif %}
                                     {% endblock %}
                                 </ul>
@@ -89,7 +108,7 @@
                                                 <span class="caret"></span>
                                             </a>
                                             <ul class="dropdown-menu">
-                                                {% if is_disturbance_admin_user or request.user.is_superuser %}
+                                                {% if is_disturbance_admin_user or is_apiary_admin_user or request.user.is_superuser %}
                                                     <li><a href="{% url 'admin:index' %}">Admin</a></li>
                                                     <li role="separator" class="divider"></li>
                                                 {% endif %}
@@ -100,6 +119,10 @@
                                                 {% for org in request.user.disturbance_organisations.all %}
                                                     <li><a href="/external/organisations/manage/{{org.id}}">Manage {{ org.organisation.name}}</a></li>
                                                 {% endfor %}
+
+                                                {% if is_payment_admin %}
+                                                    <li><a href="/internal/reports">Reports</a></li>
+                                                {% endif %}
 
                                                 <li><a href="{% url 'accounts:logout' %}?next=/">Logout</a></li>
                                             </ul>
@@ -148,7 +171,12 @@
             <script type="text/javascript" src="https://static.dpaw.wa.gov.au/static/cdnjs/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script>-->
             <script type="text/javascript" src="{% static 'disturbance_vue/static/js/manifest.js' %}"></script>
             <script type="text/javascript" src="{% static 'disturbance_vue/static/js/vendor.js' %}"></script>
-            <script type="text/javascript" src="{% static 'disturbance_vue/static/js/app.js' %}"></script>
+            {% if app_build_url %}
+                <!-- script type="text/javascript" src="{% static 'disturbance_vue/static/js/app.js' %}"></script -->
+                <script type="text/javascript" src="{{ app_build_url }}"></script>
+            {% else %}
+                <script type="text/javascript" src="{% static 'disturbance_vue/static/js/app.js' %}"></script>
+            {% endif %}
         {% else %}
             <script type="text/javascript" src="{{ dev_url }}"></script>
         {% endif %}

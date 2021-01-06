@@ -21,7 +21,7 @@
                     <!--Footer-->
                     <div class="modal-footer">
                         <slot name="footer">
-                            <button id="okBtn" type="button" :class="okClass" @click="ok">{{okText}}</button>
+                            <button id="okBtn" type="button" :class="okClass" @click="ok" :disabled="okButtonDisabled">{{okText}}</button>
                             <button type="button" :class="cancelClass" @click="cancel">{{cancelText}}</button>
                         </slot>
                     </div>
@@ -87,7 +87,8 @@
         },
         data () {
             return {
-                duration: null
+                duration: null,
+                okButtonDisabled: false
             };
         },
         computed: {
@@ -121,7 +122,7 @@
                         document.body.className = document.body.className.replace(/\s?modal-open/, '');
                     }, this.duration || 0);
                 }
-            }
+            },
         },
         methods: {
             ok () {

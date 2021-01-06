@@ -52,7 +52,15 @@
             </div>
         </div>
     </div>
-    <datatable ref="org_access_table" id="org-access-table" :dtOptions="dtOptions" :dtHeaders="dtHeaders"></datatable>
+    <template v-if="table_id">
+        <datatable
+            ref="org_access_table"
+            id="org-access-table"
+            :dtOptions="dtOptions"
+            :dtHeaders="dtHeaders"
+            :key="table_id">
+        </datatable>
+    </template>
 </div>
 </div>
 </div>
@@ -70,11 +78,14 @@ import {
   helpers
 }
 from '@/utils/hooks'
+import uuid from 'uuid'
 export default {
   name: 'OrganisationAccessDashboard',
   data() {
     let vm = this;
     return {
+        dasTemplateGroup: false,
+        apiaryTemplateGroup: false,
         // Filters
         pBody: 'pBody' + vm._uid,
         filterOrganisation: 'All',
@@ -87,12 +98,14 @@ export default {
         roleChoices: [],
         members:[],
         profile: {},
+        table_id: 0,
         dtOptions:{
                 language: {
                     processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
                 },
                 responsive: true,
                 processing:true,
+                order: [[0, "desc"]],
                 ajax: {
                     "url": helpers.add_endpoint_json(api_endpoints.organisation_requests,'datatable_list'),
                     "dataSrc": '',
@@ -129,9 +142,8 @@ export default {
                                 var column = "<a href='/internal/organisations/access/\__ID__\' >View </a>";
                             }
                             else{
-                                if(vm.is_assessor)
-                                {
-                                   var column = "<a href='/internal/organisations/access/\__ID__\'> Process </a>"; 
+                                if(vm.is_assessor){
+                                    var column = "<a href='/internal/organisations/access/\__ID__\'> Process </a>";
                                 }
                                 else{
                                     var column = "<a href='/internal/organisations/access/\__ID__\' >View </a>";
@@ -224,12 +236,13 @@ export default {
     computed: {
         isLoading: function () {
             return this.loading.length == 0;
-        }
-    },
-    methods: {
+        },
         is_assessor: function(){
             return this.check_assessor()
         },
+    },
+    methods: {
+        /*
 
         fetchAccessGroupMembers: function(){
         let vm = this;
@@ -238,7 +251,6 @@ export default {
             vm.members = response.body
             //vm.loading.splice('Loading Access Group Members',1);
         },(error) => {
-            console.log(error);
             //vm.loading.splice('Loading Access Group Members',1);
         })
         },
@@ -246,26 +258,55 @@ export default {
         let vm = this;
         Vue.http.get(api_endpoints.profile).then((response) => {
             vm.profile = response.body
-                              
+
          },(error) => {
-            console.log(error);
-                
+
         })
         },
+        */
+        fetchAccessGroupMembers: async function(){
+            //let vm = this;
+            //this.loading.push('Loading Access Group Members');
+            let url = api_endpoints.organisation_access_group_members;
+            if (this.apiaryTemplateGroup) {
+                url = api_endpoints.apiary_organisation_access_group_members;
+            }
+            const response = await this.$http.get(url)
+            this.members = response.body
+            //this.loading.splice('Loading Access Group Members',1);
+            this.table_id = uuid()
+        },
+        fetchProfile: async function(){
+            const response = await Vue.http.get(api_endpoints.profile);
+            this.profile = response.body
+        },
+
         check_assessor: function(){
-            let vm = this;            
-            var assessor = vm.members.filter(function(elem){
-                        return(elem.name==vm.profile.full_name);
-                    });
-                    if (assessor.length > 0)
-                        return true;
-                    else
-                        return false;
+            let vm = this
+            let assessor = vm.members.filter(elem => elem.id == vm.profile.id)
+            if (assessor.length > 0)
+                return true;
+            else
+                return false;
         },
     },
-    mounted: function () {
-        this.fetchAccessGroupMembers();
-        this.fetchProfile();
-    }
+    mounted: async function () {
+        //await this.fetchAccessGroupMembers();
+        //await this.fetchProfile();
+    },
+    created: async function() {
+        // retrieve template group
+        const res = await this.$http.get('/template_group',{
+            emulateJSON:true
+            })
+        if (res.body.template_group === 'apiary') {
+            this.apiaryTemplateGroup = true;
+        } else {
+            this.dasTemplateGroup = true;
+        }
+        await this.fetchProfile();
+        await this.fetchAccessGroupMembers();
+    },
+
 }
 </script>

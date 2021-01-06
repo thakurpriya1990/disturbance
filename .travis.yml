@@ -3,7 +3,7 @@ language: python
 cache: pip
 python:
     - "2.7"
-    - "3.5"
+    - "3.7"
 addons:
     postgresql: "9.6"
 services:
@@ -12,7 +12,11 @@ branches:
     only:
         - master
         - disturbance_v3
-        
+        - apiary
+        - apiary_dev
+        - working-python3
+        - apiary-python3
+
 env:
     global:
         - SECRET_KEY=SecretKeyForTravis
@@ -22,9 +26,15 @@ env:
         - NON_PROD_EMAIL="travis@dpaw.wa.gov.au"
         - BPAY_ALLOWED=True
         - EMAIL_FROM="no-reply@dbca.wa.gov.au"
+        - SUPPORT_EMAIL="test@example.com"
+        - SYSTEM_NAME_SHORT="apiary"
+        - SITE_DOMAIN="localhost"
+        - SITE_PREFIX="das"
+        - SITE_DOMAIN="dbca.wa.gov.au"
+        - TENURE_SECTION="Section1-0"
 sudo: true
 install:
-    - sudo apt-get install postgresql-9.6-postgis-2.4 -y -q
+    - sudo apt-get install postgresql-9.6-postgis-2.4 libreoffice -y -q
     - pip install pip --upgrade
     - pip install -r requirements.txt
 before_script:
@@ -33,7 +43,7 @@ before_script:
     - python manage_ds.py migrate --noinput
 script:
     - COVERAGE_FILE=.coverage_ledger coverage run --source="." manage_ds.py test --noinput ledger
-    - COVERAGE_FILE=.coverage_ds coverage run --source="." manage_ds.py test --noinput disturbance
+    - COVERAGE_FILE=.coverage_ds coverage run --source="." manage_ds.py test --noinput disturbance/tests/
     - coverage combine .coverage_ledger .coverage_ds
 after_success:
     - coveralls

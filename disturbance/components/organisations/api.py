@@ -33,6 +33,7 @@ from disturbance.components.organisations.models import  (
                                     OrganisationRequestUserAction,
                                     OrganisationContact,
                                     OrganisationAccessGroup,
+                                    ApiaryOrganisationAccessGroup,
                                     OrganisationRequestLogEntry,
                                     OrganisationAction,
                                     ledger_organisation,
@@ -67,6 +68,8 @@ from disturbance.components.organisations.emails import (
                         send_organisation_id_upload_email_notification,
                         send_organisation_request_email_notification,
                     )
+from disturbance.components.main.utils import get_template_group, handle_validation_error
+
 
 class OrganisationViewSet(viewsets.ModelViewSet):
     queryset = Organisation.objects.all()
@@ -315,11 +318,7 @@ class OrganisationViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise
         except ValidationError as e:
-            print(traceback.print_exc())
-            if hasattr(e,'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+            handle_validation_error(e)
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -578,7 +577,8 @@ class OrganisationRequestsViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if is_internal(self.request):
-            return OrganisationRequest.objects.all()
+            qs = OrganisationRequest.objects.all().order_by('-lodgement_date')
+            return qs
         elif is_customer(self.request):
             return user.organisationrequest_set.all()
         return OrganisationRequest.objects.none()
@@ -587,8 +587,9 @@ class OrganisationRequestsViewSet(viewsets.ModelViewSet):
     @list_route(methods=['GET',])
     def datatable_list(self, request, *args, **kwargs):
         try:
-            qs = self.get_queryset()
-            serializer = OrganisationRequestDTSerializer(qs,many=True)
+            template_group = get_template_group(request)
+            qs = self.get_queryset().filter(template_group=template_group)
+            serializer = OrganisationRequestDTSerializer(qs, many=True)
             return Response(serializer.data) 
         except serializers.ValidationError:
             print(traceback.print_exc())
@@ -826,6 +827,7 @@ class OrganisationRequestsViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(str(e))
 
     def create(self, request, *args, **kwargs):
+        #import ipdb; ipdb.set_trace()
         try:
             serializer = self.get_serializer(data=request.data)
             serializer.is_valid(raise_exception=True)
@@ -839,8 +841,12 @@ class OrganisationRequestsViewSet(viewsets.ModelViewSet):
                 existing_org.is_valid(raise_exception=True)
             with transaction.atomic():
                 instance = serializer.save()
+                # now set template_group
+                template_group = get_template_group(request)
+                instance.template_group = template_group
+                instance.save()
                 instance.log_user_action(OrganisationRequestUserAction.ACTION_LODGE_REQUEST.format(instance.id),request)
-                instance.send_organisation_request_email_notification(request)
+                instance.send_organisation_request_email_notification(request, template_group)
             return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
@@ -852,12 +858,43 @@ class OrganisationRequestsViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
+
 class OrganisationAccessGroupMembers(views.APIView):
-    
+
     renderer_classes = [JSONRenderer,]
     def get(self,request, format=None):
         members = []
         group = OrganisationAccessGroup.objects.first()
+        if group:
+            for m in group.all_members:
+                members.append({'name': m.get_full_name(),'id': m.id})
+        else:
+            for m in EmailUser.objects.filter(is_superuser=True,is_staff=True,is_active=True):
+                members.append({'name': m.get_full_name(),'id': m.id})
+        return Response(members)
+
+
+class ApiaryOrganisationAccessGroupMembers(views.APIView):
+
+    renderer_classes = [JSONRenderer,]
+    def get(self,request, format=None):
+        members = []
+        group = ApiaryOrganisationAccessGroup.objects.first()
+        if group:
+            for m in group.all_members:
+                members.append({'name': m.get_full_name(),'id': m.id})
+        else:
+            for m in EmailUser.objects.filter(is_superuser=True,is_staff=True,is_active=True):
+                members.append({'name': m.get_full_name(),'id': m.id})
+        return Response(members)
+
+
+class ApiaryOrganisationAccessGroupMembers(views.APIView):
+
+    renderer_classes = [JSONRenderer,]
+    def get(self,request, format=None):
+        members = []
+        group = ApiaryOrganisationAccessGroup.objects.first()
         if group:
             for m in group.all_members:
                 members.append({'name': m.get_full_name(),'id': m.id})

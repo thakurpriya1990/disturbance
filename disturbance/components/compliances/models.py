@@ -28,7 +28,15 @@ from disturbance.components.compliances.email import (
                         send_submit_email_notification,
                         send_internal_reminder_email_notification,
                         send_due_email_notification,
-                        send_internal_due_email_notification
+                        send_internal_due_email_notification,
+                        send_apiary_amendment_email_notification,
+                        send_apiary_external_submit_email_notification,
+                        send_apiary_reminder_email_notification,
+                        send_apiary_internal_reminder_email_notification,
+                        send_apiary_due_email_notification,
+                        send_apiary_internal_due_email_notification,
+                        send_apiary_compliance_accept_email_notification,
+                        send_apiary_submit_email_notification,
                         )
 
 import logging
@@ -54,7 +62,7 @@ class Compliance(RevisionedMixin):
 
 
     lodgement_number = models.CharField(max_length=9, blank=True, default='')
-    proposal = models.ForeignKey('disturbance.Proposal',related_name='compliances')
+    proposal = models.ForeignKey('disturbance.Proposal',related_name='compliances', blank=True, null=True)
     approval = models.ForeignKey('disturbance.Approval',related_name='compliances')
     due_date = models.DateField()
     text = models.TextField(blank=True)
@@ -67,6 +75,7 @@ class Compliance(RevisionedMixin):
     submitter = models.ForeignKey(EmailUser, blank=True, null=True, related_name='disturbance_compliances')
     reminder_sent = models.BooleanField(default=False)
     post_reminder_sent = models.BooleanField(default=False)
+    apiary_compliance = models.BooleanField(default=False)
 
 
     class Meta:
@@ -95,7 +104,8 @@ class Compliance(RevisionedMixin):
 
     @property
     def allowed_assessors(self):
-        return self.proposal.compliance_assessors
+        if self.proposal:
+            return self.proposal.compliance_assessors
 
     @property
     def can_user_view(self):
@@ -146,6 +156,39 @@ class Compliance(RevisionedMixin):
                 self.log_user_action(ComplianceUserAction.ACTION_SUBMIT_REQUEST.format(self.id),request)
                 send_external_submit_email_notification(request,self)
                 send_submit_email_notification(request,self)
+                self.documents.all().update(can_delete=False)
+            except:
+                raise
+
+    def apiary_submit(self,request):
+        with transaction.atomic():
+            try:
+                if self.processing_status=='discarded':
+                    raise ValidationError('You cannot submit this compliance with requirements as it has been discarded.')
+                if self.processing_status == 'future' or 'due':
+                    self.processing_status = 'with_assessor'
+                    self.customer_status = 'with_assessor'
+                    self.submitter = request.user
+
+                    if request.FILES:
+                        for f in request.FILES:
+                            document = self.documents.create(name=str(request.FILES[f]))
+                            document._file = request.FILES[f]
+                            document.save()
+                    if (self.amendment_requests):
+                        qs = self.amendment_requests.filter(status = "requested")
+                        if (qs):
+                            for q in qs:
+                                q.status = 'amended'
+                                q.save()
+
+                #self.lodgement_date = datetime.datetime.strptime(timezone.now().strftime('%Y-%m-%d'),'%Y-%m-%d').date()
+                self.lodgement_date = timezone.now()
+                self.save(version_comment='Compliance Submitted: {}'.format(self.id))
+                #self.proposal.save(version_comment='Compliance Submitted: {}'.format(self.id))
+                self.log_user_action(ComplianceUserAction.ACTION_SUBMIT_REQUEST.format(self.id),request)
+                send_apiary_external_submit_email_notification(request,self)
+                send_apiary_submit_email_notification(request,self)
                 self.documents.all().update(can_delete=False)
             except:
                 raise
@@ -215,7 +258,10 @@ class Compliance(RevisionedMixin):
 
 
 def update_proposal_complaince_filename(instance, filename):
-    return 'proposals/{}/compliance/{}/{}'.format(instance.compliance.proposal.id,instance.compliance.id,filename)
+    if instance.compliance.apiary_compliance:
+        return 'approvals/{}/compliance/{}/{}'.format(instance.compliance.approval.id,instance.compliance.id,filename)
+    else:
+        return 'proposals/{}/compliance/{}/{}'.format(instance.compliance.proposal.id,instance.compliance.id,filename)
 
 
 class ComplianceDocument(Document):
@@ -230,6 +276,7 @@ class ComplianceDocument(Document):
 
     class Meta:
         app_label = 'disturbance'
+
 
 class ComplianceUserAction(UserAction):
     ACTION_CREATE = "Create compliance {}"
@@ -337,8 +384,8 @@ class ComplianceAmendmentRequest(CompRequest):
             send_amendment_email_notification(self,request, compliance)
 
 
-def update_proposal_complaince_filename(instance, filename):
-    return 'proposals/{}/compliance/{}/{}'.format(instance.compliance.proposal.id,instance.compliance.id,filename)
+# def update_proposal_complaince_filename(instance, filename):
+#     return 'proposals/{}/compliance/{}/{}'.format(instance.compliance.proposal.id,instance.compliance.id,filename)
 
 
 
