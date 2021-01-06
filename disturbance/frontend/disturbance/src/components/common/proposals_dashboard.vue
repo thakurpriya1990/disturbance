@@ -128,6 +128,7 @@ export default {
             //template_group: '',
             apiaryTemplateGroup: false,
             dasTemplateGroup: false,
+            templateGroupDetermined: false,
             is_das_admin: false,
             is_apiary_admin: false,
             is_das_apiary_admin: false,
@@ -338,24 +339,7 @@ export default {
                 ],
                 processing: true,
                 initComplete: function() {
-                    let regionColumn = vm.$refs.proposal_datatable.vmDataTable.column('region__name:name');
-                    let titleColumn = vm.$refs.proposal_datatable.vmDataTable.column('title:name');
-                    if (vm.dasTemplateGroup) {
-                        regionColumn.visible(true);
-                        titleColumn.visible(true);
-                    }
-
-                    let invoiceColumn = vm.$refs.proposal_datatable.vmDataTable.column('invoice_column:name');
-                    if ((!vm.is_external && vm.dasTemplateGroup && vm.is_das_apiary_admin) || vm.apiaryTemplateGroup){
-                        invoiceColumn.visible(true);
-                    }
-
-                    //let assignedOfficerColumn = vm.$refs.proposal_datatable.vmDataTable.column('assigned_officer_column:name')
-                    let assignedOfficerColumn = vm.$refs.proposal_datatable.vmDataTable.column(assigned_officer_column_name + ':name')
-                    if (!vm.is_external){
-                        assignedOfficerColumn.visible(true)
-                    }
-
+                    vm.showHideColumns()
                 },
             },
         }
@@ -364,6 +348,9 @@ export default {
         datatable
     },
     watch:{
+        templateGroupDetermined: function(){
+            this.showHideColumns()
+        },
         filterProposalRegion: function(){
             this.$refs.proposal_datatable.vmDataTable.draw();
             //let vm = this;
@@ -468,6 +455,23 @@ export default {
 
     },
     methods:{
+        showHideColumns: function(){
+            let vm = this
+            let regionColumn = vm.$refs.proposal_datatable.vmDataTable.column('region__name:name');
+            let titleColumn = vm.$refs.proposal_datatable.vmDataTable.column('title:name');
+            if (vm.dasTemplateGroup) {
+                regionColumn.visible(true);
+                titleColumn.visible(true);
+            }
+            let invoiceColumn = vm.$refs.proposal_datatable.vmDataTable.column('invoice_column:name');
+            if ((!vm.is_external && vm.dasTemplateGroup && vm.is_das_apiary_admin) || vm.apiaryTemplateGroup){
+                invoiceColumn.visible(true);
+            }
+            let assignedOfficerColumn = vm.$refs.proposal_datatable.vmDataTable.column(assigned_officer_column_name + ':name')
+            if (!vm.is_external){
+                assignedOfficerColumn.visible(true)
+            }
+        },
         setDashboardText: function() {
             if (this.apiaryTemplateGroup) {
                 this.dashboardTitle = 'Applications';
@@ -731,6 +735,7 @@ export default {
                     this.dasTemplateGroup = true;
                     this.applySelect2()
                 }
+                this.templateGroupDetermined = true;
                 this.setDashboardText();
                 this.is_das_admin = res.body.is_das_admin
                 this.is_apiary_admin = res.body.is_apiary_admin
