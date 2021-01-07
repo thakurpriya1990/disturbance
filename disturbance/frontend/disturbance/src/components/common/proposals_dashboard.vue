@@ -116,11 +116,14 @@ export default {
     },
     data() {
         let vm = this;
-        let assigned_officer_column_name = "assigned_officer__first_name, assigned_officer__last_name, assigned_officer__email"
-        let submitter_column_name = "submitter__email, submitter__first_name, submitter__last_name"
-        let proponent_applicant_column_name = 'applicant__organisation__name, proxy_applicant__first_name, proxy_applicant__last_name, proxy_applicant__email'
+        //let assigned_officer_column_name = "assigned_officer__first_name, assigned_officer__last_name, assigned_officer__email"
+        //let submitter_column_name = "submitter__email, submitter__first_name, submitter__last_name"
+        //let proponent_applicant_column_name = 'applicant__organisation__name, proxy_applicant__first_name, proxy_applicant__last_name, proxy_applicant__email'
 
         return {
+            assigned_officer_column_name: "assigned_officer__first_name, assigned_officer__last_name, assigned_officer__email",
+            submitter_column_name: "submitter__email, submitter__first_name, submitter__last_name",
+            proponent_applicant_column_name: 'applicant__organisation__name, proxy_applicant__first_name, proxy_applicant__last_name, proxy_applicant__email',
             pBody: 'pBody' + vm._uid,
             datatable_id: 'proposal-datatable-'+vm._uid,
             //Profile to check if user has access to process Proposal
@@ -258,13 +261,13 @@ export default {
                             }
                             return ''
                         },
-                        name: submitter_column_name,
+                        name: vm.submitter_column_name,
                         searchable: true,
                     },
                     {
                         // 5. Proponent/Applicant
                         data: "relevant_applicant_name",
-                        name: proponent_applicant_column_name,
+                        name: vm.proponent_applicant_column_name,
                         searchable: true,
                     },
                     {
@@ -290,7 +293,7 @@ export default {
                         // 8. Assigned Officer
                         data: "assigned_officer",
                         visible: false,
-                        name: assigned_officer_column_name,
+                        name: vm.assigned_officer_column_name,
                         searchable: true,
                     },
                     {
@@ -339,6 +342,7 @@ export default {
                 ],
                 processing: true,
                 initComplete: function() {
+                    console.log('in initComplete')
                     vm.showHideColumns()
                 },
             },
@@ -349,6 +353,7 @@ export default {
     },
     watch:{
         templateGroupDetermined: function(){
+            console.log('in templateGroupDetermined')
             this.showHideColumns()
         },
         filterProposalRegion: function(){
@@ -376,10 +381,9 @@ export default {
             //this.$refs.proposal_datatable.vmDataTable.draw();
             let vm = this;
             if (vm.filterProposalSubmitter!= 'All') {
-                vm.$refs.proposal_datatable.vmDataTable.column('submitter_column_name:name').search(vm.filterProposalSubmitter).draw();
-
+                vm.$refs.proposal_datatable.vmDataTable.column(vm.submitter_column_name + ':name').search(vm.filterProposalSubmitter).draw();
             } else {
-                vm.$refs.proposal_datatable.vmDataTable.column('submitter_column_name:name').search('').draw();
+                vm.$refs.proposal_datatable.vmDataTable.column(vm.submitter_column_name + ':name').search('').draw();
             }
         },
         filterProposalStatus: function() {
@@ -456,6 +460,7 @@ export default {
     },
     methods:{
         showHideColumns: function(){
+            console.log('in showHideColumns')
             let vm = this
             let regionColumn = vm.$refs.proposal_datatable.vmDataTable.column('region__name:name');
             let titleColumn = vm.$refs.proposal_datatable.vmDataTable.column('title:name');
@@ -467,7 +472,7 @@ export default {
             if ((!vm.is_external && vm.dasTemplateGroup && vm.is_das_apiary_admin) || vm.apiaryTemplateGroup){
                 invoiceColumn.visible(true);
             }
-            let assignedOfficerColumn = vm.$refs.proposal_datatable.vmDataTable.column(assigned_officer_column_name + ':name')
+            let assignedOfficerColumn = vm.$refs.proposal_datatable.vmDataTable.column(vm.assigned_officer_column_name + ':name')
             if (!vm.is_external){
                 assignedOfficerColumn.visible(true)
             }
