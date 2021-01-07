@@ -729,13 +729,25 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
         # print(no_loop_qs.query)
 
         raw_sql = '''
+        SELECT row_to_json(feature)
+        FROM (
         SELECT DISTINCT ON("disturbance_apiarysiteonproposal"."apiary_site_id") 
             "disturbance_apiarysiteonproposal"."id" AS id,
             'Feature' AS type,
             ST_AsGeoJSON("disturbance_apiarysiteonproposal"."wkb_geometry_processed")::json AS geometry, 
             row_to_json((
                 SELECT p FROM (
-                    SELECT "disturbance_apiarysite"."site_guid" AS site_guid
+                    SELECT 
+                        "disturbance_apiarysite"."site_guid" AS site_guid,
+                        "disturbance_apiarysite"."is_vacant" AS is_vacant, 
+                        "disturbance_sitecategory"."name" AS site_category, 
+                        "disturbance_apiarysiteonproposal"."site_status" AS status, 
+                        "disturbance_apiarysiteonproposal"."workflow_selected_status" AS workflow_selected_status, 
+                        "disturbance_apiarysiteonproposal"."for_renewal" AS for_renewal, 
+                        "disturbance_apiarysiteonproposal"."making_payment" AS making_payment, 
+                        "disturbance_apiarysiteonproposal"."application_fee_paid" AS application_fee_paid, 
+                        "disturbance_apiarysiteonproposal"."apiary_site_status_when_submitted" AS apiary_site_status_when_submitted, 
+                        "disturbance_apiarysiteonproposal"."apiary_site_is_vacant_when_submitted" AS apiary_site_is_vacant_when_submitted
                 ) AS p
             )) AS properties
         FROM "disturbance_apiarysiteonproposal" 
@@ -750,7 +762,8 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
                 "disturbance_apiarysiteonproposal"."apiary_site_id" IN (SELECT U0."id" FROM "disturbance_apiarysite" U0 WHERE U0."is_vacant" = True
             )))
             AND NOT("disturbance_apiarysiteonproposal"."wkb_geometry_processed" IS NULL) 
-            AND NOT("disturbance_apiarysiteonproposal"."proposal_apiary_id" = %s))''' % proposal.proposal_apiary.id
+            AND NOT("disturbance_apiarysiteonproposal"."proposal_apiary_id" = %s))
+        ) AS feature''' % proposal.proposal_apiary.id
         with connection.cursor() as cursor:
             cursor.execute(raw_sql)
             row = cursor.fetchall()
