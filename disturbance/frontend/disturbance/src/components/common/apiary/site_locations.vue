@@ -1228,49 +1228,74 @@
                 let vm = this
                 this.$http.get('/api/apiary_site/list_existing_proposal_vacant_draft/?proposal_id=' + this.proposal.id).then(
                     res => {
-                        vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
+                        let num_sites = 0
+                        if(res.body.features){
+                            vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
+                            num_sites = res.body.features.length
+                        }
                         vm.proposal_vacant_draft_loaded = true
-                        vm.display_duration('1(' + res.body.features.length + ' sites)')
+                        vm.display_duration('proposal vacant draft (' + num_sites + ' sites)')
                     },
                     err => {}
                 )
                 this.$http.get('/api/apiary_site/list_existing_proposal_vacant_processed/?proposal_id=' + this.proposal.id).then(
                     res => {
-                        vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
+                        let num_sites = 0
+                        if(res.body.features){
+                            vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
+                            num_sites = res.body.features.length
+                        }
                         vm.proposal_vacant_processed_loaded = true
-                        vm.display_duration('2(' + res.body.features.length + ' sites)')
+                        vm.display_duration('proposal vacant processed (' + num_sites + ' sites)')
                     },
                     err => {}
                 )
                 this.$http.get('/api/apiary_site/list_existing_vacant_approval/?proposal_id=' + this.proposal.id).then(
                     res => {
-                        vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
+                        let num_sites = 0
+                        if(res.body.features){
+                            vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
+                            num_sites = res.body.features.length
+                        }
                         vm.approval_vacant_loaded = true
-                        vm.display_duration('3(' + res.body.features.length + ' sites)')
+                        vm.display_duration('approval vacant (' + num_sites + ' sites)')
                     },
                     err => {}
                 )
                 this.$http.get('/api/apiary_site/list_existing_proposal_draft/?proposal_id=' + this.proposal.id).then(
                     res => {
-                        vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
+                        let num_sites = 0
+                        if(res.body.features){
+                            vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
+                            num_sites = res.body.features.length
+                        }
                         vm.proposal_draft_loaded = true
-                        vm.display_duration('4(' + res.body.features.length + ' sites)')
+                        vm.display_duration('proposal draft (' + num_sites + ' sites)')
                     },
                     err => {}
                 )
                 this.$http.get('/api/apiary_site/list_existing_proposal_processed/?proposal_id=' + this.proposal.id).then(
                     res => {
-                        vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
+                        let num_sites = 0
+                        if(res.body.features){
+                            vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
+                            num_sites = res.body.features.length
+                        }
                         vm.proposal_processed_loaded = true
-                        vm.display_duration('5(' + res.body.features.length + ' sites)')
+                        vm.display_duration('proposal processed (' + num_sites + ' sites)')
                     },
-                    err => {}
+                    err => {
+                    }
                 )
                 this.$http.get('/api/apiary_site/list_existing_approval/?proposal_id=' + this.proposal.id).then(
                     res => {
-                        vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
+                        let num_sites = 0
+                        if(res.body.features){
+                            vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
+                            num_sites = res.body.features.length
+                        }
                         vm.approval_loaded = true
-                        vm.display_duration('6(' + res.body.features.length + ' sites)')
+                        vm.display_duration('approval (' + num_sites + ' sites)')
                     },
                     err => {}
                 )
@@ -1286,7 +1311,10 @@
             if (at_once){
                 await this.$http.get('/api/apiary_site/list_existing/?proposal_id=' + this.proposal.id)
                 .then(
-                    res => {vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))},
+                    res => {
+                        vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
+                        console.log(res.body.features.length + ' sites')
+                    },
                     err => {}
                 )
                 vm.endTime = new Date()
