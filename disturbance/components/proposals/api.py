@@ -729,7 +729,11 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
         # print(no_loop_qs.query)
 
         raw_sql = '''
-        SELECT row_to_json(feature)
+        SELECT row_to_json(featurecollection)
+        FROM (
+        SELECT
+        'FeatureCollection' AS type,
+        array_to_json(array_agg(feature)) AS features
         FROM (
         SELECT DISTINCT ON("disturbance_apiarysiteonproposal"."apiary_site_id") 
             "disturbance_apiarysiteonproposal"."id" AS id,
@@ -763,15 +767,16 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
             )))
             AND NOT("disturbance_apiarysiteonproposal"."wkb_geometry_processed" IS NULL) 
             AND NOT("disturbance_apiarysiteonproposal"."proposal_apiary_id" = %s))
-        ) AS feature''' % proposal.proposal_apiary.id
+        ) AS feature
+        ) AS featurecollection''' % proposal.proposal_apiary.id
         with connection.cursor() as cursor:
             cursor.execute(raw_sql)
-            row = cursor.fetchall()
+            row = cursor.fetchone()
         # no_loop_list = list(no_loop_qs)
         # serializer_proposal_processed = ApiarySiteOnProposalProcessedGeometrySerializer(qs_on_proposal_processed, many=True)
         # return Response(serializer_proposal_processed.data)
         # return Response(no_loop_list)
-        return Response(row)
+        return Response(row[0])
 
     @list_route(methods=['GET',])
     @basic_exception_handler
