@@ -707,9 +707,9 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
     def list_existing_proposal_processed(self, request):
         qs_on_proposal_draft, qs_on_proposal_processed = get_qs_proposal()
         proposal_id = request.query_params.get('proposal_id', None)
-        # if proposal_id:
-        #     # Exculde the apiary_sites included in that proposal
-        #     proposal = Proposal.objects.get(id=proposal_id)
+        if proposal_id:
+            # Exculde the apiary_sites included in that proposal
+            proposal = Proposal.objects.get(id=proposal_id)
         #     qs_on_proposal_processed = qs_on_proposal_processed.exclude(proposal_apiary=proposal.proposal_apiary)
         # # serialized_manually = serialize_proposal_processed(qs_on_proposal_processed)
         # no_loop_qs = qs_on_proposal_processed.values(
@@ -728,19 +728,16 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
         # )
         # print(no_loop_qs.query)
 
-        raw_sql = '''SELECT DISTINCT ON("disturbance_apiarysiteonproposal"."apiary_site_id") 
+        raw_sql = '''
+        SELECT DISTINCT ON("disturbance_apiarysiteonproposal"."apiary_site_id") 
+            "disturbance_apiarysiteonproposal"."id" AS id,
+            'Feature' AS type,
             ST_AsGeoJSON("disturbance_apiarysiteonproposal"."wkb_geometry_processed")::json AS geometry, 
-            "disturbance_apiarysiteonproposal"."id", 
-            "disturbance_apiarysite"."site_guid", 
-            "disturbance_apiarysite"."is_vacant", 
-            "disturbance_sitecategory"."name", 
-            "disturbance_apiarysiteonproposal"."site_status", 
-            "disturbance_apiarysiteonproposal"."workflow_selected_status", 
-            "disturbance_apiarysiteonproposal"."for_renewal", 
-            "disturbance_apiarysiteonproposal"."making_payment", 
-            "disturbance_apiarysiteonproposal"."application_fee_paid", 
-            "disturbance_apiarysiteonproposal"."apiary_site_status_when_submitted", 
-            "disturbance_apiarysiteonproposal"."apiary_site_is_vacant_when_submitted" 
+            row_to_json((
+                SELECT p FROM (
+                    SELECT "disturbance_apiarysite"."site_guid" AS site_guid
+                ) AS p
+            )) AS properties
         FROM "disturbance_apiarysiteonproposal" 
         INNER JOIN "disturbance_apiarysite" ON("disturbance_apiarysiteonproposal"."apiary_site_id" = "disturbance_apiarysite"."id") 
         LEFT OUTER JOIN "disturbance_sitecategory" ON("disturbance_apiarysiteonproposal"."site_category_processed_id" = "disturbance_sitecategory"."id") 
@@ -753,7 +750,7 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
                 "disturbance_apiarysiteonproposal"."apiary_site_id" IN (SELECT U0."id" FROM "disturbance_apiarysite" U0 WHERE U0."is_vacant" = True
             )))
             AND NOT("disturbance_apiarysiteonproposal"."wkb_geometry_processed" IS NULL) 
-            AND NOT("disturbance_apiarysiteonproposal"."proposal_apiary_id" = 927))'''
+            AND NOT("disturbance_apiarysiteonproposal"."proposal_apiary_id" = %s))''' % proposal.proposal_apiary.id
         with connection.cursor() as cursor:
             cursor.execute(raw_sql)
             row = cursor.fetchall()
