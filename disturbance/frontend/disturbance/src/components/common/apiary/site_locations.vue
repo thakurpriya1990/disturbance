@@ -1255,6 +1255,7 @@
                         let num_sites = 0
                         if(res.body.features){
                             vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
+                            num_sites = res.body.features.length
                         }
                         vm.approval_vacant_loaded = true
                         vm.display_duration('approval vacant (' + num_sites + ' sites)')
@@ -1275,7 +1276,6 @@
                 )
                 this.$http.get('/api/apiary_site/list_existing_proposal_processed/?proposal_id=' + this.proposal.id).then(
                     res => {
-                        console.log(res.body)
                         let num_sites = 0
                         if(res.body.features){
                             vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
@@ -1285,8 +1285,6 @@
                         vm.display_duration('proposal processed (' + num_sites + ' sites)')
                     },
                     err => {
-                        console.log('in err')
-                        console.log(err)
                     }
                 )
                 this.$http.get('/api/apiary_site/list_existing_approval/?proposal_id=' + this.proposal.id).then(
