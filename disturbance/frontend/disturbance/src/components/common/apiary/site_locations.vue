@@ -1275,6 +1275,7 @@
                 )
                 this.$http.get('/api/apiary_site/list_existing_proposal_processed/?proposal_id=' + this.proposal.id).then(
                     res => {
+                        console.log(res.body)
                         let num_sites = 0
                         if(res.body.features){
                             vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
