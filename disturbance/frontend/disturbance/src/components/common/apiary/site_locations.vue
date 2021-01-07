@@ -18,69 +18,61 @@
             Mark the location of the new proposed site either by entering the latitude and longitude or by clicking the location in the map.
         </div>
 
-        <div class="row">
-            <div class="col-sm-4">
-                <div class="form-group">
-                    <label class="inline">Latitude:</label>
-                    <input
-                        type="number"
-                        min="-90"
-                        max="90"
-                        class="form-control"
-                        v-model.number="proposal.proposal_apiary.latitude"
-                        :readonly="readonly"
-                    />
-                </div>
-            </div>
-            <div class="col-sm-4">
-                <div class="form-group">
-                    <label class="inline">Longitude:</label>
-                    <input
-                        type="number"
-                        min="-180"
-                        max="180"
-                        class="form-control"
-                        v-model.number="proposal.proposal_apiary.longitude"
-                        :readonly="readonly"
-                    />
-                </div>
-            </div>
-            <template v-if="!readonly">
-                <div class="col-sm-4">
-                    <input type="button" @click="tryCreateNewSiteFromForm" value="Add proposed site" class="btn btn-primary" style="margin: 1em 0 0 0;">
-                </div>
-            </template>
+        <div class="row col-sm-12 manual_coordinate_section mt-2 mb-4">
+            <label class="inline grow1">Latitude:</label>
+            <input
+                type="number"
+                min="-36"
+                max="-12"
+                class="form-control grow1 ml-1"
+                v-model.number="proposal.proposal_apiary.latitude"
+                :readonly="readonly"
+            />
+            <label class="inline grow1 ml-2">Longitude:</label>
+            <input
+                type="number"
+                min="110"
+                max="129"
+                class="form-control grow1 ml-1"
+                v-model.number="proposal.proposal_apiary.longitude"
+                :readonly="readonly"
+            />
+            <input 
+                v-if="!readonly" 
+                type="button" 
+                @click="tryCreateNewSiteFromForm" 
+                value="Add proposed site" 
+                class="btn btn-primary grow1 ml-3" 
+            />
         </div>
 
         <template v-if="display_debug_info && proposal && proposal.proposal_apiary">
-            <div class="row debug-info">
-                <div class="col-sm-12">
+            <div class="row col-sm-12 debug-info">
+                <div>
+                    <div><strong>New</strong></div>
                     <div>
-                        <div><strong>New</strong></div>
-                        <div>
-                            <div>Previously paid sites 'South West' region: {{ num_of_sites_remain_south_west }} (${{ fee_south_west }})</div>
-                            <div>Total fee: {{ total_fee_south_west }}</div>
-                        </div>
-                        <div>
-                            <div>Previously paid sites 'Remote' region: {{ num_of_sites_remain_remote }} (${{ fee_remote }})</div>
-                            <div>Total fee: {{ total_fee_remote }}</div>
-                        </div>
-                        <div><strong>Renewal</strong></div>
-                        <div>
-                            <div>Previously paid sites 'South West' region: {{ num_of_sites_remain_south_west_renewal }} (${{ fee_south_west_renewal }})</div>
-                            <div>Total fee: {{ total_fee_south_west_renewal }}</div>
-                        </div>
-                        <div>
-                            <div>Previously paid sites 'Remote' region: {{ num_of_sites_remain_remote_renewal }} (${{ fee_remote_renewal }})</div>
-                            <div>Total fee: {{ total_fee_remote_renewal }}</div>
-                        </div>
+                        <div>Previously paid sites 'South West' region: {{ num_of_sites_remain_south_west }} (${{ fee_south_west }})</div>
+                        <div>Total fee: {{ total_fee_south_west }}</div>
+                    </div>
+                    <div>
+                        <div>Previously paid sites 'Remote' region: {{ num_of_sites_remain_remote }} (${{ fee_remote }})</div>
+                        <div>Total fee: {{ total_fee_remote }}</div>
+                    </div>
+                    <div><strong>Renewal</strong></div>
+                    <div>
+                        <div>Previously paid sites 'South West' region: {{ num_of_sites_remain_south_west_renewal }} (${{ fee_south_west_renewal }})</div>
+                        <div>Total fee: {{ total_fee_south_west_renewal }}</div>
+                    </div>
+                    <div>
+                        <div>Previously paid sites 'Remote' region: {{ num_of_sites_remain_remote_renewal }} (${{ fee_remote_renewal }})</div>
+                        <div>Total fee: {{ total_fee_remote_renewal }}</div>
                     </div>
                 </div>
             </div>
         </template>
 
         <div class="row col-sm-12">
-            <datatable ref="site_locations_table" id="site-locations-table" :dtOptions="dtOptions" :dtHeaders="dtHeaders" />
+            <datatable @hook:mounted="datatable_mounted" ref="site_locations_table" id="site-locations-table" :dtOptions="dtOptions" :dtHeaders="dtHeaders" />
             <span class="view_all_button action_link" @click="displayAllFeatures">View All Proposed Sites On Map</span>
         </div>
 
@@ -184,7 +176,6 @@
                 buffer_radius: 3000, // [m]
                 min_num_of_sites_for_renewal: 5,
                 min_num_of_sites_for_new: 5,
-                existing_sites_loaded: false,
                 style_for_vacant_selected: new Style({
                     image: new CircleStyle({
                         radius: existingSiteRadius,
@@ -222,10 +213,10 @@
                 num_of_sites_remain_remote_renewal_base: 0,
 
                 // Sites on the map
-                num_of_sites_south_west_applied: 0,
-                num_of_sites_south_west_renewal_applied: 0,
-                num_of_sites_remote_applied: 0,
-                num_of_sites_remote_renewal_applied: 0,
+                num_of_sites_south_west_applied_unpaid: 0,
+                num_of_sites_south_west_renewal_applied_unpaid: 0,
+                num_of_sites_remote_applied_unpaid: 0,
+                num_of_sites_remote_renewal_applied_unpaid: 0,
 
                 // Fee
                 fee_south_west: 0,
@@ -247,6 +238,17 @@
                 vacant_site_being_selected: null,
                 swZoneSource: null,
                 //
+
+                // for timing
+                proposal_vacant_draft_loaded: false,
+                proposal_vacant_processed_loaded: false,
+                approval_vacant_loaded: false,
+                proposal_draft_loaded: false,
+                proposal_processed_loaded: false,
+                approval_loaded: false,
+                startTime: null,
+                endTime: null,
+
                 dtHeaders: [
                     'Id',
                     'Latitude',
@@ -383,12 +385,12 @@
             // 1.1 New
             num_of_sites_remain_south_west: function(){
                 // Number of sites paid left - number of sites to be applied
-                let value = this.num_of_sites_remain_south_west_base - this.num_of_sites_south_west_applied
+                let value = this.num_of_sites_remain_south_west_base - this.num_of_sites_south_west_applied_unpaid
                 value = value >= 0 ? value : 0
                 return value
             },
             num_of_sites_south_west_after_deduction: function(){
-                let value = this.num_of_sites_south_west_applied - this.num_of_sites_remain_south_west_base
+                let value = this.num_of_sites_south_west_applied_unpaid - this.num_of_sites_remain_south_west_base
                 return value >= 0 ? value : 0
             },
             quotient_south_west: function(){
@@ -414,12 +416,12 @@
             // 1.2 Renewal
             num_of_sites_remain_south_west_renewal: function(){
                 // Number of sites paid left
-                let value = this.num_of_sites_remain_south_west_renewal_base - this.num_of_sites_south_west_renewal_applied
+                let value = this.num_of_sites_remain_south_west_renewal_base - this.num_of_sites_south_west_renewal_applied_unpaid
                 value = value >= 0 ? value : 0
                 return value
             },
             num_of_sites_south_west_renewal_after_deduction: function(){
-                let value = this.num_of_sites_south_west_renewal_applied - this.num_of_sites_remain_south_west_renewal_base
+                let value = this.num_of_sites_south_west_renewal_applied_unpaid - this.num_of_sites_remain_south_west_renewal_base
                 return value >= 0 ? value : 0
             },
             quotient_south_west_renewal: function(){
@@ -446,12 +448,12 @@
             // 2. Remote
             // 2.1 New
             num_of_sites_remain_remote: function(){
-                let value = this.num_of_sites_remain_remote_base - this.num_of_sites_remote_applied
+                let value = this.num_of_sites_remain_remote_base - this.num_of_sites_remote_applied_unpaid
                 value = value >= 0 ? value : 0
                 return value
             },
             num_of_sites_remote_after_deduction: function(){
-                let value = this.num_of_sites_remote_applied - this.num_of_sites_remain_remote_base
+                let value = this.num_of_sites_remote_applied_unpaid - this.num_of_sites_remain_remote_base
                 return value >= 0 ? value : 0
             },
             quotient_remote: function(){
@@ -476,12 +478,12 @@
             },
             // 2.2 Renewal
             num_of_sites_remain_remote_renewal: function(){
-                let value = this.num_of_sites_remain_remote_renewal_base - this.num_of_sites_remote_renewal_applied
+                let value = this.num_of_sites_remain_remote_renewal_base - this.num_of_sites_remote_renewal_applied_unpaid
                 value = value >= 0 ? value : 0
                 return value
             },
             num_of_sites_remote_renewal_after_deduction: function(){
-                let value = this.num_of_sites_remote_renewal_applied - this.num_of_sites_remain_remote_renewal_base
+                let value = this.num_of_sites_remote_renewal_applied_unpaid - this.num_of_sites_remain_remote_renewal_base
                 return value >= 0 ? value : 0
             },
             quotient_remote_renewal: function(){
@@ -504,13 +506,25 @@
                 let total_fee = this.num_of_sites_remote_renewal_calculate * this.fee_remote_renewal
                 return total_fee
             },
+
+            // Total
+            total_num_of_sites_on_map_unpaid: function(){
+                return this.num_of_sites_south_west_applied_unpaid + 
+                       this.num_of_sites_south_west_renewal_applied_unpaid + 
+                       this.num_of_sites_remote_applied_unpaid + 
+                       this.num_of_sites_remote_renewal_applied_unpaid
+            },
+            total_num_of_sites_on_map: function(){
+                let features = this.drawingLayerSource.getFeatures()
+                return features.length
+            }
         },
         watch:{
-            existing_sites_loaded: function() {
-                if (this.existing_sites_loaded){
-                    this.load_apiary_sites_in_this_proposal()
-                    this.displayAllFeatures()
-                }
+            total_num_of_sites_on_map: function() {
+                this.$emit('total_num_of_sites_on_map', this.total_num_of_sites_on_map)
+            },
+            total_num_of_sites_on_map_unpaid: function() {
+                this.$emit('total_num_of_sites_on_map_unpaid', this.total_num_of_sites_on_map_unpaid)
             },
             num_of_sites_south_west_to_add_as_remainder: function(){
                 this.$emit('num_of_sites_south_west_to_add_as_remainder', this.num_of_sites_south_west_to_add_as_remainder)
@@ -557,6 +571,9 @@
             }
         },
         methods:{
+            datatable_mounted: function(){
+                this.constructSiteLocationsTable();
+            },
             load_apiary_sites_in_this_proposal: function(){
                 // Load the apiary sites in this proposal on the map
                 let vm = this
@@ -736,10 +753,10 @@
                 if (this.proposal.application_type === 'Apiary') {
                     remainders = this.proposal.proposal_apiary.site_remainders;
                 }
-                this.num_of_sites_south_west_applied = 0
-                this.num_of_sites_remote_applied = 0
-                this.num_of_sites_south_west_renewal_applied = 0
-                this.num_of_sites_remote_renewal_applied = 0
+                this.num_of_sites_south_west_applied_unpaid = 0
+                this.num_of_sites_remote_applied_unpaid = 0
+                this.num_of_sites_south_west_renewal_applied_unpaid = 0
+                this.num_of_sites_remote_renewal_applied_unpaid = 0
 
                 for (let i=0; i<features.length; i++){
                     console.log(features[i])
@@ -757,28 +774,28 @@
                         if (site_status === 'vacant'){
                             if (site_category == 'south_west'){
                                 console.log('vacant south_west')
-                                this.num_of_sites_south_west_applied += 1
+                                this.num_of_sites_south_west_applied_unpaid += 1
                             } else if (site_category == 'remote'){
                                 console.log('vacant remote')
-                                this.num_of_sites_remote_applied += 1
+                                this.num_of_sites_remote_applied_unpaid += 1
                             }
                         } else {
                             if (new_or_renewal === 'renewal'){
                                 if (site_category == 'south_west'){
                                     console.log('renewal south_west')
-                                    this.num_of_sites_south_west_renewal_applied += 1
+                                    this.num_of_sites_south_west_renewal_applied_unpaid += 1
                                 } else if (site_category == 'remote'){
                                     console.log('renewal remote')
-                                    this.num_of_sites_remote_renewal_applied += 1
+                                    this.num_of_sites_remote_renewal_applied_unpaid += 1
                                 }
                             }
                             if (new_or_renewal === 'new'){
                                 if (site_category == 'south_west'){
                                     console.log('new south_west')
-                                    this.num_of_sites_south_west_applied += 1
+                                    this.num_of_sites_south_west_applied_unpaid += 1
                                 } else if (site_category == 'remote'){
                                     console.log('new remote')
-                                    this.num_of_sites_remote_applied += 1
+                                    this.num_of_sites_remote_applied_unpaid += 1
                                 }
                             }
                         }
@@ -795,7 +812,7 @@
             },
             constructSiteLocationsTable: function(){
                 console.log('in constructSiteLocationsTable')
-                if (this.drawingLayerSource){
+                if (this.drawingLayerSource && this.$refs.site_locations_table){
                     // Clear table
                     this.$refs.site_locations_table.vmDataTable.clear().draw();
 
@@ -842,16 +859,16 @@
                 } else {
                     if (new_or_renewal === 'new'){
                         if (site_category === 'south_west'){
-                            this.num_of_sites_south_west_applied -= 1
+                            this.num_of_sites_south_west_applied_unpaid -= 1
                         } else {
-                            this.num_of_sites_remote_applied -= 1
+                            this.num_of_sites_remote_applied_unpaid -= 1
                         }
                     }
                     if (new_or_renewal === 'renewal'){
                         if (site_category === 'south_west'){
-                            this.num_of_sites_south_west_renewal_applied -= 1
+                            this.num_of_sites_south_west_renewal_applied_unpaid -= 1
                         } else {
-                            this.num_of_sites_remote_renewal_applied -= 1
+                            this.num_of_sites_remote_renewal_applied_unpaid -= 1
                         }
                     }
                 }
@@ -1192,19 +1209,121 @@
                 this.createBufferForSite(feature);
                 return true;
             },
+            display_duration: function(label){
+                let finishedDate = new Date()
+                let delta = finishedDate - this.startTime
+                console.log(label + ' ' + delta + ' [ms]')
+                if (this.proposal_vacant_draft_loaded && 
+                    this.proposal_vacant_processed_loaded && 
+                    this.approval_vacant_loaded && 
+                    this.proposal_draft_loaded && 
+                    this.proposal_processed_loaded && 
+                    this.approval_loaded){
+                        this.endTime = new Date()
+                        let timeDiff = this.endTime - this.startTime
+                        console.log('total time: ' + timeDiff + ' [ms]')
+                    }
+            },
+            load_existing_sites: function(){
+                let vm = this
+                this.$http.get('/api/apiary_site/list_existing_proposal_vacant_draft/?proposal_id=' + this.proposal.id).then(
+                    res => {
+                        let num_sites = 0
+                        if(res.body.features){
+                            vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
+                            num_sites = res.body.features.length
+                        }
+                        vm.proposal_vacant_draft_loaded = true
+                        vm.display_duration('proposal vacant draft (' + num_sites + ' sites)')
+                    },
+                    err => {}
+                )
+                this.$http.get('/api/apiary_site/list_existing_proposal_vacant_processed/?proposal_id=' + this.proposal.id).then(
+                    res => {
+                        let num_sites = 0
+                        if(res.body.features){
+                            vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
+                            num_sites = res.body.features.length
+                        }
+                        vm.proposal_vacant_processed_loaded = true
+                        vm.display_duration('proposal vacant processed (' + num_sites + ' sites)')
+                    },
+                    err => {}
+                )
+                this.$http.get('/api/apiary_site/list_existing_vacant_approval/?proposal_id=' + this.proposal.id).then(
+                    res => {
+                        let num_sites = 0
+                        if(res.body.features){
+                            vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
+                            num_sites = res.body.features.length
+                        }
+                        vm.approval_vacant_loaded = true
+                        vm.display_duration('approval vacant (' + num_sites + ' sites)')
+                    },
+                    err => {}
+                )
+                this.$http.get('/api/apiary_site/list_existing_proposal_draft/?proposal_id=' + this.proposal.id).then(
+                    res => {
+                        let num_sites = 0
+                        if(res.body.features){
+                            vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
+                            num_sites = res.body.features.length
+                        }
+                        vm.proposal_draft_loaded = true
+                        vm.display_duration('proposal draft (' + num_sites + ' sites)')
+                    },
+                    err => {}
+                )
+                this.$http.get('/api/apiary_site/list_existing_proposal_processed/?proposal_id=' + this.proposal.id).then(
+                    res => {
+                        let num_sites = 0
+                        if(res.body.features){
+                            vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
+                            num_sites = res.body.features.length
+                        }
+                        vm.proposal_processed_loaded = true
+                        vm.display_duration('proposal processed (' + num_sites + ' sites)')
+                    },
+                    err => {
+                    }
+                )
+                this.$http.get('/api/apiary_site/list_existing_approval/?proposal_id=' + this.proposal.id).then(
+                    res => {
+                        let num_sites = 0
+                        if(res.body.features){
+                            vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
+                            num_sites = res.body.features.length
+                        }
+                        vm.approval_loaded = true
+                        vm.display_duration('approval (' + num_sites + ' sites)')
+                    },
+                    err => {}
+                )
+            }
         },
-        created: function() {
+        created: async function() {
+            this.load_apiary_sites_in_this_proposal()
+            this.displayAllFeatures()
             let vm = this
-            this.$http.get('/api/apiary_site/list_existing/?proposal_id=' + this.proposal.id)
-            .then(
-                res => {
-                    vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
-                    vm.existing_sites_loaded = true
-                },
-                err => {
+            let at_once = false
+            vm.startTime = new Date()
 
-                }
-            )
+            if (at_once){
+                await this.$http.get('/api/apiary_site/list_existing/?proposal_id=' + this.proposal.id)
+                .then(
+                    res => {
+                        vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
+                        console.log(res.body.features.length + ' sites')
+                    },
+                    err => {}
+                )
+                vm.endTime = new Date()
+                let timeDiff = vm.endTime - vm.startTime
+                console.log('total time: ' + timeDiff + ' [ms]')
+            } else {
+                await this.load_existing_sites()
+            }
+
             this.make_remainders_reactive()
         },
         mounted: function() {
@@ -1328,5 +1447,34 @@
     .popup-content {
         font-size: small;
     }
-</style>
+    .manual_coordinate_section {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .grow1 {
+        flex-grow: 1;
+    }
+    .ml-1 {
+        margin-left: 0.25em !important;
+    }
+    .ml-2 {
+        margin-left: 0.5em !important;
+    }
+    .ml-3 {
+        margin-left: 1em !important;
+    }
+    .mt-2 {
+        margin-top: 0.5em !important;
+    }
+    .mt-3 {
+        margin-top: 1em !important;
+    }
+    .mb-3 {
+        margin-bottom: 1em !important;
+    }
+    .mb-4 {
+        margin-bottom: 2em !important;
+    }
 </style>

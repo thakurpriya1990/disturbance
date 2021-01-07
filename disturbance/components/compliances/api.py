@@ -46,6 +46,7 @@ from disturbance.components.compliances.serializers import (
     ComplianceAmendmentRequestSerializer,
     CompAmendmentRequestDisplaySerializer
 )
+from disturbance.components.main.utils import handle_validation_error
 from disturbance.helpers import is_customer, is_internal
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 from disturbance.components.proposals.api import ProposalFilterBackend, ProposalRenderer
@@ -77,11 +78,9 @@ class ComplianceFilterBackend(DatatablesFilterBackend):
                 if i[1]==status:
                     return i[0]
             return None
-        #import ipdb; ipdb.set_trace()
-        # on the internal dashboard, the Region filter is multi-select - have to use the custom filter below
-        region = request.GET.get('region')
-        if region and not region.lower() == 'all':
-            queryset = queryset.filter(proposal__region__name=region)
+        regions = request.GET.get('regions')
+        if regions:
+            queryset = queryset.filter(proposal__region__name__iregex=regions.replace(',', '|'))
         proposal_activity = request.GET.get('proposal_activity')
         if proposal_activity and not proposal_activity.lower() == 'all':
             queryset = queryset.filter(proposal__activity=proposal_activity)
@@ -114,7 +113,10 @@ class ComplianceFilterBackend(DatatablesFilterBackend):
                 #    ordering[num] = '-status'
             queryset = queryset.order_by(*ordering)
 
-        #queryset = super(ProposalFilterBackend, self).filter_queryset(request, queryset, view)
+        try:
+            queryset = super(ComplianceFilterBackend, self).filter_queryset(request, queryset, view)
+        except Exception as e:
+            print(e)
         setattr(view, '_datatables_total_count', total_count)
         return queryset
 
@@ -340,7 +342,7 @@ class ComplianceViewSet(viewsets.ModelViewSet):
             raise
         except ValidationError as e:
             print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+            handle_validation_error(e)
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -375,7 +377,7 @@ class ComplianceViewSet(viewsets.ModelViewSet):
             raise
         except ValidationError as e:
             print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+            handle_validation_error(e)
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -538,10 +540,7 @@ class ComplianceAmendmentRequestViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise
         except ValidationError as e:
-            if hasattr(e,'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+            handle_validation_error(e)
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))

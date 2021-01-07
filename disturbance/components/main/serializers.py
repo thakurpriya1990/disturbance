@@ -91,10 +91,11 @@ class ApplicationTypeSerializer(serializers.ModelSerializer):
     #regions = RegionSerializer(many=True)
     #activity_app_types = ActivitySerializer(many=True)
     tenure_app_types = TenureSerializer(many=True)
+
     class Meta:
         model = ApplicationType
         #fields = ('id', 'name', 'activity_app_types', 'tenure_app_types')
-        fields = ('id', 'name', 'tenure_app_types')
+        fields = ('id', 'name', 'tenure_app_types', 'domain_used',)
 
 
 class BookingSettlementReportSerializer(serializers.Serializer):

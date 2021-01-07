@@ -15,6 +15,7 @@ SYSTEM_MAINTENANCE_WARNING = env('SYSTEM_MAINTENANCE_WARNING', 24) # hours
 DISABLE_EMAIL = env('DISABLE_EMAIL', False)
 MEDIA_APP_DIR = env('MEDIA_APP_DIR', 'das')
 MEDIA_APIARY_DIR = env('MEDIA_APIARY_DIR', 'apiary')
+SPATIAL_DATA_DIR = env('SPATIAL_DATA_DIR', 'spatial_data')
 ANNUAL_RENTAL_FEE_GST_EXEMPT = True
 
 INSTALLED_APPS += [
@@ -70,24 +71,26 @@ REST_FRAMEWORK = {
 MIDDLEWARE_CLASSES += [
     'disturbance.middleware.BookingTimerMiddleware',
     'disturbance.middleware.FirstTimeNagScreenMiddleware',
-    'disturbance.middleware.RevisionOverrideMiddleware'
+    'disturbance.middleware.RevisionOverrideMiddleware',
+    'disturbance.middleware.DomainDetectMiddleware',
 ]
 
 TEMPLATES[0]['DIRS'].append(os.path.join(BASE_DIR, 'disturbance', 'templates'))
 TEMPLATES[0]['DIRS'].append(os.path.join(BASE_DIR, 'disturbance','components','organisations', 'templates'))
 TEMPLATES[0]['DIRS'].append(os.path.join(BASE_DIR, 'disturbance','components','emails', 'templates'))
 TEMPLATES[0]['OPTIONS']['context_processors'].append('disturbance.context_processors.apiary_url')
-BOOTSTRAP3 = {
-    'jquery_url': '//static.dpaw.wa.gov.au/static/libs/jquery/2.2.1/jquery.min.js',
-    'base_url': '//static.dpaw.wa.gov.au/static/libs/twitter-bootstrap/3.3.6/',
-    'css_url': None,
-    'theme_url': None,
-    'javascript_url': None,
-    'javascript_in_head': False,
-    'include_jquery': False,
-    'required_css_class': 'required-form-field',
-    'set_placeholder': False,
-}
+del BOOTSTRAP3['css_url']
+#BOOTSTRAP3 = {
+#    'jquery_url': '//static.dpaw.wa.gov.au/static/libs/jquery/2.2.1/jquery.min.js',
+#    'base_url': '//static.dpaw.wa.gov.au/static/libs/twitter-bootstrap/3.3.6/',
+#    'css_url': None,
+#    'theme_url': None,
+#    'javascript_url': None,
+#    'javascript_in_head': False,
+#    'include_jquery': False,
+#    'required_css_class': 'required-form-field',
+#    'set_placeholder': False,
+#}
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
@@ -117,8 +120,9 @@ DEP_FAX = env('DEP_FAX','(08) 9423 8242')
 DEP_POSTAL = env('DEP_POSTAL','Locked Bag 104, Bentley Delivery Centre, Western Australia 6983')
 DEP_NAME = env('DEP_NAME','Department of Biodiversity, Conservation and Attractions')
 DEP_NAME_SHORT = env('DEP_NAME_SHORT','DBCA')
-SITE_URL = env('SITE_URL', 'https://' + SITE_PREFIX + '.' + SITE_DOMAIN)
+SITE_URL = env('SITE_URL', 'https://' + '.'.join([SITE_PREFIX, SITE_DOMAIN]).strip('.'))
 PUBLIC_URL=env('PUBLIC_URL', SITE_URL)
+EMAIL_FROM = env('EMAIL_FROM', 'no-reply@' + SITE_DOMAIN).lower()
 DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', 'no-reply@' + SITE_DOMAIN).lower()
 ADMIN_GROUP = env('ADMIN_GROUP', 'Disturbance Admin')
 APIARY_ADMIN_GROUP = 'Apiary Admin'
@@ -136,6 +140,8 @@ os.environ['LEDGER_PRODUCT_CUSTOM_FIELDS'] = "('ledger_description','quantity','
 APIARY_URL = env('APIARY_URL', [])
 
 BASE_URL=env('BASE_URL')
+
+
 
 CKEDITOR_CONFIGS = {
     'default': {
@@ -166,4 +172,12 @@ SITE_STATUS_NOT_TO_BE_REISSUED = 'not_to_be_reissued'
 SITE_STATUS_SUSPENDED = 'suspended'
 SITE_STATUS_TRANSFERRED = 'transferred'
 SITE_STATUS_VACANT = 'vacant'
+SITE_STATUS_DISCARDED = 'discarded'
+BASE_EMAIL_TEXT = ''
+BASE_EMAIL_HTML = ''
 
+# This is either 'das'/'apiary'
+# default: 'das'
+# This value is determined at the middleware, DomainDetectMiddleware by where the request comes from
+DOMAIN_DETECTED = 'das'
+HTTP_HOST_FOR_TEST = 'localhost:8071'

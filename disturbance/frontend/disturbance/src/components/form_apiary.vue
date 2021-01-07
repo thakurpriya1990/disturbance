@@ -1,6 +1,8 @@
 <template lang="html">
     <div>
-
+        <template v-if="is_local">
+            form_apiary.vue
+        </template>
         <div v-if="is_external" class="col-md-3">
             <div>
                 <h3>Application: {{ proposal.lodgement_number }}</h3>
@@ -33,6 +35,8 @@
                         @num_of_sites_remote_to_add_as_remainder="num_of_sites_remote_to_add_as_remainder"
                         @num_of_sites_south_west_renewal_to_add_as_remainder="num_of_sites_south_west_renewal_to_add_as_remainder"
                         @num_of_sites_remote_renewal_to_add_as_remainder="num_of_sites_remote_renewal_to_add_as_remainder"
+                        @total_num_of_sites_on_map_unpaid="total_num_of_sites_on_map_unpaid"
+                        @total_num_of_sites_on_map="total_num_of_sites_on_map"
                     />
 
                 </div>
@@ -41,10 +45,12 @@
                         :apiary_sites="apiary_sites"
                         :is_internal="is_internal"
                         :is_external="is_external"
+                        :show_col_site="false"
+                        :show_col_site_when_submitted="true"
                         :show_col_checkbox="false"
                         :show_action_available_unavailable="showActionAvailableUnavailable"
-                        :show_col_status="showColStatus"
-                        :show_col_vacant="is_internal"
+                        :show_col_status="false"
+                        :show_col_status_when_submitted="true"
                         :key="component_site_selection_key"
                       />
                 </div>
@@ -54,14 +60,19 @@
             <FormSection :formCollapse="false" label="Supporting Application Documents" Index="supporting_application_documents">
                 <div class="row">
                     <div class="col-sm-12">
-                        Please provide supporting documents to your application this includes site photos, proposed access routes and details on native vegetation clearing (if applicable).
-                        <FileField
-                            ref="supporting_application_documents"
-                            name="supporting-application-documents"
-                            :isRepeatable="true"
-                            :documentActionUrl="supportingApplicationDocumentUrl"
-                            :readonly="readonly"
-                        />
+                        <label>
+                            Please provide supporting documents to your application this includes site photos, proposed access routes and details on native vegetation clearing (if applicable).
+                        </label>
+                        <div class="input-file-wrapper">
+                            <FileField
+                                ref="supporting_application_documents"
+                                name="supporting-application-documents"
+                                :isRepeatable="true"
+                                :documentActionUrl="supportingApplicationDocumentUrl"
+                                :readonly="readonly"
+                                :replace_button_by_text="true"
+                            />
+                        </div>
                     </div>
                 </div>
             </FormSection>
@@ -70,46 +81,56 @@
                 <div class="row">
                     <div class="col-sm-12">
                         <label>
-                            <ol type="a">
+                            <ol type="a" class="insurance-items">
                             <li>Attach your policy for public liability insurance that covers the areas and operations allowed under the apiary authority, and in the name of the applicant to the extent of its rights and interests, for a sum of not less than AU$10 million per event.</li>
                             <li>It is a requirement of all apiary authority holders to maintain appropriate public liability insurance.</li>
                             </ol>
                         </label>
-
-                        <FileField
-                            ref="public_liability_insurance_documents"
-                            name="public-liability-insurance-documents"
-                            :isRepeatable="false"
-                            :documentActionUrl="publicLiabilityInsuranceDocumentUrl"
-                            :readonly="readonly"
-                        />
                     </div>
                 </div>
+                    <div class="my-container input-file-wrapper">
+                        <div class="grow1">
+                            <label>Certificate of currency</label>
+                        </div>
+                        <div class="grow2">
+                            <FileField
+                                ref="public_liability_insurance_documents"
+                                name="public-liability-insurance-documents"
+                                :isRepeatable="false"
+                                :documentActionUrl="publicLiabilityInsuranceDocumentUrl"
+                                :readonly="readonly"
+                                :replace_button_by_text="true"
+                            />
+                        </div>
+                        <div class="grow1">
+                            <label>Expiry Date</label>
+                        </div>
+                        <div class="grow1">
+                            <div class="input-group date" ref="expiryDatePicker">
+                                <input type="text" class="form-control" placeholder="DD/MM/YYYY" id="expiry_date_input_element" :readonly="readonly"/>
+                                <span class="input-group-addon">
+                                    <span class="glyphicon glyphicon-calendar"></span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
             </FormSection>
 
             <FormSection :formCollapse="false" label="Deed Poll" Index="deed_poll">
-                <div class="row">
-                    <div class="col-sm-12">
-                        <label>Print <a :href="deedPollUrl" target="_blank">the deed poll</a>, sign it, have it witnessed and attach it to this application.</label>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-sm-12">
-                        <FileField
-                            ref="deed_poll_documents"
-                            name="deed-poll-documents"
-                            :isRepeatable="false"
-                            :documentActionUrl="deedPollDocumentUrl"
-                            :readonly="readonly"
-                        />
-                    </div>
-                </div>
+                <DeedPoll
+                    ref="deed_poll_component"
+                    :isRepeatable="false"
+                    :isReadonly="readonly"
+                    :documentActionUrl="deedPollDocumentUrl"
+                />
             </FormSection>
+
             <ApiaryChecklist
                 :checklist="applicantChecklistAnswers"
                 section_title="Applicant Checklist"
                 :readonly="readonly"
                 ref="applicant_checklist"
+                index="1"
             />
             <div v-if="assessorChecklistVisibility">
                 <ApiaryChecklist
@@ -117,6 +138,7 @@
                 section_title="Assessor Checklist"
                 :readonly="assessorChecklistReadonly"
                 ref="assessor_checklist"
+                index="2"
                 />
                 <div v-for="site in apiary_sites">
                     <ApiaryChecklist
@@ -124,6 +146,7 @@
                     :section_title="'Assessor checklist for site ' + site.id"
                     :readonly="assessorChecklistReadonly"
                     v-bind:key="'assessor_checklist_per_site_' + site.id"
+                    :index="'2_' + site.id"
                     />
                 </div>
             </div>
@@ -136,6 +159,7 @@
                     :section_title="'Referral Checklist: ' + r.referrer_group_name"
                     :readonly="referrerChecklistReadonly"
                     ref="referrer_checklist"
+                    index="3"
                     />
                     <div v-for="site in apiary_sites">
                         <ApiaryChecklist
@@ -143,6 +167,7 @@
                         :section_title="'Referral Checklist: ' + r.referrer_group_name + ' for site ' + site.id"
                         :readonly="referrerChecklistReadonly"
                         v-bind:key="'referrer_checklist_per_site_' + r.apiary_referral_id + site.id"
+                        :index="'3_' + r.apiary_referral_id + '_' + site.id"
                         />
                     </div>
                 </div>
@@ -181,10 +206,8 @@
     import SiteLocations from '@/components/common/apiary/site_locations.vue'
     import ApiaryChecklist from '@/components/common/apiary/section_checklist.vue'
     import uuid from 'uuid'
-    import {
-        api_endpoints,
-        helpers
-    }from '@/utils/hooks'
+    import DeedPoll from "@/components/common/apiary/section_deed_poll.vue"
+    import { api_endpoints, helpers }from '@/utils/hooks'
 
     export default {
         name: 'ApiaryForm',
@@ -227,12 +250,14 @@
             },
         },
         data:function () {
-            let vm=this;
+            let vm = this;
             return{
                 values:null,
                 pBody: 'pBody'+vm._uid,
-                //checklist_answers : [],
                 component_site_selection_key: '',
+                expiry_date_local: '',
+                deed_poll_url: '',
+                is_local: helpers.is_local(),
             }
         },
         components: {
@@ -241,8 +266,12 @@
             FileField,
             FormSection,
             ApiaryChecklist,
+            DeedPoll,
         },
         computed:{
+            showVacantWhenSubmitted: function(){
+                return this.is_internal
+            },
             showActionAvailableUnavailable: function() {
                 let show = false
                 if(this.is_external){
@@ -250,13 +279,6 @@
                         show = true
                     }
                 }
-                return show
-            },
-            showColStatus: function() {
-                let show = false
-
-                show = true
-
                 return show
             },
             apiary_sections_classname: function() {
@@ -304,9 +326,6 @@
                 let title = 'Referral Checklist ';
                 if (this.referral &&
                 */
-            deedPollUrl: function() {
-                return '';
-            },
             readonly: function() {
                 let readonlyStatus = true;
                 if (this.proposal.customer_status === 'Draft' && !this.is_internal) {
@@ -397,12 +416,65 @@
           //},
         },
         methods:{
+            fetchDeedPollUrl: function(){
+                let vm = this;
+                vm.$http.get('/api/deed_poll_url').then((response) => {
+                    vm.deed_poll_url = response.body;
+                },(error) => {
+                    console.log(error);
+                });
+            },
+            total_num_of_sites_on_map: function(value){
+                this.$emit('total_num_of_sites_on_map', value)
+            },
+            total_num_of_sites_on_map_unpaid: function(value){
+                this.$emit('total_num_of_sites_on_map_unpaid', value)
+            },
+            addEventListeners: function () {
+                let vm = this;
+                let el_fr = $(vm.$refs.expiryDatePicker);
+                let options = {
+                    format: "DD/MM/YYYY",
+                    showClear: true ,
+                    useCurrent: false,
+                };
+
+                el_fr.datetimepicker(options);
+
+                el_fr.on("dp.change", function(e) {
+                    if (e.date){
+                        // Date selected
+                        vm.expiry_date_local= e.date.format('DD/MM/YYYY')  // e.date is moment object
+                    } else {
+                        // Date not selected
+                        vm.expiry_date_local = null;
+                    }
+                    vm.$emit('expiry_date_changed', vm.expiry_date_local)
+                });
+
+                //***
+                // Set dates in case they are passed from the parent component
+                //***
+                let searchPattern = /^[0-9]{4}/
+
+                let expiry_date_passed = vm.proposal.proposal_apiary.public_liability_insurance_expiry_date;
+                console.log('passed')
+                console.log(expiry_date_passed)
+                if (expiry_date_passed) {
+                    // If date passed
+                    if (searchPattern.test(expiry_date_passed)) {
+                        // Convert YYYY-MM-DD to DD/MM/YYYY
+                        expiry_date_passed = moment(expiry_date_passed, 'YYYY-MM-DD').format('DD/MM/YYYY');
+                    }
+                    $('#expiry_date_input_element').val(expiry_date_passed);
+                }
+            },
             assessorChecklistAnswersPerSite: function(siteId) {
                 let siteList = []
                 if (this.proposal && this.proposal.proposal_apiary && this.proposal.proposal_apiary.assessor_checklist_answers_per_site &&
                     this.proposal.proposal_apiary.assessor_checklist_answers_per_site.length > 0) {
                     for (let answer of this.proposal.proposal_apiary.assessor_checklist_answers_per_site) {
-                        if (answer.site && answer.apiary_site_id === siteId) {
+                        if (answer.apiary_site_id === siteId) {
                             siteList.push(answer)
                         }
                     }
@@ -480,9 +552,15 @@
             */
 
         },
+        created: function() {
+            this.fetchDeedPollUrl()
+        },
         mounted: function() {
-            //let vm = this;
+            let vm = this;
             this.component_site_selection_key = uuid()
+            this.$nextTick(() => {
+                vm.addEventListeners();
+            });
             //vm.form = document.forms.new_proposal;
             //window.addEventListener('beforeunload', vm.leaving);
             //window.addEventListener('onblur', vm.leaving);
@@ -502,6 +580,22 @@
         position: fixed;
         top:56px;
     }
-
+    .insurance-items {
+        padding-inline-start: 1em;
+    }
+    .my-container {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+    }
+    .grow1 {
+        flex-grow: 1;
+    }
+    .grow2 {
+        flex-grow: 2;
+    }
+    .input-file-wrapper {
+        margin: 1.5em 0 0 0;
+    }
 </style>
 

@@ -1,5 +1,8 @@
 <template lang="html">
     <div v-if="proposal" class="container" id="internalProposal">
+        <template v-if="is_local">
+            proposal_apiary.vue
+        </template>
       <div class="row">
         <h3>Application: {{ proposal.lodgement_number }}</h3>
         <h4>Application Type: {{proposal.activity }}</h4>
@@ -255,15 +258,15 @@
             <div class="row">
                 <template v-if="proposal.processing_status == 'With Approver' || isFinalised">
                     <div v-if="siteTransferTemporaryUse">
-                        <ApprovalScreenSiteTransferTemporaryUse 
-                            :proposal="proposal" 
+                        <ApprovalScreenSiteTransferTemporaryUse
+                            :proposal="proposal"
                             ref="approval_screen"
                             @refreshFromResponse="refreshFromResponse"
                         />
                     </div>
                     <div v-else>
-                        <ApprovalScreen 
-                            :proposal="proposal" 
+                        <ApprovalScreen
+                            :proposal="proposal"
                             ref="approval_screen"
                             @refreshFromResponse="refreshFromResponse"
                         />
@@ -271,13 +274,13 @@
                 </template>
                 <template v-if="canLimitedAction && proposal.processing_status == 'With Assessor (Requirements)' || ((proposal.processing_status == 'With Approver' || isFinalised) && showingRequirements)">
                     <div v-if="siteTransfer">
-                        <OriginatingApprovalRequirements 
-                        :proposal="proposal" 
+                        <OriginatingApprovalRequirements
+                        :proposal="proposal"
                         :originatingApprovalId="originatingApprovalId"
                         :originatingApprovalLodgementNumber="originatingApprovalLodgementNumber"
                         />
-                        <TargetApprovalRequirements 
-                        :proposal="proposal" 
+                        <TargetApprovalRequirements
+                        :proposal="proposal"
                         :targetApprovalId="targetApprovalId"
                         :targetApprovalLodgementNumber="targetApprovalLodgementNumber"
                         />
@@ -352,29 +355,29 @@
                                           <div class="form-group">
                                             <label for="" class="col-sm-3 control-label">Street</label>
                                             <div class="col-sm-6">
-                                                <input disabled type="text" class="form-control" name="street" placeholder="" v-model="applicantAddress.line1">
+                                                <input disabled type="text" class="form-control" name="street" placeholder="" v-model="applicantAddressLine1">
                                             </div>
                                           </div>
                                           <div class="form-group">
                                             <label for="" class="col-sm-3 control-label" >Town/Suburb</label>
                                             <div class="col-sm-6">
-                                                <input disabled type="text" class="form-control" name="surburb" placeholder="" v-model="applicantAddress.locality">
+                                                <input disabled type="text" class="form-control" name="surburb" placeholder="" v-model="applicantAddressLocality">
                                             </div>
                                           </div>
                                           <div class="form-group">
                                             <label for="" class="col-sm-3 control-label">State</label>
                                             <div class="col-sm-2">
-                                                <input disabled type="text" class="form-control" name="country" placeholder="" v-model="applicantAddress.state">
+                                                <input disabled type="text" class="form-control" name="country" placeholder="" v-model="applicantAddressState">
                                             </div>
                                             <label for="" class="col-sm-2 control-label">Postcode</label>
                                             <div class="col-sm-2">
-                                                <input disabled type="text" class="form-control" name="postcode" placeholder="" v-model="applicantAddress.postcode">
+                                                <input disabled type="text" class="form-control" name="postcode" placeholder="" v-model="applicantAddressPostcode">
                                             </div>
                                           </div>
                                           <div class="form-group">
                                             <label for="" class="col-sm-3 control-label" >Country</label>
                                             <div class="col-sm-4">
-                                                <input disabled type="text" class="form-control" name="country" v-model="applicantAddress.country"/>
+                                                <input disabled type="text" class="form-control" name="country" v-model="applicantAddressCountry"/>
                                             </div>
                                           </div>
                                        </form>
@@ -433,8 +436,8 @@
                                         id="proposalStart"
                                         ref="apiary_form"
                                         :hasAssessorMode="hasAssessorMode"
-                                        :is_external="false" 
-                                        :is_internal="true" 
+                                        :is_external="false"
+                                        :is_internal="true"
                                     />
                                 </div>
                                 <div v-else-if="proposal && proposal.application_type=='Site Transfer'">
@@ -444,8 +447,8 @@
                                         id="proposalStart"
                                         ref="site_transfer"
                                         :hasAssessorMode="hasAssessorMode"
-                                        :is_external="false" 
-                                        :is_internal="true" 
+                                        :is_external="false"
+                                        :is_internal="true"
                                     />
                                 </div>
 
@@ -474,22 +477,22 @@
         </div>
         </div>
         <ProposedDecline ref="proposed_decline" :processing_status="proposal.processing_status" :proposal_id="proposal.id" @refreshFromResponse="refreshFromResponse"></ProposedDecline>
-        <AmendmentRequest 
-        ref="amendment_request" 
-        :proposal_id="proposal.id" 
+        <AmendmentRequest
+        ref="amendment_request"
+        :proposal_id="proposal.id"
         :is_apiary_proposal="isApiaryProposal"
         @refreshFromResponse="refreshFromResponse"
         />
-        <ProposedApiaryIssuance 
-            ref="proposed_approval" 
-            :processing_status="proposal.processing_status" 
-            :proposal_apiary_id="apiaryProposal.id" 
-            :proposal_id="proposalId" 
+        <ProposedApiaryIssuance
+            ref="proposed_approval"
+            :processing_status="proposal.processing_status"
+            :proposal_apiary_id="apiaryProposal.id"
+            :proposal_id="proposalId"
             :proposal="proposal"
-            :proposal_type='proposal.proposal_type' 
-            :isApprovalLevelDocument="isApprovalLevelDocument" 
-            :submitter_email="proposal.submitter_email" 
-            :applicant_email="applicant_email" 
+            :proposal_type='proposal.proposal_type'
+            :isApprovalLevelDocument="isApprovalLevelDocument"
+            :submitter_email="proposal.submitter_email"
+            :applicant_email="applicant_email"
             @refreshFromResponse="refreshFromResponse"
         />
     </div>
@@ -517,7 +520,6 @@ import ResponsiveDatatablesHelper from "@/utils/responsive_datatable_helper.js"
 import { api_endpoints, helpers } from '@/utils/hooks'
 //import MapLocations from '@common-utils/map_locations.vue'
 import ApiarySiteTransfer from '@/components/form_apiary_site_transfer.vue'
-
 import FileField from '@/components/forms/filefield.vue'
 
 export default {
@@ -589,6 +591,7 @@ export default {
             logs_url: helpers.add_endpoint_json(api_endpoints.proposals,vm.$route.params.proposal_id+'/action_log'),
             panelClickersInitialised: false,
             sendingReferral: false,
+            is_local: helpers.is_local(),
         }
     },
     components: {
@@ -681,6 +684,31 @@ export default {
         applicantAddress: function() {
             if (this.proposal && this.proposal.applicant_address) {
                 return this.proposal.applicant_address;
+            }
+        },
+        applicantAddressLine1: function() {
+            if (this.proposal && this.proposal.applicant_address) {
+                return this.proposal.applicant_address.line1;
+            }
+        },
+        applicantAddressCountry: function() {
+            if (this.proposal && this.proposal.applicant_address) {
+                return this.proposal.applicant_address.country;
+            }
+        },
+        applicantAddressLocality: function() {
+            if (this.proposal && this.proposal.applicant_address) {
+                return this.proposal.applicant_address.locality;
+            }
+        },
+        applicantAddressState: function() {
+            if (this.proposal && this.proposal.applicant_address) {
+                return this.proposal.applicant_address.state;
+            }
+        },
+        applicantAddressPostcode: function() {
+            if (this.proposal && this.proposal.applicant_address) {
+                return this.proposal.applicant_address.postcode;
             }
         },
         organisationApplicant: function() {
@@ -812,7 +840,7 @@ export default {
             //     this.$refs.proposed_approval.applicant_email=helpers.copyObject(this.proposal.applicant.email);
             // }
             this.$refs.proposed_approval.isModalOpen = true;
-            // Force to refresh the map to display it in case it is not shown.  
+            // Force to refresh the map to display it in case it is not shown.
             // When the map is in modal, it is often not shown unless the map is resized
             this.$refs.proposed_approval.forceToRefreshMap()
         },
@@ -820,22 +848,22 @@ export default {
             //this.$refs.proposed_approval.approval = helpers.copyObject(this.proposal.proposed_issuance_approval);
             console.log('in issueProposal')
             //save approval level comment before opening 'issue approval' modal
-            if(this.proposal && this.proposal.processing_status == 'With Approver' && this.proposal.approval_level != null && this.proposal.approval_level_document == null){
-                if (this.proposal.approval_level_comment!='')
-                {
-                    let vm = this;
-                    let data = new FormData();
-                    data.append('approval_level_comment', vm.proposal.approval_level_comment)
-                    vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/approval_level_comment'),data,{
-                        emulateJSON:true
-                        }).then(res=>{
-                        vm.proposal = res.body;
-                    vm.refreshFromResponse(res);
-                    },err=>{
-                    console.log(err);
-                    });
-                }
-            }
+            //if(this.proposal && this.proposal.processing_status == 'With Approver' && this.proposal.approval_level != null && this.proposal.approval_level_document == null){
+            //    if (this.proposal.approval_level_comment!='')
+            //    {
+            //        let vm = this;
+            //        let data = new FormData();
+            //        data.append('approval_level_comment', vm.proposal.approval_level_comment)
+            //        vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/approval_level_comment'),data,{
+            //            emulateJSON:true
+            //            }).then(res=>{
+            //            vm.proposal = res.body;
+            //        vm.refreshFromResponse(res);
+            //        },err=>{
+            //        console.log(err);
+            //        });
+            //    }
+            //}
             if(this.isApprovalLevelDocument && this.proposal.approval_level_comment=='')
             {
                 swal(
@@ -854,7 +882,7 @@ export default {
                 // }
                 this.$refs.proposed_approval.isModalOpen = true;
 
-                // Force to refresh the map to display it in case it is not shown.  
+                // Force to refresh the map to display it in case it is not shown.
                 // When the map is in modal, it is often not shown unless the map is resized
                 this.$refs.proposed_approval.forceToRefreshMap()
             }

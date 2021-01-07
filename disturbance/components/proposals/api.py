@@ -7,7 +7,7 @@ import json
 import pytz
 from ledger.settings_base import TIME_ZONE, DATABASES
 from django.db.models import Q
-from django.db import transaction
+from django.db import transaction, connection
 from django.core.exceptions import ValidationError
 from rest_framework import viewsets, serializers, status, views
 from rest_framework.decorators import detail_route, list_route, renderer_classes
@@ -21,7 +21,7 @@ from disturbance import settings
 from disturbance.components.approvals.email import send_contact_licence_holder_email
 from disturbance.components.approvals.serializers_apiary import ApiarySiteOnApprovalGeometrySerializer, \
     ApiarySiteOnApprovalGeometryExportSerializer
-from disturbance.components.main.decorators import basic_exception_handler
+from disturbance.components.main.decorators import basic_exception_handler, timeit
 from disturbance.components.proposals.utils import (
     save_proponent_data,
     save_assessor_data,
@@ -32,11 +32,11 @@ from disturbance.components.proposals.models import searchKeyWords, search_refer
     ProposalApiaryTemporaryUse, ApiarySiteOnProposal, PublicLiabilityInsuranceDocument, DeedPollDocument, \
     SupportingApplicationDocument
 from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_APPROVED, SITE_STATUS_CURRENT, SITE_STATUS_DENIED, \
-    SITE_STATUS_NOT_TO_BE_REISSUED, SITE_STATUS_VACANT, SITE_STATUS_TRANSFERRED
+    SITE_STATUS_NOT_TO_BE_REISSUED, SITE_STATUS_VACANT, SITE_STATUS_TRANSFERRED, SITE_STATUS_DISCARDED
 from disturbance.utils import search_tenure
 from disturbance.components.main.utils import (
     check_db_connection,
-    get_template_group, get_qs_vacant_site, get_qs_proposal, get_qs_approval
+    get_template_group, get_qs_vacant_site, get_qs_proposal, get_qs_approval, handle_validation_error
 )
 
 from django.urls import reverse
@@ -152,6 +152,7 @@ class ProposalFilterBackend(DatatablesFilterBackend):
     """
 
     def filter_queryset(self, request, queryset, view):
+        search_text = request.GET.get('search[value]', '')
         #import ipdb; ipdb.set_trace()
         total_count = queryset.count()
 
@@ -259,7 +260,10 @@ class ProposalFilterBackend(DatatablesFilterBackend):
                 #    ordering[num] = '-status'
             queryset = queryset.order_by(*ordering)
 
-        #queryset = super(ProposalFilterBackend, self).filter_queryset(request, queryset, view)
+        try:
+            queryset = super(ProposalFilterBackend, self).filter_queryset(request, queryset, view)
+        except Exception as e:
+            print(e)
         setattr(view, '_datatables_total_count', total_count)
         return queryset
 
@@ -268,7 +272,7 @@ class ProposalRenderer(DatatablesRenderer):
         #import ipdb; ipdb.set_trace()
         if 'view' in renderer_context and hasattr(renderer_context['view'], '_datatables_total_count'):
             data['recordsTotal'] = renderer_context['view']._datatables_total_count
-            #data.pop('recordsTotal')
+            # data.pop('recordsTotal')
             #data.pop('recordsFiltered')
         return super(ProposalRenderer, self).render(data, accepted_media_type, renderer_context)
 
@@ -283,6 +287,7 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
     renderer_classes = (ProposalRenderer,)
     queryset = Proposal.objects.none()
     serializer_class = ListProposalSerializer
+    search_fields = ['lodgement_number',]
     #serializer_class = DTProposalSerializer
     page_size = 10
 
@@ -300,7 +305,8 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
             user_orgs = [org.id for org in user.disturbance_organisations.all()]
             #return  Proposal.objects.filter( Q(applicant_id__in = user_orgs) | Q(submitter = user) )
             #return Proposal.objects.filter( Q(applicant_id__in = user_orgs) | Q(submitter = user) | Q(proxy_applicant = user)).order_by('-id')
-            return Proposal.objects.filter( Q(applicant_id__in = user_orgs) | Q(submitter = user) | Q(proxy_applicant = user))
+            qs = Proposal.objects.filter(Q(applicant_id__in=user_orgs) | Q(submitter=user) | Q(proxy_applicant=user))
+            return qs
             #queryset =  Proposal.objects.filter(region__isnull=False).filter( Q(applicant_id__in = user_orgs) | Q(submitter = user) )
         return Proposal.objects.none()
 
@@ -327,15 +333,15 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         if template_group == 'apiary':
             #qs = self.get_queryset().filter(application_type__apiary_group_application_type=True)
             qs = self.get_queryset().filter(
-                    application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]
-                    ).exclude(processing_status='discarded')
+                application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]
+            )
         else:
             if is_das_apiary_admin(self.request):
                 qs = self.get_queryset()
             else:
                 qs = self.get_queryset().exclude(
-                        application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]
-                        ).exclude(processing_status='discarded')
+                    application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]
+                )
         #qs = self.filter_queryset(self.request, qs, self)
         #qs = self.filter_queryset(qs).order_by('-id')
         qs = self.filter_queryset(qs)
@@ -434,18 +440,13 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         template_group = get_template_group(request)
         #import ipdb; ipdb.set_trace()
         if template_group == 'apiary':
-            #qs = self.get_queryset().filter(application_type__apiary_group_application_type=True).exclude(processing_status='discarded')
             qs = self.get_queryset().filter(
                     application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]
-                    ).exclude(processing_status='discarded')
+                    ).exclude(processing_status=Proposal.PROCESSING_STATUS_DISCARDED)
         else:
             qs = self.get_queryset().exclude(
                     application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]
-                    ).exclude(processing_status='discarded')
-            #qs = self.get_queryset().filter(application_type__apiary_group_application_type=False).exclude(processing_status='discarded')
-        #qs = self.get_queryset().exclude(processing_status='discarded')
-        #qs = self.filter_queryset(self.request, qs, self)
-        #qs = self.filter_queryset(qs).order_by('-id')
+                    ).exclude(processing_status=Proposal.PROCESSING_STATUS_DISCARDED)
         qs = self.filter_queryset(qs)
 
         # on the internal organisations dashboard, filter the Proposal/Approval/Compliance datatables by applicant/organisation
@@ -602,40 +603,329 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
 
         return Response({})
 
-    @list_route(methods=['GET',])
-    @basic_exception_handler
-    def export(self, request):
-        if self.is_internal_system(request):
+    # @list_route(methods=['GET',])
+    # @basic_exception_handler
+    # def export(self, request):
+    #     if self.is_internal_system(request):
             # Retrieve 'vacant' sites
-            qs_vacant_site_proposal, qs_vacant_site_approval = get_qs_vacant_site()
+            # qs_vacant_site_proposal, qs_vacant_site_approval = get_qs_vacant_site()
             # qs_vacant_site_proposal may not have the wkb_geometry_processed if the apiary site is the selected 'vacant' site
 
-            serializer_vacant_proposal_d = ApiarySiteOnProposalDraftGeometryExportSerializer(qs_vacant_site_proposal.filter(wkb_geometry_processed__isnull=True), many=True)
-            serializer_vacant_proposal = ApiarySiteOnProposalProcessedGeometryExportSerializer(qs_vacant_site_proposal.filter(wkb_geometry_processed__isnull=False), many=True)
-            serializer_vacant_approval = ApiarySiteOnApprovalGeometryExportSerializer(qs_vacant_site_approval, many=True)
+            # serializer_vacant_proposal_d = ApiarySiteOnProposalDraftGeometryExportSerializer(qs_vacant_site_proposal.filter(wkb_geometry_processed__isnull=True), many=True)
+            # serializer_vacant_proposal = ApiarySiteOnProposalProcessedGeometryExportSerializer(qs_vacant_site_proposal.filter(wkb_geometry_processed__isnull=False), many=True)
+            # serializer_vacant_approval = ApiarySiteOnApprovalGeometryExportSerializer(qs_vacant_site_approval, many=True)
 
             # ApiarySiteOnProposal
-            qs_on_proposal_draft, qs_on_proposal_processed = get_qs_proposal()
-            serializer_proposal_processed = ApiarySiteOnProposalProcessedGeometryExportSerializer(qs_on_proposal_processed, many=True)
-            serializer_proposal_draft = ApiarySiteOnProposalDraftGeometryExportSerializer(qs_on_proposal_draft, many=True)
+            # qs_on_proposal_draft, qs_on_proposal_processed = get_qs_proposal()
+            # serializer_proposal_processed = ApiarySiteOnProposalProcessedGeometryExportSerializer(qs_on_proposal_processed, many=True)
+            # serializer_proposal_draft = ApiarySiteOnProposalDraftGeometryExportSerializer(qs_on_proposal_draft, many=True)
 
             # ApiarySiteOnApproval
-            qs_on_approval = get_qs_approval()
-            serializer_approval = ApiarySiteOnApprovalGeometryExportSerializer(qs_on_approval, many=True)
+            # qs_on_approval = get_qs_approval()
+            # serializer_approval = ApiarySiteOnApprovalGeometryExportSerializer(qs_on_approval, many=True)
 
             # Merge all the data above
-            serializer_approval.data['features'].extend(serializer_proposal_draft.data['features'])
-            serializer_approval.data['features'].extend(serializer_proposal_processed.data['features'])
-            serializer_approval.data['features'].extend(serializer_vacant_proposal_d.data['features'])
-            serializer_approval.data['features'].extend(serializer_vacant_proposal.data['features'])
-            serializer_approval.data['features'].extend(serializer_vacant_approval.data['features'])
+            # serializer_approval.data['features'].extend(serializer_proposal_draft.data['features'])
+            # serializer_approval.data['features'].extend(serializer_proposal_processed.data['features'])
+            # serializer_approval.data['features'].extend(serializer_vacant_proposal_d.data['features'])
+            # serializer_approval.data['features'].extend(serializer_vacant_proposal.data['features'])
+            # serializer_approval.data['features'].extend(serializer_vacant_approval.data['features'])
 
-            return Response(serializer_approval.data)
-        else:
-            return Response({})
+            # return Response(serializer_approval.data)
+        # else:
+        #     return Response({})
 
     @list_route(methods=['GET',])
     @basic_exception_handler
+    @timeit
+    def list_existing_proposal_vacant_draft(self, request):
+        # qs_vacant_site_proposal, qs_vacant_site_approval = get_qs_vacant_site()
+        # qs = qs_vacant_site_proposal.filter(wkb_geometry_processed__isnull=True)
+        # serializer_vacant_proposal_d = ApiarySiteOnProposalVacantDraftGeometrySerializer(qs, many=True)
+        # return Response(serializer_vacant_proposal_d.data)
+
+        raw_sql = '''
+        SELECT row_to_json(featurecollection) FROM (
+            SELECT 'FeatureCollection' AS type, array_to_json(array_agg(feature)) AS features FROM (
+                SELECT 
+                    "disturbance_apiarysite"."id", 
+                    'Feature' AS type,
+                    ST_AsGeoJSON("disturbance_apiarysiteonproposal"."wkb_geometry_draft")::json AS geometry, 
+                    row_to_json((
+                        SELECT p FROM (
+                            SELECT
+                                "disturbance_apiarysite"."site_guid", 
+                                "disturbance_apiarysite"."is_vacant", 
+                                "disturbance_sitecategory"."name" AS site_category, 
+                                "disturbance_apiarysiteonproposal"."site_status" AS status, 
+                                "disturbance_apiarysiteonproposal"."making_payment", 
+                                "disturbance_apiarysiteonproposal"."application_fee_paid" 
+                        ) AS p
+                    )) AS properties
+                FROM "disturbance_apiarysiteonproposal" 
+                INNER JOIN "disturbance_apiarysite" ON("disturbance_apiarysiteonproposal"."apiary_site_id" = "disturbance_apiarysite"."id") 
+                LEFT OUTER JOIN "disturbance_sitecategory" ON("disturbance_apiarysiteonproposal"."site_category_draft_id" = "disturbance_sitecategory"."id") 
+                WHERE
+                (
+                    (
+                        "disturbance_apiarysiteonproposal"."id" IN 
+                        (
+                            SELECT DISTINCT U0."latest_proposal_link_id" FROM "disturbance_apiarysite" U0 WHERE U0."is_vacant" = True
+                        ) 
+                        OR "disturbance_apiarysiteonproposal"."id" IN 
+                        (
+                            SELECT DISTINCT U0."proposal_link_for_vacant_id" FROM "disturbance_apiarysite" U0 WHERE 
+                            (
+                                U0."is_vacant" = True AND U0."latest_proposal_link_id" IS NULL
+                            )
+                        )
+                    ) 
+                    AND "disturbance_apiarysiteonproposal"."wkb_geometry_processed" IS NULL
+                )
+            ) AS feature
+        ) AS featurecollection
+        '''
+        with connection.cursor() as cursor:
+            cursor.execute(raw_sql)
+            row = cursor.fetchone()  # We put all data together as 'FeatureCollection'.  THerefore we don't have to perform fetchall()
+        return Response(row[0])
+
+    @list_route(methods=['GET',])
+    @basic_exception_handler
+    @timeit
+    def list_existing_proposal_vacant_processed(self, request):
+        # qs_vacant_site_proposal, qs_vacant_site_approval = get_qs_vacant_site()
+        # qs = qs_vacant_site_proposal.filter(wkb_geometry_processed__isnull=False)
+        # serializer_vacant_proposal = ApiarySiteOnProposalVacantProcessedGeometrySerializer(qs, many=True)
+        # return Response(serializer_vacant_proposal.data)
+        raw_sql = '''
+        SELECT row_to_json(featurecollection) FROM (
+            SELECT 'FeatureCollection' AS type, array_to_json(array_agg(feature)) AS features FROM (
+                SELECT 
+                    "disturbance_apiarysite"."id", 
+                    'Feature' AS type,
+                    ST_AsGeoJSON("disturbance_apiarysiteonproposal"."wkb_geometry_processed")::json AS geometry, 
+                    row_to_json((
+                        SELECT p FROM (
+                            SELECT
+                                "disturbance_apiarysite"."site_guid", 
+                                "disturbance_apiarysite"."is_vacant", 
+                                "disturbance_sitecategory"."name" AS site_category, 
+                                "disturbance_apiarysiteonproposal"."site_status" AS status, 
+                                "disturbance_apiarysiteonproposal"."making_payment", 
+                                "disturbance_apiarysiteonproposal"."application_fee_paid" 
+                        ) AS p
+                    )) AS properties
+                FROM "disturbance_apiarysiteonproposal" 
+                INNER JOIN "disturbance_apiarysite" ON("disturbance_apiarysiteonproposal"."apiary_site_id" = "disturbance_apiarysite"."id") 
+                LEFT OUTER JOIN "disturbance_sitecategory" ON("disturbance_apiarysiteonproposal"."site_category_processed_id" = "disturbance_sitecategory"."id") 
+                WHERE 
+                (
+                    (
+                        "disturbance_apiarysiteonproposal"."id" IN 
+                        (
+                            SELECT DISTINCT U0."latest_proposal_link_id" FROM "disturbance_apiarysite" U0 WHERE U0."is_vacant" = True
+                        ) 
+                        OR "disturbance_apiarysiteonproposal"."id" IN
+                        (
+                            SELECT DISTINCT U0."proposal_link_for_vacant_id" FROM "disturbance_apiarysite" U0 WHERE 
+                            (
+                                U0."is_vacant" = True AND U0."latest_proposal_link_id" IS NULL
+                            )
+                        )
+                    ) 
+                    AND "disturbance_apiarysiteonproposal"."wkb_geometry_processed" IS NOT NULL
+                )
+            ) AS feature
+        ) AS featurecollection
+        '''
+        with connection.cursor() as cursor:
+            cursor.execute(raw_sql)
+            row = cursor.fetchone()  # We put all data together as 'FeatureCollection'.  THerefore we don't have to perform fetchall()
+        return Response(row[0])
+
+    @list_route(methods=['GET',])
+    @basic_exception_handler
+    @timeit
+    def list_existing_vacant_approval(self, request):
+        # qs_vacant_site_proposal, qs_vacant_site_approval = get_qs_vacant_site()
+        # serializer_vacant_approval = ApiarySiteOnApprovalGeometrySerializer(qs_vacant_site_approval, many=True)
+        # return Response(serializer_vacant_approval.data)
+        raw_sql = '''
+        SELECT row_to_json(featurecollection) FROM (
+            SELECT 'FeatureCollection' AS type, array_to_json(array_agg(feature)) AS features FROM (
+                SELECT 
+                    "disturbance_apiarysite"."id",
+                    'Feature' AS type,
+                    ST_AsGeoJSON("disturbance_apiarysiteonapproval"."wkb_geometry")::json AS geometry, 
+                    row_to_json((
+                        SELECT p FROM (
+                            SELECT
+                                "disturbance_apiarysite"."site_guid", 
+                                "disturbance_apiarysite"."is_vacant", 
+                                "disturbance_sitecategory"."name" AS site_category, 
+                                "disturbance_apiarysiteonapproval"."available", 
+                                "disturbance_apiarysiteonapproval"."site_status" AS status 
+                        ) AS p
+                    )) AS properties
+                FROM "disturbance_apiarysiteonapproval" 
+                INNER JOIN "disturbance_apiarysite" ON("disturbance_apiarysiteonapproval"."apiary_site_id" = "disturbance_apiarysite"."id") 
+                LEFT OUTER JOIN "disturbance_sitecategory" ON("disturbance_apiarysiteonapproval"."site_category_id" = "disturbance_sitecategory"."id") 
+                WHERE 
+                    "disturbance_apiarysiteonapproval"."id" IN 
+                    (
+                        SELECT DISTINCT U0."approval_link_for_vacant_id" FROM "disturbance_apiarysite" U0 WHERE U0."is_vacant" = True
+                    )
+            ) AS feature
+        ) AS featurecollection
+        '''
+        with connection.cursor() as cursor:
+            cursor.execute(raw_sql)
+            row = cursor.fetchone()  # We put all data together as 'FeatureCollection'.  THerefore we don't have to perform fetchall()
+        return Response(row[0])
+
+    @list_route(methods=['GET',])
+    @basic_exception_handler
+    @timeit
+    def list_existing_proposal_draft(self, request):
+        proposal_id = request.query_params.get('proposal_id', None)
+        if not proposal_id:
+            return Response({})
+
+        proposal = Proposal.objects.get(id=proposal_id)
+        raw_sql = '''
+        SELECT row_to_json(featurecollection) FROM (
+            SELECT 'FeatureCollection' AS type, array_to_json(array_agg(feature)) AS features FROM (
+                SELECT DISTINCT ON ("disturbance_apiarysiteonproposal"."apiary_site_id") 
+                    "disturbance_apiarysite"."id", 
+                    'Feature' As type,
+                    ST_AsGeoJSON("disturbance_apiarysiteonproposal"."wkb_geometry_draft")::json AS geometry, 
+                    row_to_json((
+                        SELECT p FROM (
+                            SELECT
+                                "disturbance_apiarysite"."is_vacant" AS is_vacant, 
+                                "disturbance_sitecategory"."name" AS site_category, 
+                                "disturbance_apiarysiteonproposal"."for_renewal", 
+                                "disturbance_apiarysiteonproposal"."site_status" AS status,
+                                "disturbance_apiarysiteonproposal"."making_payment", 
+                                "disturbance_apiarysiteonproposal"."application_fee_paid" 
+                        ) AS p
+                    )) AS properties
+                FROM "disturbance_apiarysiteonproposal" 
+                INNER JOIN "disturbance_apiarysite" ON("disturbance_apiarysiteonproposal"."apiary_site_id" = "disturbance_apiarysite"."id") 
+                LEFT OUTER JOIN "disturbance_sitecategory" ON("disturbance_apiarysiteonproposal"."site_category_draft_id" = "disturbance_sitecategory"."id") 
+                WHERE (
+                    "disturbance_apiarysiteonproposal"."id" IN (SELECT U0."latest_proposal_link_id" FROM "disturbance_apiarysite" U0) AND NOT 
+                    ((
+                        ("disturbance_apiarysiteonproposal"."site_status" IN ('draft') AND "disturbance_apiarysiteonproposal"."making_payment" = False) OR 
+                        "disturbance_apiarysiteonproposal"."site_status" IN ('discarded') OR 
+                        "disturbance_apiarysiteonproposal"."site_status" IN ('approved') OR 
+                        "disturbance_apiarysiteonproposal"."apiary_site_id" IN (SELECT U0."id" FROM "disturbance_apiarysite" U0 WHERE U0."is_vacant" = True)
+                    )) 
+                    AND "disturbance_apiarysiteonproposal"."wkb_geometry_processed" IS NULL 
+                    AND NOT ("disturbance_apiarysiteonproposal"."proposal_apiary_id" = %s)
+                ) 
+            ) AS feature
+        ) AS featurecollection
+        ''' % proposal.proposal_apiary.id
+        with connection.cursor() as cursor:
+            cursor.execute(raw_sql)
+            row = cursor.fetchone()  # We put all data together as 'FeatureCollection'.  THerefore we don't have to perform fetchall()
+        return Response(row[0])
+
+    @list_route(methods=['GET',])
+    @basic_exception_handler
+    @timeit
+    def list_existing_proposal_processed(self, request):
+        proposal_id = request.query_params.get('proposal_id', None)
+        if not proposal_id:
+            return Response({})
+
+        proposal = Proposal.objects.get(id=proposal_id)
+        raw_sql = '''
+        SELECT row_to_json(featurecollection) FROM (
+            SELECT 'FeatureCollection' AS type, array_to_json(array_agg(feature)) AS features FROM (
+                SELECT DISTINCT ON("disturbance_apiarysiteonproposal"."apiary_site_id") 
+                    "disturbance_apiarysite"."id" AS id,
+                    'Feature' AS type,
+                    ST_AsGeoJSON("disturbance_apiarysiteonproposal"."wkb_geometry_processed")::json AS geometry, 
+                    row_to_json((
+                        SELECT p FROM (
+                            SELECT 
+                                "disturbance_apiarysite"."is_vacant" AS is_vacant, 
+                                "disturbance_sitecategory"."name" AS site_category, 
+                                "disturbance_apiarysiteonproposal"."site_status" AS status, 
+                                "disturbance_apiarysiteonproposal"."for_renewal" AS for_renewal, 
+                                "disturbance_apiarysiteonproposal"."making_payment" AS making_payment, 
+                                "disturbance_apiarysiteonproposal"."application_fee_paid" AS application_fee_paid 
+                        ) AS p
+                    )) AS properties
+                FROM "disturbance_apiarysiteonproposal" 
+                INNER JOIN "disturbance_apiarysite" ON("disturbance_apiarysiteonproposal"."apiary_site_id" = "disturbance_apiarysite"."id") 
+                LEFT OUTER JOIN "disturbance_sitecategory" ON("disturbance_apiarysiteonproposal"."site_category_processed_id" = "disturbance_sitecategory"."id") 
+                WHERE(
+                    "disturbance_apiarysiteonproposal"."id" IN (SELECT U0."latest_proposal_link_id" FROM "disturbance_apiarysite" U0) 
+                    AND NOT(((
+                        "disturbance_apiarysiteonproposal"."site_status" IN ('draft') AND "disturbance_apiarysiteonproposal"."making_payment" = False) OR 
+                        "disturbance_apiarysiteonproposal"."site_status" IN ('discarded') OR 
+                        "disturbance_apiarysiteonproposal"."site_status" IN ('approved') OR 
+                        "disturbance_apiarysiteonproposal"."apiary_site_id" IN (SELECT U0."id" FROM "disturbance_apiarysite" U0 WHERE U0."is_vacant" = True
+                    )))
+                    AND NOT("disturbance_apiarysiteonproposal"."wkb_geometry_processed" IS NULL) 
+                    AND NOT("disturbance_apiarysiteonproposal"."proposal_apiary_id" = %s)
+                )
+            ) AS feature
+        ) AS featurecollection''' % proposal.proposal_apiary.id
+
+        with connection.cursor() as cursor:
+            cursor.execute(raw_sql)
+            row = cursor.fetchone()  # We put all data together as 'FeatureCollection'.  THerefore we don't have to perform fetchall()
+        return Response(row[0])
+
+    @list_route(methods=['GET',])
+    @basic_exception_handler
+    @timeit
+    def list_existing_approval(self, request):
+        raw_sql = '''
+        SELECT row_to_json(featurecollection) FROM (
+            SELECT 'FeatureCollection' AS type, array_to_json(array_agg(feature)) AS features FROM (
+                SELECT DISTINCT ON ("disturbance_apiarysiteonapproval"."apiary_site_id") 
+                    "disturbance_apiarysite"."id", 
+                    'Feature' AS type,
+                    ST_AsGeoJSON("disturbance_apiarysiteonapproval"."wkb_geometry")::json AS geometry, 
+                    row_to_json((
+                        SELECT p FROM (
+                            SELECT
+                                "disturbance_apiarysite"."site_guid", 
+                                "disturbance_sitecategory"."name" AS site_category, 
+                                "disturbance_apiarysiteonapproval"."site_status" AS status, 
+                                "disturbance_apiarysite"."is_vacant" AS is_vacant 
+                        ) AS p
+                    )) AS properties
+                FROM "disturbance_apiarysiteonapproval" 
+                INNER JOIN "disturbance_apiarysite" ON("disturbance_apiarysiteonapproval"."apiary_site_id" = "disturbance_apiarysite"."id") 
+                LEFT OUTER JOIN "disturbance_sitecategory" ON("disturbance_apiarysiteonapproval"."site_category_id" = "disturbance_sitecategory"."id") 
+                WHERE (
+                    "disturbance_apiarysiteonapproval"."id" IN (SELECT U0."latest_approval_link_id" FROM "disturbance_apiarysite" U0) 
+                    AND NOT (
+                        ("disturbance_apiarysiteonapproval"."apiary_site_id" IN (SELECT DISTINCT U0."id" FROM "disturbance_apiarysite" U0 WHERE U0."is_vacant" = True) 
+                        OR "disturbance_apiarysiteonapproval"."site_status" = 'transferred'))
+                )
+            ) AS feature
+        ) AS featurecollection
+        '''
+        with connection.cursor() as cursor:
+            cursor.execute(raw_sql)
+            row = cursor.fetchone()  # We put all data together as 'FeatureCollection'.  THerefore we don't have to perform fetchall()
+        return Response(row[0])
+
+        # qs_on_approval = get_qs_approval()
+        # serializer_approval = ApiarySiteOnApprovalGeometrySerializer(qs_on_approval, many=True)
+        # return Response(serializer_approval.data)
+
+    @list_route(methods=['GET',])
+    @basic_exception_handler
+    @timeit
     def list_existing(self, request):
         # Retrieve 'vacant' sites
         qs_vacant_site_proposal, qs_vacant_site_approval = get_qs_vacant_site()
@@ -655,8 +945,8 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
             qs_on_proposal_draft = qs_on_proposal_draft.exclude(proposal_apiary=proposal.proposal_apiary)
             qs_on_proposal_processed = qs_on_proposal_processed.exclude(proposal_apiary=proposal.proposal_apiary)
 
-        serializer_proposal_processed = ApiarySiteOnProposalProcessedGeometrySerializer(qs_on_proposal_processed, many=True)
         serializer_proposal_draft = ApiarySiteOnProposalDraftGeometrySerializer(qs_on_proposal_draft, many=True)
+        serializer_proposal_processed = ApiarySiteOnProposalProcessedGeometrySerializer(qs_on_proposal_processed, many=True)
 
         # ApiarySiteOnApproval
         qs_on_approval = get_qs_approval()
@@ -669,7 +959,10 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
         serializer_approval.data['features'].extend(serializer_vacant_proposal.data['features'])
         serializer_approval.data['features'].extend(serializer_vacant_approval.data['features'])
 
+        # aho = serializer_approval.data['features'][0:10]
+        # test = {'type': 'FeatureCollection', 'features': aho}
         return Response(serializer_approval.data)
+        # return Response(test)
 
     @list_route(methods=['GET',])
     @basic_exception_handler
@@ -1130,10 +1423,7 @@ class ApiaryReferralViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise
         except ValidationError as e:
-            if hasattr(e,'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+            handle_validation_error(e)
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -1147,16 +1437,20 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        #import ipdb; ipdb.set_trace()
-        if is_internal(self.request): #user.is_authenticated():
-            #return Proposal.objects.all()
-            return Proposal.objects.filter(Q(region__isnull=False)|
-                    Q(application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]))
+
+        if is_internal(self.request):
+            return Proposal.objects.filter(
+                Q(region__isnull=False) |
+                Q(application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE])
+            )
         elif is_customer(self.request):
             user_orgs = [org.id for org in user.disturbance_organisations.all()]
-            #queryset =  Proposal.objects.filter( Q(applicant_id__in = user_orgs) | Q(submitter = user) )
-            queryset =  Proposal.objects.filter(region__isnull=False).filter( Q(applicant_id__in = user_orgs) | Q(submitter = user) )
+            queryset = Proposal.objects.filter(region__isnull=False).filter(
+                Q(applicant_id__in=user_orgs) |
+                Q(submitter=user)
+            ).exclude(processing_status='')
             return queryset
+
         logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return Proposal.objects.none()
 
@@ -1165,7 +1459,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
         check_db_connection()
         try:
             obj = super(ProposalViewSet, self).get_object()
-        except Exception, e:
+        except Exception as e:
             # because current queryset excludes migrated licences
             #import ipdb; ipdb.set_trace()
             #obj = get_object_or_404(Proposal, id=self.kwargs['id'])
@@ -1184,10 +1478,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise
         except ValidationError as e:
-            if hasattr(e,'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+            handle_validation_error(e)
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -1206,10 +1497,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise
         except ValidationError as e:
-            if hasattr(e,'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+            handle_validation_error(e)
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -1229,10 +1517,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise
         except ValidationError as e:
-            if hasattr(e, 'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+            handle_validation_error(e)
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -1247,22 +1532,16 @@ class ProposalViewSet(viewsets.ModelViewSet):
         application_type_qs = []
         if template_group == 'apiary':
             qs = self.get_queryset().filter(
-                    application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]
-                    ).exclude(processing_status='discarded')
-            #application_type_qs =  ApplicationType.objects.filter(
-             #   name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]).values_list(
-              #      'name', flat=True).distinct()
+                application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]
+            )
             submitter_qs = qs.filter(
-                    submitter__isnull=False).filter(
-                            application_type__name__in=[ApplicationType.APIARY,ApplicationType.SITE_TRANSFER,ApplicationType.TEMPORARY_USE]).distinct(
-                            'submitter__email').values_list('submitter__first_name','submitter__last_name','submitter__email')
+                submitter__isnull=False).filter(
+                    application_type__name__in=[ApplicationType.APIARY,ApplicationType.SITE_TRANSFER,ApplicationType.TEMPORARY_USE]).distinct(
+                    'submitter__email').values_list('submitter__first_name','submitter__last_name','submitter__email')
         else:
             qs = self.get_queryset().exclude(
-                    application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]
-                    ).exclude(processing_status='discarded')
+                application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE])
             region_qs =  qs.filter(region__isnull=False).values_list('region__name', flat=True).distinct()
-            #district_qs =  self.get_queryset().filter(district__isnull=False).values_list('district__name', flat=True).distinct()
-            #activity_qs =  qs.filter(activity__isnull=False).values_list('activity', flat=True).distinct()
             submitter_qs = qs.filter(submitter__isnull=False).distinct(
                             'submitter__email').values_list('submitter__first_name','submitter__last_name','submitter__email')
 
@@ -1333,10 +1612,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise
         except ValidationError as e:
-            if hasattr(e,'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+            handle_validation_error(e)
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -1510,7 +1786,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
     @list_route(methods=['GET',])
     def user_list(self, request, *args, **kwargs):
-        qs = self.get_queryset().exclude(processing_status='discarded')
+        qs = self.get_queryset().exclude(processing_status=Proposal.PROCESSING_STATUS_DISCARDED)
         #serializer = DTProposalSerializer(qs, many=True)
         serializer = ListProposalSerializer(qs,context={'request':request}, many=True)
         return Response(serializer.data)
@@ -1523,7 +1799,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
         https://stackoverflow.com/questions/29128225/django-rest-framework-3-1-breaks-pagination-paginationserializer
         """
-        proposals = self.get_queryset().exclude(processing_status='discarded')
+        proposals = self.get_queryset().exclude(processing_status=Proposal.PROCESSING_STATUS_DISCARDED)
         paginator = DatatablesPageNumberPagination()
         paginator.page_size = proposals.count()
         result_page = paginator.paginate_queryset(proposals, request)
@@ -1584,10 +1860,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise
         except ValidationError as e:
-            if hasattr(e,'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+            handle_validation_error(e)
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -1677,10 +1950,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise
         except ValidationError as e:
-            if hasattr(e,'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+            handle_validation_error(e)
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -1704,10 +1974,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise
         except ValidationError as e:
-            if hasattr(e,'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+            handle_validation_error(e)
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -1725,7 +1992,10 @@ class ProposalViewSet(viewsets.ModelViewSet):
             return Response(serializer.data)
         except Exception as e:
             print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+            if hasattr(e, 'message'):
+                raise serializers.ValidationError(e.message)
+            else:
+                raise
 
     @detail_route(methods=['GET',])
     def amend_approval(self, request, *args, **kwargs):
@@ -1736,7 +2006,10 @@ class ProposalViewSet(viewsets.ModelViewSet):
             return Response(serializer.data)
         except Exception as e:
             print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+            if hasattr(e, 'message'):
+                raise serializers.ValidationError(e.message)
+            else:
+                raise
 
     @detail_route(methods=['POST',])
     def proposed_approval(self, request, *args, **kwargs):
@@ -1758,10 +2031,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise
         except ValidationError as e:
-            if hasattr(e,'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+            handle_validation_error(e)
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -1779,10 +2049,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise
         except ValidationError as e:
-            if hasattr(e,'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+            handle_validation_error(e)
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -1800,10 +2067,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise
         except ValidationError as e:
-            if hasattr(e,'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+            handle_validation_error(e)
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -1837,10 +2101,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise
         except ValidationError as e:
-            if hasattr(e,'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+            handle_validation_error(e)
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -1860,10 +2121,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise
         except ValidationError as e:
-            if hasattr(e,'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+            handle_validation_error(e)
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -1883,10 +2141,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise
         except ValidationError as e:
-            if hasattr(e,'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+            handle_validation_error(e)
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -1908,10 +2163,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise
         except ValidationError as e:
-            if hasattr(e,'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+            handle_validation_error(e)
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -2221,13 +2473,26 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-    def destroy(self, request,*args,**kwargs):
+    def destroy(self, request, *args, **kwargs):
         try:
             http_status = status.HTTP_200_OK
             instance = self.get_object()
-            serializer = SaveProposalSerializer(instance,{'processing_status':'discarded', 'previous_application': None},partial=True)
+            serializer = SaveProposalSerializer(instance, {
+                'processing_status': Proposal.PROCESSING_STATUS_DISCARDED,
+                'previous_application': None
+            }, partial=True)
             serializer.is_valid(raise_exception=True)
             self.perform_update(serializer)
+            if hasattr(instance, 'proposal_apiary') and instance.proposal_apiary and instance.proposal_apiary.apiary_sites.count():
+                for apiary_site in instance.proposal_apiary.apiary_sites.all():
+                    if apiary_site.can_be_deleted_from_the_system:
+                        # Apiary sites can be actually deleted from the system
+                        apiary_site.delete()
+                    else:
+                        # This apiary site was submitted at least once
+                        # Therefore we have to keep the record of this apiary site
+                        apiary_site.latest_proposal_link.site_status = SITE_STATUS_DISCARDED
+                        apiary_site.latest_proposal_link.save()
             return Response(serializer.data,status=http_status)
         except Exception as e:
             print(traceback.print_exc())
@@ -2263,10 +2528,7 @@ class ReferralViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise
         except ValidationError as e:
-            if hasattr(e,'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+            handle_validation_error(e)
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -2436,10 +2698,7 @@ class ReferralViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise
         except ValidationError as e:
-            if hasattr(e,'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+            handle_validation_error(e)
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -2572,10 +2831,7 @@ class AmendmentRequestViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise
         except ValidationError as e:
-            if hasattr(e,'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+            handle_validation_error(e)
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -2643,11 +2899,7 @@ class SearchReferenceView(views.APIView):
             print(traceback.print_exc())
             raise
         except ValidationError as e:
-            if hasattr(e,'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                print e
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+            handle_validation_error(e)
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))

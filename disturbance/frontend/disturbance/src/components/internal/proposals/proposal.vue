@@ -1,5 +1,8 @@
 <template lang="html">
     <div v-if="proposal" class="container" id="internalProposal">
+        <template v-if="is_local">
+            proposal.vue
+        </template>
       <div class="row">
         <h3>Proposal: {{ proposal.lodgement_number }}</h3>
         <h4>Proposal Type: {{proposal.proposal_type }}</h4>
@@ -11,7 +14,7 @@
             <div class="row" v-if="canSeeSubmission">
                 <div class="panel panel-default">
                     <div class="panel-heading">
-                       Submission 
+                       Submission
                     </div>
                     <div class="panel-body panel-collapse">
                         <div class="row">
@@ -61,7 +64,7 @@
             <div class="row">
                 <div class="panel panel-default">
                     <div class="panel-heading">
-                        Workflow 
+                        Workflow
                     </div>
                     <div class="panel-body panel-collapse">
                         <div class="row">
@@ -116,7 +119,7 @@
                                         </tr>
                                     </table>
                                     <template>
-                                            
+
                                     </template>
                                     <MoreReferrals @refreshFromResponse="refreshFromResponse" :proposal="proposal" :canAction="canLimitedAction" :isFinalised="isFinalised" :referral_url="referralListURL"/>
                                 </div>
@@ -257,7 +260,7 @@
                                         <a class="panelClicker" :href="'#'+detailsBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="detailsBody">
                                             <span class="glyphicon glyphicon-chevron-up pull-right "></span>
                                         </a>
-                                    </h3> 
+                                    </h3>
                                 </div>
                                 <div class="panel-body panel-collapse collapse in" :id="detailsBody">
                                       <form class="form-horizontal">
@@ -286,7 +289,7 @@
                                         <a class="panelClicker" :href="'#'+addressBody" data-toggle="collapse"  data-parent="#userInfo" expanded="false" :aria-controls="addressBody">
                                             <span class="glyphicon glyphicon-chevron-down pull-right "></span>
                                         </a>
-                                    </h3> 
+                                    </h3>
                                 </div>
                                 <div class="panel-body panel-collapse collapse" :id="addressBody">
                                       <form class="form-horizontal">
@@ -343,30 +346,6 @@
 
                     <div class="col-md-12">
                         <div class="row">
-                            <div class="panel panel-default">
-                                <div class="panel-heading">
-                                    <h3 class="panel-title">Site Locations
-                                        <a class="panelClicker" :href="'#'+siteLocations" data-toggle="collapse"  data-parent="#userInfo" expanded="false" :aria-controls="siteLocations">
-                                            <span class="glyphicon glyphicon-chevron-down pull-right "></span>
-                                        </a>
-                                    </h3>
-                                </div>
-                                <div class="panel-body panel-collapse collapse" :id="siteLocations">
-                                    <MapLocations
-                                        :key="defaultKey"
-                                        ref="mapLocationsComponent" 
-                                        :readonly="false"
-                                        :marker_longitude="130" 
-                                        :marker_latitude="-30" 
-                                        @location-updated="locationUpdated"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-md-12">
-                        <div class="row">
                             <form :action="proposal_form_url" method="post" name="new_proposal" enctype="multipart/form-data">
 
                                 <div v-if="proposal.application_type=='Apiary'">
@@ -409,7 +388,6 @@
 </template>
 <script>
 import ProposalDisturbance from '../../form.vue'
-//import ProposalApiary from '../../form_apiary.vue'
 import ProposalApiary from '@/components/form_apiary.vue'
 import NewApply from '../../external/proposal_apply_new.vue'
 import Vue from 'vue'
@@ -450,6 +428,7 @@ export default {
             hasAmendmentRequest: false,
             state_options: ['requirements','processing'],
             contacts_table_id: vm._uid+'contacts-table',
+            is_local: helpers.is_local(),
             contacts_options:{
                 language: {
                     processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
@@ -593,7 +572,7 @@ export default {
                         if(ele[0].value!=''){
                             //console.log(visiblity, ele[0].name, ele[0].value)
                             ele[0].value=''
-                        } 
+                        }
                     }
                 }
             });
@@ -631,7 +610,7 @@ export default {
         },
         issueProposal:function(){
             //this.$refs.proposed_approval.approval = helpers.copyObject(this.proposal.proposed_issuance_approval);
-            
+
             //save approval level comment before opening 'issue approval' modal
             if(this.proposal && this.proposal.processing_status == 'With Approver' && this.proposal.approval_level != null && this.proposal.approval_level_document == null){
                 if (this.proposal.approval_level_comment!='')
@@ -665,9 +644,9 @@ export default {
             // if(this.proposal.applicant.email){
             //     this.$refs.proposed_approval.applicant_email=helpers.copyObject(this.proposal.applicant.email);
             // }
-            this.$refs.proposed_approval.isModalOpen = true; 
+            this.$refs.proposed_approval.isModalOpen = true;
             }
-            
+
         },
         declineProposal:function(){
             this.$refs.proposed_decline.decline = this.proposal.proposaldeclineddetails != null ? helpers.copyObject(this.proposal.proposaldeclineddetails): {};
@@ -678,10 +657,10 @@ export default {
             let values = '';
             $('.deficiency').each((i,d) => {
                 values +=  $(d).val() != '' ? `Question - ${$(d).data('question')}\nDeficiency - ${$(d).val()}\n\n`: '';
-            }); 
+            });
             //this.deficientFields();
             this.$refs.amendment_request.amendment.text = values;
-            
+
             this.$refs.amendment_request.isModalOpen = true;
         },
         highlight_deficient_fields: function(deficient_fields){
@@ -700,7 +679,7 @@ export default {
                     deficient_fields.push(tmp);
                     //console.log('data', $("#"+"id_" + tmp))
                 }
-            }); 
+            });
             //console.log('deficient fields', deficient_fields);
             vm.highlight_deficient_fields(deficient_fields);
         },
@@ -723,7 +702,7 @@ export default {
           let formData = new FormData(vm.form);
           vm.$http.post(vm.proposal_form_url,formData).then(res=>{
 
-              
+
           },err=>{
           });
         },
@@ -832,7 +811,7 @@ export default {
             vm.checkAssessorData();
             let formData = new FormData(vm.form);
             vm.$http.post(vm.proposal_form_url,formData).then(res=>{ //save Proposal before changing status so that unsaved assessor data is saved.
-            
+
             let data = {'status': status, 'approver_comment': vm.approver_comment}
             vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,(vm.proposal.id+'/switch_status')),JSON.stringify(data),{
                 emulateJSON:true,
@@ -856,7 +835,7 @@ export default {
                     'error'
                 )
             });
-              
+
           },err=>{
           });
         }
@@ -977,7 +956,7 @@ export default {
                 }).
                 on("select2:unselect",function (e) {
                     var selected = $(e.currentTarget);
-                    vm.selected_referral = '' 
+                    vm.selected_referral = ''
                 });
                 vm.initialiseAssignedOfficerSelect();
                 vm.initialisedSelects = true;
@@ -990,7 +969,7 @@ export default {
             let formData = new FormData(vm.form);
             vm.sendingReferral = true;
             vm.$http.post(vm.proposal_form_url,formData).then(res=>{
-            
+
             let data = {'email':vm.selected_referral, 'text': vm.referral_text};
             //vm.sendingReferral = true;
             vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,(vm.proposal.id+'/assesor_send_referral')),JSON.stringify(data),{
@@ -1018,11 +997,11 @@ export default {
                 vm.sendingReferral = false;
             });
 
-              
+
           },err=>{
           });
-         
-        //this.$refs.referral_comment.selected_referral = vm.selected_referral;           
+
+        //this.$refs.referral_comment.selected_referral = vm.selected_referral;
         //this.$refs.referral_comment.isModalOpen = true;
 
           /*  let data = {'email':vm.selected_referral};
@@ -1053,7 +1032,7 @@ export default {
         },
         remindReferral:function(r){
             let vm = this;
-            
+
             vm.$http.get(helpers.add_endpoint_json(api_endpoints.referrals,r.id+'/remind')).then(response => {
                 vm.original_proposal = helpers.copyObject(response.body);
                 vm.proposal = response.body;
@@ -1074,7 +1053,7 @@ export default {
         },
         resendReferral:function(r){
             let vm = this;
-            
+
             vm.$http.get(helpers.add_endpoint_json(api_endpoints.referrals,r.id+'/resend')).then(response => {
                 vm.original_proposal = helpers.copyObject(response.body);
                 vm.proposal = response.body;
@@ -1095,7 +1074,7 @@ export default {
         },
         recallReferral:function(r){
             let vm = this;
-            
+
             vm.$http.get(helpers.add_endpoint_json(api_endpoints.referrals,r.id+'/recall')).then(response => {
                 vm.original_proposal = helpers.copyObject(response.body);
                 vm.proposal = response.body;
@@ -1114,12 +1093,12 @@ export default {
                 )
             });
         }
-        
+
     },
     mounted: function() {
         let vm = this;
         vm.fetchDeparmentUsers();
-        
+
     },
     updated: function(){
         let vm = this;
@@ -1129,7 +1108,7 @@ export default {
                 window.setTimeout(function () {
                     $(chev).toggleClass("glyphicon-chevron-down glyphicon-chevron-up");
                 },100);
-            }); 
+            });
             vm.panelClickersInitialised = true;
         }
         this.$nextTick(() => {
@@ -1141,7 +1120,7 @@ export default {
             }
         });
     },
-    created: function() {          
+    created: function() {
         Vue.http.get(`/api/proposal/${this.proposalId}/internal_proposal.json`).then(res => {
             this.proposal = res.body;
             this.original_proposal = helpers.copyObject(res.body);

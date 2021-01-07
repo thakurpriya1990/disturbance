@@ -37,7 +37,7 @@ def send_application_fee_invoice_apiary_email_notification(request, proposal, in
         #'url': url,
     }
 
-    filename = 'invoice.pdf'
+    filename = 'invoice#{}.pdf'.format(invoice.reference)
     doc = create_invoice_pdf_bytes(filename, invoice, url_var, proposal)
     attachment = (filename, doc, 'application/pdf')
 

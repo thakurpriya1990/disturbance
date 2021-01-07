@@ -44,7 +44,7 @@ from disturbance.components.approvals.serializers import (
     ApprovalDocumentHistorySerializer,
 )
 from disturbance.components.main.decorators import basic_exception_handler
-from disturbance.components.proposals.models import ApiarySite, OnSiteInformation
+from disturbance.components.proposals.models import ApiarySite, OnSiteInformation, Proposal
 from disturbance.components.proposals.serializers_apiary import (
         OnSiteInformationSerializer,
         ProposalApiaryTemporaryUseSerializer,
@@ -54,7 +54,7 @@ from disturbance.helpers import is_customer, is_internal, is_das_apiary_admin
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 from rest_framework_datatables.filters import DatatablesFilterBackend
 from rest_framework_datatables.renderers import DatatablesRenderer
-from disturbance.components.main.utils import get_template_group
+from disturbance.components.main.utils import get_template_group, handle_validation_error
 
 
 class ApprovalFilterBackend(DatatablesFilterBackend):
@@ -119,7 +119,10 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
                 #    ordering[num] = '-status'
             queryset = queryset.order_by(*ordering)
 
-        #queryset = super(ProposalFilterBackend, self).filter_queryset(request, queryset, view)
+        try:
+            queryset = super(ApprovalFilterBackend, self).filter_queryset(request, queryset, view)
+        except Exception as e:
+            print(e)
         setattr(view, '_datatables_total_count', total_count)
         return queryset
 
@@ -369,6 +372,7 @@ class ApprovalViewSet(viewsets.ModelViewSet):
     def temporary_use(self, request, *args, **kwargs):
         instance = self.get_object()
         qs = instance.proposalapiarytemporaryuse_set
+        qs = qs.exclude(proposal__processing_status=Proposal.PROCESSING_STATUS_DISCARDED)
         serializer = ProposalApiaryTemporaryUseSerializer(qs, many=True)
         return Response(serializer.data)
 
@@ -428,10 +432,7 @@ class ApprovalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise
         except ValidationError as e:
-            if hasattr(e,'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+            handle_validation_error(e)
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -447,10 +448,7 @@ class ApprovalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise
         except ValidationError as e:
-            if hasattr(e,'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+            handle_validation_error(e)
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -468,10 +466,7 @@ class ApprovalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise
         except ValidationError as e:
-            if hasattr(e,'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+            handle_validation_error(e)
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -487,10 +482,7 @@ class ApprovalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise
         except ValidationError as e:
-            if hasattr(e,'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+            handle_validation_error(e)
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -608,11 +600,14 @@ class ApprovalViewSet(viewsets.ModelViewSet):
         try:
             qs = None
             approval_history_id = request.query_params['approval_history_id']
+            return_list = []
             if approval_history_id:
                 instance = Approval.objects.get(id=approval_history_id)
                 qs = instance.documents.all().order_by("-uploaded_date")
-            serializer = ApprovalDocumentHistorySerializer(qs, many=True)
-            return Response(serializer.data)
+                for item in qs:
+                    se = ApprovalDocumentHistorySerializer(item)
+                    return_list.append(se.data)
+            return Response(return_list)
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise

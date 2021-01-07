@@ -281,13 +281,13 @@ def _create_confirmation(confirmation_buffer, invoice, application_fee):
         )
         val += 1
     # Discounts
-    data.append(
-        [
-            '',
-            '',
-            ''
-        ]
-    )
+    # data.append(
+    #     [
+    #         '',
+    #         '',
+    #         ''
+    #     ]
+    # )
     t= Table(
             data,
             style=invoice_table_style,

@@ -165,6 +165,12 @@ class Approval(RevisionedMixin):
         return relation_objs
 
     @property
+    def get_current_apiary_sites(self):
+        # relation_objs = ApiarySiteOnApproval.objects.filter(apiary_site__in=self.apiary_sites.all(), approval=self)
+        relation_objs = ApiarySiteOnApproval.objects.filter(apiary_site__in=self.apiary_sites.all(), approval=self).filter(site_status=SITE_STATUS_CURRENT)
+        return relation_objs
+
+    @property
     def relevant_renewal_document(self):
         if self.apiary_approval:
             # return self.renewal_documents.filter(expiry_date=self.expiry_date).first() if self.renewal_documents.filter(expiry_date=self.expiry_date) else None
@@ -188,6 +194,13 @@ class Approval(RevisionedMixin):
     def relevant_applicant(self):
         if self.applicant:
             return self.applicant
+        else:
+            return self.proxy_applicant
+
+    @property
+    def relevant_applicant_email_user(self):
+        if self.applicant:
+            return self.applicant.delegates.all()[0]
         else:
             return self.proxy_applicant
 
@@ -252,6 +265,7 @@ class Approval(RevisionedMixin):
     def next_id(self):
         #ids = map(int,[(i.lodgement_number.split('A')[1]) for i in Approval.objects.all()])
         ids = map(int,[i.split('A')[1] for i in Approval.objects.all().values_list('lodgement_number', flat=True) if i])
+        ids = list(ids)  # In python 3, map returns map object.  Therefore before 'if ids' it should be converted to the list(/tuple,...) otherwise 'if ids' is always True
         return max(ids) + 1 if ids else 1
 
     def save(self, *args, **kwargs):
@@ -290,7 +304,7 @@ class Approval(RevisionedMixin):
     @property
     def can_action(self):
         if not (self.set_to_cancel or self.set_to_suspend or self.set_to_surrender):
-                return True
+            return True
         else:
             return False
 
@@ -426,8 +440,8 @@ class Approval(RevisionedMixin):
                     self.change_apiary_site_status(self.status)
 
                     proposal = self.current_proposal
-                    ApprovalUserAction.log_action(self,ApprovalUserAction.ACTION_EXPIRE_APPROVAL.format(self.id),user)
-                    ProposalUserAction.log_action(proposal,ProposalUserAction.ACTION_EXPIRED_APPROVAL_.format(proposal.id),user)
+                    ApprovalUserAction.log_action(self,ApprovalUserAction.ACTION_EXPIRE_APPROVAL.format(self.lodgement_number), user)
+                    ProposalUserAction.log_action(proposal,ProposalUserAction.ACTION_EXPIRED_APPROVAL_.format(proposal.lodgement_number), user)
             except:
                 raise
 
@@ -469,7 +483,7 @@ class Approval(RevisionedMixin):
                 #import ipdb; ipdb.set_trace()
                 self.save()
                 # Log proposal action
-                self.log_user_action(ApprovalUserAction.ACTION_CANCEL_APPROVAL.format(self.id),request)
+                self.log_user_action(ApprovalUserAction.ACTION_CANCEL_APPROVAL.format(self.lodgement_number), request)
                 # Log entry for organisation
                 #self.current_proposal.log_user_action(ProposalUserAction.ACTION_CANCEL_APPROVAL.format(self.current_proposal.id),request)
             except:
@@ -508,7 +522,7 @@ class Approval(RevisionedMixin):
                     send_approval_suspend_email_notification(self, future_suspend=True)
                 self.save()
                 # Log approval action
-                self.log_user_action(ApprovalUserAction.ACTION_SUSPEND_APPROVAL.format(self.id),request)
+                self.log_user_action(ApprovalUserAction.ACTION_SUSPEND_APPROVAL.format(self.lodgement_number), request)
                 # Log entry for proposal
                 #self.current_proposal.log_user_action(ProposalUserAction.ACTION_SUSPEND_APPROVAL.format(self.current_proposal.id),request)
             except:
@@ -543,7 +557,7 @@ class Approval(RevisionedMixin):
                 self.change_apiary_site_status(self.status)
 
                 # Log approval action
-                self.log_user_action(ApprovalUserAction.ACTION_REINSTATE_APPROVAL.format(self.id),request)
+                self.log_user_action(ApprovalUserAction.ACTION_REINSTATE_APPROVAL.format(self.lodgement_number), request)
                 # Log entry for proposal
                 #self.current_proposal.log_user_action(ProposalUserAction.ACTION_REINSTATE_APPROVAL.format(self.current_proposal.id),request)
             except:
@@ -579,14 +593,14 @@ class Approval(RevisionedMixin):
                     send_approval_surrender_email_notification(self, future_surrender=True)
                 self.save()
                 # Log approval action
-                self.log_user_action(ApprovalUserAction.ACTION_SURRENDER_APPROVAL.format(self.id),request)
+                self.log_user_action(ApprovalUserAction.ACTION_SURRENDER_APPROVAL.format(self.lodgement_number), request)
                 # Log entry for proposal
                 #self.current_proposal.log_user_action(ProposalUserAction.ACTION_SURRENDER_APPROVAL.format(self.current_proposal.id),request)
             except:
                 raise
 
     def pdf_view_log(self,request):
-        self.log_user_action(ApprovalUserAction.ACTION_APPROVAL_PDF_VIEW.format(self.id),request)
+        self.log_user_action(ApprovalUserAction.ACTION_APPROVAL_PDF_VIEW.format(self.lodgement_number), request)
         return self
 
 class PreviewTempApproval(Approval):
@@ -618,7 +632,7 @@ class ApprovalLogDocument(Document):
 
 class ApprovalUserAction(UserAction):
     ACTION_CREATE_APPROVAL = "Create approval {}"
-    ACTION_UPDATE_APPROVAL = "Update approval {}"
+    ACTION_UPDATE_APPROVAL = "Reissue approval {}"
     ACTION_EXPIRE_APPROVAL = "Expire approval {}"
     ACTION_CANCEL_APPROVAL = "Cancel approval {}"
     ACTION_SUSPEND_APPROVAL = "Suspend approval {}"

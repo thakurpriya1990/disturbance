@@ -1,6 +1,9 @@
 <template lang="html">
     <div id="proposedIssuanceApproval">
         <modal transition="modal fade" @ok="ok()" @cancel="cancel()" :title="title" large>
+            <template v-if="is_local">
+                proposed_apiary_issuance.vue
+            </template>
             <div class="container-fluid">
                 <div class="row">
                     <form class="form-horizontal" name="approvalForm">
@@ -131,8 +134,14 @@
                             <div class="form-group">
                                 <div class="row">
                                     <div class="col-sm-12">
-                                        <label v-if="submitter_email && applicant_email" class="control-label pull-left"  for="Name">After approving this application, the apiary authority will be emailed to {{proposalNotificationList}}.</label>
-                                        <label v-else class="control-label pull-left"  for="Name">After approving this application, licence will be emailed to {{submitter_email}}.</label>
+                                        <div v-if="!siteTransferApplication">
+                                            <label v-if="submitter_email && applicant_email" class="control-label pull-left"  for="Name">After approving this application, the apiary authority will be emailed to {{proposalNotificationList}}.</label>
+                                            <label v-else class="control-label pull-left"  for="Name">After approving this application, licence will be emailed to {{submitter_email}}.</label>
+                                        </div>
+                                        <div v-else>
+                                            <label class="control-label pull-left">After approving this application, the originating apiary authority will be emailed to {{originatingLicenceRecipients}}.</label>
+                                            <label class="control-label pull-left">After approving this application, the target apiary authority will be emailed to {{targetLicenceRecipients}}.</label>
+                                        </div>
                                     </div>
 
                                 </div>
@@ -146,8 +155,11 @@
                         :apiary_sites="apiary_sites_prop"
                         :is_internal="true"
                         :is_external="false"
+                        :show_col_site="false"
+                        :show_col_site_when_submitted="true"
                         :show_col_checkbox="true"
-                        :show_col_vacant="true"
+                        :show_col_status_when_submitted="true"
+                        :show_col_decision="true"
                         :key="component_site_selection_key"
                         :can_modify="true"
                         ref="component_site_selection"
@@ -259,6 +271,7 @@ export default {
             warningString: 'Please attach Level of Approval document before issuing Approval',
             component_site_selection_key: '',
             num_of_sites_selected: 0,
+            is_local: helpers.is_local(),
         }
     },
     computed: {
@@ -312,7 +325,7 @@ export default {
         },
         title: function(){
             //return this.processing_status == 'With Approver' ? 'Issue Application' : 'Propose to issue licence';
-            return this.processing_status == 'With Approver' ? 'Issue Application' : 'Propose to approve';
+            return this.processing_status == 'With Approver' ? 'Issue Application' : 'Propose to Issue';
         },
         is_amendment: function(){
             return this.proposal_type == 'Amendment' ? true : false;
@@ -372,6 +385,16 @@ export default {
             }
             return targetApprovalExists;
         },
+        targetLicenceRecipients: function() {
+            if (this.proposal.proposal_apiary && this.proposal.proposal_apiary.transferee_email_text){
+                return  this.proposal.proposal_apiary.transferee_email_text;
+            }
+        },
+        originatingLicenceRecipients: function() {
+            if (this.proposal.proposal_apiary && this.proposal.proposal_apiary.transferee_email_text && this.proposal.applicant){
+                return  this.proposal.applicant.email;
+            }
+        },
     },
     watch: {
 
@@ -406,7 +429,8 @@ export default {
         setApiarySiteCheckedStatuses: function() {
             if(this.proposal && this.proposal.proposal_apiary){
                 for (let i=0; i<this.proposal.proposal_apiary.apiary_sites.length; i++){
-                    this.proposal.proposal_apiary.apiary_sites[i].checked = this.proposal.proposal_apiary.apiary_sites[i].properties.workflow_selected_status
+                    this.proposal.proposal_apiary.apiary_sites[i].checked = (this.proposal.proposal_apiary.apiary_sites[i].properties.workflow_selected_status || this.proposal.proposal_apiary.apiary_sites[i].properties.status === 'approved')
+                    //this.proposal.proposal_apiary.apiary_sites[i].checked = (this.proposal.proposal_apiary.apiary_sites[i].properties.workflow_selected_status)
                 }
             }
         },

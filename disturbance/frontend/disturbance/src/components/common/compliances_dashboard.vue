@@ -12,12 +12,11 @@
 
                 <div class="panel-body collapse in" :id="pBody">
                     <div class="row">
-                        <div v-if="!apiaryTemplateGroup">
+                        <div v-show="!apiaryTemplateGroup && select2Applied">
                             <div class="col-md-3">
                                 <div class="form-group">
                                     <label for="">Region</label>
-                                    <select class="form-control" v-model="filterProposalRegion">
-                                        <option value="All">All</option>
+                                    <select style="width:100%" class="form-control input-sm" ref="filterRegion" >
                                         <option v-for="r in proposal_regions" :value="r">{{r}}</option>
                                     </select>
                                 </div>
@@ -75,6 +74,8 @@
 <script>
 import datatable from '@/utils/vue/datatable.vue'
 import Vue from 'vue'
+require("select2/dist/css/select2.min.css");
+require("select2-bootstrap-theme/dist/select2-bootstrap.min.css");
 import {
     api_endpoints,
     helpers
@@ -104,8 +105,9 @@ export default {
             profile: {},
             dasTemplateGroup: false,
             apiaryTemplateGroup: false,
+            templateGroupDetermined: false,
             // Filters for Proposals
-            filterProposalRegion: 'All',
+            filterProposalRegion: [],
             filterProposalActivity: 'All',
             filterComplianceStatus: 'All',
             filterComplianceDueFrom: '',
@@ -119,6 +121,7 @@ export default {
                 keepInvalid:true,
                 allowInputToggle:true
             },
+            select2Applied: false,
             /*
             external_status:[
                 'Due',
@@ -167,6 +170,7 @@ export default {
                         d.region = vm.filterProposalRegion;
                         d.proposal_activity = vm.filterProposalActivity;
                         d.is_external = vm.is_external;
+                        d.regions = vm.filterProposalRegion.join();
                     }
 
                 },
@@ -191,6 +195,7 @@ export default {
                 ],
                 columns: [
                     {
+                        // 1. Number
                         data: "id",
                         mRender:function (data,type,full) {
                             //return `C${data}`;
@@ -199,22 +204,25 @@ export default {
                         name: "id, lodgement_number",
                     },
                     {
+                        // 2. Region/District
                         data: "regions",
                         name: "proposal__region__name", // will be use like: Approval.objects.filter(proposal__region__name='Kimberley')
                         visible: false,
                     },
                     {
+                        // 3. Activity
                         data: "activity",
                         name: "proposal__activity",
-                        visible: false,
+                        visible: true,
                     },
-                    /*
                     {
+                        // 4. Title
                         data: "title",
                         name: "proposal__title",
+                        visible: false,
                     },
-                    */
                     {
+                        // 5. Approval/Licence
                         data: "approval_lodgement_number",
                         mRender:function (data,type,full) {
                             return `A${data}`;
@@ -222,26 +230,30 @@ export default {
                         name: "approval__lodgement_number"
                     },
                     {
+                        // 6. Holder
                         data: "holder",
                         name: "proposal__applicant__organisation__name"
                     },
-
                     {
+                        // 7. Status
                         data: vm.level == 'external'? "customer_status" : "processing_status",
-                        searchable: false,
+                        searchable: false,  // There is a filter dropdown for 'Status'
                     },
                     {
+                        // 8. Due Date
                         data: "due_date",
                         mRender:function (data,type,full) {
                             return data != '' && data != null ? moment(data).format(vm.dateFormat): '';
                         }
                     },
                     {
+                        // 9. Assigned To
                         data: "assigned_to",
                         name: "assigned_to__first_name, assigned_to__last_name, assigned_to__email"
                         // visible: false
                     },
                     {
+                        // 10. Action
                         data: '',
                         mRender:function (data,type,full) {
                             let links = '';
@@ -274,14 +286,7 @@ export default {
                 ],
                 processing: true,
                 initComplete: function() {
-                    // set column visibility and headers according to template group
-                    // region
-                    let regionColumn = vm.$refs.proposal_datatable.vmDataTable.columns(1);
-                    let activityColumn = vm.$refs.proposal_datatable.vmDataTable.columns(2);
-                    if (vm.dasTemplateGroup) {
-                        regionColumn.visible(true);
-                        activityColumn.visible(true);
-                    }
+                    vm.showHideColumns()
                 },
 
                 /*
@@ -328,21 +333,27 @@ export default {
         datatable
     },
     watch:{
-        filterProposalRegion: function() {
-            //this.$refs.proposal_datatable.vmDataTable.draw();
-            let vm = this;
-            if (vm.filterProposalRegion!= 'All') {
-                vm.$refs.proposal_datatable.vmDataTable.columns(1).search(vm.filterProposalRegion).draw();
-            } else {
-                vm.$refs.proposal_datatable.vmDataTable.columns(1).search('').draw();
-            }
+        templateGroupDetermined: function(){
+            this.showHideColumns()
         },
+        filterProposalRegion: function(){
+            this.$refs.proposal_datatable.vmDataTable.draw();
+        },
+        //filterProposalRegion: function() {
+        //    //this.$refs.proposal_datatable.vmDataTable.draw();
+        //    let vm = this;
+        //    if (vm.filterProposalRegion!= 'All') {
+        //        vm.$refs.proposal_datatable.vmDataTable.column('proposal__region__name:name').search(vm.filterProposalRegion).draw();
+        //    } else {
+        //        vm.$refs.proposal_datatable.vmDataTable.column('proposal__region__name:name').search('').draw();
+        //    }
+        //},
         filterProposalActivity: function() {
             let vm = this;
             if (vm.filterProposalActivity!= 'All') {
-                vm.$refs.proposal_datatable.vmDataTable.columns(2).search(vm.filterProposalActivity).draw();
+                vm.$refs.proposal_datatable.vmDataTable.column('proposal__activity:name').search(vm.filterProposalActivity).draw();
             } else {
-                vm.$refs.proposal_datatable.vmDataTable.columns(2).search('').draw();
+                vm.$refs.proposal_datatable.vmDataTable.column('proposal__activity:name').search('').draw();
             }
         },
         filterComplianceStatus: function(){
@@ -359,7 +370,7 @@ export default {
         }
     },
     computed: {
-       /* status: function(){
+        /* status: function(){
             return this.is_external ? this.external_status : this.internal_status;
             //return [];
         }, */
@@ -367,37 +378,52 @@ export default {
             return this.level == 'external';
         },
         status_values: function() {
+            let under_review_or_with_assessor = 'With Assessor'
             if (this.is_external) {
-                return [
-                    'Due',
-                    'Future',
-                    'Under Review',
-                    'Approved',
-                ]
-            } else {
-                return [
-                    'Due',
-                    'Future',
-                    'With Assessor',
-                    'Approved',
-                ]
+                under_review_or_with_assessor = 'Under Review'
             }
+            return [
+                'Due',
+                'Future',
+                under_review_or_with_assessor,
+                'Approved',
+            ]
         },
 
         proposal_headers: function() {
+            let approval_or_licence = 'Approval'
             if (this.apiaryTemplateGroup) {
-                return [
-                    "Number","Region/District","Activity",/*"Title",*/"Licence","Holder","Status",
-                    "Due Date","Assigned To", "CustomerStatus", "Reference","Action"]
-            } else {
-                return [
-                    "Number","Region/District","Activity",/*"Title",*/"Approval","Holder","Status",
-                    "Due Date","Assigned To", "CustomerStatus", "Reference","Action"]
+                approval_or_licence = 'Licence'
             }
+            return [
+                "Number",           // 1
+                "Region",  // 2
+                "Activity",         // 3
+                "Title",            // 4
+                approval_or_licence,// 5
+                "Holder",           // 6
+                "Status",           // 7
+                "Due Date",         // 8
+                "Assigned To",      // 9
+                "Action",           // 10
+                "Reference",        // 11
+                "CustomerStatus",   // 12
+            ]
         },
-
     },
     methods:{
+        showHideColumns: function(){
+            let vm = this
+            // set column visibility and headers according to template group
+            let regionColumn = vm.$refs.proposal_datatable.vmDataTable.column('proposal__region__name:name');
+            let activityColumn = vm.$refs.proposal_datatable.vmDataTable.column('proposal__activity:name');
+            let titleColumn = vm.$refs.proposal_datatable.vmDataTable.column('proposal__title:name');
+            if (vm.dasTemplateGroup) {
+                regionColumn.visible(true);
+                activityColumn.visible(true);
+                titleColumn.visible(true);
+            }
+        },
         fetchFilterLists: function(){
             let vm = this;
 
@@ -436,21 +462,31 @@ export default {
             });
             // End Proposal Date Filters
 
-
             // Initialise select2 for region
-            $(vm.$refs.filterRegion).select2({
-                "theme": "bootstrap",
-                allowClear: true,
-                placeholder:"Select Region"
-            }).
-            on("select2:select",function (e) {
-                var selected = $(e.currentTarget);
-                vm.filterProposalRegion = selected.val();
-            }).
-            on("select2:unselect",function (e) {
-                var selected = $(e.currentTarget);
-                vm.filterProposalRegion = selected.val();
-            });
+            //vm.applySelect2()
+        },
+        applySelect2: function(){
+            console.log('in applySelect2')
+            let vm = this
+
+            if (!vm.select2Applied){
+                console.log('select2 is being applied')
+                $(vm.$refs.filterRegion).select2({
+                    "theme": "bootstrap",
+                    allowClear: true,
+                    placeholder: "Select Region",
+                    multiple: true,
+                }).
+                on("select2:select",function (e) {
+                    var selected = $(e.currentTarget);
+                    vm.filterProposalRegion = selected.val();
+                }).
+                on("select2:unselect",function (e) {
+                    var selected = $(e.currentTarget);
+                    vm.filterProposalRegion = selected.val();
+                });
+            }
+            vm.select2Applied = true
         },
         initialiseSearch:function(){
             this.regionSearch();
@@ -461,10 +497,10 @@ export default {
             vm.$refs.proposal_datatable.table.dataTableExt.afnFiltering.push(
                 function(settings,data,dataIndex,original){
                     let found = false;
-                    let filtered_regions = vm.filterProposalRegion.split(',');
-                    if (filtered_regions == 'All'){ return true; }
+                    let filtered_regions = vm.filterProposalRegion;
+                    if (filtered_regions.length == 0){ return true; }
 
-                    let regions = original.regions != '' && original.regions != null ? original.regions.split(','): [];
+                    let regions = original.region != '' && original.region != null ? original.region.split(','): [];
 
                     $.each(regions,(i,r) => {
                         if (filtered_regions.indexOf(r) != -1){
@@ -553,27 +589,23 @@ export default {
         }
     },
     created: function() {
-        // retrieve template group
-        this.$http.get('/template_group',{
+        let vm = this
+        vm.$http.get('/template_group',{
             emulateJSON:true
             }).then(res=>{
-                //this.template_group = res.body.template_group;
                 if (res.body.template_group === 'apiary') {
-                    this.apiaryTemplateGroup = true;
+                    vm.apiaryTemplateGroup = true;
                 } else {
-                    this.dasTemplateGroup = true;
+                    vm.dasTemplateGroup = true;
                 }
+                vm.templateGroupDetermined = true
+                vm.applySelect2()
         },err=>{
         console.log(err);
         });
     },
-    updated: function() {
-        this.$nextTick(() => {
-            this.addEventListeners();
-            this.initialiseSearch();
-        });
-    },
     mounted: function(){
+        console.log('in mounted')
         let vm = this;
         vm.fetchFilterLists();
         vm.fetchProfile();
@@ -587,6 +619,10 @@ export default {
             var column = vm.$refs.proposal_datatable.vmDataTable.columns(8); //Hide 'Assigned To column for external'
             column.visible(false);
         }
+        this.$nextTick(() => {
+            this.initialiseSearch();
+            this.addEventListeners();
+        });
     }
 }
 </script>

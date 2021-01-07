@@ -1,3 +1,4 @@
+from disturbance.settings import HTTP_HOST_FOR_TEST
 from disturbance.tests.test_setup import APITestSetup
 import json
 from disturbance.components.proposals.models import (
@@ -17,12 +18,13 @@ class ApiaryIntegrationTests(APITestSetup):
         create_response = self.client.post(
                 '/api/proposal/', 
                 self.create_proposal_data,
-                format='json'
+                format='json',
+                HTTP_HOST=HTTP_HOST_FOR_TEST,
                 )
         proposal_id = create_response.data.get('id')
         # get proposal
         url = 'http://localhost:8071/api/proposal_apiary/{}.json'.format(proposal_id)
-        get_response = self.client.get(url)
+        get_response = self.client.get(url, HTTP_HOST=HTTP_HOST_FOR_TEST,)
 
         self.assertEqual(get_response.status_code, 200)
         #######################
@@ -55,8 +57,9 @@ class ApiaryIntegrationTests(APITestSetup):
         draft_response = self.client.post(
                 '/api/proposal/{}/draft/'.format(proposal_id),
                 draft_proposal_data, 
-                format='json'
-                )
+                format='json',
+                HTTP_HOST=HTTP_HOST_FOR_TEST,
+        )
         self.assertEqual(draft_response.status_code, 302)
 
         # Simulate Proposal submission by changing status instead of going through the payment gateway
@@ -64,6 +67,8 @@ class ApiaryIntegrationTests(APITestSetup):
         saved_proposal.processing_status = 'with_assessor'
         saved_proposal.customer_status = 'with_assessor'
         saved_proposal.save()
+        #  bb 20201109 must run this after (fake) payment
+        saved_proposal.proposal_apiary.post_payment_success()
 
         # referrals testing goes here
 
@@ -90,7 +95,8 @@ class ApiaryIntegrationTests(APITestSetup):
         add_requirements_response_1 = self.client.post(
                 '/api/proposal_requirements.json', 
                 add_requirements_data_1, 
-                format='json'
+                format='json',
+                HTTP_HOST=HTTP_HOST_FOR_TEST,
                 )
         self.assertEqual(add_requirements_response_1.status_code, 201)
 
@@ -108,7 +114,8 @@ class ApiaryIntegrationTests(APITestSetup):
         add_requirements_response_2 = self.client.post(
                 '/api/proposal_requirements.json', 
                 add_requirements_data_2, 
-                format='json'
+                format='json',
+                HTTP_HOST=HTTP_HOST_FOR_TEST,
                 )
         self.assertEqual(add_requirements_response_2.status_code, 201)
 
@@ -129,7 +136,8 @@ class ApiaryIntegrationTests(APITestSetup):
         propose_to_approve_response = self.client.post(
                 '/api/proposal/{}/proposed_approval/'.format(proposal_id), 
                 propose_to_approve_data, 
-                format='json'
+                format='json',
+                HTTP_HOST=HTTP_HOST_FOR_TEST,
                 )
 
         self.assertEqual(propose_to_approve_response.status_code, 200)
@@ -139,7 +147,8 @@ class ApiaryIntegrationTests(APITestSetup):
         final_approval_response = self.client.post(
                 '/api/proposal_apiary/{}/final_approval/'.format(proposal_id), 
                 final_approval_data, 
-                format='json'
+                format='json',
+                HTTP_HOST=HTTP_HOST_FOR_TEST,
                 )
         self.assertEqual(final_approval_response.status_code, 200)
         #proposal_1 = Proposal.objects.get(id=proposal_id)
@@ -152,12 +161,13 @@ class ApiaryIntegrationTests(APITestSetup):
         create_response_2 = self.client.post(
                 '/api/proposal/', 
                 self.create_proposal_data,
-                format='json'
+                format='json',
+                HTTP_HOST=HTTP_HOST_FOR_TEST,
                 )
         proposal_id_2 = create_response_2.data.get('id')
         # get proposal
         url = 'http://localhost:8071/api/proposal_apiary/{}.json'.format(proposal_id_2)
-        get_response_2 = self.client.get(url)
+        get_response_2 = self.client.get(url, HTTP_HOST = HTTP_HOST_FOR_TEST,)
 
         self.assertEqual(get_response_2.status_code, 200)
         #######################
@@ -190,7 +200,8 @@ class ApiaryIntegrationTests(APITestSetup):
         draft_response_2 = self.client.post(
                 '/api/proposal/{}/draft/'.format(proposal_id_2),
                 draft_proposal_data_2, 
-                format='json'
+                format='json',
+                HTTP_HOST=HTTP_HOST_FOR_TEST,
                 )
         self.assertEqual(draft_response_2.status_code, 302)
 
@@ -199,6 +210,8 @@ class ApiaryIntegrationTests(APITestSetup):
         saved_proposal_2.processing_status = 'with_assessor'
         saved_proposal_2.customer_status = 'with_assessor'
         saved_proposal_2.save()
+        #  bb 20201109 must run this after (fake) payment
+        saved_proposal_2.proposal_apiary.post_payment_success()
 
         # referrals testing goes here
 
@@ -226,7 +239,8 @@ class ApiaryIntegrationTests(APITestSetup):
         add_requirements_response_3 = self.client.post(
                 '/api/proposal_requirements.json', 
                 add_requirements_data_3, 
-                format='json'
+                format='json',
+                HTTP_HOST=HTTP_HOST_FOR_TEST,
                 )
         self.assertEqual(add_requirements_response_3.status_code, 201)
 
@@ -245,7 +259,8 @@ class ApiaryIntegrationTests(APITestSetup):
         add_requirements_response_4 = self.client.post(
                 '/api/proposal_requirements.json', 
                 add_requirements_data_4, 
-                format='json'
+                format='json',
+                HTTP_HOST=HTTP_HOST_FOR_TEST,
                 )
         #proposal_requirement_4_id = add_requirements_response_4.data.get('id')
         self.assertEqual(add_requirements_response_4.status_code, 201)
@@ -254,7 +269,8 @@ class ApiaryIntegrationTests(APITestSetup):
         #import ipdb; ipdb.set_trace()
         requirement_to_delete_id = Proposal.objects.get(id=proposal_id_2).requirements.filter(standard_requirement__code="A1")[0].id
         delete_requirement_response_2 = self.client.get(
-                '/api/proposal_requirements/{}/discard.json'.format(requirement_to_delete_id)
+                '/api/proposal_requirements/{}/discard.json'.format(requirement_to_delete_id),
+                HTTP_HOST=HTTP_HOST_FOR_TEST,
                 )
         self.assertEqual(delete_requirement_response_2.status_code, 200)
 
@@ -273,7 +289,8 @@ class ApiaryIntegrationTests(APITestSetup):
         propose_to_approve_response_2 = self.client.post(
                 '/api/proposal/{}/proposed_approval/'.format(proposal_id_2), 
                 propose_to_approve_data_2, 
-                format='json'
+                format='json',
+                HTTP_HOST=HTTP_HOST_FOR_TEST,
                 )
 
         self.assertEqual(propose_to_approve_response_2.status_code, 200)
@@ -283,7 +300,8 @@ class ApiaryIntegrationTests(APITestSetup):
         final_approval_response_2 = self.client.post(
                 '/api/proposal_apiary/{}/final_approval/'.format(proposal_id_2), 
                 final_approval_data_2, 
-                format='json'
+                format='json',
+                HTTP_HOST=HTTP_HOST_FOR_TEST,
                 )
         self.assertEqual(final_approval_response_2.status_code, 200)
 
@@ -294,8 +312,10 @@ class ApiaryIntegrationTests(APITestSetup):
         print(Proposal.objects.get(id=proposal_id).approval.apiary_approval)
         print(Proposal.objects.get(id=proposal_id).processing_status)
         print("APPROVAL SITES")
-        for approval_site in ApiarySite.objects.filter(approval=final_proposal.approval):
+        for approval_site in final_proposal.approval.get_current_apiary_sites:
             print(approval_site)
+        #for approval_site in ApiarySite.objects.filter(approval=final_proposal.approval):
+            #print(approval_site)
         # Compliance creation test
         approval_standard_requirements = []
         for compliance in final_proposal.approval.compliances.all():
@@ -308,7 +328,7 @@ class ApiaryIntegrationTests(APITestSetup):
 
         # check Reversion endpoint
         url = '/api/proposal_apiary/{}/proposal_history/'.format(final_proposal_proposal_apiary_id)
-        reversion_response = self.client.get(url)
+        reversion_response = self.client.get(url, HTTP_HOST = HTTP_HOST_FOR_TEST,)
         self.assertEqual(reversion_response.status_code, 200)
 
         # Update newly created Compliance status values
@@ -325,7 +345,8 @@ class ApiaryIntegrationTests(APITestSetup):
         reissue_response = self.client.post(
                 '/api/proposal/{}/reissue_approval/'.format(final_proposal.id),
                 reissue_payload,
-                format='json'
+                format='json',
+                HTTP_HOST=HTTP_HOST_FOR_TEST,
                 )
         self.assertEqual(reissue_response.status_code, 200)
 
@@ -333,17 +354,19 @@ class ApiaryIntegrationTests(APITestSetup):
                 "details": "reissued details",
                 "expiry_date": self.today_plus_1_week_str,
                 "start_date": self.today_str,
-                "apiary_sites": apiary_sites
+                "apiary_sites": apiary_sites_2
                 }
+        #import ipdb; ipdb.set_trace()
         reissue_final_approval_response = self.client.post(
                 '/api/proposal_apiary/{}/final_approval/'.format(final_proposal.id),
                 #final_approval_data, 
                 reissue_final_approval_data,
-                format='json'
+                format='json',
+                HTTP_HOST=HTTP_HOST_FOR_TEST,
                 )
         self.assertEqual(reissue_final_approval_response.status_code, 200)
 
         # Renew approval
-        renewal_response = self.client.get('/api/proposal/{}/renew_approval/'.format(final_proposal.id))
+        renewal_response = self.client.get('/api/proposal/{}/renew_approval/'.format(final_proposal.id), HTTP_HOST = HTTP_HOST_FOR_TEST,)
         self.assertEqual(renewal_response.status_code, 200)
 

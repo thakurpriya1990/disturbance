@@ -87,7 +87,7 @@ class ApiaryLicenceReader():
 
         except Exception as e:
             import ipdb; ipdb.set_trace()
-            print e
+            print(e)
 
     def run_migration(self):
         with transaction.atomic():
@@ -190,7 +190,7 @@ class ApiaryLicenceReader():
                     ##   print data['first_name'], data['last_name'], data['email1'], data['abn']
                     ##   print
 
-        except Exception, e:
+        except Exception as e:
             #import ipdb; ipdb.set_trace()
             #logger.info('{}'.format(e))
             if data:
@@ -229,7 +229,7 @@ class ApiaryLicenceReader():
             #print '{} {} {}'.format(data['first_name'], data['last_name'], EmailUser.objects.filter(first_name=data['first_name'], last_name=data['last_name']))
             #print data['email1']
         except Exception:
-            print 'user: {}   *********** 1 *********** FAILED'.format(data['email'])
+            print('user: {}   *********** 1 *********** FAILED'.format(data['email']))
             #return
 
         lo=ledger_organisation.objects.filter(abn=data['abn'])
@@ -265,7 +265,7 @@ class ApiaryLicenceReader():
                 ).first()
 
             except Exception:
-                print 'Country 2: {}'.format(data['country'])
+                print('Country 2: {}'.format(data['country']))
                 raise
 
                 lo, created_lo = ledger_organisation.objects.create(
@@ -289,10 +289,10 @@ class ApiaryLicenceReader():
                         contact.save()
 
             abn_existing.append(data['abn'])
-            print '{}, Existing ABN: {}'.format(count, data['abn'])
+            print('{}, Existing ABN: {}'.format(count, data['abn']))
             process = False
-        except Exception, e:
-            print '{}, Add ABN: {}'.format(count, data['abn'])
+        except Exception as e:
+            print('{}, Add ABN: {}'.format(count, data['abn']))
         #print 'DATA: {}'.format(data)
 
         try:
@@ -322,8 +322,8 @@ class ApiaryLicenceReader():
                 country=country.code
             ).first()
 
-        except Exception, e:
-            print 'Country 2: {}'.format(data['country'])
+        except Exception as e:
+            print('Country 2: {}'.format(data['country']))
             import ipdb; ipdb.set_trace()
             raise
 
@@ -341,14 +341,14 @@ class ApiaryLicenceReader():
                 }
             )
 
-        except Exception, e:
-            print 'Error creating Organisation: {} - {}'.format(data['licencee'], data['abn'])
+        except Exception as e:
+            print('Error creating Organisation: {} - {}'.format(data['licencee'], data['abn']))
             raise
 
         try:
             org, created = Organisation.objects.get_or_create(organisation=lo)
-        except Exception, e:
-            print 'Error: Org: {}'.format(org)
+        except Exception as e:
+            print('Error: Org: {}'.format(org))
             #raise
 
         try:
@@ -360,9 +360,9 @@ class ApiaryLicenceReader():
 
             UserDelegation.objects.filter(organisation=org).delete()
             delegate, created = UserDelegation.objects.get_or_create(organisation=org, user=user)
-        except Exception, e:
+        except Exception as e:
             import ipdb; ipdb.set_trace()
-            print 'Delegate Creation Failed: {}'.format(user)
+            print('Delegate Creation Failed: {}'.format(user))
             #raise
 
         try:
@@ -390,9 +390,9 @@ class ApiaryLicenceReader():
                 oc.user_status ='active'
                 oc.save()
 
-        except Exception, e:
+        except Exception as e:
             #import ipdb; ipdb.set_trace()
-            print 'Org Contact: {}'.format(user)
+            print('Org Contact: {}'.format(user))
             #raise
 
         #return abn_new, abn_existing
@@ -526,7 +526,7 @@ class ApiaryLicenceReader():
             apiary_site.latest_proposal_link=intermediary_proposal_site
             apiary_site.save()
 
-        except Exception, e:
+        except Exception as e:
             logger.error('{}'.format(e))
             import ipdb; ipdb.set_trace()
             return None

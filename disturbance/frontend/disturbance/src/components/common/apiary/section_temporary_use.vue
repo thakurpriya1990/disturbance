@@ -2,7 +2,12 @@
     <div>
         <div class="row col-sm-12">
             <template v-if="is_external">
-                <button v-if="!creatingProposal" class="btn btn-primary pull-right" @click="openNewTemporaryUse">New Temporary Use</button>
+                <button 
+                    v-if="!creatingProposal" 
+                    class="btn btn-primary pull-right" 
+                    @click="openNewTemporaryUse"
+                    :disabled="!user_can_temporary_use"
+                >New Temporary Use</button>
             </template>
         </div>
 
@@ -40,6 +45,10 @@
             is_internal:{
               type: Boolean,
               default: false
+            },
+            user_can_temporary_use: {
+                type: Boolean,
+                default: false
             },
         },
         data:function () {
@@ -123,7 +132,7 @@
                         {
                             // Action
                             mRender: function (data, type, full) {
-                                if (full.customer_status == 'Draft'){
+                                if (full.customer_status.toLowerCase() === 'draft' && vm.user_can_temporary_use){
                                     if (vm.is_internal){
                                         return '<a href="/internal/proposal/' + full.proposal_id + '/">Edit</a>'
                                     } else if (vm.is_external){

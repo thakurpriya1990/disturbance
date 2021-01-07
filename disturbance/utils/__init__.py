@@ -33,7 +33,7 @@ def search(dictionary, search_list):
     """
     result = []
     flat_dict = flatten(dictionary)
-    for k, v in flat_dict.iteritems():
+    for k, v in flat_dict.items():
         if any(x.lower() in v.lower() for x in search_list):
             result.append( {k: v} )
 
@@ -200,8 +200,8 @@ def compare_data(dict1, dict2, schema):
     result = []
     flat_dict1 = flatten(dict1)
     flat_dict2 = flatten(dict2)
-    for k1, v1 in flat_dict1.iteritems():
-        for k2, v2 in flat_dict2.iteritems():
+    for k1, v1 in flat_dict1.items():
+        for k2, v2 in flat_dict2.items():
             if k1 ==k2 and v2:
                 if v1 != v2:
                     result.append( {k1: [v1, v2]} )
@@ -212,7 +212,7 @@ def compare_data(dict1, dict2, schema):
     #name_map=search_keys2(flatten(schema), search_list=['name', 'label'])
     name_map=search_keys(schema, search_list=['name', 'label'])
     for item in result:
-        k = item.keys()[0]
+        k = list(item.keys())[0]
         v = item[k]
         section = k.split('.')[-1]
         label = [i['label'] for i in name_map if section in i['name'] ]
@@ -223,50 +223,51 @@ def compare_data(dict1, dict2, schema):
 
 
 def create_helppage_object(application_type='Disturbance', help_type=HelpPage.HELP_TEXT_EXTERNAL):
-	"""
-	Create a new HelpPage object, with latest help_text/label anchors defined in the latest ProposalType.schema
-	"""
-	try:
-		application_type_id = ApplicationType.objects.get(name=application_type).id
-	except Exception as e:
-		print 'application type: {} does not exist, maybe!'.format(application_type, e)
+    """
+    Create a new HelpPage object, with latest help_text/label anchors defined in the latest ProposalType.schema
+    """
+    try:
+        application_type_id = ApplicationType.objects.get(name=application_type).id
+    except Exception as e:
+        print('application type: {} does not exist, maybe!'.format(application_type, e))
 
-	try:
-		help_page = HelpPage.objects.filter(application_type_id=application_type_id, help_type=help_type).latest('version')
-		next_version = help_page.version + 1
-	except Exception as e:
-		next_version = 1
+    try:
+        help_page = HelpPage.objects.filter(application_type_id=application_type_id, help_type=help_type).latest('version')
+        next_version = help_page.version + 1
+    except Exception as e:
+        next_version = 1
 
-	try:
-		proposal_type = ProposalType.objects.filter(name=application_type).latest('version')
-	except Exception as e:
-		print 'proposal type: {} does not exist, maybe!'.format(application_type, e)
+    try:
+        proposal_type = ProposalType.objects.filter(name=application_type).latest('version')
+    except Exception as e:
+        print('proposal type: {} does not exist, maybe!'.format(application_type, e))
 
 
- 	help_text = 'help_text_url' if help_type==HelpPage.HELP_TEXT_EXTERNAL else 'help_text_assessor_url'
-	help_list = search_keys(proposal_type.schema, search_list=[help_text,'label'])
-	richtext = create_richtext_help(help_list, help_text)
+    help_text = 'help_text_url' if help_type==HelpPage.HELP_TEXT_EXTERNAL else 'help_text_assessor_url'
+    help_list = search_keys(proposal_type.schema, search_list=[help_text,'label'])
+    richtext = create_richtext_help(help_list, help_text)
 
-	HelpPage.objects.create(application_type_id=application_type_id, help_type=help_type, version=next_version, content=richtext)
+    HelpPage.objects.create(application_type_id=application_type_id, help_type=help_type, version=next_version, content=richtext)
 
 def create_richtext_help(help_list=None, help_text='help_text'):
 
-	# for testing
-	#if not help_list:
-	#	pt = ProposalType.objects.all()[4]
-	#	help_list = search_keys(pt.schema, search_list=['help_text','label'])[:3]
+    # for testing
+    #if not help_list:
+    #	pt = ProposalType.objects.all()[4]
+    #	help_list = search_keys(pt.schema, search_list=['help_text','label'])[:3]
 
-	richtext = u''
-	for i in help_list:
-		if i.has_key(help_text) and 'anchor=' in i[help_text]:
-			anchor = i[help_text].split("anchor=")[1].split("\"")[0]
-			#print anchor, i['label']
+    richtext = u''
+    for i in help_list:
+        # if i.has_key(help_text) and 'anchor=' in i[help_text]:
+        if help_text in i and 'anchor=' in i[help_text]:
+            anchor = i[help_text].split("anchor=")[1].split("\"")[0]
+            #print anchor, i['label']
 
-			richtext += u'<h1><a id="{0}" name="{0}"> {1} </a></h1><p>&nbsp;</p>'.format(anchor, i['label'])
-		else:
-			richtext += u'<h1> {} </h1><p>&nbsp;</p>'.format(i['label'])
+            richtext += u'<h1><a id="{0}" name="{0}"> {1} </a></h1><p>&nbsp;</p>'.format(anchor, i['label'])
+        else:
+            richtext += u'<h1> {} </h1><p>&nbsp;</p>'.format(i['label'])
 
-	return richtext
+    return richtext
 
 def search_keys(dictionary, search_list=['help_text', 'label']):
     """
@@ -281,24 +282,24 @@ def search_keys(dictionary, search_list=['help_text', 'label']):
     search_item2 = search_list[1]
     result = []
     flat_dict = flatten(dictionary)
-    for k, v in flat_dict.iteritems():
+    for k, v in flat_dict.items():
         if any(x in k for x in search_list):
             result.append( {k: v} )
 
     help_list = []
     for i in result:
         try:
-            key = i.keys()[0]
+            key = list(i.keys())[0]
             if key and key.endswith(search_item1):
                 corresponding_label_key = '.'.join(key.split('.')[:-1]) + '.' + search_item2
                 for j in result:
-                    key_label = j.keys()[0]
+                    key_label = list(j.keys())[0]
                     if key_label and key_label.endswith(search_item2) and key_label == corresponding_label_key: # and result.has_key(key):
                         #import ipdb; ipdb.set_trace()
                         help_list.append({search_item2: j[key_label], search_item1: i[key]})
         except Exception as e:
             #import ipdb; ipdb.set_trace()
-            print e
+            print(e)
 
     return help_list
 
@@ -310,7 +311,7 @@ def missing_required_fields(proposal):
     sections = search_multiple_keys(proposal.schema, primary_search='isRequired', search_list=['label', 'name'])
 
     missing_fields = []
-    for flat_key in data.iteritems():
+    for flat_key in data.items():
         for item in sections:
             if flat_key[0].endswith(item['name']):
                 if not flat_key[1].strip():
@@ -342,7 +343,7 @@ def search_multiple_keys(dictionary, primary_search='isRequired', search_list=['
     all_search_list = [primary_search] + search_list
     result = []
     flat_dict = flatten(dictionary)
-    for k, v in flat_dict.iteritems():
+    for k, v in flat_dict.items():
         if any(x in k for x in all_search_list):
             result.append( {k: v} )
 
@@ -351,12 +352,13 @@ def search_multiple_keys(dictionary, primary_search='isRequired', search_list=['
     for i in result:
         try:
             tmp_dict = {}
-            key = i.keys()[0]
+            # key = i.keys()[0]
+            key = list(i.keys())[0]  # n Python 3 dict.keys() returns an iterable but not indexable object.  Therefore convert it to an iterable, which is list.
             if key and key.endswith(primary_search):
                 for item in all_search_list:
                     corresponding_label_key = '.'.join(key.split('.')[:-1]) + '.' + item
                     for j in result:
-                        key_label = j.keys()[0]
+                        key_label = list(j.keys())[0]
                         if key_label and key_label.endswith(item) and key_label == corresponding_label_key: # and result.has_key(key):
                             tmp_dict.update({item: j[key_label]})
                 if tmp_dict:
@@ -366,7 +368,7 @@ def search_multiple_keys(dictionary, primary_search='isRequired', search_list=['
 
         except Exception as e:
             #import ipdb; ipdb.set_trace()
-            print e
+            print(e)
 
     return help_list
 
@@ -426,5 +428,6 @@ def are_migrations_running():
     '''
     Checks whether the app was launched with the migration-specific params
     '''
-    return sys.argv and ('migrate' in sys.argv or 'makemigrations' in sys.argv)
+    # return sys.argv and ('migrate' in sys.argv or 'makemigrations' in sys.argv)
+    return sys.argv and ('migrate' in sys.argv or 'makemigrations' in sys.argv or 'showmigrations' in sys.argv or 'sqlmigrate' in sys.argv)
 

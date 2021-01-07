@@ -7,4 +7,6 @@
 
     Please find the attached annual site fee awaiting payment confirmation.
 
+    Please access here: {{ url_to_pay }} to pay.
+
 {%  endblock %}

@@ -21,8 +21,7 @@ from disturbance.components.approvals.email import get_value_of_annual_rental_fe
     send_annual_rental_fee_invoice
 from disturbance.components.approvals.serializers import ApprovalLogEntrySerializer
 from disturbance.components.proposals.models import Proposal, ApiarySiteFeeRemainder, ApiarySiteFeeType, SiteCategory, \
-    ApiarySite, ProposalApiary, ApiarySiteOnProposal
-from disturbance.components.compliances.models import Compliance
+    ProposalApiary
 from disturbance.components.main.models import ApplicationType
 from disturbance.components.organisations.models import Organisation
 from disturbance.components.das_payments.context_processors import disturbance_url, template_context
@@ -42,24 +41,20 @@ from disturbance.components.das_payments.utils import (
     get_session_site_transfer_application_invoice,
     set_session_site_transfer_application_invoice,
     delete_session_site_transfer_application_invoice, set_session_annual_rental_fee, get_session_annual_rental_fee,
-    delete_session_annual_rental_fee, round_amount_according_to_env,
+    delete_session_annual_rental_fee, round_amount_according_to_env, checkout_existing_invoice,
     # create_bpay_invoice,
     # create_other_invoice,
 )
 
 from disturbance.components.das_payments.models import ApplicationFee, ApplicationFeeInvoice, AnnualRentalFee
-
-from ledger.checkout.utils import create_basket_session, create_checkout_session, place_order_submission, get_cookie_basket
-from ledger.payments.utils import oracle_parser_on_invoice,update_payments
-import json
+from ledger.payments.utils import update_payments
 from decimal import Decimal
 
 from ledger.payments.models import Invoice
 from ledger.basket.models import Basket
-from ledger.payments.mixins import InvoiceOwnerMixin
 from oscar.apps.order.models import Order
 from disturbance.helpers import is_internal, is_disturbance_admin, is_in_organisation_contacts
-from disturbance.context_processors import apiary_url, template_context
+from disturbance.context_processors import apiary_url
 
 import logging
 logger = logging.getLogger('payment_checkout')
@@ -72,7 +67,7 @@ class AnnualRentalFeeView(TemplateView):
     def restore_original_format(self, lines):
         for line in lines:
             for key in line:
-                if key in ('price_incl_tax', 'price_excl_tax') and isinstance(line[key], (str, unicode)):
+                if key in ('price_incl_tax', 'price_excl_tax') and isinstance(line[key], (str, bytes)):  # Python 3 renamed the unicode type to str, the old str type has been replaced by bytes
                     amount_f = float(line[key])  # string to float
                     round_f = round_amount_according_to_env(amount_f)
                     decimal_f = Decimal(str(round_f))  # Generate Decimal with 2 decimal places string
@@ -87,9 +82,11 @@ class AnnualRentalFeeView(TemplateView):
                 set_session_annual_rental_fee(request.session, annual_rental_fee)
 
                 lines = self.restore_original_format(annual_rental_fee.lines)
-                checkout_response = checkout(
+                invoice = Invoice.objects.get(reference=annual_rental_fee.invoice_reference)
+
+                checkout_response = checkout_existing_invoice(
                     request,
-                    None,
+                    invoice,
                     lines,
                     return_url_ns='annual_rental_fee_success',
                     return_preload_url_ns='annual_rental_fee_success',
@@ -103,7 +100,7 @@ class AnnualRentalFeeView(TemplateView):
                 ))
                 return checkout_response
 
-        except Exception, e:
+        except Exception as e:
             logger.error('Error Creating Annual Site Fee: {}'.format(e))
             raise
 
@@ -157,7 +154,7 @@ class ApplicationFeeView(TemplateView):
                 logger.info('{} built payment line item {} for Application Fee and handing over to payment gateway'.format('User {} with id {}'.format(proposal.submitter.get_full_name(),proposal.submitter.id), proposal.id))
                 return checkout_response
 
-        except Exception, e:
+        except Exception as e:
             logger.error('Error Creating Application Fee: {}'.format(e))
             if application_fee:
                 application_fee.delete()
@@ -175,9 +172,6 @@ class SiteTransferApplicationFeeSuccessView(TemplateView):
         submitter = None
         invoice = None
         try:
-            context = template_context(self.request)
-            basket = None
-
             application_fee = get_session_site_transfer_application_invoice(request.session)
             proposal = application_fee.proposal
             try:
@@ -257,16 +251,16 @@ class SiteTransferApplicationFeeSuccessView(TemplateView):
                 try:
                     if proposal.applicant:
                         recipient = proposal.applicant.email
-                        submitter = proposal.applicant
+                        #submitter = proposal.applicant
                     elif proposal.proxy_applicant:
                         recipient = proposal.proxy_applicant.email
-                        submitter = proposal.proxy_applicant
+                        #submitter = proposal.proxy_applicant
                     else:
                         recipient = proposal.submitter.email
-                        submitter = proposal.submitter
+                        #submitter = proposal.submitter
                 except:
                     recipient = proposal.submitter.email
-                    submitter = proposal.submitter
+                submitter = proposal.submitter
 
                 if ApplicationFeeInvoice.objects.filter(application_fee=application_fee).count() > 0:
                     afi = ApplicationFeeInvoice.objects.filter(application_fee=application_fee)
@@ -288,22 +282,19 @@ class AnnualRentalFeeSuccessView(TemplateView):
         invoice = None
 
         try:
-            context = template_context(self.request)
-            basket = None
-
             # When accessed first time, there is a annual_rental_fee in the session which was set at AnnualRentalFeeView()
             # but when accessed sencond time, it is deleted therefore raise an error.
             annual_rental_fee = get_session_annual_rental_fee(request.session)
 
-            if self.request.user.is_authenticated():
-                basket = Basket.objects.filter(status='Submitted', owner=request.user).order_by('-id')[:1]
-            else:
-                pass
+            # if self.request.user.is_authenticated():
+            #     basket = Basket.objects.filter(status='Submitted', owner=request.user).order_by('-id')[:1]
+            # else:
+            #     pass
 
-            order = Order.objects.get(basket=basket[0])
-            invoice = Invoice.objects.get(order_number=order.number)
-            annual_rental_fee.invoice_reference = invoice.reference
-            annual_rental_fee.save()
+            # order = Order.objects.get(basket=basket[0])
+            invoice = Invoice.objects.get(reference=annual_rental_fee.invoice_reference)
+            # annual_rental_fee.invoice_reference = invoice.reference
+            # annual_rental_fee.save()
 
             request.session['last_annual_rental_fee_id'] = annual_rental_fee.id
             delete_session_annual_rental_fee(request.session)
@@ -365,9 +356,6 @@ class ApplicationFeeSuccessView(TemplateView):
         submitter = None
         invoice = None
         try:
-            context = template_context(self.request)
-            basket = None
-
             # Retrieve db processes stored when calculating the fee, and delete the session
             db_operations = request.session['db_processes']
             del request.session['db_processes']
@@ -436,7 +424,6 @@ class ApplicationFeeSuccessView(TemplateView):
 
                     send_application_fee_invoice_apiary_email_notification(request, proposal, invoice, recipients=[recipient])
                     #send_application_fee_confirmation_apiary_email_notification(request, application_fee, invoice, recipients=[recipient])
-
                     context = {
                         'proposal': proposal,
                         'submitter': submitter,
@@ -452,16 +439,16 @@ class ApplicationFeeSuccessView(TemplateView):
                 try:
                     if proposal.applicant:
                         recipient = proposal.applicant.email
-                        submitter = proposal.applicant
+                        #submitter = proposal.applicant
                     elif proposal.proxy_applicant:
                         recipient = proposal.proxy_applicant.email
-                        submitter = proposal.proxy_applicant
+                        #submitter = proposal.proxy_applicant
                     else:
                         recipient = proposal.submitter.email
-                        submitter = proposal.submitter
+                        #submitter = proposal.submitter
                 except:
                     recipient = proposal.submitter.email
-                    submitter = proposal.submitter
+                submitter = proposal.submitter
 
                 if ApplicationFeeInvoice.objects.filter(application_fee=application_fee).count() > 0:
                     afi = ApplicationFeeInvoice.objects.filter(application_fee=application_fee)

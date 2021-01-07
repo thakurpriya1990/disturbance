@@ -1,3 +1,4 @@
+from confy import env
 from django.core.urlresolvers import reverse
 from django.shortcuts import redirect
 from django.utils.http import urlquote_plus
@@ -7,6 +8,8 @@ import datetime
 
 from django.http import HttpResponseRedirect
 from django.utils import timezone
+
+from django.conf import settings
 from disturbance.components.das_payments.models import ApplicationFee
 from reversion.middleware  import RevisionMiddleware
 from reversion.views import _request_creates_revision
@@ -55,6 +58,7 @@ class BookingTimerMiddleware(object):
 
         return
 
+
 class RevisionOverrideMiddleware(RevisionMiddleware):
 
     """
@@ -63,6 +67,60 @@ class RevisionOverrideMiddleware(RevisionMiddleware):
         override venv/lib/python2.7/site-packages/reversion/middleware.py
     """
 
-	# exclude ledger payments/checkout from revision - hack to overcome basket (lagging status) issue/conflict with reversion
+    # exclude ledger payments/checkout from revision - hack to overcome basket (lagging status) issue/conflict with reversion
     def request_creates_revision(self, request):
         return _request_creates_revision(request) and 'checkout' not in request.get_full_path()
+
+
+class DomainDetectMiddleware(object):
+    def __init__(self, next_layer=None):
+        """
+        We allow next_layer to be None because old-style middlewares
+        won't accept any argument.
+        """
+        self.get_response = next_layer
+
+    def process_request(self, request):
+        """
+        Handle old-style request processing here, as usual.
+        Any request goes through this function
+        """
+        # Do something with request
+        # Probably return None
+        # Or return an HttpResponse in some cases
+        settings.DOMAIN_DETECTED = 'das'
+        settings.SYSTEM_NAME = env('SYSTEM_NAME', 'Disturbance Approval System')
+        settings.SYSTEM_NAME_SHORT = 'DAS'
+        settings.BASE_EMAIL_TEXT = 'disturbance/emails/base_email.txt'
+        settings.BASE_EMAIL_HTML = 'disturbance/emails/base_email.html'
+
+        http_host = request.META.get('HTTP_HOST', None)
+        if http_host and ('apiary' in http_host.lower() or http_host in settings.APIARY_URL):
+            settings.DOMAIN_DETECTED = 'apiary'
+            settings.SYSTEM_NAME = settings.APIARY_SYSTEM_NAME
+            settings.SYSTEM_NAME_SHORT = 'Apiary'
+            settings.BASE_EMAIL_TEXT = 'disturbance/emails/apiary_base_email.txt'
+            settings.BASE_EMAIL_HTML = 'disturbance/emails/apiary_base_email.html'
+
+        return None
+
+    def process_response(self, request, response):
+        """
+        Handle old-style response processing here, as usual.
+        """
+        # Do something with response, possibly using request.
+
+        return response
+
+    def __call__(self, request):
+        """
+        Handle new-style middleware here.
+        """
+        response = self.process_request(request)
+        if response is None:
+            # If process_request returned None, we must call the next middleware or
+            # the view. Note that here, we are sure that self.get_response is not
+            # None because this method is executed only in new-style middlewares.
+            response = self.get_response(request)
+        response = self.process_response(request, response)
+        return response

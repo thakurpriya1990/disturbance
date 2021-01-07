@@ -1,5 +1,7 @@
 import re
+from datetime import datetime
 
+import pytz
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from django.db import transaction
@@ -33,7 +35,7 @@ import json
 
 import logging
 
-from disturbance.settings import RESTRICTED_RADIUS
+from disturbance.settings import RESTRICTED_RADIUS, TIME_ZONE
 from disturbance.utils import convert_moment_str_to_python_datetime_obj
 
 logger = logging.getLogger(__name__)
@@ -107,7 +109,7 @@ def _create_data_from_item(item, post_data, file_data, repetition, suffix):
 
 
     if 'conditions' in item:
-        for condition in item['conditions'].keys():
+        for condition in list(item['conditions'].keys()):
             for child in item['conditions'][condition]:
                 item_data.update(_create_data_from_item(child, post_data, file_data, repetition, suffix))
 
@@ -116,7 +118,7 @@ def _create_data_from_item(item, post_data, file_data, repetition, suffix):
 
 def generate_item_data(item_name,item,item_data,post_data,file_data,repetition,suffix):
     item_data_list = []
-    for rep in xrange(0, repetition):
+    for rep in range(0, repetition):
         #import ipdb; ipdb.set_trace()
         child_data = {}
         for child_item in item.get('children'):
@@ -172,7 +174,7 @@ class AssessorDataSearch(object):
 
         if 'children' not in item:
             if 'conditions' in item:
-                for condition in item['conditions'].keys():
+                for condition in list(item['conditions'].keys()):
                     for child in item['conditions'][condition]:
                         item_data.update(self.extract_special_fields(child, post_data, file_data, repetition, suffix))
 
@@ -186,7 +188,7 @@ class AssessorDataSearch(object):
                 item_data = self.generate_item_data_special_field(extended_item_name, item, item_data, post_data, file_data,1,suffix)
 
             if 'conditions' in item:
-                for condition in item['conditions'].keys():
+                for condition in list(item['conditions'].keys()):
                     for child in item['conditions'][condition]:
                         item_data.update(self.extract_special_fields(child, post_data, file_data, repetition, suffix))
 
@@ -194,7 +196,7 @@ class AssessorDataSearch(object):
 
     def generate_item_data_special_field(self,item_name,item,item_data,post_data,file_data,repetition,suffix):
         item_data_list = []
-        for rep in xrange(0, repetition):
+        for rep in range(0, repetition):
             child_data = {}
             for child_item in item.get('children'):
                 child_data.update(self.extract_special_fields(child_item, post_data, file_data, 0,
@@ -268,7 +270,7 @@ class CommentDataSearch(object):
 
 
         if 'conditions' in item:
-            for condition in item['conditions'].keys():
+            for condition in list(item['conditions'].keys()):
                 for child in item['conditions'][condition]:
                     item_data.update(self.extract_special_fields(child, post_data, file_data, repetition, suffix))
 
@@ -276,7 +278,7 @@ class CommentDataSearch(object):
 
     def generate_item_data_special_field(self,item_name,item,item_data,post_data,file_data,repetition,suffix):
         item_data_list = []
-        for rep in xrange(0, repetition):
+        for rep in range(0, repetition):
             child_data = {}
             for child_item in item.get('children'):
                 child_data.update(self.extract_special_fields(child_item, post_data, file_data, 0,
@@ -325,7 +327,7 @@ class SpecialFieldsSearch(object):
 
 
         if 'conditions' in item:
-            for condition in item['conditions'].keys():
+            for condition in list(item['conditions'].keys()):
                 for child in item['conditions'][condition]:
                     item_data.update(self.extract_special_fields(child, post_data, file_data, repetition, suffix))
 
@@ -333,7 +335,7 @@ class SpecialFieldsSearch(object):
 
     def generate_item_data_special_field(self,item_name,item,item_data,post_data,file_data,repetition,suffix):
         item_data_list = []
-        for rep in xrange(0, repetition):
+        for rep in range(0, repetition):
             child_data = {}
             for child_item in item.get('children'):
                 child_data.update(self.extract_special_fields(child_item, post_data, file_data, 0,
@@ -381,7 +383,7 @@ def save_proponent_data_apiary_site_transfer(proposal_obj, request, viewset):
                 proposal_obj.proposal_apiary.transferee_email_text = transferee_email_text
                 proposal_obj.proposal_apiary.save()
             selected_licence_holder_str = request.data.get('selected_licence_holder')
-            selected_licence_holder = json.loads(selected_licence_holder_str)
+            selected_licence_holder = json.loads(selected_licence_holder_str) if selected_licence_holder_str else ''
             if selected_licence_holder:
                 # for each path, ensure we remove any previously user selected licence holder data (target_approval, transferee, target_approval_organisation)
                 if not selected_licence_holder.get('id'):
@@ -490,6 +492,8 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
 
             if proposal_apiary_data:
                 # New apairy site application
+                local_date = get_local_date(proposal_apiary_data.get('public_liability_insurance_expiry_date', None), )
+                proposal_apiary_data['public_liability_insurance_expiry_date'] = local_date.strftime('%Y-%m-%d') if local_date else None
                 serializer = ProposalApiarySerializer(proposal_obj.proposal_apiary, data=proposal_apiary_data)
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
@@ -594,6 +598,9 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                     proposal_obj.proposal_apiary.validate_apiary_sites(raise_exception=True)
 
                 save_checklist_answers('applicant', proposal_apiary_data.get('applicant_checklist_answers'))
+                # expiry_date = sanitize_date(proposal_apiary_data.get('public_liability_insurance_expiry_date'))
+                # proposal_obj.proposal_apiary.public_liability_insurance_expiry_date = expiry_date
+                # proposal_obj.proposal_apiary.save()
 
                 # Delete existing
                 sites_delete = ApiarySite.objects.filter(id__in=site_ids_delete)
@@ -634,6 +641,18 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
             proposal_obj.save()
         except Exception as e:
             raise
+
+
+def get_local_date(date_string):
+    if date_string:
+        try:
+            date_utc = datetime.strptime(date_string, '%Y-%m-%dT%H:%M:%S.%fZ')
+        except:
+            date_utc = datetime.strptime(date_string, '%Y-%m-%d')
+        date_utc = date_utc.replace(tzinfo=pytz.UTC)
+        date_wa = date_utc.astimezone(pytz.timezone(TIME_ZONE))
+        return date_wa
+    return None
 
 
 def save_checklist_answers(checklist_role, checklist_answers=None):
@@ -770,7 +789,7 @@ def save_proponent_data_disturbance(instance,request,viewset):
             serializer = SaveProposalSerializer(instance, data, partial=True)
             serializer.is_valid(raise_exception=True)
             viewset.perform_update(serializer)
-            instance.log_user_action(ProposalUserAction.ACTION_SAVE_APPLICATION.format(instance.id),request)
+            instance.log_user_action(ProposalUserAction.ACTION_SAVE_APPLICATION.format(instance.lodgement_number), request)
 
             # Save Documents
         #            for f in request.FILES:
@@ -829,7 +848,7 @@ def save_assessor_data(instance,request,viewset):
                 document._file = request.FILES[f]
                 document.save()
             # End Save Documents
-            instance.log_user_action(ProposalUserAction.ACTION_SAVE_APPLICATION.format(instance.id),request)
+            instance.log_user_action(ProposalUserAction.ACTION_SAVE_APPLICATION.format(instance.lodgement_number), request)
         except:
             raise
 
@@ -901,7 +920,7 @@ def save_apiary_assessor_data(instance,request,viewset):
             if site_transfer_referrer_checklist_answers_per_site:
                 save_checklist_answers('referrer', site_transfer_referrer_checklist_answers_per_site)
 
-            instance.log_user_action(ProposalUserAction.APIARY_ACTION_SAVE_APPLICATION.format(instance.id),request)
+            instance.log_user_action(ProposalUserAction.APIARY_ACTION_SAVE_APPLICATION.format(instance.lodgement_number), request)
         except:
             raise
 
@@ -920,11 +939,11 @@ def proposal_submit_apiary(proposal, request):
                         q.save()
 
             # Create a log entry for the proposal
-            proposal.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(proposal.id),request)
+            proposal.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(proposal.lodgement_number), request)
             # Create a log entry for the organisation
             #proposal.applicant.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(proposal.id),request)
             applicant_field=getattr(proposal, proposal.applicant_field)
-            applicant_field.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(proposal.id),request)
+            applicant_field.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(proposal.lodgement_number), request)
 
             ret1 = send_submit_email_notification(request, proposal)
             ret2 = send_external_submit_email_notification(request, proposal)

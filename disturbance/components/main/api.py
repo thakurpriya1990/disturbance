@@ -18,6 +18,7 @@ from disturbance.components.main.serializers import RegionSerializer, DistrictSe
     ApplicationTypeSerializer, ActivityMatrixSerializer, BookingSettlementReportSerializer, OracleSerializer
 from django.core.exceptions import ValidationError
 
+from disturbance.components.main.utils import handle_validation_error
 from disturbance.settings import PAYMENT_SYSTEM_PREFIX
 
 
@@ -52,13 +53,15 @@ class TenureViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Tenure.objects.all().order_by('order')
     serializer_class = TenureSerializer
 
+
 class ApplicationTypeViewSet(viewsets.ReadOnlyModelViewSet):
     #queryset = ApplicationType.objects.all().order_by('order')
     queryset = ApplicationType.objects.none()
     serializer_class = ApplicationTypeSerializer
 
     def get_queryset(self):
-        return ApplicationType.objects.order_by('order').filter(visible=True)
+        my_list = ApplicationType.objects.order_by('order').filter(visible=True)
+        return my_list
 
 
 class BookingSettlementReportView(views.APIView):
@@ -93,11 +96,12 @@ def oracle_integration(date, override):
     system = PAYMENT_SYSTEM_PREFIX
     #oracle_codes = oracle_parser(date, system, 'Commercial Operator Licensing', override=override)
     # oracle_codes = oracle_parser(date, system, 'WildlifeCompliance', override=override)
-    oracle_codes = oracle_parser(date, system, 'Disturbance Approval System', override=override)
+    oracle_codes = oracle_parser(date, system, 'Apiary Licensing System', override=override)
 
 
 class OracleJob(views.APIView):
     renderer_classes = [JSONRenderer]
+
     def get(self, request, format=None):
         try:
             data = {
@@ -113,7 +117,8 @@ class OracleJob(views.APIView):
             print(traceback.print_exc())
             raise
         except ValidationError as e:
-            raise serializers.ValidationError(repr(e.error_dict)) if hasattr(e, 'error_dict') else serializers.ValidationError(e)
+            handle_validation_error(e)
+            # raise serializers.ValidationError(repr(e.error_dict)) if hasattr(e, 'error_dict') else serializers.ValidationError(e)
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e[0]))

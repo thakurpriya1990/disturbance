@@ -1,6 +1,7 @@
 import logging
 from io import BytesIO
 from django.core.mail import EmailMultiAlternatives, EmailMessage
+from django.urls import reverse
 from django.utils.encoding import smart_text
 from django.conf import settings
 
@@ -11,6 +12,7 @@ from disturbance.components.emails.emails import TemplateEmailBase
 from ledger.accounts.models import EmailUser
 
 from disturbance.components.main.email import _extract_email_headers
+from disturbance.settings import SITE_DOMAIN, SITE_URL
 
 logger = logging.getLogger(__name__)
 
@@ -149,17 +151,27 @@ def send_contact_licence_holder_email(apiary_site_on_approval, comments, sender)
     return email_data
 
 
-def send_annual_rental_fee_awaiting_payment_confirmation(approval, annual_rental_fee):
+def send_annual_rental_fee_awaiting_payment_confirmation(approval, annual_rental_fee, invoice):
     email = ApprovalAnnualRentalFeeAwaitingPaymentConfirmationEmail()
+    path_to_pay = reverse('annual_rental_fee', kwargs={'annual_rental_fee_id': annual_rental_fee.id})
+    url_to_pay = SITE_DOMAIN + path_to_pay
+    if 'localhost' in SITE_DOMAIN:
+        url = 'http://localhost:8071' + path_to_pay
+    else:
+        url = SITE_URL + path_to_pay
 
     context = {
         'approval': approval,
         'annual_rental_fee': annual_rental_fee,
+        'invoice': invoice,
+        'url_to_pay': url,
     }
 
     attachments = []
-    contents = get_value_of_annual_rental_fee_awaiting_payment_confirmation(annual_rental_fee)
-    attachments.append(('awaiting_payment_confirmation.pdf', contents, 'application/pdf'))
+    # contents = get_value_of_annual_rental_fee_awaiting_payment_confirmation(annual_rental_fee)
+    # attachments.append(('awaiting_payment_confirmation.pdf', contents, 'application/pdf'))
+    contents = get_value_of_annual_rental_fee_invoice(approval, invoice)
+    attachments.append(('invoice#{}.pdf'.format(invoice.reference), contents, 'application/pdf'))
 
     to_address = [approval.relevant_applicant_email]
     cc = []
@@ -188,7 +200,7 @@ def send_annual_rental_fee_invoice(approval, invoice, to_email_addresses):
 
     attachments = []
     contents = get_value_of_annual_rental_fee_invoice(approval, invoice)
-    attachments.append(('annual_rental_fee_invoice_{}.pdf'.format(invoice.reference), contents, 'application/pdf'))
+    attachments.append(('invoice#{}.pdf'.format(invoice.reference), contents, 'application/pdf'))
 
     to_address = to_email_addresses
     cc = []

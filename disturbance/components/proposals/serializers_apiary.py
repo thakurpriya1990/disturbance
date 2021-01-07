@@ -9,11 +9,10 @@ from ledger.settings_base import TIME_ZONE
 from rest_framework_gis.serializers import GeoFeatureModelSerializer
 
 from disturbance.components.approvals.serializers_apiary import ApiarySiteOnApprovalGeometrySerializer
-from disturbance.components.main.decorators import timeit
 from disturbance.components.main.utils import get_category, get_tenure, get_region_district, \
-    get_feature_in_wa_coastline_smoothed, validate_buffer, get_template_group
+    get_feature_in_wa_coastline_smoothed, validate_buffer, get_template_group, get_status_for_export
 from disturbance.components.organisations.serializers import OrganisationSerializer
-from disturbance.components.organisations.models import UserDelegation
+from disturbance.components.organisations.models import UserDelegation, Organisation
 from disturbance.components.proposals.serializers_base import (
         BaseProposalSerializer, 
         ProposalDeclinedDetailsSerializer,
@@ -23,7 +22,6 @@ from disturbance.components.proposals.models import (
     Proposal,
     ProposalApiary,
     ProposalApiaryTemporaryUse,
-    #ProposalApiarySiteTransfer,
     ApiaryChecklistQuestion,
     ApiaryChecklistAnswer,
     ProposalApiaryDocument,
@@ -52,7 +50,7 @@ from django.contrib.contenttypes.models import ContentType
 from ledger.accounts.models import EmailUser
 from copy import deepcopy
 
-from disturbance.settings import SITE_STATUS_DRAFT, RESTRICTED_RADIUS
+from disturbance.settings import SITE_STATUS_DRAFT
 
 
 class VersionSerializer(serializers.ModelSerializer):
@@ -278,10 +276,10 @@ class ApiarySiteOnProposalDraftGeometrySerializer(GeoFeatureModelSerializer):
     """
     id = serializers.IntegerField(source='apiary_site.id')
     site_guid = serializers.CharField(source='apiary_site.site_guid')
-    status = serializers.SerializerMethodField()
-    site_category = serializers.SerializerMethodField()
+    status = serializers.CharField(source='site_status')
+    site_category = serializers.CharField(source='site_category_draft.name')
     previous_site_holder_or_applicant = serializers.SerializerMethodField()
-    is_vacant = serializers.SerializerMethodField()
+    is_vacant = serializers.BooleanField(source='apiary_site.is_vacant')
     stable_coords = serializers.SerializerMethodField()
 
     class Meta:
@@ -300,19 +298,12 @@ class ApiarySiteOnProposalDraftGeometrySerializer(GeoFeatureModelSerializer):
             'making_payment',
             'stable_coords',
             'application_fee_paid',
+            'apiary_site_status_when_submitted',
+            'apiary_site_is_vacant_when_submitted',
         )
 
     def get_stable_coords(self, obj):
         return obj.wkb_geometry_draft.get_coords()
-
-    def get_is_vacant(self, obj):
-        return obj.apiary_site.is_vacant
-
-    def get_status(self, obj):
-        return obj.site_status
-
-    def get_site_category(self, obj):
-        return obj.site_category_draft.name
 
     def get_previous_site_holder_or_applicant(self, obj):
         try:
@@ -326,11 +317,80 @@ class ApiarySiteOnProposalDraftGeometryExportSerializer(ApiarySiteOnProposalDraf
     """
     For export draft
     """
+    status = serializers.SerializerMethodField()
+    category = serializers.SerializerMethodField()
+    surname = serializers.SerializerMethodField()
+    first_name = serializers.SerializerMethodField()
+    address = serializers.SerializerMethodField()
+    telephone = serializers.SerializerMethodField()
+    mobile = serializers.SerializerMethodField()
+    email = serializers.SerializerMethodField()
+    organisation_name = serializers.SerializerMethodField()
 
     class Meta(ApiarySiteOnProposalDraftGeometrySerializer.Meta):
         fields = (
             'id',
+            'status',
+            'category',
+            'surname',
+            'first_name',
+            'address',
+            'telephone',
+            'mobile',
+            'email',
+            'organisation_name',
         )
+
+    def get_organisation_name(self, relation):
+        relevant_applicant = relation.proposal_apiary.proposal.relevant_applicant
+        if isinstance(relevant_applicant, Organisation):
+            return relevant_applicant.organisation.name
+        else:
+            return ''
+
+    def get_status(self, relation):
+        return get_status_for_export(relation)
+
+    def get_category(self, relation):
+        return relation.site_category_draft.name
+
+    def get_surname(self, relation):
+        relevant_applicant = relation.proposal_apiary.proposal.relevant_applicant
+        if isinstance(relevant_applicant, EmailUser):
+            return relevant_applicant.last_name
+        else:
+            return ''
+
+    def get_first_name(self, relation):
+        relevant_applicant = relation.proposal_apiary.proposal.relevant_applicant
+        if isinstance(relevant_applicant, EmailUser):
+            return relevant_applicant.first_name
+        else:
+            return ''
+
+    def get_address(self, relation):
+        try:
+            address = relation.proposal_apiary.proposal.relevant_applicant_address
+            return address.summary
+        except:
+            return ''
+
+    def get_telephone(self, relation):
+        relevant_applicant = relation.proposal_apiary.proposal.relevant_applicant
+        if isinstance(relevant_applicant, EmailUser):
+            return relevant_applicant.phone_number
+        else:
+            return ''
+
+    def get_mobile(self, relation):
+        relevant_applicant = relation.proposal_apiary.proposal.relevant_applicant
+        if isinstance(relevant_applicant, EmailUser):
+            return relevant_applicant.phone_number
+        else:
+            return ''
+
+    def get_email(self, relation):
+        return relation.proposal_apiary.proposal.relevant_applicant_email
 
 
 class ApiarySiteOnProposalVacantDraftGeometrySerializer(ApiarySiteOnProposalDraftGeometrySerializer):
@@ -355,7 +415,7 @@ class ApiarySiteOnProposalProcessedGeometrySerializer(GeoFeatureModelSerializer)
     status = serializers.SerializerMethodField()
     site_category = serializers.SerializerMethodField()
     previous_site_holder_or_applicant = serializers.SerializerMethodField()
-    is_vacant = serializers.SerializerMethodField()
+    is_vacant = serializers.BooleanField(source='apiary_site.is_vacant')
     stable_coords = serializers.SerializerMethodField()
 
     class Meta:
@@ -374,13 +434,12 @@ class ApiarySiteOnProposalProcessedGeometrySerializer(GeoFeatureModelSerializer)
             'previous_site_holder_or_applicant',
             'stable_coords',
             'application_fee_paid',
+            'apiary_site_status_when_submitted',
+            'apiary_site_is_vacant_when_submitted',
         )
 
     def get_stable_coords(self, obj):
         return obj.wkb_geometry_processed.get_coords()
-
-    def get_is_vacant(self, obj):
-        return obj.apiary_site.is_vacant
 
     def get_status(self, apiary_site_on_proposal):
         # if apiary_site_on_proposal.apiary_site.is_vacant:
@@ -388,7 +447,7 @@ class ApiarySiteOnProposalProcessedGeometrySerializer(GeoFeatureModelSerializer)
         return apiary_site_on_proposal.site_status
 
     def get_site_category(self, apiary_site_on_proposal):
-        return apiary_site_on_proposal.site_category_draft.name
+        return apiary_site_on_proposal.site_category_processed.name
 
     def get_previous_site_holder_or_applicant(self, apiary_site_on_proposal):
         try:
@@ -399,11 +458,83 @@ class ApiarySiteOnProposalProcessedGeometrySerializer(GeoFeatureModelSerializer)
 
 
 class ApiarySiteOnProposalProcessedGeometryExportSerializer(ApiarySiteOnProposalProcessedGeometrySerializer):
+    """
+    For export draft
+    """
+    status = serializers.SerializerMethodField()
+    category = serializers.SerializerMethodField()
+    surname = serializers.SerializerMethodField()
+    first_name = serializers.SerializerMethodField()
+    address = serializers.SerializerMethodField()
+    telephone = serializers.SerializerMethodField()
+    mobile = serializers.SerializerMethodField()
+    email = serializers.SerializerMethodField()
+    organisation_name = serializers.SerializerMethodField()
 
     class Meta(ApiarySiteOnProposalProcessedGeometrySerializer.Meta):
         fields = (
             'id',
+            'status',
+            'category',
+            'surname',
+            'first_name',
+            'address',
+            'telephone',
+            'mobile',
+            'email',
+            'organisation_name',
         )
+
+    def get_organisation_name(self, relation):
+        relevant_applicant = relation.proposal_apiary.proposal.relevant_applicant
+        if isinstance(relevant_applicant, Organisation):
+            return relevant_applicant.organisation.name
+        else:
+            return ''
+
+    def get_status(self, relation):
+        return get_status_for_export(relation)
+
+    def get_category(self, relation):
+        return relation.site_category_draft.name
+
+    def get_surname(self, relation):
+        relevant_applicant = relation.proposal_apiary.proposal.relevant_applicant
+        if isinstance(relevant_applicant, EmailUser):
+            return relevant_applicant.last_name
+        else:
+            return ''
+
+    def get_first_name(self, relation):
+        relevant_applicant = relation.proposal_apiary.proposal.relevant_applicant
+        if isinstance(relevant_applicant, EmailUser):
+            return relevant_applicant.first_name
+        else:
+            return ''
+
+    def get_address(self, relation):
+        try:
+            address = relation.proposal_apiary.proposal.relevant_applicant_address
+            return address.summary
+        except:
+            return ''
+
+    def get_telephone(self, relation):
+        relevant_applicant = relation.proposal_apiary.proposal.relevant_applicant
+        if isinstance(relevant_applicant, EmailUser):
+            return relevant_applicant.phone_number
+        else:
+            return ''
+
+    def get_mobile(self, relation):
+        relevant_applicant = relation.proposal_apiary.proposal.relevant_applicant
+        if isinstance(relevant_applicant, EmailUser):
+            return relevant_applicant.phone_number
+        else:
+            return ''
+
+    def get_email(self, relation):
+        return relation.proposal_apiary.proposal.relevant_applicant_email
 
 
 class ApiarySiteOnProposalVacantProcessedGeometrySerializer(ApiarySiteOnProposalProcessedGeometrySerializer):
@@ -563,8 +694,12 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
     site_remainders = serializers.SerializerMethodField()
     originating_approval_lodgement_number = serializers.SerializerMethodField()
     originating_approval_licence_document = serializers.SerializerMethodField()
+    originating_approval_name = serializers.SerializerMethodField()
+    originating_approval_reissued = serializers.SerializerMethodField()
     target_approval_lodgement_number = serializers.SerializerMethodField()
     target_approval_licence_document = serializers.SerializerMethodField()
+    target_approval_name = serializers.SerializerMethodField()
+    target_approval_reissued = serializers.SerializerMethodField()
     transferee_name = serializers.SerializerMethodField()
     transferee_org_name = serializers.SerializerMethodField()
     transferee_first_name = serializers.SerializerMethodField()
@@ -574,7 +709,6 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
         model = ProposalApiary
         fields = (
             'id',
-            'title',
             'proposal',
             'apiary_sites',
             # 'apiary_sites_2',
@@ -597,9 +731,13 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
             'originating_approval_id',
             'originating_approval_lodgement_number',
             'originating_approval_licence_document',
+            'originating_approval_name',
+            'originating_approval_reissued',
             'target_approval_id',
             'target_approval_lodgement_number',
             'target_approval_licence_document',
+            'target_approval_name',
+            'target_approval_reissued',
             'transferee_name',
             'transferee_org_name',
             'transferee_first_name',
@@ -607,7 +745,26 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
             'transferee_email_text', 
             'transferee_id',
             'target_approval_organisation_id',
+            'public_liability_insurance_expiry_date',
+            'reissue_originating_approval',
+            'reissue_target_approval',
         )
+
+    def get_originating_approval_reissued(self,obj):
+        if obj.originating_approval:
+            return obj.originating_approval.reissued
+
+    def get_target_approval_reissued(self,obj):
+        if obj.target_approval:
+            return obj.target_approval.reissued
+
+    def get_originating_approval_name(self,obj):
+        if obj.originating_approval:
+            return obj.originating_approval.relevant_applicant_name
+
+    def get_target_approval_name(self,obj):
+        if obj.target_approval:
+            return obj.target_approval.relevant_applicant_name
 
     def validate(self, attrs):
         self.instance.validate_apiary_sites(raise_exception=True)
@@ -831,7 +988,6 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
                     "referrer_group_name": referral.apiary_referral.referral_group.name,
                     })
         return referral_list
-
 
 
 class CreateProposalApiarySiteTransferSerializer(serializers.ModelSerializer):

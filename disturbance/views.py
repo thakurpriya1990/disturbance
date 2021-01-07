@@ -18,7 +18,7 @@ from rest_framework.renderers import JSONRenderer
 from disturbance.components.main.decorators import timeit
 from disturbance.components.main.serializers import WaCoastSerializer, WaCoastOptimisedSerializer
 from disturbance.components.main.utils import get_feature_in_wa_coastline_smoothed, get_feature_in_wa_coastline_original
-from disturbance.helpers import is_internal
+from disturbance.helpers import is_internal, is_disturbance_admin, is_apiary_admin, is_das_apiary_admin
 from disturbance.forms import *
 from disturbance.components.proposals.models import Referral, Proposal, HelpPage
 from disturbance.components.compliances.models import Compliance
@@ -159,7 +159,7 @@ class ManagementCommandsView(LoginRequiredMixin, TemplateView):
         data = {}
         command_script = request.POST.get('script', None)
         if command_script:
-            print 'running {}'.format(command_script)
+            print('running {}'.format(command_script))
             call_command(command_script)
             data.update({command_script: 'true'})
 
@@ -167,16 +167,14 @@ class ManagementCommandsView(LoginRequiredMixin, TemplateView):
 
 
 class TemplateGroupView(views.APIView):
+
     def get(self, request, format=None):
-        web_url = request.META.get('HTTP_HOST', None)
-        template_group = None
-        if web_url in settings.APIARY_URL:
-           template_group = 'apiary'
-        else:
-           template_group = 'das'
         return Response({
-            'template_group': template_group
-            })
+            'template_group': settings.DOMAIN_DETECTED,
+            'is_das_admin': True if is_disturbance_admin(request) else False,
+            'is_apiary_admin': True if is_apiary_admin(request) else False,
+            'is_das_apiary_admin': True if is_das_apiary_admin(request) else False,
+        })
 
 
 @timeit

@@ -3,6 +3,7 @@
 *.swo
 venv/
 venv2/
+venv3/
 node_modules/
 cronjobs
 mooring/cache/*
@@ -83,6 +84,7 @@ target/
 
 # media
 media/
+spatial_data/
 
 # Database/fixture dumps
 *.pgdump

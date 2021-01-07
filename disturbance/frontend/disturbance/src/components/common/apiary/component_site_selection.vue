@@ -1,6 +1,5 @@
 <template lang="html">
     <div>
-
         <div class="row col-sm-12">
             <ComponentMap
                 ref="component_map"
@@ -8,6 +7,7 @@
                 :key="component_map_key"
                 @featuresDisplayed="updateTableByFeatures"
                 :can_modify="can_modify"
+                :display_at_time_of_submitted="show_col_status_when_submitted"
                 @featureGeometryUpdated="featureGeometryUpdated"
                 @popupClosed="popupClosed"
             />
@@ -72,6 +72,10 @@
                 type: Boolean,
                 default: true,
             },
+            show_col_site_when_submitted: {
+                type: Boolean,
+                default: false,
+            },
             show_col_longitude: {
                 type: Boolean,
                 default: false,
@@ -88,6 +92,10 @@
                 type: Boolean,
                 default: false,
             },
+            show_col_status_when_submitted: {
+                type: Boolean,
+                default: false,
+            },
             show_col_previous_site_holder: {
                 type: Boolean,
                 default: false,
@@ -97,6 +105,14 @@
                 default: true,
             },
             show_col_vacant: {
+                type: Boolean,
+                default: false,
+            },
+            show_col_vacant_when_submitted: {
+                type: Boolean,
+                default: false,
+            },
+            show_col_decision:{
                 type: Boolean,
                 default: false,
             },
@@ -121,9 +137,6 @@
                 default: false,
             }
         },
-        watch: {
-
-        },
         data: function(){
             let vm = this;
             return{
@@ -137,11 +150,15 @@
                     'Id',
                     '',
                     'Site',
+                    'Site',  // coloured by the status when submitted
                     'Longitude',
                     'Latitude',
                     'District',
                     'Status',
-                    'Vacant',
+                    'Status<br>(at time of submit)',
+                    'Vacant<br>(current status)',  // current status of the 'is_vacant'
+                    'Vacant<br>(at time of submit)',  // status of the 'is_vacant' when the application submitted
+                    'Decision',
                     'Previous Site Holder<br>Applicant',
                     'Action',
                 ],
@@ -186,10 +203,10 @@
                             }
                         },
                         {
-                            // Site
+                            // Site (current): general status. Marker
                             visible: vm.show_col_site,
                             mRender: function (data, type, apiary_site) {
-                                let status_for_colour = getStatusForColour(apiary_site)
+                                let status_for_colour = getStatusForColour(apiary_site, false)
                                 let fillColour = SiteColours[status_for_colour].fill
                                 let strokeColour = SiteColours[status_for_colour].stroke
                                 let sub_str = ''
@@ -204,6 +221,22 @@
                                                 '<circle cx="10" cy="10" r="6" stroke="' + strokeColour + '" stroke-width="2" fill="' + fillColour + '" />' +
                                            '</svg> site: ' + apiary_site.id
                                 }
+                                return '<div data-site="' + apiary_site.id + '">' + sub_str + '</div>'
+                            }
+                        },
+                        {
+                            // Site (at time of submit): pending/vacant
+                            visible: vm.show_col_site_when_submitted,
+                            mRender: function (data, type, apiary_site){
+                                let status_when_submitted = 'pending'
+                                if (apiary_site.properties.apiary_site_is_vacant_when_submitted){
+                                    status_when_submitted = 'vacant'
+                                }
+                                let fillColour = SiteColours[status_when_submitted].fill
+                                let strokeColour = SiteColours[status_when_submitted].stroke
+                                let sub_str = '<svg height="20" width="20">' +
+                                            '<circle cx="10" cy="10" r="6" stroke="' + strokeColour + '" stroke-width="2" fill="' + fillColour + '" />' +
+                                          '</svg> site: ' + apiary_site.id
                                 return '<div data-site="' + apiary_site.id + '">' + sub_str + '</div>'
                             }
                         },
@@ -229,15 +262,29 @@
                             }
                         },
                         {
-                            // Status
+                            // Status (current): general status.  Text
                             visible: vm.show_col_status,
                             mRender: function (data, type, apiary_site){
-                                let display_name = getDisplayNameFromStatus(apiary_site.properties.status)
+                                let dynamic_status = getStatusForColour(apiary_site, false)
+                                let display_name = getDisplayNameFromStatus(dynamic_status)
                                 return display_name
                             }
                         },
                         {
-                            // Vacant
+                            // Status (at time of submit): pending/vacant
+                            visible: vm.show_col_status_when_submitted,
+                            mRender: function (data, type, apiary_site){
+                                let status = 'pending'
+                                let is_vacant = apiary_site.properties.apiary_site_is_vacant_when_submitted
+                                if(is_vacant === true){
+                                    status = 'vacant'
+                                }
+                                return getDisplayNameFromStatus(status)
+                            }
+
+                        },
+                        {
+                            // Vacant (current): yes/no
                             visible: vm.show_col_vacant,
                             mRender: function (data, type, apiary_site) {
                                 let status = apiary_site.properties.status
@@ -246,6 +293,34 @@
                                     return '<i class="fa fa-check" aria-hidden="true"></i>'
                                 }
                                 return ''
+                            }
+                        },
+                        {
+                            // Vacant (at time of submit): yes/no
+                            visible: vm.show_col_vacant_when_submitted,
+                            mRender: function (data, type, apiary_site) {
+                                let status = apiary_site.properties.status
+                                let is_vacant = apiary_site.properties.apiary_site_is_vacant_when_submitted
+                                if(is_vacant === true){
+                                    return '<i class="fa fa-check" aria-hidden="true"></i>'
+                                }
+                                return ''
+                            }
+                        },
+                        {
+                            visible: vm.show_col_decision,
+                            mRender: function (data, type, apiary_site) {
+                                let status = apiary_site.properties.status
+                                if (status == 'approved'){
+                                    let myColour = SiteColours['approved'].fill
+                                    return '<i class="fa fa-check" aria-hidden="true" style="color:' + myColour + ';"></i> Approved'
+                                } else if (status == 'denied'){
+                                    let myColour = SiteColours['denied'].stroke
+                                    let sub_str =  '<i class="fa fa-times" aria-hidden="true" style="color:' + myColour + ';"></i> Denied'
+                                    return sub_str
+                                } else {
+                                    return ''
+                                }
                             }
                         },
                         {
@@ -267,7 +342,7 @@
                                 if (vm.show_action_available_unavailable){
                                     // Mark as Available/Unavailable
                                     let display_text = ''
-                                    if (vm.is_external && ['Current', 'current'].includes(apiary_site.properties.status)){
+                                    if (vm.is_external && ['current',].includes(apiary_site.properties.status.toLowerCase())){
                                         if (apiary_site.properties.available){
                                             display_text = 'Mark as unavailable';
                                         } else {
@@ -276,7 +351,7 @@
                                         let ret = '<a data-toggle-availability="' + apiary_site.id + '" data-apiary-site-available="' + apiary_site.properties.available + '">' + display_text + '</a>';
                                         action_list.push(ret);
                                     //} else if (vm.is_internal && ['Current', 'current'].includes(apiary_site.status.id)){
-                                    } else if (vm.is_internal && ['Current', 'current'].includes(apiary_site.properties.status)){
+                                    } else if (vm.is_internal && ['current',].includes(apiary_site.properties.status.toLowerCase())){
                                         if (apiary_site.properties.available){
                                             display_text = 'Available';
                                         } else {
@@ -320,6 +395,7 @@
             datatable,
         },
         computed: {
+
 
         },
         methods: {
