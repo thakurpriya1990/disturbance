@@ -447,7 +447,7 @@ class ApiarySiteOnProposalProcessedGeometrySerializer(GeoFeatureModelSerializer)
         return apiary_site_on_proposal.site_status
 
     def get_site_category(self, apiary_site_on_proposal):
-        return apiary_site_on_proposal.site_category_draft.name
+        return apiary_site_on_proposal.site_category_processed.name
 
     def get_previous_site_holder_or_applicant(self, apiary_site_on_proposal):
         try:

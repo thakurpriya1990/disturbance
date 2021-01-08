@@ -109,7 +109,8 @@
     import {pointerMove} from 'ol/events/condition';
     import VectorLayer from 'ol/layer/Vector';
     import VectorSource from 'ol/source/Vector';
-    import {Circle as CircleStyle, Fill, Stroke, Style, Icon} from 'ol/style';
+    import Cluster from 'ol/source/Cluster';
+    import {Circle as CircleStyle, Fill, Stroke, Style, Icon, Text} from 'ol/style';
     import {FullScreen as FullScreenControl, MousePosition as MousePositionControl} from 'ol/control';
     import Vue from 'vue/dist/vue';
     import { Feature } from 'ol';
@@ -228,6 +229,7 @@
                 map: null,
                 apiarySitesQuerySource: new VectorSource(),
                 apiarySitesQueryLayer: null,
+                apiarySitesClusterLayer: null,
                 bufferedSites: null,
                 drawingLayerSource:  new VectorSource(),
                 drawingLayer: null,
@@ -917,11 +919,55 @@
                         projection: 'EPSG:4326'
                     })
                 });
-                vm.apiarySitesQueryLayer = new VectorLayer({
+
+                //vm.apiarySitesQueryLayer = new VectorLayer({
+                //    source: vm.apiarySitesQuerySource,
+                //    style: vm.apiaryStyleFunctionExisting,
+                //});
+                //vm.map.addLayer(vm.apiarySitesQueryLayer);
+
+                let clusterSource = new Cluster({
+                    distance: 50,
                     source: vm.apiarySitesQuerySource,
-                    style: vm.apiaryStyleFunctionExisting,
+                })
+
+                let styleCache = {}
+                vm.apiarySitesClusterLayer = new VectorLayer({
+                    source: clusterSource,
+                    style: function (clusteredFeature){
+                        let featuresInClusteredFeature = clusteredFeature.get('features')
+                        let size = featuresInClusteredFeature.length
+                        let style = styleCache[size]
+                        if(size == 1){
+                            // When size is 1, which means the cluster feature has only one site
+                            // we want to display it as dedicated style
+                            let status = getStatusForColour(featuresInClusteredFeature[0])
+                            return getApiaryFeatureStyle(status);
+                        }
+                        if(!style){
+                            style = new Style({
+                                image: new CircleStyle({
+                                    radius: 10,
+                                    stroke: new Stroke({
+                                        color: '#fff',
+                                    }),
+                                    fill: new Fill({
+                                        color: '#3399cc'
+                                    }),
+                                }),
+                                text: new Text({
+                                    text: size.toString(),
+                                    fill: new Fill({
+                                        color: '#fff',
+                                    })
+                                })
+                            })
+                            styleCache[size] = style
+                        }
+                        return style
+                    },
                 });
-                vm.map.addLayer(vm.apiarySitesQueryLayer);
+                vm.map.addLayer(vm.apiarySitesClusterLayer);
 
                 vm.bufferedSites = [];
                 vm.map.on("moveend", function(attributes){
@@ -1228,49 +1274,74 @@
                 let vm = this
                 this.$http.get('/api/apiary_site/list_existing_proposal_vacant_draft/?proposal_id=' + this.proposal.id).then(
                     res => {
-                        vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
+                        let num_sites = 0
+                        if(res.body.features){
+                            vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
+                            num_sites = res.body.features.length
+                        }
                         vm.proposal_vacant_draft_loaded = true
-                        vm.display_duration('1(' + res.body.features.length + ' sites)')
+                        vm.display_duration('proposal vacant draft (' + num_sites + ' sites)')
                     },
                     err => {}
                 )
                 this.$http.get('/api/apiary_site/list_existing_proposal_vacant_processed/?proposal_id=' + this.proposal.id).then(
                     res => {
-                        vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
+                        let num_sites = 0
+                        if(res.body.features){
+                            vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
+                            num_sites = res.body.features.length
+                        }
                         vm.proposal_vacant_processed_loaded = true
-                        vm.display_duration('2(' + res.body.features.length + ' sites)')
+                        vm.display_duration('proposal vacant processed (' + num_sites + ' sites)')
                     },
                     err => {}
                 )
                 this.$http.get('/api/apiary_site/list_existing_vacant_approval/?proposal_id=' + this.proposal.id).then(
                     res => {
-                        vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
+                        let num_sites = 0
+                        if(res.body.features){
+                            vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
+                            num_sites = res.body.features.length
+                        }
                         vm.approval_vacant_loaded = true
-                        vm.display_duration('3(' + res.body.features.length + ' sites)')
+                        vm.display_duration('approval vacant (' + num_sites + ' sites)')
                     },
                     err => {}
                 )
                 this.$http.get('/api/apiary_site/list_existing_proposal_draft/?proposal_id=' + this.proposal.id).then(
                     res => {
-                        vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
+                        let num_sites = 0
+                        if(res.body.features){
+                            vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
+                            num_sites = res.body.features.length
+                        }
                         vm.proposal_draft_loaded = true
-                        vm.display_duration('4(' + res.body.features.length + ' sites)')
+                        vm.display_duration('proposal draft (' + num_sites + ' sites)')
                     },
                     err => {}
                 )
                 this.$http.get('/api/apiary_site/list_existing_proposal_processed/?proposal_id=' + this.proposal.id).then(
                     res => {
-                        vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
+                        let num_sites = 0
+                        if(res.body.features){
+                            vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
+                            num_sites = res.body.features.length
+                        }
                         vm.proposal_processed_loaded = true
-                        vm.display_duration('5(' + res.body.features.length + ' sites)')
+                        vm.display_duration('proposal processed (' + num_sites + ' sites)')
                     },
-                    err => {}
+                    err => {
+                    }
                 )
                 this.$http.get('/api/apiary_site/list_existing_approval/?proposal_id=' + this.proposal.id).then(
                     res => {
-                        vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
+                        let num_sites = 0
+                        if(res.body.features){
+                            vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
+                            num_sites = res.body.features.length
+                        }
                         vm.approval_loaded = true
-                        vm.display_duration('6(' + res.body.features.length + ' sites)')
+                        vm.display_duration('approval (' + num_sites + ' sites)')
                     },
                     err => {}
                 )
@@ -1286,7 +1357,10 @@
             if (at_once){
                 await this.$http.get('/api/apiary_site/list_existing/?proposal_id=' + this.proposal.id)
                 .then(
-                    res => {vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))},
+                    res => {
+                        vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
+                        console.log(res.body.features.length + ' sites')
+                    },
                     err => {}
                 )
                 vm.endTime = new Date()
