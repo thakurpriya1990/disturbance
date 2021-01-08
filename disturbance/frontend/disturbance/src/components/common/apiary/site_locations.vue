@@ -934,11 +934,16 @@
                 let styleCache = {}
                 vm.apiarySitesClusterLayer = new VectorLayer({
                     source: clusterSource,
-                    style: function (feature){
-                        console.log('in style')
-                        console.log(feature)
-                        let size = feature.get('features').length
+                    style: function (clusteredFeature){
+                        let featuresInClusteredFeature = clusteredFeature.get('features')
+                        let size = featuresInClusteredFeature.length
                         let style = styleCache[size]
+                        if(size == 1){
+                            // When size is 1, which means the cluster feature has only one site
+                            // we want to display it as dedicated style
+                            let status = getStatusForColour(featuresInClusteredFeature[0])
+                            return getApiaryFeatureStyle(status);
+                        }
                         if(!style){
                             style = new Style({
                                 image: new CircleStyle({
@@ -952,7 +957,6 @@
                                 }),
                                 text: new Text({
                                     text: size.toString(),
-                                    //text: 'aho',
                                     fill: new Fill({
                                         color: '#fff',
                                     })
@@ -960,7 +964,6 @@
                             })
                             styleCache[size] = style
                         }
-                        console.log(style)
                         return style
                     },
                 });
