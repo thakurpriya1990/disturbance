@@ -109,7 +109,8 @@
     import {pointerMove} from 'ol/events/condition';
     import VectorLayer from 'ol/layer/Vector';
     import VectorSource from 'ol/source/Vector';
-    import {Circle as CircleStyle, Fill, Stroke, Style, Icon} from 'ol/style';
+    import Cluster from 'ol/source/Cluster';
+    import {Circle as CircleStyle, Fill, Stroke, Style, Icon, Text} from 'ol/style';
     import {FullScreen as FullScreenControl, MousePosition as MousePositionControl} from 'ol/control';
     import Vue from 'vue/dist/vue';
     import { Feature } from 'ol';
@@ -924,10 +925,46 @@
                 //    style: vm.apiaryStyleFunctionExisting,
                 //});
                 //vm.map.addLayer(vm.apiarySitesQueryLayer);
-                vm.apiarySitesClusterLayer = new VectorLayer({
-                    source: vm.apiarySiteQuerySource,
 
+                let clusterSource = new Cluster({
+                    distance: 50,
+                    source: vm.apiarySitesQuerySource,
                 })
+
+                let styleCache = {}
+                vm.apiarySitesClusterLayer = new VectorLayer({
+                    source: clusterSource,
+                    style: function (feature){
+                        console.log('in style')
+                        console.log(feature)
+                        let size = feature.get('features').length
+                        let style = styleCache[size]
+                        if(!style){
+                            style = new Style({
+                                image: new CircleStyle({
+                                    radius: 10,
+                                    stroke: new Stroke({
+                                        color: '#fff',
+                                    }),
+                                    fill: new Fill({
+                                        color: '#3399cc'
+                                    }),
+                                }),
+                                text: new Text({
+                                    text: size.toString(),
+                                    //text: 'aho',
+                                    fill: new Fill({
+                                        color: '#fff',
+                                    })
+                                })
+                            })
+                            styleCache[size] = style
+                        }
+                        console.log(style)
+                        return style
+                    },
+                });
+                vm.map.addLayer(vm.apiarySitesClusterLayer);
 
                 vm.bufferedSites = [];
                 vm.map.on("moveend", function(attributes){
