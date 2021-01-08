@@ -228,6 +228,7 @@
                 map: null,
                 apiarySitesQuerySource: new VectorSource(),
                 apiarySitesQueryLayer: null,
+                apiarySitesClusterLayer: null,
                 bufferedSites: null,
                 drawingLayerSource:  new VectorSource(),
                 drawingLayer: null,
@@ -917,11 +918,16 @@
                         projection: 'EPSG:4326'
                     })
                 });
-                vm.apiarySitesQueryLayer = new VectorLayer({
-                    source: vm.apiarySitesQuerySource,
-                    style: vm.apiaryStyleFunctionExisting,
-                });
-                vm.map.addLayer(vm.apiarySitesQueryLayer);
+
+                //vm.apiarySitesQueryLayer = new VectorLayer({
+                //    source: vm.apiarySitesQuerySource,
+                //    style: vm.apiaryStyleFunctionExisting,
+                //});
+                //vm.map.addLayer(vm.apiarySitesQueryLayer);
+                vm.apiarySitesClusterLayer = new VectorLayer({
+                    source: vm.apiarySiteQuerySource,
+
+                })
 
                 vm.bufferedSites = [];
                 vm.map.on("moveend", function(attributes){
