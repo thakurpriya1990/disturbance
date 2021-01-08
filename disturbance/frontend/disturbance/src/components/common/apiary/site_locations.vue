@@ -109,7 +109,8 @@
     import {pointerMove} from 'ol/events/condition';
     import VectorLayer from 'ol/layer/Vector';
     import VectorSource from 'ol/source/Vector';
-    import {Circle as CircleStyle, Fill, Stroke, Style, Icon} from 'ol/style';
+    import Cluster from 'ol/source/Cluster';
+    import {Circle as CircleStyle, Fill, Stroke, Style, Icon, Text} from 'ol/style';
     import {FullScreen as FullScreenControl, MousePosition as MousePositionControl} from 'ol/control';
     import Vue from 'vue/dist/vue';
     import { Feature } from 'ol';
@@ -228,6 +229,7 @@
                 map: null,
                 apiarySitesQuerySource: new VectorSource(),
                 apiarySitesQueryLayer: null,
+                apiarySitesClusterLayer: null,
                 bufferedSites: null,
                 drawingLayerSource:  new VectorSource(),
                 drawingLayer: null,
@@ -917,11 +919,55 @@
                         projection: 'EPSG:4326'
                     })
                 });
-                vm.apiarySitesQueryLayer = new VectorLayer({
+
+                //vm.apiarySitesQueryLayer = new VectorLayer({
+                //    source: vm.apiarySitesQuerySource,
+                //    style: vm.apiaryStyleFunctionExisting,
+                //});
+                //vm.map.addLayer(vm.apiarySitesQueryLayer);
+
+                let clusterSource = new Cluster({
+                    distance: 50,
                     source: vm.apiarySitesQuerySource,
-                    style: vm.apiaryStyleFunctionExisting,
+                })
+
+                let styleCache = {}
+                vm.apiarySitesClusterLayer = new VectorLayer({
+                    source: clusterSource,
+                    style: function (clusteredFeature){
+                        let featuresInClusteredFeature = clusteredFeature.get('features')
+                        let size = featuresInClusteredFeature.length
+                        let style = styleCache[size]
+                        if(size == 1){
+                            // When size is 1, which means the cluster feature has only one site
+                            // we want to display it as dedicated style
+                            let status = getStatusForColour(featuresInClusteredFeature[0])
+                            return getApiaryFeatureStyle(status);
+                        }
+                        if(!style){
+                            style = new Style({
+                                image: new CircleStyle({
+                                    radius: 10,
+                                    stroke: new Stroke({
+                                        color: '#fff',
+                                    }),
+                                    fill: new Fill({
+                                        color: '#3399cc'
+                                    }),
+                                }),
+                                text: new Text({
+                                    text: size.toString(),
+                                    fill: new Fill({
+                                        color: '#fff',
+                                    })
+                                })
+                            })
+                            styleCache[size] = style
+                        }
+                        return style
+                    },
                 });
-                vm.map.addLayer(vm.apiarySitesQueryLayer);
+                vm.map.addLayer(vm.apiarySitesClusterLayer);
 
                 vm.bufferedSites = [];
                 vm.map.on("moveend", function(attributes){
