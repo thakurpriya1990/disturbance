@@ -2526,7 +2526,7 @@ class ApiarySiteOnProposal(RevisionedMixin):
     apiary_site_status_when_submitted = models.CharField(max_length=40, blank=True)
     apiary_site_is_vacant_when_submitted = models.BooleanField(default=False)
     for_renewal = models.BooleanField(default=False)
-    site_status = models.CharField(default=SITE_STATUS_DRAFT, max_length=20)
+    site_status = models.CharField(default=SITE_STATUS_DRAFT, max_length=20, db_index=True)
     making_payment = models.BooleanField(default=False)
     workflow_selected_status = models.BooleanField(default=False)  # This field is used only during approval process to select/deselect the site to be approved
     created_at = models.DateTimeField(auto_now_add=True)

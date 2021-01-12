@@ -77,7 +77,7 @@ class ApiarySiteOnApproval(models.Model):
     apiary_site = models.ForeignKey('ApiarySite',)
     approval = models.ForeignKey('Approval',)
     available = models.BooleanField(default=False)
-    site_status = models.CharField(default=SITE_STATUS_CURRENT, max_length=20)
+    site_status = models.CharField(default=SITE_STATUS_CURRENT, max_length=20, db_index=True)
     # site_available = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
