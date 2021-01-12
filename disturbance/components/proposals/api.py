@@ -865,12 +865,12 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
                 INNER JOIN "disturbance_sitecategory" ON("disturbance_apiarysiteonproposal"."site_category_processed_id" = "disturbance_sitecategory"."id") 
                 WHERE(
                     "disturbance_apiarysiteonproposal"."id" IN (SELECT U0."latest_proposal_link_id" FROM "disturbance_apiarysite" U0) 
-                    AND NOT(((
-                        "disturbance_apiarysiteonproposal"."site_status" IN ('draft') AND "disturbance_apiarysiteonproposal"."making_payment" = False) OR 
+                    AND NOT((
+                        ("disturbance_apiarysiteonproposal"."site_status" IN ('draft') AND "disturbance_apiarysiteonproposal"."making_payment" = False) OR 
                         "disturbance_apiarysiteonproposal"."site_status" IN ('discarded') OR 
                         "disturbance_apiarysiteonproposal"."site_status" IN ('approved') OR 
-                        "disturbance_apiarysiteonproposal"."apiary_site_id" IN (SELECT U0."id" FROM "disturbance_apiarysite" U0 WHERE U0."is_vacant" = True
-                    )))
+                        "disturbance_apiarysiteonproposal"."apiary_site_id" IN (SELECT U0."id" FROM "disturbance_apiarysite" U0 WHERE U0."is_vacant" = True)
+                    ))
                     AND NOT("disturbance_apiarysiteonproposal"."wkb_geometry_processed" IS NULL) 
                     AND NOT("disturbance_apiarysiteonproposal"."proposal_apiary_id" = %s)
                 )
