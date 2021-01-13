@@ -45,7 +45,9 @@ class UserOrganisationSerializer(serializers.ModelSerializer):
         )
 
     def get_current_apiary_approval(self, obj):
-        return obj.disturbance_approvals.filter(status=Approval.STATUS_CURRENT, apiary_approval=True).count() > 0
+        approval = obj.disturbance_approvals.filter(status=Approval.STATUS_CURRENT, apiary_approval=True).first()
+        if approval:
+            return approval.id
 
     def get_is_admin(self, obj):
         user = EmailUser.objects.get(id=self.context.get('user_id'))
@@ -106,7 +108,9 @@ class UserSerializer(serializers.ModelSerializer):
         )
 
     def get_current_apiary_approval(self, obj):
-        return obj.disturbance_proxy_approvals.filter(status=Approval.STATUS_CURRENT, apiary_approval=True).count() > 0
+        approval = obj.disturbance_proxy_approvals.filter(status=Approval.STATUS_CURRENT, apiary_approval=True).first()
+        if approval:
+            return approval.id
 
     def get_personal_details(self,obj):
         return True if obj.last_name  and obj.first_name else False

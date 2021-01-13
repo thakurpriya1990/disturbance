@@ -269,6 +269,34 @@ export default {
           }
           return returnStr;
       },
+      currentApiaryApproval: function() {
+          let currentApproval = null;
+          if (this.behalf_of === "individual" && this.profile.current_apiary_approval) {
+              currentApproval = this.profile.current_apiary_approval;
+          } else if (this.behalf_of > 0 && parseInt(this.behalf_of)) {
+              for (let organisation of this.profile.disturbance_organisations) {
+                  if (this.behalf_of === organisation.id && organisation.current_apiary_approval) {
+                      currentApproval = organisation.current_apiary_approval;
+                  }
+              }
+          }
+          return currentApproval;
+      },
+      /*
+      currentApiaryApproval: function() {
+          let currentApproval = false;
+          if (this.behalf_of === "individual" && this.profile.current_apiary_approval) {
+              currentApproval = true;
+          } else if (this.behalf_of > 0 && parseInt(this.behalf_of)) {
+              for (let organisation of this.profile.disturbance_organisations) {
+                  if (this.behalf_of === organisation.id && organisation.current_apiary_approval) {
+                      currentApproval = true;
+                  }
+              }
+          }
+          return currentApproval;
+      },
+      */
       applicationTypesList: function() {
           let returnList = [];
           for (let applicationType of this.application_types) {
@@ -277,6 +305,10 @@ export default {
               if (this.apiaryTemplateGroup) {
                   if (applicationType.domain_used.toLowerCase() === 'apiary') {
                       if (applicationType.text.toLowerCase() === 'apiary'){
+                          returnList.push(applicationType);
+                      }
+                      // add Site Transfer if selected applicant has an associated current_apiary_approval
+                      if (applicationType.text.toLowerCase() === 'site transfer' && this.currentApiaryApproval){
                           returnList.push(applicationType);
                       }
                   }
@@ -374,6 +406,7 @@ export default {
             category: vm.selected_category,
             approval_level: vm.approval_level,
             profile: this.profile.id,
+            originating_approval_id: vm.currentApiaryApproval,
 		}).then(res => {
 		    vm.proposal = res.body;
 			vm.$router.push({
@@ -402,7 +435,7 @@ export default {
     isDisabled: function() {
         let vm = this;
 
-        if (vm.selected_application_name != 'Apiary') {
+        if (!['Apiary', 'Site Transfer'].includes(vm.selected_application_name)) {
             if (vm.behalf_of == '' || vm.selected_application_id == '' || vm.selected_region == '' || vm.approval_level == ''){
                 return true;
             }
@@ -481,7 +514,7 @@ export default {
         //this.chainedSelectActivities(application_id);
         //this.chainedSelectActivities(application_id);
 
-        if (vm.selected_application_name == 'Apiary') {
+        if (['Apiary', 'Site Transfer'].includes(vm.selected_application_name)) {
             vm.display_region_selectbox = false;
             vm.display_activity_matrix_selectbox = false;
         }  else {
