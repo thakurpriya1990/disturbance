@@ -282,21 +282,6 @@ export default {
           }
           return currentApproval;
       },
-      /*
-      currentApiaryApproval: function() {
-          let currentApproval = false;
-          if (this.behalf_of === "individual" && this.profile.current_apiary_approval) {
-              currentApproval = true;
-          } else if (this.behalf_of > 0 && parseInt(this.behalf_of)) {
-              for (let organisation of this.profile.disturbance_organisations) {
-                  if (this.behalf_of === organisation.id && organisation.current_apiary_approval) {
-                      currentApproval = true;
-                  }
-              }
-          }
-          return currentApproval;
-      },
-      */
       applicationTypesList: function() {
           let returnList = [];
           for (let applicationType of this.application_types) {
