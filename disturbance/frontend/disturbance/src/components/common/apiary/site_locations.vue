@@ -875,9 +875,6 @@
                 let status = getStatusForColour(myFeature)
                 let style_applied = getApiaryFeatureStyle(status)
                 myFeature.setStyle(style_applied)
-
-                // Remove the row from the table
-                //$(e.target).closest('tr').fadeOut('slow', function(){ })
             },
             removeSiteLocation: function(e){
                 let site_location_guid = e.target.getAttribute("data-site-location-guid");
@@ -905,12 +902,6 @@
                     })
                 });
 
-                //vm.apiarySitesQueryLayer = new VectorLayer({
-                //    source: vm.apiarySitesQuerySource,
-                //    style: vm.apiaryStyleFunctionExisting,
-                //});
-                //vm.map.addLayer(vm.apiarySitesQueryLayer);
-
                 let clusterSource = new Cluster({
                     distance: 50,
                     source: vm.apiarySitesQuerySource,
@@ -929,10 +920,19 @@
                             let status = getStatusForColour(featuresInClusteredFeature[0])
                             return getApiaryFeatureStyle(status);
                         }
+                        let radius_in_pixel = 16
+                        if(size < 10){
+                            radius_in_pixel = 10
+                        } else if (size < 100){
+                            radius_in_pixel = 12
+                        } else if (size < 1000){
+                            radius_in_pixel = 14
+                        }
                         if(!style){
+                            console.log(radius_in_pixel)
                             style = new Style({
                                 image: new CircleStyle({
-                                    radius: 10,
+                                    radius: radius_in_pixel,
                                     stroke: new Stroke({
                                         color: '#fff',
                                     }),
@@ -1326,26 +1326,8 @@
         created: async function() {
             this.load_apiary_sites_in_this_proposal()
             this.displayAllFeatures()
-            let vm = this
-            let at_once = false
-            vm.startTime = new Date()
-
-            if (at_once){
-                await this.$http.get('/api/apiary_site/list_existing/?proposal_id=' + this.proposal.id)
-                .then(
-                    res => {
-                        vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
-                        console.log(res.body.features.length + ' sites')
-                    },
-                    err => {}
-                )
-                vm.endTime = new Date()
-                let timeDiff = vm.endTime - vm.startTime
-                console.log('total time: ' + timeDiff + ' [ms]')
-            } else {
-                await this.load_existing_sites()
-            }
-
+            this.startTime = new Date()
+            await this.load_existing_sites()
             this.make_remainders_reactive()
         },
         mounted: function() {
