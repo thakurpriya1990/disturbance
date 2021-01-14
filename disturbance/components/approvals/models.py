@@ -722,4 +722,8 @@ reversion.register(ApprovalDocument)
 reversion.register(ApprovalLogDocument, follow=['documents'])
 reversion.register(ApprovalLogEntry)
 reversion.register(ApprovalUserAction)
+reversion.register(ApiarySiteOnApproval)
+reversion.register(MigratedApiaryLicence)
+reversion.register(PreviewTempApproval)
+reversion.register(RenewalDocument)
 

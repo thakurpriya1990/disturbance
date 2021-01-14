@@ -819,4 +819,5 @@ reversion.register(OrganisationLogEntry)
 reversion.register(OrganisationLogDocument)
 reversion.register(OrganisationRequest)
 reversion.register(UserDelegation)
+reversion.register(ApiaryOrganisationAccessGroup)
 
