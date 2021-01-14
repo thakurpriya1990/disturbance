@@ -6,6 +6,7 @@ from disturbance.components.organisations.models import (
 from disturbance.components.organisations.utils import can_admin_org, is_consultant
 from rest_framework import serializers
 from ledger.accounts.utils import in_dbca_domain
+from disturbance.components.approvals.models import Approval
 
 class DocumentSerializer(serializers.ModelSerializer):
 
@@ -30,6 +31,7 @@ class UserOrganisationSerializer(serializers.ModelSerializer):
     abn = serializers.CharField(source='organisation.abn')
     is_consultant = serializers.SerializerMethodField(read_only=True)
     is_admin = serializers.SerializerMethodField(read_only=True)
+    current_apiary_approval = serializers.SerializerMethodField(read_only=True)
     class Meta:
         model = Organisation
         fields = (
@@ -38,8 +40,14 @@ class UserOrganisationSerializer(serializers.ModelSerializer):
             'abn',
             'email',
             'is_consultant',
-            'is_admin'
+            'is_admin',
+            'current_apiary_approval',
         )
+
+    def get_current_apiary_approval(self, obj):
+        approval = obj.disturbance_approvals.filter(status=Approval.STATUS_CURRENT, apiary_approval=True).first()
+        if approval:
+            return approval.id
 
     def get_is_admin(self, obj):
         user = EmailUser.objects.get(id=self.context.get('user_id'))
@@ -78,6 +86,7 @@ class UserSerializer(serializers.ModelSerializer):
     contact_details = serializers.SerializerMethodField()
     full_name = serializers.SerializerMethodField()
     is_department_user = serializers.SerializerMethodField()
+    current_apiary_approval = serializers.SerializerMethodField()
 
     class Meta:
         model = EmailUser
@@ -94,9 +103,15 @@ class UserSerializer(serializers.ModelSerializer):
             'address_details',
             'contact_details',
             'is_department_user',
-            'full_name'
+            'full_name',
+            'current_apiary_approval',
         )
-    
+
+    def get_current_apiary_approval(self, obj):
+        approval = obj.disturbance_proxy_approvals.filter(status=Approval.STATUS_CURRENT, apiary_approval=True).first()
+        if approval:
+            return approval.id
+
     def get_personal_details(self,obj):
         return True if obj.last_name  and obj.first_name else False
 
