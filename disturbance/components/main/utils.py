@@ -255,6 +255,45 @@ def get_qs_approval():
     return qs_on_approval
 
 
+def get_qs_approval_optimised():
+    #import ipdb; ipdb.set_trace()
+    from disturbance.components.proposals.models import ApiarySite
+    from disturbance.components.approvals.models import ApiarySiteOnApproval
+
+    q_include_approval = Q()
+    q_exclude_approval = Q()
+
+    qs_vacant_site = get_vacant_apiary_site()
+
+    # 2.1. Include
+    q_include_approval &= Q(id__in=(ApiarySite.objects.all().values('latest_approval_link__id')))  # Include only the intermediate objects which are on the ApiarySite.latest_approval_links
+
+    # 2.2. Exclude
+    q_exclude_approval |= Q(apiary_site__in=qs_vacant_site)  # We don't want to pick up the vacant sites already retrieved above
+    q_exclude_approval |= Q(site_status=SITE_STATUS_TRANSFERRED)
+
+    # 2.3. Issue query
+    #qs_on_approval = ApiarySiteOnApproval.objects.filter(q_include_approval).exclude(q_exclude_approval).select_related(
+     #       'apiary_site', 'approval', 'site_category', 'apiary_site__latest_approval_link', 'apiary_site__approval_link_for_vacant').distinct('apiary_site')
+
+    qs_on_approval = ApiarySiteOnApproval.objects.select_related(
+            'apiary_site', 
+            #'approval', 
+            'site_category', 
+            'apiary_site__latest_approval_link', 
+            'apiary_site__approval_link_for_vacant'
+            ).prefetch_related(
+                    'approval',
+                    'approval__applicant',
+                    'approval__applicant__organisation',
+                    'approval__proxy_applicant__groups',
+                    'approval__proxy_applicant').filter(
+                            q_include_approval).exclude(
+                                    #q_exclude_approval).distinct('apiary_site')
+                                    q_exclude_approval)
+
+    return qs_on_approval
+
 @timeit
 def validate_buffer(wkb_geometry, apiary_sites_to_exclude=None):
     """
