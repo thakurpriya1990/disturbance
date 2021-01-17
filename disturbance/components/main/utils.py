@@ -278,19 +278,17 @@ def get_qs_approval_optimised():
 
     qs_on_approval = ApiarySiteOnApproval.objects.select_related(
             'apiary_site', 
-            #'approval', 
+            'approval', 
             'site_category', 
             'apiary_site__latest_approval_link', 
-            'apiary_site__approval_link_for_vacant'
+            'apiary_site__approval_link_for_vacant',
             ).prefetch_related(
-                    'approval',
                     'approval__applicant',
                     'approval__applicant__organisation',
                     'approval__proxy_applicant__groups',
                     'approval__proxy_applicant').filter(
                             q_include_approval).exclude(
-                                    #q_exclude_approval).distinct('apiary_site')
-                                    q_exclude_approval)
+                                    q_exclude_approval).distinct('apiary_site')
 
     return qs_on_approval
 
