@@ -2,8 +2,7 @@
 .env
 *.swo
 venv/
-venv2/
-venv3/
+venv*/
 node_modules/
 cronjobs
 mooring/cache/*
