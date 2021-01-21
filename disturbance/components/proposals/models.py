@@ -3736,12 +3736,12 @@ class ProposalApiaryTemporaryUse(models.Model):
     temporary_occupier_email = models.EmailField(blank=True, null=True)
     loaning_approval = models.ForeignKey('disturbance.Approval', blank=True, null=True)
 
-    def __str__(self):
-        if self.proposal.proposal_apiary:
-            return 'id:{} - {}'.format(self.id, self.proposal.proposal_apiary.title)
-        else:
+    # def __str__(self):
+    #     if self.proposal.proposal_apiary:
+    #         return 'id:{} - {}'.format(self.id, self.proposal.proposal_apiary.title)
+    #     else:
             # Should not reach here
-            return 'id:{}'.format(self.id)
+            # return 'id:{}'.format(self.id)
 
     class Meta:
         app_label = 'disturbance'
