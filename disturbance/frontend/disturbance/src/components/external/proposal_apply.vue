@@ -93,7 +93,7 @@
                                         <select class="form-control" style="width:40%" v-model="selected_application_id" @change="chainedSelectAppType(selected_application_id)">
                                             <option value="" selected disabled>{{ objectTypeListLabel }}</option>
                                             <option v-for="application_type in applicationTypesList" :value="application_type.value">
-                                                {{ application_type.text }}
+                                                {{ application_type.display_text }}
                                             </option>
                                         </select>
                                     </div>
@@ -288,12 +288,18 @@ export default {
               // for individual applications, only Apiary should show
               //if (this.behalf_of === 'individual') {
               if (this.apiaryTemplateGroup) {
-                  if (applicationType.domain_used.toLowerCase() === 'apiary') {
-                      if (applicationType.text.toLowerCase() === 'apiary'){
+                  if (applicationType.domain_used.toLowerCase() === "apiary") {
+                      if (applicationType.text.toLowerCase() === "apiary"){
+                          applicationType.display_text = "Apiary Sites";
                           returnList.push(applicationType);
                       }
                       // add Site Transfer if selected applicant has an associated current_apiary_approval
-                      if (applicationType.text.toLowerCase() === 'site transfer' && this.currentApiaryApproval){
+                      if (applicationType.text.toLowerCase() === "site transfer" && this.currentApiaryApproval){
+                          applicationType.display_text = "Transfer Apiary Sites";
+                          returnList.push(applicationType);
+                      }
+                      if (applicationType.text.toLowerCase() === "temporary use" && this.currentApiaryApproval){
+                          applicationType.display_text = "Temporary Use of Apiary Sites";
                           returnList.push(applicationType);
                       }
                   }
@@ -391,7 +397,10 @@ export default {
             category: vm.selected_category,
             approval_level: vm.approval_level,
             profile: this.profile.id,
+            // Site Transfer
             originating_approval_id: vm.currentApiaryApproval,
+            // Temporary Use
+            approval_id: vm.currentApiaryApproval,
 		}).then(res => {
 		    vm.proposal = res.body;
 			vm.$router.push({
@@ -420,7 +429,7 @@ export default {
     isDisabled: function() {
         let vm = this;
 
-        if (!['Apiary', 'Site Transfer'].includes(vm.selected_application_name)) {
+        if (!['Apiary', 'Site Transfer', 'Temporary Use'].includes(vm.selected_application_name)) {
             if (vm.behalf_of == '' || vm.selected_application_id == '' || vm.selected_region == '' || vm.approval_level == ''){
                 return true;
             }
@@ -499,7 +508,7 @@ export default {
         //this.chainedSelectActivities(application_id);
         //this.chainedSelectActivities(application_id);
 
-        if (['Apiary', 'Site Transfer'].includes(vm.selected_application_name)) {
+        if (['Apiary', 'Site Transfer', 'Temporary Use'].includes(vm.selected_application_name)) {
             vm.display_region_selectbox = false;
             vm.display_activity_matrix_selectbox = false;
         }  else {
