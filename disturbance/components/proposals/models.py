@@ -2080,8 +2080,8 @@ class ProposalUserAction(UserAction):
     APIARY_CONCLUDE_REFERRAL = "Apiary Referral {} for application {} has been concluded by {}"
     APIARY_ACTION_SAVE_APPLICATION = "Save Apiary application {}"
     APIARY_SITE_MOVED = "Apiary Site {} has been moved from {} to {}"
-
-
+    APIARY_REFERRAL_ASSIGN_TO_ASSESSOR = "Assign Referral {} of application {} to {} as the assessor"
+    APIARY_REFERRAL_UNASSIGN_ASSESSOR = "Unassign assessor from Referral {} of application {}"
 
     class Meta:
         app_label = 'disturbance'
@@ -4262,10 +4262,10 @@ class ApiaryReferral(RevisionedMixin):
                     self.assigned_officer = officer
                     self.save()
                     # Create a log entry for the proposal
-                    #self.log_user_action(ProposalUserAction.ACTION_ASSIGN_TO_ASSESSOR.format(self.lodgement_number, '{}({})'.format(officer.get_full_name(), officer.email)), request)
-                    # Create a log entry for the organisation
-                    #if self.applicant:
-                     #   self.applicant.log_user_action(ProposalUserAction.ACTION_ASSIGN_TO_ASSESSOR.format(self.lodgement_number, '{}({})'.format(officer.get_full_name(), officer.email)), request)
+                    self.referral.proposal.log_user_action(ProposalUserAction.APIARY_REFERRAL_ASSIGN_TO_ASSESSOR.format(
+                        self.referral.id,self.referral.proposal.lodgement_number, '{}({})'.format(
+                            officer.get_full_name(), officer.email)
+                        ), request)
             except:
                 raise
 
@@ -4280,10 +4280,8 @@ class ApiaryReferral(RevisionedMixin):
                     self.assigned_officer = None
                     self.save()
                     # Create a log entry for the proposal
-                    #self.log_user_action(ProposalUserAction.ACTION_UNASSIGN_ASSESSOR.format(self.lodgement_number), request)
-                    # Create a log entry for the organisation
-                    #if self.applicant:
-                     #   self.applicant.log_user_action(ProposalUserAction.ACTION_UNASSIGN_ASSESSOR.format(self.lodgement_number), request)
+                    self.referral.proposal.log_user_action(ProposalUserAction.APIARY_REFERRAL_UNASSIGN_ASSESSOR.format(
+                        self.referral.id,self.referral.proposal.lodgement_number), request)
             except:
                 raise
 

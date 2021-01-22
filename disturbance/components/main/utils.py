@@ -18,7 +18,6 @@ from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_APPROVED, SITE_S
 
 def retrieve_department_users():
     try:
-       # import ipdb; ipdb.set_trace()
         res = requests.get('{}/api/users?minimal'.format(settings.CMS_URL), auth=(settings.LEDGER_USER,settings.LEDGER_PASS), verify=False)
         res.raise_for_status()
         cache.set('department_users',json.loads(res.content).get('objects'),10800)
@@ -273,7 +272,6 @@ def get_qs_proposal():
     return qs_on_proposal_draft, qs_on_proposal_processed
 
 def get_qs_approval():
-    #import ipdb; ipdb.set_trace()
     from disturbance.components.proposals.models import ApiarySite
     from disturbance.components.approvals.models import ApiarySiteOnApproval
 
@@ -290,9 +288,6 @@ def get_qs_approval():
     q_exclude_approval |= Q(site_status=SITE_STATUS_TRANSFERRED)
 
     # 2.3. Issue query
-    #qs_on_approval = ApiarySiteOnApproval.objects.filter(q_include_approval).exclude(q_exclude_approval).select_related(
-     #       'apiary_site', 'approval', 'site_category', 'apiary_site__latest_approval_link', 'apiary_site__approval_link_for_vacant').distinct('apiary_site')
-
     qs_on_approval = ApiarySiteOnApproval.objects.select_related(
             'apiary_site', 
             'approval', 
