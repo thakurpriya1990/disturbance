@@ -41,7 +41,6 @@ from disturbance.components.main.utils import (
     get_qs_proposal,
     get_qs_approval,
     handle_validation_error,
-    get_qs_approval_optimised,
 )
 
 from django.urls import reverse
@@ -643,311 +642,79 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
     @list_route(methods=['GET',])
     @basic_exception_handler
     @timeit
+    @query_debugger
     def list_existing_proposal_vacant_draft(self, request):
-        # qs_vacant_site_proposal, qs_vacant_site_approval = get_qs_vacant_site()
-        # qs = qs_vacant_site_proposal.filter(wkb_geometry_processed__isnull=True)
-        # serializer_vacant_proposal_d = ApiarySiteOnProposalVacantDraftGeometrySerializer(qs, many=True)
-        # return Response(serializer_vacant_proposal_d.data)
-
-        raw_sql = '''
-        SELECT row_to_json(featurecollection) FROM (
-            SELECT 'FeatureCollection' AS type, array_to_json(array_agg(feature)) AS features FROM (
-                SELECT 
-                    "disturbance_apiarysite"."id", 
-                    'Feature' AS type,
-                    ST_AsGeoJSON("disturbance_apiarysiteonproposal"."wkb_geometry_draft")::json AS geometry, 
-                    row_to_json((
-                        SELECT p FROM (
-                            SELECT
-                                "disturbance_apiarysite"."site_guid", 
-                                "disturbance_apiarysite"."is_vacant", 
-                                "disturbance_sitecategory"."name" AS site_category, 
-                                "disturbance_apiarysiteonproposal"."site_status" AS status, 
-                                "disturbance_apiarysiteonproposal"."making_payment", 
-                                "disturbance_apiarysiteonproposal"."application_fee_paid" 
-                        ) AS p
-                    )) AS properties
-                FROM "disturbance_apiarysiteonproposal" 
-                INNER JOIN "disturbance_apiarysite" ON("disturbance_apiarysiteonproposal"."apiary_site_id" = "disturbance_apiarysite"."id") 
-                INNER JOIN "disturbance_sitecategory" ON("disturbance_apiarysiteonproposal"."site_category_draft_id" = "disturbance_sitecategory"."id") 
-                WHERE
-                (
-                    (
-                        "disturbance_apiarysiteonproposal"."id" IN 
-                        (
-                            SELECT DISTINCT U0."latest_proposal_link_id" FROM "disturbance_apiarysite" U0 WHERE U0."is_vacant" = True
-                        ) 
-                        OR "disturbance_apiarysiteonproposal"."id" IN 
-                        (
-                            SELECT DISTINCT U0."proposal_link_for_vacant_id" FROM "disturbance_apiarysite" U0 WHERE 
-                            (
-                                U0."is_vacant" = True AND U0."latest_proposal_link_id" IS NULL
-                            )
-                        )
-                    ) 
-                    AND "disturbance_apiarysiteonproposal"."wkb_geometry_processed" IS NULL
-                )
-            ) AS feature
-        ) AS featurecollection
-        '''
-        with connection.cursor() as cursor:
-            cursor.execute(raw_sql)
-            row = cursor.fetchone()  # We put all data together as 'FeatureCollection'.  THerefore we don't have to perform fetchall()
-        return Response(row[0])
+        qs_vacant_site_proposal, qs_vacant_site_approval = get_qs_vacant_site()
+        serializer_vacant_proposal_d = ApiarySiteOnProposalVacantDraftGeometrySerializer(qs_vacant_site_proposal.filter(wkb_geometry_processed__isnull=True), many=True)
+        return Response(serializer_vacant_proposal_d.data)
 
     @list_route(methods=['GET',])
     @basic_exception_handler
     @timeit
+    @query_debugger
     def list_existing_proposal_vacant_processed(self, request):
-        # qs_vacant_site_proposal, qs_vacant_site_approval = get_qs_vacant_site()
-        # qs = qs_vacant_site_proposal.filter(wkb_geometry_processed__isnull=False)
-        # serializer_vacant_proposal = ApiarySiteOnProposalVacantProcessedGeometrySerializer(qs, many=True)
-        # return Response(serializer_vacant_proposal.data)
-        raw_sql = '''
-        SELECT row_to_json(featurecollection) FROM (
-            SELECT 'FeatureCollection' AS type, array_to_json(array_agg(feature)) AS features FROM (
-                SELECT 
-                    "disturbance_apiarysite"."id", 
-                    'Feature' AS type,
-                    ST_AsGeoJSON("disturbance_apiarysiteonproposal"."wkb_geometry_processed")::json AS geometry, 
-                    row_to_json((
-                        SELECT p FROM (
-                            SELECT
-                                "disturbance_apiarysite"."site_guid", 
-                                "disturbance_apiarysite"."is_vacant", 
-                                "disturbance_sitecategory"."name" AS site_category, 
-                                "disturbance_apiarysiteonproposal"."site_status" AS status, 
-                                "disturbance_apiarysiteonproposal"."making_payment", 
-                                "disturbance_apiarysiteonproposal"."application_fee_paid" 
-                        ) AS p
-                    )) AS properties
-                FROM "disturbance_apiarysiteonproposal" 
-                INNER JOIN "disturbance_apiarysite" ON("disturbance_apiarysiteonproposal"."apiary_site_id" = "disturbance_apiarysite"."id") 
-                INNER JOIN "disturbance_sitecategory" ON("disturbance_apiarysiteonproposal"."site_category_processed_id" = "disturbance_sitecategory"."id") 
-                WHERE 
-                (
-                    (
-                        "disturbance_apiarysiteonproposal"."id" IN 
-                        (
-                            SELECT DISTINCT U0."latest_proposal_link_id" FROM "disturbance_apiarysite" U0 WHERE U0."is_vacant" = True
-                        ) 
-                        OR "disturbance_apiarysiteonproposal"."id" IN
-                        (
-                            SELECT DISTINCT U0."proposal_link_for_vacant_id" FROM "disturbance_apiarysite" U0 WHERE 
-                            (
-                                U0."is_vacant" = True AND U0."latest_proposal_link_id" IS NULL
-                            )
-                        )
-                    ) 
-                    AND "disturbance_apiarysiteonproposal"."wkb_geometry_processed" IS NOT NULL
-                )
-            ) AS feature
-        ) AS featurecollection
-        '''
-        with connection.cursor() as cursor:
-            cursor.execute(raw_sql)
-            row = cursor.fetchone()  # We put all data together as 'FeatureCollection'.  THerefore we don't have to perform fetchall()
-        return Response(row[0])
+        qs_vacant_site_proposal, qs_vacant_site_approval = get_qs_vacant_site()
+        serializer_vacant_proposal = ApiarySiteOnProposalVacantProcessedGeometrySerializer(qs_vacant_site_proposal.filter(wkb_geometry_processed__isnull=False), many=True)
+        return Response(serializer_vacant_proposal.data)
 
     @list_route(methods=['GET',])
     @basic_exception_handler
     @timeit
+    @query_debugger
     def list_existing_vacant_approval(self, request):
-        # qs_vacant_site_proposal, qs_vacant_site_approval = get_qs_vacant_site()
-        # serializer_vacant_approval = ApiarySiteOnApprovalGeometrySerializer(qs_vacant_site_approval, many=True)
-        # return Response(serializer_vacant_approval.data)
-        raw_sql = '''
-        SELECT row_to_json(featurecollection) FROM (
-            SELECT 'FeatureCollection' AS type, array_to_json(array_agg(feature)) AS features FROM (
-                SELECT 
-                    "disturbance_apiarysite"."id",
-                    'Feature' AS type,
-                    ST_AsGeoJSON("disturbance_apiarysiteonapproval"."wkb_geometry")::json AS geometry, 
-                    row_to_json((
-                        SELECT p FROM (
-                            SELECT
-                                "disturbance_apiarysite"."site_guid", 
-                                "disturbance_apiarysite"."is_vacant", 
-                                "disturbance_sitecategory"."name" AS site_category, 
-                                "disturbance_apiarysiteonapproval"."available", 
-                                "disturbance_apiarysiteonapproval"."site_status" AS status 
-                        ) AS p
-                    )) AS properties
-                FROM "disturbance_apiarysiteonapproval" 
-                INNER JOIN "disturbance_apiarysite" ON("disturbance_apiarysiteonapproval"."apiary_site_id" = "disturbance_apiarysite"."id") 
-                INNER JOIN "disturbance_sitecategory" ON("disturbance_apiarysiteonapproval"."site_category_id" = "disturbance_sitecategory"."id") 
-                WHERE 
-                    "disturbance_apiarysiteonapproval"."id" IN 
-                    (
-                        SELECT DISTINCT U0."approval_link_for_vacant_id" FROM "disturbance_apiarysite" U0 WHERE U0."is_vacant" = True
-                    )
-            ) AS feature
-        ) AS featurecollection
-        '''
-        with connection.cursor() as cursor:
-            cursor.execute(raw_sql)
-            row = cursor.fetchone()  # We put all data together as 'FeatureCollection'.  THerefore we don't have to perform fetchall()
-        return Response(row[0])
+        qs_vacant_site_proposal, qs_vacant_site_approval = get_qs_vacant_site()
+        serializer_vacant_approval = ApiarySiteOnApprovalGeometrySerializer(qs_vacant_site_approval, many=True)
+        return Response(serializer_vacant_approval.data)
 
     @list_route(methods=['GET',])
     @basic_exception_handler
     @timeit
+    @query_debugger
     def list_existing_proposal_draft(self, request):
+        qs_on_proposal_draft, qs_on_proposal_processed = get_qs_proposal()
         proposal_id = request.query_params.get('proposal_id', None)
-        if not proposal_id:
-            return Response({})
-
-        proposal = Proposal.objects.get(id=proposal_id)
-        raw_sql = '''
-        SELECT row_to_json(featurecollection) FROM (
-            SELECT 'FeatureCollection' AS type, array_to_json(array_agg(feature)) AS features FROM (
-                SELECT DISTINCT ON ("disturbance_apiarysiteonproposal"."apiary_site_id") 
-                    "disturbance_apiarysite"."id", 
-                    'Feature' As type,
-                    ST_AsGeoJSON("disturbance_apiarysiteonproposal"."wkb_geometry_draft")::json AS geometry, 
-                    row_to_json((
-                        SELECT p FROM (
-                            SELECT
-                                "disturbance_apiarysite"."is_vacant" AS is_vacant, 
-                                "disturbance_sitecategory"."name" AS site_category, 
-                                "disturbance_apiarysiteonproposal"."for_renewal", 
-                                "disturbance_apiarysiteonproposal"."site_status" AS status,
-                                "disturbance_apiarysiteonproposal"."making_payment", 
-                                "disturbance_apiarysiteonproposal"."application_fee_paid" 
-                        ) AS p
-                    )) AS properties
-                FROM "disturbance_apiarysiteonproposal" 
-                INNER JOIN "disturbance_apiarysite" ON("disturbance_apiarysiteonproposal"."apiary_site_id" = "disturbance_apiarysite"."id") 
-                INNER JOIN "disturbance_sitecategory" ON("disturbance_apiarysiteonproposal"."site_category_draft_id" = "disturbance_sitecategory"."id") 
-                WHERE (
-                    "disturbance_apiarysiteonproposal"."id" IN (SELECT U0."latest_proposal_link_id" FROM "disturbance_apiarysite" U0) AND NOT 
-                    ((
-                        ("disturbance_apiarysiteonproposal"."site_status" IN ('draft') AND "disturbance_apiarysiteonproposal"."making_payment" = False) OR 
-                        "disturbance_apiarysiteonproposal"."site_status" IN ('discarded') OR 
-                        "disturbance_apiarysiteonproposal"."site_status" IN ('approved') OR 
-                        "disturbance_apiarysiteonproposal"."apiary_site_id" IN (SELECT U0."id" FROM "disturbance_apiarysite" U0 WHERE U0."is_vacant" = True)
-                    )) 
-                    AND "disturbance_apiarysiteonproposal"."wkb_geometry_processed" IS NULL 
-                    AND NOT ("disturbance_apiarysiteonproposal"."proposal_apiary_id" = %s)
-                ) 
-            ) AS feature
-        ) AS featurecollection
-        ''' % proposal.proposal_apiary.id
-        with connection.cursor() as cursor:
-            cursor.execute(raw_sql)
-            row = cursor.fetchone()  # We put all data together as 'FeatureCollection'.  THerefore we don't have to perform fetchall()
-        return Response(row[0])
+        if proposal_id:
+            # Exculde the apiary_sites included in that proposal
+            proposal = Proposal.objects.get(id=proposal_id)
+            qs_on_proposal_draft = qs_on_proposal_draft.exclude(proposal_apiary=proposal.proposal_apiary)
+            qs_on_proposal_processed = qs_on_proposal_processed.exclude(proposal_apiary=proposal.proposal_apiary)
+            serializer_proposal_draft = ApiarySiteOnProposalDraftGeometrySerializer(qs_on_proposal_draft, many=True)
+            return Response(serializer_proposal_draft.data)
 
     @list_route(methods=['GET',])
     @basic_exception_handler
     @timeit
+    @query_debugger
     def list_existing_proposal_processed(self, request):
+        qs_on_proposal_draft, qs_on_proposal_processed = get_qs_proposal()
         proposal_id = request.query_params.get('proposal_id', None)
-        if not proposal_id:
-            return Response({})
-
-        proposal = Proposal.objects.get(id=proposal_id)
-        raw_sql = '''
-        SELECT row_to_json(featurecollection) FROM (
-            SELECT 'FeatureCollection' AS type, array_to_json(array_agg(feature)) AS features FROM (
-                SELECT DISTINCT ON("disturbance_apiarysiteonproposal"."apiary_site_id") 
-                    "disturbance_apiarysite"."id" AS id,
-                    'Feature' AS type,
-                    ST_AsGeoJSON("disturbance_apiarysiteonproposal"."wkb_geometry_processed")::json AS geometry, 
-                    row_to_json((
-                        SELECT p FROM (
-                            SELECT 
-                                "disturbance_apiarysite"."is_vacant" AS is_vacant, 
-                                "disturbance_sitecategory"."name" AS site_category, 
-                                "disturbance_apiarysiteonproposal"."site_status" AS status, 
-                                "disturbance_apiarysiteonproposal"."for_renewal" AS for_renewal, 
-                                "disturbance_apiarysiteonproposal"."making_payment" AS making_payment, 
-                                "disturbance_apiarysiteonproposal"."application_fee_paid" AS application_fee_paid 
-                        ) AS p
-                    )) AS properties
-                FROM "disturbance_apiarysiteonproposal" 
-                INNER JOIN "disturbance_apiarysite" ON("disturbance_apiarysiteonproposal"."apiary_site_id" = "disturbance_apiarysite"."id") 
-                INNER JOIN "disturbance_sitecategory" ON("disturbance_apiarysiteonproposal"."site_category_processed_id" = "disturbance_sitecategory"."id") 
-                WHERE(
-                    "disturbance_apiarysiteonproposal"."id" IN (SELECT U0."latest_proposal_link_id" FROM "disturbance_apiarysite" U0) 
-                    AND NOT((
-                        ("disturbance_apiarysiteonproposal"."site_status" IN ('draft') AND "disturbance_apiarysiteonproposal"."making_payment" = False) OR 
-                        "disturbance_apiarysiteonproposal"."site_status" IN ('discarded') OR 
-                        "disturbance_apiarysiteonproposal"."site_status" IN ('approved') OR 
-                        "disturbance_apiarysiteonproposal"."apiary_site_id" IN (SELECT U0."id" FROM "disturbance_apiarysite" U0 WHERE U0."is_vacant" = True)
-                    ))
-                    AND NOT("disturbance_apiarysiteonproposal"."wkb_geometry_processed" IS NULL) 
-                    AND NOT("disturbance_apiarysiteonproposal"."proposal_apiary_id" = %s)
-                )
-            ) AS feature
-        ) AS featurecollection''' % proposal.proposal_apiary.id
-
-        with connection.cursor() as cursor:
-            cursor.execute(raw_sql)
-            row = cursor.fetchone()  # We put all data together as 'FeatureCollection'.  THerefore we don't have to perform fetchall()
-        return Response(row[0])
-
-    @list_route(methods=['GET',])
-    @basic_exception_handler
-    @timeit
-    @query_debugger
-    def list_existing_approval_orig(self, request):
-        # ApiarySiteOnApproval
-        qs_on_approval = get_qs_approval()
-        serializer_approval = ApiarySiteOnApprovalGeometrySerializer(qs_on_approval, many=True)
-        return Response(serializer_approval.data)
-
-    @list_route(methods=['GET',])
-    @basic_exception_handler
-    @timeit
-    @query_debugger
-    def list_existing_approval_optimised(self, request):
-        # ApiarySiteOnApproval
-        qs_on_approval = get_qs_approval_optimised()
-        serializer_approval = ApiarySiteOnApprovalGeometrySerializer(qs_on_approval, many=True)
-        return Response(serializer_approval.data)
+        if proposal_id:
+            # Exculde the apiary_sites included in that proposal
+            proposal = Proposal.objects.get(id=proposal_id)
+            qs_on_proposal_draft = qs_on_proposal_draft.exclude(proposal_apiary=proposal.proposal_apiary)
+            qs_on_proposal_processed = qs_on_proposal_processed.exclude(proposal_apiary=proposal.proposal_apiary)
+            serializer_proposal_processed = ApiarySiteOnProposalProcessedGeometrySerializer(qs_on_proposal_processed, many=True)
+            return Response(serializer_proposal_processed.data)
 
     @list_route(methods=['GET',])
     @basic_exception_handler
     @timeit
     @query_debugger
     def list_existing_approval(self, request):
-        raw_sql = '''
-        SELECT row_to_json(featurecollection) FROM (
-            SELECT 'FeatureCollection' AS type, array_to_json(array_agg(feature)) AS features FROM (
-                SELECT DISTINCT ON ("disturbance_apiarysiteonapproval"."apiary_site_id") 
-                    "disturbance_apiarysite"."id", 
-                    'Feature' AS type,
-                    ST_AsGeoJSON("disturbance_apiarysiteonapproval"."wkb_geometry")::json AS geometry, 
-                    row_to_json((
-                        SELECT p FROM (
-                            SELECT
-                                "disturbance_apiarysite"."site_guid", 
-                                "disturbance_sitecategory"."name" AS site_category, 
-                                "disturbance_apiarysiteonapproval"."site_status" AS status, 
-                                "disturbance_apiarysite"."is_vacant" AS is_vacant 
-                        ) AS p
-                    )) AS properties
-                FROM "disturbance_apiarysiteonapproval" 
-                INNER JOIN "disturbance_apiarysite" ON("disturbance_apiarysiteonapproval"."apiary_site_id" = "disturbance_apiarysite"."id") 
-                INNER JOIN "disturbance_sitecategory" ON("disturbance_apiarysiteonapproval"."site_category_id" = "disturbance_sitecategory"."id") 
-                WHERE (
-                    "disturbance_apiarysiteonapproval"."id" IN (SELECT U0."latest_approval_link_id" FROM "disturbance_apiarysite" U0) 
-                    AND NOT (
-                        ("disturbance_apiarysiteonapproval"."apiary_site_id" IN (SELECT DISTINCT U0."id" FROM "disturbance_apiarysite" U0 WHERE U0."is_vacant" = True) 
-                        OR "disturbance_apiarysiteonapproval"."site_status" = 'transferred'))
-                )
-            ) AS feature
-        ) AS featurecollection
-        '''
-        with connection.cursor() as cursor:
-            cursor.execute(raw_sql)
-            row = cursor.fetchone()  # We put all data together as 'FeatureCollection'.  THerefore we don't have to perform fetchall()
-        return Response(row[0])
+        # ApiarySiteOnApproval
+        qs_on_approval = get_qs_approval()
+        serializer_approval = ApiarySiteOnApprovalGeometrySerializer(qs_on_approval, many=True)
+        return Response(serializer_approval.data)
 
-        # qs_on_approval = get_qs_approval()
-        # serializer_approval = ApiarySiteOnApprovalGeometrySerializer(qs_on_approval, many=True)
-        # return Response(serializer_approval.data)
+    #@list_route(methods=['GET',])
+    #@basic_exception_handler
+    #@timeit
+    #@query_debugger
+    #def list_existing_approval_optimised(self, request):
+    #    # ApiarySiteOnApproval
+    #    qs_on_approval = get_qs_approval_optimised()
+    #    serializer_approval = ApiarySiteOnApprovalGeometrySerializer(qs_on_approval, many=True)
+    #    return Response(serializer_approval.data)
 
     @list_route(methods=['GET',])
     @basic_exception_handler
