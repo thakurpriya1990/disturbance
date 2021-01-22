@@ -21,7 +21,7 @@ from disturbance import settings
 from disturbance.components.approvals.email import send_contact_licence_holder_email
 from disturbance.components.approvals.serializers_apiary import ApiarySiteOnApprovalGeometrySerializer, \
     ApiarySiteOnApprovalGeometryExportSerializer
-from disturbance.components.main.decorators import basic_exception_handler, timeit
+from disturbance.components.main.decorators import basic_exception_handler, timeit, query_debugger
 from disturbance.components.proposals.utils import (
     save_proponent_data,
     save_assessor_data,
@@ -36,7 +36,12 @@ from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_APPROVED, SITE_S
 from disturbance.utils import search_tenure
 from disturbance.components.main.utils import (
     check_db_connection,
-    get_template_group, get_qs_vacant_site, get_qs_proposal, get_qs_approval, handle_validation_error
+    get_template_group,
+    get_qs_vacant_site,
+    get_qs_proposal,
+    get_qs_approval,
+    handle_validation_error,
+    get_qs_approval_optimised,
 )
 
 from django.urls import reverse
@@ -885,6 +890,27 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
     @list_route(methods=['GET',])
     @basic_exception_handler
     @timeit
+    @query_debugger
+    def list_existing_approval_orig(self, request):
+        # ApiarySiteOnApproval
+        qs_on_approval = get_qs_approval()
+        serializer_approval = ApiarySiteOnApprovalGeometrySerializer(qs_on_approval, many=True)
+        return Response(serializer_approval.data)
+
+    @list_route(methods=['GET',])
+    @basic_exception_handler
+    @timeit
+    @query_debugger
+    def list_existing_approval_optimised(self, request):
+        # ApiarySiteOnApproval
+        qs_on_approval = get_qs_approval_optimised()
+        serializer_approval = ApiarySiteOnApprovalGeometrySerializer(qs_on_approval, many=True)
+        return Response(serializer_approval.data)
+
+    @list_route(methods=['GET',])
+    @basic_exception_handler
+    @timeit
+    @query_debugger
     def list_existing_approval(self, request):
         raw_sql = '''
         SELECT row_to_json(featurecollection) FROM (
