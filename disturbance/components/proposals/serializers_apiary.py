@@ -1573,14 +1573,33 @@ class ApiaryReferralSerializer(serializers.ModelSerializer):
     #processing_status = serializers.CharField(source='get_processing_status_display')
     #latest_referrals = ProposalReferralSerializer(many=True)
     can_process = serializers.BooleanField()
+    can_assign = serializers.BooleanField()
     referral_group = ApiaryReferralGroupSerializer()
+    allowed_assessors = EmailUserSerializer(many=True)
+    assigned_officer = EmailUserSerializer()
+    current_officer = serializers.SerializerMethodField()
     class Meta:
         model = ApiaryReferral
         fields = (
                 'id',
                 'referral_group',
                 'can_process',
+                'can_assign',
+                'allowed_assessors',
+                'current_officer',
+                'assigned_officer',
+                'assigned_officer_id',
                 )
+
+    def get_current_officer(self, obj):
+        #import ipdb; ipdb.set_trace()
+        request = self.context.get('request')
+        if request:
+            return {
+                    'id': request.user.id,
+                    'name': request.user.get_full_name(),
+                    'email': request.user.email,
+                    }
 
     #def __init__(self,*args,**kwargs):
      #   super(ReferralSerializer, self).__init__(*args, **kwargs)
