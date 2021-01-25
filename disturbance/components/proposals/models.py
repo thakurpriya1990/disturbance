@@ -799,7 +799,7 @@ class Proposal(RevisionedMixin):
 
     def assessor_comments_view(self,user):
 
-        if self.processing_status == 'with_assessor' or self.processing_status == 'with_referral' or self.processing_status == 'with_assessor_requirements' or self.processing_status == 'with_approver':
+        if self.processing_status == 'with_assessor' or self.processing_status == 'with_referral' or self.processing_status == 'with_assessor_requirements' or self.processing_status == 'with_approver' or self.processing_status == 'approved':
             try:
                 referral = Referral.objects.get(proposal=self,referral=user)
             except:
