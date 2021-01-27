@@ -411,7 +411,8 @@ class ApiarySiteOnProposalProcessedMinimalGeometrySerializer(GeoFeatureModelSeri
     """
     id = serializers.IntegerField(source='apiary_site.id')
     #site_guid = serializers.CharField(source='apiary_site.site_guid')
-    status = serializers.SerializerMethodField()
+    #status = serializers.SerializerMethodField()
+    status = serializers.CharField(source='site_status')
     site_category = serializers.SerializerMethodField()
     #revious_site_holder_or_applicant = serializers.SerializerMethodField()
     is_vacant = serializers.BooleanField(source='apiary_site.is_vacant')
@@ -441,10 +442,8 @@ class ApiarySiteOnProposalProcessedMinimalGeometrySerializer(GeoFeatureModelSeri
     #    if obj.wkb_geometry_processed:
     #        return obj.wkb_geometry_processed.get_coords()
 
-    def get_status(self, apiary_site_on_proposal):
-        # if apiary_site_on_proposal.apiary_site.is_vacant:
-        #     return SITE_STATUS_VACANT
-        return apiary_site_on_proposal.site_status
+    #def get_status(self, apiary_site_on_proposal):
+     #   return apiary_site_on_proposal.site_status
 
     def get_site_category(self, apiary_site_on_proposal):
         if apiary_site_on_proposal.site_category_processed:
@@ -464,7 +463,8 @@ class ApiarySiteOnProposalDraftMinimalGeometrySerializer(GeoFeatureModelSerializ
     """
     id = serializers.IntegerField(source='apiary_site.id')
     #site_guid = serializers.CharField(source='apiary_site.site_guid')
-    status = serializers.SerializerMethodField()
+    status = serializers.CharField(source='site_status')
+    #status = serializers.SerializerMethodField()
     site_category = serializers.SerializerMethodField()
     #revious_site_holder_or_applicant = serializers.SerializerMethodField()
     is_vacant = serializers.BooleanField(source='apiary_site.is_vacant')
@@ -494,10 +494,8 @@ class ApiarySiteOnProposalDraftMinimalGeometrySerializer(GeoFeatureModelSerializ
     #    if obj.wkb_geometry_processed:
     #        return obj.wkb_geometry_draft.get_coords()
 
-    def get_status(self, apiary_site_on_proposal):
-        # if apiary_site_on_proposal.apiary_site.is_vacant:
-        #     return SITE_STATUS_VACANT
-        return apiary_site_on_proposal.site_status
+    #def get_status(self, apiary_site_on_proposal):
+     #   return apiary_site_on_proposal.site_status
 
     def get_site_category(self, apiary_site_on_proposal):
         if apiary_site_on_proposal.site_category_processed:
