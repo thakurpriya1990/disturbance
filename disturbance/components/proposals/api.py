@@ -1538,9 +1538,10 @@ class ProposalViewSet(viewsets.ModelViewSet):
         try:
             with transaction.atomic():
                 instance = self.get_object()
-                request.data['proposal'] = u'{}'.format(instance.id)
-                request.data['staff'] = u'{}'.format(request.user.id)
-                serializer = ProposalLogEntrySerializer(data=request.data)
+                request_data = request.data.copy()
+                request_data['proposal'] = u'{}'.format(instance.id)
+                request_.data['staff'] = u'{}'.format(request.user.id)
+                serializer = ProposalLogEntrySerializer(data=request_data)
                 serializer.is_valid(raise_exception=True)
                 comms = serializer.save()
                 # Save the files
