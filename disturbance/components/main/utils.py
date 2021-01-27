@@ -325,7 +325,18 @@ def get_qs_approval():
             #'approval__proxy_applicant__groups',
             'approval__proxy_applicant',
             #).filter(q_include_approval).exclude(q_exclude_approval).distinct('apiary_site')
-            ).filter(q_include_approval).exclude(q_exclude_approval)
+            ).filter(q_include_approval).exclude(q_exclude_approval).values(
+                                                        #'id',
+                                                        'wkb_geometry',
+                                                        #'wkb_geometry_processed__coords',
+                                                        'apiary_site__id',
+                                                        'apiary_site__site_guid',
+                                                        'site_status',
+                                                        'site_category__name',
+                                                        'apiary_site__is_vacant',
+                                                        #'available',
+                                                        )
+
 
     return qs_on_approval
 
