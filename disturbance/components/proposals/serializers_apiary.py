@@ -405,6 +405,103 @@ class ApiarySiteOnProposalVacantDraftGeometrySerializer(ApiarySiteOnProposalDraf
     class Meta(ApiarySiteOnProposalDraftGeometrySerializer.Meta):
         pass
 
+class ApiarySiteOnProposalProcessedMinimalGeometrySerializer(GeoFeatureModelSerializer):
+    """
+    For reading as 'processed'
+    """
+    id = serializers.IntegerField(source='apiary_site.id')
+    #site_guid = serializers.CharField(source='apiary_site.site_guid')
+    #status = serializers.SerializerMethodField()
+    status = serializers.CharField(source='site_status')
+    site_category = serializers.SerializerMethodField()
+    #revious_site_holder_or_applicant = serializers.SerializerMethodField()
+    is_vacant = serializers.BooleanField(source='apiary_site.is_vacant')
+    #stable_coords = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ApiarySiteOnProposal
+        geo_field = 'wkb_geometry_processed'
+        fields = (
+            'id',
+            #'site_guid',
+            'is_vacant',
+            'wkb_geometry_processed',
+            'site_category',
+            'status',
+            #'workflow_selected_status',
+            #'for_renewal',
+            #'making_payment',
+            #'previous_site_holder_or_applicant',
+            #'stable_coords',
+            'application_fee_paid',
+            #'apiary_site_status_when_submitted',
+            #'apiary_site_is_vacant_when_submitted',
+        )
+
+    #def get_stable_coords(self, obj):
+    #    if obj.wkb_geometry_processed:
+    #        return obj.wkb_geometry_processed.get_coords()
+
+    #def get_status(self, apiary_site_on_proposal):
+     #   return apiary_site_on_proposal.site_status
+
+    def get_site_category(self, apiary_site_on_proposal):
+        if apiary_site_on_proposal.site_category_processed:
+            return apiary_site_on_proposal.site_category_processed.name
+
+    #def get_previous_site_holder_or_applicant(self, apiary_site_on_proposal):
+    #    try:
+    #        relevant_applicant_name = apiary_site_on_proposal.proposal_apiary.proposal.relevant_applicant_name
+    #        return relevant_applicant_name
+    #    except:
+    #        return ''
+
+
+class ApiarySiteOnProposalDraftMinimalGeometrySerializer(GeoFeatureModelSerializer):
+    """
+    For reading as 'draft'
+    """
+    id = serializers.IntegerField(source='apiary_site.id')
+    #site_guid = serializers.CharField(source='apiary_site.site_guid')
+    status = serializers.CharField(source='site_status')
+    #status = serializers.SerializerMethodField()
+    site_category = serializers.SerializerMethodField()
+    #revious_site_holder_or_applicant = serializers.SerializerMethodField()
+    is_vacant = serializers.BooleanField(source='apiary_site.is_vacant')
+    #stable_coords = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ApiarySiteOnProposal
+        geo_field = 'wkb_geometry_draft'
+        fields = (
+            'id',
+            #'site_guid',
+            'is_vacant',
+            'wkb_geometry_draft',
+            'site_category',
+            'status',
+            #'workflow_selected_status',
+            #'for_renewal',
+            #'making_payment',
+            #'previous_site_holder_or_applicant',
+            #'stable_coords',
+            'application_fee_paid',
+            #'apiary_site_status_when_submitted',
+            #'apiary_site_is_vacant_when_submitted',
+        )
+
+    #def get_stable_coords(self, obj):
+    #    if obj.wkb_geometry_processed:
+    #        return obj.wkb_geometry_draft.get_coords()
+
+    #def get_status(self, apiary_site_on_proposal):
+     #   return apiary_site_on_proposal.site_status
+
+    def get_site_category(self, apiary_site_on_proposal):
+        if apiary_site_on_proposal.site_category_processed:
+            return apiary_site_on_proposal.site_category_processed.name
+
+
 
 class ApiarySiteOnProposalProcessedGeometrySerializer(GeoFeatureModelSerializer):
     """
