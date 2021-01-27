@@ -703,6 +703,7 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
                         "site_category": site.get('site_category_draft.name'),
                         "status": site.get('site_status'),
                         "application_fee_paid": site.get("application_fee_paid"),
+                        "for_renewal": site.get("for_renewal"),
                         }
                     })
             serialized_response = {
@@ -738,6 +739,7 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
                         "site_category": site.get('site_category_processed.name'),
                         "status": site.get('site_status'),
                         "application_fee_paid": site.get("application_fee_paid"),
+                        "for_renewal": site.get("for_renewal"),
                         }
                     })
             serialized_response = {
