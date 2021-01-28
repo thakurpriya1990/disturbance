@@ -1,11 +1,19 @@
-<div class="container">
-    <div onclick="test_function">
-        Invoice# <input type="text" />
-    </div>
+{% extends 'disturbance/base.html' %}
+{% load static %}
+{% load users %}
 
-    <script type="text/javascript">
-        function test_function(){
-            console.log('aho');
-        }
-    </script>
+{% block extra_css %}
+{% endblock %}
+
+{% block extra_js %}
+{{ super }}
+{% endblock %}
+
+{% block requirements %}
+{% endblock %}
+
+{% block content %}
+<div class="container">
+
 </div>
+{% endblock %}
