@@ -19,8 +19,11 @@ from datetime import datetime
 from django.http import HttpResponse#, JsonResponse, Http404
 from disturbance import settings
 from disturbance.components.approvals.email import send_contact_licence_holder_email
-from disturbance.components.approvals.serializers_apiary import ApiarySiteOnApprovalGeometrySerializer, \
-    ApiarySiteOnApprovalGeometryExportSerializer
+from disturbance.components.approvals.serializers_apiary import (
+        ApiarySiteOnApprovalGeometrySerializer, 
+        ApiarySiteOnApprovalMinimalGeometrySerializer, 
+        ApiarySiteOnApprovalGeometryExportSerializer,
+        )
 from disturbance.components.main.decorators import basic_exception_handler, timeit, query_debugger
 from disturbance.components.proposals.utils import (
     save_proponent_data,
@@ -103,9 +106,13 @@ from disturbance.components.proposals.serializers_apiary import (
     ProposalHistorySerializer,
     UserApiaryApprovalSerializer,
     ApiarySiteOnProposalProcessedGeometrySerializer,
+    ApiarySiteOnProposalProcessedMinimalGeometrySerializer,
     ApiarySiteOnProposalDraftGeometrySerializer,
-    ApiarySiteFeeSerializer, ApiarySiteOnProposalVacantDraftGeometrySerializer,
-    ApiarySiteOnProposalVacantProcessedGeometrySerializer, ApiarySiteOnProposalDraftGeometryExportSerializer,
+    ApiarySiteOnProposalDraftMinimalGeometrySerializer,
+    ApiarySiteFeeSerializer, 
+    ApiarySiteOnProposalVacantDraftGeometrySerializer,
+    ApiarySiteOnProposalVacantProcessedGeometrySerializer, 
+    ApiarySiteOnProposalDraftGeometryExportSerializer,
     ApiarySiteOnProposalProcessedGeometryExportSerializer,
 )
 from disturbance.components.approvals.models import Approval, ApiarySiteOnApproval
@@ -642,6 +649,7 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
     @list_route(methods=['GET',])
     @basic_exception_handler
     @timeit
+    #@query_debugger
     def list_existing_proposal_vacant_draft(self, request):
         qs_vacant_site_proposal, qs_vacant_site_approval = get_qs_vacant_site()
         serializer_vacant_proposal_d = ApiarySiteOnProposalVacantDraftGeometrySerializer(qs_vacant_site_proposal.filter(wkb_geometry_processed__isnull=True), many=True)
@@ -650,6 +658,7 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
     @list_route(methods=['GET',])
     @basic_exception_handler
     @timeit
+    #@query_debugger
     def list_existing_proposal_vacant_processed(self, request):
         qs_vacant_site_proposal, qs_vacant_site_approval = get_qs_vacant_site()
         serializer_vacant_proposal = ApiarySiteOnProposalVacantProcessedGeometrySerializer(qs_vacant_site_proposal.filter(wkb_geometry_processed__isnull=False), many=True)
@@ -658,6 +667,7 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
     @list_route(methods=['GET',])
     @basic_exception_handler
     @timeit
+    #@query_debugger
     def list_existing_vacant_approval(self, request):
         qs_vacant_site_proposal, qs_vacant_site_approval = get_qs_vacant_site()
         serializer_vacant_approval = ApiarySiteOnApprovalGeometrySerializer(qs_vacant_site_approval, many=True)
@@ -666,49 +676,36 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
     @list_route(methods=['GET',])
     @basic_exception_handler
     @timeit
+    #@query_debugger
     def list_existing_proposal_draft(self, request):
-        qs_on_proposal_draft, qs_on_proposal_processed = get_qs_proposal()
         proposal_id = request.query_params.get('proposal_id', None)
         if proposal_id:
-            # Exculde the apiary_sites included in that proposal
             proposal = Proposal.objects.get(id=proposal_id)
-            qs_on_proposal_draft = qs_on_proposal_draft.exclude(proposal_apiary=proposal.proposal_apiary)
-            qs_on_proposal_processed = qs_on_proposal_processed.exclude(proposal_apiary=proposal.proposal_apiary)
-            serializer_proposal_draft = ApiarySiteOnProposalDraftGeometrySerializer(qs_on_proposal_draft, many=True)
+            qs_on_proposal_draft = get_qs_proposal('draft', proposal)
+            serializer_proposal_draft = ApiarySiteOnProposalDraftMinimalGeometrySerializer(qs_on_proposal_draft, many=True)
             return Response(serializer_proposal_draft.data)
 
     @list_route(methods=['GET',])
     @basic_exception_handler
     @timeit
+    #@query_debugger
     def list_existing_proposal_processed(self, request):
-        qs_on_proposal_draft, qs_on_proposal_processed = get_qs_proposal()
         proposal_id = request.query_params.get('proposal_id', None)
         if proposal_id:
-            # Exculde the apiary_sites included in that proposal
             proposal = Proposal.objects.get(id=proposal_id)
-            qs_on_proposal_draft = qs_on_proposal_draft.exclude(proposal_apiary=proposal.proposal_apiary)
-            qs_on_proposal_processed = qs_on_proposal_processed.exclude(proposal_apiary=proposal.proposal_apiary)
-            serializer_proposal_processed = ApiarySiteOnProposalProcessedGeometrySerializer(qs_on_proposal_processed, many=True)
+            qs_on_proposal_processed = get_qs_proposal('processed', proposal)
+            serializer_proposal_processed = ApiarySiteOnProposalProcessedMinimalGeometrySerializer(qs_on_proposal_processed, many=True)
             return Response(serializer_proposal_processed.data)
 
     @list_route(methods=['GET',])
     @basic_exception_handler
     @timeit
+    #@query_debugger
     def list_existing_approval(self, request):
         # ApiarySiteOnApproval
         qs_on_approval = get_qs_approval()
-        serializer_approval = ApiarySiteOnApprovalGeometrySerializer(qs_on_approval, many=True)
+        serializer_approval = ApiarySiteOnApprovalMinimalGeometrySerializer(qs_on_approval, many=True)
         return Response(serializer_approval.data)
-
-    #@list_route(methods=['GET',])
-    #@basic_exception_handler
-    #@timeit
-    #@query_debugger
-    #def list_existing_approval_optimised(self, request):
-    #    # ApiarySiteOnApproval
-    #    qs_on_approval = get_qs_approval_optimised()
-    #    serializer_approval = ApiarySiteOnApprovalGeometrySerializer(qs_on_approval, many=True)
-    #    return Response(serializer_approval.data)
 
     @list_route(methods=['GET',])
     @basic_exception_handler
@@ -1538,9 +1535,10 @@ class ProposalViewSet(viewsets.ModelViewSet):
         try:
             with transaction.atomic():
                 instance = self.get_object()
-                request.data['proposal'] = u'{}'.format(instance.id)
-                request.data['staff'] = u'{}'.format(request.user.id)
-                serializer = ProposalLogEntrySerializer(data=request.data)
+                request_data = request.data.copy()
+                request_data['proposal'] = u'{}'.format(instance.id)
+                request_.data['staff'] = u'{}'.format(request.user.id)
+                serializer = ProposalLogEntrySerializer(data=request_data)
                 serializer.is_valid(raise_exception=True)
                 comms = serializer.save()
                 # Save the files

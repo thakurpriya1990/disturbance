@@ -405,6 +405,52 @@ class ApiarySiteOnProposalVacantDraftGeometrySerializer(ApiarySiteOnProposalDraf
     class Meta(ApiarySiteOnProposalDraftGeometrySerializer.Meta):
         pass
 
+class ApiarySiteOnProposalProcessedMinimalGeometrySerializer(GeoFeatureModelSerializer):
+    """
+    For reading as 'processed'
+    """
+    id = serializers.IntegerField(source='apiary_site__id')
+    status = serializers.CharField(source='site_status')
+    site_category = serializers.CharField(source='site_category_processed__name')
+    is_vacant = serializers.BooleanField(source='apiary_site__is_vacant')
+
+    class Meta:
+        model = ApiarySiteOnProposal
+        geo_field = 'wkb_geometry_processed'
+        fields = (
+            'id',
+            'is_vacant',
+            'wkb_geometry_processed',
+            'site_category',
+            'status',
+            'for_renewal',
+            'application_fee_paid',
+        )
+
+
+class ApiarySiteOnProposalDraftMinimalGeometrySerializer(GeoFeatureModelSerializer):
+    """
+    For reading as 'draft'
+    """
+    id = serializers.IntegerField(source='apiary_site__id')
+    status = serializers.CharField(source='site_status')
+    site_category = serializers.CharField(source='site_category_draft__name')
+    is_vacant = serializers.BooleanField(source='apiary_site__is_vacant')
+
+    class Meta:
+        model = ApiarySiteOnProposal
+        geo_field = 'wkb_geometry_draft'
+        fields = (
+            'id',
+            'is_vacant',
+            'wkb_geometry_draft',
+            'site_category',
+            'status',
+            'for_renewal',
+            'application_fee_paid',
+        )
+
+
 
 class ApiarySiteOnProposalProcessedGeometrySerializer(GeoFeatureModelSerializer):
     """
