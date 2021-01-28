@@ -21,6 +21,7 @@ from disturbance import settings
 from disturbance.components.approvals.email import send_contact_licence_holder_email
 from disturbance.components.approvals.serializers_apiary import (
         ApiarySiteOnApprovalGeometrySerializer, 
+        ApiarySiteOnApprovalMinimalGeometrySerializer, 
         ApiarySiteOnApprovalGeometryExportSerializer,
         )
 from disturbance.components.main.decorators import basic_exception_handler, timeit, query_debugger
@@ -677,93 +678,24 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
     @timeit
     #@query_debugger
     def list_existing_proposal_draft(self, request):
-        #qs_on_proposal_draft, qs_on_proposal_processed = get_qs_proposal()
         proposal_id = request.query_params.get('proposal_id', None)
         if proposal_id:
             proposal = Proposal.objects.get(id=proposal_id)
             qs_on_proposal_draft = get_qs_proposal('draft', proposal)
-            # Exculde the apiary_sites included in that proposal
-            #qs_on_proposal_draft = qs_on_proposal_draft.exclude(proposal_apiary=proposal.proposal_apiary)
-            #qs_on_proposal_processed = qs_on_proposal_processed.exclude(proposal_apiary=proposal.proposal_apiary)
-            #serializer_proposal_draft = ApiarySiteOnProposalDraftGeometrySerializer(qs_on_proposal_draft, many=True)
-            #serializer_proposal_draft = ApiarySiteOnProposalDraftMinimalGeometrySerializer(qs_on_proposal_draft, many=True)
-            #return Response(serializer_proposal_draft.data)
-            site_array = []
-            for site in qs_on_proposal_draft:
-                site_coords = site.get('wkb_geometry_draft').coords if site.get('wkb_geometry_draft') else []
-                site_array.append({
-                    "id": site.get('apiary_site__id'),
-                    "type": "Feature",
-                    "geometry": {
-                        "type": "Point",
-                        "coordinates": site_coords
-                        },
-                    "properties": {
-                        "is_vacant": site.get('apiary_site__is_vacant'),
-                        "site_category": site.get('site_category_draft.name'),
-                        "status": site.get('site_status'),
-                        "application_fee_paid": site.get("application_fee_paid"),
-                        "for_renewal": site.get("for_renewal"),
-                        }
-                    })
-            serialized_response = {
-                    "type": "FeatureCollection",
-                    "features": site_array,
-                    }
-            return Response(serialized_response)
+            serializer_proposal_draft = ApiarySiteOnProposalDraftMinimalGeometrySerializer(qs_on_proposal_draft, many=True)
+            return Response(serializer_proposal_draft.data)
 
     @list_route(methods=['GET',])
     @basic_exception_handler
     @timeit
     #@query_debugger
     def list_existing_proposal_processed(self, request):
-        #qs_on_proposal_draft, qs_on_proposal_processed = get_qs_proposal()
         proposal_id = request.query_params.get('proposal_id', None)
         if proposal_id:
             proposal = Proposal.objects.get(id=proposal_id)
             qs_on_proposal_processed = get_qs_proposal('processed', proposal)
-            #serializer_proposal_processed = ApiarySiteOnProposalProcessedMinimalGeometrySerializer(qs_on_proposal_processed, many=True)
-            #return Response(serializer_proposal_processed.data)
-            site_array = []
-            for site in qs_on_proposal_processed:
-                site_coords = site.get('wkb_geometry_processed').coords if site.get('wkb_geometry_processed') else []
-                site_array.append({
-                    "id": site.get('apiary_site__id'),
-                    "type": "Feature",
-                    "geometry": {
-                        "type": "Point",
-                        "coordinates": site_coords
-                        },
-                    "properties": {
-                        "is_vacant": site.get('apiary_site__is_vacant'),
-                        "site_category": site.get('site_category_processed.name'),
-                        "status": site.get('site_status'),
-                        "application_fee_paid": site.get("application_fee_paid"),
-                        "for_renewal": site.get("for_renewal"),
-                        }
-                    })
-            serialized_response = {
-                    "type": "FeatureCollection",
-                    "features": site_array,
-                    }
-            return Response(serialized_response)
-
-
-    #@list_route(methods=['GET',])
-    #@basic_exception_handler
-    #@timeit
-    #@query_debugger
-    #def list_existing_proposal_processed(self, request):
-    #    qs_on_proposal_draft, qs_on_proposal_processed = get_qs_proposal()
-    #    proposal_id = request.query_params.get('proposal_id', None)
-    #    if proposal_id:
-    #        # Exculde the apiary_sites included in that proposal
-    #        proposal = Proposal.objects.get(id=proposal_id)
-    #        qs_on_proposal_draft = qs_on_proposal_draft.exclude(proposal_apiary=proposal.proposal_apiary)
-    #        qs_on_proposal_processed = qs_on_proposal_processed.exclude(proposal_apiary=proposal.proposal_apiary)
-    #        #serializer_proposal_processed = ApiarySiteOnProposalProcessedGeometrySerializer(qs_on_proposal_processed, many=True)
-    #        serializer_proposal_processed = ApiarySiteOnProposalProcessedMinimalGeometrySerializer(qs_on_proposal_processed, many=True)
-    #        return Response(serializer_proposal_processed.data)
+            serializer_proposal_processed = ApiarySiteOnProposalProcessedMinimalGeometrySerializer(qs_on_proposal_processed, many=True)
+            return Response(serializer_proposal_processed.data)
 
     @list_route(methods=['GET',])
     @basic_exception_handler
@@ -772,40 +704,8 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
     def list_existing_approval(self, request):
         # ApiarySiteOnApproval
         qs_on_approval = get_qs_approval()
-        #serializer_approval = ApiarySiteOnApprovalGeometrySerializer(qs_on_approval, many=True)
-        #return Response(serializer_approval.data)
-        site_array = []
-        for site in qs_on_approval:
-            site_coords = site.get('wkb_geometry').coords if site.get('wkb_geometry') else []
-            site_array.append({
-                "id": site.get('apiary_site__id'),
-                "type": "Feature",
-                "geometry": {
-                    "type": "Point",
-                    "coordinates": site_coords
-                    },
-                "properties": {
-                    "is_vacant": site.get('apiary_site__is_vacant'),
-                    "site_guid": site.get('apiary_site__site_guid'),
-                    "site_category": site.get('site_category.name'),
-                    "status": site.get('site_status'),
-                    }
-                })
-        serialized_response = {
-                "type": "FeatureCollection",
-                "features": site_array,
-                }
-        return Response(serialized_response)
-
-    #@list_route(methods=['GET',])
-    #@basic_exception_handler
-    #@timeit
-    #@query_debugger
-    #def list_existing_approval_optimised(self, request):
-    #    # ApiarySiteOnApproval
-    #    qs_on_approval = get_qs_approval_optimised()
-    #    serializer_approval = ApiarySiteOnApprovalGeometrySerializer(qs_on_approval, many=True)
-    #    return Response(serializer_approval.data)
+        serializer_approval = ApiarySiteOnApprovalMinimalGeometrySerializer(qs_on_approval, many=True)
+        return Response(serializer_approval.data)
 
     @list_route(methods=['GET',])
     @basic_exception_handler
