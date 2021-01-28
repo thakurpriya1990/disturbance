@@ -35,7 +35,7 @@ INSTALLED_APPS += [
     'rest_framework_gis',
     'reset_migrations',
     'ckeditor',
-    'corsheaders',
+    # 'corsheaders',
 ]
 
 ADD_REVERSION_ADMIN=True
@@ -74,9 +74,9 @@ MIDDLEWARE_CLASSES += [
     'disturbance.middleware.FirstTimeNagScreenMiddleware',
     'disturbance.middleware.RevisionOverrideMiddleware',
     'disturbance.middleware.DomainDetectMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
+    # 'corsheaders.middleware.CorsMiddleware',
 ]
-CORS_ORIGIN_ALLOW_ALL = True
+# CORS_ORIGIN_ALLOW_ALL = True
 
 TEMPLATES[0]['DIRS'].append(os.path.join(BASE_DIR, 'disturbance', 'templates'))
 TEMPLATES[0]['DIRS'].append(os.path.join(BASE_DIR, 'disturbance','components','organisations', 'templates'))

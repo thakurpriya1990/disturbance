@@ -201,9 +201,15 @@ def gisdata(request):
     return Response(serializer.data)
 
 
-@api_view(('GET',))
-@renderer_classes((JSONRenderer,))
-def ledgerpay(request):
-    return Response({'site': 'this is disturbance'})
+# @api_view(('GET',))
+# @renderer_classes((JSONRenderer,))
+# def ledgerpay(request):
+#     return Response('<div>aho</div>')
 
 
+class LedgerpayView(TemplateView):
+    template_name = 'disturbance/payment/ledgerpay_input_form.html'
+
+    def get(self, request, *args, **kwargs):
+        context = {}
+        return render(request, self.template_name, context)
