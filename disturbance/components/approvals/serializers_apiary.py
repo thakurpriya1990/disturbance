@@ -7,6 +7,25 @@ from disturbance.components.main.utils import get_category, get_tenure, get_regi
 from disturbance.components.organisations.models import Organisation
 
 
+class ApiarySiteOnApprovalMinimalGeometrySerializer(GeoFeatureModelSerializer):
+    id = serializers.IntegerField(source='apiary_site__id')
+    status = serializers.CharField(source='site_status')
+    site_category = serializers.CharField(source='site_category__name')
+    is_vacant = serializers.BooleanField(source='apiary_site__is_vacant')
+    site_guid = serializers.CharField(source='apiary_site__site_guid')
+
+    class Meta:
+        model = ApiarySiteOnApproval
+        geo_field = 'wkb_geometry'
+        fields = (
+            'id',
+            'is_vacant',
+            'wkb_geometry',
+            'site_category',
+            'status',
+            'site_guid',
+        )
+
 class ApiarySiteOnApprovalGeometrySerializer(GeoFeatureModelSerializer):
     """
     For reading
