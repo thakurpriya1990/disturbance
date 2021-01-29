@@ -398,6 +398,7 @@ class Proposal(RevisionedMixin):
     approval_level_comment = models.TextField(blank=True)
     approval_comment = models.TextField(blank=True)
     assessment_reminder_sent = models.BooleanField(default=False)
+    weekly_reminder_sent_date = models.DateField(blank=True, null=True)
     sub_activity_level1 = models.CharField(max_length=255,null=True,blank=True)
     sub_activity_level2 = models.CharField(max_length=255,null=True,blank=True)
     management_area = models.CharField(max_length=255,null=True,blank=True)
