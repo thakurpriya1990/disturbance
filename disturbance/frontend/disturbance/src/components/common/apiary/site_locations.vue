@@ -37,12 +37,12 @@
                 v-model.number="proposal.proposal_apiary.longitude"
                 :readonly="readonly"
             />
-            <input 
-                v-if="!readonly" 
-                type="button" 
-                @click="tryCreateNewSiteFromForm" 
-                value="Add proposed site" 
-                class="btn btn-primary grow1 ml-3" 
+            <input
+                v-if="!readonly"
+                type="button"
+                @click="tryCreateNewSiteFromForm"
+                value="Add proposed site"
+                class="btn btn-primary grow1 ml-3"
             />
         </div>
 
@@ -511,9 +511,9 @@
 
             // Total
             total_num_of_sites_on_map_unpaid: function(){
-                return this.num_of_sites_south_west_applied_unpaid + 
-                       this.num_of_sites_south_west_renewal_applied_unpaid + 
-                       this.num_of_sites_remote_applied_unpaid + 
+                return this.num_of_sites_south_west_applied_unpaid +
+                       this.num_of_sites_south_west_renewal_applied_unpaid +
+                       this.num_of_sites_remote_applied_unpaid +
                        this.num_of_sites_remote_renewal_applied_unpaid
             },
             total_num_of_sites_on_map: function(){
@@ -1234,11 +1234,11 @@
                 let finishedDate = new Date()
                 let delta = finishedDate - this.startTime
                 console.log(label + ' ' + delta + ' [ms]')
-                if (this.proposal_vacant_draft_loaded && 
-                    this.proposal_vacant_processed_loaded && 
-                    this.approval_vacant_loaded && 
-                    this.proposal_draft_loaded && 
-                    this.proposal_processed_loaded && 
+                if (this.proposal_vacant_draft_loaded &&
+                    this.proposal_vacant_processed_loaded &&
+                    this.approval_vacant_loaded &&
+                    this.proposal_draft_loaded &&
+                    this.proposal_processed_loaded &&
                     this.approval_loaded){
                         this.endTime = new Date()
                         let timeDiff = this.endTime - this.startTime
