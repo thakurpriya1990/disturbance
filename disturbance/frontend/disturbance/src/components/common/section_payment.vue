@@ -4,7 +4,13 @@
             <div class="form-group row">
                 <label class="col-sm-2">Invoice number</label>
                 <div class="col-sm-3">
-                    <input type="text" class="form-control" placeholder="" id="invoice_number_element" v-model="invoice_number" />
+                    <input 
+                        type="text" 
+                        class="w-100 form-control" 
+                        placeholder="" 
+                        id="invoice_number_element" 
+                        v-model="invoice_number" 
+                    />
                 </div>
             </div>
             <div class="form-group row">
@@ -25,7 +31,7 @@
                         @click="pay_button_clicked"
                         type="button"
                         value="Pay"
-                        class="btn btn-primary"
+                        class="btn btn-primary w-100"
                     />
                 </div>
             </div>
@@ -45,6 +51,7 @@ export default {
         return{
             payment_item: '',
             invoice_number: '',
+            invoice_date: '',
         }
     },
     components: {
@@ -52,7 +59,7 @@ export default {
     },
     computed: {
         pay_button_disabled: function(){
-            if(this.invoice_number){
+            if(this.invoice_number && this.invoice_date){
                 return false
             }
             return true
@@ -64,32 +71,30 @@ export default {
         },
         addEventListeners: function(){
             let vm = this;
-            let el_fr = $(vm.$refs.invoiceDatePicker);
+            let el_invoice_date = $(vm.$refs.invoiceDatePicker);
             let options = {
                 format: "DD/MM/YYYY",
                 showClear: true ,
                 useCurrent: false,
-            };
+            }
 
-            el_fr.datetimepicker(options);
+            el_invoice_date.datetimepicker(options)
 
-            el_fr.on("dp.change", function(e) {
+            el_invoice_date.on("dp.change", function(e) {
                 let selected_date = null;
                 if (e.date){
                     // Date selected
                     selected_date = e.date.format('DD/MM/YYYY')  // e.date is moment object
-                    vm.period_from = selected_date;
+                    vm.invoice_date = selected_date;
                 } else {
                     // Date not selected
-                    vm.period_from = selected_date;
+                    vm.invoice_date = selected_date;
                 }
-                vm.$emit('from_date_changed', vm.period_from)
-                //vm.constructApiarySitesTable();
-            });
+            })
         }
     },
     created: function(){
-
+        this.payment_item = this.$route.params.payment_item
     },
     mounted: function(){
         let vm = this;
@@ -101,4 +106,7 @@ export default {
 </script>
 
 <style>
+.w-100 {
+    width: 100% !important;
+}
 </style>
