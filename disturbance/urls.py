@@ -23,6 +23,7 @@ from ledger.urls import urlpatterns as ledger_patterns
 # API patterns
 from disturbance.management.default_data_manager import DefaultDataManager
 from disturbance.utils import are_migrations_running
+from disturbance.views import LedgerPayView
 
 router = routers.DefaultRouter()
 router.register(r'organisations',org_api.OrganisationViewSet)
@@ -87,7 +88,7 @@ urlpatterns = [
     url(r'^firsttime/$', views.first_time, name='first_time'),
     url(r'^gisdata/$', views.gisdata, name='gisdata'),
     # url(r'^ledgerpay/$', views.ledgerpay, name='ledgerpay'),
-    url(r'^ledgerpay/$', views.LedgerpayView.as_view(), name='ledgerpay'),
+    url(r'^ledgerpay/$', LedgerPayView.as_view(), name='ledgerpay'),
     url(r'^account/$', views.ExternalView.as_view(), name='manage-account'),
     url(r'^help/(?P<application_type>[^/]+)/(?P<help_type>[^/]+)/$', views.HelpView.as_view(), name='help'),
     url(r'^mgt-commands/$', views.ManagementCommandsView.as_view(), name='mgt-commands'),

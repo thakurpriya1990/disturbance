@@ -1,6 +1,5 @@
 <template lang="html">
     <div class="container">
-        This is ledgerpay.vue file
         <SectionPayment />
     </div>
 </template>
