@@ -243,14 +243,16 @@ def get_qs_proposal(draft_processed, proposal=None):
 
     # 1.3. Exculde the apairy sites which are on the proposal apiary currently being accessed
     # (incorporated into 1.4)
-
+    proposal_apiary = None
+    if proposal:
+        proposal_apiary = proposal.proposal_apiary
     # 1.4. Issue query
     if draft_processed == 'draft':
         qs_on_proposal = ApiarySiteOnProposal.objects.select_related(
                 'site_category_draft', 
                 'apiary_site__latest_proposal_link', 
                 ).filter(q_include_proposal).exclude(q_exclude_proposal).filter(wkb_geometry_processed=None).exclude(
-                        proposal_apiary=proposal.proposal_apiary).values(
+                        proposal_apiary=proposal_apiary).values(
                                                         'wkb_geometry_draft',
                                                         'apiary_site__id',
                                                         'site_status',
@@ -264,7 +266,7 @@ def get_qs_proposal(draft_processed, proposal=None):
                 'site_category_processed', 
                 'apiary_site__latest_proposal_link', 
                 ).filter(q_include_proposal).exclude(q_exclude_proposal).exclude(wkb_geometry_processed=None).exclude(
-                                                proposal_apiary=proposal.proposal_apiary).values(
+                                                proposal_apiary=proposal_apiary).values(
                                                         'wkb_geometry_processed',
                                                         'apiary_site__id',
                                                         'site_status',
@@ -332,7 +334,9 @@ def validate_buffer(wkb_geometry, apiary_sites_to_exclude=None):
     if sites:
         raise site_too_close_error
 
-    qs_on_proposal_draft, qs_on_proposal_processed = get_qs_proposal()
+    #qs_on_proposal_draft, qs_on_proposal_processed = get_qs_proposal()
+    qs_on_proposal_draft = get_qs_proposal('draft')
+    qs_on_proposal_processed = get_qs_proposal('processed')
     sites = qs_on_proposal_draft.exclude(apiary_site__in=apiary_sites_to_exclude).filter(Q(wkb_geometry_draft__distance_lte=(wkb_geometry, Distance(m=RESTRICTED_RADIUS))))
     if sites:
         raise site_too_close_error

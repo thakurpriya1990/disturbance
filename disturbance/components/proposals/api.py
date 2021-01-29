@@ -1537,7 +1537,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 instance = self.get_object()
                 request_data = request.data.copy()
                 request_data['proposal'] = u'{}'.format(instance.id)
-                request_.data['staff'] = u'{}'.format(request.user.id)
+                request_data['staff'] = u'{}'.format(request.user.id)
                 serializer = ProposalLogEntrySerializer(data=request_data)
                 serializer.is_valid(raise_exception=True)
                 comms = serializer.save()
