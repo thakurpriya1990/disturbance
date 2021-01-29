@@ -60,6 +60,14 @@ import logging
 logger = logging.getLogger('payment_checkout')
 
 
+class LedgerPayView(TemplateView):
+    template_name = 'disturbance/payment/ledgerpay.html'
+
+    def get(self, request, *args, **kwargs):
+        context = {}
+        return render(request, self.template_name, context)
+
+
 class AnnualRentalFeeView(TemplateView):
     def get_object(self):
         return get_object_or_404(AnnualRentalFee, id=self.kwargs['annual_rental_fee_id'])
