@@ -1,20 +1,13 @@
-import json
-
 from django.contrib.gis.geos import GEOSGeometry
-from django.http import Http404, HttpResponse, JsonResponse
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, get_object_or_404, redirect
-from django.template.response import TemplateResponse
-from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView, FormView
-from django.views.generic.base import View, TemplateView
+from django.shortcuts import render, redirect
+from django.urls import reverse
+from django.views.generic import DetailView
+from django.views.generic.base import TemplateView
 from django.conf import settings
 from django.contrib.auth.mixins import UserPassesTestMixin, LoginRequiredMixin
-
-from datetime import datetime, timedelta
-
 from rest_framework.decorators import api_view, renderer_classes
 from rest_framework.renderers import JSONRenderer
-
 from disturbance.components.main.decorators import timeit
 from disturbance.components.main.serializers import WaCoastSerializer, WaCoastOptimisedSerializer
 from disturbance.components.main.utils import get_feature_in_wa_coastline_smoothed, get_feature_in_wa_coastline_original
@@ -25,7 +18,7 @@ from disturbance.components.compliances.models import Compliance
 from disturbance.components.proposals.mixins import ReferralOwnerMixin
 from django.core.management import call_command
 from rest_framework.response import Response
-from rest_framework import serializers, views, status
+from rest_framework import views
 
 
 class InternalView(UserPassesTestMixin, TemplateView):
@@ -212,3 +205,17 @@ class LedgerPayView(TemplateView):
         if hasattr(settings, 'DEV_APP_BUILD_URL') and settings.DEV_APP_BUILD_URL:
             context['app_build_url'] = settings.DEV_APP_BUILD_URL
         return context
+    
+
+@api_view(['POST',])
+def validate_invoice_details(request):
+    data = request.data
+
+    # TODO: check if an unpaid invoice exists
+
+    unpaid_invoice_exists = True
+
+    if unpaid_invoice_exists:
+        return Response({"unpaid_invoice_exists": True})
+    else:
+        return Response({"unpaid_invoice_exists": False})

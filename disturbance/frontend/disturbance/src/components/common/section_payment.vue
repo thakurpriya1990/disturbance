@@ -41,6 +41,8 @@
 
 <script>
 import FormSection from "@/components/forms/section_toggle.vue"
+import { helpers, } from '@/utils/hooks'
+
 export default {
     name: 'LedgerPay',
     props:{
@@ -63,11 +65,34 @@ export default {
                 return false
             }
             return true
-        }
+        },
+        csrf_token: function() {
+            return helpers.getCookie('csrftoken')
+        },
     },
     methods: {
         pay_button_clicked: function(){
-            console.log('pay button clicked')
+            let vm = this
+            let data = {
+                'invoice_number': vm.invoice_number,
+                'invoice_date': vm.invoice_date,
+            }
+            vm.$http.post('/validate_invoice_details/', data).then(res => {
+                console.log('in post')
+                console.log(res)
+                // Invoice details are correct
+                // Go to the payment screen
+                if (res.body.unpaid_invoice_exists){
+                    helpers.mimic_redirect('/invoice_payment/' + vm.invoice_number + '/', {'csrfmiddlewaretoken' : vm.csrf_token});
+                } else {
+
+                    // TODO: display message saying no invoice exists
+
+                }
+            },
+            err => {
+                console.log(err);
+            });
         },
         addEventListeners: function(){
             let vm = this;

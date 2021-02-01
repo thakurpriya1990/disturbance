@@ -113,6 +113,21 @@ class AnnualRentalFeeView(TemplateView):
             raise
 
 
+class InvoicePaymentView(TemplateView):
+    # template_name = 'disturbance/payment/success.html'
+
+    def get_object(self):
+        return get_object_or_404(Invoice, id=self.kwargs['invoice_reference'])
+
+    def post(self, request, *args, **kwargs):
+        proposal = self.get_object()
+
+        #TODO: implement checkout()
+
+        return 'AHO'
+
+
+
 class ApplicationFeeView(TemplateView):
     template_name = 'disturbance/payment/success.html'
 

@@ -97,6 +97,8 @@ urlpatterns = [
     url(r'^proposal/$', proposal_views.ProposalView.as_view(), name='proposal'),
     url(r'^preview/licence-pdf/(?P<proposal_pk>\d+)',proposal_views.PreviewLicencePDFView.as_view(), name='preview_licence_pdf'),
     url(r'^ledgerpay/(?P<payment_item>.+)', views.LedgerPayView.as_view(), name='ledgerpay-view'),
+    url(r'^validate_invoice_details/$', views.validate_invoice_details, name='validate-invoice-details'),
+    url(r'^invoice_payment/(?P<invoice_reference>\d+)/$', payment_views.InvoicePaymentView.as_view(), name='invoice_payment'),
 
     url(r'^application_fee/(?P<proposal_pk>\d+)/$', payment_views.ApplicationFeeView.as_view(), name='application_fee'),
     url(r'^annual_rental_fee/(?P<annual_rental_fee_id>\d+)/$', payment_views.AnnualRentalFeeView.as_view(), name='annual_rental_fee'),
