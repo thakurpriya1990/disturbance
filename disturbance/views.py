@@ -202,7 +202,6 @@ def gisdata(request):
 
 
 class LedgerPayView(TemplateView):
-    # template_name = 'disturbance/ledgerpay.html'
     template_name = 'disturbance/dash/index.html'
 
     def get_context_data(self, **kwargs):
