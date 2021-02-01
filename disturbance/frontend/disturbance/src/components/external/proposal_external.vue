@@ -191,10 +191,14 @@
                             <template v-else>
                                 <p class="pull-right" style="margin-top:5px;">
                                     <button id="sectionHide" @click.prevent="sectionHide" class="btn btn-primary">Show/Hide sections</button>
-                                    <input type="button" @click.prevent="save_exit" class="btn btn-primary" value="Save and Exit"/>
-                                    <input type="button" @click.prevent="save(true)" class="btn btn-primary" value="Save and Continue"/>
-                                    <input v-if="!isSubmitting" type="button" @click.prevent="submit" class="btn btn-primary" value="Submit"/>
-                                    <button v-else disabled class="btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Submitting</button>
+                                    <span v-if="!isSubmitting && !isSaving">
+                                        <input type="button" @click.prevent="save_exit" class="btn btn-primary" value="Save and Exit"/>
+                                        <input type="button" @click.prevent="save(true)" class="btn btn-primary" value="Save and Continue"/>
+                                        <input type="button" @click.prevent="submit" class="btn btn-primary" value="Submit"/>
+                                    </span>
+                                    <span v-else-if="isSubmitting">
+                                        <button disabled class="btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Submitting</button>
+                                    </span>
                                     <input id="save_and_continue_btn" type="hidden" @click.prevent="save_wo_confirm" class="btn btn-primary" value="Save Without Confirmation"/>
                                 </p>
                             </template>
@@ -249,6 +253,7 @@ export default {
             hasAmendmentRequest: false,
             submitting: false,
             submittingProposal: false,
+            isSaving: false,
             newText: "",
             pBody: 'pBody',
             missing_fields: [],
@@ -501,8 +506,10 @@ export default {
                 return formData
             }
         },
-        save: function(confirmation_required) {
+        save: async function(confirmation_required) {
             console.log('in save');
+            this.isSaving = true;
+            await this.$nextTick();
 
             let vm = this;
             vm.form=document.forms.new_proposal;
@@ -558,9 +565,11 @@ export default {
                     }
                 }
             );
+            this.isSaving = false;
         },
         save_exit: function(e) {
             let vm = this;
+            this.isSaving = true;
             vm.form=document.forms.new_proposal;
             this.submitting = true;
             this.save(true);
@@ -569,6 +578,7 @@ export default {
             vm.$router.push({
                 name: 'external-proposals-dash'
             });
+            this.isSaving = false;
         },
         sectionHide: function(e) {
             let vm = this;
@@ -848,11 +858,12 @@ export default {
             },(error) => {
               vm.paySubmitting=false;
             });
-            //vm.submittingProposal= false;
+            vm.submittingProposal= false;
         },
         // Apiary submission
         save_and_redirect: async function(e) {
             console.log('save_and_redirect');
+            this.isSaving = true;
             let vm = this;
             vm.form=document.forms.new_proposal;
             let formData = new FormData(vm.form);
@@ -885,6 +896,7 @@ export default {
                     }
                 }
             );
+            this.isSaving = false;
         },
         display_site_no_longer_available_modal: function(err){
             let vm = this

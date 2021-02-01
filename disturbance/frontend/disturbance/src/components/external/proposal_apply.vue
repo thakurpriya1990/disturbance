@@ -305,6 +305,7 @@ export default {
                   }
               } else if (this.dasTemplateGroup){
                   if (applicationType.domain_used === 'das') {
+                      applicationType.display_text = applicationType.text;
                       returnList.push(applicationType);
                   }
               }
