@@ -27,4 +27,5 @@ def apiary_url(request):
         'DISPLAYED_SYSTEM_NAME': displayed_system_name,
         'SUPPORT_EMAIL': support_email,
         'is_payment_admin': is_payment_officer,
+        'build_tag': settings.BUILD_TAG,
     }
