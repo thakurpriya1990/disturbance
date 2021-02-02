@@ -7,7 +7,7 @@
 
     You can access this Proposal using the following link:
 
-    <a href="{{url}}">Access Proposal</a>
+    {{url}}
 
 
 {%  endblock %}
