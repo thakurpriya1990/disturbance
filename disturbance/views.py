@@ -6,6 +6,7 @@ from django.views.generic import DetailView
 from django.views.generic.base import TemplateView
 from django.conf import settings
 from django.contrib.auth.mixins import UserPassesTestMixin, LoginRequiredMixin
+from ledger.payments.invoice.models import Invoice
 from rest_framework.decorators import api_view, renderer_classes
 from rest_framework.renderers import JSONRenderer
 from disturbance.components.main.decorators import timeit
@@ -209,13 +210,16 @@ class LedgerPayView(TemplateView):
 
 @api_view(['POST',])
 def validate_invoice_details(request):
-    data = request.data
+    invoice_reference = request.data.get('invoice_reference', None)
+    invoice_date = request.data.get('invoice_date', None)
 
-    # TODO: check if an unpaid invoice exists
-
-    unpaid_invoice_exists = True
-
-    if unpaid_invoice_exists:
-        return Response({"unpaid_invoice_exists": True})
-    else:
-        return Response({"unpaid_invoice_exists": False})
+    try:
+        invoice = Invoice.objects.get(reference=invoice_reference)  # TODO add more condition (invoice_date, unpaid)
+        return Response({
+            "unpaid_invoice_exists": True
+        })
+    except:
+        return Response({
+            "unpaid_invoice_exists": False,
+            "alert_message": "There are no unpaid invoices that meet the criteria.",
+        })

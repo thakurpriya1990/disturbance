@@ -663,9 +663,7 @@ def generate_line_items_for_annual_rental_fee(approval, today_now, period, apiar
 #    return line_items, apiary_sites_charged
 
 
-def checkout_existing_invoice(request, invoice, lines, return_url_ns='public_booking_success',
-                              return_preload_url_ns='public_booking_success', invoice_text=None, vouchers=[],
-                              proxy=False):
+def checkout_existing_invoice(request, invoice, return_url_ns='public_booking_success'):
     #basket_params = {
     #    # 'products': invoice.order.basket.lines.all(),
     #    'products': lines,
