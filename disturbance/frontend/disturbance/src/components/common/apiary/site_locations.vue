@@ -109,7 +109,8 @@
     import {pointerMove} from 'ol/events/condition';
     import VectorLayer from 'ol/layer/Vector';
     import VectorSource from 'ol/source/Vector';
-    import {Circle as CircleStyle, Fill, Stroke, Style, Icon} from 'ol/style';
+    import Cluster from 'ol/source/Cluster';
+    import {Circle as CircleStyle, Fill, Stroke, Style, Icon, Text} from 'ol/style';
     import {FullScreen as FullScreenControl, MousePosition as MousePositionControl} from 'ol/control';
     import Vue from 'vue/dist/vue';
     import { Feature } from 'ol';
@@ -228,6 +229,7 @@
                 map: null,
                 apiarySitesQuerySource: new VectorSource(),
                 apiarySitesQueryLayer: null,
+                apiarySitesClusterLayer: null,
                 bufferedSites: null,
                 drawingLayerSource:  new VectorSource(),
                 drawingLayer: null,
@@ -700,7 +702,6 @@
                 this.bufferLayerSource.addFeature(buffer);
             },
             removeBufferForSite: function(site){
-                console.log('in removeBufferForSite')
                 let buffer = this.bufferLayerSource.getFeatureById(site.getId() + "_buffer");
                 if (buffer){
                     this.bufferLayerSource.removeFeature(buffer);
@@ -716,7 +717,6 @@
                 // This is used for the proposed apiary sites
                 let vacant_selected = feature.get('vacant_selected')
                 if (vacant_selected){
-                    console.log('here1')
                     return this.style_for_vacant_selected
                 } else {
                     return this.style_for_new_apiary_site
@@ -748,7 +748,6 @@
                 }
             },
             calculateRemainders: function(features){
-                console.log('in calculateRemainders')
                 let remainders = null;
                 if (this.proposal.application_type === 'Apiary') {
                     remainders = this.proposal.proposal_apiary.site_remainders;
@@ -759,42 +758,33 @@
                 this.num_of_sites_remote_renewal_applied_unpaid = 0
 
                 for (let i=0; i<features.length; i++){
-                    console.log(features[i])
                     let new_or_renewal = this.is_feature_new_or_renewal(features[i])
                     let site_status = features[i].get('status')
                     let site_category = features[i].get('site_category')
                     let application_fee_paid = features[i].get('application_fee_paid')
 
                     if (application_fee_paid){
-                        console.log('1')
                         // For this apiary site, application fee has been already paid
                         // We should ignore this site interms of the calculation for the remainders and fees
                     } else {
-                        console.log('2')
                         if (site_status === 'vacant'){
                             if (site_category == 'south_west'){
-                                console.log('vacant south_west')
                                 this.num_of_sites_south_west_applied_unpaid += 1
                             } else if (site_category == 'remote'){
-                                console.log('vacant remote')
                                 this.num_of_sites_remote_applied_unpaid += 1
                             }
                         } else {
                             if (new_or_renewal === 'renewal'){
                                 if (site_category == 'south_west'){
-                                    console.log('renewal south_west')
                                     this.num_of_sites_south_west_renewal_applied_unpaid += 1
                                 } else if (site_category == 'remote'){
-                                    console.log('renewal remote')
                                     this.num_of_sites_remote_renewal_applied_unpaid += 1
                                 }
                             }
                             if (new_or_renewal === 'new'){
                                 if (site_category == 'south_west'){
-                                    console.log('new south_west')
                                     this.num_of_sites_south_west_applied_unpaid += 1
                                 } else if (site_category == 'remote'){
-                                    console.log('new remote')
                                     this.num_of_sites_remote_applied_unpaid += 1
                                 }
                             }
@@ -811,7 +801,6 @@
                 this.$emit('button_text', button_text)
             },
             constructSiteLocationsTable: function(){
-                console.log('in constructSiteLocationsTable')
                 if (this.drawingLayerSource && this.$refs.site_locations_table){
                     // Clear table
                     this.$refs.site_locations_table.vmDataTable.clear().draw();
@@ -843,7 +832,6 @@
                 this.zoomToApiarySiteById(apiary_site_id)
             },
             removeApiarySiteById: function(apiary_site_id){
-                console.log('in removeApiarySiteById')
                 let myFeature = this.drawingLayerSource.getFeatureById(apiary_site_id)
                 this.deleteApiarySite(myFeature)
                 this.constructSiteLocationsTable()
@@ -887,12 +875,8 @@
                 let status = getStatusForColour(myFeature)
                 let style_applied = getApiaryFeatureStyle(status)
                 myFeature.setStyle(style_applied)
-
-                // Remove the row from the table
-                //$(e.target).closest('tr').fadeOut('slow', function(){ })
             },
             removeSiteLocation: function(e){
-                console.log('in removeSiteLocation')
                 let site_location_guid = e.target.getAttribute("data-site-location-guid");
                 let myFeature = this.drawingLayerSource.getFeatureById(site_location_guid)
                 this.deleteApiarySite(myFeature)
@@ -917,11 +901,58 @@
                         projection: 'EPSG:4326'
                     })
                 });
-                vm.apiarySitesQueryLayer = new VectorLayer({
+
+                let clusterSource = new Cluster({
+                    distance: 50,
                     source: vm.apiarySitesQuerySource,
-                    style: vm.apiaryStyleFunctionExisting,
+                })
+
+                let styleCache = {}
+                vm.apiarySitesClusterLayer = new VectorLayer({
+                    source: clusterSource,
+                    style: function (clusteredFeature){
+                        let featuresInClusteredFeature = clusteredFeature.get('features')
+                        let size = featuresInClusteredFeature.length
+                        let style = styleCache[size]
+                        if(size == 1){
+                            // When size is 1, which means the cluster feature has only one site
+                            // we want to display it as dedicated style
+                            let status = getStatusForColour(featuresInClusteredFeature[0])
+                            return getApiaryFeatureStyle(status);
+                        }
+                        let radius_in_pixel = 16
+                        if(size < 10){
+                            radius_in_pixel = 10
+                        } else if (size < 100){
+                            radius_in_pixel = 12
+                        } else if (size < 1000){
+                            radius_in_pixel = 14
+                        }
+                        if(!style){
+                            console.log(radius_in_pixel)
+                            style = new Style({
+                                image: new CircleStyle({
+                                    radius: radius_in_pixel,
+                                    stroke: new Stroke({
+                                        color: '#fff',
+                                    }),
+                                    fill: new Fill({
+                                        color: '#3399cc'
+                                    }),
+                                }),
+                                text: new Text({
+                                    text: size.toString(),
+                                    fill: new Fill({
+                                        color: '#fff',
+                                    })
+                                })
+                            })
+                            styleCache[size] = style
+                        }
+                        return style
+                    },
                 });
-                vm.map.addLayer(vm.apiarySitesQueryLayer);
+                vm.map.addLayer(vm.apiarySitesClusterLayer);
 
                 vm.bufferedSites = [];
                 vm.map.on("moveend", function(attributes){
@@ -1018,13 +1049,9 @@
                         type: "Point",
                     });
                     drawTool.on("drawstart", async function(attributes){
-                        console.log('in drawstart')
-
                         let coords = attributes.feature.getGeometry().getCoordinates()
 
                         if (vm.vacant_site_being_selected){
-                            console.log('vacant_site_being_selected')
-                            console.log(vm.vacant_site_being_selected)
                             // Abort drawing, instead 'vacant' site is to be added
                             drawTool.abortDrawing();
 
@@ -1045,7 +1072,6 @@
                     });
                     //drawTool.on('drawend', function(attributes){
                     drawTool.on('drawend', async function(attributes){
-                        console.log('in drawend')
                         if (!this.readoly){
                             let feature = attributes.feature;
                             let draw_id = vm.uuidv4();
@@ -1076,10 +1102,8 @@
 
                     });
                     modifyTool.on("modifyend", function(attributes){
-                        console.log('in modifyend')
                         // this will list all features in layer, not so useful without cross referencing
                         attributes.features.forEach(async function(feature){
-                            console.log(feature)
                             let id = feature.getId();
                             let index = modifyInProgressList.indexOf(id);
                             if (index != -1) {
@@ -1089,7 +1113,6 @@
                                 let valid = vm.isNewPositionValid(coords, filter);
 
                                 if (!valid || feature.get('is_vacant')===true) {
-                                    console.log('in is_vacant==true')
                                     // rollback proposed modification
                                     let c = feature.get("stable_coords");
                                     feature.getGeometry().setCoordinates(c);
@@ -1146,7 +1169,6 @@
 
                         }
                         if (vm.$route.query.debug === 'true'){
-                            console.log(evt.selected[0])
                         }
                     } else {
                         // Mouse hover out
@@ -1157,7 +1179,6 @@
 
                             let vacant_selected = vm.vacant_site_being_selected.get('vacant_selected')
                             if (vacant_selected){
-                                console.log('here2')
                                 style_applied = vm.style_for_vacant_selected
                             }
 
@@ -1221,56 +1242,82 @@
                     this.approval_loaded){
                         this.endTime = new Date()
                         let timeDiff = this.endTime - this.startTime
-                        console.log('total time: ' + timeDiff + ' [ms]')
+                        let features = this.apiarySitesQuerySource.getFeatures()
+                        console.log('total time: ' + timeDiff + ' [ms] (' + features.length + ' sites)')
                     }
             },
             load_existing_sites: function(){
                 let vm = this
                 this.$http.get('/api/apiary_site/list_existing_proposal_vacant_draft/?proposal_id=' + this.proposal.id).then(
                     res => {
-                        vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
+                        let num_sites = 0
+                        if(res.body.features){
+                            vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
+                            num_sites = res.body.features.length
+                        }
                         vm.proposal_vacant_draft_loaded = true
-                        vm.display_duration('1(' + res.body.features.length + ' sites)')
+                        vm.display_duration('proposal vacant draft (' + num_sites + ' sites)')
                     },
                     err => {}
                 )
                 this.$http.get('/api/apiary_site/list_existing_proposal_vacant_processed/?proposal_id=' + this.proposal.id).then(
                     res => {
-                        vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
+                        let num_sites = 0
+                        if(res.body.features){
+                            vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
+                            num_sites = res.body.features.length
+                        }
                         vm.proposal_vacant_processed_loaded = true
-                        vm.display_duration('2(' + res.body.features.length + ' sites)')
+                        vm.display_duration('proposal vacant processed (' + num_sites + ' sites)')
                     },
                     err => {}
                 )
                 this.$http.get('/api/apiary_site/list_existing_vacant_approval/?proposal_id=' + this.proposal.id).then(
                     res => {
-                        vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
+                        let num_sites = 0
+                        if(res.body.features){
+                            vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
+                            num_sites = res.body.features.length
+                        }
                         vm.approval_vacant_loaded = true
-                        vm.display_duration('3(' + res.body.features.length + ' sites)')
+                        vm.display_duration('approval vacant (' + num_sites + ' sites)')
                     },
                     err => {}
                 )
                 this.$http.get('/api/apiary_site/list_existing_proposal_draft/?proposal_id=' + this.proposal.id).then(
                     res => {
-                        vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
+                        let num_sites = 0
+                        if(res.body.features){
+                            vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
+                            num_sites = res.body.features.length
+                        }
                         vm.proposal_draft_loaded = true
-                        vm.display_duration('4(' + res.body.features.length + ' sites)')
+                        vm.display_duration('proposal draft (' + num_sites + ' sites)')
                     },
                     err => {}
                 )
                 this.$http.get('/api/apiary_site/list_existing_proposal_processed/?proposal_id=' + this.proposal.id).then(
                     res => {
-                        vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
+                        let num_sites = 0
+                        if(res.body.features){
+                            vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
+                            num_sites = res.body.features.length
+                        }
                         vm.proposal_processed_loaded = true
-                        vm.display_duration('5(' + res.body.features.length + ' sites)')
+                        vm.display_duration('proposal processed (' + num_sites + ' sites)')
                     },
-                    err => {}
+                    err => {
+                    }
                 )
                 this.$http.get('/api/apiary_site/list_existing_approval/?proposal_id=' + this.proposal.id).then(
                     res => {
-                        vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
+                        let num_sites = 0
+                        if(res.body.features){
+                            vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
+                            num_sites = res.body.features.length
+                        }
                         vm.approval_loaded = true
-                        vm.display_duration('6(' + res.body.features.length + ' sites)')
+                        vm.display_duration('approval (' + num_sites + ' sites)')
                     },
                     err => {}
                 )
@@ -1279,23 +1326,8 @@
         created: async function() {
             this.load_apiary_sites_in_this_proposal()
             this.displayAllFeatures()
-            let vm = this
-            let at_once = false
-            vm.startTime = new Date()
-
-            if (at_once){
-                await this.$http.get('/api/apiary_site/list_existing/?proposal_id=' + this.proposal.id)
-                .then(
-                    res => {vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))},
-                    err => {}
-                )
-                vm.endTime = new Date()
-                let timeDiff = vm.endTime - vm.startTime
-                console.log('total time: ' + timeDiff + ' [ms]')
-            } else {
-                await this.load_existing_sites()
-            }
-
+            this.startTime = new Date()
+            await this.load_existing_sites()
             this.make_remainders_reactive()
         },
         mounted: function() {

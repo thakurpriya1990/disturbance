@@ -331,3 +331,7 @@ class TemporaryDocument(Document):
 
     class Meta:
         app_label = 'disturbance'
+
+
+import reversion
+reversion.register(ApiaryGlobalSettings)

@@ -18,7 +18,6 @@ from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_APPROVED, SITE_S
 
 def retrieve_department_users():
     try:
-       # import ipdb; ipdb.set_trace()
         res = requests.get('{}/api/users?minimal'.format(settings.CMS_URL), auth=(settings.LEDGER_USER,settings.LEDGER_PASS), verify=False)
         res.raise_for_status()
         cache.set('department_users',json.loads(res.content).get('objects'),10800)
@@ -191,18 +190,42 @@ def get_qs_vacant_site():
     # When the 'vacant' site is selected, saved, deselected and then saved again, the latest_proposal_link gets None
     # That's why we need following line too to pick up all the vacant sites
     apiary_site_proposal_ids2 = qs_vacant_site.filter(latest_proposal_link__isnull=True).values('proposal_link_for_vacant__id')
-    qs_vacant_site_proposal = ApiarySiteOnProposal.objects.filter(Q(id__in=apiary_site_proposal_ids) | Q(id__in=apiary_site_proposal_ids2))
+    #qs_vacant_site_proposal = ApiarySiteOnProposal.objects.filter(Q(id__in=apiary_site_proposal_ids) | Q(id__in=apiary_site_proposal_ids2))
+    qs_vacant_site_proposal = ApiarySiteOnProposal.objects.select_related(
+            'apiary_site', 
+            'proposal_apiary', 
+            'proposal_apiary__proposal', 
+            'proposal_apiary__proposal__proxy_applicant', 
+            'proposal_apiary__transferee', 
+            'proposal_apiary__target_approval_organisation', 
+            'proposal_apiary__target_approval', 
+            'proposal_apiary__originating_approval', 
+            'site_category_draft', 
+            'site_category_processed', 
+            'apiary_site__latest_proposal_link', 
+            'apiary_site__proposal_link_for_vacant',
+            ).filter(Q(id__in=apiary_site_proposal_ids) | Q(id__in=apiary_site_proposal_ids2))
+
 
     # At any moment, either approval_link_for_vacant or proposal_link_for_vacant is True at most.  Never both are True.  (See make_vacant() method of the ApiarySite model)
     # Therefore qs_vacant_site_proposal and qs_vacant_site_approval shouldn't overlap each other
     apiary_site_approval_ids = qs_vacant_site.all().values('approval_link_for_vacant__id')
-    qs_vacant_site_approval = ApiarySiteOnApproval.objects.filter(id__in=apiary_site_approval_ids)
+    #qs_vacant_site_approval = ApiarySiteOnApproval.objects.filter(id__in=apiary_site_approval_ids)
+    qs_vacant_site_approval = ApiarySiteOnApproval.objects.select_related(
+            'apiary_site', 
+            'approval', 
+            'site_category', 
+            'apiary_site__latest_approval_link', 
+            'apiary_site__approval_link_for_vacant',
+            'approval__applicant',
+            'approval__applicant__organisation',
+            'approval__proxy_applicant',
+            ).filter(id__in=apiary_site_approval_ids)
 
     return qs_vacant_site_proposal, qs_vacant_site_approval
 
 
-# def get_qs_proposal(proposal_id=None):
-def get_qs_proposal():
+def get_qs_proposal(draft_processed, proposal=None):
     from disturbance.components.proposals.models import ApiarySite, ApiarySiteOnProposal, Proposal
 
     # 1. ApiarySiteOnProposal
@@ -210,7 +233,7 @@ def get_qs_proposal():
     q_exclude_proposal = Q()
 
     # 1.1. Include
-    q_include_proposal &= Q(id__in=(ApiarySite.objects.all().values('latest_proposal_link__id')))  # Include only the intermediate objects which are on the ApiarySite.latest_proposal_links
+    q_include_proposal &= Q(id__in=(ApiarySite.objects.filter(latest_proposal_link__isnull=False).values_list('latest_proposal_link__id', flat=True)))  # Include only the intermediate objects which are on the ApiarySite.latest_proposal_links
 
     # 1.2. Exclude
     q_exclude_proposal |= Q(site_status__in=(SITE_STATUS_DRAFT,)) & Q(making_payment=False)  # Purely 'draft' site
@@ -218,20 +241,41 @@ def get_qs_proposal():
     q_exclude_proposal |= Q(site_status__in=(SITE_STATUS_APPROVED,))  # 'approved' site should be included in the approval as a 'current'
     q_exclude_proposal |= Q(apiary_site__in=ApiarySite.objects.filter(is_vacant=True))  # Vacant sites are already picked up above.  We don't want to pick up them again here.
 
-#    # 1.3. Exculde the apairy sites which are on the proposal apiary currently being accessed
-#    if proposal_id:
-#        # When proposal_id is passed as a query_params, which is the one in the URL after the ?
-#        # Exculde the apiary_sites included in that proposal
-#        proposal = Proposal.objects.get(id=proposal_id)
-#        q_exclude_proposal |= Q(proposal_apiary=proposal.proposal_apiary)
-#
+    # 1.3. Exculde the apairy sites which are on the proposal apiary currently being accessed
+    # (incorporated into 1.4)
+    proposal_apiary = None
+    if proposal:
+        proposal_apiary = proposal.proposal_apiary
     # 1.4. Issue query
-    qs_on_proposal = ApiarySiteOnProposal.objects.filter(q_include_proposal).exclude(q_exclude_proposal).distinct('apiary_site')
-    qs_on_proposal_processed = qs_on_proposal.exclude(wkb_geometry_processed=None)
-    qs_on_proposal_draft = qs_on_proposal.filter(wkb_geometry_processed=None)  # For the 'draft' apiary sites with the making_payment=True attribute
-
-    return qs_on_proposal_draft, qs_on_proposal_processed
-
+    if draft_processed == 'draft':
+        qs_on_proposal = ApiarySiteOnProposal.objects.select_related(
+                'site_category_draft', 
+                'apiary_site__latest_proposal_link', 
+                ).filter(q_include_proposal).exclude(q_exclude_proposal).filter(wkb_geometry_processed=None).exclude(
+                        proposal_apiary=proposal_apiary).values(
+                                                        'wkb_geometry_draft',
+                                                        'apiary_site__id',
+                                                        'site_status',
+                                                        'application_fee_paid',
+                                                        'site_category_draft__name',
+                                                        'apiary_site__is_vacant',
+                                                        'for_renewal',
+                                                        )
+    elif draft_processed == 'processed':
+        qs_on_proposal = ApiarySiteOnProposal.objects.select_related(
+                'site_category_processed', 
+                'apiary_site__latest_proposal_link', 
+                ).filter(q_include_proposal).exclude(q_exclude_proposal).exclude(wkb_geometry_processed=None).exclude(
+                                                proposal_apiary=proposal_apiary).values(
+                                                        'wkb_geometry_processed',
+                                                        'apiary_site__id',
+                                                        'site_status',
+                                                        'application_fee_paid',
+                                                        'site_category_processed__name',
+                                                        'apiary_site__is_vacant',
+                                                        'for_renewal',
+                                                        )
+    return qs_on_proposal
 
 def get_qs_approval():
     from disturbance.components.proposals.models import ApiarySite
@@ -243,17 +287,27 @@ def get_qs_approval():
     qs_vacant_site = get_vacant_apiary_site()
 
     # 2.1. Include
-    q_include_approval &= Q(id__in=(ApiarySite.objects.all().values('latest_approval_link__id')))  # Include only the intermediate objects which are on the ApiarySite.latest_approval_links
+    q_include_approval &= Q(id__in=(ApiarySite.objects.filter(latest_proposal_link__isnull=False).values_list('latest_approval_link__id', flat=True)))  # Include only the intermediate objects which are on the ApiarySite.latest_proposal_links
 
     # 2.2. Exclude
     q_exclude_approval |= Q(apiary_site__in=qs_vacant_site)  # We don't want to pick up the vacant sites already retrieved above
     q_exclude_approval |= Q(site_status=SITE_STATUS_TRANSFERRED)
 
     # 2.3. Issue query
-    qs_on_approval = ApiarySiteOnApproval.objects.filter(q_include_approval).exclude(q_exclude_approval).distinct('apiary_site')
-
+    qs_on_approval = ApiarySiteOnApproval.objects.select_related(
+            'apiary_site__id',
+            'apiary_site__site_guid',
+            'apiary_site__is_vacant',
+            'site_category__name',
+            ).filter(q_include_approval).exclude(q_exclude_approval).values(
+                                                        'wkb_geometry',
+                                                        'apiary_site__id',
+                                                        'apiary_site__site_guid',
+                                                        'site_status',
+                                                        'site_category__name',
+                                                        'apiary_site__is_vacant',
+                                                        )
     return qs_on_approval
-
 
 @timeit
 def validate_buffer(wkb_geometry, apiary_sites_to_exclude=None):
@@ -280,7 +334,9 @@ def validate_buffer(wkb_geometry, apiary_sites_to_exclude=None):
     if sites:
         raise site_too_close_error
 
-    qs_on_proposal_draft, qs_on_proposal_processed = get_qs_proposal()
+    #qs_on_proposal_draft, qs_on_proposal_processed = get_qs_proposal()
+    qs_on_proposal_draft = get_qs_proposal('draft')
+    qs_on_proposal_processed = get_qs_proposal('processed')
     sites = qs_on_proposal_draft.exclude(apiary_site__in=apiary_sites_to_exclude).filter(Q(wkb_geometry_draft__distance_lte=(wkb_geometry, Distance(m=RESTRICTED_RADIUS))))
     if sites:
         raise site_too_close_error

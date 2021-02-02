@@ -527,9 +527,10 @@ class ApprovalViewSet(viewsets.ModelViewSet):
         try:
             with transaction.atomic():
                 instance = self.get_object()
-                request.data['approval'] = u'{}'.format(instance.id)
-                request.data['staff'] = u'{}'.format(request.user.id)
-                serializer = ApprovalLogEntrySerializer(data=request.data)
+                request_data = request.data.copy()
+                request_data['approval'] = u'{}'.format(instance.id)
+                request_data['staff'] = u'{}'.format(request.user.id)
+                serializer = ApprovalLogEntrySerializer(data=request_data)
                 serializer.is_valid(raise_exception=True)
                 comms = serializer.save()
                 # Save the files

@@ -2080,8 +2080,8 @@ class ProposalUserAction(UserAction):
     APIARY_CONCLUDE_REFERRAL = "Apiary Referral {} for application {} has been concluded by {}"
     APIARY_ACTION_SAVE_APPLICATION = "Save Apiary application {}"
     APIARY_SITE_MOVED = "Apiary Site {} has been moved from {} to {}"
-
-
+    APIARY_REFERRAL_ASSIGN_TO_ASSESSOR = "Assign Referral {} of application {} to {} as the assessor"
+    APIARY_REFERRAL_UNASSIGN_ASSESSOR = "Unassign assessor from Referral {} of application {}"
 
     class Meta:
         app_label = 'disturbance'
@@ -2526,7 +2526,7 @@ class ApiarySiteOnProposal(RevisionedMixin):
     apiary_site_status_when_submitted = models.CharField(max_length=40, blank=True)
     apiary_site_is_vacant_when_submitted = models.BooleanField(default=False)
     for_renewal = models.BooleanField(default=False)
-    site_status = models.CharField(default=SITE_STATUS_DRAFT, max_length=20)
+    site_status = models.CharField(default=SITE_STATUS_DRAFT, max_length=20, db_index=True)
     making_payment = models.BooleanField(default=False)
     workflow_selected_status = models.BooleanField(default=False)  # This field is used only during approval process to select/deselect the site to be approved
     created_at = models.DateTimeField(auto_now_add=True)
@@ -3736,12 +3736,12 @@ class ProposalApiaryTemporaryUse(models.Model):
     temporary_occupier_email = models.EmailField(blank=True, null=True)
     loaning_approval = models.ForeignKey('disturbance.Approval', blank=True, null=True)
 
-    def __str__(self):
-        if self.proposal.proposal_apiary:
-            return 'id:{} - {}'.format(self.id, self.proposal.proposal_apiary.title)
-        else:
+    # def __str__(self):
+    #     if self.proposal.proposal_apiary:
+    #         return 'id:{} - {}'.format(self.id, self.proposal.proposal_apiary.title)
+    #     else:
             # Should not reach here
-            return 'id:{}'.format(self.id)
+            # return 'id:{}'.format(self.id)
 
     class Meta:
         app_label = 'disturbance'
@@ -4055,6 +4055,7 @@ class ApiaryReferral(RevisionedMixin):
 
     referral = models.OneToOneField(Referral, related_name='apiary_referral', null=True)
     referral_group = models.ForeignKey(ApiaryReferralGroup,null=True,blank=True,related_name='referral_groups')
+    assigned_officer = models.ForeignKey(EmailUser, blank=True, null=True, related_name='apiary_referrals_assigned', on_delete=models.SET_NULL)
 
     class Meta:
         app_label = 'disturbance'
@@ -4089,7 +4090,7 @@ class ApiaryReferral(RevisionedMixin):
         #else:
          #   return True
 
-    def can_process(self, user):
+    def can_assign(self, user):
         if self.referral.processing_status=='with_referral':
             group =  ApiaryReferralGroup.objects.filter(id=self.referral_group.id)
             #user=request.user
@@ -4099,6 +4100,16 @@ class ApiaryReferral(RevisionedMixin):
                 return False
         return False
 
+    def can_process(self, user):
+        if self.referral.processing_status=='with_referral':
+            group =  ApiaryReferralGroup.objects.filter(id=self.referral_group.id)
+            #user=request.user
+            if group and group[0] in user.apiaryreferralgroup_set.all():
+                if not self.assigned_officer or self.assigned_officer == user:
+                    return True
+            #else:
+                #return False
+        return False
 
     def recall(self,request):
         #import ipdb; ipdb.set_trace();
@@ -4239,6 +4250,41 @@ class ApiaryReferral(RevisionedMixin):
             except:
                 raise
 
+    def assign_officer(self,request,officer):
+    #def assign_officer(self,request):
+        with transaction.atomic():
+            try:
+                #if not self.can_process(request.user):
+                 #   raise exceptions.ProposalNotAuthorized()
+                if not self.can_assign(request.user):
+                    raise ValidationError('The selected person is not authorised to assign referrals')
+                elif request.user != self.assigned_officer:
+                    self.assigned_officer = officer
+                    self.save()
+                    # Create a log entry for the proposal
+                    self.referral.proposal.log_user_action(ProposalUserAction.APIARY_REFERRAL_ASSIGN_TO_ASSESSOR.format(
+                        self.referral.id,self.referral.proposal.lodgement_number, '{}({})'.format(
+                            officer.get_full_name(), officer.email)
+                        ), request)
+            except:
+                raise
+
+    def unassign(self,request):
+        with transaction.atomic():
+            try:
+                #if not self.can_process(request.user):
+                 #   raise exceptions.ProposalNotAuthorized()
+                if not self.can_assign(request.user):
+                    raise ValidationError('The selected person is not authorised to change referral assignments')
+                elif self.assigned_officer:
+                    self.assigned_officer = None
+                    self.save()
+                    # Create a log entry for the proposal
+                    self.referral.proposal.log_user_action(ProposalUserAction.APIARY_REFERRAL_UNASSIGN_ASSESSOR.format(
+                        self.referral.id,self.referral.proposal.lodgement_number), request)
+            except:
+                raise
+
     # Properties
     @property
     def region(self):
@@ -4265,7 +4311,12 @@ class ApiaryReferral(RevisionedMixin):
         return self.referral.processing_status == 'with_referral'
 
     def can_assess_referral(self,user):
-        return self.referral.processing_status == 'with_referral'
+       return self.referral.processing_status == 'with_referral'
+
+    @property
+    def allowed_assessors(self):
+        group = self.referral_group
+        return group.members.all() if group else []
 
 # --------------------------------------------------------------------------------------
 # Apiary Models End
@@ -4301,6 +4352,7 @@ reversion.register(ApiaryChecklistAnswer)
 reversion.register(ApiaryAssessorGroup)
 reversion.register(ApiaryApproverGroup)
 reversion.register(ApiaryReferral)
+reversion.register(ApiaryReferralGroup)
 reversion.register(ApiarySiteApproval)
 reversion.register(SiteTransferApiarySite)
 reversion.register(TemporaryUseApiarySite)

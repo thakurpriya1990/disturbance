@@ -499,9 +499,10 @@ class ComplianceViewSet(viewsets.ModelViewSet):
         try:
             with transaction.atomic():
                 instance = self.get_object()
-                request.data['compliance'] = u'{}'.format(instance.id)
-                request.data['staff'] = u'{}'.format(request.user.id)
-                serializer = ComplianceCommsSerializer(data=request.data)
+                request_data = request.data.copy()
+                request_data['compliance'] = u'{}'.format(instance.id)
+                request_data['staff'] = u'{}'.format(request.user.id)
+                serializer = ComplianceCommsSerializer(data=request_data)
                 serializer.is_valid(raise_exception=True)
                 comms = serializer.save()
                 # Save the files

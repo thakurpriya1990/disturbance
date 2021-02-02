@@ -405,6 +405,52 @@ class ApiarySiteOnProposalVacantDraftGeometrySerializer(ApiarySiteOnProposalDraf
     class Meta(ApiarySiteOnProposalDraftGeometrySerializer.Meta):
         pass
 
+class ApiarySiteOnProposalProcessedMinimalGeometrySerializer(GeoFeatureModelSerializer):
+    """
+    For reading as 'processed'
+    """
+    id = serializers.IntegerField(source='apiary_site__id')
+    status = serializers.CharField(source='site_status')
+    site_category = serializers.CharField(source='site_category_processed__name')
+    is_vacant = serializers.BooleanField(source='apiary_site__is_vacant')
+
+    class Meta:
+        model = ApiarySiteOnProposal
+        geo_field = 'wkb_geometry_processed'
+        fields = (
+            'id',
+            'is_vacant',
+            'wkb_geometry_processed',
+            'site_category',
+            'status',
+            'for_renewal',
+            'application_fee_paid',
+        )
+
+
+class ApiarySiteOnProposalDraftMinimalGeometrySerializer(GeoFeatureModelSerializer):
+    """
+    For reading as 'draft'
+    """
+    id = serializers.IntegerField(source='apiary_site__id')
+    status = serializers.CharField(source='site_status')
+    site_category = serializers.CharField(source='site_category_draft__name')
+    is_vacant = serializers.BooleanField(source='apiary_site__is_vacant')
+
+    class Meta:
+        model = ApiarySiteOnProposal
+        geo_field = 'wkb_geometry_draft'
+        fields = (
+            'id',
+            'is_vacant',
+            'wkb_geometry_draft',
+            'site_category',
+            'status',
+            'for_renewal',
+            'application_fee_paid',
+        )
+
+
 
 class ApiarySiteOnProposalProcessedGeometrySerializer(GeoFeatureModelSerializer):
     """
@@ -447,7 +493,7 @@ class ApiarySiteOnProposalProcessedGeometrySerializer(GeoFeatureModelSerializer)
         return apiary_site_on_proposal.site_status
 
     def get_site_category(self, apiary_site_on_proposal):
-        return apiary_site_on_proposal.site_category_draft.name
+        return apiary_site_on_proposal.site_category_processed.name
 
     def get_previous_site_holder_or_applicant(self, apiary_site_on_proposal):
         try:
@@ -1573,14 +1619,33 @@ class ApiaryReferralSerializer(serializers.ModelSerializer):
     #processing_status = serializers.CharField(source='get_processing_status_display')
     #latest_referrals = ProposalReferralSerializer(many=True)
     can_process = serializers.BooleanField()
+    can_assign = serializers.BooleanField()
     referral_group = ApiaryReferralGroupSerializer()
+    allowed_assessors = EmailUserSerializer(many=True)
+    assigned_officer = EmailUserSerializer()
+    current_officer = serializers.SerializerMethodField()
     class Meta:
         model = ApiaryReferral
         fields = (
                 'id',
                 'referral_group',
                 'can_process',
+                'can_assign',
+                'allowed_assessors',
+                'current_officer',
+                'assigned_officer',
+                'assigned_officer_id',
                 )
+
+    def get_current_officer(self, obj):
+        #import ipdb; ipdb.set_trace()
+        request = self.context.get('request')
+        if request:
+            return {
+                    'id': request.user.id,
+                    'name': request.user.get_full_name(),
+                    'email': request.user.email,
+                    }
 
     #def __init__(self,*args,**kwargs):
      #   super(ReferralSerializer, self).__init__(*args, **kwargs)

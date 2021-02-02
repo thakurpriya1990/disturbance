@@ -617,6 +617,17 @@ def generate_line_items_for_annual_rental_fee(approval, today_now, period, apiar
                 charge_period[1].strftime("%d/%m/%Y"),
                 ', '.join(['site: ' + str(site.id) for site in apiary_sites])
             )
+            if len(line_item['ledger_description']) >= 250:
+                # description too long, shorten it
+                line_item['ledger_description'] = 'Annual Site Fee: {}, Issued: {} {}, Period: {} to {}, Number of sites: {}'.format(
+                    approval.lodgement_number,
+                    today_now.strftime("%d/%m/%Y"),
+                    today_now.strftime("%I:%M %p"),
+                    charge_period[0].strftime("%d/%m/%Y"),
+                    charge_period[1].strftime("%d/%m/%Y"),
+                    len(apiary_sites)
+                )
+
             line_item['oracle_code'] = oracle_code_obj.value
             line_item['price_incl_tax'] = total_amount
             line_item['price_excl_tax'] = total_amount if ANNUAL_RENTAL_FEE_GST_EXEMPT else calculate_excl_gst(total_amount)
