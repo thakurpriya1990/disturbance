@@ -4,15 +4,15 @@
 	Your Proposal {{ proposal.lodgement_number }} has been reviewed and has been recommended for decline.
 
     {% if reason %}
-        <p>
-        	<span>Declined Reason: {{ reason }}</span>
-        </p>
+        
+        	Declined Reason: {{ reason }}
+        
     {% endif %}
 
-    <p>
+    
     You can access this Proposal using the following link:
-    </p>
-    <a href="{{url}}">Access Proposal</a>
+    
+    {{url}}
 
 
 {%  endblock %}

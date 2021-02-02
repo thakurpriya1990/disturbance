@@ -12,7 +12,7 @@
     <p>
     You can access this application using the following link:
     </p>
-    <a href="{{url}}">Access application</a>
+    {{url}}
 
 
 {%  endblock %}

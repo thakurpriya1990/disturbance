@@ -199,7 +199,7 @@
                                         </div>
                                     </div>
                                     <div class="row">
-                                        <div class="col-sm-12">
+                                        <div class="col-sm-12" v-if="requirementsComplete">
                                             <button style="width:80%;" class="btn btn-primary top-buffer-s" :disabled="proposal.can_user_edit" @click.prevent="proposedApproval()">Propose to Approve</button><br/>
                                         </div>
                                     </div>
@@ -249,7 +249,7 @@
                     <ApprovalScreen :proposal="proposal" @refreshFromResponse="refreshFromResponse"/>
                 </template>
                 <template v-if="proposal.processing_status == 'With Assessor (Requirements)' || ((proposal.processing_status == 'With Approver' || isFinalised) && showingRequirements)">
-                    <Requirements :proposal="proposal"/>
+                    <Requirements :proposal="proposal" @refreshRequirements="refreshRequirements"/>
                 </template>
                 <template v-if="canSeeSubmission || (!canSeeSubmission && showingProposal)">
                     <div class="col-md-12">
@@ -426,6 +426,7 @@ export default {
             showingProposal:false,
             showingRequirements:false,
             hasAmendmentRequest: false,
+            requirementsComplete:true,
             state_options: ['requirements','processing'],
             contacts_table_id: vm._uid+'contacts-table',
             is_local: helpers.is_local(),
@@ -752,6 +753,12 @@ export default {
                 vm.initialiseAssignedOfficerSelect(true);
                 vm.updateAssignedOfficerSelect();
             });
+        },
+        refreshRequirements: function(bool){
+              let vm=this;
+              //vm.proposal.requirements_completed=bool;
+              //console.log('here', bool);
+              vm.requirementsComplete=bool;
         },
         assignTo: function(){
             let vm = this;
