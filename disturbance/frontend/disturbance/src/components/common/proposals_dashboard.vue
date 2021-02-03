@@ -20,7 +20,9 @@
                                     <template v-show="select2Applied">
                                         <label for="">Region</label>
                                         <select style="width:100%" class="form-control input-sm" ref="filterRegion" >
-                                            <option v-for="r in proposal_regions" :value="r">{{r}}</option>
+                                            <template v-if="select2Applied">
+                                                <option v-for="r in proposal_regions" :value="r">{{r}}</option>
+                                            </template>
                                         </select>
                                     </template>
                                 </div>
@@ -116,9 +118,6 @@ export default {
     },
     data() {
         let vm = this;
-        //let assigned_officer_column_name = "assigned_officer__first_name, assigned_officer__last_name, assigned_officer__email"
-        //let submitter_column_name = "submitter__email, submitter__first_name, submitter__last_name"
-        //let proponent_applicant_column_name = 'applicant__organisation__name, proxy_applicant__first_name, proxy_applicant__last_name, proxy_applicant__email'
 
         return {
             assigned_officer_column_name: "assigned_officer__first_name, assigned_officer__last_name, assigned_officer__email",
@@ -251,6 +250,7 @@ export default {
                         'createdCell': helpers.dtPopoverCellFn,
                         visible: false,
                         name: 'title',
+                        searchable: true,
                     },
                     {
                         // 4. Submitter
@@ -261,13 +261,15 @@ export default {
                             }
                             return ''
                         },
-                        name: vm.submitter_column_name,
+                        //name: vm.submitter_column_name,
+                        name: "submitter__email, submitter__first_name, submitter__last_name",
                         searchable: true,
                     },
                     {
                         // 5. Proponent/Applicant
                         data: "relevant_applicant_name",
-                        name: vm.proponent_applicant_column_name,
+                        //name: vm.proponent_applicant_column_name,
+                        name: "applicant__organisation__name, proxy_applicant__first_name, proxy_applicant__last_name, proxy_applicant__email",
                         searchable: true,
                     },
                     {
@@ -293,7 +295,7 @@ export default {
                         // 8. Assigned Officer
                         data: "assigned_officer",
                         visible: false,
-                        name: vm.assigned_officer_column_name,
+                        name: "assigned_officer__first_name, assigned_officer__last_name, assigned_officer__email",
                         searchable: true,
                     },
                     {
