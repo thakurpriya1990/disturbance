@@ -42,7 +42,8 @@ from disturbance.components.das_payments.utils import (
     get_session_site_transfer_application_invoice,
     set_session_site_transfer_application_invoice,
     delete_session_site_transfer_application_invoice, set_session_annual_rental_fee, get_session_annual_rental_fee,
-    delete_session_annual_rental_fee, round_amount_according_to_env, checkout_existing_invoice,
+    delete_session_annual_rental_fee, round_amount_according_to_env, checkout_existing_invoice, set_session_invoice,
+    get_session_invoice, delete_session_invoice,
     # create_bpay_invoice,
     # create_other_invoice,
 )
@@ -132,6 +133,7 @@ class InvoicePaymentView(TemplateView):
 
         try:
             with transaction.atomic():
+                set_session_invoice(request.session, invoice)
                 checkout_response = checkout_existing_invoice(
                     request,
                     invoice,
@@ -320,34 +322,28 @@ class SiteTransferApplicationFeeSuccessView(TemplateView):
 
 
 class InvoicePaymentSuccessView(TemplateView):
-    template_name = 'disturbance/payment/annual_rental_fee_success.html'
+    template_name = 'disturbance/payment/invoice_payment_success.html'
 
     def get(self, request, *args, **kwargs):
         invoice = None
 
         try:
-            # When accessed first time, there is a annual_rental_fee in the session which was set at AnnualRentalFeeView()
-            # but when accessed sencond time, it is deleted therefore raise an error.
+            invoice = get_session_invoice(request.session)
+            request.session['last_invoice_reference'] = invoice.reference
+            delete_session_invoice(request.session)
 
-            # !!!!!
-            # annual_rental_fee = get_session_annual_rental_fee(request.session)
-
-            # invoice = Invoice.objects.get(reference=annual_rental_fee.invoice_reference)
-
-            # request.session['last_annual_rental_fee_id'] = annual_rental_fee.id
-            # delete_session_annual_rental_fee(request.session)
-
-            # Send invoice
+            # TODO: Send invoice
             # to_email_addresses = annual_rental_fee.approval.relevant_applicant.email
             # email_data = send_annual_rental_fee_invoice(annual_rental_fee.approval, invoice, [to_email_addresses,])
 
-            # Add comms log
+            # TODO: Add comms log
             # email_data['approval'] = u'{}'.format(annual_rental_fee.approval.id)
             # serializer = ApprovalLogEntrySerializer(data=email_data)
             # serializer.is_valid(raise_exception=True)
             # comms = serializer.save()
 
-            # can_access_invoice = False
+            can_access_invoice = True
+            # TODO: implement can_access_invoice
             # if request.user == annual_rental_fee.approval.relevant_applicant or \
             #         annual_rental_fee.approval.applicant in request.user.disturbance_organisations.all():
             #     can_access_invoice = True
@@ -358,35 +354,37 @@ class InvoicePaymentSuccessView(TemplateView):
                 # 'can_access_invoice': can_access_invoice,
                 'invoice_reference': '123',
                 'to_email_address': 'aho@mail.com',
-                'can_access_invoice': True,
+                'can_access_invoice': can_access_invoice,
             }
             return render(request, self.template_name, context)
 
+        except Invoice.DoesNotExist:
+            logger.error('Invoice reference:{} not found in the database'.format(request.session['last_invoice_reference']))
+            return redirect('home')
+
         except Exception as e:
-            if 'last_annual_rental_fee_id' in request.session and AnnualRentalFee.objects.filter(id=request.session['last_annual_rental_fee_id']).exists():
-                annual_rental_fee = AnnualRentalFee.objects.get(id=request.session['last_annual_rental_fee_id'])
-                del request.session['last_annual_rental_fee_id']
+            if 'last_invoice_reference' in request.session and Invoice.objects.filter(reference=request.session['last_invoice_reference']).exists():
+                del request.session['last_invoice_reference']
                 request.session.modified = True
 
                 # TODO: Display success screen
-                to_email_addresses = annual_rental_fee.approval.relevant_applicant.email
-                can_access_invoice = False
-                if request.user == annual_rental_fee.approval.relevant_applicant or \
-                        annual_rental_fee.approval.applicant in request.user.disturbance_organisations.all():
-                    can_access_invoice = True
+                # to_email_addresses = annual_rental_fee.approval.relevant_applicant.email
+                can_access_invoice = True
+                # if request.user == annual_rental_fee.approval.relevant_applicant or \
+                #         annual_rental_fee.approval.applicant in request.user.disturbance_organisations.all():
+                #     can_access_invoice = True
 
                 context = {
-                    'invoice_reference': annual_rental_fee.invoice_reference,
-                    'to_email_address': to_email_addresses,
+                    # 'invoice_reference': annual_rental_fee.invoice_reference,
+                    # 'to_email_address': to_email_addresses,
+                    # 'can_access_invoice': can_access_invoice,
+                    'invoice_reference': '456',
+                    'to_email_address': 'baka@mail.com',
                     'can_access_invoice': can_access_invoice,
                 }
                 return render(request, self.template_name, context)
             else:
                 return redirect('home')
-
-        except AnnualRentalFee.DoesNotExist:
-            logger.error('AnnualRentalFee id:{} not found in the database'.format(request.session['last_annual_rental_fee_id']))
-            return redirect('home')
 
 
 class AnnualRentalFeeSuccessView(TemplateView):

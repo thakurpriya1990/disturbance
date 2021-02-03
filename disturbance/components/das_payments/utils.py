@@ -62,6 +62,29 @@ def delete_session_annual_rental_fee(session):
         session.modified = True
 
 
+def set_session_invoice(session, invoice):
+    session['invoice_reference'] = invoice.reference
+    session.modified = True
+
+
+def get_session_invoice(session):
+    if 'invoice_reference' in session:
+        invoice_reference = session['invoice_reference']
+    else:
+        raise Exception('AnnualRentalFee not in Session')
+
+    try:
+        return Invoice.objects.get(reference=invoice_reference)
+    except Invoice.DoesNotExist:
+        raise Exception('Invoice not found for the reference {}'.format(invoice_reference))
+
+
+def delete_session_invoice(session):
+    if 'invoice_reference' in session:
+        del session['invoice_reference']
+        session.modified = True
+
+
 def set_session_annual_rental_fee(session, annual_rental_fee):
     session['annual_rental_fee'] = annual_rental_fee.id
     session.modified = True

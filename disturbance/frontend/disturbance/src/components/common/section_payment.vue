@@ -1,10 +1,12 @@
 <template lang="html">
     <div>
-        <template v-if="alert_message">
-            <div class="alert alert-warning" role="alert">
-                {{ alert_message }}
-            </div>
-        </template>
+        <transition>
+            <template v-if="alert_message">
+                <div class="alert alert-warning" role="alert">
+                    {{ alert_message }}
+                </div>
+            </template>
+        </transition>
         <FormSection :formCollapse="false" label="Payment" Index="payment_item">
             <div class="form-group row">
                 <label class="col-sm-2">Invoice number</label>
@@ -139,5 +141,11 @@ export default {
 <style>
 .w-100 {
     width: 100% !important;
+}
+.v-enter, .v-leave-to {
+    opacity: 0;
+}
+.v-enter-active, .v-leave-active {
+    transition: 1s;
 }
 </style>
