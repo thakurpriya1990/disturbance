@@ -34,6 +34,10 @@ ENV SYSTEM_NAME="Disturbance Assessment System"
 ENV APIARY_SYSTEM_NAME="Apiary System"
 ENV PAYMENT_OFFICERS_GROUP="Apiary Payments Officers"
 
+#ARG build_tag=None
+#ENV BUILD_TAG=$build_tag
+#RUN echo "*************************************************** Build TAG = $build_tag ***************************************************"
+
 RUN apt-get clean && \
 apt-get update && \
 apt-get upgrade -y && \
@@ -110,6 +114,9 @@ touch /var/log/cron.log && \
 service cron start && \
 chmod 755 /startup.sh
 # cron end
+
+# IPYTHONDIR - Will allow shell_plus (in Docker) to remember history between sessions
+RUN export IPYTHONDIR=/app/logs/.ipython/
 
 EXPOSE 8080
 HEALTHCHECK --interval=1m --timeout=5s --start-period=10s --retries=3 CMD ["wget", "-q", "-O", "-", "http://localhost:8080/"]
