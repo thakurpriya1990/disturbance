@@ -1,3 +1,6 @@
+import logging
+from datetime import datetime
+
 from django.contrib.gis.geos import GEOSGeometry
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
@@ -20,6 +23,9 @@ from disturbance.components.proposals.mixins import ReferralOwnerMixin
 from django.core.management import call_command
 from rest_framework.response import Response
 from rest_framework import views
+
+
+logger = logging.getLogger(__name__)
 
 
 class InternalView(UserPassesTestMixin, TemplateView):
@@ -214,11 +220,21 @@ def validate_invoice_details(request):
     invoice_date = request.data.get('invoice_date', None)
 
     try:
-        invoice = Invoice.objects.get(reference=invoice_reference)  # TODO add more condition (invoice_date, unpaid)
-        return Response({
-            "unpaid_invoice_exists": True
-        })
-    except:
+        datetime_object = datetime.strptime(invoice_date, '%d/%m/%Y').date()
+        invoice = Invoice.objects.get(reference=invoice_reference)
+        invoice_created_date = invoice.created.date()
+
+        if invoice_created_date == datetime_object and invoice.payment_status in ('unpaid', 'partially_paid'):
+            return Response({
+                "unpaid_invoice_exists": True
+            })
+        else:
+            return Response({
+                "unpaid_invoice_exists": False,
+                "alert_message": "There are no unpaid invoices that meet the criteria.",
+            })
+
+    except Exception as e:
         return Response({
             "unpaid_invoice_exists": False,
             "alert_message": "There are no unpaid invoices that meet the criteria.",
