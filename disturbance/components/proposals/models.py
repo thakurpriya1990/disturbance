@@ -1674,19 +1674,20 @@ class Proposal(RevisionedMixin):
                 proposal.proposal_type = 'renewal'
                 proposal.submitter = request.user
                 proposal.previous_application = self
-                req=self.requirements.all().exclude(is_deleted=True)
-                from copy import deepcopy
-                if req:
-                    for r in req:
-                        old_r = deepcopy(r)
-                        r.proposal = proposal
-                        r.copied_from=None
-                        r.copied_for_renewal=True
-                        if r.due_date:
-                            r.due_date=None
-                            r.require_due_date=True
-                        r.id = None
-                        r.save()
+                if not proposal.apiary_group_application_type:
+                    req=self.requirements.all().exclude(is_deleted=True)
+                    from copy import deepcopy
+                    if req:
+                        for r in req:
+                            old_r = deepcopy(r)
+                            r.proposal = proposal
+                            r.copied_from=None
+                            r.copied_for_renewal=True
+                            if r.due_date:
+                                r.due_date=None
+                                r.require_due_date=True
+                            r.id = None
+                            r.save()
                 # Create a log entry for the proposal
                 self.log_user_action(ProposalUserAction.ACTION_RENEW_PROPOSAL.format(self.lodgement_number), request)
                 # Create a log entry for the organisation
