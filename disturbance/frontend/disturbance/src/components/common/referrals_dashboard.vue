@@ -203,6 +203,7 @@ export default {
                     {
                         data: "title",
                         name: "proposal__title",
+                        visible: false,
                     },
                     {
                         data: "submitter",
@@ -238,6 +239,17 @@ export default {
                         name: "proposal__processing_status",
                     },
                     {
+                        data: "assigned_officer",
+                        name: "assigned_officer",
+                        mRender:function (data,type,full) {
+                            if (data) {
+                                return `${data.first_name} ${data.last_name}`;
+                            }
+                            return ''
+                        },
+                        visible: false,
+                    },
+                    {
                         data: "proposal_lodgement_date",
                         mRender:function (data,type,full) {
                             return data != '' && data != null ? moment(data).format(vm.dateFormat): '';
@@ -270,9 +282,15 @@ export default {
                 initComplete: function() {
                     // set column visibility and headers according to template group
                     // region
-                    let regionColumn = vm.$refs.proposal_datatable.vmDataTable.columns(1);
+                    //let regionColumn = vm.$refs.proposal_datatable.vmDataTable.columns(1);
+                    let regionColumn = vm.$refs.proposal_datatable.vmDataTable.column('region:name');
+                    let titleColumn = vm.$refs.proposal_datatable.vmDataTable.column('proposal__title:name');
+                    let assignedOfficerColumn = vm.$refs.proposal_datatable.vmDataTable.column('assigned_officer:name');
                     if (vm.dasTemplateGroup) {
                         regionColumn.visible(true);
+                        titleColumn.visible(true);
+                    } else {
+                        assignedOfficerColumn.visible(true);
                     }
                 },
                 /*
@@ -416,6 +434,7 @@ export default {
                 "Submitter",
                 proponent_or_applicant,
                 "Status",
+                "Assigned Officer",
                 "Lodged on",
                 "Action",
                 "Template Group"

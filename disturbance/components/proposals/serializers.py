@@ -523,6 +523,7 @@ class DTReferralSerializer(serializers.ModelSerializer):
     relevant_applicant_name = serializers.SerializerMethodField()
     #proposal_application_type = serializers.SerializerMethodField()
     template_group = serializers.SerializerMethodField(read_only=True)
+    assigned_officer = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Referral
@@ -544,10 +545,15 @@ class DTReferralSerializer(serializers.ModelSerializer):
             'proposal_lodgement_number',
             'referral_text',
             'template_group',
+            'assigned_officer',
         )
 
     def get_submitter(self,obj):
         return EmailUserSerializer(obj.proposal.submitter).data
+
+    def get_assigned_officer(self,obj):
+        if obj.proposal.apiary_group_application_type:
+            return EmailUserSerializer(obj.apiary_referral.assigned_officer).data
 
     def get_relevant_applicant_name(self,obj):
         return obj.proposal.relevant_applicant_name
