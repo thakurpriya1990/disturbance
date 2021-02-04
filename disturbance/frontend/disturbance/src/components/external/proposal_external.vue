@@ -838,7 +838,9 @@ export default {
                     vm.save_and_redirect();
                 } else {
                     /* just save and submit - no payment required (probably application was pushed back by assessor for amendment */
-                    await vm.save(false)
+                    if (['Apiary', 'Site Transfer'].includes(vm.proposal.application_type)) {
+                        await vm.save(false)
+                    }
                     try {
                         const res = await vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/submit'),formData);
                         vm.proposal = res.body;
