@@ -3,7 +3,7 @@
         <transition>
             <template v-if="alert_message">
                 <div class="alert alert-warning" role="alert">
-                    <i class='fa fa-times pull-right' @click="alert_close_clicked"></i>
+                    <i class='fa fa-times pull-right close-alert-button' @click="alert_close_clicked"></i>
                     {{ alert_message }}
                 </div>
             </template>
@@ -151,5 +151,8 @@ export default {
 }
 .v-enter-active, .v-leave-active {
     transition: 1s;
+}
+.close-alert-button {
+    cursor: pointer;
 }
 </style>

@@ -67,11 +67,15 @@ def set_session_invoice(session, invoice):
     session.modified = True
 
 
+class InvoiceReferenceNotInSettionException(Exception):
+    pass
+
+
 def get_session_invoice(session):
     if 'invoice_reference' in session:
         invoice_reference = session['invoice_reference']
     else:
-        raise Exception('AnnualRentalFee not in Session')
+        raise InvoiceReferenceNotInSettionException('AnnualRentalFee not in Session')
 
     try:
         return Invoice.objects.get(reference=invoice_reference)
