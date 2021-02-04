@@ -252,6 +252,7 @@ export default {
             let vm = this;
             vm.errors = false;
             let approval = JSON.parse(JSON.stringify(vm.approval));
+            
             vm.issuingApproval = true;
             if (vm.state == 'proposed_approval'){
                 vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal_id+'/proposed_approval'),JSON.stringify(approval),{
@@ -281,7 +282,7 @@ export default {
                         vm.errorString = helpers.apiVueResourceError(error);
                     });
             }
-            
+           
         },
         addFormValidations: function() {
             let vm = this;
