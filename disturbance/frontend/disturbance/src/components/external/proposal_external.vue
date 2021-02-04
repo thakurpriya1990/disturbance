@@ -828,7 +828,7 @@ export default {
                 type: "question",
                 showCancelButton: true,
                 confirmButtonText: 'Submit'
-            }).then(() => {
+            }).then(async () => {
                 console.log('in then()');
                 vm.submittingProposal = true;
                 // Only Apiary has an application fee
@@ -838,8 +838,24 @@ export default {
                     vm.save_and_redirect();
                 } else {
                     /* just save and submit - no payment required (probably application was pushed back by assessor for amendment */
-                    console.log('--- just save ---')
-                    vm.save(false)
+                    if (['Apiary', 'Site Transfer'].includes(vm.proposal.application_type)) {
+                        await vm.save(false)
+                    }
+                    try {
+                        const res = await vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/submit'),formData);
+                        vm.proposal = res.body;
+                        vm.$router.push({
+                            name: 'submit_proposal',
+                            params: { proposal: vm.proposal}
+                        });
+                    } catch (err) {
+                        swal(
+                            'Submit Error',
+                            helpers.apiVueResourceError(err),
+                            'error'
+                        )
+                    }
+                    /*
                     vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/submit'),formData).then(res=>{
                         vm.proposal = res.body;
                         vm.$router.push({
@@ -853,6 +869,7 @@ export default {
                             'error'
                         )
                     });
+                    */
                 }
             },(error) => {
               vm.paySubmitting=false;
