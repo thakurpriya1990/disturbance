@@ -828,7 +828,7 @@ export default {
                 type: "question",
                 showCancelButton: true,
                 confirmButtonText: 'Submit'
-            }).then(() => {
+            }).then(async () => {
                 console.log('in then()');
                 vm.submittingProposal = true;
                 // Only Apiary has an application fee
@@ -839,7 +839,7 @@ export default {
                 } else {
                     /* just save and submit - no payment required (probably application was pushed back by assessor for amendment */
                     console.log('--- just save ---')
-                    vm.save(false)
+                    await vm.save(false)
                     vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/submit'),formData).then(res=>{
                         vm.proposal = res.body;
                         vm.$router.push({
