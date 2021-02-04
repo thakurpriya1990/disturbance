@@ -3,6 +3,7 @@
         <transition>
             <template v-if="alert_message">
                 <div class="alert alert-warning" role="alert">
+                    <i class='fa fa-times pull-right' @click="alert_close_clicked"></i>
                     {{ alert_message }}
                 </div>
             </template>
@@ -79,6 +80,9 @@ export default {
         },
     },
     methods: {
+        alert_close_clicked: function(){
+            this.alert_message = ''
+        },
         pay_button_clicked: function(){
             let vm = this
             let data = {
