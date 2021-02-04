@@ -134,36 +134,33 @@
                                             </div>
                                         </div>
                                         <div class="col-sm-4 text-right no-padding">
-                                            <input type="button" @click.prevent="save_exit" class="btn btn-primary" value="Save and Exit"/>
-                                            <input type="button" @click.prevent="save(true)" class="btn btn-primary" value="Save and Continue"/>
-                                            <div v-if="proposal_type_name==='transfer'">
-                                                <template v-if="!isSubmitting">
-                                                    <input
-                                                        type="button"
-                                                        @click.prevent="submit"
-                                                        class="btn btn-primary"
-                                                        value="Pay and Submit"
-                                                        :disabled="pay_button_disabled"
-                                                    />
-                                                </template>
-                                                <template v-else>
-                                                    <button disabled class="btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Submitting</button>
-                                                </template>
-                                            </div>
-                                            <div v-else>
-                                                <template v-if="!isSubmitting">
-                                                    <input
-                                                        type="button"
-                                                        @click.prevent="submit"
-                                                        class="btn btn-primary"
-                                                        :value="submit_button_text"
-                                                        :disabled="!total_num_of_sites_on_map > 0"
-                                                    />
-                                                </template>
-                                                <template v-else>
-                                                    <button disabled class="btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Submitting</button>
-                                                </template>
-                                            </div>
+                                            <span v-if="!isSubmitting">
+                                                <input type="button" @click.prevent="save_exit" class="btn btn-primary" value="Save and Exit"/>
+                                                <input type="button" @click.prevent="save(true)" class="btn btn-primary" value="Save and Continue"/>
+                                                <span v-if="!isSaving">
+                                                    <span v-if="proposal_type_name==='transfer'">
+                                                        <input
+                                                            type="button"
+                                                            @click.prevent="submit"
+                                                            class="btn btn-primary"
+                                                            value="Pay and Submit"
+                                                            :disabled="pay_button_disabled"
+                                                        />
+                                                    </span>
+                                                    <span v-else>
+                                                        <input
+                                                            type="button"
+                                                            @click.prevent="submit"
+                                                            class="btn btn-primary"
+                                                            :value="submit_button_text"
+                                                            :disabled="!total_num_of_sites_on_map > 0"
+                                                        />
+                                                    </span>
+                                                </span>
+                                            </span>
+                                            <span v-else-if="isSubmitting">
+                                                <button disabled class="btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Submitting</button>
+                                            </span>
 
                                             <input id="save_and_continue_btn" type="hidden" @click.prevent="save(false)" class="btn btn-primary" value="Save Without Confirmation"/>
                                         </div>
@@ -191,10 +188,12 @@
                             <template v-else>
                                 <p class="pull-right" style="margin-top:5px;">
                                     <button id="sectionHide" @click.prevent="sectionHide" class="btn btn-primary">Show/Hide sections</button>
-                                    <span v-if="!isSubmitting && !isSaving">
+                                    <span v-if="!isSubmitting">
                                         <input type="button" @click.prevent="save_exit" class="btn btn-primary" value="Save and Exit"/>
                                         <input type="button" @click.prevent="save(true)" class="btn btn-primary" value="Save and Continue"/>
-                                        <input type="button" @click.prevent="submit" class="btn btn-primary" value="Submit"/>
+                                        <span v-if="!isSaving">
+                                            <input type="button" @click.prevent="submit" class="btn btn-primary" value="Submit"/>
+                                        </span>
                                     </span>
                                     <span v-else-if="isSubmitting">
                                         <button disabled class="btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Submitting</button>
@@ -554,6 +553,7 @@ export default {
                             );
                         }
                     }
+                    this.isSaving = false;
                 },
                 err=>{
                     console.log('err')
@@ -565,7 +565,6 @@ export default {
                     }
                 }
             );
-            this.isSaving = false;
         },
         save_exit: function(e) {
             let vm = this;
@@ -829,7 +828,7 @@ export default {
                 type: "question",
                 showCancelButton: true,
                 confirmButtonText: 'Submit'
-            }).then(() => {
+            }).then(async () => {
                 console.log('in then()');
                 vm.submittingProposal = true;
                 // Only Apiary has an application fee
@@ -839,8 +838,24 @@ export default {
                     vm.save_and_redirect();
                 } else {
                     /* just save and submit - no payment required (probably application was pushed back by assessor for amendment */
-                    console.log('--- just save ---')
-                    vm.save(false)
+                    if (['Apiary', 'Site Transfer'].includes(vm.proposal.application_type)) {
+                        await vm.save(false)
+                    }
+                    try {
+                        const res = await vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/submit'),formData);
+                        vm.proposal = res.body;
+                        vm.$router.push({
+                            name: 'submit_proposal',
+                            params: { proposal: vm.proposal}
+                        });
+                    } catch (err) {
+                        swal(
+                            'Submit Error',
+                            helpers.apiVueResourceError(err),
+                            'error'
+                        )
+                    }
+                    /*
                     vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/submit'),formData).then(res=>{
                         vm.proposal = res.body;
                         vm.$router.push({
@@ -854,6 +869,7 @@ export default {
                             'error'
                         )
                     });
+                    */
                 }
             },(error) => {
               vm.paySubmitting=false;
