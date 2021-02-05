@@ -78,6 +78,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'sub_activity_level2',
                 'management_area',
                 'fee_invoice_reference',
+                'fee_invoice_references',
                 'fee_paid',
                 )
         read_only_fields=('documents',)
