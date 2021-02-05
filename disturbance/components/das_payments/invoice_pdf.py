@@ -250,11 +250,10 @@ def _create_header(canvas, doc, draw_page_number=True):
 
 
 def _is_gst_exempt(proposal, invoice):
-    # TODO need to fix, since individual parks can be exempt, Below calculation assumes NO PARK IS exempt
     if not proposal:
         return True  # Expecting this is annual site fee
-
-    elif proposal.fee_invoice_reference == invoice.reference:
+    # elif proposal.fee_invoice_reference == invoice.reference:
+    elif invoice.reference in proposal.fee_invoice_references:
         return proposal.application_type.is_gst_exempt
     else:
         return False
