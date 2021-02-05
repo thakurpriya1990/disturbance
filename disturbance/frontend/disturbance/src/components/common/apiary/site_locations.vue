@@ -929,7 +929,6 @@
                             radius_in_pixel = 14
                         }
                         if(!style){
-                            console.log(radius_in_pixel)
                             style = new Style({
                                 image: new CircleStyle({
                                     radius: radius_in_pixel,
