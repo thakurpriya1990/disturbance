@@ -1675,6 +1675,7 @@ class Proposal(RevisionedMixin):
                 proposal.submitter = request.user
                 proposal.previous_application = self
                 if not previous_proposal.apiary_group_application_type:
+                    # for Apiary, we copy requirements in the clone method above
                     req=self.requirements.all().exclude(is_deleted=True)
                     from copy import deepcopy
                     if req:
@@ -2347,18 +2348,16 @@ def clone_proposal_with_status_reset(proposal):
 
 
 def clone_apiary_proposal_with_status_reset(original_proposal):
-    #import ipdb; ipdb.set_trace()
+    # called for Apiary renewals
     with transaction.atomic():
         try:
             proposal = copy.deepcopy(original_proposal)
             proposal.id = None
-            #proposal.application_type = ApplicationType.objects.filter(name=ApplicationType.APIARY)[0]
             proposal.application_type = ApplicationType.objects.get(name=ApplicationType.APIARY)
 
             proposal.save(no_revision=True)
             # create proposal_apiary and associate it with the proposal
             proposal_apiary = ProposalApiary.objects.create(proposal=proposal)
-            #proposal_apiary = proposal_apiary.proposal
             proposal_apiary.save()
 
             proposal.customer_status = 'draft'
@@ -2372,53 +2371,29 @@ def clone_apiary_proposal_with_status_reset(original_proposal):
             proposal.assigned_officer = None
             proposal.assigned_approver = None
 
-            #proposal.approval = None
-
-            #original_proposal_id = proposal.id
-
-            #proposal.id = None
             proposal.approval_level_document = None
             proposal.fee_invoice_reference = None
             proposal.activity = 'Apiary Renewal'
 
             proposal.save(no_revision=True)
 
-            ## clone documents
-            #for proposal_document in DeedPollDocument.objects.filter(proposal=original_proposal.id):
-
-            #    proposal_document.proposal = proposal
-            #    proposal_document.id = None
-            #    path = default_storage.save(
-            #        '{}/proposals/{}/deed_poll_documents/{}'.format(
-            #            settings.MEDIA_APIARY_DIR, proposal.id, proposal_document.name), ContentFile(
-            #            proposal_document._file.read()))
-
-            #    proposal_document._file = path
-            #    proposal_document.can_delete = True
-            #    proposal_document.save()
-
-            # copy documents on file system and reset can_delete flag
-            #subprocess.call('cp -pr media/proposals/{} media/proposals/{}'.format(original_proposal.id, proposal.id), shell=True)
-
-            # clone requirements
+            # clone requirements - ensure due dates are None
             approval = original_proposal.proposal_apiary.retrieve_approval
             req = approval.proposalrequirement_set.exclude(is_deleted=True)
-            #from copy import deepcopy
             if req:
                 for r in req:
                     old_r = copy.deepcopy(r)
                     r.proposal = proposal
-                    r.copied_from=old_r
+                    r.copied_from=None
+                    r.copied_for_renewal=True
+                    if r.due_date:
+                        r.due_date=None
+                        r.require_due_date=True
                     r.id = None
                     r.save()
 
             # update apiary_sites with new proposal
             approval.add_apiary_sites_to_proposal_apiary_for_renewal(proposal_apiary)
-            # for site in approval.apiary_sites.all():
-                # Create new relations between the ApiarySite and the ProposalApiary
-                # ApiarySiteOnProposal.objects.create(apiary_site=site, proposal_apiary=proposal.proposal_apiary)
-                # site.proposal_apiary = proposal.proposal_apiary
-                # site.save()
 
             # Checklist questions
             for question in ApiaryChecklistQuestion.objects.filter(
@@ -2427,13 +2402,6 @@ def clone_apiary_proposal_with_status_reset(original_proposal):
                     ):
                 new_answer = ApiaryChecklistAnswer.objects.create(proposal = proposal.proposal_apiary,
                                                                            question = question)
-
-            # update approval.current_proposal
-            #approval.current_proposal = proposal
-            #approval.save()
-            # Set previous_application to maintain proposal history
-            #proposal_apiary.proposal.previous_application = approval.current_proposal
-            #proposal_apiary.proposal.save()
 
             return proposal
         except:
