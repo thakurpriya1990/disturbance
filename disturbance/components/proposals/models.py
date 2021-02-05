@@ -10,6 +10,7 @@ from django.contrib.gis.db.models.fields import PointField
 from django.contrib.gis.db.models.manager import GeoManager
 from django.contrib.gis.geos import GEOSGeometry
 from django.contrib.gis.measure import Distance
+from django.contrib.postgres.fields import ArrayField
 from django.db import models,transaction
 from django.contrib.gis.db import models as gis_models
 from django.db.models import Q
@@ -251,6 +252,9 @@ class ProposalDocument(Document):
     class Meta:
         app_label = 'disturbance'
 
+def fee_invoice_references_default():
+    return []
+
 
 class Proposal(RevisionedMixin):
     CUSTOMER_STATUS_TEMP = 'temp'
@@ -403,7 +407,8 @@ class Proposal(RevisionedMixin):
     sub_activity_level2 = models.CharField(max_length=255,null=True,blank=True)
     management_area = models.CharField(max_length=255,null=True,blank=True)
 
-    fee_invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
+    # fee_invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
+    fee_invoice_references = ArrayField(models.CharField(max_length=50, null=True, blank=True, default=''), null=True, default=fee_invoice_references_default)
     migrated = models.BooleanField(default=False)
 
     class Meta:
@@ -426,11 +431,7 @@ class Proposal(RevisionedMixin):
         if not self.apiary_group_application_type:
             return False
         else:
-            return True if self.fee_invoice_reference or self.proposal_type == 'amendment' else False
-
-    @property
-    def fee_amount(self):
-        return Invoice.objects.get(reference=self.fee_invoice_reference).amount if self.fee_paid else None
+            return True if self.fee_invoice_references or self.proposal_type == 'amendment' else False
 
     @property
     def relevant_applicant(self):
@@ -2372,7 +2373,8 @@ def clone_apiary_proposal_with_status_reset(original_proposal):
             proposal.assigned_approver = None
 
             proposal.approval_level_document = None
-            proposal.fee_invoice_reference = None
+            # proposal.fee_invoice_reference = None
+            proposal.fee_invoice_references = []
             proposal.activity = 'Apiary Renewal'
 
             proposal.save(no_revision=True)
