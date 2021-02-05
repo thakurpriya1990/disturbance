@@ -300,12 +300,23 @@ export default {
                     },
                     {
                         // 9. Invoice
-                        mRender:function (data,type,full) {
+                        mRender:function (data, type, full) {
+                            console.log(full)
                             let links = '';
-                            if (full.fee_paid) {
-                                links +=  `<a href='/payments/invoice-pdf/${full.fee_invoice_reference}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i></a> &nbsp`;
-                                if (!vm.is_external){
-                                    links +=  `<a href='/ledger/payments/invoice/payment?invoice=${full.fee_invoice_reference}' target='_blank'>View Payment</a><br/>`;
+                            //if (full.fee_paid) {
+                            //    links +=  `<a href='/payments/invoice-pdf/${full.fee_invoice_reference}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i></a> &nbsp`;
+                            //    if (!vm.is_external){
+                            //        links +=  `<a href='/ledger/payments/invoice/payment?invoice=${full.fee_invoice_reference}' target='_blank'>View Payment</a><br/>`;
+                            //    }
+                            //}
+                            if (full.fee_invoice_references){
+                                for (let item of full.fee_invoice_references){
+                                    links += '<div>'
+                                    links +=  `<a href='/payments/invoice-pdf/${item}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> ${item}</a>`;
+                                    if (!vm.is_external){
+                                        links +=  `&nbsp;&nbsp;&nbsp;<a href='/ledger/payments/invoice/payment?invoice=${item}' target='_blank'>View Payment</a><br/>`;
+                                    }
+                                    links += '</div>'
                                 }
                             }
                             return links;
