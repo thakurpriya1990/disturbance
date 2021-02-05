@@ -494,7 +494,6 @@ export default {
         attach_apiary_sites_data: function(formData){
             try {
                 // Append apiary_sites edited data
-                console.log('in attach_apiary_sites_data')
                 if (this.proposal && this.proposal.proposal_apiary){
                     let allFeatures = this.$refs.proposal_apiary.$refs.apiary_site_locations.getFeatures()
                     let json_features = JSON.stringify(allFeatures)
@@ -536,6 +535,7 @@ export default {
                 formData.append('transferee_email_text', transfereeEmail);
             }
 
+            console.log('http.post: ' + vm.proposal_form_url)
             vm.$http.post(vm.proposal_form_url, formData).then(
                 res=>{
                     if (confirmation_required){
@@ -832,16 +832,21 @@ export default {
                 console.log('in then()');
                 vm.submittingProposal = true;
                 // Only Apiary has an application fee
-                if (!vm.proposal.fee_paid && ['Apiary', 'Site Transfer'].includes(vm.proposal.application_type)) {
+                //if (!vm.proposal.fee_paid && ['Apiary', 'Site Transfer'].includes(vm.proposal.application_type)) {
+                if (['Apiary', 'Site Transfer'].includes(vm.proposal.application_type)) {
                     //if (this.submit_button_text === 'Pay and submit' && ['Apiary', 'Site Transfer'].includes(vm.proposal.application_type)) {
                     console.log('--- save and pay ---')
                     vm.save_and_redirect();
                 } else {
                     /* just save and submit - no payment required (probably application was pushed back by assessor for amendment */
                     if (['Apiary', 'Site Transfer'].includes(vm.proposal.application_type)) {
-                        await vm.save(false)
+                        //console.log('vm.save(false)')
+                       // await vm.save(false)
                     }
                     try {
+                        console.log('http.post(submit)')
+                        console.log('http.post: ' + helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/submit'))
+
                         const res = await vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/submit'),formData);
                         vm.proposal = res.body;
                         vm.$router.push({
@@ -878,7 +883,7 @@ export default {
         },
         // Apiary submission
         save_and_redirect: async function(e) {
-            console.log('save_and_redirect');
+            console.log('in save_and_redirect');
             this.isSaving = true;
             let vm = this;
             vm.form=document.forms.new_proposal;
