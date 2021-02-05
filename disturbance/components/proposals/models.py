@@ -876,8 +876,8 @@ class Proposal(RevisionedMixin):
                 ret2 = send_external_submit_email_notification(request, self)
 
                 if ret1 and ret2:
-                    self.processing_status = 'with_assessor'
-                    self.customer_status = 'with_assessor'
+                    self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
+                    self.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
                     self.documents.all().update(can_delete=False)
                     self.save()
                 else:
@@ -1114,7 +1114,7 @@ class Proposal(RevisionedMixin):
             try:
                 if not self.can_assess(request.user):
                     raise exceptions.ProposalNotAuthorized()
-                if self.processing_status != 'with_assessor':
+                if self.processing_status != Proposal.PROCESSING_STATUS_WITH_ASSESSOR:
                     raise ValidationError('You cannot propose to decline if it is not with assessor')
 
                 reason = details.get('reason')
@@ -1358,7 +1358,7 @@ class Proposal(RevisionedMixin):
             try:
                 if not self.can_assess(request.user):
                     raise exceptions.ProposalNotAuthorized()
-                if self.processing_status != 'with_assessor':
+                if self.processing_status != Proposal.PROCESSING_STATUS_WITH_ASSESSOR:
                     # For temporary Use Application, assessor approves it
                     raise ValidationError('You cannot approve the proposal if it is not with an assessor')
 
@@ -1384,7 +1384,7 @@ class Proposal(RevisionedMixin):
             try:
                 if not self.can_assess(request.user):
                     raise exceptions.ProposalNotAuthorized()
-                if self.processing_status != 'with_assessor':
+                if self.processing_status != Proposal.PROCESSING_STATUS_WITH_ASSESSOR:
                     # For temporary Use Application, assessor approves it
                     raise ValidationError('You cannot approve the proposal if it is not with an assessor')
 

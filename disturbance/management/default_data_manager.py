@@ -165,7 +165,10 @@ class DefaultDataManager(object):
                 site_fees = ApiarySiteFee.objects.filter(apiary_site_fee_type=fee_type, site_category=cat, date_of_enforcement__lte=today_local)
                 if not site_fees.count():
                     new_fee = ApiarySiteFee.objects.create(apiary_site_fee_type=fee_type, site_category=cat, date_of_enforcement=today_local)
-                    new_fee.amount = 100
+                    if fee_type == ApiarySiteFeeType.FEE_TYPE_RENEWAL:
+                        new_fee.amount = 0
+                    else:
+                        new_fee.amount = 100
                     new_fee.save()
                     logger.info("Created apiary site fee: %s" % new_fee)
 

@@ -218,9 +218,6 @@ class SiteTransferApplicationFeeSuccessView(TemplateView):
                     application_fee.expiry_time = None
                     update_payments(invoice_ref)
 
-                    #proposal = proposal.submit(request, None)
-                    #proposal.fee_invoice_reference = request.GET['invoice']
-                    # proposal = proposal_submit_apiary(proposal, request)
                     if proposal and (invoice.payment_status == 'paid' or invoice.payment_status == 'over_paid'):
                         proposal.fee_invoice_reference = invoice_ref
                         proposal.save()
@@ -406,9 +403,6 @@ class ApplicationFeeSuccessView(TemplateView):
                     application_fee.expiry_time = None
                     update_payments(invoice_ref)
 
-                    #proposal = proposal.submit(request, None)
-                    #proposal.fee_invoice_reference = request.GET['invoice']
-                    # proposal = proposal_submit_apiary(proposal, request)
                     if proposal and (invoice.payment_status == 'paid' or invoice.payment_status == 'over_paid'):
                         proposal.fee_invoice_reference = invoice_ref
                         proposal.save()

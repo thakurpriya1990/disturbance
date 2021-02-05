@@ -217,7 +217,6 @@ def _create_header(canvas, doc, draw_page_number=True):
     #licence_number = proposal.approval.lodgement_number if proposal.approval else None
 
     # TODO need to fix, since individual parks can be exempt, Below calculation assumes NO PARK IS exempt
-    #is_gst_exempt = proposal.application_type.is_gst_exempt if proposal.fee_invoice_reference == invoice.reference else False
 
     canvas.setFont(BOLD_FONTNAME, SMALL_FONTSIZE)
     current_x = PAGE_MARGIN + 5
