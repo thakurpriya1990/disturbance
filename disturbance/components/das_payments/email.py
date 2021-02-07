@@ -9,11 +9,20 @@ from disturbance.components.emails.emails import TemplateEmailBase
 from disturbance.components.das_payments.invoice_pdf import create_invoice_pdf_bytes
 from disturbance.components.das_payments.confirmation_pdf import create_confirmation_pdf_bytes
 from disturbance.context_processors import apiary_url
+from ledger.accounts.models import EmailUser
 
 logger = logging.getLogger(__name__)
 
 SYSTEM_NAME = settings.SYSTEM_NAME_SHORT + ' Automated Message'
 
+def get_sender_user():
+    sender = settings.DEFAULT_FROM_EMAIL
+    try:
+        sender_user = EmailUser.objects.get(email__icontains=sender)
+    except:
+        EmailUser.objects.create(email=sender, password='')
+        sender_user = EmailUser.objects.get(email__icontains=sender)
+    return sender_user
 
 class ApplicationFeeInvoiceApiarySendNotificationEmail(TemplateEmailBase):
     subject = 'Your application fee invoice.'
@@ -45,7 +54,8 @@ def send_application_fee_invoice_apiary_email_notification(request, proposal, in
     if is_test:
         return
 
-    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    #sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    sender = get_sender_user()
     _log_proposal_email(msg, proposal, sender=sender)
 #    try:
 #        _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
