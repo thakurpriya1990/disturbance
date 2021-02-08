@@ -63,6 +63,8 @@
                     @expiry_date_changed="expiry_date_changed"
                     @total_num_of_sites_on_map_unpaid="total_num_of_sites_on_map_unpaid_changed"
                     @total_num_of_sites_on_map="total_num_of_sites_on_map_changed"
+                    @fee_remote_renewal="update_fee_remote_renewal"
+                    @fee_south_west_renewal="update_fee_south_west_renewal"
                 />
             </template>
             <template v-else-if="proposal && proposal.application_type=='Site Transfer'">
@@ -90,6 +92,7 @@
                             <div class="navbar-inner">
                                 <div v-if="proposal && !proposal.readonly" class="container">
                                     <div class="row payment-details-buttons">
+
                                         <template v-if="is_proposal_type_new">
                                             <div class="col-sm-3 text-right">
                                             </div>
@@ -98,30 +101,39 @@
                                                 <div>{{ num_of_sites_south_west_remain_after_payment }}</div>
                                                 <div>{{ num_of_sites_remote_remain_after_payment }}</div>
                                             </div>
-
                                         </template>
+
                                         <template v-if="is_proposal_type_transfer">
                                             <div class="col-sm-3 text-right">
                                             </div>
                                             <div class="col-sm-3 text-right">
-                                                <div class="text-center payment-description-title"> </div>
-                                                <div> </div>
-                                                <div> </div>
+                                                <div class="text-center payment-description-title"></div>
+                                                <div></div>
+                                                <div></div>
                                             </div>
-
                                         </template>
 
                                         <template v-if="is_proposal_type_renewal">
+                                            <template v-if="!show_renewal_price_section">
+                                                <div class="col-sm-3 text-right">
+                                                </div>
+                                            </template>
                                             <div class="col-sm-3 text-right">
                                                 <div class="text-center payment-description-title">New sites</div>
                                                 <div>{{ num_of_sites_south_west_remain_after_payment }}</div>
                                                 <div>{{ num_of_sites_remote_remain_after_payment }}</div>
                                             </div>
-                                            <div class="col-sm-3 text-right">
-                                                <div class="text-center payment-description-title">Renew sites</div>
-                                                <div>{{ num_of_sites_south_west_renewal_remain_after_payment }}</div>
-                                                <div>{{ num_of_sites_remote_renewal_remain_after_payment }}</div>
-                                            </div>
+                                            <template v-if="show_renewal_price_section">
+                                                <div class="col-sm-3 text-right">
+                                                    <div class="text-center payment-description-title">Renew sites</div>
+                                                    <div v-if="fee_south_west_renewal > 0">
+                                                        {{ num_of_sites_south_west_renewal_remain_after_payment }}
+                                                    </div>
+                                                    <div v-if="fee_remote_renewal > 0">
+                                                        {{ num_of_sites_remote_renewal_remain_after_payment }}
+                                                    </div>
+                                                </div>
+                                            </template>
                                         </template>
 
                                         <div class="col-sm-2 text-center">
@@ -267,6 +279,8 @@ export default {
             total_fee_remote: 0,
             total_fee_south_west_renewal: 0,
             total_fee_remote_renewal: 0,
+            fee_remote_renewal: 0,  // Used for toggling the 'renewal price section'
+            fee_south_west_renewal: 0,  // Used for toggling the 'renewal price section'
             num_of_sites_remain_south_west: 0,
             num_of_sites_remain_remote: 0,
             num_of_sites_remain_south_west_renewal: 0,
@@ -298,6 +312,13 @@ export default {
                 requestText = 'An amendment has been requested for this application';
             }
             return requestText;
+        },
+        show_renewal_price_section: function(){
+            if (this.fee_remote_renewal + this.fee_south_west_renewal > 0){
+                return true
+            } else {
+                return false
+            }
         },
         num_of_sites_south_west_remain_after_payment: function() {
             let total = this.num_of_sites_remain_south_west + this.num_of_sites_south_west_to_add_as_remainder
@@ -420,6 +441,12 @@ export default {
         //}
     },
     methods: {
+        update_fee_remote_renewal: function(value){
+            this.fee_remote_renewal = value
+        },
+        update_fee_south_west_renewal: function(value){
+            this.fee_south_west_renewal = value
+        },
         selectedLicenceHolderChanged: function(selectedHolder){
             this.selectedHolder = selectedHolder
         },
