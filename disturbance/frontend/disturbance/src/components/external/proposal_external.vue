@@ -63,6 +63,8 @@
                     @expiry_date_changed="expiry_date_changed"
                     @total_num_of_sites_on_map_unpaid="total_num_of_sites_on_map_unpaid_changed"
                     @total_num_of_sites_on_map="total_num_of_sites_on_map_changed"
+                    @fee_remote_renewal="update_fee_remote_renewal"
+                    @fee_south_west_renewal="update_fee_south_west_renewal"
                 />
             </template>
             <template v-else-if="proposal && proposal.application_type=='Site Transfer'">
@@ -90,6 +92,7 @@
                             <div class="navbar-inner">
                                 <div v-if="proposal && !proposal.readonly" class="container">
                                     <div class="row payment-details-buttons">
+
                                         <template v-if="is_proposal_type_new">
                                             <div class="col-sm-3 text-right">
                                             </div>
@@ -98,30 +101,39 @@
                                                 <div>{{ num_of_sites_south_west_remain_after_payment }}</div>
                                                 <div>{{ num_of_sites_remote_remain_after_payment }}</div>
                                             </div>
-
                                         </template>
+
                                         <template v-if="is_proposal_type_transfer">
                                             <div class="col-sm-3 text-right">
                                             </div>
                                             <div class="col-sm-3 text-right">
-                                                <div class="text-center payment-description-title"> </div>
-                                                <div> </div>
-                                                <div> </div>
+                                                <div class="text-center payment-description-title"></div>
+                                                <div></div>
+                                                <div></div>
                                             </div>
-
                                         </template>
 
                                         <template v-if="is_proposal_type_renewal">
+                                            <template v-if="!show_renewal_price_section">
+                                                <div class="col-sm-3 text-right">
+                                                </div>
+                                            </template>
                                             <div class="col-sm-3 text-right">
                                                 <div class="text-center payment-description-title">New sites</div>
                                                 <div>{{ num_of_sites_south_west_remain_after_payment }}</div>
                                                 <div>{{ num_of_sites_remote_remain_after_payment }}</div>
                                             </div>
-                                            <div class="col-sm-3 text-right">
-                                                <div class="text-center payment-description-title">Renew sites</div>
-                                                <div>{{ num_of_sites_south_west_renewal_remain_after_payment }}</div>
-                                                <div>{{ num_of_sites_remote_renewal_remain_after_payment }}</div>
-                                            </div>
+                                            <template v-if="show_renewal_price_section">
+                                                <div class="col-sm-3 text-right">
+                                                    <div class="text-center payment-description-title">Renew sites</div>
+                                                    <div v-if="fee_south_west_renewal > 0">
+                                                        {{ num_of_sites_south_west_renewal_remain_after_payment }}
+                                                    </div>
+                                                    <div v-if="fee_remote_renewal > 0">
+                                                        {{ num_of_sites_remote_renewal_remain_after_payment }}
+                                                    </div>
+                                                </div>
+                                            </template>
                                         </template>
 
                                         <div class="col-sm-2 text-center">
@@ -134,36 +146,33 @@
                                             </div>
                                         </div>
                                         <div class="col-sm-4 text-right no-padding">
-                                            <input type="button" @click.prevent="save_exit" class="btn btn-primary" value="Save and Exit"/>
-                                            <input type="button" @click.prevent="save(true)" class="btn btn-primary" value="Save and Continue"/>
-                                            <div v-if="proposal_type_name==='transfer'">
-                                                <template v-if="!isSubmitting">
-                                                    <input
-                                                        type="button"
-                                                        @click.prevent="submit"
-                                                        class="btn btn-primary"
-                                                        value="Pay and Submit"
-                                                        :disabled="pay_button_disabled"
-                                                    />
-                                                </template>
-                                                <template v-else>
-                                                    <button disabled class="btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Submitting</button>
-                                                </template>
-                                            </div>
-                                            <div v-else>
-                                                <template v-if="!isSubmitting">
-                                                    <input
-                                                        type="button"
-                                                        @click.prevent="submit"
-                                                        class="btn btn-primary"
-                                                        :value="submit_button_text"
-                                                        :disabled="!total_num_of_sites_on_map > 0"
-                                                    />
-                                                </template>
-                                                <template v-else>
-                                                    <button disabled class="btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Submitting</button>
-                                                </template>
-                                            </div>
+                                            <span v-if="!isSubmitting">
+                                                <input type="button" @click.prevent="save_exit" class="btn btn-primary" value="Save and Exit"/>
+                                                <input type="button" @click.prevent="save(true)" class="btn btn-primary" value="Save and Continue"/>
+                                                <span v-if="!isSaving">
+                                                    <span v-if="proposal_type_name==='transfer'">
+                                                        <input
+                                                            type="button"
+                                                            @click.prevent="submit"
+                                                            class="btn btn-primary"
+                                                            value="Pay and Submit"
+                                                            :disabled="pay_button_disabled"
+                                                        />
+                                                    </span>
+                                                    <span v-else>
+                                                        <input
+                                                            type="button"
+                                                            @click.prevent="submit"
+                                                            class="btn btn-primary"
+                                                            :value="submit_button_text"
+                                                            :disabled="!total_num_of_sites_on_map > 0"
+                                                        />
+                                                    </span>
+                                                </span>
+                                            </span>
+                                            <span v-else-if="isSubmitting">
+                                                <button disabled class="btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Submitting</button>
+                                            </span>
 
                                             <input id="save_and_continue_btn" type="hidden" @click.prevent="save(false)" class="btn btn-primary" value="Save Without Confirmation"/>
                                         </div>
@@ -191,10 +200,12 @@
                             <template v-else>
                                 <p class="pull-right" style="margin-top:5px;">
                                     <button id="sectionHide" @click.prevent="sectionHide" class="btn btn-primary">Show/Hide sections</button>
-                                    <span v-if="!isSubmitting && !isSaving">
+                                    <span v-if="!isSubmitting">
                                         <input type="button" @click.prevent="save_exit" class="btn btn-primary" value="Save and Exit"/>
                                         <input type="button" @click.prevent="save(true)" class="btn btn-primary" value="Save and Continue"/>
-                                        <input type="button" @click.prevent="submit" class="btn btn-primary" value="Submit"/>
+                                        <span v-if="!isSaving">
+                                            <input type="button" @click.prevent="submit" class="btn btn-primary" value="Submit"/>
+                                        </span>
                                     </span>
                                     <span v-else-if="isSubmitting">
                                         <button disabled class="btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Submitting</button>
@@ -268,6 +279,8 @@ export default {
             total_fee_remote: 0,
             total_fee_south_west_renewal: 0,
             total_fee_remote_renewal: 0,
+            fee_remote_renewal: 0,  // Used for toggling the 'renewal price section'
+            fee_south_west_renewal: 0,  // Used for toggling the 'renewal price section'
             num_of_sites_remain_south_west: 0,
             num_of_sites_remain_remote: 0,
             num_of_sites_remain_south_west_renewal: 0,
@@ -299,6 +312,13 @@ export default {
                 requestText = 'An amendment has been requested for this application';
             }
             return requestText;
+        },
+        show_renewal_price_section: function(){
+            if (this.fee_remote_renewal + this.fee_south_west_renewal > 0){
+                return true
+            } else {
+                return false
+            }
         },
         num_of_sites_south_west_remain_after_payment: function() {
             let total = this.num_of_sites_remain_south_west + this.num_of_sites_south_west_to_add_as_remainder
@@ -421,6 +441,12 @@ export default {
         //}
     },
     methods: {
+        update_fee_remote_renewal: function(value){
+            this.fee_remote_renewal = value
+        },
+        update_fee_south_west_renewal: function(value){
+            this.fee_south_west_renewal = value
+        },
         selectedLicenceHolderChanged: function(selectedHolder){
             this.selectedHolder = selectedHolder
         },
@@ -495,7 +521,6 @@ export default {
         attach_apiary_sites_data: function(formData){
             try {
                 // Append apiary_sites edited data
-                console.log('in attach_apiary_sites_data')
                 if (this.proposal && this.proposal.proposal_apiary){
                     let allFeatures = this.$refs.proposal_apiary.$refs.apiary_site_locations.getFeatures()
                     let json_features = JSON.stringify(allFeatures)
@@ -537,6 +562,7 @@ export default {
                 formData.append('transferee_email_text', transfereeEmail);
             }
 
+            console.log('http.post: ' + vm.proposal_form_url)
             vm.$http.post(vm.proposal_form_url, formData).then(
                 res=>{
                     if (confirmation_required){
@@ -554,6 +580,7 @@ export default {
                             );
                         }
                     }
+                    this.isSaving = false;
                 },
                 err=>{
                     console.log('err')
@@ -565,7 +592,6 @@ export default {
                     }
                 }
             );
-            this.isSaving = false;
         },
         save_exit: function(e) {
             let vm = this;
@@ -829,18 +855,35 @@ export default {
                 type: "question",
                 showCancelButton: true,
                 confirmButtonText: 'Submit'
-            }).then(() => {
+            }).then(async () => {
                 console.log('in then()');
                 vm.submittingProposal = true;
                 // Only Apiary has an application fee
-                if (!vm.proposal.fee_paid && ['Apiary', 'Site Transfer'].includes(vm.proposal.application_type)) {
+                //if (!vm.proposal.fee_paid && ['Apiary', 'Site Transfer'].includes(vm.proposal.application_type)) {
+                if (['Apiary', 'Site Transfer'].includes(vm.proposal.application_type)) {
                     //if (this.submit_button_text === 'Pay and submit' && ['Apiary', 'Site Transfer'].includes(vm.proposal.application_type)) {
                     console.log('--- save and pay ---')
                     vm.save_and_redirect();
                 } else {
                     /* just save and submit - no payment required (probably application was pushed back by assessor for amendment */
-                    console.log('--- just save ---')
-                    vm.save(false)
+                    try {
+                        console.log('http.post(submit)')
+                        console.log('http.post: ' + helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/submit'))
+
+                        const res = await vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/submit'),formData);
+                        vm.proposal = res.body;
+                        vm.$router.push({
+                            name: 'submit_proposal',
+                            params: { proposal: vm.proposal}
+                        });
+                    } catch (err) {
+                        swal(
+                            'Submit Error',
+                            helpers.apiVueResourceError(err),
+                            'error'
+                        )
+                    }
+                    /*
                     vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/submit'),formData).then(res=>{
                         vm.proposal = res.body;
                         vm.$router.push({
@@ -854,6 +897,7 @@ export default {
                             'error'
                         )
                     });
+                    */
                 }
             },(error) => {
               vm.paySubmitting=false;
@@ -862,7 +906,7 @@ export default {
         },
         // Apiary submission
         save_and_redirect: async function(e) {
-            console.log('save_and_redirect');
+            console.log('in save_and_redirect');
             this.isSaving = true;
             let vm = this;
             vm.form=document.forms.new_proposal;

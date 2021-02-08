@@ -218,11 +218,9 @@ class SiteTransferApplicationFeeSuccessView(TemplateView):
                     application_fee.expiry_time = None
                     update_payments(invoice_ref)
 
-                    #proposal = proposal.submit(request, None)
-                    #proposal.fee_invoice_reference = request.GET['invoice']
-                    # proposal = proposal_submit_apiary(proposal, request)
                     if proposal and (invoice.payment_status == 'paid' or invoice.payment_status == 'over_paid'):
-                        proposal.fee_invoice_reference = invoice_ref
+                        # proposal.fee_invoice_reference = invoice_ref
+                        proposal.fee_invoice_references.append(invoice_ref)
                         proposal.save()
                         proposal_submit_apiary(proposal, request)
                     else:
@@ -406,11 +404,9 @@ class ApplicationFeeSuccessView(TemplateView):
                     application_fee.expiry_time = None
                     update_payments(invoice_ref)
 
-                    #proposal = proposal.submit(request, None)
-                    #proposal.fee_invoice_reference = request.GET['invoice']
-                    # proposal = proposal_submit_apiary(proposal, request)
                     if proposal and (invoice.payment_status == 'paid' or invoice.payment_status == 'over_paid'):
-                        proposal.fee_invoice_reference = invoice_ref
+                        # proposal.fee_invoice_reference = invoice_ref
+                        proposal.fee_invoice_references.append(invoice_ref)
                         proposal.save()
                         proposal_submit_apiary(proposal, request)
                         self.adjust_db_operations(db_operations)
@@ -518,7 +514,8 @@ class InvoicePDFView(View):
 
         try:
             # Assume the invoice has been issued for the application(proposal)
-            proposal = Proposal.objects.get(fee_invoice_reference=invoice.reference)
+            # proposal = Proposal.objects.get(fee_invoice_reference=invoice.reference)
+            proposal = Proposal.objects.get(fee_invoice_references__contains=[invoice.reference])
 
             if proposal.relevant_applicant_type == 'organisation':
                 organisation = proposal.applicant.organisation.organisation_set.all()[0]
@@ -551,7 +548,8 @@ class InvoicePDFView(View):
 class ConfirmationPDFView(View):
     def get(self, request, *args, **kwargs):
         invoice = get_object_or_404(Invoice, reference=self.kwargs['reference'])
-        proposal = Proposal.objects.get(fee_invoice_reference=invoice.reference)
+        # proposal = Proposal.objects.get(fee_invoice_reference=invoice.reference)
+        proposal = Proposal.objects.get(fee_invoice_references__contains=[invoice.reference])
         application_fee = proposal.application_fees.last()
 
         organisation = proposal.applicant.organisation.organisation_set.all()[0]

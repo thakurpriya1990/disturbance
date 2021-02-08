@@ -130,7 +130,8 @@ class ListProposalSerializer(BaseProposalSerializer):
                 'assessor_process',
                 'allowed_assessors',
                 'proposal_type',
-                'fee_invoice_reference',
+                # 'fee_invoice_reference',
+                'fee_invoice_references',
                 'fee_paid',
                 'relevant_applicant_name',
                 'apiary_group_application_type',
@@ -156,7 +157,8 @@ class ListProposalSerializer(BaseProposalSerializer):
                 'can_officer_process',
                 'assessor_process',
                 'allowed_assessors',
-                'fee_invoice_reference',
+                # 'fee_invoice_reference',
+                'fee_invoice_references',
                 'fee_paid',
                 'application_type',
                 'relevant_applicant_name',
@@ -401,7 +403,8 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'sub_activity_level1',
                 'sub_activity_level2',
                 'management_area',
-                'fee_invoice_reference',
+                # 'fee_invoice_reference',
+                'fee_invoice_references',
                 'fee_paid',
                 'apiary_temporary_use',
                 'requirements_completed',
@@ -523,6 +526,7 @@ class DTReferralSerializer(serializers.ModelSerializer):
     relevant_applicant_name = serializers.SerializerMethodField()
     #proposal_application_type = serializers.SerializerMethodField()
     template_group = serializers.SerializerMethodField(read_only=True)
+    assigned_officer = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Referral
@@ -544,10 +548,15 @@ class DTReferralSerializer(serializers.ModelSerializer):
             'proposal_lodgement_number',
             'referral_text',
             'template_group',
+            'assigned_officer',
         )
 
     def get_submitter(self,obj):
         return EmailUserSerializer(obj.proposal.submitter).data
+
+    def get_assigned_officer(self,obj):
+        if obj.proposal.apiary_group_application_type:
+            return EmailUserSerializer(obj.apiary_referral.assigned_officer).data
 
     def get_relevant_applicant_name(self,obj):
         return obj.proposal.relevant_applicant_name

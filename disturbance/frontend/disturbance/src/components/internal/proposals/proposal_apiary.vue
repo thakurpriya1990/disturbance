@@ -210,7 +210,7 @@
                                         </div>
                                     </div>
                                     <div class="row">
-                                        <div class="col-sm-12">
+                                        <div class="col-sm-12" v-if="requirementsComplete">
                                             <button style="width:80%;" class="btn btn-primary top-buffer-s" :disabled="proposal.can_user_edit" @click.prevent="proposedApproval()">Propose to Approve</button><br/>
                                         </div>
                                     </div>
@@ -286,7 +286,7 @@
                         />
                     </div>
                     <div v-else>
-                        <Requirements :proposal="proposal"/>
+                        <Requirements :proposal="proposal" @refreshRequirements="refreshRequirements"/>
                     </div>
                 </template>
                 <template v-if="canSeeSubmission || (!canSeeSubmission && showingProposal)">
@@ -527,6 +527,7 @@ export default {
     data: function() {
         let vm = this;
         return {
+            requirementsComplete:true,
             detailsBody: 'detailsBody'+vm._uid,
             addressBody: 'addressBody'+vm._uid,
             contactsBody: 'contactsBody'+vm._uid,
@@ -781,6 +782,10 @@ export default {
         },
     },
     methods: {
+        refreshRequirements: function(bool){
+              let vm=this;
+              vm.requirementsComplete=bool;
+        },
         locationUpdated: function(){
             console.log('in locationUpdated()');
         },
