@@ -10,6 +10,7 @@ from django.contrib.gis.db.models.fields import PointField
 from django.contrib.gis.db.models.manager import GeoManager
 from django.contrib.gis.geos import GEOSGeometry
 from django.contrib.gis.measure import Distance
+from django.contrib.postgres.fields import ArrayField
 from django.db import models,transaction
 from django.contrib.gis.db import models as gis_models
 from django.db.models import Q
@@ -251,6 +252,9 @@ class ProposalDocument(Document):
     class Meta:
         app_label = 'disturbance'
 
+def fee_invoice_references_default():
+    return []
+
 
 class Proposal(RevisionedMixin):
     CUSTOMER_STATUS_TEMP = 'temp'
@@ -398,11 +402,13 @@ class Proposal(RevisionedMixin):
     approval_level_comment = models.TextField(blank=True)
     approval_comment = models.TextField(blank=True)
     assessment_reminder_sent = models.BooleanField(default=False)
+    weekly_reminder_sent_date = models.DateField(blank=True, null=True)
     sub_activity_level1 = models.CharField(max_length=255,null=True,blank=True)
     sub_activity_level2 = models.CharField(max_length=255,null=True,blank=True)
     management_area = models.CharField(max_length=255,null=True,blank=True)
 
-    fee_invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
+    # fee_invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
+    fee_invoice_references = ArrayField(models.CharField(max_length=50, null=True, blank=True, default=''), null=True, default=fee_invoice_references_default)
     migrated = models.BooleanField(default=False)
 
     class Meta:
@@ -425,11 +431,7 @@ class Proposal(RevisionedMixin):
         if not self.apiary_group_application_type:
             return False
         else:
-            return True if self.fee_invoice_reference or self.proposal_type == 'amendment' else False
-
-    @property
-    def fee_amount(self):
-        return Invoice.objects.get(reference=self.fee_invoice_reference).amount if self.fee_paid else None
+            return True if self.fee_invoice_references or self.proposal_type == 'amendment' else False
 
     @property
     def relevant_applicant(self):
@@ -799,7 +801,7 @@ class Proposal(RevisionedMixin):
 
     def assessor_comments_view(self,user):
 
-        if self.processing_status == 'with_assessor' or self.processing_status == 'with_referral' or self.processing_status == 'with_assessor_requirements' or self.processing_status == 'with_approver':
+        if self.processing_status == 'with_assessor' or self.processing_status == 'with_referral' or self.processing_status == 'with_assessor_requirements' or self.processing_status == 'with_approver' or self.processing_status == 'approved':
             try:
                 referral = Referral.objects.get(proposal=self,referral=user)
             except:
@@ -875,8 +877,8 @@ class Proposal(RevisionedMixin):
                 ret2 = send_external_submit_email_notification(request, self)
 
                 if ret1 and ret2:
-                    self.processing_status = 'with_assessor'
-                    self.customer_status = 'with_assessor'
+                    self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
+                    self.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
                     self.documents.all().update(can_delete=False)
                     self.save()
                 else:
@@ -1113,7 +1115,7 @@ class Proposal(RevisionedMixin):
             try:
                 if not self.can_assess(request.user):
                     raise exceptions.ProposalNotAuthorized()
-                if self.processing_status != 'with_assessor':
+                if self.processing_status != Proposal.PROCESSING_STATUS_WITH_ASSESSOR:
                     raise ValidationError('You cannot propose to decline if it is not with assessor')
 
                 reason = details.get('reason')
@@ -1357,7 +1359,7 @@ class Proposal(RevisionedMixin):
             try:
                 if not self.can_assess(request.user):
                     raise exceptions.ProposalNotAuthorized()
-                if self.processing_status != 'with_assessor':
+                if self.processing_status != Proposal.PROCESSING_STATUS_WITH_ASSESSOR:
                     # For temporary Use Application, assessor approves it
                     raise ValidationError('You cannot approve the proposal if it is not with an assessor')
 
@@ -1383,7 +1385,7 @@ class Proposal(RevisionedMixin):
             try:
                 if not self.can_assess(request.user):
                     raise exceptions.ProposalNotAuthorized()
-                if self.processing_status != 'with_assessor':
+                if self.processing_status != Proposal.PROCESSING_STATUS_WITH_ASSESSOR:
                     # For temporary Use Application, assessor approves it
                     raise ValidationError('You cannot approve the proposal if it is not with an assessor')
 
@@ -1673,6 +1675,21 @@ class Proposal(RevisionedMixin):
                 proposal.proposal_type = 'renewal'
                 proposal.submitter = request.user
                 proposal.previous_application = self
+                if not previous_proposal.apiary_group_application_type:
+                    # for Apiary, we copy requirements in the clone method above
+                    req=self.requirements.all().exclude(is_deleted=True)
+                    from copy import deepcopy
+                    if req:
+                        for r in req:
+                            old_r = deepcopy(r)
+                            r.proposal = proposal
+                            r.copied_from=None
+                            r.copied_for_renewal=True
+                            if r.due_date:
+                                r.due_date=None
+                                r.require_due_date=True
+                            r.id = None
+                            r.save()
                 # Create a log entry for the proposal
                 self.log_user_action(ProposalUserAction.ACTION_RENEW_PROPOSAL.format(self.lodgement_number), request)
                 # Create a log entry for the organisation
@@ -1709,6 +1726,7 @@ class Proposal(RevisionedMixin):
                 #copy all the requirements from the previous proposal
                 #req=self.requirements.all()
                 req=self.requirements.all().exclude(is_deleted=True)
+                from copy import deepcopy
                 if req:
                     for r in req:
                         old_r = deepcopy(r)
@@ -1966,6 +1984,8 @@ class ProposalRequirement(OrderedModel):
     recurrence_schedule = models.IntegerField(null=True,blank=True)
     copied_from = models.ForeignKey('self', on_delete=models.SET_NULL, blank=True, null=True)
     is_deleted = models.BooleanField(default=False)
+    copied_for_renewal = models.BooleanField(default=False)
+    require_due_date = models.BooleanField(default=False)
     # temporary location during Site Transfer applications - copied to apiary_approval during final_approval()
     sitetransfer_approval = models.ForeignKey('disturbance.Approval',null=True,blank=True, related_name='sitetransferapproval_requirement')
     # permanent location for apiary / site transfer approvals
@@ -2329,18 +2349,16 @@ def clone_proposal_with_status_reset(proposal):
 
 
 def clone_apiary_proposal_with_status_reset(original_proposal):
-    #import ipdb; ipdb.set_trace()
+    # called for Apiary renewals
     with transaction.atomic():
         try:
             proposal = copy.deepcopy(original_proposal)
             proposal.id = None
-            #proposal.application_type = ApplicationType.objects.filter(name=ApplicationType.APIARY)[0]
             proposal.application_type = ApplicationType.objects.get(name=ApplicationType.APIARY)
 
             proposal.save(no_revision=True)
             # create proposal_apiary and associate it with the proposal
             proposal_apiary = ProposalApiary.objects.create(proposal=proposal)
-            #proposal_apiary = proposal_apiary.proposal
             proposal_apiary.save()
 
             proposal.customer_status = 'draft'
@@ -2354,53 +2372,30 @@ def clone_apiary_proposal_with_status_reset(original_proposal):
             proposal.assigned_officer = None
             proposal.assigned_approver = None
 
-            #proposal.approval = None
-
-            #original_proposal_id = proposal.id
-
-            #proposal.id = None
             proposal.approval_level_document = None
-            proposal.fee_invoice_reference = None
+            # proposal.fee_invoice_reference = None
+            proposal.fee_invoice_references = []
             proposal.activity = 'Apiary Renewal'
 
             proposal.save(no_revision=True)
 
-            ## clone documents
-            #for proposal_document in DeedPollDocument.objects.filter(proposal=original_proposal.id):
-
-            #    proposal_document.proposal = proposal
-            #    proposal_document.id = None
-            #    path = default_storage.save(
-            #        '{}/proposals/{}/deed_poll_documents/{}'.format(
-            #            settings.MEDIA_APIARY_DIR, proposal.id, proposal_document.name), ContentFile(
-            #            proposal_document._file.read()))
-
-            #    proposal_document._file = path
-            #    proposal_document.can_delete = True
-            #    proposal_document.save()
-
-            # copy documents on file system and reset can_delete flag
-            #subprocess.call('cp -pr media/proposals/{} media/proposals/{}'.format(original_proposal.id, proposal.id), shell=True)
-
-            # clone requirements
+            # clone requirements - ensure due dates are None
             approval = original_proposal.proposal_apiary.retrieve_approval
             req = approval.proposalrequirement_set.exclude(is_deleted=True)
-            #from copy import deepcopy
             if req:
                 for r in req:
                     old_r = copy.deepcopy(r)
                     r.proposal = proposal
-                    r.copied_from=old_r
+                    r.copied_from=None
+                    r.copied_for_renewal=True
+                    if r.due_date:
+                        r.due_date=None
+                        r.require_due_date=True
                     r.id = None
                     r.save()
 
             # update apiary_sites with new proposal
             approval.add_apiary_sites_to_proposal_apiary_for_renewal(proposal_apiary)
-            # for site in approval.apiary_sites.all():
-                # Create new relations between the ApiarySite and the ProposalApiary
-                # ApiarySiteOnProposal.objects.create(apiary_site=site, proposal_apiary=proposal.proposal_apiary)
-                # site.proposal_apiary = proposal.proposal_apiary
-                # site.save()
 
             # Checklist questions
             for question in ApiaryChecklistQuestion.objects.filter(
@@ -2409,13 +2404,6 @@ def clone_apiary_proposal_with_status_reset(original_proposal):
                     ):
                 new_answer = ApiaryChecklistAnswer.objects.create(proposal = proposal.proposal_apiary,
                                                                            question = question)
-
-            # update approval.current_proposal
-            #approval.current_proposal = proposal
-            #approval.save()
-            # Set previous_application to maintain proposal history
-            #proposal_apiary.proposal.previous_application = approval.current_proposal
-            #proposal_apiary.proposal.save()
 
             return proposal
         except:

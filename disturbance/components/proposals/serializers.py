@@ -130,7 +130,8 @@ class ListProposalSerializer(BaseProposalSerializer):
                 'assessor_process',
                 'allowed_assessors',
                 'proposal_type',
-                'fee_invoice_reference',
+                # 'fee_invoice_reference',
+                'fee_invoice_references',
                 'fee_paid',
                 'relevant_applicant_name',
                 'apiary_group_application_type',
@@ -156,7 +157,8 @@ class ListProposalSerializer(BaseProposalSerializer):
                 'can_officer_process',
                 'assessor_process',
                 'allowed_assessors',
-                'fee_invoice_reference',
+                # 'fee_invoice_reference',
+                'fee_invoice_references',
                 'fee_paid',
                 'application_type',
                 'relevant_applicant_name',
@@ -344,6 +346,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
     #district = serializers.CharField(source='district.name', read_only=True)
     #tenure = serializers.CharField(source='tenure.name', read_only=True)
     apiary_temporary_use = ProposalApiaryTemporaryUseSerializer(many=False, read_only=True)
+    requirements_completed=serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
@@ -400,9 +403,11 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'sub_activity_level1',
                 'sub_activity_level2',
                 'management_area',
-                'fee_invoice_reference',
+                # 'fee_invoice_reference',
+                'fee_invoice_references',
                 'fee_paid',
                 'apiary_temporary_use',
+                'requirements_completed',
                 )
         read_only_fields=('documents','requirements')
 
@@ -441,6 +446,9 @@ class InternalProposalSerializer(BaseProposalSerializer):
         request = self.context['request']
         user = request.user._wrapped if hasattr(request.user,'_wrapped') else request.user
         return obj.referral_email_list(user)
+
+    def get_requirements_completed(self,obj):
+        return True
 
 
 
@@ -518,6 +526,7 @@ class DTReferralSerializer(serializers.ModelSerializer):
     relevant_applicant_name = serializers.SerializerMethodField()
     #proposal_application_type = serializers.SerializerMethodField()
     template_group = serializers.SerializerMethodField(read_only=True)
+    assigned_officer = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Referral
@@ -539,10 +548,15 @@ class DTReferralSerializer(serializers.ModelSerializer):
             'proposal_lodgement_number',
             'referral_text',
             'template_group',
+            'assigned_officer',
         )
 
     def get_submitter(self,obj):
         return EmailUserSerializer(obj.proposal.submitter).data
+
+    def get_assigned_officer(self,obj):
+        if obj.proposal.apiary_group_application_type:
+            return EmailUserSerializer(obj.apiary_referral.assigned_officer).data
 
     def get_relevant_applicant_name(self,obj):
         return obj.proposal.relevant_applicant_name
@@ -555,7 +569,7 @@ class ProposalRequirementSerializer(serializers.ModelSerializer):
     due_date = serializers.DateField(input_formats=['%d/%m/%Y'],required=False,allow_null=True)
     class Meta:
         model = ProposalRequirement
-        fields = ('id','due_date','free_requirement','standard_requirement','standard','order','proposal','recurrence','recurrence_schedule','recurrence_pattern','requirement','is_deleted','copied_from', 'apiary_approval', 'sitetransfer_approval')
+        fields = ('id','due_date','free_requirement','standard_requirement','standard','order','proposal','recurrence','recurrence_schedule','recurrence_pattern','requirement','is_deleted','copied_from', 'apiary_approval', 'sitetransfer_approval', 'require_due_date', 'copied_for_renewal')
         read_only_fields = ('order','requirement', 'copied_from')
 
 class ProposalStandardRequirementSerializer(serializers.ModelSerializer):

@@ -37,6 +37,8 @@
                         @num_of_sites_remote_renewal_to_add_as_remainder="num_of_sites_remote_renewal_to_add_as_remainder"
                         @total_num_of_sites_on_map_unpaid="total_num_of_sites_on_map_unpaid"
                         @total_num_of_sites_on_map="total_num_of_sites_on_map"
+                        @fee_remote_renewal="fee_remote_renewal"
+                        @fee_south_west_renewal="fee_south_west_renewal"
                     />
 
                 </div>
@@ -416,6 +418,12 @@
           //},
         },
         methods:{
+            fee_remote_renewal: function(value){
+                this.$emit('fee_remote_renewal', value)
+            },
+            fee_south_west_renewal: function(value){
+                this.$emit('fee_south_west_renewal', value)
+            },
             fetchDeedPollUrl: function(){
                 let vm = this;
                 vm.$http.get('/api/deed_poll_url').then((response) => {

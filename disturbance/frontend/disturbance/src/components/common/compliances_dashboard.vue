@@ -17,7 +17,9 @@
                                 <div class="form-group">
                                     <label for="">Region</label>
                                     <select style="width:100%" class="form-control input-sm" ref="filterRegion" >
-                                        <option v-for="r in proposal_regions" :value="r">{{r}}</option>
+                                        <template v-if="select2Applied">
+                                            <option v-for="r in proposal_regions" :value="r">{{r}}</option>
+                                        </template>
                                     </select>
                                 </div>
                             </div>

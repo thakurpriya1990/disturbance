@@ -11,7 +11,7 @@ from rest_framework import serializers
 
 from disturbance.components.main.decorators import timeit
 from disturbance.components.proposals.models import ProposalDocument, ProposalUserAction, ApiarySite, SiteCategory, \
-    ProposalApiaryTemporaryUse, TemporaryUseApiarySite, ApiarySiteOnProposal
+    ProposalApiaryTemporaryUse, TemporaryUseApiarySite, ApiarySiteOnProposal, Proposal
 from disturbance.components.proposals.serializers import SaveProposalSerializer
 
 from disturbance.components.approvals.models import Approval
@@ -354,8 +354,10 @@ def save_proponent_data(instance, request, viewset):
     if instance.application_type.name == 'Site Transfer':
     #if instance.application_type.name == ApplicationType.SITE_TRANSFER:
         save_proponent_data_apiary_site_transfer(instance, request, viewset)
+        instance.log_user_action(ProposalUserAction.APIARY_ACTION_SAVE_APPLICATION.format(instance.lodgement_number), request)
     elif instance.apiary_group_application_type:
         save_proponent_data_apiary(instance, request, viewset)
+        instance.log_user_action(ProposalUserAction.APIARY_ACTION_SAVE_APPLICATION.format(instance.lodgement_number), request)
     else:
         save_proponent_data_disturbance(instance,request,viewset)
 
@@ -628,8 +630,8 @@ def save_proponent_data_apiary(proposal_obj, request, viewset):
                 update_proposal_apiary_temporary_use(apiary_temporary_use_obj, apiary_temporary_use_data, viewset.action)
 
                 if viewset.action == 'submit':
-                    proposal_obj.processing_status = 'with_assessor'
-                    proposal_obj.customer_status = 'with_assessor'
+                    proposal_obj.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
+                    proposal_obj.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
                     proposal_obj.documents.all().update(can_delete=False)
                     #proposal.required_documents.all().update(can_delete=False)
                     proposal_obj.save()
@@ -950,8 +952,8 @@ def proposal_submit_apiary(proposal, request):
 
             #proposal.save_form_tabs(request)
             if ret1 and ret2:
-                proposal.processing_status = 'with_assessor'
-                proposal.customer_status = 'with_assessor'
+                proposal.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
+                proposal.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
                 proposal.documents.all().update(can_delete=False)
                 #proposal.required_documents.all().update(can_delete=False)
                 proposal.save()

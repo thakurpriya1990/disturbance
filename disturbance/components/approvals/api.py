@@ -232,7 +232,8 @@ class ApprovalPaginatedViewSet(viewsets.ModelViewSet):
         # on the internal organisations dashboard, filter the Proposal/Approval/Compliance datatables by applicant/organisation
         applicant_id = request.GET.get('org_id')
         if applicant_id:
-            qs = qs.filter(org_applicant_id=applicant_id)
+            # qs = qs.filter(org_applicant_id=applicant_id)
+            qs = qs.filter(applicant__id=applicant_id)
         submitter_id = request.GET.get('submitter_id', None)
         if submitter_id:
             qs = qs.filter(submitter_id=submitter_id)
