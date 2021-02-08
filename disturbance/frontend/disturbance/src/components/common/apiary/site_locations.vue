@@ -522,6 +522,12 @@
             }
         },
         watch:{
+            fee_remote_renewal: function(){
+                this.$emit('fee_remote_renewal', this.fee_remote_renewal)
+            },
+            fee_south_west_renewal: function(){
+                this.$emit('fee_south_west_renewal', this.fee_south_west_renewal)
+            },
             total_num_of_sites_on_map: function() {
                 this.$emit('total_num_of_sites_on_map', this.total_num_of_sites_on_map)
             },
