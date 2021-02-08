@@ -4,7 +4,6 @@ from decimal import Decimal
 import pytz
 from django.core.exceptions import ValidationError
 from django.core.management.base import BaseCommand
-import logging
 
 from django.db import transaction
 from django.db.models import Q, Min
@@ -21,6 +20,7 @@ from disturbance.components.proposals.models import ApiaryAnnualRentalFeeRunDate
     ApiarySite
 from disturbance.settings import SITE_STATUS_CURRENT, SITE_STATUS_SUSPENDED, PAYMENT_SYSTEM_ID, PAYMENT_SYSTEM_PREFIX
 
+import logging
 logger = logging.getLogger(__name__)
 
 def get_annual_rental_fee_period(target_date):
@@ -120,6 +120,8 @@ class Command(BaseCommand):
             approval_qs = get_approvals(annual_rental_fee_period)
 
             # Issue the annual site fee invoices per approval per annual_rental_fee_period
+            errors = []
+            updates = []
             for approval in approval_qs:
                 try:
                     with transaction.atomic():
@@ -161,9 +163,11 @@ class Command(BaseCommand):
                                             lines=line_items,
                                         )
 
+                                        updates.append(annual_rental_fee.invoice_reference)
                                     except Exception as e:
-                                        logger.error('Failed to create annual site fee confirmation')
-                                        logger.error('{}'.format(e))
+                                        err_msg = 'Failed to create annual site fee confirmation'
+                                        logger.error('{}\n{}'.format(err_msg, str(e)))
+                                        errors.append(err_msg)
 
                                 # Store the apiary sites which the invoice created above has been issued for
                                 for apiary_site in apiary_sites_to_be_charged:
@@ -177,11 +181,20 @@ class Command(BaseCommand):
                                 # TODO: Add comms log
 
                 except Exception as e:
-                    logger.error('Error command {}'.format(__name__))
-                    logger.error('Failed to send an annual site fee invoice for the approval {}'.format(approval.lodgement_number))
+                    err_msg = 'Failed to send an annual site fee invoice for the approval {}'.format(approval.lodgement_number)
+                    logger.error('{}\n{}'.format(err_msg, str(e)))
+                    errors.append(err_msg)
 
         except Exception as e:
-            logger.error('Error command {}'.format(__name__))
+            err_msg = 'Error command {}'.format(__name__)
+            logger.error('{}\n{}'.format(err_msg, str(e)))
+            errors.append(err_msg)
+
+        cmd_name = __name__.split('.')[-1].replace('_', ' ').upper()
+        err_str = '<strong style="color: red;">Errors: {}</strong>'.format(len(errors)) if len(errors)>0 else '<strong style="color: green;">Errors: 0</strong>'
+        msg = '<p>{} completed. {}. IDs updated: {}.</p>'.format(cmd_name, err_str, updates)
+        logger.info(msg)
+        print(msg) # will redirect to cron_tasks.log file, by the parent script
 
 
 def make_serializable(line_items):
