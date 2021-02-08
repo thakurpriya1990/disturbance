@@ -25,7 +25,6 @@ from disturbance.components.proposals.models import Proposal, ApiarySiteFeeRemai
     ProposalApiary
 from disturbance.components.main.models import ApplicationType
 from disturbance.components.organisations.models import Organisation
-from disturbance.components.das_payments.context_processors import disturbance_url, template_context
 from disturbance.components.das_payments.invoice_pdf import create_invoice_pdf_bytes
 from disturbance.components.das_payments.confirmation_pdf import create_confirmation_pdf_bytes
 from disturbance.components.proposals.utils import proposal_submit_apiary
@@ -60,14 +59,6 @@ from disturbance.context_processors import apiary_url
 
 import logging
 logger = logging.getLogger('payment_checkout')
-
-
-# class LedgerPayView(TemplateView):
-#     template_name = 'disturbance/payment/ledgerpay.html'
-#
-#     def get(self, request, *args, **kwargs):
-#         context = {}
-#         return render(request, self.template_name, context)
 
 
 class AnnualRentalFeeView(TemplateView):
@@ -314,33 +305,11 @@ class InvoicePaymentSuccessView(TemplateView):
         invoice = None
 
         try:
-            invoice = get_session_invoice(request.session)
+            invoice = get_session_invoice(request.session)  # When accessed 2nd time, this raises an Exception
             request.session['last_invoice_reference'] = invoice.reference
             delete_session_invoice(request.session)
 
-            object_for_the_invoice = None
-            annual_rental_fee = AnnualRentalFee.objects.filter(invoice_reference=invoice.reference)
-            application_fee_invoice = ApplicationFeeInvoice.objects.filter(invoice_reference=invoice.reference)
-            if annual_rental_fee:
-                # This invoice is issued for the Annual Site Fee
-                annual_rental_fee = annual_rental_fee.first()
-                self.template_name = 'disturbance/payment/annual_rental_fee_success.html'
-                can_access_invoice, to_email_addresses = AnnualRentalFeeSuccessView.send_invoice_mail(annual_rental_fee, invoice, request)
-                #
-            elif application_fee_invoice:
-                # This invoice is issued for the application fee
-                application_fee_invoice = application_fee_invoice.first()
-
-                # TODO: does same thing as the line#330
-                    # TODO: Send invoice
-                    # TODO: Add comms log
-                    # TODO: implement can_access_invoice
-
-            context = {
-                'invoice_reference': invoice.reference,
-                'to_email_address': to_email_addresses,
-                'can_access_invoice': can_access_invoice,
-            }
+            context = {}
             return render(request, self.template_name, context)
 
         except Invoice.DoesNotExist:
@@ -349,25 +318,28 @@ class InvoicePaymentSuccessView(TemplateView):
 
         except InvoiceReferenceNotInSettionException as e:
             if 'last_invoice_reference' in request.session and Invoice.objects.filter(reference=request.session['last_invoice_reference']).exists():
+                invoice = Invoice.objects.get(reference=request.session['last_invoice_reference'])
                 del request.session['last_invoice_reference']
                 request.session.modified = True
 
-                # TODO: Display success screen
-                # to_email_addresses = annual_rental_fee.approval.relevant_applicant.email
-                can_access_invoice = True
-                # if request.user == annual_rental_fee.approval.relevant_applicant or \
-                #         annual_rental_fee.approval.applicant in request.user.disturbance_organisations.all():
-                #     can_access_invoice = True
+                annual_rental_fee = AnnualRentalFee.objects.filter(invoice_reference=invoice.reference)
+                application_fee_invoice = ApplicationFeeInvoice.objects.filter(invoice_reference=invoice.reference)
+                if annual_rental_fee:
+                    # This invoice is issued for the Annual Site Fee
+                    annual_rental_fee = annual_rental_fee.first()
+                    can_access_invoice, to_email_addresses = AnnualRentalFeeSuccessView.send_invoice_mail(annual_rental_fee, invoice, request)
+                    self.template_name = 'disturbance/payment/annual_rental_fee_success.html'
 
-                context = {
-                    # 'invoice_reference': annual_rental_fee.invoice_reference,
-                    # 'to_email_address': to_email_addresses,
-                    # 'can_access_invoice': can_access_invoice,
-                    'invoice_reference': '456',
-                    'to_email_address': 'baka@mail.com',
-                    'can_access_invoice': can_access_invoice,
-                }
-                return render(request, self.template_name, context)
+                    context = {
+                        'invoice_reference': invoice.reference,
+                        'to_email_address': to_email_addresses,
+                        'can_access_invoice': can_access_invoice,
+                    }
+                    return render(request, self.template_name, context)
+                else:
+                    # Should not reach here,
+                    # At the moment, invoice for the annual rental fee is the only the invoice issued before actual payments
+                    return redirect('home')
             else:
                 return redirect('home')
         except Exception as e:
@@ -399,7 +371,7 @@ class AnnualRentalFeeSuccessView(TemplateView):
             request.session['last_annual_rental_fee_id'] = annual_rental_fee.id
             delete_session_annual_rental_fee(request.session)
 
-            can_access_invoice, to_email_addresses = self.send_invoice_mail(annual_rental_fee, invoice, request)
+            can_access_invoice, to_email_addresses = AnnualRentalFeeSuccessView.send_invoice_mail(annual_rental_fee, invoice, request)
 
             context = {
                 'invoice_reference': annual_rental_fee.invoice_reference,
@@ -434,7 +406,7 @@ class AnnualRentalFeeSuccessView(TemplateView):
             logger.error('AnnualRentalFee id:{} not found in the database'.format(request.session['last_annual_rental_fee_id']))
             return redirect('home')
 
-    @classmethod
+    @staticmethod
     def send_invoice_mail(annual_rental_fee, invoice, request):
         # Send invoice
         to_email_addresses = annual_rental_fee.approval.relevant_applicant.email
@@ -557,14 +529,14 @@ class ApplicationFeeSuccessView(TemplateView):
 
                 if ApplicationFeeInvoice.objects.filter(application_fee=application_fee).count() > 0:
                     afi = ApplicationFeeInvoice.objects.filter(application_fee=application_fee)
-                    invoice = afi[0]
+                    fee_invoice = afi[0]
             else:
                 return redirect('home')
 
         context = {
             'proposal': proposal,
             'submitter': submitter,
-            'fee_invoice': invoice
+            'fee_invoice': fee_invoice
         }
         return render(request, self.template_name, context)
 
