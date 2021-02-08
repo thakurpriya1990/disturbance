@@ -17,6 +17,16 @@ from disturbance.settings import SITE_DOMAIN, SITE_URL
 logger = logging.getLogger(__name__)
 
 SYSTEM_NAME = settings.SYSTEM_NAME_SHORT + ' Automated Message'
+
+def get_sender_user():
+    sender = settings.DEFAULT_FROM_EMAIL
+    try:
+        sender_user = EmailUser.objects.get(email__icontains=sender)
+    except:
+        EmailUser.objects.create(email=sender, password='')
+        sender_user = EmailUser.objects.get(email__icontains=sender)
+    return sender_user
+
 class ApprovalExpireNotificationEmail(TemplateEmailBase):
     subject = 'Your Approval has expired.'
     html_template = 'disturbance/emails/approval_expire_notification.html'
@@ -240,15 +250,17 @@ def send_approval_expire_email_notification(approval):
             all_ccs = [cc_list]
 
     msg = email.send(proposal.submitter.email,cc=all_ccs, context=context)
-    sender = settings.DEFAULT_FROM_EMAIL
-    try:
-    	sender_user = EmailUser.objects.get(email__icontains=sender)
-    except:
-        EmailUser.objects.create(email=sender, password='')
-        sender_user = EmailUser.objects.get(email__icontains=sender)
-    _log_approval_email(msg, approval, sender=sender_user)
+    #sender = settings.DEFAULT_FROM_EMAIL
+    sender = get_sender_user()
+    # try:
+    # 	sender_user = EmailUser.objects.get(email__icontains=sender)
+    # except:
+    #     EmailUser.objects.create(email=sender, password='')
+    #     sender_user = EmailUser.objects.get(email__icontains=sender)
+
+    _log_approval_email(msg, approval, sender=sender)
     if proposal.applicant:
-        _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender_user)
+        _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
 
 
 def send_approval_cancel_email_notification(approval, future_cancel=False):
@@ -434,7 +446,8 @@ def send_approval_reinstate_email_notification(approval, request):
             all_ccs = [cc_list]
 
     msg = email.send(proposal.submitter.email,cc=all_ccs, context=context)
-    sender = request.user if request else settings.DEFAULT_FROM_EMAIL    
+    #sender = request.user if request else settings.DEFAULT_FROM_EMAIL 
+    sender = get_sender_user()   
     _log_approval_email(msg, approval, sender=sender)
     if proposal.applicant:
         _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)

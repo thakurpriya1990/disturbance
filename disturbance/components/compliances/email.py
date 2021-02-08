@@ -11,6 +11,16 @@ from ledger.accounts.models import EmailUser
 logger = logging.getLogger(__name__)
 
 SYSTEM_NAME = settings.SYSTEM_NAME_SHORT + ' Automated Message'
+
+def get_sender_user():
+    sender = settings.DEFAULT_FROM_EMAIL
+    try:
+        sender_user = EmailUser.objects.get(email__icontains=sender)
+    except:
+        EmailUser.objects.create(email=sender, password='')
+        sender_user = EmailUser.objects.get(email__icontains=sender)
+    return sender_user
+
 class ComplianceExternalSubmitSendNotificationEmail(TemplateEmailBase):
     subject = 'Your Compliance with requirements has been submitted.'
     html_template = 'disturbance/emails/send_external_submit_notification.html'
@@ -76,7 +86,8 @@ def send_amendment_email_notification(amendment_request, request, compliance):
             all_ccs = [cc_list]
 
     msg = email.send(compliance.submitter.email, cc=all_ccs, context=context)
-    sender = request.user if request else settings.DEFAULT_FROM_EMAIL  
+    #sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    sender = get_sender_user()  
     _log_compliance_email(msg, compliance, sender=sender)
     _log_org_email(msg, compliance.proposal.applicant, compliance.submitter, sender=sender)
 
@@ -100,7 +111,8 @@ def send_apiary_amendment_email_notification(amendment_request, request, complia
             all_ccs = [cc_list]
 
     msg = email.send(compliance.submitter.email, cc=all_ccs, context=context)
-    sender = request.user if request else settings.DEFAULT_FROM_EMAIL  
+    #sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    sender = get_sender_user()  
     _log_compliance_email(msg, compliance, sender=sender)
     if compliance.approval.applicant:
         _log_org_email(msg, compliance.proposal.applicant, compliance.submitter, sender=sender)
@@ -317,7 +329,8 @@ def send_compliance_accept_email_notification(compliance,request):
         if cc_list:
             all_ccs = [cc_list]
     msg = email.send(compliance.submitter.email, cc=all_ccs, context=context)
-    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    #sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    sender = get_sender_user()
     _log_compliance_email(msg, compliance, sender=sender)
     _log_org_email(msg, compliance.proposal.applicant, compliance.submitter, sender=sender)
 
@@ -333,7 +346,8 @@ def send_apiary_compliance_accept_email_notification(compliance,request):
         if cc_list:
             all_ccs = [cc_list]
     msg = email.send(compliance.submitter.email, cc=all_ccs, context=context)
-    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    #sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    sender= get_sender_user()
     _log_compliance_email(msg, compliance, sender=sender)
     if compliance.approval.applicant:
         _log_org_email(msg, compliance.approval.applicant, compliance.submitter, sender=sender)
@@ -355,7 +369,8 @@ def send_external_submit_email_notification(request, compliance):
             all_ccs = [cc_list]
 
     msg = email.send(compliance.submitter.email, cc=all_ccs, context=context)
-    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    #sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    sender = get_sender_user()
     _log_compliance_email(msg, compliance, sender=sender)
     _log_org_email(msg, compliance.proposal.applicant, compliance.submitter, sender=sender)
 
@@ -375,7 +390,8 @@ def send_apiary_external_submit_email_notification(request, compliance):
             all_ccs = [cc_list]
 
     msg = email.send(compliance.submitter.email, cc=all_ccs, context=context)
-    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    #sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    sender = get_sender_user()
     _log_compliance_email(msg, compliance, sender=sender)
     if compliance.approval.applicant:
         _log_org_email(msg, compliance.approval.applicant, compliance.submitter, sender=sender)
@@ -393,7 +409,8 @@ def send_submit_email_notification(request, compliance):
     }
 
     msg = email.send(compliance.proposal.assessor_recipients, context=context)
-    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    #sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    sender = get_sender_user()
     _log_compliance_email(msg, compliance, sender=sender)
     if compliance.proposal:
         _log_org_email(msg, compliance.proposal.applicant, compliance.submitter, sender=sender)
@@ -411,7 +428,8 @@ def send_apiary_submit_email_notification(request, compliance):
     }
 
     msg = email.send(compliance.approval.current_proposal.assessor_recipients, context=context)
-    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    #sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    sender = get_sender_user()
     _log_compliance_email(msg, compliance, sender=sender)
     if compliance.approval.applicant:
         _log_org_email(msg, compliance.approval.applicant, compliance.submitter, sender=sender)
