@@ -119,10 +119,14 @@ class InvoicePaymentView(TemplateView):
                     return_url_ns='invoice_payment_success'
                 )
 
-                logger.info('{} handing over to payment gateway for the invoice: {}'.format(
-                    'User {} with id {}'.format(request.user.get_full_name(), request.user.id),
-                    invoice.reference
-                ))
+                if request.user.id:
+                    logger.info('{} handing over to payment gateway for the invoice: {}'.format(
+                        'User {} with id {}'.format(request.user.get_full_name(), request.user.id),
+                        invoice.reference
+                    ))
+                else:
+                    logger.info('Anonymous user handing over to payment gateway for the invoice: {}'.format(invoice.reference))
+
                 return checkout_response
 
         except Exception as e:
