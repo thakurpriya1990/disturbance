@@ -203,7 +203,10 @@ class CompliancePaginatedViewSet(viewsets.ModelViewSet):
         # on the internal organisations dashboard, filter the Proposal/Approval/Compliance datatables by applicant/organisation
         applicant_id = request.GET.get('org_id')
         if applicant_id:
-            qs = qs.filter(proposal__applicant_id=applicant_id)
+            if template_group == 'apiary':
+                qs = qs.filter(approval__applicant_id=applicant_id)
+            else:
+                qs = qs.filter(proposal__applicant_id=applicant_id)
 
         self.paginator.page_size = qs.count()
         result_page = self.paginator.paginate_queryset(qs, request)
