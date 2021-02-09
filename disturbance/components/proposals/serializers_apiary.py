@@ -329,7 +329,7 @@ class ApiarySiteOnProposalDraftGeometryExportSerializer(ApiarySiteOnProposalDraf
 
     class Meta(ApiarySiteOnProposalDraftGeometrySerializer.Meta):
         fields = (
-            # 'id',
+            'id',
             'status',
             'category',
             'surname',

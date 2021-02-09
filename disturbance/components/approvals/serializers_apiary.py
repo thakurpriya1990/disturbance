@@ -77,6 +77,7 @@ class ApiarySiteOnApprovalGeometryExportSerializer(ApiarySiteOnApprovalGeometryS
 
     class Meta(ApiarySiteOnApprovalGeometrySerializer.Meta):
         fields = (
+            'id',
             'status',
             'category',
             'surname',

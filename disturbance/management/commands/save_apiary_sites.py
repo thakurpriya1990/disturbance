@@ -16,7 +16,6 @@ from disturbance.settings import BASE_DIR, SPATIAL_DATA_DIR
 import logging
 logger = logging.getLogger(__name__)
 
-
 class Command(BaseCommand):
     help = 'Save the apiary sites as a json file'
 
@@ -33,8 +32,7 @@ class Command(BaseCommand):
             serializer_vacant_approval = ApiarySiteOnApprovalGeometryExportSerializer(qs_vacant_site_approval, many=True)
 
             # ApiarySiteOnProposal
-            qs_on_proposal_draft = get_qs_proposal('draft')
-            qs_on_proposal_processed = get_qs_proposal('processed')
+            qs_on_proposal_draft, qs_on_proposal_processed = get_qs_proposal()
             serializer_proposal_processed = ApiarySiteOnProposalProcessedGeometryExportSerializer(qs_on_proposal_processed, many=True)
             serializer_proposal_draft = ApiarySiteOnProposalDraftGeometryExportSerializer(qs_on_proposal_draft, many=True)
 
