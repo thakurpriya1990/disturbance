@@ -1351,8 +1351,10 @@ class ProposalApiaryTypeSerializer(serializers.ModelSerializer):
     def get_fee_invoice_url(self,obj):
         # return '/payments/invoice-pdf/{}'.format(obj.fee_invoice_reference) if obj.fee_paid else None
         ret_list = []
-        for ref in obj.fee_invoice_references:
-            ret_list.append('payments/invoice-pdf/{}'.format(ref))
+        if obj.fee_invoice_references:
+            for ref in obj.fee_invoice_references:
+                ret_list.append('payments/invoice-pdf/{}'.format(ref))
+        return ret_list
 
     def get_apiary_group_application_type(self, obj):
         return obj.apiary_group_application_type
@@ -1608,8 +1610,10 @@ class ApiaryInternalProposalSerializer(BaseProposalSerializer):
     def get_fee_invoice_url(self,obj):
         # return '/payments/invoice-pdf/{}'.format(obj.fee_invoice_reference) if obj.fee_paid else None
         ret_list = []
-        for ref in obj.fee_invoice_references:
-            ret_list.append('payments/invoice-pdf/{}'.format(ref))
+        if obj.fee_invoice_references:
+            for ref in obj.fee_invoice_references:
+                ret_list.append('payments/invoice-pdf/{}'.format(ref))
+        return ret_list
 
     def get_applicant(self,obj):
         serializer = None

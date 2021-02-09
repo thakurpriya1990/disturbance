@@ -593,12 +593,12 @@ export default {
                 }
             );
         },
-        save_exit: function(e) {
+        save_exit: async function(e) {
             let vm = this;
             this.isSaving = true;
             vm.form=document.forms.new_proposal;
             this.submitting = true;
-            this.save(true);
+            await this.save(true);
 
             // redirect back to dashboard
             vm.$router.push({
