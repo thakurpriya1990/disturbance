@@ -22,6 +22,8 @@ class Command(BaseCommand):
         except:
             user = EmailUser.objects.create(email=settings.CRON_EMAIL, password = '')
 
+        errors = []
+        updates = []
         today = timezone.localtime(timezone.now()).date()
         logger.info('Running command {}'.format(__name__))
         reminder_conditions = {
@@ -45,6 +47,14 @@ class Command(BaseCommand):
                         send_assessment_reminder_email_notification(proposal)
                         proposal.assessment_reminder_sent=True
                         proposal.save()
+                        updates.append(proposal.lodgement_number)
                     except Exception as e:
-                        logger.info('Error sending Reminder Proposal {}\n{}'.format(proposal.lodgement_number, e))
-        logger.info('Command {} completed'.format(__name__))
+                        err_msg = 'Error sending Reminder for Proposal {}'.format(proposal.lodgement_number)
+                        logger.error('{}\n{}'.format(err_msg, str(e)))
+                        errors.append(err_msg)
+
+        cmd_name = __name__.split('.')[-1].replace('_', ' ').upper()
+        err_str = '<strong style="color: red;">Errors: {}</strong>'.format(len(errors)) if len(errors)>0 else '<strong style="color: green;">Errors: 0</strong>'
+        msg = '<p>{} completed. {}. IDs updated: {}.</p>'.format(cmd_name, err_str, updates)
+        logger.info(msg)
+        print(msg) # will redirect to cron_tasks.log file, by the parent script

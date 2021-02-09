@@ -23,6 +23,8 @@ class Command(BaseCommand):
         except:
             user = EmailUser.objects.create(email=settings.CRON_EMAIL, password = '')
 
+        errors = []
+        updates = []
         logger.info('Running command {}'.format(__name__))
         for c in Compliance.objects.filter(processing_status = 'future'):
             #if(c.due_date<= compare_date<= c.approval.expiry_date) and c.approval.status=='current':
@@ -33,6 +35,14 @@ class Command(BaseCommand):
                     c.save()
                     ComplianceUserAction.log_action(c,ComplianceUserAction.ACTION_STATUS_CHANGE.format(c.id),user)
                     logger.info('updated Compliance {} status to {}'.format(c.id,c.processing_status))
-                except:
-                    logger.info('Error updating Compliance {} status'.format(c.id))
-        logger.info('Command {} completed'.format(__name__))
+                    updates.append(c.lodgement_number)
+                except Exception as e:
+                    err_msg = 'Error updating Compliance {} status'.format(c.lodgement_number)
+                    logger.error('{}\n{}'.format(err_msg, str(e)))
+                    errors.append(err_msg)
+
+        cmd_name = __name__.split('.')[-1].replace('_', ' ').upper()
+        err_str = '<strong style="color: red;">Errors: {}</strong>'.format(len(errors)) if len(errors)>0 else '<strong style="color: green;">Errors: 0</strong>'
+        msg = '<p>{} completed. {}. IDs updated: {}.</p>'.format(cmd_name, err_str, updates)
+        logger.info(msg)
+        print(msg) # will redirect to cron_tasks.log file, by the parent script
