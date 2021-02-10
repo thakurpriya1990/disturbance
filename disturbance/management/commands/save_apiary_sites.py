@@ -7,7 +7,8 @@ from django.core.management.base import BaseCommand
 from ledger.settings_base import TIME_ZONE
 
 from disturbance.components.approvals.serializers_apiary import ApiarySiteOnApprovalGeometryExportSerializer
-from disturbance.components.main.utils import get_qs_vacant_site, get_qs_proposal, get_qs_approval
+from disturbance.components.main.utils import get_qs_vacant_site, get_qs_proposal, get_qs_approval, \
+    get_qs_vacant_site_for_export, get_qs_proposal_for_export, get_qs_approval_for_export
 from disturbance.components.proposals.models import ProposalType
 from disturbance.components.proposals.serializers_apiary import ApiarySiteOnProposalDraftGeometryExportSerializer, \
     ApiarySiteOnProposalProcessedGeometryExportSerializer
@@ -15,6 +16,7 @@ from disturbance.settings import BASE_DIR, SPATIAL_DATA_DIR
 
 import logging
 logger = logging.getLogger(__name__)
+
 
 class Command(BaseCommand):
     help = 'Save the apiary sites as a json file'
@@ -24,7 +26,7 @@ class Command(BaseCommand):
             errors =[]
 
             # Retrieve 'vacant' sites
-            qs_vacant_site_proposal, qs_vacant_site_approval = get_qs_vacant_site()
+            qs_vacant_site_proposal, qs_vacant_site_approval = get_qs_vacant_site_for_export()
             # qs_vacant_site_proposal may not have the wkb_geometry_processed if the apiary site is the selected 'vacant' site
 
             serializer_vacant_proposal_d = ApiarySiteOnProposalDraftGeometryExportSerializer(qs_vacant_site_proposal.filter(wkb_geometry_processed__isnull=True), many=True)
@@ -32,12 +34,12 @@ class Command(BaseCommand):
             serializer_vacant_approval = ApiarySiteOnApprovalGeometryExportSerializer(qs_vacant_site_approval, many=True)
 
             # ApiarySiteOnProposal
-            qs_on_proposal_draft, qs_on_proposal_processed = get_qs_proposal()
+            qs_on_proposal_draft, qs_on_proposal_processed = get_qs_proposal_for_export()
             serializer_proposal_processed = ApiarySiteOnProposalProcessedGeometryExportSerializer(qs_on_proposal_processed, many=True)
             serializer_proposal_draft = ApiarySiteOnProposalDraftGeometryExportSerializer(qs_on_proposal_draft, many=True)
 
             # ApiarySiteOnApproval
-            qs_on_approval = get_qs_approval()
+            qs_on_approval = get_qs_approval_for_export()
             serializer_approval = ApiarySiteOnApprovalGeometryExportSerializer(qs_on_approval, many=True)
 
             # Merge all the data above
