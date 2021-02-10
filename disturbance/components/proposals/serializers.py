@@ -567,10 +567,33 @@ class DTReferralSerializer(serializers.ModelSerializer):
 
 class ProposalRequirementSerializer(serializers.ModelSerializer):
     due_date = serializers.DateField(input_formats=['%d/%m/%Y'],required=False,allow_null=True)
+    apiary_renewal = serializers.SerializerMethodField()
     class Meta:
         model = ProposalRequirement
-        fields = ('id','due_date','free_requirement','standard_requirement','standard','order','proposal','recurrence','recurrence_schedule','recurrence_pattern','requirement','is_deleted','copied_from', 'apiary_approval', 'sitetransfer_approval', 'require_due_date', 'copied_for_renewal')
+        fields = (
+                'id',
+                'due_date',
+                'free_requirement',
+                'standard_requirement',
+                'standard',
+                'order',
+                'proposal',
+                'recurrence',
+                'recurrence_schedule',
+                'recurrence_pattern',
+                'requirement',
+                'is_deleted',
+                'copied_from', 
+                'apiary_approval', 
+                'sitetransfer_approval', 
+                'require_due_date', 
+                'copied_for_renewal',
+                'apiary_renewal',
+                )
         read_only_fields = ('order','requirement', 'copied_from')
+
+    def get_apiary_renewal(self, obj):
+        return obj.proposal.apiary_group_application_type and obj.proposal.proposal_type == "renewal"
 
 class ProposalStandardRequirementSerializer(serializers.ModelSerializer):
     class Meta:

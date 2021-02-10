@@ -1662,7 +1662,10 @@ class Proposal(RevisionedMixin):
             try:
                 proposal=Proposal.objects.get(previous_application = previous_proposal)
                 if proposal.customer_status=='with_assessor':
-                    raise ValidationError('A renewal for this licence has already been lodged and is awaiting review.')
+                    if not proposal.apiary_group_application_type:
+                        raise ValidationError('A renewal or amendment proposal for this approval has already been lodged and is awaiting review.')
+                    else:
+                        raise ValidationError('A renewal or amendment application for this licence has already been lodged and is awaiting review.')
             except Proposal.DoesNotExist:
                 if previous_proposal.apiary_group_application_type:
                     proposal = clone_apiary_proposal_with_status_reset(previous_proposal)
@@ -1712,8 +1715,8 @@ class Proposal(RevisionedMixin):
 
                 }
                 proposal=Proposal.objects.get(**amend_conditions)
-                if proposal.customer_status=='under_review':
-                    raise ValidationError('An amendment for this licence has already been lodged and is awaiting review.')
+                if proposal.customer_status=='with_assessor':
+                    raise ValidationError('An amendment proposal for this approval has already been lodged and is awaiting review.')
             except Proposal.DoesNotExist:
                 previous_proposal = Proposal.objects.get(id=self.id)
                 proposal = clone_proposal_with_status_reset(previous_proposal)
