@@ -2386,7 +2386,8 @@ def clone_apiary_proposal_with_status_reset(original_proposal):
                 for r in req:
                     old_r = copy.deepcopy(r)
                     r.proposal = proposal
-                    r.copied_from=None
+                    r.apiary_approval = None
+                    r.copied_from=old_r
                     r.copied_for_renewal=True
                     if r.due_date:
                         r.due_date=None
