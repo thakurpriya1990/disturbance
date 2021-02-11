@@ -2,12 +2,12 @@
     <div>
         <div class="row col-sm-12">
             <template v-if="is_external">
-                <button 
+                <!--button 
                     v-if="!creatingProposal" 
                     class="btn btn-primary pull-right" 
                     @click="openNewTemporaryUse"
                     :disabled="!user_can_temporary_use"
-                >New Temporary Use</button>
+                >New Temporary Use</button-->
             </template>
         </div>
 

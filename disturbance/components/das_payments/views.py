@@ -249,7 +249,10 @@ class SiteTransferApplicationFeeSuccessView(TemplateView):
 
                     if proposal and (invoice.payment_status == 'paid' or invoice.payment_status == 'over_paid'):
                         # proposal.fee_invoice_reference = invoice_ref
-                        proposal.fee_invoice_references.append(invoice_ref)
+                        if isinstance(proposal.fee_invoice_references, list):
+                            proposal.fee_invoice_references.append(invoice_ref)
+                        else:
+                            proposal.fee_invoice_references = [invoice_ref,]
                         proposal.save()
                         proposal_submit_apiary(proposal, request)
                     else:
@@ -491,7 +494,10 @@ class ApplicationFeeSuccessView(TemplateView):
 
                     if proposal and (invoice.payment_status == 'paid' or invoice.payment_status == 'over_paid'):
                         # proposal.fee_invoice_reference = invoice_ref
-                        proposal.fee_invoice_references.append(invoice_ref)
+                        if isinstance(proposal.fee_invoice_references, list):
+                            proposal.fee_invoice_references.append(invoice_ref)
+                        else:
+                            proposal.fee_invoice_references = [invoice_ref,]
                         proposal.save()
                         proposal_submit_apiary(proposal, request)
                         self.adjust_db_operations(db_operations)

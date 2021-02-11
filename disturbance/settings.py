@@ -143,6 +143,7 @@ PS_PAYMENT_SYSTEM_ID = PAYMENT_SYSTEM_ID
 PAYMENT_SYSTEM_PREFIX = env('PAYMENT_SYSTEM_PREFIX', PAYMENT_SYSTEM_ID.replace('S','0')) # '0517'
 os.environ['LEDGER_PRODUCT_CUSTOM_FIELDS'] = "('ledger_description','quantity','price_incl_tax','price_excl_tax','oracle_code')"
 APIARY_URL = env('APIARY_URL', [])
+CRON_NOTIFICATION_EMAIL = env('CRON_NOTIFICATION_EMAIL', NOTIFICATION_EMAIL).lower()
 
 BASE_URL=env('BASE_URL')
 
@@ -187,3 +188,11 @@ BASE_EMAIL_HTML = ''
 # This value is determined at the middleware, DomainDetectMiddleware by where the request comes from
 DOMAIN_DETECTED = 'das'
 HTTP_HOST_FOR_TEST = 'localhost:8071'
+
+# Additional logging for commercialoperator
+LOGGING['loggers']['disturbance'] = {
+            'handlers': ['file'],
+            'level': 'INFO'
+        }
+
+
