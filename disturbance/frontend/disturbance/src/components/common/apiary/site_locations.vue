@@ -97,6 +97,7 @@
 
 <script>
     import 'ol/ol.css';
+    import 'ol-layerswitcher/dist/ol-layerswitcher.css'
     //import 'index.css';  // copy-and-pasted the contents of this file at the <style> section below in this file
     import Map from 'ol/Map';
     import View from 'ol/View';
@@ -124,6 +125,8 @@
     import uuid from 'uuid';
     import { getStatusForColour, getApiaryFeatureStyle, drawingSiteRadius, existingSiteRadius, SiteColours } from '@/components/common/apiary/site_colours.js'
     import Overlay from 'ol/Overlay';
+    import LayerSwitcher from 'ol-layerswitcher';
+    import { BaseLayerOptions, GroupLayerOptions } from 'ol-layerswitcher';
 
     export default {
         props:{
@@ -893,10 +896,6 @@
             },
             initMap: async function() {
                 let vm = this;
-                let tileLayer = new TileLayer({
-                                    source: new OSM(),
-                                    opacity: 0.5
-                                });
 
                 let satelliteTileWms = new TileWMS({
                             url: 'https://kmi.dpaw.wa.gov.au/geoserver/public/wms',
@@ -909,14 +908,23 @@
                             }
                         });
 
-                let tileLayerSat = new TileLayer({
+                const osm = new TileLayer({
+                    title: 'OpenStreetMap',
+                    type: 'base',
+                    visible: true,
+                    source: new OSM(),
+                });
+
+                const tileLayerSat = new TileLayer({
+                    title: 'Satellite',
+                    type: 'base',
+                    visible: true,
                     source: satelliteTileWms,
-                    opacity: 0.5
                 })
 
                 vm.map = new Map({
                     layers: [
-                        tileLayer, 
+                        osm, 
                         tileLayerSat,
                     ],
                     target: 'map',
@@ -926,6 +934,12 @@
                         projection: 'EPSG:4326'
                     })
                 });
+
+                let layerSwitcher = new LayerSwitcher({
+                    reverse: true,
+                    groupSelectStyle: 'group'
+                })
+                vm.map.addControl(layerSwitcher)
 
                 let clusterSource = new Cluster({
                     distance: 50,
