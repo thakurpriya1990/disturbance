@@ -334,7 +334,6 @@ def validate_buffer(wkb_geometry, apiary_sites_to_exclude=None):
     if sites:
         raise site_too_close_error
 
-    #qs_on_proposal_draft, qs_on_proposal_processed = get_qs_proposal()
     qs_on_proposal_draft = get_qs_proposal('draft')
     qs_on_proposal_processed = get_qs_proposal('processed')
     sites = qs_on_proposal_draft.exclude(apiary_site__in=apiary_sites_to_exclude).filter(Q(wkb_geometry_draft__distance_lte=(wkb_geometry, Distance(m=RESTRICTED_RADIUS))))
