@@ -7,6 +7,7 @@ from disturbance.components.organisations.utils import can_admin_org, is_consult
 from rest_framework import serializers
 from ledger.accounts.utils import in_dbca_domain
 from disturbance.components.approvals.models import Approval
+from disturbance.components.proposals.models import Proposal
 
 class DocumentSerializer(serializers.ModelSerializer):
 
@@ -31,7 +32,9 @@ class UserOrganisationSerializer(serializers.ModelSerializer):
     abn = serializers.CharField(source='organisation.abn')
     is_consultant = serializers.SerializerMethodField(read_only=True)
     is_admin = serializers.SerializerMethodField(read_only=True)
-    current_apiary_approval = serializers.SerializerMethodField(read_only=True)
+    current_apiary_approval = serializers.SerializerMethodField(read_only=True) # includes current & suspended
+    existing_record_text = serializers.SerializerMethodField()
+
     class Meta:
         model = Organisation
         fields = (
@@ -42,12 +45,49 @@ class UserOrganisationSerializer(serializers.ModelSerializer):
             'is_consultant',
             'is_admin',
             'current_apiary_approval',
+            'existing_record_text',
         )
 
     def get_current_apiary_approval(self, obj):
-        approval = obj.disturbance_approvals.filter(status=Approval.STATUS_CURRENT, apiary_approval=True).first()
+        approval = obj.disturbance_approvals.filter(status__in=[Approval.STATUS_CURRENT, Approval.STATUS_SUSPENDED], apiary_approval=True).first()
         if approval:
             return approval.id
+
+    def get_existing_record_text(self, obj):
+        notification = ''
+        approval = obj.disturbance_approvals.filter(status__in=[Approval.STATUS_CURRENT, Approval.STATUS_SUSPENDED], apiary_approval=True).first()
+        open_proposal = None
+        # Apiary applications
+        for proposal in approval.proposal_set.all():
+            if not proposal.processing_status in [
+                    Proposal.PROCESSING_STATUS_APPROVED, 
+                    Proposal.PROCESSING_STATUS_DECLINED, 
+                    Proposal.PROCESSING_STATUS_DISCARDED
+                    ]:
+                open_proposal = proposal
+        # Site Transfer Applications
+        for proposal_apiary in approval.site_transfer_originating_approval.all():
+            if not proposal_apiary.proposal.processing_status in [
+                    Proposal.PROCESSING_STATUS_APPROVED, 
+                    Proposal.PROCESSING_STATUS_DECLINED, 
+                    Proposal.PROCESSING_STATUS_DISCARDED
+                    ]:
+                open_proposal = proposal_apiary.proposal
+        # Temporary Use Applications
+        for proposal_apiary in approval.proposalapiarytemporaryuse_set.all():
+            if not proposal_apiary.proposal.processing_status in [
+                    Proposal.PROCESSING_STATUS_APPROVED, 
+                    Proposal.PROCESSING_STATUS_DECLINED, 
+                    Proposal.PROCESSING_STATUS_DISCARDED
+                    ]:
+                open_proposal = proposal_apiary.proposal
+        # Any open proposal will block the user from opening a new Apiary/Site Transfer/Temporary Use application
+        if open_proposal:
+            notification = '<span class="proposalWarning"> (Application {} in progress) </span>'.format(open_proposal.lodgement_number)
+        else:
+            notification = '<span> (Make changes to Licence {}) </span>'.format(approval.lodgement_number)
+
+        return notification
 
     def get_is_admin(self, obj):
         user = EmailUser.objects.get(id=self.context.get('user_id'))
@@ -87,6 +127,7 @@ class UserSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()
     is_department_user = serializers.SerializerMethodField()
     current_apiary_approval = serializers.SerializerMethodField()
+    existing_record_text = serializers.SerializerMethodField()
 
     class Meta:
         model = EmailUser
@@ -105,12 +146,49 @@ class UserSerializer(serializers.ModelSerializer):
             'is_department_user',
             'full_name',
             'current_apiary_approval',
+            'existing_record_text',
         )
 
     def get_current_apiary_approval(self, obj):
-        approval = obj.disturbance_proxy_approvals.filter(status=Approval.STATUS_CURRENT, apiary_approval=True).first()
+        approval = obj.disturbance_proxy_approvals.filter(status__in=[Approval.STATUS_CURRENT, Approval.STATUS_SUSPENDED], apiary_approval=True).first()
         if approval:
             return approval.id
+
+    def get_existing_record_text(self, obj):
+        notification = ''
+        approval = obj.disturbance_proxy_approvals.filter(status__in=[Approval.STATUS_CURRENT, Approval.STATUS_SUSPENDED], apiary_approval=True).first()
+        open_proposal = None
+        # Apiary applications
+        for proposal in approval.proposal_set.all():
+            if not proposal.processing_status in [
+                    Proposal.PROCESSING_STATUS_APPROVED, 
+                    Proposal.PROCESSING_STATUS_DECLINED, 
+                    Proposal.PROCESSING_STATUS_DISCARDED
+                    ]:
+                open_proposal = proposal
+        # Site Transfer Applications
+        for proposal_apiary in approval.site_transfer_originating_approval.all():
+            if not proposal_apiary.proposal.processing_status in [
+                    Proposal.PROCESSING_STATUS_APPROVED, 
+                    Proposal.PROCESSING_STATUS_DECLINED, 
+                    Proposal.PROCESSING_STATUS_DISCARDED
+                    ]:
+                open_proposal = proposal_apiary.proposal
+        # Temporary Use Applications
+        for proposal_apiary in approval.proposalapiarytemporaryuse_set.all():
+            if not proposal_apiary.proposal.processing_status in [
+                    Proposal.PROCESSING_STATUS_APPROVED, 
+                    Proposal.PROCESSING_STATUS_DECLINED, 
+                    Proposal.PROCESSING_STATUS_DISCARDED
+                    ]:
+                open_proposal = proposal_apiary.proposal
+        # Any open proposal will block the user from opening a new Apiary/Site Transfer/Temporary Use application
+        if open_proposal:
+            notification = '<span class="proposalWarning">  (Application {} in progress)</span>'.format(open_proposal.lodgement_number)
+        else:
+            notification = '<span>  (Make changes to Licence {})</span>'.format(approval.lodgement_number)
+
+        return notification
 
     def get_personal_details(self,obj):
         return True if obj.last_name  and obj.first_name else False

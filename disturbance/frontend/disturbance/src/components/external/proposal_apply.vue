@@ -20,6 +20,7 @@
                                         <div class="radio">
                                             <label>
                                               <input type="radio" name="behalf_of_individual" v-model="behalf_of" value="individual"> On behalf of yourself
+                                                <span v-html="individualExistingRecordText"></span>
                                             </label>
                                         </div>
                                     </template>
@@ -27,6 +28,7 @@
                                         <div v-for="org in profile.disturbance_organisations" class="radio">
                                             <label>
                                               <input type="radio" name="behalf_of_org" v-model="behalf_of"  :value="org.id"> On behalf of {{org.name}}
+                                                <span v-html="org.existing_record_text"></span>
                                             </label>
                                         </div>
                                         <!--
@@ -268,6 +270,13 @@ export default {
               returnStr = 'Select application type';
           }
           return returnStr;
+      },
+      individualExistingRecordText: function() {
+          let approvalText = '';
+          if (this.profile) {
+              approvalText = this.profile.existing_record_text;
+          }
+          return approvalText;
       },
       currentApiaryApproval: function() {
           let currentApproval = null;
@@ -731,5 +740,8 @@ input[type=text], select{
 	border-style: solid;
 	border-width: thin;
 	border-color: #FFFFFF;
+}
+.proposalWarning {
+    color: red;
 }
 </style>
