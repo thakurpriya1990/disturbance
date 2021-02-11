@@ -530,7 +530,10 @@ def calculate_total_annual_rental_fee(approval, period, sites_charged):
 
     apiary_sites_charged = {}
     for my_site in sites_charged:
-        apiary_site = ApiarySite.objects.get(id=my_site['id'])
+        if isinstance(my_site, ApiarySite):
+            apiary_site = my_site
+        else:
+            apiary_site = ApiarySite.objects.get(id=my_site['id'])
         last_annual_rental_fee = AnnualRentalFee.objects.filter(approval=approval, annualrentalfeeapiarysite__apiary_site=apiary_site).order_by('-invoice_period_end_date').first()
         if last_annual_rental_fee:
             # There is at least one payment for this site
