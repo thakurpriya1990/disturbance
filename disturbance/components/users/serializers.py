@@ -8,6 +8,8 @@ from rest_framework import serializers
 from ledger.accounts.utils import in_dbca_domain
 from disturbance.components.approvals.models import Approval
 from disturbance.components.proposals.models import Proposal
+from disturbance.components.main.models import ApplicationType
+from disturbance.components.main.utils import get_template_group
 
 class DocumentSerializer(serializers.ModelSerializer):
 
@@ -57,38 +59,28 @@ class UserOrganisationSerializer(serializers.ModelSerializer):
         notification = ''
         disable_radio_button = False
 
-        approval = obj.disturbance_approvals.filter(status__in=[Approval.STATUS_CURRENT, Approval.STATUS_SUSPENDED], apiary_approval=True).first()
-        open_proposal = None
-        # Apiary applications
-        for proposal in approval.proposal_set.all():
-            if not proposal.processing_status in [
-                    Proposal.PROCESSING_STATUS_APPROVED, 
-                    Proposal.PROCESSING_STATUS_DECLINED, 
-                    Proposal.PROCESSING_STATUS_DISCARDED
-                    ]:
-                open_proposal = proposal
-        # Site Transfer Applications
-        for proposal_apiary in approval.site_transfer_originating_approval.all():
-            if not proposal_apiary.proposal.processing_status in [
-                    Proposal.PROCESSING_STATUS_APPROVED, 
-                    Proposal.PROCESSING_STATUS_DECLINED, 
-                    Proposal.PROCESSING_STATUS_DISCARDED
-                    ]:
-                open_proposal = proposal_apiary.proposal
-        # Temporary Use Applications
-        for proposal_apiary in approval.proposalapiarytemporaryuse_set.all():
-            if not proposal_apiary.proposal.processing_status in [
-                    Proposal.PROCESSING_STATUS_APPROVED, 
-                    Proposal.PROCESSING_STATUS_DECLINED, 
-                    Proposal.PROCESSING_STATUS_DISCARDED
-                    ]:
-                open_proposal = proposal_apiary.proposal
-        # Any open proposal will block the user from opening a new Apiary/Site Transfer/Temporary Use application
-        if open_proposal:
-            disable_radio_button = True
-            notification = '<span class="proposalWarning"> (Application {} in progress) </span>'.format(open_proposal.lodgement_number)
-        else:
-            notification = '<span> (Make changes to Licence {}) </span>'.format(approval.lodgement_number)
+        request = self.context.get('request')
+        if request and get_template_group(request) == 'apiary':
+            approval = obj.disturbance_approvals.filter(status__in=[Approval.STATUS_CURRENT, Approval.STATUS_SUSPENDED], apiary_approval=True).first()
+            open_proposal = None
+            # Apiary group applications
+            for proposal in Proposal.objects.filter(applicant=obj, application_type__name__in=[
+                ApplicationType.APIARY,
+                ApplicationType.TEMPORARY_USE,
+                ApplicationType.SITE_TRANSFER,
+                ]):
+                if not proposal.processing_status in [
+                        Proposal.PROCESSING_STATUS_APPROVED, 
+                        Proposal.PROCESSING_STATUS_DECLINED, 
+                        Proposal.PROCESSING_STATUS_DISCARDED
+                        ]:
+                    open_proposal = proposal
+            # Any open Apiary proposal will block the user from opening a new Apiary/Site Transfer/Temporary Use application
+            if open_proposal:
+                disable_radio_button = True
+                notification = '<span class="proposalWarning">  (Application {} in progress)</span>'.format(open_proposal.lodgement_number)
+            elif approval:
+                notification = '<span>  (Make changes to Licence {})</span>'.format(approval.lodgement_number)
 
         return {
                 "disable_radio_button": disable_radio_button,
@@ -163,38 +155,29 @@ class UserSerializer(serializers.ModelSerializer):
     def get_existing_record_text(self, obj):
         notification = ''
         disable_radio_button = False
-        approval = obj.disturbance_proxy_approvals.filter(status__in=[Approval.STATUS_CURRENT, Approval.STATUS_SUSPENDED], apiary_approval=True).first()
-        open_proposal = None
-        # Apiary applications
-        for proposal in approval.proposal_set.all():
-            if not proposal.processing_status in [
-                    Proposal.PROCESSING_STATUS_APPROVED, 
-                    Proposal.PROCESSING_STATUS_DECLINED, 
-                    Proposal.PROCESSING_STATUS_DISCARDED
-                    ]:
-                open_proposal = proposal
-        # Site Transfer Applications
-        for proposal_apiary in approval.site_transfer_originating_approval.all():
-            if not proposal_apiary.proposal.processing_status in [
-                    Proposal.PROCESSING_STATUS_APPROVED, 
-                    Proposal.PROCESSING_STATUS_DECLINED, 
-                    Proposal.PROCESSING_STATUS_DISCARDED
-                    ]:
-                open_proposal = proposal_apiary.proposal
-        # Temporary Use Applications
-        for proposal_apiary in approval.proposalapiarytemporaryuse_set.all():
-            if not proposal_apiary.proposal.processing_status in [
-                    Proposal.PROCESSING_STATUS_APPROVED, 
-                    Proposal.PROCESSING_STATUS_DECLINED, 
-                    Proposal.PROCESSING_STATUS_DISCARDED
-                    ]:
-                open_proposal = proposal_apiary.proposal
-        # Any open proposal will block the user from opening a new Apiary/Site Transfer/Temporary Use application
-        if open_proposal:
-            disable_radio_button = True
-            notification = '<span class="proposalWarning">  (Application {} in progress)</span>'.format(open_proposal.lodgement_number)
-        else:
-            notification = '<span>  (Make changes to Licence {})</span>'.format(approval.lodgement_number)
+
+        request = self.context.get('request')
+        if request and get_template_group(request) == 'apiary':
+            approval = obj.disturbance_proxy_approvals.filter(status__in=[Approval.STATUS_CURRENT, Approval.STATUS_SUSPENDED], apiary_approval=True).first()
+            open_proposal = None
+            # Apiary group applications
+            for proposal in Proposal.objects.filter(proxy_applicant=obj, application_type__name__in=[
+                ApplicationType.APIARY,
+                ApplicationType.TEMPORARY_USE,
+                ApplicationType.SITE_TRANSFER,
+                ]):
+                if not proposal.processing_status in [
+                        Proposal.PROCESSING_STATUS_APPROVED, 
+                        Proposal.PROCESSING_STATUS_DECLINED, 
+                        Proposal.PROCESSING_STATUS_DISCARDED
+                        ]:
+                    open_proposal = proposal
+            # Any open proposal will block the user from opening a new Apiary/Site Transfer/Temporary Use application
+            if open_proposal:
+                disable_radio_button = True
+                notification = '<span class="proposalWarning">  (Application {} in progress)</span>'.format(open_proposal.lodgement_number)
+            elif approval:
+                notification = '<span>  (Make changes to Licence {})</span>'.format(approval.lodgement_number)
 
         return {
                 "disable_radio_button": disable_radio_button,
