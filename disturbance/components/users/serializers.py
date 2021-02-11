@@ -55,6 +55,8 @@ class UserOrganisationSerializer(serializers.ModelSerializer):
 
     def get_existing_record_text(self, obj):
         notification = ''
+        disable_radio_button = False
+
         approval = obj.disturbance_approvals.filter(status__in=[Approval.STATUS_CURRENT, Approval.STATUS_SUSPENDED], apiary_approval=True).first()
         open_proposal = None
         # Apiary applications
@@ -83,11 +85,15 @@ class UserOrganisationSerializer(serializers.ModelSerializer):
                 open_proposal = proposal_apiary.proposal
         # Any open proposal will block the user from opening a new Apiary/Site Transfer/Temporary Use application
         if open_proposal:
+            disable_radio_button = True
             notification = '<span class="proposalWarning"> (Application {} in progress) </span>'.format(open_proposal.lodgement_number)
         else:
             notification = '<span> (Make changes to Licence {}) </span>'.format(approval.lodgement_number)
 
-        return notification
+        return {
+                "disable_radio_button": disable_radio_button,
+                "notification": notification,
+                }
 
     def get_is_admin(self, obj):
         user = EmailUser.objects.get(id=self.context.get('user_id'))
@@ -156,6 +162,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     def get_existing_record_text(self, obj):
         notification = ''
+        disable_radio_button = False
         approval = obj.disturbance_proxy_approvals.filter(status__in=[Approval.STATUS_CURRENT, Approval.STATUS_SUSPENDED], apiary_approval=True).first()
         open_proposal = None
         # Apiary applications
@@ -184,11 +191,15 @@ class UserSerializer(serializers.ModelSerializer):
                 open_proposal = proposal_apiary.proposal
         # Any open proposal will block the user from opening a new Apiary/Site Transfer/Temporary Use application
         if open_proposal:
+            disable_radio_button = True
             notification = '<span class="proposalWarning">  (Application {} in progress)</span>'.format(open_proposal.lodgement_number)
         else:
             notification = '<span>  (Make changes to Licence {})</span>'.format(approval.lodgement_number)
 
-        return notification
+        return {
+                "disable_radio_button": disable_radio_button,
+                "notification": notification,
+                }
 
     def get_personal_details(self,obj):
         return True if obj.last_name  and obj.first_name else False
