@@ -918,7 +918,7 @@
                 const tileLayerSat = new TileLayer({
                     title: 'Satellite',
                     type: 'base',
-                    visible: true,
+                    visible: false,
                     source: satelliteTileWms,
                 })
 
