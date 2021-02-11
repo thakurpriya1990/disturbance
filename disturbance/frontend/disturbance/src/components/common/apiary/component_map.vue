@@ -22,6 +22,7 @@
 <script>
     import uuid from 'uuid';
     import 'ol/ol.css';
+    import 'ol-layerswitcher/dist/ol-layerswitcher.css'
     //import 'index.css';  // copy-and-pasted the contents of this file at the <style> section below in this file
 
     import Map from 'ol/Map';
