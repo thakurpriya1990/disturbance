@@ -78,7 +78,7 @@ export default {
                     return _data;
                     },
                 },
-                order: [0],
+                //order: [0],
                 columnDefs: [
                     { visible: false, targets: [ 0 ] } // hide order column.
                 ],
