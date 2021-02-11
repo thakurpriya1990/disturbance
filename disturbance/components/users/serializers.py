@@ -208,12 +208,15 @@ class UserSerializer(serializers.ModelSerializer):
             return False
 
     def get_disturbance_organisations(self, obj):
+        request = self.context.get('request')
         disturbance_organisations = obj.disturbance_organisations
         serialized_orgs = UserOrganisationSerializer(
-            disturbance_organisations, many=True, context={
-                'user_id': obj.id}).data
+            disturbance_organisations, many=True, 
+            context={
+                'user_id': obj.id,
+                'request': request
+                }).data
         return serialized_orgs
-
 
 
 class PersonalSerializer(serializers.ModelSerializer):
