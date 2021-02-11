@@ -103,6 +103,7 @@
     import WMTSCapabilities from 'ol/format/WMTSCapabilities';
     import TileLayer from 'ol/layer/Tile';
     import OSM from 'ol/source/OSM';
+    import TileWMS from 'ol/source/TileWMS';
     import WMTS, {optionsFromCapabilities} from 'ol/source/WMTS';
     import Collection from 'ol/Collection';
     import {Draw, Modify, Snap, Select} from 'ol/interaction';
@@ -892,13 +893,31 @@
             },
             initMap: async function() {
                 let vm = this;
+                let tileLayer = new TileLayer({
+                                    source: new OSM(),
+                                    opacity: 0.5
+                                });
+
+                let satelliteTileWms = new TileWMS({
+                            url: 'https://kmi.dpaw.wa.gov.au/geoserver/public/wms',
+                            params: {
+                                'FORMAT': 'image/png',
+                                'VERSION': '1.1.1',
+                                tiled: true,
+                                STYLES: '',
+                                LAYERS: 'public:mapbox-satellite',
+                            }
+                        });
+
+                let tileLayerSat = new TileLayer({
+                    source: satelliteTileWms,
+                    opacity: 0.5
+                })
 
                 vm.map = new Map({
                     layers: [
-                        new TileLayer({
-                            source: new OSM(),
-                            opacity:0.5
-                        })
+                        tileLayer, 
+                        tileLayerSat,
                     ],
                     target: 'map',
                     view: new View({
