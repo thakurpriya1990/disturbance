@@ -128,7 +128,7 @@
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label">Phone (work)</label>
                             <div v-if="profile.is_department_user" class="col-sm-6">
-                                <input readonly="readonly" type="text" class="form-control" id="phone" name="Phone" placeholder="" v-model="profile.phone_number">
+                                <input :readonly="phoneNumberReadonly" type="text" class="form-control" id="phone" name="Phone" placeholder="" v-model="profile.phone_number">
                             </div>
                             <div v-else class="col-sm-6">
                                 <input type="text" class="form-control" id="phone" name="Phone" placeholder="" v-model="profile.phone_number">
@@ -137,7 +137,7 @@
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label" >Mobile</label>
                             <div v-if="profile.is_department_user" class="col-sm-6">
-                                <input readonly="readonly" type="text" class="form-control" id="mobile" name="Mobile" placeholder="" v-model="profile.mobile_number">
+                                <input :readonly="mobileNumberReadonly" type="text" class="form-control" id="mobile" name="Mobile" placeholder="" v-model="profile.mobile_number">
                             </div>
                             <div v-else class="col-sm-6">
                                 <input type="text" class="form-control" id="mobile" name="Mobile" placeholder="" v-model="profile.mobile_number">
@@ -775,6 +775,8 @@ export default {
                     vm.profile = response.body
                     if (vm.profile.residential_address == null){ vm.profile.residential_address = {}; }
                     if ( vm.profile.commercialoperator_organisations && vm.profile.commercialoperator_organisations.length > 0 ) { vm.managesOrg = 'Yes' }
+                    vm.phoneNumberReadonly = vm.profile.phone_number === '' || vm.profile.phone_number === null || vm.profile.phone_number === 0 ?  false : true;
+                    vm.mobileNumberReadonly = vm.profile.mobile_number === '' || vm.profile.mobile_number === null || vm.profile.mobile_number === 0 ?  false : true;
         },(error) => {
             console.log(error);
         })
@@ -800,6 +802,7 @@ export default {
     mounted: function(){
         this.fetchCountries();
         this.fetchOrgRequestList();
+        this.fetchProfile(); //beforeRouteEnter doesn't work when loading this component in Application.vue so adding an extra method to get profile details.
         this.personal_form = document.forms.personal_form;
         $('.panelClicker[data-toggle="collapse"]').on('click', function () {
             var chev = $(this).children()[0];
