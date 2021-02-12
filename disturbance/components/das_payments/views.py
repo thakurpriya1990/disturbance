@@ -427,9 +427,10 @@ class AnnualRentalFeeSuccessView(TemplateView):
 
         # Check if the request.user can access the invoice
         can_access_invoice = False
-        if request.user == annual_rental_fee.approval.relevant_applicant or \
-                annual_rental_fee.approval.applicant in request.user.disturbance_organisations.all():
-            can_access_invoice = True
+        if not request.user.is_anonymous():
+            if request.user == annual_rental_fee.approval.relevant_applicant or \
+                    annual_rental_fee.approval.applicant in request.user.disturbance_organisations.all():
+                can_access_invoice = True
 
         return can_access_invoice, to_email_addresses
 
