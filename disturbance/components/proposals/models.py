@@ -2381,7 +2381,6 @@ def clone_apiary_proposal_with_status_reset(original_proposal):
             proposal.activity = 'Apiary Renewal'
 
             proposal.save(no_revision=True)
-
             # clone requirements - ensure due dates are None
             approval = original_proposal.proposal_apiary.retrieve_approval
             req = approval.proposalrequirement_set.exclude(is_deleted=True)
@@ -2815,9 +2814,9 @@ class ProposalApiary(RevisionedMixin):
         from disturbance.components.approvals.models import Approval
         approval = None
         if self.proposal.applicant:
-            approval = Approval.objects.filter(applicant=self.proposal.applicant, status=Approval.STATUS_CURRENT, apiary_approval=True).first()
+            approval = Approval.objects.filter(applicant=self.proposal.applicant, status__in=[Approval.STATUS_CURRENT, Approval.STATUS_SUSPENDED], apiary_approval=True).first()
         elif self.proposal.proxy_applicant:
-            approval = Approval.objects.filter(proxy_applicant=self.proposal.proxy_applicant, status=Approval.STATUS_CURRENT, apiary_approval=True).first()
+            approval = Approval.objects.filter(proxy_applicant=self.proposal.proxy_applicant, status__in=[Approval.STATUS_CURRENT, Approval.STATUS_SUSPENDED], apiary_approval=True).first()
         return approval
 
     def create_transferee_approval(self, details, applicant=None, proxy_applicant=None):
