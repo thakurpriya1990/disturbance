@@ -20,7 +20,7 @@
                                         </div>
                                         <div class="col-sm-9">
                                             <template v-if="!startDateCanBeModified">
-                                                {{ proposal.approval.start_date }}
+                                                {{ approvalStartDateDisplay }}
                                             </template>
                                             <template v-else>
                                                 <div class="input-group date" ref="start_date" style="width: 70%;">
@@ -45,7 +45,7 @@
                                         </div>
                                         <div class="col-sm-9">
                                             <template v-if="!expiryDateCanBeModified">
-                                                {{ proposal.approval.expiry_date }}
+                                                {{ approvalExpiryDateDisplay }}
                                             </template>
                                             <template v-else>
                                                 <div class="input-group date" ref="due_date" style="width: 70%;">
@@ -275,6 +275,20 @@ export default {
         }
     },
     computed: {
+        approvalStartDateDisplay: function() {
+            let displayDate = null;
+            if (this.proposal && this.proposal.approval && this.proposal.approval.start_date) {
+                displayDate = moment(this.proposal.approval.start_date, 'YYYY-MM-DD').format('DD/MM/YYYY');
+            }
+            return displayDate;
+        },
+        approvalExpiryDateDisplay: function() {
+            let displayDate = null;
+            if (this.proposal && this.proposal.approval && this.proposal.approval.expiry_date) {
+                displayDate = moment(this.proposal.approval.expiry_date, 'YYYY-MM-DD').format('DD/MM/YYYY');
+            }
+            return displayDate;
+        },
         proposalNotificationList: function (){
             let returnVal = `${this.submitter_email} and ${this.applicant_email}.`
             if (this.submitter_email === this.applicant_email){
