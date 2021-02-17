@@ -604,7 +604,7 @@ class ApprovalViewSet(viewsets.ModelViewSet):
             return_list = []
             if approval_history_id:
                 instance = Approval.objects.get(id=approval_history_id)
-                if instance.current_proposal.apiary_group_application_type:
+                if instance.apiary_approval:
                     qs = instance.documents.all().order_by("-uploaded_date")
                     for item in qs:
                         se = ApprovalDocumentHistorySerializer(item)
