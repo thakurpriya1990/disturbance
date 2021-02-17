@@ -30,7 +30,7 @@ from datetime import datetime, timedelta, date
 from django.urls import reverse
 from django.shortcuts import render, redirect, get_object_or_404
 from disturbance.components.approvals.models import (
-    Approval, ApprovalUserAction, ApiarySiteOnApproval
+    Approval, ApprovalUserAction, ApiarySiteOnApproval, ApprovalDocument,
 )
 from disturbance.components.approvals.serializers import (
     ApprovalSerializer,
@@ -605,10 +605,17 @@ class ApprovalViewSet(viewsets.ModelViewSet):
             return_list = []
             if approval_history_id:
                 instance = Approval.objects.get(id=approval_history_id)
-                qs = instance.documents.all().order_by("-uploaded_date")
-                for item in qs:
-                    se = ApprovalDocumentHistorySerializer(item)
-                    return_list.append(se.data)
+                if instance.apiary_approval:
+                    qs = instance.documents.all().order_by("-uploaded_date")
+                    for item in qs:
+                        se = ApprovalDocumentHistorySerializer(item)
+                        return_list.append(se.data)
+                else:
+                    qs=ApprovalDocument.objects.filter(approval__lodgement_number=instance.lodgement_number, name__icontains='approval')
+                    qs=qs.order_by("-uploaded_date")
+                    for item in qs:
+                        se = ApprovalDocumentHistorySerializer(item)
+                        return_list.append(se.data)
             return Response(return_list)
         except serializers.ValidationError:
             print(traceback.print_exc())
