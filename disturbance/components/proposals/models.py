@@ -3574,7 +3574,11 @@ class ApiaryAnnualRentalFeePeriodStartDate(RevisionedMixin):
     period_start_date = models.DateField(blank=True, null=True)
 
     def __str__(self):
-        return '{}: {} {}'.format(self.name, self.period_start_date.strftime('%B'), self.period_start_date.day)
+        try:
+            return '{}: {} {}'.format(self.name, self.period_start_date.strftime('%B'), self.period_start_date.day)
+        except:
+            return '{}'.format(self.name)
+
 
     class Meta:
         app_label = 'disturbance'
@@ -3597,7 +3601,10 @@ class ApiaryAnnualRentalFeeRunDate(RevisionedMixin):
         verbose_name = 'Annual Site Fee Issue Date'
 
     def __str__(self):
-        return '{}: {} {}'.format(self.name, self.date_run_cron.strftime('%B'), self.date_run_cron.day)
+        try:
+            return '{}: {} {}'.format(self.name, self.date_run_cron.strftime('%B'), self.date_run_cron.day)
+        except:
+            return '{}'.format(self.name)
 
 
 class ApiarySite(models.Model):

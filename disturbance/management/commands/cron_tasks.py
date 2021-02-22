@@ -38,7 +38,8 @@ class Command(BaseCommand):
 
     def send_email(self):
         log_txt = Path(LOGFILE).read_text()
-        subject = '{} - Cronjob'.format(settings.SYSTEM_NAME_SHORT)
+        #subject = '{} - Cronjob'.format(settings.SYSTEM_NAME_SHORT)
+        subject = 'DAS-Apiary - Cronjob'.format(settings.SYSTEM_NAME_SHORT) 
         body = ''
         to = settings.CRON_NOTIFICATION_EMAIL if isinstance(settings.NOTIFICATION_EMAIL, list) else [settings.CRON_NOTIFICATION_EMAIL]
         send_mail(subject, body, settings.EMAIL_FROM, to, fail_silently=False, html_message=log_txt)
