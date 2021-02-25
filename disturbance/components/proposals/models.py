@@ -52,6 +52,7 @@ from disturbance.components.proposals.email import (
 from disturbance.ordered_model import OrderedModel
 import copy
 import subprocess
+from multiselectfield import MultiSelectField
 
 import logging
 
@@ -4319,6 +4320,89 @@ class ApiaryReferral(RevisionedMixin):
 # Apiary Models End
 # --------------------------------------------------------------------------------------
 
+# --------------------------------------------------------------------------------------
+# Generate JSON schema models start
+# --------------------------------------------------------------------------------------
+@python_2_unicode_compatible
+class QuestionOption(models.Model):
+    name = models.CharField(max_length=100)
+
+    class Meta:
+        app_label = 'disturbance'
+
+    def __str__(self):
+        return self.name 
+
+@python_2_unicode_compatible
+class MasterlistQuestion(models.Model):
+    ANSWER_TYPE_CHOICES=(('text', 'Text'),
+                         ('radiobutton', 'Radio button'),
+                         ('checkbox', 'Checkbox'),
+                         
+                         ('text_info', 'Text Info'),
+                         ('iframe', 'IFrame'),
+                         ('number','Number'),
+                         ('email','Email'),
+                         ('select', 'Select'),
+                         ('multi-select','Multi-elect'),
+                         ('text_area','Text area'),
+                         ('label', 'Label'),
+                         ('section', 'Section'),
+                         ('declaration', 'Declaration'),
+                         ('file', 'File'),
+                         ('date', 'Date'),
+                        )
+    name = models.CharField(max_length=100)
+    question = models.TextField()
+    #answer_type= models.CharField(max_length=100)
+    option = models.ManyToManyField(QuestionOption, blank=True, null=True)
+    answer_type = models.CharField('Answer Type', max_length=40, choices=ANSWER_TYPE_CHOICES,
+                                        default=ANSWER_TYPE_CHOICES[0][0])
+
+
+    class Meta:
+        app_label = 'disturbance'
+
+    def __str__(self):
+        return self.name
+
+@python_2_unicode_compatible
+class ProposalTypeSection(models.Model):
+    section_name = models.CharField(max_length=100)
+    section_label = models.CharField(max_length=100)
+    index = models.IntegerField(blank=True, default=0)
+    proposal_type=models.ForeignKey(ProposalType, related_name='sections')
+    
+
+    class Meta:
+        app_label = 'disturbance'
+
+    def __str__(self):
+        return self.section_name  
+
+@python_2_unicode_compatible
+class SectionQuestion(models.Model):
+    TAG_CHOICES=(('isCopiedToPermit', 'isCopiedToPermit'),
+                )
+    section=models.ForeignKey(ProposalTypeSection, related_name='section_questions')
+    question=models.ForeignKey(MasterlistQuestion, related_name='question_sections')
+    parent_question=models.ForeignKey(MasterlistQuestion, related_name='children_question', null=True, blank=True)
+    parent_answer=models.ForeignKey(QuestionOption, null=True, blank=True)
+    tag= MultiSelectField(choices=TAG_CHOICES, max_length=400,max_choices=10, null=True, blank=True)
+
+
+
+
+    class Meta:
+        app_label = 'disturbance'
+
+    def __str__(self):
+        return str(self.id)  
+
+
+# --------------------------------------------------------------------------------------
+# Generate JSON schema models start
+# --------------------------------------------------------------------------------------
 
 import reversion
 #reversion.register(Proposal, follow=['requirements', 'documents', 'compliances', 'referrals', 'approvals', 'proposal_apiary'])

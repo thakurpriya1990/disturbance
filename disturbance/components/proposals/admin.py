@@ -288,3 +288,60 @@ class ApiaryChecklistQuestionAdmin(admin.ModelAdmin):
     #list_display = ['text', 'answer_type', 'order']
     ordering = ('order',)
 
+
+@admin.register(models.QuestionOption)
+class QuestionOptionAdmin(admin.ModelAdmin):
+    list_display = ['name',]
+    #ordering = ('order',)
+
+@admin.register(models.MasterlistQuestion)
+class MasterlistQuestionAdmin(admin.ModelAdmin):
+    list_display = ['name', 'question',]
+    filter_horizontal = ('option',)
+    form = forms.MasterlistQuestionAdminForm
+    #exclude = ('site',)
+    #actions = None
+
+    # def formfield_for_manytomany(self, db_field, request, **kwargs):
+    #     if db_field.name == "members":
+    #         #kwargs["queryset"] = EmailUser.objects.filter(email__icontains='@dbca.wa.gov.au')
+    #         kwargs["queryset"] = EmailUser.objects.filter(is_staff=True)
+    #     return super(ApiaryAssessorGroupAdmin, self).formfield_for_manytomany(db_field, request, **kwargs)
+
+    # def has_add_permission(self, request):
+    #     return True if models.ApiaryAssessorGroup.objects.count() == 0 else False
+
+    # def has_delete_permission(self, request, obj=None):
+    #     return False 
+
+@admin.register(models.ProposalTypeSection)
+class ProposalTypeSectionAdmin(admin.ModelAdmin):
+    list_display = ['proposal_type', 'index', 'section_name', 'section_label',]
+   
+@admin.register(models.SectionQuestion)
+class SectionQuestionAdmin(admin.ModelAdmin):
+    list_display = ['section', 'question','parent_question','parent_answer']
+    #filter_horizontal = ('option',)
+    form = forms.SectionQuestionAdminForm
+
+    # def formfield_for_foreignkey(self, db_field, request, **kwargs):
+    #     if db_field.name == "parent_question":
+    #         #kwargs["queryset"] = EmailUser.objects.filter(email__icontains='@dbca.wa.gov.au')
+    #         kwargs["queryset"] = models.MasterlistQuestion.objects.filter(option__isnull=False).distinct()
+    #     # if db_field.name == "parent_answer":
+    #     #     #kwargs["queryset"] = EmailUser.objects.filter(email__icontains='@dbca.wa.gov.au')
+
+    #     #     kwargs["queryset"] = self.parent_question.option.all()
+    #     return super(SectionQuestionAdmin, self).formfield_for_foreignkey(db_field, request, **kwargs)
+
+
+
+    # def formfield_for_choice_field(self, db_field, request, **kwargs):
+    #     # if db_field.name == "parent_question":
+    #     #     #kwargs["queryset"] = EmailUser.objects.filter(email__icontains='@dbca.wa.gov.au')
+    #     #     kwargs["queryset"] = MasterlistQuestion.objects.filter(option__isnull=False).distinct()
+    #     if db_field.name == "parent_answer":
+    #         #kwargs["queryset"] = EmailUser.objects.filter(email__icontains='@dbca.wa.gov.au')
+    #         kwargs["queryset"] = self.parent_question.option.all()
+    #     return super(SectionQuestionAdmin, self).formfield_for_choice_field(db_field, request, **kwargs)
+
