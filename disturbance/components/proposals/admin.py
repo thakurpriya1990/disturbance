@@ -291,7 +291,7 @@ class ApiaryChecklistQuestionAdmin(admin.ModelAdmin):
 
 @admin.register(models.QuestionOption)
 class QuestionOptionAdmin(admin.ModelAdmin):
-    list_display = ['name',]
+    list_display = ['label','value']
     #ordering = ('order',)
 
 @admin.register(models.MasterlistQuestion)

@@ -4325,13 +4325,14 @@ class ApiaryReferral(RevisionedMixin):
 # --------------------------------------------------------------------------------------
 @python_2_unicode_compatible
 class QuestionOption(models.Model):
-    name = models.CharField(max_length=100)
+    label = models.CharField(max_length=100)
+    value = models.CharField(max_length=100)
 
     class Meta:
         app_label = 'disturbance'
 
     def __str__(self):
-        return self.name 
+        return self.label 
 
 @python_2_unicode_compatible
 class MasterlistQuestion(models.Model):
@@ -4358,7 +4359,8 @@ class MasterlistQuestion(models.Model):
     option = models.ManyToManyField(QuestionOption, blank=True, null=True)
     answer_type = models.CharField('Answer Type', max_length=40, choices=ANSWER_TYPE_CHOICES,
                                         default=ANSWER_TYPE_CHOICES[0][0])
-
+    help_text_url=models.CharField(max_length=400, blank=True, null=True)
+    help_text_assessor_url=models.CharField(max_length=400, blank=True, null=True)
 
     class Meta:
         app_label = 'disturbance'
@@ -4383,6 +4385,9 @@ class ProposalTypeSection(models.Model):
 @python_2_unicode_compatible
 class SectionQuestion(models.Model):
     TAG_CHOICES=(('isCopiedToPermit', 'isCopiedToPermit'),
+                 ('isRequired', 'isRequired'),
+                 ('canBeEditedByAssessor', 'canBeEditedByAssessor'),
+                 ('isRepeatable', 'isRepeatable'),
                 )
     section=models.ForeignKey(ProposalTypeSection, related_name='section_questions')
     question=models.ForeignKey(MasterlistQuestion, related_name='question_sections')

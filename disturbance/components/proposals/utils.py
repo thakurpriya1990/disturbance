@@ -19,6 +19,10 @@ from disturbance.components.proposals.models import (
     SiteTransferApiarySite,
     ApiaryChecklistQuestion,
     ApiaryChecklistAnswer,
+    QuestionOption,
+    MasterlistQuestion,
+    ProposalTypeSection,
+    SectionQuestion,
 )
 from disturbance.components.proposals.serializers_apiary import (
     ProposalApiarySerializer,
@@ -1044,3 +1048,100 @@ def clone_proposal_with_status_reset(proposal):
         except:
             raise
 
+def get_options(question):
+    options=[]
+    if question.option.count()>0:
+        for op in question.option.all():
+            op_dict={
+                'label': op.label,
+                'value': op.value
+            }
+            options.append(op_dict)
+    return options
+
+def get_condition_chidren(question,section):
+    conditions={}
+    options=question.option.all()
+    for op in options:
+        condition_questions=SectionQuestion.objects.filter(section=section,parent_question=question,parent_answer=op)
+        if condition_questions:
+            option_section=[]
+            option_children=[]
+            for q in condition_questions:
+                child={
+                    'name': q.question.name,
+                    'type:': q.question.answer_type,
+                    'label': q.question.question,
+                }
+                if q.question.option.count()>0:
+                    q_options= get_options(q.question)
+                    child['options']=q_options
+                if q.question.children_question.exists():
+                    q_conditions=get_condition_chidren(q.question, section)
+                    child['conditions']=q_conditions
+                if q.tag:
+                    for t in q.tag:
+                        child[t]='true'
+                if q.question.help_text_url:
+                    child['_help_text_url']=q.question.help_text_url
+                if q.question.help_text_assessor_url:
+                    child['_help_text_assessor_url']=q.question.help_text_assessor_url
+                option_children.append(child)
+            section_group_name=section.section_name+'-'+op.label+'Group'
+            option_section_dict={
+                'name':section_group_name,
+                'type': 'group',
+                'label':'',
+                'children': option_children
+            }
+            option_section.append(option_section_dict)
+            conditions[op.value]=option_section
+    return conditions
+
+
+
+
+
+def generate_schema(proposal_type):
+    section_list=ProposalTypeSection.objects.filter(proposal_type=proposal_type).order_by('index')
+    count=0
+    schema=[]
+    for section in section_list:
+        section_dict={
+            'name': section.section_name,
+            'type': 'section',
+            'label': section.section_label,
+        }
+        section_children=[]
+        section_questions=SectionQuestion.objects.filter(section=section,parent_question__isnull=True,parent_answer__isnull=True)
+        if section_questions:
+            for sq in section_questions:
+                sc={
+                    'name': sq.question.name,
+                    'type': sq.question.answer_type,
+                    'label': sq.question.question,                    
+                }
+                if sq.question.option.count()>0:
+                    sq_options= get_options(sq.question)
+                    sc['options']=sq_options
+                if sq.question.children_question.exists():
+                    sq_children=get_condition_chidren(sq.question,section)
+                    sc['conditions']=sq_children
+                    # sc['conditions']=[{'child':'yes'}]
+                if sq.tag:
+                    for t in sq.tag:
+                        sc[t]='true'
+                if sq.question.help_text_url:
+                    sc['_help_text_url']=sq.question.help_text_url
+                if sq.question.help_text_assessor_url:
+                    sc['_help_text_assessor_url']=sq.question.help_text_assessor_url
+                section_children.append(sc)
+        if section_children:
+            section_dict['children']= section_children
+        schema.append(section_dict)
+    import json
+    new_schema=json.dumps(schema)
+    return new_schema
+
+
+                
