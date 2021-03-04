@@ -20,13 +20,101 @@ from disturbance.components.proposals.models import SiteCategory, ApiarySiteFee,
 from disturbance.utils import create_helppage_object
 from disturbance.helpers import is_apiary_admin, is_disturbance_admin, is_das_apiary_admin
 # Register your models here.
+from django.utils.html import format_html
+from django.core.urlresolvers import reverse
+from django.http import HttpResponseRedirect
+from django.template.response import TemplateResponse
+
+
+from disturbance.components.proposals.utils import generate_schema
+
 
 @admin.register(models.ProposalType)
 class ProposalTypeAdmin(admin.ModelAdmin):
-    list_display = ['name','description', 'version']
+    list_display = ['name','description', 'version', 'proposal_type_actions', ]
     ordering = ('name', '-version')
     list_filter = ('name',)
+    readonly_fields = (
+        'proposal_type_actions', 
+    )
     #exclude=("site",)
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            url(
+                r'^(?P<proposal_type_id>.+)/process_generate_schema/$',
+                self.admin_site.admin_view(self.process_generate_schema),
+                name='generate-schema',
+            ),
+        ]
+        return custom_urls + urls
+
+    def proposal_type_actions(self, obj):
+        return format_html(
+            '<a class="button" href="{}">Generate Schema</a>&nbsp;',
+            reverse('admin:generate-schema', args=[obj.pk]),
+        )
+    proposal_type_actions.short_description = 'Proposal Type Actions'
+    proposal_type_actions.allow_tags = True
+
+    def process_generate_schema(self, request, proposal_type_id, *args, **kwargs):
+        return self.process_action(
+            request=request,
+            proposal_type_id=proposal_type_id,
+            action_form=forms.GenerateSchemaForm,
+            action_title='GenerateSchema',
+        )
+
+    def process_action(
+        self,
+        request,
+        proposal_type_id,
+        action_form,
+        action_title
+   ):
+        proposal_type = self.get_object(request, proposal_type_id)
+        new_schema=generate_schema(proposal_type)
+        if request.method != 'POST':
+            form = action_form()
+        else:
+            form = action_form(request.POST)
+            print('here2')
+            
+            if form.is_valid():
+                try:
+                    print('here3')
+                    #form.save(proposal_type)
+                    print(proposal_type)
+                    proposal_type.schema=new_schema
+                    print(type(new_schema))
+                    proposal_type.save()
+                except:
+                    # If save() raised, the form will a have a non
+                    # field error containing an informative message.
+                    pass
+                else:
+                    print('here4')
+                    self.message_user(request, 'Success')
+                    url = reverse(
+                        'admin:disturbance_proposaltype_change',
+                       args=[proposal_type.pk],
+                        current_app=self.admin_site.name,
+                    )
+                    return HttpResponseRedirect(url)
+        
+        context = self.admin_site.each_context(request)
+        context['opts'] = self.model._meta
+        context['form'] = form
+        context['proposal_type'] = proposal_type
+        context['title'] = action_title
+        context['new_schema']=new_schema
+        return TemplateResponse(
+            request,
+            'disturbance/admin/proposaltype_action.html',
+            context,
+        )
+    
 
 class ProposalDocumentInline(admin.TabularInline):
     model = models.ProposalDocument

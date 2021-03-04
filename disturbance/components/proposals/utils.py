@@ -1141,7 +1141,8 @@ def generate_schema(proposal_type):
         schema.append(section_dict)
     import json
     new_schema=json.dumps(schema)
-    return new_schema
+    new_Schema_return=json.loads(new_schema)
+    return new_Schema_return
 
 
                 

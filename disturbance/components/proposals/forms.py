@@ -16,6 +16,7 @@ from ckeditor.widgets import CKEditorWidget
 from django.conf import settings
 import pytz
 from datetime import datetime, timedelta
+#from . import errors
 
 
 class ProposalAssessorGroupAdminForm(forms.ModelForm):
@@ -198,3 +199,33 @@ class SectionQuestionAdminForm(forms.ModelForm):
     #                         raise ValidationError('{} is currently assigned to a proposal(s)'.format(o.email))
     #         except:
     #             pass
+
+class ProposalTypeActionForm(forms.Form):
+    new_schema = forms.CharField(
+        required=False,
+        widget=forms.Textarea,
+    )
+    
+    def form_action(self, proposal_type):
+        raise NotImplementedError()
+    def save(self, proposal_type):
+        try:
+            proposal_type,action = self.form_action(proposal_type)
+        except errors.Error as e:
+            error_message = str(e)
+            self.add_error(None, error_message)
+            raise
+       
+        return proposal_type, action
+
+class GenerateSchemaForm(ProposalTypeActionForm):
+    # comment = forms.CharField(
+    #     required=False,
+    #     widget=forms.Textarea,
+    # )
+    
+    field_order = (
+        'new_schema',
+    )
+    def form_action(self, proposal_type):
+        return proposal_type
