@@ -53,6 +53,7 @@ from disturbance.ordered_model import OrderedModel
 import copy
 import subprocess
 from multiselectfield import MultiSelectField
+from smart_selects.db_fields import ChainedForeignKey, ChainedManyToManyField
 
 import logging
 
@@ -4373,7 +4374,7 @@ class ProposalTypeSection(models.Model):
     section_name = models.CharField(max_length=100)
     section_label = models.CharField(max_length=100)
     index = models.IntegerField(blank=True, default=0)
-    proposal_type=models.ForeignKey(ProposalType, related_name='sections')
+    proposal_type=models.ForeignKey(ProposalType, related_name='sections', on_delete=models.PROTECT)
     
 
     class Meta:
@@ -4389,10 +4390,24 @@ class SectionQuestion(models.Model):
                  ('canBeEditedByAssessor', 'canBeEditedByAssessor'),
                  ('isRepeatable', 'isRepeatable'),
                 )
-    section=models.ForeignKey(ProposalTypeSection, related_name='section_questions')
-    question=models.ForeignKey(MasterlistQuestion, related_name='question_sections')
-    parent_question=models.ForeignKey(MasterlistQuestion, related_name='children_question', null=True, blank=True)
-    parent_answer=models.ForeignKey(QuestionOption, null=True, blank=True)
+    section=models.ForeignKey(ProposalTypeSection, related_name='section_questions', on_delete=models.PROTECT)
+    question=models.ForeignKey(MasterlistQuestion, related_name='question_sections',on_delete=models.PROTECT)
+    parent_question=models.ForeignKey('disturbance.MasterlistQuestion', related_name='children_question', null=True, blank=True, on_delete=models.SET_NULL)
+    #parent_answer=models.ForeignKey(QuestionOption, null=True, blank=True)
+    parent_answer = ChainedForeignKey(
+        'disturbance.QuestionOption',
+        chained_field='parent_question',
+        chained_model_field='masterlistquestion',
+        show_all=False,
+        null=True,
+        blank=True,
+        related_name='options',
+    )
+    # parent_answer = ChainedManyToManyField(
+    #     'disturbance.QuestionOption',
+    #     chained_field='parent_question',
+    #     chained_model_field='parent_question',
+    # )
     tag= MultiSelectField(choices=TAG_CHOICES, max_length=400,max_choices=10, null=True, blank=True)
 
 

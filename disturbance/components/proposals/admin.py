@@ -78,23 +78,17 @@ class ProposalTypeAdmin(admin.ModelAdmin):
         if request.method != 'POST':
             form = action_form()
         else:
-            form = action_form(request.POST)
-            print('here2')
-            
+            form = action_form(request.POST)            
             if form.is_valid():
                 try:
-                    print('here3')
                     #form.save(proposal_type)
-                    print(proposal_type)
                     proposal_type.schema=new_schema
-                    print(type(new_schema))
                     proposal_type.save()
                 except:
                     # If save() raised, the form will a have a non
                     # field error containing an informative message.
                     pass
                 else:
-                    print('here4')
                     self.message_user(request, 'Success')
                     url = reverse(
                         'admin:disturbance_proposaltype_change',
@@ -380,27 +374,13 @@ class ApiaryChecklistQuestionAdmin(admin.ModelAdmin):
 @admin.register(models.QuestionOption)
 class QuestionOptionAdmin(admin.ModelAdmin):
     list_display = ['label','value']
-    #ordering = ('order',)
 
 @admin.register(models.MasterlistQuestion)
 class MasterlistQuestionAdmin(admin.ModelAdmin):
     list_display = ['name', 'question',]
     filter_horizontal = ('option',)
     form = forms.MasterlistQuestionAdminForm
-    #exclude = ('site',)
-    #actions = None
-
-    # def formfield_for_manytomany(self, db_field, request, **kwargs):
-    #     if db_field.name == "members":
-    #         #kwargs["queryset"] = EmailUser.objects.filter(email__icontains='@dbca.wa.gov.au')
-    #         kwargs["queryset"] = EmailUser.objects.filter(is_staff=True)
-    #     return super(ApiaryAssessorGroupAdmin, self).formfield_for_manytomany(db_field, request, **kwargs)
-
-    # def has_add_permission(self, request):
-    #     return True if models.ApiaryAssessorGroup.objects.count() == 0 else False
-
-    # def has_delete_permission(self, request, obj=None):
-    #     return False 
+    
 
 @admin.register(models.ProposalTypeSection)
 class ProposalTypeSectionAdmin(admin.ModelAdmin):
@@ -409,27 +389,7 @@ class ProposalTypeSectionAdmin(admin.ModelAdmin):
 @admin.register(models.SectionQuestion)
 class SectionQuestionAdmin(admin.ModelAdmin):
     list_display = ['section', 'question','parent_question','parent_answer']
-    #filter_horizontal = ('option',)
+    #list_display = ['section', 'question','parent_question',]
     form = forms.SectionQuestionAdminForm
 
-    # def formfield_for_foreignkey(self, db_field, request, **kwargs):
-    #     if db_field.name == "parent_question":
-    #         #kwargs["queryset"] = EmailUser.objects.filter(email__icontains='@dbca.wa.gov.au')
-    #         kwargs["queryset"] = models.MasterlistQuestion.objects.filter(option__isnull=False).distinct()
-    #     # if db_field.name == "parent_answer":
-    #     #     #kwargs["queryset"] = EmailUser.objects.filter(email__icontains='@dbca.wa.gov.au')
-
-    #     #     kwargs["queryset"] = self.parent_question.option.all()
-    #     return super(SectionQuestionAdmin, self).formfield_for_foreignkey(db_field, request, **kwargs)
-
-
-
-    # def formfield_for_choice_field(self, db_field, request, **kwargs):
-    #     # if db_field.name == "parent_question":
-    #     #     #kwargs["queryset"] = EmailUser.objects.filter(email__icontains='@dbca.wa.gov.au')
-    #     #     kwargs["queryset"] = MasterlistQuestion.objects.filter(option__isnull=False).distinct()
-    #     if db_field.name == "parent_answer":
-    #         #kwargs["queryset"] = EmailUser.objects.filter(email__icontains='@dbca.wa.gov.au')
-    #         kwargs["queryset"] = self.parent_question.option.all()
-    #     return super(SectionQuestionAdmin, self).formfield_for_choice_field(db_field, request, **kwargs)
-
+    

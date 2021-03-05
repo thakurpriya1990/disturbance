@@ -148,21 +148,9 @@ class MasterlistQuestionAdminForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super(MasterlistQuestionAdminForm, self).__init__(*args, **kwargs)
         if self.instance:
-            #self.fields['members'].queryset = EmailUser.objects.filter(email__icontains='@dbca.wa.gov.au')
             self.fields['option'].queryset = QuestionOption.objects.all()
 
-    # def clean(self):
-    #     super(ProposalAssessorGroupAdminForm, self).clean()
-    #     if self.instance and ProposalAssessorGroup.objects.all().exists():
-    #         try:
-    #             original_members = ProposalAssessorGroup.objects.get(id=self.instance.id).members.all()
-    #             current_members = self.cleaned_data.get('members')
-    #             for o in original_members:
-    #                 if o not in current_members:
-    #                     if self.instance.member_is_assigned(o):
-    #                         raise ValidationError('{} is currently assigned to a proposal(s)'.format(o.email))
-    #         except:
-    #             pass
+   
 
 class SectionQuestionAdminForm(forms.ModelForm):
     class Meta:
@@ -172,33 +160,9 @@ class SectionQuestionAdminForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super(SectionQuestionAdminForm, self).__init__(*args, **kwargs)
         if self.instance:
-            #print(self.instance)
             queryset_option=QuestionOption.objects.none()
-            #import ipdb; ipdb.set_trace()
             self.fields['parent_question'].queryset = MasterlistQuestion.objects.filter(option__isnull=False).distinct()
-            # if self.instance.parent_question_id:
-            #     question=MasterlistQuestion.objects.get(id=self.instance.parent_question_id)
-            #     print(question)
-            #     queryset_option=question.option.all()
-            # super(SectionQuestionAdminForm, self).__init__(*args, **kwargs)
-            # self.fields['parent_answer']=forms.ModelChoiceField(
-            #     queryset=queryset_option,
-            #     widget=forms.CheckboxSelectMultiple(
-            #         attrs={'class': 'form-control'}
-            #     )
-            # )
-    # def clean(self):
-    #     super(ProposalAssessorGroupAdminForm, self).clean()
-    #     if self.instance and ProposalAssessorGroup.objects.all().exists():
-    #         try:
-    #             original_members = ProposalAssessorGroup.objects.get(id=self.instance.id).members.all()
-    #             current_members = self.cleaned_data.get('members')
-    #             for o in original_members:
-    #                 if o not in current_members:
-    #                     if self.instance.member_is_assigned(o):
-    #                         raise ValidationError('{} is currently assigned to a proposal(s)'.format(o.email))
-    #         except:
-    #             pass
+            
 
 class ProposalTypeActionForm(forms.Form):
     new_schema = forms.CharField(
