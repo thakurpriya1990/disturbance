@@ -1059,26 +1059,36 @@ def get_options(question):
             options.append(op_dict)
     return options
 
-def get_condition_chidren(question,section):
+def get_condition_chidren(question,section, parent_name=''):
     conditions={}
     options=question.option.all()
+    special_types=['checkbox',]
+    option_count=0
     for op in options:
         condition_questions=SectionQuestion.objects.filter(section=section,parent_question=question,parent_answer=op)
         if condition_questions:
             option_section=[]
             option_children=[]
+            condition_question_count=1
             for q in condition_questions:
+                #question_name=parent_name+'-'+op.label+condition_question_count
+                question_name='{}-{}{}'.format(parent_name,op.label,condition_question_count)
                 child={
-                    'name': q.question.name,
+                    'name': question_name,
                     'type:': q.question.answer_type,
                     'label': q.question.question,
                 }
-                if q.question.option.count()>0:
-                    q_options= get_options(q.question)
-                    child['options']=q_options
-                if q.question.children_question.exists():
-                    q_conditions=get_condition_chidren(q.question, section)
-                    child['conditions']=q_conditions
+                if q.question.answer_type in special_types:
+                        q_option_children=get_checkbox_option_chidren(q.question, section, question_name)
+                        child['children']=q_option_children
+                        child['type']='group'
+                else:
+                    if q.question.option.count()>0:
+                        q_options= get_options(q.question)
+                        child['options']=q_options
+                    if q.question.children_question.exists():
+                        q_conditions=get_condition_chidren(q.question, section, question_name)
+                        child['conditions']=q_conditions
                 if q.tag:
                     for t in q.tag:
                         child[t]='true'
@@ -1087,7 +1097,8 @@ def get_condition_chidren(question,section):
                 if q.question.help_text_assessor_url:
                     child['_help_text_assessor_url']=q.question.help_text_assessor_url
                 option_children.append(child)
-            section_group_name=section.section_name+'-'+op.label+'Group'
+                condition_question_count+=1
+            section_group_name=parent_name+'-'+op.label+'Group'
             option_section_dict={
                 'name':section_group_name,
                 'type': 'group',
@@ -1096,16 +1107,81 @@ def get_condition_chidren(question,section):
             }
             option_section.append(option_section_dict)
             conditions[op.value]=option_section
+            option_count+=1
     return conditions
 
 
+def get_checkbox_option_chidren(question,section, parent_name=''):
+    conditions={}
+    options=question.option.all()
+    options_list=[]
+    special_types=['checkbox',]
+    option_count=0
+    for op in options:
+        #op_name=parent_name+'-'+option_count
+        op_name='{}-{}'.format(parent_name,option_count)
+        op_dict={
+                #'name': op.label,#function generated name
+                'name': op_name,
+                'label': op.label,
+                'type': 'checkbox',
+                'group': parent_name #function generated name of parent question
+        }
+        condition_questions=SectionQuestion.objects.filter(section=section,parent_question=question,parent_answer=op)
+        if condition_questions:
+            option_section=[]
+            option_children=[]
+            condition_question_count=1
+            for q in condition_questions:
+                #question_name=op_name+'-On-'+condition_question_count
+                question_name='{}-On-{}'.format(op_name,condition_question_count)
+                child={
+                    'name': question_name,
+                    'type:': q.question.answer_type,
+                    'label': q.question.question,
+                }
+                if q.question.answer_type in special_types:
+                        q_option_children=get_checkbox_option_chidren(q.question, section, question_name)
+                        child['children']=q_option_children
+                        child['type']='group'
+                else:
+                    if q.question.option.count()>0:
+                        q_options= get_options(q.question)
+                        child['options']=q_options
+                    if q.question.children_question.exists():
+                        q_conditions=get_condition_chidren(q.question, section, question_name)
+                        child['conditions']=q_conditions
+
+                if q.tag:
+                    for t in q.tag:
+                        child[t]='true'
+                if q.question.help_text_url:
+                    child['_help_text_url']=q.question.help_text_url
+                if q.question.help_text_assessor_url:
+                    child['_help_text_assessor_url']=q.question.help_text_assessor_url
+                option_children.append(child)
+                condition_question_count+=1
+            section_group_name=op_name+'-OnGroup'
+            option_section_dict={
+                'name':section_group_name,
+                'type': 'group',
+                'label':'',
+                'children': option_children
+            }
+            option_section.append(option_section_dict)
+            conditions['on']=option_section
+            op_dict['condition']=conditions
+        options_list.append(op_dict)
+        option_count+=1
+    return options_list
 
 
 
 def generate_schema(proposal_type):
     section_list=ProposalTypeSection.objects.filter(proposal_type=proposal_type).order_by('index')
-    count=0
+    section_count=0
     schema=[]
+    special_types=['checkbox',]
     for section in section_list:
         section_dict={
             'name': section.section_name,
@@ -1115,19 +1191,27 @@ def generate_schema(proposal_type):
         section_children=[]
         section_questions=SectionQuestion.objects.filter(section=section,parent_question__isnull=True,parent_answer__isnull=True)
         if section_questions:
+            sq_count=0
             for sq in section_questions:
+                #sq_name='Section'+section_count+'-'+sq_count
+                sq_name='Section{}-{}'.format(section_count,sq_count)
                 sc={
-                    'name': sq.question.name,
+                    # 'name': sq.question.name,
+                    'name': sq_name,
                     'type': sq.question.answer_type,
                     'label': sq.question.question,                    
                 }
-                if sq.question.option.count()>0:
-                    sq_options= get_options(sq.question)
-                    sc['options']=sq_options
-                if sq.question.children_question.exists():
-                    sq_children=get_condition_chidren(sq.question,section)
-                    sc['conditions']=sq_children
-                    # sc['conditions']=[{'child':'yes'}]
+                if sq.question.answer_type in special_types:
+                    sq_option_children=get_checkbox_option_chidren(sq.question, section,sq_name)
+                    sc['children']=sq_option_children
+                    sc['type']='group'
+                else:
+                    if sq.question.option.count()>0:
+                        sq_options= get_options(sq.question)
+                        sc['options']=sq_options
+                    if sq.question.children_question.exists():
+                        sq_children=get_condition_chidren(sq.question,section, sq_name)
+                        sc['conditions']=sq_children
                 if sq.tag:
                     for t in sq.tag:
                         sc[t]='true'
@@ -1136,8 +1220,10 @@ def generate_schema(proposal_type):
                 if sq.question.help_text_assessor_url:
                     sc['_help_text_assessor_url']=sq.question.help_text_assessor_url
                 section_children.append(sc)
+                sq_count+=1
         if section_children:
             section_dict['children']= section_children
+        section_count+=0
         schema.append(section_dict)
     import json
     new_schema=json.dumps(schema)

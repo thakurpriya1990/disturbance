@@ -4338,7 +4338,7 @@ class QuestionOption(models.Model):
 @python_2_unicode_compatible
 class MasterlistQuestion(models.Model):
     ANSWER_TYPE_CHOICES=(('text', 'Text'),
-                         ('radiobutton', 'Radio button'),
+                         ('radiobuttons', 'Radio button'),
                          ('checkbox', 'Checkbox'),
                          
                          ('text_info', 'Text Info'),
