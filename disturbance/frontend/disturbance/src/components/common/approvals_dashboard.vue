@@ -134,6 +134,7 @@ export default {
         return {
             pBody: 'pBody' + vm._uid,
             //datatable_id: 'proposal-datatable-'+vm._uid,
+            uuid: 0,
             datatable_id: 'proposal-datatable-'+vm.uuid,
             //Profile to check if user has access to process Proposal
             profile: {},
@@ -374,6 +375,7 @@ export default {
                     name: 'licence_document__name',
                     searchable: false,
                     //visible: false,
+                    className: "noexport",
                 },
                 {
                     data: '',
@@ -440,16 +442,16 @@ export default {
                     },
                     searchable: false,
                     orderable: false,
-                    name: ''
+                    name: '',
+                    className: "noexport",
                 },
-                /*
                 {
                     data: 'template_group',
                     searchable: false,
                     orderable: false,
                     visible: false,
+                    className: "noexport",
                 }
-                */
                 );
             return columnList;
         }
@@ -490,13 +492,15 @@ export default {
                     {
                         extend: 'excel',
                         exportOptions: {
-                            columns: ':not(:last-child)'
+                            //columns: ':not(:last-child)'
+                            columns: ':not(.noexport)'
                         }
                     },
                     {
                         extend: 'csv',
                         exportOptions: {
-                            columns: ':not(:last-child)'
+                            //columns: ':not(:last-child)'
+                            columns: ':not(.noexport)'
                         }
                     },
                 ],

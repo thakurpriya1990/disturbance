@@ -65,7 +65,9 @@
                     </div>
                     <div class="row">
                         <div class="col-lg-12" style="margin-top:25px;">
-                            <datatable ref="proposal_datatable" :id="datatable_id" :dtOptions="proposal_options" :dtHeaders="proposal_headers"/>
+                            <div v-if="datatableReady">
+                                <datatable ref="proposal_datatable" :id="datatable_id" :dtOptions="proposal_options" :dtHeaders="proposal_headers"/>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -102,12 +104,14 @@ export default {
         let vm = this;
         return {
             pBody: 'pBody' + vm._uid,
-            datatable_id: 'proposal-datatable-'+vm._uid,
+            uuid: 0,
+            datatable_id: 'proposal-datatable-'+vm.uuid,
             //Profile to check if user has access to process Proposal
             profile: {},
             dasTemplateGroup: false,
             apiaryTemplateGroup: false,
             templateGroupDetermined: false,
+            datatableReady: false,
             // Filters for Proposals
             filterProposalRegion: [],
             filterProposalActivity: 'All',
@@ -143,59 +147,95 @@ export default {
             proposal_regions: [],
             proposal_submitters: [],
             //proposal_headers:["Number","Region/District","Activity","Title","Approval","Holder","Status","Due Date","Assigned To", "CustomerStatus", "Reference","Action"],
-            proposal_options:{
-                language: {
-                    processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
-                },
-                responsive: true,
-                serverSide: true,
-                lengthMenu: [ [10, 25, 50, 100, -1], [10, 25, 50, 100, "All"] ],
-                ajax: {
-                    "url": vm.url,
-                    "dataSrc": 'data',
-
-                    // adding extra GET params for Custom filtering
-                    "data": function ( d ) {
-                        //d.regions = vm.filterProposalRegion.join();
-                        d.date_from = vm.filterComplianceDueFrom != '' && vm.filterComplianceDueFrom != null ? moment(vm.filterComplianceDueFrom, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
-                        d.date_to = vm.filterComplianceDueTo != '' && vm.filterComplianceDueTo != null ? moment(vm.filterComplianceDueTo, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
-                        /*
-                        if (vm.level == 'external') { // hack to allow for correct Django choicelist in qs filter ProposalFilterBackend.filter_quesryset()
-                            d.customer_status = vm.filterComplianceStatus == 'Under Review' ? 'with_assessor': vm.filterComplianceStatus != 'All' ? vm.filterComplianceStatus: '';
-                            d.processing_status = '';
-                        } else {
-                            d.processing_status = vm.filterComplianceStatus == 'With Assessor' ? 'with_assessor': vm.filterComplianceStatus != 'All' ? vm.filterComplianceStatus: '';
-                            d.customer_status = '';
-                        }
-                        */
-                        d.compliance_status = vm.filterComplianceStatus;
-                        d.region = vm.filterProposalRegion;
-                        d.proposal_activity = vm.filterProposalActivity;
-                        d.is_external = vm.is_external;
-                        d.regions = vm.filterProposalRegion.join();
-                    }
-
-                },
-                dom: 'lBfrtip',
-                /*
-                buttons:[
-                'excel', 'csv', ],
-                */
-                buttons:[
-                    {
-                        extend: 'excel',
-                        exportOptions: {
-                            columns: ':visible'
-                        }
-                    },
-                    {
-                        extend: 'csv',
-                        exportOptions: {
-                            columns: ':visible'
-                        }
-                    },
-                ],
-                columns: [
+            proposal_options: {},
+        }
+    },
+    components:{
+        datatable
+    },
+    watch:{
+        templateGroupDetermined: function(){
+            //this.showHideColumns()
+            this.set_proposal_options();
+        },
+        filterProposalRegion: function(){
+            this.$refs.proposal_datatable.vmDataTable.draw();
+        },
+        //filterProposalRegion: function() {
+        //    //this.$refs.proposal_datatable.vmDataTable.draw();
+        //    let vm = this;
+        //    if (vm.filterProposalRegion!= 'All') {
+        //        vm.$refs.proposal_datatable.vmDataTable.column('proposal__region__name:name').search(vm.filterProposalRegion).draw();
+        //    } else {
+        //        vm.$refs.proposal_datatable.vmDataTable.column('proposal__region__name:name').search('').draw();
+        //    }
+        //},
+        filterProposalActivity: function() {
+            let vm = this;
+            if (vm.filterProposalActivity!= 'All') {
+                vm.$refs.proposal_datatable.vmDataTable.column('proposal__activity:name').search(vm.filterProposalActivity).draw();
+            } else {
+                vm.$refs.proposal_datatable.vmDataTable.column('proposal__activity:name').search('').draw();
+            }
+        },
+        filterComplianceStatus: function(){
+            this.$refs.proposal_datatable.vmDataTable.draw();
+        },
+        filterProposalSubmitter: function(){
+            this.$refs.proposal_datatable.vmDataTable.draw();
+        },
+        filterComplianceDueFrom: function(){
+            this.$refs.proposal_datatable.vmDataTable.draw();
+        },
+        filterComplianceDueTo: function(){
+            this.$refs.proposal_datatable.vmDataTable.draw();
+        }
+    },
+    computed: {
+        /* status: function(){
+            return this.is_external ? this.external_status : this.internal_status;
+            //return [];
+        }, */
+        is_external: function(){
+            return this.level == 'external';
+        },
+        status_values: function() {
+            let under_review_or_with_assessor = 'With Assessor'
+            if (this.is_external) {
+                under_review_or_with_assessor = 'Under Review'
+            }
+            return [
+                'Due',
+                'Future',
+                under_review_or_with_assessor,
+                'Approved',
+            ]
+        },
+        proposal_headers: function() {
+            let approval_or_licence = this.dasTemplateGroup ? 'Approval' : 'Licence';
+            let columnHeaders = [
+                "Number"]
+            if (this.dasTemplateGroup) {
+                columnHeaders.push("Region")
+            };
+            columnHeaders.push("Activity");
+            if (this.dasTemplateGroup) {
+                columnHeaders.push("Title");
+            };
+            columnHeaders.push(approval_or_licence,
+                "Holder",
+                "Status",
+                "Due Date",
+                "Assigned To",
+                "Action",
+                //"Reference",
+                //"CustomerStatus"
+                )
+            return columnHeaders;
+        },
+        tableColumns: function() {
+            let vm = this;
+            let columnList = [
                     {
                         // 1. Number
                         data: "id",
@@ -204,25 +244,33 @@ export default {
                             return full.reference;
                         },
                         name: "id, lodgement_number",
-                    },
+                    }]
+            if (this.dasTemplateGroup) {
+                columnList.push(
                     {
                         // 2. Region/District
                         data: "regions",
                         name: "proposal__region__name", // will be use like: Approval.objects.filter(proposal__region__name='Kimberley')
                         visible: false,
-                    },
+                    });
+            };
+            columnList.push(
                     {
                         // 3. Activity
                         data: "activity",
                         name: "proposal__activity",
                         visible: true,
-                    },
+                    });
+            if (this.dasTemplateGroup) {
+                columnList.push(
                     {
                         // 4. Title
                         data: "title",
                         name: "proposal__title",
                         visible: false,
-                    },
+                    });
+            };
+            columnList.push(
                     {
                         // 5. Approval/Licence
                         data: "approval_lodgement_number",
@@ -279,141 +327,95 @@ export default {
                             }
                             return links;
                         },
-                        name: ''
+                        name: '',
+                        className: "noexport",
                     },
-                    {data: "reference", visible: false},
-                    {data: "customer_status", visible: false},
-                    {data: "can_user_view", visible: false},
-                    {data: "allowed_assessors", visible: false},
-                ],
-                processing: true,
-                initComplete: function() {
-                    vm.showHideColumns()
-                },
-
-                /*
-                initComplete: function () {
-                    // Grab Regions from the data in the table
-                    var regionColumn = vm.$refs.proposal_datatable.vmDataTable.columns(1);
-                    regionColumn.data().unique().sort().each( function ( d, j ) {
-                        let regionTitles = [];
-                        $.each(d,(index,a) => {
-                            // Split region string to array
-                            if (a != null){
-                                $.each(a.split(','),(i,r) => {
-                                    r != null && regionTitles.indexOf(r) < 0 ? regionTitles.push(r): '';
-                                });
-                            }
-                        })
-                        vm.proposal_regions = regionTitles;
-                    });
-                    // Grab Activity from the data in the table
-                    var titleColumn = vm.$refs.proposal_datatable.vmDataTable.columns(2);
-                    titleColumn.data().unique().sort().each( function ( d, j ) {
-                        let activityTitles = [];
-                        $.each(d,(index,a) => {
-                            a != null && activityTitles.indexOf(a) < 0 ? activityTitles.push(a): '';
-                        })
-                        vm.proposal_activityTitles = activityTitles;
-                    });
-
-                    // Grab Status from the data in the table
-                    var statusColumn = vm.$refs.proposal_datatable.vmDataTable.columns(6);
-                    statusColumn.data().unique().sort().each( function ( d, j ) {
-                        let statusTitles = [];
-                        $.each(d,(index,a) => {
-                            a != null && statusTitles.indexOf(a) < 0 ? statusTitles.push(a): '';
-                        })
-                        vm.status = statusTitles;
-                    });
-                }
-                */
-            }
-        }
-    },
-    components:{
-        datatable
-    },
-    watch:{
-        templateGroupDetermined: function(){
-            this.showHideColumns()
-        },
-        filterProposalRegion: function(){
-            this.$refs.proposal_datatable.vmDataTable.draw();
-        },
-        //filterProposalRegion: function() {
-        //    //this.$refs.proposal_datatable.vmDataTable.draw();
-        //    let vm = this;
-        //    if (vm.filterProposalRegion!= 'All') {
-        //        vm.$refs.proposal_datatable.vmDataTable.column('proposal__region__name:name').search(vm.filterProposalRegion).draw();
-        //    } else {
-        //        vm.$refs.proposal_datatable.vmDataTable.column('proposal__region__name:name').search('').draw();
-        //    }
-        //},
-        filterProposalActivity: function() {
-            let vm = this;
-            if (vm.filterProposalActivity!= 'All') {
-                vm.$refs.proposal_datatable.vmDataTable.column('proposal__activity:name').search(vm.filterProposalActivity).draw();
-            } else {
-                vm.$refs.proposal_datatable.vmDataTable.column('proposal__activity:name').search('').draw();
-            }
-        },
-        filterComplianceStatus: function(){
-            this.$refs.proposal_datatable.vmDataTable.draw();
-        },
-        filterProposalSubmitter: function(){
-            this.$refs.proposal_datatable.vmDataTable.draw();
-        },
-        filterComplianceDueFrom: function(){
-            this.$refs.proposal_datatable.vmDataTable.draw();
-        },
-        filterComplianceDueTo: function(){
-            this.$refs.proposal_datatable.vmDataTable.draw();
-        }
-    },
-    computed: {
-        /* status: function(){
-            return this.is_external ? this.external_status : this.internal_status;
-            //return [];
-        }, */
-        is_external: function(){
-            return this.level == 'external';
-        },
-        status_values: function() {
-            let under_review_or_with_assessor = 'With Assessor'
-            if (this.is_external) {
-                under_review_or_with_assessor = 'Under Review'
-            }
-            return [
-                'Due',
-                'Future',
-                under_review_or_with_assessor,
-                'Approved',
-            ]
+                    {
+                        data: "reference", 
+                        visible: false,
+                        className: "noexport",
+                    },
+                    {
+                        data: "customer_status", 
+                        visible: false,
+                        className: "noexport",
+                    },
+                    {
+                        data: "can_user_view", 
+                        visible: false,
+                        className: "noexport",
+                    },
+                    {
+                        data: "allowed_assessors", 
+                        visible: false,
+                        className: "noexport",
+                    }
+            );
+            return columnList;
         },
 
-        proposal_headers: function() {
-            let approval_or_licence = 'Approval'
-            if (this.apiaryTemplateGroup) {
-                approval_or_licence = 'Licence'
-            }
-            return [
-                "Number",           // 1
-                "Region",  // 2
-                "Activity",         // 3
-                "Title",            // 4
-                approval_or_licence,// 5
-                "Holder",           // 6
-                "Status",           // 7
-                "Due Date",         // 8
-                "Assigned To",      // 9
-                "Action",           // 10
-                "Reference",        // 11
-                "CustomerStatus",   // 12
-            ]
-        },
     },
     methods:{
+        set_proposal_options: function() {
+            this.datatableReady = false;
+            let vm = this;
+            this.uuid++;
+            this.proposal_options = {
+                language: {
+                    processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
+                },
+                responsive: true,
+                serverSide: true,
+                lengthMenu: [ [10, 25, 50, 100, -1], [10, 25, 50, 100, "All"] ],
+                ajax: {
+                    "url": vm.url,
+                    "dataSrc": 'data',
+
+                    // adding extra GET params for Custom filtering
+                    "data": function ( d ) {
+                        d.date_from = vm.filterComplianceDueFrom != '' && vm.filterComplianceDueFrom != null ? moment(vm.filterComplianceDueFrom, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
+                        d.date_to = vm.filterComplianceDueTo != '' && vm.filterComplianceDueTo != null ? moment(vm.filterComplianceDueTo, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
+                        d.compliance_status = vm.filterComplianceStatus;
+                        d.region = vm.filterProposalRegion;
+                        d.proposal_activity = vm.filterProposalActivity;
+                        d.is_external = vm.is_external;
+                        d.regions = vm.filterProposalRegion.join();
+                    }
+
+                },
+                dom: 'lBfrtip',
+                /*
+                buttons:[
+                'excel', 'csv', ],
+                */
+                buttons:[
+                    {
+                        extend: 'excel',
+                        exportOptions: {
+                            columns: ':not(.noexport)'
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        exportOptions: {
+                            columns: ':not(.noexport)'
+                        }
+                    },
+                ],
+                columns: vm.tableColumns,
+                processing: true,
+                initComplete: function() {
+                    //vm.showHideColumns()
+                },
+            }
+            this.datatableReady = true;
+            this.$nextTick(() => {
+                this.initialiseSearch();
+                this.addEventListeners();
+            });
+        },
+
+        /*
         showHideColumns: function(){
             let vm = this
             // set column visibility and headers according to template group
@@ -426,6 +428,7 @@ export default {
                 titleColumn.visible(true);
             }
         },
+        */
         fetchFilterLists: function(){
             let vm = this;
 
@@ -621,10 +624,12 @@ export default {
             var column = vm.$refs.proposal_datatable.vmDataTable.columns(8); //Hide 'Assigned To column for external'
             column.visible(false);
         }
+        /*
         this.$nextTick(() => {
             this.initialiseSearch();
             this.addEventListeners();
         });
+        */
     }
 }
 </script>
