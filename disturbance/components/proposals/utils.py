@@ -1054,7 +1054,7 @@ def get_options(question):
         for op in question.option.all():
             op_dict={
                 'label': op.label,
-                'value': op.value
+                'value': op.label.replace(" ","").lower(),
             }
             options.append(op_dict)
     return options
@@ -1075,7 +1075,7 @@ def get_condition_chidren(question,section, parent_name=''):
                 question_name='{}-{}{}'.format(parent_name,op.label,condition_question_count)
                 child={
                     'name': question_name,
-                    'type:': q.question.answer_type,
+                    'type': q.question.answer_type,
                     'label': q.question.question,
                 }
                 if q.question.answer_type in special_types:
@@ -1137,7 +1137,7 @@ def get_checkbox_option_chidren(question,section, parent_name=''):
                 question_name='{}-On-{}'.format(op_name,condition_question_count)
                 child={
                     'name': question_name,
-                    'type:': q.question.answer_type,
+                    'type': q.question.answer_type,
                     'label': q.question.question,
                 }
                 if q.question.answer_type in special_types:
@@ -1170,7 +1170,7 @@ def get_checkbox_option_chidren(question,section, parent_name=''):
             }
             option_section.append(option_section_dict)
             conditions['on']=option_section
-            op_dict['condition']=conditions
+            op_dict['conditions']=conditions
         options_list.append(op_dict)
         option_count+=1
     return options_list
@@ -1223,7 +1223,7 @@ def generate_schema(proposal_type):
                 sq_count+=1
         if section_children:
             section_dict['children']= section_children
-        section_count+=0
+        section_count+=1
         schema.append(section_dict)
     import json
     new_schema=json.dumps(schema)

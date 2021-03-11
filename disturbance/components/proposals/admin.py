@@ -373,7 +373,8 @@ class ApiaryChecklistQuestionAdmin(admin.ModelAdmin):
 
 @admin.register(models.QuestionOption)
 class QuestionOptionAdmin(admin.ModelAdmin):
-    list_display = ['label','value']
+    list_display = ['label',]
+    fields = ('label',)
 
 @admin.register(models.MasterlistQuestion)
 class MasterlistQuestionAdmin(admin.ModelAdmin):
