@@ -143,7 +143,8 @@ class SystemMaintenanceAdminForm(forms.ModelForm):
 class MasterlistQuestionAdminForm(forms.ModelForm):
     class Meta:
         model = MasterlistQuestion
-        fields = '__all__'
+        #fields = '__all__'
+        fields= ('question', 'option', 'answer_type')
 
     def __init__(self, *args, **kwargs):
         super(MasterlistQuestionAdminForm, self).__init__(*args, **kwargs)

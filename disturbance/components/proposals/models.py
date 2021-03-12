@@ -4346,7 +4346,7 @@ class MasterlistQuestion(models.Model):
                          ('number','Number'),
                          ('email','Email'),
                          ('select', 'Select'),
-                         ('multi-select','Multi-elect'),
+                         ('multi-select','Multi-select'),
                          ('text_area','Text area'),
                          ('label', 'Label'),
                          ('section', 'Section'),

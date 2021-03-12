@@ -1048,8 +1048,9 @@ def clone_proposal_with_status_reset(proposal):
         except:
             raise
 
-def get_options(question):
+def get_options(section_question, question):
     options=[]
+    special_types=['radiobuttons', 'multi-select',]
     if question.option.count()>0:
         for op in question.option.all():
             op_dict={
@@ -1057,12 +1058,17 @@ def get_options(question):
                 'value': op.label.replace(" ","").lower(),
             }
             options.append(op_dict)
+    #For multi-select type questions, the isRequired flag goes to the first option dict instead of question dict
+    if 'isRequired' in section_question.get_tag_list() and question.answer_type in special_types:
+        if options:
+            options[0]['isRequired']='true'
     return options
 
 def get_condition_chidren(question,section, parent_name=''):
     conditions={}
     options=question.option.all()
     special_types=['checkbox',]
+    group_types=['checkbox', 'radiobuttons', 'multi-select']
     option_count=0
     for op in options:
         condition_questions=SectionQuestion.objects.filter(section=section,parent_question=question,parent_answer=op)
@@ -1079,19 +1085,24 @@ def get_condition_chidren(question,section, parent_name=''):
                     'label': q.question.question,
                 }
                 if q.question.answer_type in special_types:
-                        q_option_children=get_checkbox_option_chidren(q.question, section, question_name)
+                        q_option_children=get_checkbox_option_chidren(q, q.question, section, question_name)
                         child['children']=q_option_children
                         child['type']='group'
                 else:
                     if q.question.option.count()>0:
-                        q_options= get_options(q.question)
+                        q_options= get_options(q,q.question)
                         child['options']=q_options
                     if q.question.children_question.exists():
                         q_conditions=get_condition_chidren(q.question, section, question_name)
                         child['conditions']=q_conditions
                 if q.tag:
                     for t in q.tag:
-                        child[t]='true'
+                        if t=='isRequired':
+                            if q.question.answer_type not in group_types:
+                                child[t]='true'
+                        else:
+                            child[t]='true'
+                        #child[t]='true'
                 if q.question.help_text_url:
                     child['_help_text_url']=q.question.help_text_url
                 if q.question.help_text_assessor_url:
@@ -1111,11 +1122,12 @@ def get_condition_chidren(question,section, parent_name=''):
     return conditions
 
 
-def get_checkbox_option_chidren(question,section, parent_name=''):
+def get_checkbox_option_chidren(section_question,question,section, parent_name=''):
     conditions={}
     options=question.option.all()
     options_list=[]
     special_types=['checkbox',]
+    group_types=['checkbox', 'radiobuttons', 'multi-select']
     option_count=0
     for op in options:
         #op_name=parent_name+'-'+option_count
@@ -1141,12 +1153,12 @@ def get_checkbox_option_chidren(question,section, parent_name=''):
                     'label': q.question.question,
                 }
                 if q.question.answer_type in special_types:
-                        q_option_children=get_checkbox_option_chidren(q.question, section, question_name)
+                        q_option_children=get_checkbox_option_chidren(q,q.question, section, question_name)
                         child['children']=q_option_children
                         child['type']='group'
                 else:
                     if q.question.option.count()>0:
-                        q_options= get_options(q.question)
+                        q_options= get_options(q,q.question)
                         child['options']=q_options
                     if q.question.children_question.exists():
                         q_conditions=get_condition_chidren(q.question, section, question_name)
@@ -1154,7 +1166,12 @@ def get_checkbox_option_chidren(question,section, parent_name=''):
 
                 if q.tag:
                     for t in q.tag:
-                        child[t]='true'
+                        #child[t]='true'
+                        if t=='isRequired':
+                            if q.question.answer_type not in group_types:
+                                child[t]='true'
+                        else:
+                            child[t]='true'
                 if q.question.help_text_url:
                     child['_help_text_url']=q.question.help_text_url
                 if q.question.help_text_assessor_url:
@@ -1173,6 +1190,9 @@ def get_checkbox_option_chidren(question,section, parent_name=''):
             op_dict['conditions']=conditions
         options_list.append(op_dict)
         option_count+=1
+    if 'isRequired' in section_question.get_tag_list():
+        if options_list:
+            options_list[0]['isRequired']='true'
     return options_list
 
 
@@ -1182,6 +1202,8 @@ def generate_schema(proposal_type):
     section_count=0
     schema=[]
     special_types=['checkbox',]
+    #'isRequired' tag for following types is added to first option dict instead of question.
+    group_types=['checkbox', 'radiobuttons', 'multi-select']
     for section in section_list:
         section_dict={
             'name': section.section_name,
@@ -1202,19 +1224,23 @@ def generate_schema(proposal_type):
                     'label': sq.question.question,                    
                 }
                 if sq.question.answer_type in special_types:
-                    sq_option_children=get_checkbox_option_chidren(sq.question, section,sq_name)
+                    sq_option_children=get_checkbox_option_chidren(sq,sq.question, section,sq_name)
                     sc['children']=sq_option_children
                     sc['type']='group'
                 else:
                     if sq.question.option.count()>0:
-                        sq_options= get_options(sq.question)
+                        sq_options= get_options(sq,sq.question)
                         sc['options']=sq_options
                     if sq.question.children_question.exists():
                         sq_children=get_condition_chidren(sq.question,section, sq_name)
                         sc['conditions']=sq_children
                 if sq.tag:
                     for t in sq.tag:
-                        sc[t]='true'
+                        if t=='isRequired':
+                            if sq.question.answer_type not in group_types:
+                                sc[t]='true'
+                        else:
+                            sc[t]='true'
                 if sq.question.help_text_url:
                     sc['_help_text_url']=sq.question.help_text_url
                 if sq.question.help_text_assessor_url:

@@ -378,7 +378,7 @@ class QuestionOptionAdmin(admin.ModelAdmin):
 
 @admin.register(models.MasterlistQuestion)
 class MasterlistQuestionAdmin(admin.ModelAdmin):
-    list_display = ['name', 'question',]
+    list_display = ['question',]
     filter_horizontal = ('option',)
     form = forms.MasterlistQuestionAdminForm
     
