@@ -87,7 +87,9 @@
                     </div>
                     <div class="row">
                         <div class="col-lg-12" style="margin-top:25px;">
-                            <datatable ref="proposal_datatable" :id="datatable_id" :dtOptions="proposal_options" :dtHeaders="proposal_headers"/>
+                            <div v-if="datatableReady">
+                                <datatable ref="proposal_datatable" :id="datatable_id" :dtOptions="proposal_options" :dtHeaders="proposal_headers"/>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -131,7 +133,9 @@ export default {
         let vm = this;
         return {
             pBody: 'pBody' + vm._uid,
-            datatable_id: 'proposal-datatable-'+vm._uid,
+            //datatable_id: 'proposal-datatable-'+vm._uid,
+            uuid: 0,
+            datatable_id: 'proposal-datatable-'+vm.uuid,
             //Profile to check if user has access to process Proposal
             profile: {},
             approval_history: {
@@ -164,298 +168,8 @@ export default {
             apiaryTemplateGroup: false,
             templateGroupDetermined: false,
             select2Applied: false,
-            /*
-            proposal_headers:[
-                "Number","Region","Activity","Title","Holder","Status","Start Date","Expiry Date","Approval","Action",""
-                //"LodgementNo","CanReissue","CanAction","CanReinstate","SetToCancel","SetToSuspend","SetToSurrender","CurrentProposal","RenewalDoc","RenewalSent","CanAmend","CanRenew"
-            ],
-            */
-            proposal_options:{
-                language: {
-                    processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
-                },
-                responsive: true,
-                serverSide: true,
-                lengthMenu: [ [10, 25, 50, 100, -1], [10, 25, 50, 100, "All"] ],
-                order: [
-                    [0, 'desc']
-                    ],
-                ajax: {
-                    "url": vm.url,
-                    "dataSrc": 'data',
-                    /*
-                    "dataSrc": function(data) {
-                        //console.log(d);
-                        //vm.template_group = d.template_group;
-
-                        return data.table_data;
-                    },
-                    */
-                    // adding extra GET params for Custom filtering
-                    "data": function ( d ) {
-                        //d.regions = vm.filterProposalRegion.join(); // no need to add this since we can filter normally (filter is not multi-select in Approval table)
-                        d.date_from = vm.filterProposalLodgedFrom != '' && vm.filterProposalLodgedFrom != null ? moment(vm.filterProposalLodgedFrom, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
-                        d.date_to = vm.filterProposalLodgedTo != '' && vm.filterProposalLodgedTo != null ? moment(vm.filterProposalLodgedTo, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
-                        d.region = vm.filterProposalRegion;
-                        d.proposal_activity = vm.filterProposalActivity;
-                        d.approval_status = vm.filterProposalStatus;
-                    }
-
-                },
-                dom: 'lBfrtip',
-                /*
-                buttons:[
-                'excel', 'csv', ],
-                */
-                buttons:[
-                    {
-                        extend: 'excel',
-                        exportOptions: {
-                            columns: ':visible'
-                        }
-                    },
-                    {
-                        extend: 'csv',
-                        exportOptions: {
-                            columns: ':visible'
-                        }
-                    },
-                ],
-                columns: [
-                    {
-                        data: "id",
-                        'render':function(data,type,full){
-                        if(!vm.is_external){
-                            var result = '';
-                            var popTemplate = '';
-                            var message = '';
-                            let tick = '';
-                            tick = "<i class='fa fa-exclamation-triangle' style='color:red'></i>"
-                            result = '<span>' + full.lodgement_number + '</span>';
-                            if(full.can_reissue){
-                                if(!full.can_action){
-                                    if(full.set_to_cancel){
-                                        message = 'This Approval is marked for cancellation to future date';
-                                    }
-                                    if(full.set_to_suspend){
-                                        message = 'This Approval is marked for suspension to future date';
-                                    }
-                                    if(full.set_to_surrender){
-                                        message = 'This Approval is marked for surrendering to future date';
-                                    }
-                                    popTemplate = _.template('<a href="#" ' +
-                                            'role="button" ' +
-                                            'data-toggle="popover" ' +
-                                            'data-trigger="hover" ' +
-                                            'data-placement="top auto"' +
-                                            'data-html="true" ' +
-                                            'data-content="<%= text %>" ' +
-                                            '><%= tick %></a>');
-                                    result += popTemplate({
-                                        text: message,
-                                        tick: tick
-                                    });
-
-                                }
-                            }
-                            return result;
-                        }
-                        else { return full.lodgement_number }
-                        },
-                        'createdCell': helpers.dtPopoverCellFn,
-                        name: "id, lodgement_number",
-                        searchable: true,
-                    },
-                    {
-                        data: "region",
-                        'render': function (value) {
-                            return helpers.dtPopover(value);
-                        },
-                        'createdCell': helpers.dtPopoverCellFn,
-                        name: 'current_proposal__region__name',
-                        visible: false,
-                        searchable: true,
-                    },
-                    {
-                        data: "activity",
-                        name: "current_proposal__activity",
-                        visible: false,
-                        searchable: true,
-                    },
-                    {
-                        data: "title",
-                        'render': function (value) {
-                            return helpers.dtPopover(value);
-                        },
-                        'createdCell': helpers.dtPopoverCellFn,
-                        name: "current_proposal__title",
-                        visible: false,
-                        searchable: true,
-                    },
-                    {
-                        data: "applicant",
-                        name: "applicant__organisation__name, proxy_applicant__first_name, proxy_applicant__last_name, proxy_applicant__email",
-                        searchable: true,
-                    },
-                    {
-                        data: "status",
-                        name: 'status',
-                    },
-                    {
-                        data: "start_date",
-                        mRender:function (data,type,full) {
-                            return data != '' && data != null ? moment(data).format(vm.dateFormat): '';
-                        },
-                        searchable: false
-                    },
-                    {
-                        data: "expiry_date",
-                        mRender:function (data,type,full) {
-                            return data != '' && data != null ? moment(data).format(vm.dateFormat): '';
-                        },
-                        searchable: true
-                    },
-                    {
-                        data: "licence_document",
-                        mRender:function(data,type,full){
-                            //let link='';
-                            //return `<a href="${data}" target="_blank"><i style="color:red" class="fa fa-file-pdf-o"></i></a>`;
-                            // link=`<a href='#${full.id}'<i style="color:red" class="fa fa-file-pdf-o"></i></a>`;
-                            if (full.apiary_approval) {
-                                return `<a href="${full.latest_apiary_licence_document}" target="_blank"><i style="color:red" class="fa fa-file-pdf-o"></i></a>`;
-                            } else {
-                                if(vm.is_external){
-                                    return `<a href="${data}" target="_blank"><i style="color:red" class="fa fa-file-pdf-o"></i></a>`;
-                                }
-                                else{
-                                    return `<a href="#${full.id}" data-pdf-approval='${full.id}' media-link='${data}'><i style="color:red" class="fa fa-file-pdf-o"></i></a>`;
-                                }
-                            }
-                            //return link;
-                        },
-                        name: 'licence_document__name',
-                        searchable: false,
-                        visible: false,
-                    },
-                    {
-                        data: '',
-                        mRender:function (data,type,full) {
-                            let links = '';
-                            if (!vm.is_external){
-                                //if(full.can_approver_reissue && full.current_proposal && full.current_proposal.application_type !== 'Site Transfer'){
-                                if(full.can_approver_reissue && full.current_proposal){
-                                        links +=  `<a href='#${full.id}' data-reissue-approval='${full.current_proposal_id}'>Reissue</a><br/>`;
-                                }
-                                if(vm.check_assessor(full)){
-                                    // if(full.can_approver_reissue){
-                                    //     links +=  `<a href='#${full.id}' data-reissue-approval='${full.current_proposal}'>Reissue</a><br/>`;
-                                    // }
-                                    if(full.can_reissue && full.can_action){
-                                        links +=  `<a href='#${full.id}' data-cancel-approval='${full.id}'>Cancel</a><br/>`;
-                                        links +=  `<a href='#${full.id}' data-surrender-approval='${full.id}'>Surrender</a><br/>`;
-                                    }
-                                    if(full.status == 'Current' && full.can_action){
-                                        links +=  `<a href='#${full.id}' data-suspend-approval='${full.id}'>Suspend</a><br/>`;
-                                    }
-                                    if(full.can_reinstate)
-                                    {
-                                        links +=  `<a href='#${full.id}' data-reinstate-approval='${full.id}'>Reinstate</a><br/>`;
-                                    }
-                                    links +=  `<a href='/internal/approval/${full.id}'>View</a><br/>`;
-                                }
-                                else{
-                                    links +=  `<a href='/internal/approval/${full.id}'>View</a><br/>`;
-
-                                }
-                                if(full.renewal_document && full.renewal_sent){
-                                  links +=  `<a href='${full.renewal_document}' target='_blank'>Renewal Notice</a><br/>`;
-
-                                }
-                                // if(full.can_approver_reissue){
-                                //         links +=  `<a href='#${full.id}' data-reissue-approval='${full.current_proposal}'>Reissue</a><br/>`;
-                                // }
-                            }
-                            else{
-                                if (full.can_reissue) {
-                                    links +=  `<a href='/external/approval/${full.id}'>View</a><br/>`;
-                                    if(full.can_action){
-                                        links +=  `<a href='#${full.id}' data-surrender-approval='${full.id}'>Surrender</a><br/>`;
-                                        if(full.can_amend){
-                                           links +=  `<a href='#${full.id}' data-amend-approval='${full.current_proposal_id}'>Amend</a><br/>`;
-                                       }
-                                    }
-                                    if(full.renewal_document && full.renewal_sent && full.can_renew) {
-                                        links +=  `<a href='#${full.id}' data-renew-approval='${full.current_proposal_id}'>Renew</a><br/>`;
-                                    }
-                                }
-                                else {
-                                    links +=  `<a href='/external/approval/${full.id}'>View</a><br/>`;
-
-                                }
-                            }
-                            if (full.apiary_approval) {
-                                links +=  `<a href='#${full.id}' approval-history='${full.id}'>Licence History</a><br/>`;
-                            } else {
-                                links +=  `<a href='#${full.id}' approval-history='${full.id}'>Approval History</a><br/>`;
-                            }
-                            return links;
-                        },
-                        searchable: false,
-                        orderable: false,
-                        name: ''
-                    },
-                    {
-                        data: 'template_group',
-                        searchable: false,
-                        orderable: false,
-                        visible: false,
-                    },
-
-                ],
-                processing: true,
-                initComplete: function() {
-                    vm.showHideColumns()
-                },
-
-				/*
-                initComplete: function () {
-                    // Grab Regions from the data in the table
-                    var regionColumn = vm.$refs.proposal_datatable.vmDataTable.columns(1);
-                    regionColumn.data().unique().sort().each( function ( d, j ) {
-                        let regionTitles = [];
-                        $.each(d,(index,a) => {
-                            // Split region string to array
-                            if (a != null){
-                                $.each(a.split(','),(i,r) => {
-                                    r != null && regionTitles.indexOf(r) < 0 ? regionTitles.push(r): '';
-                                });
-                            }
-                        })
-                        vm.proposal_regions = regionTitles;
-                    });
-                    // Grab Activity from the data in the table
-                    var titleColumn = vm.$refs.proposal_datatable.vmDataTable.columns(2);
-                    titleColumn.data().unique().sort().each( function ( d, j ) {
-                        let activityTitles = [];
-                        $.each(d,(index,a) => {
-                            a != null && activityTitles.indexOf(a) < 0 ? activityTitles.push(a): '';
-                        })
-                        vm.proposal_activityTitles = activityTitles;
-                    });
-                    // Grab Status from the data in the table
-                    var statusColumn = vm.$refs.proposal_datatable.vmDataTable.columns(5);
-                    statusColumn.data().unique().sort().each( function ( d, j ) {
-                        let statusTitles = [];
-                        $.each(d,(index,a) => {
-                            a != null && statusTitles.indexOf(a) < 0 ? statusTitles.push(a): '';
-                        })
-                        vm.approval_status = statusTitles;
-                    });
-                    // Fix the table rendering columns
-                    vm.$refs.proposal_datatable.vmDataTable.columns.adjust().responsive.recalc();
-                }
-				*/
-            }
+            proposal_options: {},
+            datatableReady: false,
         }
     },
     components:{
@@ -467,7 +181,8 @@ export default {
     },
     watch:{
         templateGroupDetermined: function(){
-            this.showHideColumns()
+            //this.showHideColumns()
+            this.set_proposal_options();
         },
         filterProposalRegion: function(){
             //this.$refs.proposal_datatable.vmDataTable.draw();
@@ -522,26 +237,286 @@ export default {
             return this.level == 'referral';
         },
         proposal_headers: function() {
-            let approval_or_licence = 'Approval'
-            if (this.apiaryTemplateGroup) {
-                approval_or_licence = 'Licence'
-            }
-            return [
-                "Number",
-                "Region",
+            let approval_or_licence = this.dasTemplateGroup ? 'Approval' : 'Licence';
+            let columnHeaders = ["Number",];
+            if (this.dasTemplateGroup) {
+                columnHeaders.push("Region",
                 "Activity",
-                "Title",
-                "Holder",
+                "Title");
+            }
+            columnHeaders.push("Holder",
                 "Status",
                 "Start Date",
                 "Expiry Date",
                 approval_or_licence,
-                "Action",
-                ""
-            ]
+                "Action");
+                /*
+                "Action", 
+                "");
+                */
+            return columnHeaders;
         },
+        tableColumns: function() {
+            let vm = this;
+            let columnList = [
+                {
+                    data: "id",
+                    'render':function(data,type,full){
+                    if(!vm.is_external){
+                        var result = '';
+                        var popTemplate = '';
+                        var message = '';
+                        let tick = '';
+                        tick = "<i class='fa fa-exclamation-triangle' style='color:red'></i>"
+                        result = '<span>' + full.lodgement_number + '</span>';
+                        if(full.can_reissue){
+                            if(!full.can_action){
+                                if(full.set_to_cancel){
+                                    message = 'This Approval is marked for cancellation to future date';
+                                }
+                                if(full.set_to_suspend){
+                                    message = 'This Approval is marked for suspension to future date';
+                                }
+                                if(full.set_to_surrender){
+                                    message = 'This Approval is marked for surrendering to future date';
+                                }
+                                popTemplate = _.template('<a href="#" ' +
+                                        'role="button" ' +
+                                        'data-toggle="popover" ' +
+                                        'data-trigger="hover" ' +
+                                        'data-placement="top auto"' +
+                                        'data-html="true" ' +
+                                        'data-content="<%= text %>" ' +
+                                        '><%= tick %></a>');
+                                result += popTemplate({
+                                    text: message,
+                                    tick: tick
+                                });
+
+                            }
+                        }
+                        return result;
+                    }
+                    else { return full.lodgement_number }
+                    },
+                    'createdCell': helpers.dtPopoverCellFn,
+                    name: "id, lodgement_number",
+                    searchable: true,
+                }];
+            if (this.dasTemplateGroup) {
+                columnList.push({
+                    data: "region",
+                    'render': function (value) {
+                        return helpers.dtPopover(value);
+                    },
+                    'createdCell': helpers.dtPopoverCellFn,
+                    name: 'current_proposal__region__name',
+                    //visible: false,
+                    searchable: true,
+                },
+                {
+                    data: "activity",
+                    name: "current_proposal__activity",
+                    //visible: false,
+                    searchable: true,
+                },
+                {
+                    data: "title",
+                    'render': function (value) {
+                        return helpers.dtPopover(value);
+                    },
+                    'createdCell': helpers.dtPopoverCellFn,
+                    name: "current_proposal__title",
+                    //visible: false,
+                    searchable: true,
+                });
+            };
+            columnList.push({
+                    data: "applicant",
+                    name: "applicant__organisation__name, proxy_applicant__first_name, proxy_applicant__last_name, proxy_applicant__email",
+                    searchable: true,
+                },
+                {
+                    data: "status",
+                    name: 'status',
+                },
+                {
+                    data: "start_date",
+                    mRender:function (data,type,full) {
+                        return data != '' && data != null ? moment(data).format(vm.dateFormat): '';
+                    },
+                    searchable: false
+                },
+                {
+                    data: "expiry_date",
+                    mRender:function (data,type,full) {
+                        return data != '' && data != null ? moment(data).format(vm.dateFormat): '';
+                    },
+                    searchable: true
+                },
+                {
+                    data: "licence_document",
+                    mRender:function(data,type,full){
+                        //let link='';
+                        //return `<a href="${data}" target="_blank"><i style="color:red" class="fa fa-file-pdf-o"></i></a>`;
+                        // link=`<a href='#${full.id}'<i style="color:red" class="fa fa-file-pdf-o"></i></a>`;
+                        if (full.apiary_approval) {
+                            return `<a href="${full.latest_apiary_licence_document}" target="_blank"><i style="color:red" class="fa fa-file-pdf-o"></i></a>`;
+                        } else {
+                            if(vm.is_external){
+                                return `<a href="${data}" target="_blank"><i style="color:red" class="fa fa-file-pdf-o"></i></a>`;
+                            }
+                            else{
+                                return `<a href="#${full.id}" data-pdf-approval='${full.id}' media-link='${data}'><i style="color:red" class="fa fa-file-pdf-o"></i></a>`;
+                            }
+                        }
+                        //return link;
+                    },
+                    name: 'licence_document__name',
+                    searchable: false,
+                    //visible: false,
+                    className: "noexport",
+                },
+                {
+                    data: '',
+                    mRender:function (data,type,full) {
+                        let links = '';
+                        if (!vm.is_external){
+                            //if(full.can_approver_reissue && full.current_proposal && full.current_proposal.application_type !== 'Site Transfer'){
+                            if(full.can_approver_reissue && full.current_proposal){
+                                    links +=  `<a href='#${full.id}' data-reissue-approval='${full.current_proposal_id}'>Reissue</a><br/>`;
+                            }
+                            if(vm.check_assessor(full)){
+                                // if(full.can_approver_reissue){
+                                //     links +=  `<a href='#${full.id}' data-reissue-approval='${full.current_proposal}'>Reissue</a><br/>`;
+                                // }
+                                if(full.can_reissue && full.can_action){
+                                    links +=  `<a href='#${full.id}' data-cancel-approval='${full.id}'>Cancel</a><br/>`;
+                                    links +=  `<a href='#${full.id}' data-surrender-approval='${full.id}'>Surrender</a><br/>`;
+                                }
+                                if(full.status == 'Current' && full.can_action){
+                                    links +=  `<a href='#${full.id}' data-suspend-approval='${full.id}'>Suspend</a><br/>`;
+                                }
+                                if(full.can_reinstate)
+                                {
+                                    links +=  `<a href='#${full.id}' data-reinstate-approval='${full.id}'>Reinstate</a><br/>`;
+                                }
+                                links +=  `<a href='/internal/approval/${full.id}'>View</a><br/>`;
+                            }
+                            else{
+                                links +=  `<a href='/internal/approval/${full.id}'>View</a><br/>`;
+
+                            }
+                            if(full.renewal_document && full.renewal_sent){
+                              links +=  `<a href='${full.renewal_document}' target='_blank'>Renewal Notice</a><br/>`;
+
+                            }
+                            // if(full.can_approver_reissue){
+                            //         links +=  `<a href='#${full.id}' data-reissue-approval='${full.current_proposal}'>Reissue</a><br/>`;
+                            // }
+                        }
+                        else{
+                            if (full.can_reissue) {
+                                links +=  `<a href='/external/approval/${full.id}'>View</a><br/>`;
+                                if(full.can_action){
+                                    links +=  `<a href='#${full.id}' data-surrender-approval='${full.id}'>Surrender</a><br/>`;
+                                    if(full.can_amend){
+                                       links +=  `<a href='#${full.id}' data-amend-approval='${full.current_proposal_id}'>Amend</a><br/>`;
+                                   }
+                                }
+                                if(full.renewal_document && full.renewal_sent && full.can_renew) {
+                                    links +=  `<a href='#${full.id}' data-renew-approval='${full.current_proposal_id}'>Renew</a><br/>`;
+                                }
+                            }
+                            else {
+                                links +=  `<a href='/external/approval/${full.id}'>View</a><br/>`;
+
+                            }
+                        }
+                        if (full.apiary_approval) {
+                            links +=  `<a href='#${full.id}' approval-history='${full.id}'>Licence History</a><br/>`;
+                        } else {
+                            links +=  `<a href='#${full.id}' approval-history='${full.id}'>Approval History</a><br/>`;
+                        }
+                        return links;
+                    },
+                    searchable: false,
+                    orderable: false,
+                    name: '',
+                    className: "noexport",
+                },
+                {
+                    data: 'template_group',
+                    searchable: false,
+                    orderable: false,
+                    visible: false,
+                    className: "noexport",
+                }
+                );
+            return columnList;
+        }
     },
     methods:{
+        set_proposal_options: function() {
+            this.datatableReady = false;
+            let vm = this;
+            this.uuid++;
+            //$(vm.$refs.proposal_datatable.vmDataTable).DataTable().destroy();
+            //$(vm.$refs.proposal_datatable.vmDataTable).DataTable({
+            this.proposal_options = {
+                destroy: true,
+                language: {
+                    processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
+                },
+                responsive: true,
+                serverSide: true,
+                lengthMenu: [ [10, 25, 50, 100, -1], [10, 25, 50, 100, "All"] ],
+                order: [
+                    [0, 'desc']
+                    ],
+                ajax: {
+                    "url": vm.url,
+                    "dataSrc": 'data',
+                    // adding extra GET params for Custom filtering
+                    "data": function ( d ) {
+                        //d.regions = vm.filterProposalRegion.join(); // no need to add this since we can filter normally (filter is not multi-select in Approval table)
+                        d.date_from = vm.filterProposalLodgedFrom != '' && vm.filterProposalLodgedFrom != null ? moment(vm.filterProposalLodgedFrom, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
+                        d.date_to = vm.filterProposalLodgedTo != '' && vm.filterProposalLodgedTo != null ? moment(vm.filterProposalLodgedTo, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
+                        d.region = vm.filterProposalRegion;
+                        d.proposal_activity = vm.filterProposalActivity;
+                        d.approval_status = vm.filterProposalStatus;
+                    }
+                },
+                dom: 'lBfrtip',
+                buttons:[
+                    {
+                        extend: 'excel',
+                        exportOptions: {
+                            //columns: ':not(:last-child)'
+                            columns: ':not(.noexport)'
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        exportOptions: {
+                            //columns: ':not(:last-child)'
+                            columns: ':not(.noexport)'
+                        }
+                    },
+                ],
+                columns: vm.tableColumns,
+                processing: true,
+                initComplete: function() {
+                    //vm.showHideColumns()
+                },
+            };
+            this.datatableReady = true;
+            this.$nextTick(() => {
+                this.initialiseSearch();
+                this.addEventListeners();
+            });
+        },
+        /*
         showHideColumns: function(){
             let vm = this
             // set column visibility and headers according to template group
@@ -558,6 +533,7 @@ export default {
                 approvalColumn.visible(true)
             }
         },
+        */
         setDashboardText: function() {
             //let title = ''
             if (this.apiaryTemplateGroup) {
@@ -984,10 +960,12 @@ export default {
                 $( chev ).toggleClass( "glyphicon-chevron-down glyphicon-chevron-up" );
             }, 100 );
         });
+        /*
         this.$nextTick(() => {
             this.initialiseSearch();
             this.addEventListeners();
         });
+        */
     },
     created: function() {
         // retrieve template group
