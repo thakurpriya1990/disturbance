@@ -127,8 +127,8 @@ export default {
             proponent_applicant_column_name: 'applicant__organisation__name, proxy_applicant__first_name, proxy_applicant__last_name, proxy_applicant__email',
             pBody: 'pBody' + vm._uid,
             uuid: 0,
-            //datatable_id: 'proposal-datatable-'+vm._uid,
-            datatable_id: 'proposal-datatable-'+vm.uuid,
+            datatable_id: 'proposal-datatable-'+vm._uid,
+            //datatable_id: 'proposal-datatable-'+vm.uuid,
             //Profile to check if user has access to process Proposal
             profile: {},
             //template_group: '',
@@ -292,7 +292,7 @@ export default {
                         return helpers.dtPopover(value);
                     },
                     'createdCell': helpers.dtPopoverCellFn,
-                    visible: false,
+                    //visible: false,
                     name: 'region__name',
                     searchable: true,
                 });
@@ -311,7 +311,7 @@ export default {
                         return helpers.dtPopover(value);
                     },
                     'createdCell': helpers.dtPopoverCellFn,
-                    visible: false,
+                    //visible: false,
                     name: 'title',
                     searchable: true,
                 });
@@ -359,7 +359,7 @@ export default {
                 columnList.push({
                     // 8. Assigned Officer
                     data: "assigned_officer",
-                    visible: false,
+                    //visible: false,
                     name: "assigned_officer__first_name, assigned_officer__last_name, assigned_officer__email",
                     searchable: true,
                 });
@@ -390,7 +390,7 @@ export default {
                     },
                     name: 'invoice_column',
                     orderable: false,
-                    visible: false,
+                    //visible: false,
                     searchable: false,
                 });
             };
