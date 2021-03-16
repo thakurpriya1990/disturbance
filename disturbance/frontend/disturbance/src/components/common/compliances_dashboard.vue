@@ -105,7 +105,7 @@ export default {
         return {
             pBody: 'pBody' + vm._uid,
             uuid: 0,
-            datatable_id: 'proposal-datatable-'+vm.uuid,
+            datatable_id: 'compliances-datatable-'+vm._uid,
             //Profile to check if user has access to process Proposal
             profile: {},
             dasTemplateGroup: false,
@@ -251,7 +251,7 @@ export default {
                         // 2. Region/District
                         data: "regions",
                         name: "proposal__region__name", // will be use like: Approval.objects.filter(proposal__region__name='Kimberley')
-                        visible: false,
+                        //visible: false,
                     });
             };
             columnList.push(
@@ -259,7 +259,7 @@ export default {
                         // 3. Activity
                         data: "activity",
                         name: "proposal__activity",
-                        visible: true,
+                        //visible: true,
                     });
             if (this.dasTemplateGroup) {
                 columnList.push(
@@ -267,7 +267,7 @@ export default {
                         // 4. Title
                         data: "title",
                         name: "proposal__title",
-                        visible: false,
+                        //visible: false,
                     });
             };
             columnList.push(

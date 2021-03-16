@@ -133,9 +133,9 @@ export default {
         let vm = this;
         return {
             pBody: 'pBody' + vm._uid,
-            //datatable_id: 'proposal-datatable-'+vm._uid,
+            datatable_id: 'approvals-datatable-'+vm._uid,
             uuid: 0,
-            datatable_id: 'proposal-datatable-'+vm.uuid,
+            //datatable_id: 'proposal-datatable-'+vm.uuid,
             //Profile to check if user has access to process Proposal
             profile: {},
             approval_history: {
