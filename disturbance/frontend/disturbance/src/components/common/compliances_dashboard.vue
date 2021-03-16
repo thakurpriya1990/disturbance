@@ -226,11 +226,11 @@ export default {
                 "Holder",
                 "Status",
                 "Due Date",
-                "Assigned To",
-                "Action",
-                //"Reference",
-                //"CustomerStatus"
-                )
+                );
+            if (!this.is_external) {
+                columnHeaders.push("Assigned To");
+            }
+            columnHeaders.push("Action");
             return columnHeaders;
         },
         tableColumns: function() {
@@ -295,13 +295,17 @@ export default {
                         mRender:function (data,type,full) {
                             return data != '' && data != null ? moment(data).format(vm.dateFormat): '';
                         }
-                    },
-                    {
+                    });
+
+            if (!vm.is_external) {
+                columnList.push({
                         // 9. Assigned To
                         data: "assigned_to",
                         name: "assigned_to__first_name, assigned_to__last_name, assigned_to__email"
                         // visible: false
-                    },
+                    });
+            }
+            columnList.push(
                     {
                         // 10. Action
                         data: '',
@@ -620,10 +624,12 @@ export default {
                 $( chev ).toggleClass( "glyphicon-chevron-down glyphicon-chevron-up" );
             }, 100 );
         });
+        /*
         if(vm.is_external){
             var column = vm.$refs.proposal_datatable.vmDataTable.columns(8); //Hide 'Assigned To column for external'
             column.visible(false);
         }
+        */
         /*
         this.$nextTick(() => {
             this.initialiseSearch();
