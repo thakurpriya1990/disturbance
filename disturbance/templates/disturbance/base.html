@@ -117,7 +117,13 @@
                                                 {% endif %}
                                                 <li><a href="{% url 'manage-account' %}">Manage Account</a></li>
                                                 {% for org in request.user.disturbance_organisations.all %}
-                                                    <li><a href="/external/organisations/manage/{{org.id}}">Manage {{ org.organisation.name}}</a></li>
+                                                    {% if request.user.is_superuser or org.id|is_org_admin:request.user %}
+                                                        <li><a href="/external/organisations/manage/{{org.id}}">Manage (is_org_admin){{ org.organisation.name}}</a></li>
+					            {% comment %} --> DAS does not have Org Consultants
+                                                    {% elif org.id|is_org_consultant:request.user %}
+                                                        <li><a href="/external/organisations/manage/{{org.id}}">Manage (is_org_cons){{ org.organisation.name}}</a></li>
+				     		    {% endcomment %} 
+                                                    {% endif %}
                                                 {% endfor %}
 
                                                 {% if is_payment_admin %}
