@@ -23,6 +23,8 @@ from disturbance.components.proposals.models import (
     MasterlistQuestion,
     ProposalTypeSection,
     SectionQuestion,
+    HelpPage,
+    ApplicationType,
 )
 from disturbance.components.proposals.serializers_apiary import (
     ProposalApiarySerializer,
@@ -43,6 +45,9 @@ from disturbance.settings import RESTRICTED_RADIUS, TIME_ZONE
 from disturbance.utils import convert_moment_str_to_python_datetime_obj
 
 logger = logging.getLogger(__name__)
+
+richtext = u''
+richtext_assessor=u''
 
 def create_data_from_form(schema, post_data, file_data, post_data_index=None,special_fields=[],assessor_data=False):
     data = {}
@@ -1048,6 +1053,54 @@ def clone_proposal_with_status_reset(proposal):
         except:
             raise
 
+help_site_url='site_url:/help/disturbance/user'
+help_site_assessor_url='site_url:/help/disturbance/assessor'
+
+def create_richtext_help(question, name):
+    global richtext
+    global richtext_assessor
+    
+    if question.help_text_url and question.help_text:
+       
+        richtext += u'<h1><a id="{0}" name="{0}"> {1} </a></h1>'.format(name, question.question)
+        richtext += question.help_text
+        richtext += u'<p>&nbsp;</p>'
+
+    if question.help_text_assessor_url and question.help_text_assessor:
+       
+        richtext_assessor += u'<h1><a id="{0}" name="{0}"> {1} </a></h1>'.format(name, question.question)
+        richtext_assessor += question.help_text_assessor
+        richtext_assessor += u'<p>&nbsp;</p>'
+
+    return richtext
+
+def create_helppage_object(proposal_type, help_type=HelpPage.HELP_TEXT_EXTERNAL):
+    """
+    Create a new HelpPage object, with latest help_text/label anchors defined in the latest ProposalType.schema
+    """
+    application_type=proposal_type.name
+    try:
+        application_type_id = ApplicationType.objects.get(name=application_type).id
+    except Exception as e:
+        print('application type: {} does not exist, maybe!'.format(application_type, e))
+
+    try:
+        help_page = HelpPage.objects.filter(application_type_id=application_type_id, help_type=help_type).latest('version')
+        next_version = help_page.version + 1
+    except Exception as e:
+        next_version = 1
+
+    help_type_assessor=HelpPage.HELP_TEXT_INTERNAL
+    try:
+        help_page_assessor = HelpPage.objects.filter(application_type_id=application_type_id, help_type=help_type_assessor).latest('version')
+        next_version_assessor = help_page_assessor.version + 1
+    except Exception as e:
+        next_version_assessor = 1
+    
+    HelpPage.objects.create(application_type_id=application_type_id, help_type=help_type, version=next_version, content=richtext)
+    HelpPage.objects.create(application_type_id=application_type_id, help_type=help_type_assessor, version=next_version_assessor, content=richtext_assessor)
+
+
 def get_options(section_question, question):
     options=[]
     special_types=['radiobuttons', 'multi-select',]
@@ -1104,9 +1157,10 @@ def get_condition_chidren(question,section, parent_name=''):
                             child[t]='true'
                         #child[t]='true'
                 if q.question.help_text_url:
-                    child['_help_text_url']=q.question.help_text_url
+                    child['help_text_url']='{0}/anchor={1}'.format(help_site_url, question_name)
                 if q.question.help_text_assessor_url:
-                    child['_help_text_assessor_url']=q.question.help_text_assessor_url
+                    child['help_text_assessor_url']='{0}/anchor={1}'.format(help_site_assessor_url, question_name)
+                create_richtext_help(q.question, question_name)
                 option_children.append(child)
                 condition_question_count+=1
             section_group_name=parent_name+'-'+op.label+'Group'
@@ -1173,9 +1227,10 @@ def get_checkbox_option_chidren(section_question,question,section, parent_name='
                         else:
                             child[t]='true'
                 if q.question.help_text_url:
-                    child['_help_text_url']=q.question.help_text_url
+                    child['help_text_url']='{0}/anchor={1}'.format(help_site_url, question_name)
                 if q.question.help_text_assessor_url:
-                    child['_help_text_assessor_url']=q.question.help_text_assessor_url
+                    child['help_text_assessor_url']='{0}/anchor={1}'.format(help_site_assessor_url, question_name)
+                create_richtext_help(q.question, question_name)
                 option_children.append(child)
                 condition_question_count+=1
             section_group_name=op_name+'-OnGroup'
@@ -1197,13 +1252,17 @@ def get_checkbox_option_chidren(section_question,question,section, parent_name='
 
 
 
-def generate_schema(proposal_type):
+def generate_schema(proposal_type, request):
     section_list=ProposalTypeSection.objects.filter(proposal_type=proposal_type).order_by('index')
     section_count=0
     schema=[]
     special_types=['checkbox',]
     #'isRequired' tag for following types is added to first option dict instead of question.
     group_types=['checkbox', 'radiobuttons', 'multi-select']
+    global richtext
+    global richtext_assessor
+    richtext = u''
+    richtext_assessor=u''
     for section in section_list:
         section_dict={
             'name': section.section_name,
@@ -1242,9 +1301,10 @@ def generate_schema(proposal_type):
                         else:
                             sc[t]='true'
                 if sq.question.help_text_url:
-                    sc['_help_text_url']=sq.question.help_text_url
+                    sc['help_text_url']='{0}/anchor={1}'.format(help_site_url, sq_name)
                 if sq.question.help_text_assessor_url:
-                    sc['_help_text_assessor_url']=sq.question.help_text_assessor_url
+                    sc['help_text_assessor_url']='{0}/anchor={1}'.format(help_site_assessor_url, sq_name)
+                create_richtext_help(sq.question, sq_name) 
                 section_children.append(sc)
                 sq_count+=1
         if section_children:
@@ -1254,6 +1314,8 @@ def generate_schema(proposal_type):
     import json
     new_schema=json.dumps(schema)
     new_Schema_return=json.loads(new_schema)
+    if request.method=='POST':
+        create_helppage_object(proposal_type)
     return new_Schema_return
 
 

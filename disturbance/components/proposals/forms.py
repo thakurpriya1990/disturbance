@@ -141,10 +141,13 @@ class SystemMaintenanceAdminForm(forms.ModelForm):
 
 
 class MasterlistQuestionAdminForm(forms.ModelForm):
+    help_text = forms.CharField(widget=CKEditorWidget())
+    help_text_assessor = forms.CharField(widget=CKEditorWidget())
+
     class Meta:
         model = MasterlistQuestion
         #fields = '__all__'
-        fields= ('question', 'option', 'answer_type')
+        fields= ('question', 'option', 'answer_type', 'help_text_url', 'help_text_assessor_url','help_text', 'help_text_assessor')
 
     def __init__(self, *args, **kwargs):
         super(MasterlistQuestionAdminForm, self).__init__(*args, **kwargs)

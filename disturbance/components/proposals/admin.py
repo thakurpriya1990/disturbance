@@ -51,10 +51,12 @@ class ProposalTypeAdmin(admin.ModelAdmin):
         return custom_urls + urls
 
     def proposal_type_actions(self, obj):
-        return format_html(
-            '<a class="button" href="{}">Generate Schema</a>&nbsp;',
-            reverse('admin:generate-schema', args=[obj.pk]),
-        )
+        if obj.name=='Disturbance':
+            return format_html(
+                '<a class="button" href="{}">Generate Schema</a>&nbsp;',
+                reverse('admin:generate-schema', args=[obj.pk]),
+            )
+        return None
     proposal_type_actions.short_description = 'Proposal Type Actions'
     proposal_type_actions.allow_tags = True
 
@@ -74,7 +76,7 @@ class ProposalTypeAdmin(admin.ModelAdmin):
         action_title
    ):
         proposal_type = self.get_object(request, proposal_type_id)
-        new_schema=generate_schema(proposal_type)
+        new_schema=generate_schema(proposal_type, request)
         if request.method != 'POST':
             form = action_form()
         else:

@@ -4335,6 +4335,7 @@ class QuestionOption(models.Model):
     def __str__(self):
         return self.label 
 
+from ckeditor.fields import RichTextField
 @python_2_unicode_compatible
 class MasterlistQuestion(models.Model):
     ANSWER_TYPE_CHOICES=(('text', 'Text'),
@@ -4360,8 +4361,12 @@ class MasterlistQuestion(models.Model):
     option = models.ManyToManyField(QuestionOption, blank=True, null=True)
     answer_type = models.CharField('Answer Type', max_length=40, choices=ANSWER_TYPE_CHOICES,
                                         default=ANSWER_TYPE_CHOICES[0][0])
-    help_text_url=models.CharField(max_length=400, blank=True, null=True)
-    help_text_assessor_url=models.CharField(max_length=400, blank=True, null=True)
+    # help_text_url=models.CharField(max_length=400, blank=True, null=True)
+    # help_text_assessor_url=models.CharField(max_length=400, blank=True, null=True)
+    help_text_url=models.BooleanField(default=False)
+    help_text_assessor_url=models.BooleanField(default=False)
+    help_text=RichTextField(blank=True, null=True)
+    help_text_assessor=RichTextField(blank=True, null=True)
 
     class Meta:
         app_label = 'disturbance'
