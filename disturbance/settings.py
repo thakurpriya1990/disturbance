@@ -37,6 +37,7 @@ INSTALLED_APPS += [
     'rest_framework_gis',
     'reset_migrations',
     'ckeditor',
+    'smart_selects',
 ]
 
 ADD_REVERSION_ADMIN=True
@@ -69,6 +70,8 @@ REST_FRAMEWORK = {
     #'PAGE_SIZE': 20,
 }
 
+USE_DJANGO_JQUERY= True
+# JQUERY_URL = True
 
 MIDDLEWARE_CLASSES += [
     'disturbance.middleware.BookingTimerMiddleware',

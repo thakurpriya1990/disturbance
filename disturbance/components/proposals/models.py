@@ -52,6 +52,8 @@ from disturbance.components.proposals.email import (
 from disturbance.ordered_model import OrderedModel
 import copy
 import subprocess
+from multiselectfield import MultiSelectField
+from smart_selects.db_fields import ChainedForeignKey, ChainedManyToManyField
 
 import logging
 
@@ -3573,7 +3575,10 @@ class ApiaryAnnualRentalFeePeriodStartDate(RevisionedMixin):
     period_start_date = models.DateField(blank=True, null=True)
 
     def __str__(self):
-        return '{}: {} {}'.format(self.name, self.period_start_date.strftime('%B'), self.period_start_date.day)
+        try:
+            return '{}: {} {}'.format(self.name, self.period_start_date.strftime('%B'), self.period_start_date.day)
+        except:
+            return '{}'.format(self.name)
 
     class Meta:
         app_label = 'disturbance'
@@ -3596,7 +3601,10 @@ class ApiaryAnnualRentalFeeRunDate(RevisionedMixin):
         verbose_name = 'Annual Site Fee Issue Date'
 
     def __str__(self):
-        return '{}: {} {}'.format(self.name, self.date_run_cron.strftime('%B'), self.date_run_cron.day)
+        try:
+            return '{}: {} {}'.format(self.name, self.date_run_cron.strftime('%B'), self.date_run_cron.day)
+        except:
+            return '{}'.format(self.name)
 
 
 class ApiarySite(models.Model):
@@ -4313,6 +4321,113 @@ class ApiaryReferral(RevisionedMixin):
 # Apiary Models End
 # --------------------------------------------------------------------------------------
 
+# --------------------------------------------------------------------------------------
+# Generate JSON schema models start
+# --------------------------------------------------------------------------------------
+@python_2_unicode_compatible
+class QuestionOption(models.Model):
+    label = models.CharField(max_length=100)
+    value = models.CharField(max_length=100)
+
+    class Meta:
+        app_label = 'disturbance'
+
+    def __str__(self):
+        return self.label 
+
+from ckeditor.fields import RichTextField
+@python_2_unicode_compatible
+class MasterlistQuestion(models.Model):
+    ANSWER_TYPE_CHOICES=(('text', 'Text'),
+                         ('radiobuttons', 'Radio button'),
+                         ('checkbox', 'Checkbox'),
+                         
+                         ('text_info', 'Text Info'),
+                         ('iframe', 'IFrame'),
+                         ('number','Number'),
+                         ('email','Email'),
+                         ('select', 'Select'),
+                         ('multi-select','Multi-select'),
+                         ('text_area','Text area'),
+                         ('label', 'Label'),
+                         ('section', 'Section'),
+                         ('declaration', 'Declaration'),
+                         ('file', 'File'),
+                         ('date', 'Date'),
+                        )
+    name = models.CharField(max_length=100)
+    question = models.TextField()
+    #answer_type= models.CharField(max_length=100)
+    option = models.ManyToManyField(QuestionOption, blank=True, null=True)
+    answer_type = models.CharField('Answer Type', max_length=40, choices=ANSWER_TYPE_CHOICES,
+                                        default=ANSWER_TYPE_CHOICES[0][0])
+    # help_text_url=models.CharField(max_length=400, blank=True, null=True)
+    # help_text_assessor_url=models.CharField(max_length=400, blank=True, null=True)
+    help_text_url=models.BooleanField(default=False)
+    help_text_assessor_url=models.BooleanField(default=False)
+    help_text=RichTextField(blank=True, null=True)
+    help_text_assessor=RichTextField(blank=True, null=True)
+
+    class Meta:
+        app_label = 'disturbance'
+
+    def __str__(self):
+        return self.name
+
+@python_2_unicode_compatible
+class ProposalTypeSection(models.Model):
+    section_name = models.CharField(max_length=100)
+    section_label = models.CharField(max_length=100)
+    index = models.IntegerField(blank=True, default=0)
+    proposal_type=models.ForeignKey(ProposalType, related_name='sections', on_delete=models.PROTECT)
+    
+
+    class Meta:
+        app_label = 'disturbance'
+
+    def __str__(self):
+        return self.section_name  
+
+@python_2_unicode_compatible
+class SectionQuestion(models.Model):
+    TAG_CHOICES=(('isCopiedToPermit', 'isCopiedToPermit'),
+                 ('isRequired', 'isRequired'),
+                 ('canBeEditedByAssessor', 'canBeEditedByAssessor'),
+                 ('isRepeatable', 'isRepeatable'),
+                )
+    section=models.ForeignKey(ProposalTypeSection, related_name='section_questions', on_delete=models.PROTECT)
+    question=models.ForeignKey(MasterlistQuestion, related_name='question_sections',on_delete=models.PROTECT)
+    parent_question=models.ForeignKey('disturbance.MasterlistQuestion', related_name='children_question', null=True, blank=True, on_delete=models.SET_NULL)
+    #parent_answer=models.ForeignKey(QuestionOption, null=True, blank=True)
+    parent_answer = ChainedForeignKey(
+        'disturbance.QuestionOption',
+        chained_field='parent_question',
+        chained_model_field='masterlistquestion',
+        show_all=False,
+        null=True,
+        blank=True,
+        related_name='options',
+    )
+    # parent_answer = ChainedManyToManyField(
+    #     'disturbance.QuestionOption',
+    #     chained_field='parent_question',
+    #     chained_model_field='parent_question',
+    # )
+    tag= MultiSelectField(choices=TAG_CHOICES, max_length=400,max_choices=10, null=True, blank=True)
+
+
+
+
+    class Meta:
+        app_label = 'disturbance'
+
+    def __str__(self):
+        return str(self.id)  
+
+
+# --------------------------------------------------------------------------------------
+# Generate JSON schema models start
+# --------------------------------------------------------------------------------------
 
 import reversion
 #reversion.register(Proposal, follow=['requirements', 'documents', 'compliances', 'referrals', 'approvals', 'proposal_apiary'])
