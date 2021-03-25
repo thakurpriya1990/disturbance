@@ -81,7 +81,9 @@
                     </div>
                     <div class="row">
                         <div class="col-lg-12">
-                            <datatable ref="proposal_datatable" :id="datatable_id" :dtOptions="dt_options" :dtHeaders="dt_headers"/>
+                            <div v-if="datatableReady">
+                                <datatable ref="proposal_datatable" :id="datatable_id" :dtOptions="dt_options" :dtHeaders="dt_headers"/>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -124,7 +126,9 @@ export default {
             submitter_column_name: "submitter__email, submitter__first_name, submitter__last_name",
             proponent_applicant_column_name: 'applicant__organisation__name, proxy_applicant__first_name, proxy_applicant__last_name, proxy_applicant__email',
             pBody: 'pBody' + vm._uid,
+            uuid: 0,
             datatable_id: 'proposal-datatable-'+vm._uid,
+            //datatable_id: 'proposal-datatable-'+vm.uuid,
             //Profile to check if user has access to process Proposal
             profile: {},
             //template_group: '',
@@ -176,189 +180,8 @@ export default {
             proposal_status: [],
             is_local: helpers.is_local(),
             select2Applied: false,
-            dt_options:{
-                autoWidth: false,
-                language: {
-                    processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
-                },
-                responsive: true,
-                serverSide: true,
-                lengthMenu: [ [10, 25, 50, 100, -1], [10, 25, 50, 100, "All"] ],
-                order: [
-                    [0, 'desc']
-                    ],
-                ajax: {
-                    "url": vm.url,
-                    "dataSrc": 'data',
-
-                    // adding extra GET params for Custom filtering
-                    "data": function ( d ) {
-                        d.regions = vm.filterProposalRegion.join();
-                        d.date_from = vm.filterProposalLodgedFrom != '' && vm.filterProposalLodgedFrom != null ? moment(vm.filterProposalLodgedFrom, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
-                        d.date_to = vm.filterProposalLodgedTo != '' && vm.filterProposalLodgedTo != null ? moment(vm.filterProposalLodgedTo, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
-                        d.application_type = vm.filterProposalApplicationType;
-                        d.proposal_activity = vm.filterProposalActivity;
-                        d.submitter = vm.filterProposalSubmitter;
-                        d.proposal_status = vm.filterProposalStatus;
-                    }
-                },
-                dom: 'lBfrtip',
-                buttons:[
-                    {
-                        extend: 'excel',
-                        exportOptions: {
-                            columns: ':visible'
-                        }
-                    },
-                    {
-                        extend: 'csv',
-                        exportOptions: {
-                            columns: ':visible'
-                        }
-                    },
-                ],
-                columns: [
-                    {
-                        // 1. Number
-                        data: "lodgement_number",
-                        orderable: true,
-                        searchable: true,
-                    },
-                    {
-                        // 2. Region
-                        data: "region",
-                        'render': function (value) {
-                            return helpers.dtPopover(value);
-                        },
-                        'createdCell': helpers.dtPopoverCellFn,
-                        visible: false,
-                        name: 'region__name',
-                        searchable: true,
-                    },
-                    {
-                        // 3. Activity/Application Type
-                        data: "activity",
-                        searchable: true,
-                        name: 'activity',
-                    },
-                    {
-                        // 3.5 Title
-                        data: "title",
-                        'render': function (value) {
-                            return helpers.dtPopover(value);
-                        },
-                        'createdCell': helpers.dtPopoverCellFn,
-                        visible: false,
-                        name: 'title',
-                        searchable: true,
-                    },
-                    {
-                        // 4. Submitter
-                        data: "submitter",
-                        mRender:function (data,type,full) {
-                            if (data) {
-                                return `${data.first_name} ${data.last_name}`;
-                            }
-                            return ''
-                        },
-                        //name: vm.submitter_column_name,
-                        name: "submitter__email, submitter__first_name, submitter__last_name",
-                        searchable: true,
-                    },
-                    {
-                        // 5. Proponent/Applicant
-                        data: "relevant_applicant_name",
-                        //name: vm.proponent_applicant_column_name,
-                        name: "applicant__organisation__name, proxy_applicant__first_name, proxy_applicant__last_name, proxy_applicant__email",
-                        searchable: true,
-                    },
-                    {
-                        // 6. Status
-                        mRender:function (data, type, full) {
-                            if (vm.is_external){
-                                return full.customer_status
-                            }
-                            return full.processing_status
-                        },
-                        searchable: false,
-                        name: 'status',
-                    },
-                    {
-                        // 7. Lodged on
-                        data: "lodgement_date",
-                        mRender:function (data,type,full) {
-                            return data != '' && data != null ? moment(data).format(vm.dateFormat): '';
-                        },
-                        searchable: true,
-                    },
-                    {
-                        // 8. Assigned Officer
-                        data: "assigned_officer",
-                        visible: false,
-                        name: "assigned_officer__first_name, assigned_officer__last_name, assigned_officer__email",
-                        searchable: true,
-                    },
-                    {
-                        // 9. Invoice
-                        mRender:function (data, type, full) {
-                            console.log(full)
-                            let links = '';
-                            //if (full.fee_paid) {
-                            //    links +=  `<a href='/payments/invoice-pdf/${full.fee_invoice_reference}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i></a> &nbsp`;
-                            //    if (!vm.is_external){
-                            //        links +=  `<a href='/ledger/payments/invoice/payment?invoice=${full.fee_invoice_reference}' target='_blank'>View Payment</a><br/>`;
-                            //    }
-                            //}
-                            if (full.fee_invoice_references){
-                                for (let item of full.fee_invoice_references){
-                                    links += '<div>'
-                                    links +=  `<a href='/payments/invoice-pdf/${item}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> #${item}</a>`;
-                                    if (!vm.is_external){
-                                        links +=  `&nbsp;&nbsp;&nbsp;<a href='/ledger/payments/invoice/payment?invoice=${item}' target='_blank'>View Payment</a><br/>`;
-                                    }
-                                    links += '</div>'
-                                }
-                            }
-                            return links;
-                        },
-                        name: 'invoice_column',
-                        orderable: false,
-                        visible: false,
-                        searchable: false,
-                    },
-                    {
-                        // 10. Action
-                        mRender:function (data,type,full) {
-                            let links = '';
-                            if (!vm.is_external){
-                                if(full.assessor_process){
-                                    links +=  `<a href='/internal/proposal/${full.id}'>Process</a><br/>`;
-                                } else {
-                                    links +=  `<a href='/internal/proposal/${full.id}'>View</a><br/>`;
-                                }
-                            }
-                            else{
-                                if (full.can_user_edit) {
-                                    links +=  `<a href='/external/proposal/${full.id}'>Continue</a><br/>`;
-                                    links +=  `<a href='#${full.id}' data-discard-proposal='${full.id}'>Discard</a><br/>`;
-                                }
-                                else if (full.can_user_view) {
-                                    links +=  `<a href='/external/proposal/${full.id}'>View</a><br/>`;
-                                }
-                            }
-                            return links;
-                        },
-                        name: '',
-                        searchable: false,
-                        orderable: false
-                    },
-                ],
-                processing: true,
-                initComplete: function() {
-                    console.log('in initComplete')
-                    vm.showHideColumns()
-                },
-            },
+            dt_options: {},
+            datatableReady: false,
         }
     },
     components:{
@@ -367,7 +190,9 @@ export default {
     watch:{
         templateGroupDetermined: function(){
             console.log('in templateGroupDetermined')
-            this.showHideColumns()
+            //this.showHideColumns()
+            this.set_dt_options();
+
         },
         filterProposalRegion: function(){
             this.$refs.proposal_datatable.vmDataTable.draw();
@@ -426,27 +251,179 @@ export default {
         },
         dt_headers: function(){
             // Defautl DAS
-            let activity_or_application_type = 'Activity'
-            let proponent_or_applicant = 'Proponent'
-            if (this.apiaryTemplateGroup){
-                // Overwrite for Apiary
-                activity_or_application_type = 'Application Type'
-                proponent_or_applicant = 'Applicant'
+            let activity_or_application_type = this.dasTemplateGroup ? 'Activity' : 'Application Type';
+            let proponent_or_applicant = this.dasTemplateGroup ? 'Proponent' : 'Applicant';
+            let columnList = ["Number"];
+            if (this.dasTemplateGroup){
+                columnList.push("Region");
             }
-            return [
-                "Number",
-                "Region",
-                activity_or_application_type,
-                "Title",
-                "Submitter",
-                proponent_or_applicant,
-                "Status",
-                "Lodged on",
-                "Assigned Officer",
-                "Invoice",
-                "Action",
-            ]
+            columnList.push(activity_or_application_type);
+            if (this.dasTemplateGroup){
+                columnList.push("Title");
+            }
+            columnList.push("Submitter",
+                    proponent_or_applicant,
+                    "Status",
+                    "Lodged on");
+            if (!this.is_external){
+                columnList.push("Assigned Officer");
+            }
+            if (this.apiaryTemplateGroup){
+                columnList.push("Invoice");
+            }
+            columnList.push("Action");
+            return columnList;
         },
+        tableColumns: function() {
+            let vm = this;
+            let columnList = [
+                {
+                    // 1. Number
+                    data: "lodgement_number",
+                    orderable: true,
+                    searchable: true,
+                },
+            ];
+            if (this.dasTemplateGroup) {
+                columnList.push({
+                    // 2. Region
+                    data: "region",
+                    'render': function (value) {
+                        return helpers.dtPopover(value);
+                    },
+                    'createdCell': helpers.dtPopoverCellFn,
+                    //visible: false,
+                    name: 'region__name',
+                    searchable: true,
+                });
+            };
+            columnList.push({
+                    // 3. Activity/Application Type
+                    data: "activity",
+                    searchable: true,
+                    name: 'activity',
+                });
+            if (this.dasTemplateGroup) {
+                columnList.push({
+                    // 3.5 Title
+                    data: "title",
+                    'render': function (value) {
+                        return helpers.dtPopover(value);
+                    },
+                    'createdCell': helpers.dtPopoverCellFn,
+                    //visible: false,
+                    name: 'title',
+                    searchable: true,
+                });
+            };
+            columnList.push({
+                    // 4. Submitter
+                    data: "submitter",
+                    mRender:function (data,type,full) {
+                        if (data) {
+                            return `${data.first_name} ${data.last_name}`;
+                        }
+                        return ''
+                    },
+                    //name: vm.submitter_column_name,
+                    name: "submitter__email, submitter__first_name, submitter__last_name",
+                    searchable: true,
+                },
+                {
+                    // 5. Proponent/Applicant
+                    data: "relevant_applicant_name",
+                    //name: vm.proponent_applicant_column_name,
+                    name: "applicant__organisation__name, proxy_applicant__first_name, proxy_applicant__last_name, proxy_applicant__email",
+                    searchable: true,
+                },
+                {
+                    // 6. Status
+                    mRender:function (data, type, full) {
+                        if (vm.is_external){
+                            return full.customer_status
+                        }
+                        return full.processing_status
+                    },
+                    searchable: false,
+                    name: 'status',
+                },
+                {
+                    // 7. Lodged on
+                    data: "lodgement_date",
+                    mRender:function (data,type,full) {
+                        return data != '' && data != null ? moment(data).format(vm.dateFormat): '';
+                    },
+                    searchable: true,
+                });
+            if (!vm.is_external){
+                columnList.push({
+                    // 8. Assigned Officer
+                    data: "assigned_officer",
+                    //visible: false,
+                    name: "assigned_officer__first_name, assigned_officer__last_name, assigned_officer__email",
+                    searchable: true,
+                });
+            };
+            if (this.apiaryTemplateGroup) {
+                columnList.push({
+                    // 9. Invoice
+                    mRender:function (data, type, full) {
+                        //console.log(full)
+                        let links = '';
+                        //if (full.fee_paid) {
+                        //    links +=  `<a href='/payments/invoice-pdf/${full.fee_invoice_reference}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i></a> &nbsp`;
+                        //    if (!vm.is_external){
+                        //        links +=  `<a href='/ledger/payments/invoice/payment?invoice=${full.fee_invoice_reference}' target='_blank'>View Payment</a><br/>`;
+                        //    }
+                        //}
+                        if (full.fee_invoice_references){
+                            for (let item of full.fee_invoice_references){
+                                links += '<div>'
+                                links +=  `<a href='/payments/invoice-pdf/${item}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> #${item}</a>`;
+                                if (!vm.is_external){
+                                    links +=  `&nbsp;&nbsp;&nbsp;<a href='/ledger/payments/invoice/payment?invoice=${item}' target='_blank'>View Payment</a><br/>`;
+                                }
+                                links += '</div>'
+                            }
+                        }
+                        return links;
+                    },
+                    name: 'invoice_column',
+                    orderable: false,
+                    //visible: false,
+                    searchable: false,
+                });
+            };
+            columnList.push({
+                    // 10. Action
+                    mRender:function (data,type,full) {
+                        let links = '';
+                        if (!vm.is_external){
+                            if(full.assessor_process){
+                                links +=  `<a href='/internal/proposal/${full.id}'>Process</a><br/>`;
+                            } else {
+                                links +=  `<a href='/internal/proposal/${full.id}'>View</a><br/>`;
+                            }
+                        }
+                        else{
+                            if (full.can_user_edit) {
+                                links +=  `<a href='/external/proposal/${full.id}'>Continue</a><br/>`;
+                                links +=  `<a href='#${full.id}' data-discard-proposal='${full.id}'>Discard</a><br/>`;
+                            }
+                            else if (full.can_user_view) {
+                                links +=  `<a href='/external/proposal/${full.id}'>View</a><br/>`;
+                            }
+                        }
+                        return links;
+                    },
+                    name: '',
+                    searchable: false,
+                    orderable: false
+                });
+            console.log(columnList);
+            return columnList;
+        },
+
         is_external: function(){
             return this.level == 'external';
         },
@@ -472,6 +449,76 @@ export default {
 
     },
     methods:{
+        set_dt_options: function() {
+            this.datatableReady = false;
+            let vm = this;
+            this.uuid++;
+            //$(vm.$refs.proposal_datatable.vmDataTable).DataTable().destroy();
+            //$(vm.$refs.proposal_datatable.vmDataTable).DataTable({
+            this.dt_options = {
+                destroy: true,
+                autoWidth: false,
+                language: {
+                    processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
+                },
+                responsive: true,
+                serverSide: true,
+                lengthMenu: [ [10, 25, 50, 100, -1], [10, 25, 50, 100, "All"] ],
+                order: [
+                    [0, 'desc']
+                    ],
+                ajax: {
+                    "url": vm.url,
+                    "dataSrc": 'data',
+
+                    // adding extra GET params for Custom filtering
+                    "data": function ( d ) {
+                        d.regions = vm.filterProposalRegion.join();
+                        d.date_from = vm.filterProposalLodgedFrom != '' && vm.filterProposalLodgedFrom != null ? moment(vm.filterProposalLodgedFrom, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
+                        d.date_to = vm.filterProposalLodgedTo != '' && vm.filterProposalLodgedTo != null ? moment(vm.filterProposalLodgedTo, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
+                        d.application_type = vm.filterProposalApplicationType;
+                        d.proposal_activity = vm.filterProposalActivity;
+                        d.submitter = vm.filterProposalSubmitter;
+                        d.proposal_status = vm.filterProposalStatus;
+                    }
+                },
+                dom: 'lBfrtip',
+                buttons:[
+                    {
+                        extend: 'excel',
+                        /*
+                        exportOptions: {
+                            columns: ':visible'
+                            //columns: vm.dt_headers
+                        }
+                        */
+                    },
+                    {
+                        extend: 'csv',
+                        /*
+                        exportOptions: {
+                            columns: ':visible'
+                            //columns: vm.dt_headers
+                            //columns: 'lodgement_number'
+                        }
+                        */
+                    },
+                ],
+                columns: vm.tableColumns,
+                processing: true,
+                initComplete: function() {
+                    console.log('in initComplete')
+                    //vm.showHideColumns()
+                },
+            };
+            //});
+            this.datatableReady = true;
+            this.$nextTick(() => {
+                vm.initialiseSearch();
+                vm.addEventListeners();
+            });
+        },
+        /*
         showHideColumns: function(){
             console.log('in showHideColumns')
             let vm = this
@@ -490,6 +537,7 @@ export default {
                 assignedOfficerColumn.visible(true)
             }
         },
+        */
         setDashboardText: function() {
             if (this.apiaryTemplateGroup) {
                 this.dashboardTitle = 'Applications';
@@ -737,8 +785,8 @@ export default {
         */
 
         this.$nextTick(() => {
-            vm.initialiseSearch();
-            vm.addEventListeners();
+            //vm.initialiseSearch();
+            //vm.addEventListeners();
         });
     },
     created: function() {
