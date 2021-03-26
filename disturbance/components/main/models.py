@@ -92,6 +92,7 @@ class ApplicationType(models.Model):
     APIARY = 'Apiary'
     TEMPORARY_USE = 'Temporary Use'
     SITE_TRANSFER = 'Site Transfer'
+    FIRE = 'Prescribed Burning'
 
     APPLICATION_TYPES = (
         (DISTURBANCE, 'Disturbance'),
@@ -99,6 +100,7 @@ class ApplicationType(models.Model):
         (APIARY, 'Apiary'),
         (TEMPORARY_USE, 'Temporary Use'),
         (SITE_TRANSFER, 'Site Transfer'),
+        (FIRE, 'Prescribed Burning'),
     )
 
     APIARY_APPLICATION_TYPES = (APIARY, TEMPORARY_USE, SITE_TRANSFER,)
