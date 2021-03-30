@@ -4372,7 +4372,7 @@ class MasterlistQuestion(models.Model):
         app_label = 'disturbance'
 
     def __str__(self):
-        return self.name
+        return self.question
 
 @python_2_unicode_compatible
 class ProposalTypeSection(models.Model):
@@ -4386,7 +4386,7 @@ class ProposalTypeSection(models.Model):
         app_label = 'disturbance'
 
     def __str__(self):
-        return self.section_name  
+        return self.section_label  
 
 @python_2_unicode_compatible
 class SectionQuestion(models.Model):
