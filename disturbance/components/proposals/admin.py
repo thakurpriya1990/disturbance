@@ -387,7 +387,7 @@ class MasterlistQuestionAdmin(admin.ModelAdmin):
 
 @admin.register(models.ProposalTypeSection)
 class ProposalTypeSectionAdmin(admin.ModelAdmin):
-    list_display = ['proposal_type', 'index', 'section_name', 'section_label',]
+    list_display = ['proposal_type', 'index', 'section_label',]
    
 @admin.register(models.SectionQuestion)
 class SectionQuestionAdmin(admin.ModelAdmin):
