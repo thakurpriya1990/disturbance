@@ -51,12 +51,13 @@ class ProposalTypeAdmin(admin.ModelAdmin):
         return custom_urls + urls
 
     def proposal_type_actions(self, obj):
-        if obj.name=='Disturbance':
+        # if obj.name=='Disturbance':
+        if not obj.apiary_group_proposal_type and obj.latest:
             return format_html(
                 '<a class="button" href="{}">Generate Schema</a>&nbsp;',
                 reverse('admin:generate-schema', args=[obj.pk]),
             )
-        return None
+        return ''
     proposal_type_actions.short_description = 'Proposal Type Actions'
     proposal_type_actions.allow_tags = True
 
@@ -388,6 +389,7 @@ class MasterlistQuestionAdmin(admin.ModelAdmin):
 @admin.register(models.ProposalTypeSection)
 class ProposalTypeSectionAdmin(admin.ModelAdmin):
     list_display = ['proposal_type', 'index', 'section_label',]
+    fields = ('section_label','index', 'proposal_type')
    
 @admin.register(models.SectionQuestion)
 class SectionQuestionAdmin(admin.ModelAdmin):

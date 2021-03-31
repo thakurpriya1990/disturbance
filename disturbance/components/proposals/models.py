@@ -106,6 +106,28 @@ class ProposalType(models.Model):
         app_label = 'disturbance'
         unique_together = ('name', 'version')
 
+    @property
+    def latest(self):
+        if self.name:
+            last_record=ProposalType.objects.filter(name=self.name).order_by('-version')[0]
+            if last_record==self:
+                return True
+            else:
+                False
+        return False
+
+    @property
+    def apiary_group_proposal_type(self):
+        apiary = False
+        if self.name and self.name in (
+                ApplicationType.APIARY,
+                ApplicationType.TEMPORARY_USE,
+                ApplicationType.SITE_TRANSFER,
+                ):
+            apiary = True
+        return apiary
+
+
 
 class TaggedProposalAssessorGroupRegions(TaggedItemBase):
     content_object = models.ForeignKey("ProposalAssessorGroup")
