@@ -1124,7 +1124,7 @@ def get_condition_chidren(question,section, parent_name=''):
     group_types=['checkbox', 'radiobuttons', 'multi-select']
     option_count=0
     for op in options:
-        condition_questions=SectionQuestion.objects.filter(section=section,parent_question=question,parent_answer=op)
+        condition_questions=SectionQuestion.objects.filter(section=section,parent_question=question,parent_answer=op).order_by('order')
         if condition_questions:
             option_section=[]
             option_children=[]
@@ -1171,7 +1171,7 @@ def get_condition_chidren(question,section, parent_name=''):
                 'children': option_children
             }
             option_section.append(option_section_dict)
-            conditions[op.value]=option_section
+            conditions[op.label.replace(" ","").lower()]=option_section
             option_count+=1
     return conditions
 
@@ -1193,7 +1193,7 @@ def get_checkbox_option_chidren(section_question,question,section, parent_name='
                 'type': 'checkbox',
                 'group': parent_name #function generated name of parent question
         }
-        condition_questions=SectionQuestion.objects.filter(section=section,parent_question=question,parent_answer=op)
+        condition_questions=SectionQuestion.objects.filter(section=section,parent_question=question,parent_answer=op).order_by('order')
         if condition_questions:
             option_section=[]
             option_children=[]
@@ -1261,8 +1261,11 @@ def generate_schema(proposal_type, request):
     group_types=['checkbox', 'radiobuttons', 'multi-select']
     global richtext
     global richtext_assessor
+    global help_site_url, help_site_assessor_url
     richtext = u''
     richtext_assessor=u''
+    help_site_url='site_url:/help/{}/user'.format(proposal_type.name)
+    help_site_assessor_url='site_url:/help/{}/assessor'.format(proposal_type.name)
     for section in section_list:
         section_dict={
             'name': section.section_name,
@@ -1270,7 +1273,7 @@ def generate_schema(proposal_type, request):
             'label': section.section_label,
         }
         section_children=[]
-        section_questions=SectionQuestion.objects.filter(section=section,parent_question__isnull=True,parent_answer__isnull=True)
+        section_questions=SectionQuestion.objects.filter(section=section,parent_question__isnull=True,parent_answer__isnull=True).order_by('order')
         if section_questions:
             sq_count=0
             for sq in section_questions:

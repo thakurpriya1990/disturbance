@@ -4387,8 +4387,8 @@ class MasterlistQuestion(models.Model):
     # help_text_assessor_url=models.CharField(max_length=400, blank=True, null=True)
     help_text_url=models.BooleanField(default=False)
     help_text_assessor_url=models.BooleanField(default=False)
-    help_text=RichTextField(blank=True, null=True)
-    help_text_assessor=RichTextField(blank=True, null=True)
+    help_text=RichTextField(null=True, blank=True)
+    help_text_assessor=RichTextField(null=True, blank=True)
 
     class Meta:
         app_label = 'disturbance'
@@ -4410,6 +4410,10 @@ class ProposalTypeSection(models.Model):
     def __str__(self):
         return self.section_label  
 
+
+def limit_sectionquestion_choices():
+    return {'id__in':MasterlistQuestion.objects.filter(option__isnull=False).distinct('option__label').all().values_list('id', flat=True)}
+
 @python_2_unicode_compatible
 class SectionQuestion(models.Model):
     TAG_CHOICES=(('isCopiedToPermit', 'isCopiedToPermit'),
@@ -4430,13 +4434,23 @@ class SectionQuestion(models.Model):
         blank=True,
         related_name='options',
     )
+    parent_question_another = ChainedForeignKey(
+        'disturbance.MasterlistQuestion',
+        chained_field='section',
+        chained_model_field='question_sections__section',
+        show_all=False,
+        null=True,
+        blank=True,
+        related_name='parentquestionanother',
+        limit_choices_to=Q(option__isnull=False)
+    )
     # parent_answer = ChainedManyToManyField(
     #     'disturbance.QuestionOption',
     #     chained_field='parent_question',
     #     chained_model_field='parent_question',
     # )
     tag= MultiSelectField(choices=TAG_CHOICES, max_length=400,max_choices=10, null=True, blank=True)
-
+    order = models.PositiveIntegerField(default=1)
 
 
 
