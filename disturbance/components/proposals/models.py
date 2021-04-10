@@ -4411,8 +4411,23 @@ class ProposalTypeSection(models.Model):
         return self.section_label  
 
 
-def limit_sectionquestion_choices():
-    return {'id__in':MasterlistQuestion.objects.filter(option__isnull=False).distinct('option__label').all().values_list('id', flat=True)}
+#def limit_sectionquestion_choices():
+#    return {'id__in':MasterlistQuestion.objects.filter(option__isnull=False).distinct('option__label').all().values_list('id', flat=True)}
+
+from django.db import connection
+def limit_sectionquestion_choices_sql():
+    sql='''
+            select m.id from disturbance_masterlistquestion as m 
+            INNER JOIN disturbance_masterlistquestion_option as p ON m.id = p.masterlistquestion_id 
+            INNER JOIN disturbance_questionoption as o ON o.id = p.questionoption_id
+            WHERE o.label IS NOT NULL
+        '''
+
+    with connection.cursor() as cursor:
+        cursor.execute(sql)
+        row = set([item[0] for item in cursor.fetchall()])
+                                
+    return dict(id__in=row)
 
 @python_2_unicode_compatible
 class SectionQuestion(models.Model):
@@ -4442,7 +4457,8 @@ class SectionQuestion(models.Model):
         null=True,
         blank=True,
         related_name='parentquestionanother',
-        limit_choices_to=Q(option__isnull=False)
+        #limit_choices_to=Q(option__isnull=False)
+        limit_choices_to=limit_sectionquestion_choices_sql()
     )
     # parent_answer = ChainedManyToManyField(
     #     'disturbance.QuestionOption',
