@@ -4410,9 +4410,8 @@ class ProposalTypeSection(models.Model):
     def __str__(self):
         return self.section_label  
 
-
-#def limit_sectionquestion_choices():
-#    return {'id__in':MasterlistQuestion.objects.filter(option__isnull=False).distinct('option__label').all().values_list('id', flat=True)}
+def limit_sectionquestion_choices_another():
+   return {'id__in':MasterlistQuestion.objects.filter(option__isnull=False).distinct('option__label').all().values_list('id', flat=True)}
 
 from django.db import connection
 def limit_sectionquestion_choices_sql():
@@ -4438,7 +4437,20 @@ class SectionQuestion(models.Model):
                 )
     section=models.ForeignKey(ProposalTypeSection, related_name='section_questions', on_delete=models.PROTECT)
     question=models.ForeignKey(MasterlistQuestion, related_name='question_sections',on_delete=models.PROTECT)
-    parent_question=models.ForeignKey('disturbance.MasterlistQuestion', related_name='children_question', null=True, blank=True, on_delete=models.SET_NULL)
+    parent_question = ChainedForeignKey(
+        'disturbance.MasterlistQuestion',
+        chained_field='section',
+        chained_model_field='question_sections__section',
+        show_all=False,
+        null=True,
+        blank=True,
+        related_name='children_question',
+        #limit_choices_to=Q(option__isnull=False)
+        limit_choices_to=limit_sectionquestion_choices_sql(),
+        on_delete=models.SET_NULL
+    )
+    #parent_question=models.ForeignKey('disturbance.MasterlistQuestion', related_name='children_question', null=True, blank=True, on_delete=models.SET_NULL)
+    
     #parent_answer=models.ForeignKey(QuestionOption, null=True, blank=True)
     parent_answer = ChainedForeignKey(
         'disturbance.QuestionOption',
@@ -4449,17 +4461,17 @@ class SectionQuestion(models.Model):
         blank=True,
         related_name='options',
     )
-    parent_question_another = ChainedForeignKey(
-        'disturbance.MasterlistQuestion',
-        chained_field='section',
-        chained_model_field='question_sections__section',
-        show_all=False,
-        null=True,
-        blank=True,
-        related_name='parentquestionanother',
-        #limit_choices_to=Q(option__isnull=False)
-        limit_choices_to=limit_sectionquestion_choices_sql()
-    )
+    # parent_question_another = ChainedForeignKey(
+    #     'disturbance.MasterlistQuestion',
+    #     chained_field='section',
+    #     chained_model_field='question_sections__section',
+    #     show_all=False,
+    #     null=True,
+    #     blank=True,
+    #     related_name='parentquestionanother',
+    #     #limit_choices_to=Q(option__isnull=False)
+    #     limit_choices_to=limit_sectionquestion_choices_sql()
+    # )
     # parent_answer = ChainedManyToManyField(
     #     'disturbance.QuestionOption',
     #     chained_field='parent_question',
