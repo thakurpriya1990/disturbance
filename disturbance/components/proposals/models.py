@@ -4422,11 +4422,14 @@ def limit_sectionquestion_choices_sql():
             WHERE o.label IS NOT NULL
         '''
 
-    with connection.cursor() as cursor:
-        cursor.execute(sql)
-        row = set([item[0] for item in cursor.fetchall()])
-                                
-    return dict(id__in=row)
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(sql)
+            row = set([item[0] for item in cursor.fetchall()])
+                                    
+        return dict(id__in=row)
+    except:
+        return {}
 
 @python_2_unicode_compatible
 class SectionQuestion(models.Model):
