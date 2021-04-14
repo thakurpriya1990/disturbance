@@ -1105,7 +1105,7 @@ def get_options(section_question, question):
     options=[]
     special_types=['radiobuttons', 'multi-select',]
     if question.option.count()>0:
-        for op in question.option.all():
+        for op in question.option.all().order_by('-disturbance_masterlistquestion_option.id'):
             op_dict={
                 'label': op.label,
                 'value': op.label.replace(" ","").lower(),
@@ -1119,7 +1119,7 @@ def get_options(section_question, question):
 
 def get_condition_chidren(question,section, parent_name=''):
     conditions={}
-    options=question.option.all()
+    options=question.option.all().order_by('-disturbance_masterlistquestion_option.id')
     special_types=['checkbox',]
     group_types=['checkbox', 'radiobuttons', 'multi-select']
     option_count=0
@@ -1178,7 +1178,7 @@ def get_condition_chidren(question,section, parent_name=''):
 
 def get_checkbox_option_chidren(section_question,question,section, parent_name=''):
     conditions={}
-    options=question.option.all()
+    options=question.option.all().order_by('-disturbance_masterlistquestion_option.id')
     options_list=[]
     special_types=['checkbox',]
     group_types=['checkbox', 'radiobuttons', 'multi-select']
