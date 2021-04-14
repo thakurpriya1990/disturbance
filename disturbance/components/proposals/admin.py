@@ -393,7 +393,7 @@ class ProposalTypeSectionAdmin(admin.ModelAdmin):
    
 @admin.register(models.SectionQuestion)
 class SectionQuestionAdmin(admin.ModelAdmin):
-    list_display = ['section', 'question','parent_question','parent_answer']
+    list_display = ['section', 'question','parent_question','parent_answer',]
     #list_display = ['section', 'question','parent_question',]
     form = forms.SectionQuestionAdminForm
 
