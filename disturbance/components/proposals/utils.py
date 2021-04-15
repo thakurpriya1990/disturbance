@@ -1268,7 +1268,7 @@ def generate_schema(proposal_type, request):
     help_site_assessor_url='site_url:/help/{}/assessor'.format(proposal_type.name)
     for section in section_list:
         section_dict={
-            'name': section.section_name,
+            'name': '{}{}'.format(section.section_label.replace(" ",""), section_count),
             'type': 'section',
             'label': section.section_label,
         }
