@@ -4353,8 +4353,6 @@ class QuestionOption(models.Model):
 
     class Meta:
         app_label = 'disturbance'
-        verbose_name = '(JSON GEN) Question Option'
-        verbose_name_plural = '(JSON GEN) Question Options'
 
     def __str__(self):
         return self.label 
@@ -4394,8 +4392,6 @@ class MasterlistQuestion(models.Model):
 
     class Meta:
         app_label = 'disturbance'
-        verbose_name = '(JSON GEN) Master List Question'
-        verbose_name_plural = '(JSON GEN) Master List Questions'
 
     def __str__(self):
         return self.question
@@ -4410,8 +4406,6 @@ class ProposalTypeSection(models.Model):
 
     class Meta:
         app_label = 'disturbance'
-        verbose_name = '(JSON GEN) Proposal Type Question'
-        verbose_name_plural = '(JSON GEN) Proposal Type Questions'
 
     def __str__(self):
         return self.section_label  
@@ -4493,8 +4487,6 @@ class SectionQuestion(models.Model):
 
     class Meta:
         app_label = 'disturbance'
-        verbose_name = '(JSON GEN) Section Question'
-        verbose_name_plural = '(JSON GEN) Section Questions'
 
     def __str__(self):
         return str(self.id)  
