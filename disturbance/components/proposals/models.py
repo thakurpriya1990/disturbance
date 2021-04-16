@@ -4496,6 +4496,12 @@ class SectionQuestion(models.Model):
     def __str__(self):
         return str(self.id)  
 
+    def clean(self):
+
+        if self.question and self.parent_question:
+            if self.question==self.parent_question:
+                raise ValidationError('Question cannont be linked to itself')
+
 
 # --------------------------------------------------------------------------------------
 # Generate JSON schema models start
