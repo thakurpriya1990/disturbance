@@ -105,6 +105,7 @@ class ProposalType(models.Model):
     class Meta:
         app_label = 'disturbance'
         unique_together = ('name', 'version')
+        verbose_name= 'Schema Proposal Type'
 
     @property
     def latest(self):
@@ -4348,11 +4349,12 @@ class ApiaryReferral(RevisionedMixin):
 # --------------------------------------------------------------------------------------
 @python_2_unicode_compatible
 class QuestionOption(models.Model):
-    label = models.CharField(max_length=100)
+    label = models.CharField(max_length=100, unique=True)
     value = models.CharField(max_length=100)
 
     class Meta:
         app_label = 'disturbance'
+        verbose_name = 'Schema Question Option'
 
     def __str__(self):
         return self.label 
@@ -4392,6 +4394,7 @@ class MasterlistQuestion(models.Model):
 
     class Meta:
         app_label = 'disturbance'
+        verbose_name = 'Schema Masterlist Question'
 
     def __str__(self):
         return self.question
@@ -4406,6 +4409,7 @@ class ProposalTypeSection(models.Model):
 
     class Meta:
         app_label = 'disturbance'
+        verbose_name = 'Schema Proposal Type Section'
 
     def __str__(self):
         return self.section_label  
@@ -4420,13 +4424,13 @@ def limit_sectionquestion_choices_sql():
             INNER JOIN disturbance_masterlistquestion_option as p ON m.id = p.masterlistquestion_id 
             INNER JOIN disturbance_questionoption as o ON o.id = p.questionoption_id
             WHERE o.label IS NOT NULL
-        '''
+    '''
 
     try:
         with connection.cursor() as cursor:
             cursor.execute(sql)
             row = set([item[0] for item in cursor.fetchall()])
-                                    
+                                
         return dict(id__in=row)
     except:
         return {}
@@ -4487,9 +4491,16 @@ class SectionQuestion(models.Model):
 
     class Meta:
         app_label = 'disturbance'
+        verbose_name='Schema Section Question'
 
     def __str__(self):
         return str(self.id)  
+
+    def clean(self):
+
+        if self.question and self.parent_question:
+            if self.question==self.parent_question:
+                raise ValidationError('Question cannont be linked to itself')
 
 
 # --------------------------------------------------------------------------------------
