@@ -4412,7 +4412,7 @@ class ProposalTypeSection(models.Model):
         verbose_name = 'Schema Proposal Type Section'
 
     def __str__(self):
-        return self.section_label  
+        return '{} - {}'.format(self.section_label, self.proposal_type)
 
 def limit_sectionquestion_choices_another():
    return {'id__in':MasterlistQuestion.objects.filter(option__isnull=False).distinct('option__label').all().values_list('id', flat=True)}
@@ -4500,7 +4500,7 @@ class SectionQuestion(models.Model):
 
         if self.question and self.parent_question:
             if self.question==self.parent_question:
-                raise ValidationError('Question cannont be linked to itself')
+                raise ValidationError('Question cannot be linked to itself.')
 
 
 # --------------------------------------------------------------------------------------
@@ -4550,4 +4550,12 @@ reversion.register(ApiarySiteFee)
 reversion.register(ApiarySiteFeeType)
 reversion.register(SiteCategory)
 reversion.register(ApiarySiteOnProposal)
+
+#JSON schema models
+reversion.register(MasterlistQuestion)
+reversion.register(QuestionOption)
+reversion.register(ProposalTypeSection)
+reversion.register(SectionQuestion)
+
+
 
