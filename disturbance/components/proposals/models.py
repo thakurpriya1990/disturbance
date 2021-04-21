@@ -4551,3 +4551,11 @@ reversion.register(ApiarySiteFeeType)
 reversion.register(SiteCategory)
 reversion.register(ApiarySiteOnProposal)
 
+#JSON schema models
+reversion.register(MasterlistQuestion)
+reversion.register(QuestionOption)
+reversion.register(ProposalTypeSection)
+reversion.register(SectionQuestion)
+
+
+
