@@ -1131,7 +1131,8 @@ def get_condition_chidren(question,section, parent_name=''):
             condition_question_count=1
             for q in condition_questions:
                 #question_name=parent_name+'-'+op.label+condition_question_count
-                question_name='{}-{}{}'.format(parent_name,op.label,condition_question_count)
+                #question_name='{}-{}{}'.format(parent_name,op.label,condition_question_count)
+                question_name='{}-{}{}'.format(parent_name,op.label.replace(" ",""),condition_question_count)
                 child={
                     'name': question_name,
                     'type': q.question.answer_type,
@@ -1163,7 +1164,8 @@ def get_condition_chidren(question,section, parent_name=''):
                 create_richtext_help(q.question, question_name)
                 option_children.append(child)
                 condition_question_count+=1
-            section_group_name=parent_name+'-'+op.label+'Group'
+            #section_group_name=parent_name+'-'+op.label+'Group'
+            section_group_name=parent_name+'-'+op.label.replace(" ","")+'Group'
             option_section_dict={
                 'name':section_group_name,
                 'type': 'group',
