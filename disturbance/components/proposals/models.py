@@ -52,6 +52,8 @@ from disturbance.components.proposals.email import (
 from disturbance.ordered_model import OrderedModel
 import copy
 import subprocess
+from multiselectfield import MultiSelectField
+from smart_selects.db_fields import ChainedForeignKey, ChainedManyToManyField
 
 import logging
 
@@ -103,6 +105,29 @@ class ProposalType(models.Model):
     class Meta:
         app_label = 'disturbance'
         unique_together = ('name', 'version')
+        verbose_name= 'Schema Proposal Type'
+
+    @property
+    def latest(self):
+        if self.name:
+            last_record=ProposalType.objects.filter(name=self.name).order_by('-version')[0]
+            if last_record==self:
+                return True
+            else:
+                False
+        return False
+
+    @property
+    def apiary_group_proposal_type(self):
+        apiary = False
+        if self.name and self.name in (
+                ApplicationType.APIARY,
+                ApplicationType.TEMPORARY_USE,
+                ApplicationType.SITE_TRANSFER,
+                ):
+            apiary = True
+        return apiary
+
 
 
 class TaggedProposalAssessorGroupRegions(TaggedItemBase):
@@ -4319,6 +4344,168 @@ class ApiaryReferral(RevisionedMixin):
 # Apiary Models End
 # --------------------------------------------------------------------------------------
 
+# --------------------------------------------------------------------------------------
+# Generate JSON schema models start
+# --------------------------------------------------------------------------------------
+@python_2_unicode_compatible
+class QuestionOption(models.Model):
+    label = models.CharField(max_length=100, unique=True)
+    value = models.CharField(max_length=100)
+
+    class Meta:
+        app_label = 'disturbance'
+        verbose_name = 'Schema Question Option'
+
+    def __str__(self):
+        return self.label 
+
+from ckeditor.fields import RichTextField
+@python_2_unicode_compatible
+class MasterlistQuestion(models.Model):
+    ANSWER_TYPE_CHOICES=(('text', 'Text'),
+                         ('radiobuttons', 'Radio button'),
+                         ('checkbox', 'Checkbox'),
+                         
+                         #('text_info', 'Text Info'),
+                         #('iframe', 'IFrame'),
+                         ('number','Number'),
+                         ('email','Email'),
+                         ('select', 'Select'),
+                         ('multi-select','Multi-select'),
+                         ('text_area','Text area'),
+                         ('label', 'Label'),
+                         #('section', 'Section'),
+                         ('declaration', 'Declaration'),
+                         ('file', 'File'),
+                         ('date', 'Date'),
+                        )
+    name = models.CharField(max_length=100)
+    question = models.TextField()
+    #answer_type= models.CharField(max_length=100)
+    option = models.ManyToManyField(QuestionOption, blank=True, null=True)
+    answer_type = models.CharField('Answer Type', max_length=40, choices=ANSWER_TYPE_CHOICES,
+                                        default=ANSWER_TYPE_CHOICES[0][0])
+    # help_text_url=models.CharField(max_length=400, blank=True, null=True)
+    # help_text_assessor_url=models.CharField(max_length=400, blank=True, null=True)
+    help_text_url=models.BooleanField(default=False)
+    help_text_assessor_url=models.BooleanField(default=False)
+    help_text=RichTextField(null=True, blank=True)
+    help_text_assessor=RichTextField(null=True, blank=True)
+
+    class Meta:
+        app_label = 'disturbance'
+        verbose_name = 'Schema Masterlist Question'
+
+    def __str__(self):
+        return self.question
+
+@python_2_unicode_compatible
+class ProposalTypeSection(models.Model):
+    section_name = models.CharField(max_length=100)
+    section_label = models.CharField(max_length=100)
+    index = models.IntegerField(blank=True, default=0)
+    proposal_type=models.ForeignKey(ProposalType, related_name='sections', on_delete=models.PROTECT)
+    
+
+    class Meta:
+        app_label = 'disturbance'
+        verbose_name = 'Schema Proposal Type Section'
+
+    def __str__(self):
+        return '{} - {}'.format(self.section_label, self.proposal_type)
+
+def limit_sectionquestion_choices_another():
+   return {'id__in':MasterlistQuestion.objects.filter(option__isnull=False).distinct('option__label').all().values_list('id', flat=True)}
+
+from django.db import connection
+def limit_sectionquestion_choices_sql():
+    sql='''
+            select m.id from disturbance_masterlistquestion as m 
+            INNER JOIN disturbance_masterlistquestion_option as p ON m.id = p.masterlistquestion_id 
+            INNER JOIN disturbance_questionoption as o ON o.id = p.questionoption_id
+            WHERE o.label IS NOT NULL
+    '''
+
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(sql)
+            row = set([item[0] for item in cursor.fetchall()])
+                                
+        return dict(id__in=row)
+    except:
+        return {}
+
+@python_2_unicode_compatible
+class SectionQuestion(models.Model):
+    TAG_CHOICES=(('isCopiedToPermit', 'isCopiedToPermit'),
+                 ('isRequired', 'isRequired'),
+                 ('canBeEditedByAssessor', 'canBeEditedByAssessor'),
+                 ('isRepeatable', 'isRepeatable'),
+                )
+    section=models.ForeignKey(ProposalTypeSection, related_name='section_questions', on_delete=models.PROTECT)
+    question=models.ForeignKey(MasterlistQuestion, related_name='question_sections',on_delete=models.PROTECT)
+    parent_question = ChainedForeignKey(
+        'disturbance.MasterlistQuestion',
+        chained_field='section',
+        chained_model_field='question_sections__section',
+        show_all=False,
+        null=True,
+        blank=True,
+        related_name='children_question',
+        #limit_choices_to=Q(option__isnull=False)
+        limit_choices_to=limit_sectionquestion_choices_sql(),
+        on_delete=models.SET_NULL
+    )
+    #parent_question=models.ForeignKey('disturbance.MasterlistQuestion', related_name='children_question', null=True, blank=True, on_delete=models.SET_NULL)
+    
+    #parent_answer=models.ForeignKey(QuestionOption, null=True, blank=True)
+    parent_answer = ChainedForeignKey(
+        'disturbance.QuestionOption',
+        chained_field='parent_question',
+        chained_model_field='masterlistquestion',
+        show_all=False,
+        null=True,
+        blank=True,
+        related_name='options',
+    )
+    # parent_question_another = ChainedForeignKey(
+    #     'disturbance.MasterlistQuestion',
+    #     chained_field='section',
+    #     chained_model_field='question_sections__section',
+    #     show_all=False,
+    #     null=True,
+    #     blank=True,
+    #     related_name='parentquestionanother',
+    #     #limit_choices_to=Q(option__isnull=False)
+    #     limit_choices_to=limit_sectionquestion_choices_sql()
+    # )
+    # parent_answer = ChainedManyToManyField(
+    #     'disturbance.QuestionOption',
+    #     chained_field='parent_question',
+    #     chained_model_field='parent_question',
+    # )
+    tag= MultiSelectField(choices=TAG_CHOICES, max_length=400,max_choices=10, null=True, blank=True)
+    order = models.PositiveIntegerField(default=1)
+
+
+
+    class Meta:
+        app_label = 'disturbance'
+        verbose_name='Schema Section Question'
+
+    def __str__(self):
+        return str(self.id)  
+
+    def clean(self):
+
+        if self.question and self.parent_question:
+            if self.question==self.parent_question:
+                raise ValidationError('Question cannot be linked to itself.')
+
+
+# --------------------------------------------------------------------------------------
+# Generate JSON schema models start
+# --------------------------------------------------------------------------------------
 
 import reversion
 #reversion.register(Proposal, follow=['requirements', 'documents', 'compliances', 'referrals', 'approvals', 'proposal_apiary'])
@@ -4363,4 +4550,12 @@ reversion.register(ApiarySiteFee)
 reversion.register(ApiarySiteFeeType)
 reversion.register(SiteCategory)
 reversion.register(ApiarySiteOnProposal)
+
+#JSON schema models
+reversion.register(MasterlistQuestion)
+reversion.register(QuestionOption)
+reversion.register(ProposalTypeSection)
+reversion.register(SectionQuestion)
+
+
 
