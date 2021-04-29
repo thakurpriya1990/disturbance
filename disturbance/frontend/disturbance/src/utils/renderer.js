@@ -411,5 +411,117 @@ module.exports = {
             }
         }
         return _status;
-    }
+    },
+    generateCommentTextBoxes(h,c,val,assessor_mode,comment_data,assessor_info){
+        var box_visibility = this.status_data.assessorStatus.assessor_box_view
+        var boxes = [];
+        if (!this.status_data.can_user_edit){
+            if (comment_data){
+                var _dt = comment_data.find(at => at.name == c.name)
+                // Assessor Data
+                var assessor_name = `${c.name}-Assessor`;
+                var assessor_val = _dt == undefined || _dt.assessor == '' ? val : _dt.assessor;
+                var assessor_visibility = assessor_mode == 'assessor' && this.status_data.assessorStatus.has_assessor_mode? true : false;
+                assessor_visibility = !assessor_visibility;
+                boxes.push(
+                    {
+                        "box_visibility": box_visibility,
+                        "name": assessor_name,
+                        "value": assessor_val,
+                        "label": "Deficiency assessor",
+                        "readonly": assessor_visibility,
+                    }
+
+                    //<AssessorText box_view={box_visibility} type="text" name={assessor_name} value={assessor_val} label={'Assessor'} help_text={c.help_text} readonly={assessor_visibility}/>
+                )
+                // Referral Data
+                var current_referral_present = false;
+                if (_dt != undefined){
+                    $.each(_dt.referrals,(i,v)=> {
+                        if (v.email == assessor_info.email){ current_referral_present = true; }
+                        var readonly = v.email == assessor_info.email && assessor_mode == 'referral' && this.status_data.assessorStatus.assessor_can_assess ? false : true;
+                        var referral_name = `${c.name}-Referral-${v.email}`;
+                        boxes.push(
+                            {
+                                "box_visibility": box_visibility,
+                                "name": referral_name,
+                                "value": v.value,
+                                "label": v.full_name,
+                                "readonly": readonly,
+                            }
+                            //<AssessorText box_view={box_visibility} type="text" name={referral_name} value={v.value} label={v.full_name} help_text={c.help_text} readonly={readonly}/>
+                        )
+                    });
+                }
+                if (assessor_mode == 'referral'){
+                    if (!current_referral_present){
+                        // Add Referral Box
+                        var referral_name = `${c.name}-Referral-${assessor_info.email}`;
+                        var referral_visibility =  assessor_mode == 'referral' && this.status_data.assessorStatus.assessor_can_assess ? false : true ;
+                        var referral_label = `${assessor_info.name}`;
+                        boxes.push(
+                            {
+                                "box_visibility": box_visibility,
+                                "name": referral_name,
+                                "label": referral_label,
+                                "readonly": referral_visibility,
+                            }
+                            // <AssessorText box_view={box_visibility} type="text" name={referral_name} value={assessor_val} label={referral_label} readonly={referral_visibility}/>
+                            //<AssessorText box_view={box_visibility} type="text" name={referral_name} label={referral_label} readonly={referral_visibility}/>
+                        )
+                    }
+                }
+            }
+            else{
+                if (assessor_mode == 'assessor'){
+                    var name = `${c.name}-Assessor`;
+                    var assessor_visibility = assessor_mode == 'assessor' && this.status_data.assessorStatus.has_assessor_mode? true : false;
+                    assessor_visibility = !assessor_visibility;
+                    boxes.push(
+                        {
+                                "box_visibility": box_visibility,
+                                "name": name,
+                                "label": "Deficiency assessor",
+                                "readonly": assessor_visibility,
+                                "value": val,
+                        }
+                        //<AssessorText box_view={box_visibility} type="text" name={name} value={val} label={'Assessor'} help_text={c.help_text} readonly={assessor_visibility}/>
+                    )
+                }
+                else if (assessor_mode == 'referral'){
+                    // Add Assessor Box
+                    var name = `${c.name}-Assessor`;
+                    var assessor_visibility = assessor_mode != 'assessor' ? true : false;
+                    boxes.push(
+                        {
+                                "box_visibility": box_visibility,
+                                "name": name,
+                                "label": "Deficiency assessor",
+                                "readonly": assessor_visibility,
+                                "value": val,
+                        }
+                        //<AssessorText box_view={box_visibility} type="text" name={name} value={val} label={'Assessor'} help_text={c.help_text} readonly={assessor_visibility}/>
+                    )
+                    // Add Referral Box
+                    var referral_name = `${c.name}-Referral-${assessor_info.email}`;
+                    var referral_visibility = assessor_mode != 'referral' ? true : false;
+                    var referral_label = `${assessor_info.name}`;
+                    boxes.push(
+                        {
+                                "box_visibility": box_visibility,
+                                "name": referral_name,
+                                "label": referral_label,
+                                "readonly": referral_visibility,
+                                "value": val,
+                        }
+                        //<AssessorText box_view={box_visibility} type="text" name={referral_name} value={val} label={referral_label} readonly={referral_visibility}/>
+                    )
+                }
+            }
+        }
+        if (boxes.length > 0){
+            boxes = [<div class="row"> {boxes} </div>]
+        }
+        return boxes;
+    },
 }
