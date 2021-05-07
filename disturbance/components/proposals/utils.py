@@ -219,7 +219,8 @@ class CommentDataSearch(object):
 
     def __init__(self,lookup_field='canBeEditedByAssessor'):
         self.lookup_field = lookup_field
-        self.comment_data = {}
+        #self.comment_data = {}
+        self.comment_data = []
 
     def extract_comment_data_original(self,item,post_data):
         res = {}
@@ -242,7 +243,7 @@ class CommentDataSearch(object):
                             res = {'{}'.format(item):v}
         return res
 
-    def extract_comment_data(self,item,post_data):
+    def extract_comment_data_existing(self,item,post_data):
         res = {}
         values = []
         for k in post_data:
@@ -260,6 +261,37 @@ class CommentDataSearch(object):
                                 res = {'{}'.format(item):v}
         return res
 
+    def extract_comment_data(self,item,post_data):
+        #import ipdb; ipdb.set_trace()
+        values = []
+        res = {
+            'name': item,
+            'assessor': '',
+            'referrals':[]
+        }
+        for k in post_data:
+            if re.match(item,k):
+                values.append({k:post_data[k]})
+        if values:
+            for v in values:
+                for k,v in v.items():
+                    parts = k.split('{}-comment-field'.format(item))
+                    if len(parts) > 1:
+                        # split parts to see if referall
+                        ref_parts = parts[1].split('Referral-')
+                        if len(ref_parts) > 1:
+                            # Referrals
+                            res['referrals'].append({
+                                'value':v,
+                                'email':ref_parts[1],
+                                'full_name': EmailUser.objects.get(email=ref_parts[1].lower()).get_full_name()
+                            })
+                        elif k.split('-')[-1].lower() == 'assessor':
+                            # Assessor
+                            res['assessor'] = v
+
+        return res
+
     def extract_special_fields(self,item, post_data, file_data, repetition, suffix):
         item_data = {}
         if 'name' in item:
@@ -269,7 +301,8 @@ class CommentDataSearch(object):
 
         if 'children' not in item:
             #print(item, extended_item_name)
-            self.comment_data.update(self.extract_comment_data(extended_item_name,post_data))
+            #self.comment_data.update(self.extract_comment_data(extended_item_name,post_data))
+            self.comment_data.append(self.extract_comment_data(extended_item_name,post_data))
 
         else:
             if 'repetition' in item:
