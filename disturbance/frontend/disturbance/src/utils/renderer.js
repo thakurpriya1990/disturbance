@@ -336,7 +336,6 @@ module.exports = {
                     <AssessorText box_view={box_visibility} type="text" name={assessor_name} value={assessor_val} label={'Assessor'} help_text={c.help_text} readonly={assessor_visibility}/>
                 )
                 // Referral Data
-                var current_referral_present = false;
                 if (_dt != undefined){
                     $.each(_dt.referrals,(i,v)=> {
                         if (v.email == assessor_info.email){ current_referral_present = true; }
@@ -349,6 +348,7 @@ module.exports = {
                 }
                 if (assessor_mode == 'referral'){
                     if (!current_referral_present){
+                        console.log('here', current_referral_present)
                         // Add Referral Box
                         var referral_name = `${c.name}-Referral-${assessor_info.email}`;
                         var referral_visibility =  assessor_mode == 'referral' && this.status_data.assessorStatus.assessor_can_assess ? false : true ;
