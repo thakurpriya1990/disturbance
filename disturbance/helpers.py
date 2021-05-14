@@ -49,7 +49,7 @@ def is_in_organisation_contacts(request, organisation):
     return request.user.email in organisation.contacts.all().values_list('email', flat=True)
 
 def is_departmentUser(request):
-    return request.user.is_authenticated() and is_model_backend(request) and in_dbca_domain(request)
+    return request.user.is_authenticated() and ( (is_model_backend(request) and in_dbca_domain(request)) or (belongs_to(request.user, settings.APPROVED_EXTERNAL_USERS_GROUP)) )
 
 def is_customer(request):
     return request.user.is_authenticated() and is_email_auth_backend(request)
