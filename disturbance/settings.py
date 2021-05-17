@@ -197,3 +197,19 @@ LOGGING['loggers']['disturbance'] = {
         }
 
 
+#APPLICATION_TYPES_SQL='''
+#        SELECT name, name FROM disturbance_applicationtypechoice
+#        WHERE archive_date IS NULL OR archive_date > now()
+#    '''
+
+#from django.db import connection
+#def run_select_sql(sql):
+#    try:
+#        with connection.cursor() as cursor:
+#            cursor.execute(sql)
+#            row = cursor.fetchall()
+#        return row
+#    except:
+#        return []
+
+

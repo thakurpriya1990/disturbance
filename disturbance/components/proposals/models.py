@@ -82,18 +82,10 @@ def update_apiary_doc_filename(instance, filename):
 #    return 'proposals/{}/apiary_site_transfer_documents/{}'.format(instance.apiary_site_transfer.proposal.id, filename)
 
 
-def application_type_choicelist():
-    try:
-        #return [( (choice.name), (choice.name) ) for choice in ApplicationType.objects.filter(visible=True)]
-        return [( (choice.name), (choice.name) ) for choice in ApplicationType.objects.all()]
-    except:
-        # required because on first DB tables creation, there are no ApplicationType objects -- setting a default value
-        return ( ('Disturbance', 'Disturbance'), )
-
-
 class ProposalType(models.Model):
+
     description = models.CharField(max_length=256, blank=True, null=True)
-    name = models.CharField(verbose_name='Application name (eg. Disturbance, Apiary)', max_length=64, choices=application_type_choicelist(), default='Disturbance')
+    name = models.CharField(verbose_name='Application name (eg. Disturbance, Apiary)', max_length=64, choices=ApplicationType.APPLICATION_TYPES, default=ApplicationType.APPLICATION_TYPES[0][0])
     schema = JSONField()
     replaced_by = models.ForeignKey('self', on_delete=models.PROTECT, blank=True, null=True)
     version = models.SmallIntegerField(default=1, blank=False, null=False)
