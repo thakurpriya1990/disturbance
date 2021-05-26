@@ -4502,6 +4502,11 @@ class SectionQuestion(models.Model):
             if self.question==self.parent_question:
                 raise ValidationError('Question cannont be linked to itself')
 
+    @property
+    def question_options(self):
+        return self.question.option.all()
+    
+
 
 # --------------------------------------------------------------------------------------
 # Generate JSON schema models start

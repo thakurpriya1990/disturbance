@@ -52,7 +52,7 @@ router.register(r'apiary_referral_groups', proposal_api.ApiaryReferralGroupViewS
 router.register(r'apiary_referrals',proposal_api.ApiaryReferralViewSet)
 router.register(r'apiary_site_fees',proposal_api.ApiarySiteFeeViewSet)
 #router.register(r'payment',payment_api.PaymentViewSet)
-
+router.register(r'proposal_type_sections', proposal_api.ProposalTypeSectionViewSet)
 
 api_patterns = [
     url(r'^api/profile$', users_api.GetProfile.as_view(), name='get-profile'),

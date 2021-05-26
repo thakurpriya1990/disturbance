@@ -63,6 +63,7 @@ from disturbance.components.proposals.models import (
     ApiaryReferral,
     SiteTransferApiarySite,
     ApiarySiteFee,
+    ProposalTypeSection,
 )
 from disturbance.components.proposals.serializers import (
     SendReferralSerializer,
@@ -87,6 +88,7 @@ from disturbance.components.proposals.serializers import (
     SaveProposalRegionSerializer,
     ProposalWrapperSerializer,
     ReferralWrapperSerializer,
+    ProposalTypeSectionSerializer,
 )
 from disturbance.components.proposals.serializers_apiary import (
     ProposalApiaryTypeSerializer,
@@ -2725,3 +2727,6 @@ class ApiarySiteFeeViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
+class ProposalTypeSectionViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = ProposalTypeSection.objects.all().order_by('id')
+    serializer_class = ProposalTypeSectionSerializer

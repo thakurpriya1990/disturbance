@@ -8,6 +8,9 @@ from disturbance.components.proposals.models import (
                                     ProposalStandardRequirement,
                                     AmendmentRequest,
                                     AmendmentRequestDocument,
+                                    QuestionOption,
+                                    SectionQuestion,
+                                    ProposalTypeSection,
                                 )
 from disturbance.components.organisations.models import (
                                 Organisation
@@ -664,3 +667,23 @@ class SearchKeywordSerializer(serializers.Serializer):
 class SearchReferenceSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     type = serializers.CharField()
+
+class QuestionOptionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = QuestionOption
+        fields = ('label',)
+
+class SectionQuestionSerializer(serializers.ModelSerializer):
+    question_name=serializers.CharField(source='question.question')
+    answer_type=serializers.CharField(source='question.answer_type')
+    question_options= QuestionOptionSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = SectionQuestion
+        fields = ('section', 'question_id', 'question_options', 'question_name', 'answer_type',)
+
+class ProposalTypeSectionSerializer(serializers.ModelSerializer):
+    section_questions = SectionQuestionSerializer(many=True, read_only=True)
+    class Meta:
+        model = ProposalTypeSection
+        fields = '__all__'
