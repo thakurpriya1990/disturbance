@@ -2,12 +2,12 @@ import os
 from io import BytesIO
 
 from django.conf import settings
-from docxtpl import DocxTemplate
+from docxtpl import DocxTemplate, InlineImage, R
+from docx.shared import Mm
 from disturbance.components.main.models import ApiaryGlobalSettings
 
 
 def create_apiary_licence_pdf_contents(approval, proposal, copied_to_permit, approver, site_transfer_preview=None):
-    #import ipdb; ipdb.set_trace()
     # print ("Letter File")
     # confirmation_doc = None
     # if booking.annual_booking_period_group.letter:
@@ -21,7 +21,8 @@ def create_apiary_licence_pdf_contents(approval, proposal, copied_to_permit, app
         path_to_template = licence_template._file.path
     else:
         # Use default template file
-        path_to_template = os.path.join(settings.BASE_DIR, 'disturbance', 'static', 'disturbance', 'apiary_authority_template.docx')
+        #path_to_template = os.path.join(settings.BASE_DIR, 'disturbance', 'static', 'disturbance', 'apiary_authority_template.docx')
+        path_to_template = os.path.join(settings.BASE_DIR, 'disturbance', 'static', 'disturbance', 'apiary_authority_permit_template_v2.docx')
 
     doc = DocxTemplate(path_to_template)
     # address = ''
@@ -37,12 +38,21 @@ def create_apiary_licence_pdf_contents(approval, proposal, copied_to_permit, app
     #     sc = booking.sticker_created + timedelta(hours=8)
     #     stickercreated = sc.strftime('%d %B %Y')
     from disturbance.components.approvals.serializers import ApprovalSerializerForLicenceDoc
+
+    #dbca_logo = InlineImage(doc, image_descriptor='img/apiary_permit_dbca_logo.jpg', width=Mm(20), height=Mm(10))
+    #path_to_image = os.path.join(settings.BASE_DIR, 'disturbance', 'static', 'disturbance', 'img', 'apiary_permit_dbca_logo.jpg')
+    path_to_image = os.path.join(settings.BASE_DIR, 'disturbance', 'static', 'disturbance', 'img', 'dbca-logo.jpg')
     serializer_context = {
             'approver': approver,
             'site_transfer_preview': site_transfer_preview,
             }
     context_obj = ApprovalSerializerForLicenceDoc(approval, context=serializer_context)
     context = context_obj.data
+    context.update({
+        'dbca_logo': InlineImage(doc, image_descriptor=path_to_image, width=Mm(135), height=Mm(20)),
+        'page_break': R('\f'),
+    })
+
     doc.render(context)
 
     temp_directory = settings.BASE_DIR + "/tmp/"

@@ -65,6 +65,7 @@ class ApprovalDocumentHistorySerializer(serializers.ModelSerializer):
 
 class ApprovalSerializerForLicenceDoc(serializers.ModelSerializer):
     authority_holder = serializers.SerializerMethodField()
+    authority_holder_address = serializers.SerializerMethodField()
     trading_name = serializers.SerializerMethodField()
     authority_number = serializers.SerializerMethodField()
     licence_start_date = serializers.SerializerMethodField()
@@ -72,11 +73,15 @@ class ApprovalSerializerForLicenceDoc(serializers.ModelSerializer):
     issue_date = serializers.SerializerMethodField()
     approver = serializers.SerializerMethodField()
     apiary_sites = serializers.SerializerMethodField()
+    apiary_licensed_sites = serializers.SerializerMethodField()
     #apiary_sites = ApiarySiteLicenceDocSerializer(many=True)
     requirements = serializers.SerializerMethodField()
 
     def get_authority_holder(self, approval):
         return approval.relevant_applicant_name
+
+    def get_authority_holder_address(self, approval):
+        return approval.relevant_applicant_address.summary
 
     def get_trading_name(self, approval):
         return approval.applicant.trading_name if approval.applicant else ''
@@ -98,6 +103,7 @@ class ApprovalSerializerForLicenceDoc(serializers.ModelSerializer):
         return approver.get_full_name()
 
     def get_apiary_sites(self, approval):
+        ''' Return the Apiary Licenses (where licensed_sites=False) '''
         ret_array = []
 
         # if not approval.current_proposal.approval:
@@ -113,8 +119,21 @@ class ApprovalSerializerForLicenceDoc(serializers.ModelSerializer):
 
         apiary_site_on_approvals = approval.get_relations()
         for relation in apiary_site_on_approvals:
-            serializer = ApiarySiteOnApprovalLicenceDocSerializer(relation)
-            ret_array.append(serializer.data)
+            if not relation.licensed_site:
+                serializer = ApiarySiteOnApprovalLicenceDocSerializer(relation)
+                ret_array.append(serializer.data)
+
+        return ret_array
+
+    def get_apiary_licensed_sites(self, approval):
+        ''' Return the Apiary Licensed Sited for Permits (where licensed_sites=False) '''
+        ret_array = []
+
+        apiary_site_on_approvals = approval.get_relations()
+        for relation in apiary_site_on_approvals:
+            if relation.licensed_site:
+                serializer = ApiarySiteOnApprovalLicenceDocSerializer(relation)
+                ret_array.append(serializer.data)
 
         return ret_array
 
@@ -128,7 +147,6 @@ class ApprovalSerializerForLicenceDoc(serializers.ModelSerializer):
         return ret_array
 
     #def bak_get_requirements(self, approval):
-    #    #import ipdb; ipdb.set_trace()
     #    ret_array = []
     #    site_transfer_preview = self.context.get('site_transfer_preview')
     #    #if self.proposal.application_type.name == ApplicationType.SITE_TRANSFER:
@@ -151,6 +169,7 @@ class ApprovalSerializerForLicenceDoc(serializers.ModelSerializer):
         fields = (
             'id',
             'authority_holder',
+            'authority_holder_address',
             'trading_name',
             'authority_number',
             'licence_start_date',
@@ -158,6 +177,7 @@ class ApprovalSerializerForLicenceDoc(serializers.ModelSerializer):
             'issue_date',
             'approver' ,
             'apiary_sites',
+            'apiary_licensed_sites',
             'requirements',
         )
 
@@ -472,7 +492,6 @@ class DTApprovalSerializer(serializers.ModelSerializer):
             )
 
     def get_allowed_assessors(self, obj):
-        #import ipdb;ipdb.set_trace()
         return EmailUserSerializer(obj.current_proposal.compliance_assessors, many=True).data
 
     def get_template_group(self, obj):
@@ -493,7 +512,6 @@ class DTApprovalSerializer(serializers.ModelSerializer):
         return None
 
     def get_can_approver_reissue(self,obj):
-        #import ipdb;ipdb.set_trace()
         # Check if currently logged in user has access to process the proposal
         request = self.context['request']
         user = request.user

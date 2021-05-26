@@ -729,7 +729,6 @@ class Proposal(RevisionedMixin):
         #    'title': 'Title',
         #    'activity': 'Activity'
         }
-        #import ipdb; ipdb.set_trace()
         for k,v in required_fields.items():
             val = getattr(self,k)
             if not val:
@@ -744,7 +743,6 @@ class Proposal(RevisionedMixin):
             group = ApiaryAssessorGroup.objects.first()
             if group:
                 return group.members_email
-        #import ipdb; ipdb.set_trace()
         # Proposal logic
         try:
             recipients = ProposalAssessorGroup.objects.get(region=self.region).members_email
@@ -866,7 +864,6 @@ class Proposal(RevisionedMixin):
             if self.can_user_edit:
                 # Save the data first
                 save_proponent_data(self,request,viewset)
-                #import ipdb; ipdb.set_trace()
                 if self.application_type.name != ApplicationType.APIARY:
                     # Check if the special fields have been completed
                     missing_fields = self.__check_proposal_filled_out()
@@ -889,7 +886,6 @@ class Proposal(RevisionedMixin):
                 if self.applicant:
                     self.applicant.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.lodgement_number), request)
 
-                #import ipdb; ipdb.set_trace()
                 ret1 = send_submit_email_notification(request, self)
                 ret2 = send_external_submit_email_notification(request, self)
 
@@ -907,7 +903,6 @@ class Proposal(RevisionedMixin):
     def update(self,request,viewset):
         from disturbance.components.proposals.utils import save_proponent_data
         with transaction.atomic():
-            #import ipdb; ipdb.set_trace()
             if self.can_user_edit:
                 # Save the data first
                 save_proponent_data(self,request,viewset)
@@ -1246,7 +1241,6 @@ class Proposal(RevisionedMixin):
 
     def proposed_approval(self,request,details):
         with transaction.atomic():
-            #import ipdb; ipdb.set_trace()
             try:
                 if not self.can_assess(request.user):
                     raise exceptions.ProposalNotAuthorized()
@@ -1303,6 +1297,11 @@ class Proposal(RevisionedMixin):
                             self.proposal_apiary.set_workflow_selected_status(my_site, apiary_site.get('checked'))
                             if apiary_site.get('checked'):
                                 apiary_sites_list.append(apiary_site.get('id'))
+                                relation = self.proposal_apiary.get_relation(my_site)
+                                from disturbance.components.proposals.serializers_apiary import ApiarySiteOnProposalProcessedLicensedSiteSaveSerializer
+                                serializer = ApiarySiteOnProposalProcessedLicensedSiteSaveSerializer(relation, data={'licensed_site': apiary_site['properties'].get('licensed_site')})
+                                serializer.is_valid(raise_exception=True)
+                                serializer.save()
                             # my_site.save()
 
                             if apiary_site.get('checked') and 'coordinates_moved' in apiary_site:
@@ -1314,7 +1313,7 @@ class Proposal(RevisionedMixin):
                                 # from disturbance.components.proposals.serializers_apiary import ApiarySiteSavePointPendingSerializer
                                 # serializer = ApiarySiteSavePointPendingSerializer(my_site, data={'wkb_geometry_pending': geom_str}, context={'validate_distance': True})
                                 from disturbance.components.proposals.serializers_apiary import ApiarySiteOnProposalProcessedGeometrySaveSerializer
-                                serializer = ApiarySiteOnProposalProcessedGeometrySaveSerializer(relation, data={'wkb_geometry_processed': geom_str})
+                                serializer = ApiarySiteOnProposalProcessedGeometrySaveSerializer(relation, data={'wkb_geometry_processed': geom_str, 'licensed_site': apiary_site['properties'].get('licensed_site')})
                                 serializer.is_valid(raise_exception=True)
                                 serializer.save()
 
@@ -1453,11 +1452,9 @@ class Proposal(RevisionedMixin):
                 # Log entry for organisation
                 if self.applicant:
                     self.applicant.log_user_action(ProposalUserAction.ACTION_ISSUE_APPROVAL_.format(self.lodgement_number), request)
-                #import ipdb;ipdb.set_trace()
 
                 if self.processing_status == 'approved':
                     # TODO if it is an ammendment proposal then check appropriately
-                    #import ipdb; ipdb.set_trace()
                     checking_proposal = self
                     if self.proposal_type == 'renewal':
                         if self.previous_application:
@@ -1673,7 +1670,6 @@ class Proposal(RevisionedMixin):
                 raise
 
     def renew_approval(self,request):
-        #import ipdb; ipdb.set_trace()
         with transaction.atomic():
             previous_proposal = self
             try:
@@ -2025,7 +2021,6 @@ class ProposalRequirement(OrderedModel):
     def save(self, *args, **kwargs):
         super(ProposalRequirement, self).save(*args,**kwargs)
         # update reissue flags as needed
-        #import ipdb; ipdb.set_trace()
         if self.proposal and hasattr(self.proposal, 'proposal_apiary') and self.proposal.proposal_apiary and self.proposal.application_type.name == 'Site Transfer':
             #if self.sitetransfer_approval == self.apiary_approval:
                 # therefore, we know that the requirement is already attached to the target/originating approval, i.e. is not new
@@ -2544,6 +2539,7 @@ class ApiarySiteOnProposal(RevisionedMixin):
     site_category_draft = models.ForeignKey('SiteCategory', null=True, blank=True, related_name='intermediate_draft')
     site_category_processed = models.ForeignKey('SiteCategory', null=True, blank=True, related_name='intermediate_processed')
     application_fee_paid = models.BooleanField(default=False)  # To avoid overcharging when the proposal is sent back to the customer, we need this flag
+    licensed_site = models.BooleanField(default=False)  # used only during approval process, licensed site, have an independent PDF Licence page
     objects = GeoManager()
 
     def __str__(self):
@@ -2710,7 +2706,6 @@ class ProposalApiary(RevisionedMixin):
                     self.proposal.save()
                     self.save()
                     referral = None
-                    #import ipdb; ipdb.set_trace()
 
                     # Check if the user is in ledger
                     try:
@@ -2837,7 +2832,6 @@ class ProposalApiary(RevisionedMixin):
         return approval
 
     def create_transferee_approval(self, details, applicant=None, proxy_applicant=None):
-        #import ipdb;ipdb.set_trace()
         from disturbance.components.approvals.models import Approval
         approval = Approval.objects.create(
             current_proposal = self.proposal,
@@ -2950,7 +2944,6 @@ class ProposalApiary(RevisionedMixin):
             #            for site in self.apiary_sites.all():
             #                site.approval = approval
 
-            #import ipdb; ipdb.set_trace()
             if self.proposal.application_type.name == ApplicationType.SITE_TRANSFER:
                 # approval must already exist - we reissue with same start and expiry dates
                 # does thhis need to be reissued with self.reissue_approval() ?
@@ -3028,10 +3021,8 @@ class ProposalApiary(RevisionedMixin):
             #elif self.proposal.application_type == ApplicationType.SITE_TRANSFER:
             #    for site in self.apiary_site_transfer.apiary_sites.all():
             #        site.approval = approval
-            #import ipdb;ipdb.set_trace(:
             # for site in self.apiary_sites.all():
             if self.proposal.application_type.name == ApplicationType.SITE_TRANSFER:
-                #import ipdb; ipdb.set_trace()
                 # updated apiary_site.selected with 'checked' flag status
                 apiary_sites = request.data.get('apiary_sites', [])
                 for apiary_site in apiary_sites:
@@ -3201,7 +3192,6 @@ class ProposalApiary(RevisionedMixin):
                 self.proposal.save(version_comment='Final Approval: {}'.format(self.proposal.approval.lodgement_number))
                 self.proposal.approval.documents.all().update(can_delete=False)
             elif self.proposal.application_type.name == ApplicationType.SITE_TRANSFER and not preview:
-                #import ipdb;ipdb.set_trace()
                 # add Site Transfer Compliance/Requirements logic here
                 from disturbance.components.compliances.models import Compliance, ComplianceUserAction
                 ## Originating approval
@@ -3287,7 +3277,6 @@ class ProposalApiary(RevisionedMixin):
 
     def link_apiary_approval_requirements(self, approval):
         # Ensure current requirements are associated with apiary approval / site transfer
-        #import ipdb; ipdb.set_trace()
         link_requirement_set = self.proposal.requirements.all()
         for link_r in link_requirement_set:
             if self.proposal.application_type.name == ApplicationType.SITE_TRANSFER:
@@ -3305,7 +3294,6 @@ class ProposalApiary(RevisionedMixin):
             unlink_r.save()
 
     def generate_apiary_compliances(self,approval, request):
-        #import ipdb; ipdb.set_trace()
         today = timezone.now().date()
         timedelta = datetime.timedelta
         from disturbance.components.compliances.models import Compliance, ComplianceUserAction
@@ -3425,6 +3413,7 @@ class ProposalApiary(RevisionedMixin):
                 apiary_site_on_approval, asoa_created = ApiarySiteOnApproval.objects.get_or_create(apiary_site=a_site, approval=approval)
                 apiary_site_on_approval.wkb_geometry = apiary_site_on_proposal.wkb_geometry_processed
                 apiary_site_on_approval.site_category = apiary_site_on_proposal.site_category_processed
+                apiary_site_on_approval.licensed_site = apiary_site_on_proposal.licensed_site
                 apiary_site_on_approval.site_status = SITE_STATUS_CURRENT
                 apiary_site_on_approval.save()
             else:
@@ -4126,7 +4115,6 @@ class ApiaryReferral(RevisionedMixin):
         return False
 
     def recall(self,request):
-        #import ipdb; ipdb.set_trace();
         with transaction.atomic():
             if not self.referral.proposal.can_assess(request.user):
                 raise exceptions.ProposalNotAuthorized()
@@ -4246,7 +4234,6 @@ class ApiaryReferral(RevisionedMixin):
                         )
                 # TODO log organisation action
                 #self.proposal.applicant.log_user_action(ProposalUserAction.CONCLUDE_REFERRAL.format(self.id,self.proposal.id,'{}({})'.format(self.referral.get_full_name(),self.referral.email)),request)
-                #import ipdb;ipdb.set_trace();
                 applicant_field=getattr(
                         self.referral.proposal,
                         self.referral.proposal.applicant_field

@@ -13,6 +13,7 @@ class ApiarySiteOnApprovalMinimalGeometrySerializer(GeoFeatureModelSerializer):
     site_category = serializers.CharField(source='site_category__name')
     is_vacant = serializers.BooleanField(source='apiary_site__is_vacant')
     site_guid = serializers.CharField(source='apiary_site__site_guid')
+    licensed_site = serializers.CharField(source='apiary_site__licensed_site')
 
     class Meta:
         model = ApiarySiteOnApproval
@@ -24,6 +25,7 @@ class ApiarySiteOnApprovalMinimalGeometrySerializer(GeoFeatureModelSerializer):
             'site_category',
             'status',
             'site_guid',
+            'licensed_site',
         )
 
 class ApiarySiteOnApprovalGeometrySerializer(GeoFeatureModelSerializer):
@@ -37,6 +39,7 @@ class ApiarySiteOnApprovalGeometrySerializer(GeoFeatureModelSerializer):
     previous_site_holder_or_applicant = serializers.SerializerMethodField()
     is_vacant = serializers.BooleanField(source='apiary_site.is_vacant')
     stable_coords = serializers.SerializerMethodField()
+    licensed_site = serializers.CharField(source='apiary_site.licensed_site')
 
     class Meta:
         model = ApiarySiteOnApproval
@@ -51,6 +54,7 @@ class ApiarySiteOnApprovalGeometrySerializer(GeoFeatureModelSerializer):
             'is_vacant',
             'stable_coords',
             'previous_site_holder_or_applicant',
+            'licensed_site',
         )
 
     def get_stable_coords(self, obj):
@@ -148,6 +152,7 @@ class ApiarySiteOnApprovalLicenceDocSerializer(serializers.ModelSerializer):
     coords = serializers.SerializerMethodField()
     tenure = serializers.SerializerMethodField()
     region_district = serializers.SerializerMethodField()
+    licensed_site = serializers.SerializerMethodField()
 
     class Meta:
         model = ApiarySiteOnApproval
@@ -158,6 +163,7 @@ class ApiarySiteOnApprovalLicenceDocSerializer(serializers.ModelSerializer):
             'site_category',
             'tenure',
             'region_district',
+            'licensed_site',
         )
 
     def get_site_category(self, apiary_site_on_approval):
@@ -190,3 +196,12 @@ class ApiarySiteOnApprovalLicenceDocSerializer(serializers.ModelSerializer):
             return {'lng': apiary_site_on_approval.wkb_geometry.x, 'lat': apiary_site_on_approval.wkb_geometry.y}
         except:
             return {'lng': '', 'lat': ''}
+
+    def get_licensed_site(self, apiary_site_on_proposal):
+        #import ipdb; ipdb.set_trace()
+        try:
+            return apiary_site_on_proposal.licensed_site
+        except:
+            return ''
+
+
