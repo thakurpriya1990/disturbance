@@ -431,3 +431,33 @@ def are_migrations_running():
     # return sys.argv and ('migrate' in sys.argv or 'makemigrations' in sys.argv)
     return sys.argv and ('migrate' in sys.argv or 'makemigrations' in sys.argv or 'showmigrations' in sys.argv or 'sqlmigrate' in sys.argv)
 
+def search_section(schema, section_label, question_label, data, answer):
+    for item in schema:
+        children=[]
+        question_names=[]
+        found_fields=[]
+        section_label=section_label.replace(" ","")
+
+        if item['type']=='section' and item['name']:
+            item_name=item['name'].rstrip('0123456789')
+            if item_name==section_label:
+                children=item['children']
+                if children:
+                    children_keys= search_keys(children, ['name', 'label'])
+                    if children_keys:
+                        question_names=[]
+                        for key in children_keys:
+                            if key['label']==question_label:
+                                question_names.append({'name': key['name'], 'label': key['label']})
+        print(question_names)
+
+        data = flatten(data[0])
+        for flat_key in data.items():
+            for item in question_names:
+                if flat_key[0].endswith(item['name']):
+                    if flat_key[1].strip():
+                        if answer in flat_key[1]:
+                            found_fields.append( dict(key=item['label'], value=flat_key[1]) )
+        return found_fields
+
+
