@@ -4,6 +4,8 @@ from django.template import Library
 from django.conf import settings
 from disturbance import helpers as disturbance_helpers
 from disturbance.components.main.models import SystemMaintenance
+from disturbance.components.organisations.models import Organisation
+from disturbance.components.organisations.utils import can_admin_org, is_consultant
 from datetime import datetime, timedelta
 from django.utils import timezone
 import pytz
@@ -22,6 +24,16 @@ def is_apiary_admin(context):
     # checks if user is an AdminUser
     request = context['request']
     return disturbance_helpers.is_apiary_admin(request)
+
+@register.filter
+def is_org_admin(org_id, user):
+    """ Is an Admin for the given Organisation """
+    return can_admin_org(Organisation.objects.get(id=org_id), user)
+
+#@register.filter
+#def is_org_consultant(org_id, user):
+#    """ Is an Admin for the given Organisation """
+#    return is_consultant(Organisation.objects.get(id=org_id), user)
 
 @register.simple_tag(takes_context=True)
 def is_internal(context):

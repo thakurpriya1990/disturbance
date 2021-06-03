@@ -37,6 +37,7 @@ INSTALLED_APPS += [
     'rest_framework_gis',
     'reset_migrations',
     'ckeditor',
+    'smart_selects',
 ]
 
 ADD_REVERSION_ADMIN=True
@@ -69,6 +70,8 @@ REST_FRAMEWORK = {
     #'PAGE_SIZE': 20,
 }
 
+USE_DJANGO_JQUERY= True
+# JQUERY_URL = True
 
 MIDDLEWARE_CLASSES += [
     'disturbance.middleware.BookingTimerMiddleware',
@@ -130,6 +133,7 @@ ADMIN_GROUP = env('ADMIN_GROUP', 'Disturbance Admin')
 APIARY_ADMIN_GROUP = 'Apiary Admin'
 DAS_APIARY_ADMIN_GROUP = 'DAS-Apiary Admin'
 APIARY_PAYMENTS_OFFICERS_GROUP = 'Apiary Payments Officers'
+APPROVED_EXTERNAL_USERS_GROUP = env('APPROVED_EXTERNAL_USERS_GROUP', 'Disturbance Approved External Users')
 CRON_EMAIL = env('CRON_EMAIL', 'cron@' + SITE_DOMAIN).lower()
 TENURE_SECTION = env('TENURE_SECTION', None)
 ASSESSMENT_REMINDER_DAYS = env('ASSESSMENT_REMINDER_DAYS', 15)
@@ -191,5 +195,21 @@ LOGGING['loggers']['disturbance'] = {
             'handlers': ['file'],
             'level': 'INFO'
         }
+
+
+#APPLICATION_TYPES_SQL='''
+#        SELECT name, name FROM disturbance_applicationtypechoice
+#        WHERE archive_date IS NULL OR archive_date > now()
+#    '''
+
+#from django.db import connection
+#def run_select_sql(sql):
+#    try:
+#        with connection.cursor() as cursor:
+#            cursor.execute(sql)
+#            row = cursor.fetchall()
+#        return row
+#    except:
+#        return []
 
 
