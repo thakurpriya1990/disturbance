@@ -19,6 +19,12 @@ from disturbance.components.proposals.models import (
     SiteTransferApiarySite,
     ApiaryChecklistQuestion,
     ApiaryChecklistAnswer,
+    QuestionOption,
+    MasterlistQuestion,
+    ProposalTypeSection,
+    SectionQuestion,
+    HelpPage,
+    ApplicationType,
 )
 from disturbance.components.proposals.serializers_apiary import (
     ProposalApiarySerializer,
@@ -39,6 +45,9 @@ from disturbance.settings import RESTRICTED_RADIUS, TIME_ZONE
 from disturbance.utils import convert_moment_str_to_python_datetime_obj
 
 logger = logging.getLogger(__name__)
+
+richtext = u''
+richtext_assessor=u''
 
 def create_data_from_form(schema, post_data, file_data, post_data_index=None,special_fields=[],assessor_data=False):
     data = {}
@@ -1044,3 +1053,275 @@ def clone_proposal_with_status_reset(proposal):
         except:
             raise
 
+help_site_url='site_url:/help/disturbance/user'
+help_site_assessor_url='site_url:/help/disturbance/assessor'
+
+def create_richtext_help(question, name):
+    global richtext
+    global richtext_assessor
+    
+    if question.help_text_url and question.help_text:
+       
+        richtext += u'<h1><a id="{0}" name="{0}"> {1} </a></h1>'.format(name, question.question)
+        richtext += question.help_text
+        richtext += u'<p>&nbsp;</p>'
+
+    if question.help_text_assessor_url and question.help_text_assessor:
+       
+        richtext_assessor += u'<h1><a id="{0}" name="{0}"> {1} </a></h1>'.format(name, question.question)
+        richtext_assessor += question.help_text_assessor
+        richtext_assessor += u'<p>&nbsp;</p>'
+
+    return richtext
+
+def create_helppage_object(proposal_type, help_type=HelpPage.HELP_TEXT_EXTERNAL):
+    """
+    Create a new HelpPage object, with latest help_text/label anchors defined in the latest ProposalType.schema
+    """
+    application_type=proposal_type.name
+    try:
+        application_type_id = ApplicationType.objects.get(name=application_type).id
+    except Exception as e:
+        print('application type: {} does not exist, maybe!'.format(application_type, e))
+
+    try:
+        help_page = HelpPage.objects.filter(application_type_id=application_type_id, help_type=help_type).latest('version')
+        next_version = help_page.version + 1
+    except Exception as e:
+        next_version = 1
+
+    help_type_assessor=HelpPage.HELP_TEXT_INTERNAL
+    try:
+        help_page_assessor = HelpPage.objects.filter(application_type_id=application_type_id, help_type=help_type_assessor).latest('version')
+        next_version_assessor = help_page_assessor.version + 1
+    except Exception as e:
+        next_version_assessor = 1
+    
+    HelpPage.objects.create(application_type_id=application_type_id, help_type=help_type, version=next_version, content=richtext)
+    HelpPage.objects.create(application_type_id=application_type_id, help_type=help_type_assessor, version=next_version_assessor, content=richtext_assessor)
+
+
+def get_options(section_question, question):
+    options=[]
+    special_types=['radiobuttons', 'multi-select',]
+    if question.option.count()>0:
+        for op in question.option.all().order_by('-disturbance_masterlistquestion_option.id'):
+            op_dict={
+                'label': op.label,
+                'value': op.label.replace(" ","").lower(),
+            }
+            options.append(op_dict)
+    #For multi-select type questions, the isRequired flag goes to the first option dict instead of question dict
+    if 'isRequired' in section_question.get_tag_list() and question.answer_type in special_types:
+        if options:
+            options[0]['isRequired']='true'
+    return options
+
+def get_condition_chidren(question,section, parent_name=''):
+    conditions={}
+    options=question.option.all().order_by('-disturbance_masterlistquestion_option.id')
+    special_types=['checkbox',]
+    group_types=['checkbox', 'radiobuttons', 'multi-select']
+    option_count=0
+    for op in options:
+        condition_questions=SectionQuestion.objects.filter(section=section,parent_question=question,parent_answer=op).order_by('order')
+        if condition_questions:
+            option_section=[]
+            option_children=[]
+            condition_question_count=1
+            for q in condition_questions:
+                #question_name=parent_name+'-'+op.label+condition_question_count
+                #question_name='{}-{}{}'.format(parent_name,op.label,condition_question_count)
+                question_name='{}-{}{}'.format(parent_name,op.label.replace(" ",""),condition_question_count)
+                child={
+                    'name': question_name,
+                    'type': q.question.answer_type,
+                    'label': q.question.question,
+                }
+                if q.question.answer_type in special_types:
+                        q_option_children=get_checkbox_option_chidren(q, q.question, section, question_name)
+                        child['children']=q_option_children
+                        child['type']='group'
+                else:
+                    if q.question.option.count()>0:
+                        q_options= get_options(q,q.question)
+                        child['options']=q_options
+                    if q.question.children_question.exists():
+                        q_conditions=get_condition_chidren(q.question, section, question_name)
+                        child['conditions']=q_conditions
+                if q.tag:
+                    for t in q.tag:
+                        if t=='isRequired':
+                            if q.question.answer_type not in group_types:
+                                child[t]='true'
+                        else:
+                            child[t]='true'
+                        #child[t]='true'
+                if q.question.help_text_url:
+                    child['help_text_url']='{0}/anchor={1}'.format(help_site_url, question_name)
+                if q.question.help_text_assessor_url:
+                    child['help_text_assessor_url']='{0}/anchor={1}'.format(help_site_assessor_url, question_name)
+                create_richtext_help(q.question, question_name)
+                option_children.append(child)
+                condition_question_count+=1
+            #section_group_name=parent_name+'-'+op.label+'Group'
+            section_group_name=parent_name+'-'+op.label.replace(" ","")+'Group'
+            option_section_dict={
+                'name':section_group_name,
+                'type': 'group',
+                'label':'',
+                'children': option_children
+            }
+            option_section.append(option_section_dict)
+            conditions[op.label.replace(" ","").lower()]=option_section
+            option_count+=1
+    return conditions
+
+
+def get_checkbox_option_chidren(section_question,question,section, parent_name=''):
+    conditions={}
+    options=question.option.all().order_by('-disturbance_masterlistquestion_option.id')
+    options_list=[]
+    special_types=['checkbox',]
+    group_types=['checkbox', 'radiobuttons', 'multi-select']
+    option_count=0
+    for op in options:
+        #op_name=parent_name+'-'+option_count
+        op_name='{}-{}'.format(parent_name,option_count)
+        op_dict={
+                #'name': op.label,#function generated name
+                'name': op_name,
+                'label': op.label,
+                'type': 'checkbox',
+                'group': parent_name #function generated name of parent question
+        }
+        condition_questions=SectionQuestion.objects.filter(section=section,parent_question=question,parent_answer=op).order_by('order')
+        if condition_questions:
+            option_section=[]
+            option_children=[]
+            condition_question_count=1
+            for q in condition_questions:
+                #question_name=op_name+'-On-'+condition_question_count
+                question_name='{}-On-{}'.format(op_name,condition_question_count)
+                child={
+                    'name': question_name,
+                    'type': q.question.answer_type,
+                    'label': q.question.question,
+                }
+                if q.question.answer_type in special_types:
+                        q_option_children=get_checkbox_option_chidren(q,q.question, section, question_name)
+                        child['children']=q_option_children
+                        child['type']='group'
+                else:
+                    if q.question.option.count()>0:
+                        q_options= get_options(q,q.question)
+                        child['options']=q_options
+                    if q.question.children_question.exists():
+                        q_conditions=get_condition_chidren(q.question, section, question_name)
+                        child['conditions']=q_conditions
+
+                if q.tag:
+                    for t in q.tag:
+                        #child[t]='true'
+                        if t=='isRequired':
+                            if q.question.answer_type not in group_types:
+                                child[t]='true'
+                        else:
+                            child[t]='true'
+                if q.question.help_text_url:
+                    child['help_text_url']='{0}/anchor={1}'.format(help_site_url, question_name)
+                if q.question.help_text_assessor_url:
+                    child['help_text_assessor_url']='{0}/anchor={1}'.format(help_site_assessor_url, question_name)
+                create_richtext_help(q.question, question_name)
+                option_children.append(child)
+                condition_question_count+=1
+            section_group_name=op_name+'-OnGroup'
+            option_section_dict={
+                'name':section_group_name,
+                'type': 'group',
+                'label':'',
+                'children': option_children
+            }
+            option_section.append(option_section_dict)
+            conditions['on']=option_section
+            op_dict['conditions']=conditions
+        options_list.append(op_dict)
+        option_count+=1
+    if 'isRequired' in section_question.get_tag_list():
+        if options_list:
+            options_list[0]['isRequired']='true'
+    return options_list
+
+
+
+def generate_schema(proposal_type, request):
+    section_list=ProposalTypeSection.objects.filter(proposal_type=proposal_type).order_by('index')
+    section_count=0
+    schema=[]
+    special_types=['checkbox',]
+    #'isRequired' tag for following types is added to first option dict instead of question.
+    group_types=['checkbox', 'radiobuttons', 'multi-select']
+    global richtext
+    global richtext_assessor
+    global help_site_url, help_site_assessor_url
+    richtext = u''
+    richtext_assessor=u''
+    help_site_url='site_url:/help/{}/user'.format(proposal_type.name)
+    help_site_assessor_url='site_url:/help/{}/assessor'.format(proposal_type.name)
+    for section in section_list:
+        section_dict={
+            'name': '{}{}'.format(section.section_label.replace(" ",""), section_count),
+            'type': 'section',
+            'label': section.section_label,
+        }
+        section_children=[]
+        section_questions=SectionQuestion.objects.filter(section=section,parent_question__isnull=True,parent_answer__isnull=True).order_by('order')
+        if section_questions:
+            sq_count=0
+            for sq in section_questions:
+                #sq_name='Section'+section_count+'-'+sq_count
+                sq_name='Section{}-{}'.format(section_count,sq_count)
+                sc={
+                    # 'name': sq.question.name,
+                    'name': sq_name,
+                    'type': sq.question.answer_type,
+                    'label': sq.question.question,                    
+                }
+                if sq.question.answer_type in special_types:
+                    sq_option_children=get_checkbox_option_chidren(sq,sq.question, section,sq_name)
+                    sc['children']=sq_option_children
+                    sc['type']='group'
+                else:
+                    if sq.question.option.count()>0:
+                        sq_options= get_options(sq,sq.question)
+                        sc['options']=sq_options
+                    if sq.question.children_question.exists():
+                        sq_children=get_condition_chidren(sq.question,section, sq_name)
+                        sc['conditions']=sq_children
+                if sq.tag:
+                    for t in sq.tag:
+                        if t=='isRequired':
+                            if sq.question.answer_type not in group_types:
+                                sc[t]='true'
+                        else:
+                            sc[t]='true'
+                if sq.question.help_text_url:
+                    sc['help_text_url']='{0}/anchor={1}'.format(help_site_url, sq_name)
+                if sq.question.help_text_assessor_url:
+                    sc['help_text_assessor_url']='{0}/anchor={1}'.format(help_site_assessor_url, sq_name)
+                create_richtext_help(sq.question, sq_name) 
+                section_children.append(sc)
+                sq_count+=1
+        if section_children:
+            section_dict['children']= section_children
+        section_count+=1
+        schema.append(section_dict)
+    import json
+    new_schema=json.dumps(schema)
+    new_Schema_return=json.loads(new_schema)
+    if request.method=='POST':
+        create_helppage_object(proposal_type)
+    return new_Schema_return
+
+
+                
