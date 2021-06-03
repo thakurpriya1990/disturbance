@@ -544,6 +544,23 @@ export default {
         checkOrganisation: function() {
             let vm = this;
             //this.newOrg.abn = this.newOrg.abn.replace(/\s+/g,'');
+            if (vm.checkOrgAlreadyLinked()) {
+                swal(
+                    'Check Organisation',
+                    'Organisation ABN "' + vm.newOrg.abn + '" is already linked.',
+                    'success'
+                )
+                return;
+            } else if (vm.checkOrgRequestList()) {
+                swal(
+                    'Check Organisation',
+                    'Organisation ABN "' + vm.newOrg.abn + '" is already registered and is Pending Approval.',
+                    'success'
+                )
+                return;
+            }
+
+
             vm.$http.post(helpers.add_endpoint_json(api_endpoints.organisations,'existance'),JSON.stringify(this.newOrg),{
                 emulateJSON:true
             }).then((response) => {
@@ -554,6 +571,11 @@ export default {
                 if (response.body.first_five){this.newOrg.first_five = response.body.first_five }
             }, (error) => {
                 console.log(error);
+                swal(
+                    'Check Organisation',
+                    error.bodyText,
+                    'error'
+                )
             });
         },
 
@@ -567,7 +589,13 @@ export default {
             });
         },
 
+        checkOrgRequestList: function() { // Checks if NewOrg requested by user is already Pending Approval
+            return this.orgRequest_list.map(a=>a.abn).includes(String(this.newOrg.abn));
+        },
 
+        checkOrgAlreadyLinked: function() { // Checks if NewOrg requested by user is already registered and linked 
+            return this.profile.disturbance_organisations.map(a=>a.abn).includes(String(this.newOrg.abn));
+        },
 
         validatePins: function() {
             let vm = this;
@@ -656,8 +684,8 @@ export default {
             vm.registeringOrg = true;
             let data = new FormData();
             let new_organisation = vm.newOrg;
-            for (var organisation in vm.profile.commercialoperator_organisations) {
-                if (new_organisation.abn && vm.profile.commercialoperator_organisations[organisation].abn == new_organisation.abn) {
+            for (var organisation in vm.profile.disturbance_organisations) {
+                if (new_organisation.abn && vm.profile.disturbance_organisations[organisation].abn == new_organisation.abn) {
                     swal({
                         title: 'Checking Organisation',
                         html: 'You are already associated with this organisation.',
@@ -774,7 +802,7 @@ export default {
           Vue.http.get(api_endpoints.profile).then((response) => {
                     vm.profile = response.body
                     if (vm.profile.residential_address == null){ vm.profile.residential_address = {}; }
-                    if ( vm.profile.commercialoperator_organisations && vm.profile.commercialoperator_organisations.length > 0 ) { vm.managesOrg = 'Yes' }
+                    if ( vm.profile.disturbance_organisations && vm.profile.disturbance_organisations.length > 0 ) { vm.managesOrg = 'Yes' }
                     vm.phoneNumberReadonly = vm.profile.phone_number === '' || vm.profile.phone_number === null || vm.profile.phone_number === 0 ?  false : true;
                     vm.mobileNumberReadonly = vm.profile.mobile_number === '' || vm.profile.mobile_number === null || vm.profile.mobile_number === 0 ?  false : true;
         },(error) => {

@@ -6,12 +6,17 @@ from disturbance.components.proposals.models import (
         ProposalApproverGroup, 
         HelpPage,
         ApiaryReferralGroup,
+        MasterlistQuestion,
+        QuestionOption,
+        SectionQuestion,
+        QuestionOption,
         )
 from disturbance.components.main.models import SystemMaintenance
 from ckeditor.widgets import CKEditorWidget
 from django.conf import settings
 import pytz
 from datetime import datetime, timedelta
+#from . import errors
 
 
 class ProposalAssessorGroupAdminForm(forms.ModelForm):
@@ -135,3 +140,63 @@ class SystemMaintenanceAdminForm(forms.ModelForm):
         return cleaned_data
 
 
+class MasterlistQuestionAdminForm(forms.ModelForm):
+    # help_text = forms.CharField(widget=CKEditorWidget())
+    # help_text_assessor = forms.CharField(widget=CKEditorWidget())
+
+    class Meta:
+        model = MasterlistQuestion
+        #fields = '__all__'
+        fields= ('question', 'option', 'answer_type', 'help_text_url', 'help_text_assessor_url','help_text', 'help_text_assessor')
+
+    def __init__(self, *args, **kwargs):
+        super(MasterlistQuestionAdminForm, self).__init__(*args, **kwargs)
+        if self.instance:
+            self.fields['option'].queryset = QuestionOption.objects.all()
+
+   
+
+class SectionQuestionAdminForm(forms.ModelForm):
+    class Meta:
+        model = SectionQuestion
+        fields = '__all__'
+        #fields= ('section', 'question','order', 'parent_question','parent_answer', 'section__section_name')
+
+    def __init__(self, *args, **kwargs):
+        super(SectionQuestionAdminForm, self).__init__(*args, **kwargs)
+        #if self.instance:
+            #queryset_option=QuestionOption.objects.none()
+            #self.fields['parent_question'].queryset = MasterlistQuestion.objects.filter(option__isnull=False).distinct()
+            #import ipdb; ipdb.set_trace()
+            #self.fields['parent_question_another'].queryset = MasterlistQuestion.objects.filter(option__isnull=False).distinct()
+
+
+class ProposalTypeActionForm(forms.Form):
+    new_schema = forms.CharField(
+        required=False,
+        widget=forms.Textarea,
+    )
+    
+    def form_action(self, proposal_type):
+        raise NotImplementedError()
+    def save(self, proposal_type):
+        try:
+            proposal_type,action = self.form_action(proposal_type)
+        except errors.Error as e:
+            error_message = str(e)
+            self.add_error(None, error_message)
+            raise
+       
+        return proposal_type, action
+
+class GenerateSchemaForm(ProposalTypeActionForm):
+    # comment = forms.CharField(
+    #     required=False,
+    #     widget=forms.Textarea,
+    # )
+    
+    field_order = (
+        'new_schema',
+    )
+    def form_action(self, proposal_type):
+        return proposal_type
