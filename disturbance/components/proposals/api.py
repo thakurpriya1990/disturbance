@@ -33,7 +33,7 @@ from disturbance.components.proposals.utils import (
 from disturbance.components.proposals.models import searchKeyWords, search_reference, \
     OnSiteInformation, ApiarySite, ApiaryChecklistQuestion, ApiaryChecklistAnswer, \
     ProposalApiaryTemporaryUse, ApiarySiteOnProposal, PublicLiabilityInsuranceDocument, DeedPollDocument, \
-    SupportingApplicationDocument
+    SupportingApplicationDocument, search_sections
 from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_APPROVED, SITE_STATUS_CURRENT, SITE_STATUS_DENIED, \
     SITE_STATUS_NOT_TO_BE_REISSUED, SITE_STATUS_VACANT, SITE_STATUS_TRANSFERRED, SITE_STATUS_DISCARDED
 from disturbance.utils import search_tenure
@@ -2692,6 +2692,7 @@ class SearchReferenceView(views.APIView):
             raise serializers.ValidationError(str(e))
 
 
+
 class ApiaryReferralGroupViewSet(viewsets.ModelViewSet):
     queryset = ApiaryReferralGroup.objects.none()
     serializer_class = ApiaryReferralGroupSerializer
@@ -2728,5 +2729,24 @@ class ApiarySiteFeeViewSet(viewsets.ModelViewSet):
 
 
 class ProposalTypeSectionViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = ProposalTypeSection.objects.all().order_by('id')
+    latest_proposal_types=[p.id for p in ProposalType.objects.all() if p.latest ]
+    queryset = ProposalTypeSection.objects.filter(proposal_type_id__in=latest_proposal_types).order_by('id')
+    #queryset = ProposalTypeSection.objects.all().order_by('id')
     serializer_class = ProposalTypeSectionSerializer
+
+class SearchSectionsView(views.APIView):
+    renderer_classes = [JSONRenderer,]
+    def post(self,request, format=None):
+        qs = []
+        application_type_name= request.data.get('application_type_name')
+        region= request.data.get('region')
+        district= request.data.get('district')
+        activity= request.data.get('activity')
+        section_label= request.data.get('section_label')
+        question_label= request.data.get('question_label')
+        option_label= request.data.get('option_label')
+        is_internal= request.data.get('is_internal')
+        qs= search_sections(application_type_name, section_label,question_label,option_label,is_internal, region,district,activity)
+        #queryset = list(set(qs))
+        serializer = SearchKeywordSerializer(qs, many=True)
+        return Response(serializer.data)

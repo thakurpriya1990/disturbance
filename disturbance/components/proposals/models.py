@@ -2512,6 +2512,48 @@ def search_reference(reference_number):
     else:
         raise ValidationError('Record with provided reference number does not exist')
 
+def search_sections(application_type_name, section_label,question_label,option_label,is_internal= True, region=None,district=None,activity=None):
+    from disturbance.utils import search_section
+    #print(application_type_name, section_label,question_label,option_label,is_internal)
+    qs = []
+    if is_internal:
+        if(not application_type_name or not section_label or not question_label or not option_label):
+            raise ValidationError('Some of the mandatory fields are missing')
+        #import ipdb; ipdb.set_trace()
+        proposal_list = Proposal.objects.filter(application_type__name=application_type_name).exclude(processing_status__in=[Proposal.PROCESSING_STATUS_DISCARDED, Proposal.PROCESSING_STATUS_DRAFT])
+        filter_conditions={}
+        if region:
+            filter_conditions['region']=region
+        if district:
+            filter_conditions['district']=district
+        if activity:
+            filter_conditions['activity']=activity
+        if filter_conditions:
+            proposal_list=proposal_list.filter(**filter_conditions)
+        if proposal_list:
+            for p in proposal_list:
+                if p.data:
+                    try:
+                        print(p)
+                        results = search_section(p.schema, section_label, question_label, p.data, option_label)
+                        final_results = {}
+                        if results:
+                            # for r in results:
+                            #     for key, value in r.items():
+                            #         final_results.update({'key': key, 'value': value})
+                            res = {
+                                'number': p.lodgement_number,
+                                'id': p.id,
+                                'type': 'Proposal',
+                                'applicant': p.applicant.name,
+                                'text': results,
+                                }
+                            qs.append(res)
+                    except:
+                        raise
+
+
+    return qs
 
 from ckeditor.fields import RichTextField
 class HelpPage(models.Model):

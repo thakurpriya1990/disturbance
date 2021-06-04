@@ -684,6 +684,7 @@ class SectionQuestionSerializer(serializers.ModelSerializer):
 
 class ProposalTypeSectionSerializer(serializers.ModelSerializer):
     section_questions = SectionQuestionSerializer(many=True, read_only=True)
+    proposal_type_name=serializers.CharField(source='proposal_type.name')
     class Meta:
         model = ProposalTypeSection
         fields = '__all__'

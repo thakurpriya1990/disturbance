@@ -19,9 +19,9 @@
                               <label for="" class="control-label" >Proposal Type</label>
                               <div>
                                   <div class="form-group">
-                                      <select class="form-control" style="width:40%" v-model="selected_application_id" @change="chainedSelectAppType(selected_application_id)">
+                                      <select class="form-control" style="width:40%" v-model="selected_application_name" @change="chainedSelectAppType(selected_application_name)">
                                           <option value="" selected disabled>Proposal Type</option>
-                                          <option v-for="application_type in application_types" :value="application_type.value">
+                                          <option v-for="application_type in application_types" :value="application_type.text">
                                                 {{ application_type.text }}
                                           </option>
                                       </select>
@@ -104,8 +104,20 @@
                               </div>
                             </div>
 
-                            <div>
-                              <div v-if="options.length > 0">
+                            <div v-if="selected_question">
+                              <div v-if="date_type">
+                                <label class="control-label"  for="Name">Answer</label>
+                                <div class="form-group">
+                                    <div class="input-group date" ref="question_date" style="width: 70%;">
+                                        <input type="text" class="form-control" name="question_date" placeholder="DD/MM/YYYY" v-model="selected_option">
+                                        <span class="input-group-addon">
+                                            <span class="glyphicon glyphicon-calendar"></span>
+                                        </span>
+                                    </div>
+                                </div>
+                              </div>
+
+                              <div v-else-if="select_type && options.length > 0">
                                 <label for="" class="control-label" >Options </label>
                                 <div >
                                   <div class="form-group">
@@ -118,6 +130,15 @@
                                   </div>
                                 </div>
                               </div>
+                              <div v-else>
+                                <label class="control-label"  for="Name">Answer</label>
+                                <div class="form-group">
+                                    <div class="input-group" style="width: 70%;">
+                                        <input type="text" class="form-control" name="question_date"  v-model="selected_option">
+                                    </div>
+                                </div>
+                              </div>
+
                             </div>
                                                      
                       </div>
@@ -159,6 +180,7 @@
 </template>
 <script>
 import $ from 'jquery'
+import alert from '@vue-utils/alert.vue'
 import datatable from '@/utils/vue/datatable.vue'
 import {
   api_endpoints,
@@ -193,7 +215,7 @@ export default {
       pBody: 'pBody' + vm._uid,
       pBody2: 'pBody2' + vm._uid,
 
-      selected_application_id: '',
+      selected_application_name: '',
       selected_application_name: '',
       selected_region: '',
       selected_district: '',
@@ -215,6 +237,15 @@ export default {
       display_region_selectbox: true,
       display_activity_matrix_selectbox: true,
       display_section_selectbox: true,
+      date_type: false,
+      select_type: false,
+      datepickerOptions:{
+                format: 'DD/MM/YYYY',
+                showClear:true,
+                useCurrent:false,
+                keepInvalid:true,
+                allowInputToggle:true
+            },
       site_url: (api_endpoints.site_url.endsWith("/")) ? (api_endpoints.site_url): (api_endpoints.site_url + "/"),
       datatable_id: 'proposal-datatable-'+vm._uid,
       proposal_headers:["Number","Type","Proponent","Text found","Action"],
@@ -332,19 +363,48 @@ export default {
           vm.searchCompliance = false; */
           vm.keyWord = null; 
           vm.results = [];
+          vm.selected_application_name='';
+          vm.selected_region = '';
+          vm.selected_district = '';
+          vm.selected_activity = '';
+          vm.selected_section='';
+          vm.selected_question='';
+          vm.selected_option='';
+          vm.sections = [];
+          vm.questions=[];
+          vm.options=[];
+          vm.date_type=false;
+          vm.select_type=false;
           vm.$refs.proposal_datatable.vmDataTable.clear()
           vm.$refs.proposal_datatable.vmDataTable.draw();      
         },
 
         search: function() {
           let vm = this;
-          if(this.searchKeywords.length > 0)
+          // swal(
+          //         'Missing fields',
+          //         'Please select all the mandatory fields',
+          //         'error'
+          //       );
+          if(!vm.selected_application_name || !vm.selected_section || !vm.selected_question || !vm.selected_option )
           {
-            vm.$http.post('/api/search_keywords.json',{
-              searchKeywords: vm.searchKeywords,
-              searchProposal: vm.searchProposal,
-              searchApproval: vm.searchApproval,
-              searchCompliance: vm.searchCompliance,
+            console.log('here');
+            swal(
+                  'Missing fields',
+                  'Please select all the mandatory fields',
+                  'error'
+                );
+          }
+          else
+          {
+            vm.$http.post('/api/search_sections.json',{
+              application_type_name: vm.selected_application_name,
+              region: vm.selected_region,
+              district: vm.selected_district,
+              activity: vm.selected_activity,
+              section_label: vm.selected_section,
+              question_label: vm.selected_question,
+              option_label: vm.selected_option,
               is_internal: true,
             }).then(res => {
               vm.results = res.body;
@@ -413,32 +473,51 @@ export default {
             //console.log('api_regions ' + response.body);
 
                     for (var i = 0; i < vm.api_sections.length; i++) {
-                        this.sections.push( {text: vm.api_sections[i].section_label, value: vm.api_sections[i].section_name, questions: vm.api_sections[i].section_questions} );
+                        this.sections.push( {text: vm.api_sections[i].section_label, value: vm.api_sections[i].section_label, questions: vm.api_sections[i].section_questions} );
                     }
         },(error) => {
           console.log(error);
         })
       },
-      chainedSelectAppType: function(application_id){
+      chainedSelectAppType: function(application_name){
         /* reset */
         let vm = this;
             vm.selected_region = '';
             vm.selected_district = '';
             vm.selected_activity = '';
-            vm.display_region_selectbox = false;
-            vm.display_activity_matrix_selectbox = false;
+            vm.selected_section='';
+            vm.selected_question='';
+            vm.selected_option='';
+            vm.sections = [];
+            vm.questions=[];
+            vm.options=[];
+            vm.date_type=false;
+            vm.select_type=false;
 
-            vm.selected_application_name = this.searchList(application_id, vm.application_types).text
-            //this.chainedSelectActivities(application_id);
-            //this.chainedSelectActivities(application_id);
+            if (vm.api_sections.length > 0) {
+                for (var i = 0; i < vm.api_sections.length; i++) {
+                  if(vm.api_sections[i].proposal_type_name==application_name)
+                    {
+                        this.sections.push( {text: vm.api_sections[i].section_label, value: vm.api_sections[i].section_label, questions: vm.api_sections[i].section_questions} );
 
-            if (['Apiary', 'Site Transfer', 'Temporary Use'].includes(vm.selected_application_name)) {
-                vm.display_region_selectbox = false;
-                vm.display_activity_matrix_selectbox = false;
-            }  else {
-                vm.display_region_selectbox = true;
-                vm.display_activity_matrix_selectbox = true;
-            }
+                    }
+                  }
+                }
+
+            // vm.display_region_selectbox = false;
+            // vm.display_activity_matrix_selectbox = false;
+
+            // vm.selected_application_name = this.searchList(application_id, vm.application_types).text
+            // //this.chainedSelectActivities(application_id);
+            // //this.chainedSelectActivities(application_id);
+
+            // if (['Apiary', 'Site Transfer', 'Temporary Use'].includes(vm.selected_application_name)) {
+            //     vm.display_region_selectbox = false;
+            //     vm.display_activity_matrix_selectbox = false;
+            // }  else {
+            //     vm.display_region_selectbox = true;
+            //     vm.display_activity_matrix_selectbox = true;
+            // }
 
         },
       chainedSelectDistricts: function(region_id){
@@ -455,25 +534,53 @@ export default {
       chainedSelectSections: function(section_name){
         let vm = this;
             vm.questions = [];
+            vm.options=[];
+            vm.date_type=false;
+            vm.select_type=false;
 
             var api_questions = this.searchList(section_name, vm.sections).questions;
             if (api_questions.length > 0) {
                 for (var i = 0; i < api_questions.length; i++) {
-                    this.questions.push( {text: api_questions[i].question_name, value: api_questions[i].question_id, options: api_questions[i].question_options, answer_type: api_questions[i].answer_type  } );
+                    this.questions.push( {text: api_questions[i].question_name, value: api_questions[i].question_name, options: api_questions[i].question_options, answer_type: api_questions[i].answer_type  } );
                 }
             }
       },
-      chainedSelectOptions: function(question_id){
+      chainedSelectOptions: function(question_name){
         let vm = this;
-            vm.options = [];
+            vm.options = [];  
+            vm.date_type=false;
+            vm.select_type=false;
+            var found_question=this.searchList(question_name, vm.questions)
 
-            var api_options = this.searchList(question_id, vm.questions).options;
-            if (api_options.length > 0) {
+            //var api_options = this.searchList(question_name, vm.questions).options;
+            var api_options = found_question.options;
+            if(found_question.answer_type=='date'){
+              vm.date_type =true;
+              $(vm.$refs.question_date).datetimepicker(vm.datepickerOptions);
+              //vm.eventListeners()
+            }
+            else if (api_options.length > 0) {
+                vm.select_type=true;
                 for (var i = 0; i < api_options.length; i++) {
                     this.options.push( {text: api_options[i].label, value: api_options[i].label} );
                 }
             }
       },
+      // chainedSelectProposalType: function(application_name){
+      //   let vm = this;
+      //       vm.sections = [];
+
+      //       //var api_options = this.searchList(question_id, vm.questions).options;
+      //       if (vm.api_sections.length > 0) {
+      //           for (var i = 0; i < vm.api_sections.length; i++) {
+      //             if(vm.api_section[i].proposal_type_name==application_name)
+      //               {
+      //                   this.sections.push( {text: vm.api_sections[i].section_label, value: vm.api_sections[i].section_name, questions: vm.api_sections[i].section_questions} );
+
+      //               }
+      //             }
+      //           }
+      // },
       fetchActivityMatrix: function(){
         let vm = this;
             vm.sub_activities1 = [];
@@ -540,7 +647,7 @@ export default {
       fetchApplicationTypes: function(){
         let vm = this;
 
-        vm.$http.get(api_endpoints.application_types).then((response) => {
+        vm.$http.get(api_endpoints.searchable_application_types).then((response) => {
             vm.api_app_types = response.body;
             //console.log('api_app_types ' + response.body);
 
@@ -557,6 +664,20 @@ export default {
           console.log(error);
         })
       },
+      eventListeners:function () {
+            let vm = this;
+            // Initialise Date Picker
+            console.log('here');
+            $(vm.$refs.question_date).datetimepicker(vm.datepickerOptions);
+            $(vm.$refs.question_date).on('dp.change', function(e){
+                if ($(vm.$refs.question_date).data('DateTimePicker').date()) {
+                    vm.selected_option =  e.date.format('DD/MM/YYYY');
+                }
+                else if ($(vm.$refs.question_date).data('date') === "") {
+                    vm.selected_option = "";
+                }
+             });
+       },
 
     },
     mounted: function () {
@@ -567,6 +688,9 @@ export default {
         vm.fetchSections();
         vm.proposal_options.data = vm.results;
         vm.$refs.proposal_datatable.vmDataTable.draw();
+        this.$nextTick(()=>{
+            vm.eventListeners();
+        });
         $( 'a[data-toggle="collapse"]' ).on( 'click', function () {
             var chev = $( this ).children()[ 0 ];
             window.setTimeout( function () {
@@ -578,6 +702,7 @@ export default {
         let vm = this;
         this.$nextTick(() => {
             vm.addListeners();
+            vm.eventListeners();
         });
         
     }

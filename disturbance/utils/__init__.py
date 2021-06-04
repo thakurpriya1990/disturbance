@@ -271,7 +271,8 @@ def create_richtext_help(help_list=None, help_text='help_text'):
 
 def search_keys(dictionary, search_list=['help_text', 'label']):
     """
-    Return search_list pairs from the schema -- given help_text, finds the equiv. label
+    Return search_list pairs from
+     the schema -- given help_text, finds the equiv. label
 
     To run:
         from disturbance.utils import search_keys
@@ -285,10 +286,9 @@ def search_keys(dictionary, search_list=['help_text', 'label']):
     for k, v in flat_dict.items():
         if any(x in k for x in search_list):
             result.append( {k: v} )
-
     help_list = []
     for i in result:
-        try:
+        try: 
             key = list(i.keys())[0]
             if key and key.endswith(search_item1):
                 corresponding_label_key = '.'.join(key.split('.')[:-1]) + '.' + search_item2
@@ -437,27 +437,41 @@ def search_section(schema, section_label, question_label, data, answer):
         question_names=[]
         found_fields=[]
         section_label=section_label.replace(" ","")
+        #import ipdb; ipdb.set_trace()
 
         if item['type']=='section' and item['name']:
             item_name=item['name'].rstrip('0123456789')
             if item_name==section_label:
                 children=item['children']
                 if children:
-                    children_keys= search_keys(children, ['name', 'label'])
+                    children_keys= search_keys(children, ['name', 'label', 'type', 'children'])
+                    print(children_keys)
                     if children_keys:
                         question_names=[]
                         for key in children_keys:
                             if key['label']==question_label:
-                                question_names.append({'name': key['name'], 'label': key['label']})
+                                if 'children' in key:
+                                    checkbox_children_keys=search_keys(key['children'], ['name', 'label', 'type', 'children'])
+                                    for ch in checkbox_children_keys:
+                                        if ch['label']==answer:
+                                            question_names.append({'name': ch['name'], 'label': ch['label', 'type': ch['type']]})
+                                else:
+                                    question_names.append({'name': key['name'], 'label': key['label']})
+
         print(question_names)
 
         data = flatten(data[0])
         for flat_key in data.items():
             for item in question_names:
+                #import ipdb; ipdb.set_trace()
                 if flat_key[0].endswith(item['name']):
                     if flat_key[1].strip():
-                        if answer in flat_key[1]:
-                            found_fields.append( dict(key=item['label'], value=flat_key[1]) )
+                        if 'type' in item:
+                            if 'on' in flat_key[1]:
+                                found_fields.append( dict(key=item['label'], value=flat_key[1]) ) 
+                        else: 
+                            if answer.replace(" ","").lower() in flat_key[1].lower():
+                                found_fields.append( dict(key=item['label'], value=flat_key[1]) )
         return found_fields
 
 
