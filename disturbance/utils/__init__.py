@@ -303,6 +303,48 @@ def search_keys(dictionary, search_list=['help_text', 'label']):
 
     return help_list
 
+def search_keys_group(dictionary, search_list=['name', 'label', 'group']):
+    """
+    Return search_list pairs from
+     the schema -- given help_text, finds the equiv. label
+
+    To run:
+        from disturbance.utils import search_keys
+        search_keys2(dictionary, search_list=['help_text', 'label'])
+        search_keys2(dictionary, search_list=['name', 'label'])
+    """
+    search_item1 = search_list[0]
+    search_item2 = search_list[1]
+    search_item3 = search_list[2]
+    result = []
+    flat_dict = flatten(dictionary)
+    for k, v in flat_dict.items():
+        if any(x in k for x in search_list):
+            result.append( {k: v} )
+    help_list = []
+    for i in result:
+        try: 
+            key = list(i.keys())[0]
+            if key and key.endswith(search_item1):
+                found_key={}
+                found_key.update({search_item1: i[key]})
+                corresponding_label_key = '.'.join(key.split('.')[:-1]) + '.' + search_item2
+                corresponding_group_key = '.'.join(key.split('.')[:-1]) + '.' + search_item3
+                for j in result:
+                    key_label = list(j.keys())[0]
+                    if key_label and key_label.endswith(search_item2) and key_label == corresponding_label_key: # and result.has_key(key):
+                        #import ipdb; ipdb.set_trace()
+                        found_key.update({search_item2: j[key_label]})
+                    if key_label and key_label.endswith(search_item3) and key_label == corresponding_group_key: # and result.has_key(key):
+                        #import ipdb; ipdb.set_trace()
+                        found_key.update({search_item3: j[key_label]})
+                help_list.append(found_key)
+        except Exception as e:
+            #import ipdb; ipdb.set_trace()
+            print(e)
+
+    return help_list
+
 def missing_required_fields(proposal):
     """
     Returns the missing required fields from the schema (no data is entered)
@@ -431,42 +473,46 @@ def are_migrations_running():
     # return sys.argv and ('migrate' in sys.argv or 'makemigrations' in sys.argv)
     return sys.argv and ('migrate' in sys.argv or 'makemigrations' in sys.argv or 'showmigrations' in sys.argv or 'sqlmigrate' in sys.argv)
 
-def search_section(schema, section_label, question_label, data, answer):
+def search_section(schema, section_label, question, data, answer):
     for item in schema:
         children=[]
         question_names=[]
         found_fields=[]
         section_label=section_label.replace(" ","")
         #import ipdb; ipdb.set_trace()
+        question_label=question.question
+        question_type=question.answer_type
 
         if item['type']=='section' and item['name']:
             item_name=item['name'].rstrip('0123456789')
             if item_name==section_label:
                 children=item['children']
                 if children:
-                    children_keys= search_keys(children, ['name', 'label', 'type', 'children'])
-                    print(children_keys)
+                    children_keys= search_keys_group(children, ['name', 'label', 'group'])
                     if children_keys:
                         question_names=[]
                         for key in children_keys:
-                            if key['label']==question_label:
-                                if 'children' in key:
-                                    checkbox_children_keys=search_keys(key['children'], ['name', 'label', 'type', 'children'])
-                                    for ch in checkbox_children_keys:
-                                        if ch['label']==answer:
-                                            question_names.append({'name': ch['name'], 'label': ch['label', 'type': ch['type']]})
+                            if 'label' in key and key['label']==question_label:
+                                if question_type=='checkbox':
+                                    for ch in children_keys:
+                                        if 'group' in ch and ch['group']==key['name'] and ch['label']==answer:
+                                            question_names.append({'name': ch['name'], 'label': ch['label']})
                                 else:
                                     question_names.append({'name': key['name'], 'label': key['label']})
 
-        print(question_names)
 
         data = flatten(data[0])
         for flat_key in data.items():
             for item in question_names:
                 #import ipdb; ipdb.set_trace()
-                if flat_key[0].endswith(item['name']):
+                key_name=flat_key[0]
+                #if flat_key has numbers at the end e.g. ProposalSummary0.Section0-0.0000, usually for multiselect answers.
+                if len(key_name[len(key_name.rstrip('0123456789')):])==4:
+                    key_name=key_name[:-5]
+
+                if key_name.endswith(item['name']):
                     if flat_key[1].strip():
-                        if 'type' in item:
+                        if question_type=='checkbox':
                             if 'on' in flat_key[1]:
                                 found_fields.append( dict(key=item['label'], value=flat_key[1]) ) 
                         else: 

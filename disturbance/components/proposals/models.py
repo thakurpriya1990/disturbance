@@ -2512,15 +2512,16 @@ def search_reference(reference_number):
     else:
         raise ValidationError('Record with provided reference number does not exist')
 
-def search_sections(application_type_name, section_label,question_label,option_label,is_internal= True, region=None,district=None,activity=None):
+def search_sections(application_type_name, section_label,question_id,option_label,is_internal= True, region=None,district=None,activity=None):
     from disturbance.utils import search_section
     #print(application_type_name, section_label,question_label,option_label,is_internal)
     qs = []
     if is_internal:
-        if(not application_type_name or not section_label or not question_label or not option_label):
+        if(not application_type_name or not section_label or not question_id or not option_label):
             raise ValidationError('Some of the mandatory fields are missing')
         #import ipdb; ipdb.set_trace()
         proposal_list = Proposal.objects.filter(application_type__name=application_type_name).exclude(processing_status__in=[Proposal.PROCESSING_STATUS_DISCARDED, Proposal.PROCESSING_STATUS_DRAFT])
+        question=MasterlistQuestion.objects.get(id=question_id)
         filter_conditions={}
         if region:
             filter_conditions['region']=region
@@ -2534,8 +2535,7 @@ def search_sections(application_type_name, section_label,question_label,option_l
             for p in proposal_list:
                 if p.data:
                     try:
-                        print(p)
-                        results = search_section(p.schema, section_label, question_label, p.data, option_label)
+                        results = search_section(p.schema, section_label, question, p.data, option_label)
                         final_results = {}
                         if results:
                             # for r in results:
@@ -2546,7 +2546,7 @@ def search_sections(application_type_name, section_label,question_label,option_l
                                 'id': p.id,
                                 'type': 'Proposal',
                                 'applicant': p.applicant.name,
-                                'text': results,
+                                'text': results[0],
                                 }
                             qs.append(res)
                     except:

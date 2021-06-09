@@ -388,7 +388,7 @@ export default {
           //       );
           if(!vm.selected_application_name || !vm.selected_section || !vm.selected_question || !vm.selected_option )
           {
-            console.log('here');
+            //console.log('here');
             swal(
                   'Missing fields',
                   'Please select all the mandatory fields',
@@ -403,7 +403,7 @@ export default {
               district: vm.selected_district,
               activity: vm.selected_activity,
               section_label: vm.selected_section,
-              question_label: vm.selected_question,
+              question_id: vm.selected_question,
               option_label: vm.selected_option,
               is_internal: true,
             }).then(res => {
@@ -541,16 +541,16 @@ export default {
             var api_questions = this.searchList(section_name, vm.sections).questions;
             if (api_questions.length > 0) {
                 for (var i = 0; i < api_questions.length; i++) {
-                    this.questions.push( {text: api_questions[i].question_name, value: api_questions[i].question_name, options: api_questions[i].question_options, answer_type: api_questions[i].answer_type  } );
+                    this.questions.push( {text: api_questions[i].question_name, value: api_questions[i].question_id, options: api_questions[i].question_options, answer_type: api_questions[i].answer_type  } );
                 }
             }
       },
-      chainedSelectOptions: function(question_name){
+      chainedSelectOptions: function(question_id){
         let vm = this;
             vm.options = [];  
             vm.date_type=false;
             vm.select_type=false;
-            var found_question=this.searchList(question_name, vm.questions)
+            var found_question=this.searchList(question_id, vm.questions)
 
             //var api_options = this.searchList(question_name, vm.questions).options;
             var api_options = found_question.options;
@@ -667,7 +667,7 @@ export default {
       eventListeners:function () {
             let vm = this;
             // Initialise Date Picker
-            console.log('here');
+            //console.log('here');
             $(vm.$refs.question_date).datetimepicker(vm.datepickerOptions);
             $(vm.$refs.question_date).on('dp.change', function(e){
                 if ($(vm.$refs.question_date).data('DateTimePicker').date()) {
