@@ -842,6 +842,14 @@ class Proposal(RevisionedMixin):
         else:
             return False
 
+    @property   
+    def status_without_assessor(self):
+        status_without_assessor = ['with_approver','approved','declined','draft', 'with_referral']
+        if self.processing_status in status_without_assessor:
+            return True
+        return False
+
+
     def has_assessor_mode(self,user):
         status_without_assessor = ['with_approver','approved','declined','draft']
         if self.processing_status in status_without_assessor:

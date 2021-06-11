@@ -330,7 +330,7 @@ module.exports = {
                 // Assessor Data
                 var assessor_name = `${c.name}-Assessor`;
                 var assessor_val = _dt == undefined || _dt.assessor == '' ? val : _dt.assessor;
-                var assessor_visibility = assessor_mode == 'assessor' && this.status_data.assessorStatus.has_assessor_mode? true : false;
+                var assessor_visibility = assessor_mode == 'assessor' && this.status_data.assessorStatus.has_assessor_mode && !this.status_data.assessorStatus.status_without_assessor? true : false;
                 assessor_visibility = !assessor_visibility;
                 boxes.push(
                     <AssessorText box_view={box_visibility} type="text" name={assessor_name} value={assessor_val} label={'Assessor'} help_text={c.help_text} readonly={assessor_visibility}/>
@@ -364,7 +364,7 @@ module.exports = {
             else{
                 if (assessor_mode == 'assessor'){
                     var name = `${c.name}-Assessor`;
-                    var assessor_visibility = assessor_mode == 'assessor' && this.status_data.assessorStatus.has_assessor_mode? true : false;
+                    var assessor_visibility = assessor_mode == 'assessor' && this.status_data.assessorStatus.has_assessor_mode && !this.status_data.assessorStatus.status_without_assessor? true : false;
                     assessor_visibility = !assessor_visibility;
                     boxes.push(
                         <AssessorText box_view={box_visibility} type="text" name={name} value={val} label={'Assessor'} help_text={c.help_text} readonly={assessor_visibility}/>
@@ -461,7 +461,7 @@ module.exports = {
                 else{
                     assessor_val = _dt.assessor == '' ? '' : _dt.assessor;
                 }
-                var assessor_visibility = assessor_mode == 'assessor' && this.status_data.assessorStatus.has_assessor_mode? true : false;
+                var assessor_visibility = assessor_mode == 'assessor' && this.status_data.assessorStatus.has_assessor_mode && !this.status_data.assessorStatus.status_without_assessor? true : false;
                 assessor_visibility = !assessor_visibility;
                 boxes.push(
                     {
@@ -522,7 +522,7 @@ module.exports = {
             else{
                 if (assessor_mode == 'assessor'){
                     var name = `${c.name}-comment-field-Assessor`;
-                    var assessor_visibility = assessor_mode == 'assessor' && this.status_data.assessorStatus.has_assessor_mode? true : false;
+                    var assessor_visibility = assessor_mode == 'assessor' && this.status_data.assessorStatus.has_assessor_mode && !this.status_data.assessorStatus.status_without_assessor? true : false;
                     assessor_visibility = !assessor_visibility;
                     boxes.push(
                         {
