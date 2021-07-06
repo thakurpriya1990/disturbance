@@ -281,7 +281,6 @@ class ApiarySiteOnProposalDraftGeometrySerializer(GeoFeatureModelSerializer):
     previous_site_holder_or_applicant = serializers.SerializerMethodField()
     is_vacant = serializers.BooleanField(source='apiary_site.is_vacant')
     stable_coords = serializers.SerializerMethodField()
-    #licensed_site = serializers.IntegerField(source='apiary_site.licensed_site')
 
     class Meta:
         model = ApiarySiteOnProposal
@@ -302,6 +301,7 @@ class ApiarySiteOnProposalDraftGeometrySerializer(GeoFeatureModelSerializer):
             'apiary_site_status_when_submitted',
             'apiary_site_is_vacant_when_submitted',
             'licensed_site',
+            'issuance_details',
         )
 
     def get_stable_coords(self, obj):
@@ -486,6 +486,7 @@ class ApiarySiteOnProposalProcessedGeometrySerializer(GeoFeatureModelSerializer)
             'apiary_site_status_when_submitted',
             'apiary_site_is_vacant_when_submitted',
             'licensed_site',
+            'issuance_details',
         )
 
     def get_stable_coords(self, obj):

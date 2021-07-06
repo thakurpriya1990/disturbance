@@ -22,7 +22,7 @@ def create_apiary_licence_pdf_contents(approval, proposal, copied_to_permit, app
     else:
         # Use default template file
         #path_to_template = os.path.join(settings.BASE_DIR, 'disturbance', 'static', 'disturbance', 'apiary_authority_template.docx')
-        path_to_template = os.path.join(settings.BASE_DIR, 'disturbance', 'static', 'disturbance', 'apiary_authority_permit_template_v2.docx')
+        path_to_template = os.path.join(settings.BASE_DIR, 'disturbance', 'static', 'disturbance', 'apiary_authority_permit_template_v3.docx')
 
     doc = DocxTemplate(path_to_template)
     # address = ''

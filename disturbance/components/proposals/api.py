@@ -876,6 +876,8 @@ class ProposalApiaryViewSet(viewsets.ModelViewSet):
             #serializer = InternalProposalSerializer(instance,context={'request':request})
             serializer_class = self.internal_apiary_serializer_class()
             serializer = serializer_class(instance.proposal,context={'request':request})
+
+
             if preview:
                 site_transfer_preview = False
                 if instance.proposal.application_type.name == ApplicationType.SITE_TRANSFER:
@@ -890,6 +892,17 @@ class ProposalApiaryViewSet(viewsets.ModelViewSet):
                     preview_approval_id = serializer.data.get('approval', {}).get('id')
                 licence_response = HttpResponse(content_type='application/pdf')
                 preview_approval = Approval.objects.get(id=preview_approval_id)
+
+#                apiary_sites = request.data.get('apiary_sites')
+#                for apiary_site in apiary_sites:
+#                    site_id = apiary_site.get('id')
+#                    licensed_site = apiary_site.get('properties')['licensed_site']
+#                    for orig_asoa in instance.get_relations():
+#                        if site_id == orig_asoa.apiary_site_id:
+#                            asoa = preview_approval.get_relations().get(apiary_site_id=site_id)
+#                            asoa.licensed_site = licensed_site
+#                            asoa.save()
+
                 licence_response.content = preview_approval.generate_doc(
                         request.user, 
                         preview=True, 
@@ -1769,6 +1782,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['POST',])
     def proposed_approval(self, request, *args, **kwargs):
         try:
+            import ipdb; ipdb.set_trace()
             instance = self.get_object()
             if instance.application_type.name == ApplicationType.SITE_TRANSFER:
                 #serializer = ProposedApprovalSiteTransferSerializer(data=request.data)

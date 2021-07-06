@@ -292,7 +292,7 @@
                                 if (!vm.enable_col_licensed_site_checkbox){
                                     disabled_str = ' disabled '
                                 }
-                                if (apiary_site.checked){
+                                if (apiary_site.properties.licensed_site){
                                     return '<input type="checkbox" class="licensed_site_checkbox" data-apiary-licensed-site-id="' + apiary_site.id + '"' + disabled_str + ' checked/>'
                                 } else {
                                     return '<input type="checkbox" class="licensed_site_checkbox" data-apiary-licensed-site-id="' + apiary_site.id + '"' + disabled_str + '/>'

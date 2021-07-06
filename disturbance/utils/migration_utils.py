@@ -132,8 +132,8 @@ class ApiaryLicenceReader():
                     else:
                         data.update({'issue_date': start_date})
                     data.update({'status': row[4].strip().capitalize()})
-                    data.update({'latitude': row[5].translate(None, string.whitespace)})
-                    data.update({'longitude': row[6].translate(None, string.whitespace)})
+                    data.update({'latitude': row[5].translate(string.whitespace)})
+                    data.update({'longitude': row[6].translate(string.whitespace)})
                     #data.update({'file_no': row[0].translate(None, string.whitespace)})
                     #data.update({'licence_no': row[1].translate(None, string.whitespace)})
                     #data.update({'expiry_date': row[2].strip()})
@@ -142,7 +142,7 @@ class ApiaryLicenceReader():
 
                     data.update({'trading_name': row[7].strip()})
                     data.update({'licencee': row[8].strip()})
-                    data.update({'abn': row[9].translate(None, string.whitespace)})
+                    data.update({'abn': row[9].translate(string.whitespace).replace(' ','')})
                     #data.update({'title': row[10].strip()})
                     first_name_raw = row[10].strip()
                     if first_name_raw:
@@ -154,6 +154,7 @@ class ApiaryLicenceReader():
                         last_name_split = last_name_raw.split('&')
                         data.update({'last_name': last_name_raw.strip().capitalize()})
                     #data.update({'other_contact': row[12].strip()})
+                    #import ipdb; ipdb.set_trace()
                     data.update({'address_line1': row[13].strip()})
                     data.update({'address_line2': row[14].strip()})
                     data.update({'address_line3': row[15].strip()})
@@ -166,22 +167,24 @@ class ApiaryLicenceReader():
                     country_str = 'Australia' if country_raw.lower().startswith('a') else country_raw
                     country=Country.objects.get(printable_name__icontains=country_str)
                     data.update({'country': country.iso_3166_1_a2}) # 2 char 'AU'
-                    data.update({'postcode': row[19].translate(None, string.whitespace)})
-                    data.update({'phone_number1': row[20].translate(None, b' -()')})
-                    data.update({'phone_number2': row[21].translate(None, b' -()')})
-                    data.update({'mobile_number': row[22].translate(None, b' -()')})
+                    data.update({'postcode': row[19].translate(string.whitespace)})
+                    data.update({'phone_number1': row[20].translate(b' -()')})
+                    data.update({'phone_number2': row[21].translate(b' -()')})
+                    data.update({'mobile_number': row[22].translate(b' -()')})
 
-                    emails = row[23].translate(None, b' -()').replace(';', ',').split(',')
+                    emails = row[23].translate(b' -()').replace(';', ',').split(',')
                     #for num, email in enumerate(emails, 1):
                      #   data.update({'email{}'.format(num): email.lower()})
                     if emails:
                         data.update({'email': emails[0].lower()})
                     # Org or individual record
-                    if data.get('licencee') and data.get('abn'):
+                    if data.get('licencee')!='' and data.get('abn')!='':
                         data.update({'licencee_type': 'organisation'})
-                    elif not data.get('licencee'):
+                    #elif not data.get('licencee'):
+                    elif data.get('abn')=='':
                         data.update({'licencee_type': 'individual'})
                     else:
+                        import ipdb; ipdb.set_trace()
                         raise ImportException("Entry is not a valid organisation or individual licence record")
 
                     #if data['abn'] != '':
@@ -446,6 +449,7 @@ class ApiaryLicenceReader():
         #elif proxy_applicant:
         #    approval = Approval.objects.filter(proxy_applicant=proxy_applicant, status=Approval.STATUS_CURRENT, apiary_approval=True).first()
 
+        import ipdb; ipdb.set_trace()
         application_type=ApplicationType.objects.get(name=ApplicationType.APIARY)
         qs_proposal_type = ProposalType.objects.all().order_by('name', '-version').distinct('name')
         proposal_type = qs_proposal_type.get(name=application_type.name)
@@ -514,6 +518,7 @@ class ApiaryLicenceReader():
                                             wkb_geometry=geometry,
                                             site_category = site_category
                                             )
+            import ipdb; ipdb.set_trace()
             intermediary_proposal_site = ApiarySiteOnProposal.objects.create(
                                             apiary_site=apiary_site,
                                             #approval=approval,

@@ -13,7 +13,7 @@ class ApiarySiteOnApprovalMinimalGeometrySerializer(GeoFeatureModelSerializer):
     site_category = serializers.CharField(source='site_category__name')
     is_vacant = serializers.BooleanField(source='apiary_site__is_vacant')
     site_guid = serializers.CharField(source='apiary_site__site_guid')
-    licensed_site = serializers.CharField(source='apiary_site__licensed_site')
+    #licensed_site = serializers.BooleanField(source='apiary_site__licensed_site')
 
     class Meta:
         model = ApiarySiteOnApproval
@@ -39,7 +39,7 @@ class ApiarySiteOnApprovalGeometrySerializer(GeoFeatureModelSerializer):
     previous_site_holder_or_applicant = serializers.SerializerMethodField()
     is_vacant = serializers.BooleanField(source='apiary_site.is_vacant')
     stable_coords = serializers.SerializerMethodField()
-    licensed_site = serializers.CharField(source='apiary_site.licensed_site')
+    #licensed_site = serializers.BooleanField(source='apiary_site.licensed_site')
 
     class Meta:
         model = ApiarySiteOnApproval
@@ -198,7 +198,6 @@ class ApiarySiteOnApprovalLicenceDocSerializer(serializers.ModelSerializer):
             return {'lng': '', 'lat': ''}
 
     def get_licensed_site(self, apiary_site_on_proposal):
-        #import ipdb; ipdb.set_trace()
         try:
             return apiary_site_on_proposal.licensed_site
         except:

@@ -84,6 +84,7 @@ class ApiarySiteOnApproval(models.Model):
     wkb_geometry = PointField(srid=4326, blank=True, null=True)  # store approved coordinates
     site_category = models.ForeignKey('SiteCategory', null=True, blank=True,)
     licensed_site = models.BooleanField(default=False)
+    issuance_details = JSONField(blank=True, null=True)
     objects = GeoManager()
 
     def __str__(self):

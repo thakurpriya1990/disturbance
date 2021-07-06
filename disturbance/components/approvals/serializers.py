@@ -76,6 +76,16 @@ class ApprovalSerializerForLicenceDoc(serializers.ModelSerializer):
     apiary_licensed_sites = serializers.SerializerMethodField()
     #apiary_sites = ApiarySiteLicenceDocSerializer(many=True)
     requirements = serializers.SerializerMethodField()
+    map_ref = serializers.SerializerMethodField()
+    batch_no = serializers.SerializerMethodField()
+    cpc_date = serializers.SerializerMethodField()
+    minister_date = serializers.SerializerMethodField()
+    forest_block = serializers.SerializerMethodField()
+    cog = serializers.SerializerMethodField()
+    roadtrack = serializers.SerializerMethodField()
+    zone = serializers.SerializerMethodField()
+    catchment = serializers.SerializerMethodField()
+    dra_permit = serializers.SerializerMethodField()
 
     def get_authority_holder(self, approval):
         return approval.relevant_applicant_name
@@ -118,6 +128,7 @@ class ApprovalSerializerForLicenceDoc(serializers.ModelSerializer):
         #         ret_array.append(serializer.data)
 
         apiary_site_on_approvals = approval.get_relations()
+        #import ipdb; ipdb.set_trace()
         for relation in apiary_site_on_approvals:
             if not relation.licensed_site:
                 serializer = ApiarySiteOnApprovalLicenceDocSerializer(relation)
@@ -145,6 +156,39 @@ class ApprovalSerializerForLicenceDoc(serializers.ModelSerializer):
                 'text': req.requirement,
             })
         return ret_array
+
+    def get_map_ref(self, approval):
+        return approval.current_proposal.proposed_issuance_approval.get('map_ref')
+
+    def get_forest_block(self, approval):
+        return approval.current_proposal.proposed_issuance_approval.get('forest_block')
+
+    def get_cog(self, approval):
+        return approval.current_proposal.proposed_issuance_approval.get('cog')
+
+    def get_roadtrack(self, approval):
+        return approval.current_proposal.proposed_issuance_approval.get('roadtrack')
+
+    def get_zone(self, approval):
+        return approval.current_proposal.proposed_issuance_approval.get('zone')
+
+    def get_catchment(self, approval):
+        return approval.current_proposal.proposed_issuance_approval.get('catchment')
+
+    def get_dra_permit(self, approval):
+        if approval.current_proposal.proposed_issuance_approval.get('dra_permit'):
+            return 'Yes'
+        return 'No'
+
+    def get_batch_no(self, approval):
+        return approval.current_proposal.proposed_issuance_approval.get('batch_no')
+
+    def get_cpc_date(self, approval):
+        return approval.current_proposal.proposed_issuance_approval.get('cpc_date')
+
+    def get_minister_date(self, approval):
+        return approval.current_proposal.proposed_issuance_approval.get('minister_date')
+
 
     #def bak_get_requirements(self, approval):
     #    ret_array = []
@@ -179,6 +223,16 @@ class ApprovalSerializerForLicenceDoc(serializers.ModelSerializer):
             'apiary_sites',
             'apiary_licensed_sites',
             'requirements',
+            'map_ref',
+            'batch_no',
+            'cpc_date',
+            'minister_date',
+            'forest_block',
+            'cog',
+            'roadtrack',
+            'zone',
+            'catchment',
+            'dra_permit',
         )
 
 from disturbance.components.proposals.serializers import ProposalSerializer

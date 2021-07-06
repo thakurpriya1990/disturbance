@@ -413,13 +413,19 @@ def save_proponent_data_apiary_site_transfer(proposal_obj, request, viewset):
                     #print(site.get('id'))
                     #print(site.get('checked'))
                     checked_value = bool(site.get('checked'))
+                    licensed_site = site['properties']['licensed_site'] = bool(site['properties'].get('licensed_site'))
                     site_transfer_apiary_site = SiteTransferApiarySite.objects.get(
                             proposal_apiary=proposal_obj.proposal_apiary, 
                             apiary_site_on_approval__apiary_site__id=site.get('id')
                             )
                     site_transfer_apiary_site.customer_selected = checked_value
                     site_transfer_apiary_site.internal_selected = checked_value
+                    #apiary_site_on_approval = transfer_apiary_site.apiary_site_on_approval
+                    #apiary_site_on_approval.licensed_site = licensed_site
                     site_transfer_apiary_site.save()
+                    apiary_site_on_approval = site_transfer_apiary_site.apiary_site_on_approval
+                    apiary_site_on_approval.licensed_site = licensed_site
+                    apiary_site_on_approval.save()
 
             #selected_licence = proposal_apiary_data.get('selected_licence')
             #if selected_licence:
