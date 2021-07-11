@@ -132,6 +132,10 @@
                                 </div>
                             </div>
  
+<!--
+                            <pre>{{ issuance_details }}</pre>
+                                    <pre>{{ site.properties }}</pre>
+-->
                             <div v-for="(site, index) in apiary_sites_updated">
                                 <div v-if="site.properties.licensed_site">
 				    <div class="col-md-12">
@@ -151,52 +155,77 @@
 							    <div class="form-group">
 								<div class="col-sm-4">
 								    <label class="control-label pull-left"  for="name">Batch Number</label><br>
+								    <input type="text" class="form-control" name="site_batch_no" style="width:100%;" ref="batch_no" 
+                                                                        v-model="site.properties.batch_no"
+                                                                    >
+								</div>
+<!--
+                                                                        v-model="issuance_details[index].batch_no"
+                                                                        v-model="site.properties.issuance_details.batch_no"
+                                    <pre>{{ site.properties.issuance_details }}</pre>
+								<div class="col-sm-4">
+								    <label class="control-label pull-left"  for="name">Batch Number</label><br>
 								    <input type="text" class="form-control" name="approval_batch_no" style="width:100%;" ref="batch_no" 
                                                                         v-model="issuance_details.batch_no"
                                                                     >
 								</div>
+-->
+
+<!--
+								<div class="col-sm-4">
+								  <label class="control-label pull-left" style="text-align:left" for="name">Conservation and Parks Commission</label>
+								  <div class="input-group date" ref="site_cpc_date" style="width: 70%;">
+								    <input type="text" class="form-control" name="site_cpc_date" placeholder="DD/MM/YYYY" v-model="site.properties.approval_cpc_date">
+								    <span class="input-group-addon">
+									<span class="glyphicon glyphicon-calendar"></span>
+								    </span>
+								  </div>
+								</div>
+-->
+
 								<div class="col-sm-4">
 								    <label class="control-label pull-left" style="text-align:left" for="name">Conservation and Parks Commission</label>
-								    <input type="text" class="form-control" name="approval_cpc_date" style="width:100%;" ref="cpc_date" 
-                                                                        v-model="approval.cpc_date"
+								    <input type="text" class="form-control" name="site_cpc_date" placeholder="YYYY-MM-DD" style="width:100%;" ref="cpc_date" 
+                                                                        v-model="site.properties.approval_cpc_date"
                                                                     >
 								</div>
 								<div class="col-sm-4">
 								    <label class="control-label pull-left" style="text-align:left" for="name">Minister for Environment or Delegate</label>
-								    <input type="text" class="form-control" name="approval_minister_date" style="width:100%;" ref="minister_date" 
-                                                                        v-model="approval.minister_date"
+								    <input type="text" class="form-control" name="site_minister_date" placeholder="YYYY-MM-DD" style="width:100%;" ref="minister_date" 
+                                                                        v-model="site.properties.approval_minister_date"
                                                                     >
 								</div>
 							    </div>
 
 <!--
+-->
 							    <div class="form-group">
 								<div class="col-sm-4">
 								    <label class="control-label pull-left"  for="name">Map Reference</label><br>
-								    <input type="text" class="form-control" name="approval_map_ref" style="width:100%;" ref="map_ref" v-model="approval.map_ref">
+								    <input type="text" class="form-control" name="site_map_ref" style="width:100%;" ref="map_ref" v-model="site.properties.map_ref">
 								</div>
 								<div class="col-sm-4">
 								    <label class="control-label pull-left" style="text-align:left" for="name">Forest Block</label>
-								    <input type="text" class="form-control" name="approval_forest_block" style="width:100%;" ref="forest_block" v-model="approval.forest_block">
+								    <input type="text" class="form-control" name="site_forest_block" style="width:100%;" ref="forest_block" v-model="site.properties.forest_block">
 								</div>
 								<div class="col-sm-4">
 								    <label class="control-label pull-left" style="text-align:left" for="name">COG</label>
-								    <input type="text" class="form-control" name="approval_cog" style="width:100%;" ref="cog" v-model="approval.cog">
+								    <input type="text" class="form-control" name="site_cog" style="width:100%;" ref="cog" v-model="site.properties.cog">
 								</div>
 							    </div>
 
 							    <div class="form-group">
 								<div class="col-sm-4">
 								    <label class="control-label pull-left"  for="name">Apiary Zone</label><br>
-								    <input type="text" class="form-control" name="approval_zone" style="width:100%;" ref="zone" v-model="approval.zone">
+								    <input type="text" class="form-control" name="site_zone" style="width:100%;" ref="zone" v-model="site.properties.zone">
 								</div>
 								<div class="col-sm-4">
 								    <label class="control-label pull-left" style="text-align:left" for="name">Water Catchment Area</label>
-								    <input type="text" class="form-control" name="approval_catchment" style="width:100%;" ref="catchment" v-model="approval.catchment">
+								    <input type="text" class="form-control" name="site_catchment" style="width:100%;" ref="catchment" v-model="site.properties.catchment">
 								</div>
 								<div class="col-sm-4">
 								    <label class="control-label pull-left" style="text-align:left" for="name">Nearest Road/Track</label>
-								    <input type="text" class="form-control" name="approval_roadtrack" style="width:100%;" ref="roadtrack" v-model="approval.roadtrack">
+								    <input type="text" class="form-control" name="site_roadtrack" style="width:100%;" ref="roadtrack" v-model="site.properties.roadtrack">
 								</div>
 							    </div>
 
@@ -205,10 +234,9 @@
 								    <label class="control-label pull-left"  for="Name">DRA Permit Required</label>
 								</div>
 								<div class="col-sm-1">
-								    <input type="checkbox" class="form-control" name="approval_dra_permit" style="width:50%;" ref="dra_permit" v-model="approval.dra_permit">
+								    <input type="checkbox" class="form-control" name="site_dra_permit" style="width:50%;" ref="dra_permit" v-model="site.properties.dra_permit">
 								</div>
 							    </div>
--->
 
 						        </div>
 					            </div>
@@ -220,8 +248,10 @@
                                     </div>
                                 </div>
                             </div>
+  
 
 <!--
+                            <pre>{{ apiary_sites_updated }}</pre>
                 <div v-for="site in apiary_sites_updated">
                     <div v-if="site.properties.licensed_site" style="border">
                         {{ site.id }}: {{ site.properties.licensed_site}}
@@ -387,7 +417,11 @@ export default {
             component_site_selection_key: '',
             num_of_sites_selected: 0,
             is_local: helpers.is_local(),
-            issuance_details: {},
+            issuance_details: [
+		{
+                    batch_no: null,
+                }
+	    ],
         }
     },
     computed: {
@@ -914,6 +948,11 @@ export default {
        eventListeners:function () {
             let vm = this;
             // Initialise Date Picker
+            $(vm.$refs.site_cpc_date).datetimepicker(vm.datepickerOptions);
+            $(vm.$refs.site_cpc_date).on('dp.change', function(e){
+                console.log('e: ' + e)
+            });
+
             $(vm.$refs.due_date).datetimepicker(vm.datepickerOptions);
             $(vm.$refs.due_date).on('dp.change', function(e){
                 if ($(vm.$refs.due_date).data('DateTimePicker').date()) {

@@ -1782,7 +1782,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['POST',])
     def proposed_approval(self, request, *args, **kwargs):
         try:
-            import ipdb; ipdb.set_trace()
             instance = self.get_object()
             if instance.application_type.name == ApplicationType.SITE_TRANSFER:
                 #serializer = ProposedApprovalSiteTransferSerializer(data=request.data)

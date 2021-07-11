@@ -26,6 +26,16 @@ class ApiarySiteOnApprovalMinimalGeometrySerializer(GeoFeatureModelSerializer):
             'status',
             'site_guid',
             'licensed_site',
+            'batch_no',
+            'approval_cpc_date',
+            'approval_minister_date',
+            'map_ref',
+            'forest_block',
+            'cog',
+            'roadtrack',
+            'zone',
+            'catchment',
+            'dra_permit',
         )
 
 class ApiarySiteOnApprovalGeometrySerializer(GeoFeatureModelSerializer):
@@ -55,6 +65,16 @@ class ApiarySiteOnApprovalGeometrySerializer(GeoFeatureModelSerializer):
             'stable_coords',
             'previous_site_holder_or_applicant',
             'licensed_site',
+            'batch_no',
+            'approval_cpc_date',
+            'approval_minister_date',
+            'map_ref',
+            'forest_block',
+            'cog',
+            'roadtrack',
+            'zone',
+            'catchment',
+            'dra_permit',
         )
 
     def get_stable_coords(self, obj):
@@ -153,6 +173,16 @@ class ApiarySiteOnApprovalLicenceDocSerializer(serializers.ModelSerializer):
     tenure = serializers.SerializerMethodField()
     region_district = serializers.SerializerMethodField()
     licensed_site = serializers.SerializerMethodField()
+    batch_no = serializers.SerializerMethodField()
+    approval_cpc_date = serializers.SerializerMethodField()
+    approval_minister_date = serializers.SerializerMethodField()
+    map_ref = serializers.SerializerMethodField()
+    forest_block = serializers.SerializerMethodField()
+    cog = serializers.SerializerMethodField()
+    roadtrack = serializers.SerializerMethodField()
+    zone = serializers.SerializerMethodField()
+    catchment = serializers.SerializerMethodField()
+    dra_permit = serializers.SerializerMethodField()
 
     class Meta:
         model = ApiarySiteOnApproval
@@ -164,6 +194,18 @@ class ApiarySiteOnApprovalLicenceDocSerializer(serializers.ModelSerializer):
             'tenure',
             'region_district',
             'licensed_site',
+            'batch_no',
+            'approval_cpc_date',
+            'approval_minister_date',
+            'map_ref',
+            'forest_block',
+            'cog',
+            'roadtrack',
+            'zone',
+            'catchment',
+            'dra_permit',
+
+
         )
 
     def get_site_category(self, apiary_site_on_approval):
@@ -203,4 +245,33 @@ class ApiarySiteOnApprovalLicenceDocSerializer(serializers.ModelSerializer):
         except:
             return ''
 
+    def get_batch_no(self, apiary_site_on_proposal):
+        return apiary_site_on_proposal.batch_no if apiary_site_on_proposal.batch_no else ''
+
+    def get_approval_cpc_date(self, apiary_site_on_proposal):
+        return apiary_site_on_proposal.approval_cpc_date if apiary_site_on_proposal.approval_cpc_date else ''
+
+    def get_approval_minister_date(self, apiary_site_on_proposal):
+        return apiary_site_on_proposal.approval_minister_date if apiary_site_on_proposal.approval_minister_date else ''
+
+    def get_map_ref(self, apiary_site_on_proposal):
+        return apiary_site_on_proposal.map_ref if apiary_site_on_proposal.map_ref else ''
+
+    def get_forest_block(self, apiary_site_on_proposal):
+        return apiary_site_on_proposal.forest_block if apiary_site_on_proposal.forest_block else ''
+
+    def get_cog(self, apiary_site_on_proposal):
+        return apiary_site_on_proposal.cog if apiary_site_on_proposal.cog else ''
+
+    def get_roadtrack(self, apiary_site_on_proposal):
+        return apiary_site_on_proposal.roadtrack if apiary_site_on_proposal.roadtrack else ''
+
+    def get_zone(self, apiary_site_on_proposal):
+        return apiary_site_on_proposal.zone if apiary_site_on_proposal.zone else ''
+
+    def get_catchment(self, apiary_site_on_proposal):
+        return apiary_site_on_proposal.catchment if apiary_site_on_proposal.catchment else ''
+
+    def get_dra_permit(self, apiary_site_on_proposal):
+        return 'Yes' if apiary_site_on_proposal.dra_permit else 'No'
 

@@ -1249,79 +1249,82 @@ class Proposal(RevisionedMixin):
                 # Do not accept new start and expiry dates for Apiary group applications with a licence, unless the licence has been reissued
                 start_date = details.get('start_date').strftime('%d/%m/%Y') if details.get('start_date') else None
                 expiry_date = details.get('expiry_date').strftime('%d/%m/%Y') if details.get('expiry_date') else None
-                cpc_date = details.get('cpc_date').strftime('%d/%m/%Y') if details.get('cpc_date') else None
-                minister_date = details.get('minister_date').strftime('%d/%m/%Y') if details.get('minister_date') else None
+                #cpc_date = details.get('cpc_date').strftime('%d/%m/%Y') if details.get('cpc_date') else None
+                #minister_date = details.get('minister_date').strftime('%d/%m/%Y') if details.get('minister_date') else None
                 #if self.apiary_group_application_type:
-                import ipdb; ipdb.set_trace()
                 if self.application_type.name == 'Apiary':
                     if self.approval and (self.approval.reissued or self.proposal_type == 'renewal'):
                         self.proposed_issuance_approval = {
                             'start_date' : start_date,
                             'expiry_date' : expiry_date,
-                            'cpc_date' : cpc_date,
-                            'minister_date' : minister_date,
-                            'batch_no' : details.get('batch_no'),
                             'details' : details.get('details'),
                             'cc_email' : details.get('cc_email'),
-                            'map_ref' : details.get('map_ref'),
-                            'forest_block' : details.get('forest_block'),
-                            'cog' : details.get('cog'),
-                            'roadtrack' : details.get('roadtrack'),
-                            'zone' : details.get('zone'),
-                            'catchment' : details.get('catchment'),
-                            'dra_permit' : details.get('dra_permit'),
+
+                            #'cpc_date' : cpc_date,
+                            #'minister_date' : minister_date,
+#                            'batch_no' : details.get('batch_no'),
+#                            'map_ref' : details.get('map_ref'),
+#                            'forest_block' : details.get('forest_block'),
+#                            'cog' : details.get('cog'),
+#                            'roadtrack' : details.get('roadtrack'),
+#                            'zone' : details.get('zone'),
+#                            'catchment' : details.get('catchment'),
+#                            'dra_permit' : details.get('dra_permit'),
                         }
                     elif self.proposed_issuance_approval:
                         self.proposed_issuance_approval = {
                                 'start_date' : self.proposed_issuance_approval.get('start_date') if self.proposed_issuance_approval.get('start_date') else details.get('start_date').strftime('%d/%m/%Y'),
                                 'expiry_date' : self.proposed_issuance_approval.get('expiry_date') if self.proposed_issuance_approval.get('expiry_date') else details.get('expiry_date').strftime('%d/%m/%Y'),
-                                'cpc_date' : self.proposed_issuance_approval.get('cpc_date') if self.proposed_issuance_approval.get('cpc_date') else details.get('cpc_date').strftime('%d/%m/%Y'),
-                                'minister_date' : self.proposed_issuance_approval.get('minister_date') if self.proposed_issuance_approval.get('minister_date') else details.get('minister_date').strftime('%d/%m/%Y'),
-                                'batch_no' : details.get('batch_no'),
                                 'details' : details.get('details'),
                                 'cc_email' : details.get('cc_email'),
-                                'map_ref' : details.get('map_ref'),
-                                'forest_block' : details.get('forest_block'),
-                                'cog' : details.get('cog'),
-                                'roadtrack' : details.get('roadtrack'),
-                                'zone' : details.get('zone'),
-                                'catchment' : details.get('catchment'),
-                                'dra_permit' : details.get('dra_permit'),
+
+                                #'cpc_date' : self.proposed_issuance_approval.get('cpc_date') if self.proposed_issuance_approval.get('cpc_date') else details.get('cpc_date').strftime('%d/%m/%Y'),
+                                #'minister_date' : self.proposed_issuance_approval.get('minister_date') if self.proposed_issuance_approval.get('minister_date') else details.get('minister_date').strftime('%d/%m/%Y'),
+#                                'batch_no' : details.get('batch_no'),
+#                                'map_ref' : details.get('map_ref'),
+#                                'forest_block' : details.get('forest_block'),
+#                                'cog' : details.get('cog'),
+#                                'roadtrack' : details.get('roadtrack'),
+#                                'zone' : details.get('zone'),
+#                                'catchment' : details.get('catchment'),
+#                                'dra_permit' : details.get('dra_permit'),
                         }
                     else:
                         self.proposed_issuance_approval = {
                                 'start_date' : start_date,
                                 'expiry_date' : expiry_date,
-                                'cpc_date' : cpc_date,
-                                'minister_date' : minister_date,
-                                'batch_no' : details.get('batch_no'),
                                 'details' : details.get('details'),
                                 'cc_email' : details.get('cc_email'),
-                                'map_ref' : details.get('map_ref'),
-                                'forest_block' : details.get('forest_block'),
-                                'cog' : details.get('cog'),
-                                'roadtrack' : details.get('roadtrack'),
-                                'zone' : details.get('zone'),
-                                'catchment' : details.get('catchment'),
-                                'dra_permit' : details.get('dra_permit'),
+
+                                #'cpc_date' : cpc_date,
+                                #'minister_date' : minister_date,
+#                                'batch_no' : details.get('batch_no'),
+#                                'map_ref' : details.get('map_ref'),
+#                                'forest_block' : details.get('forest_block'),
+#                                'cog' : details.get('cog'),
+#                                'roadtrack' : details.get('roadtrack'),
+#                                'zone' : details.get('zone'),
+#                                'catchment' : details.get('catchment'),
+#                                'dra_permit' : details.get('dra_permit'),
                         }
                 # non-apiary Proposals & Apiary Site Transfers
                 else:
                     self.proposed_issuance_approval = {
                             'start_date' : start_date,
                             'expiry_date' : expiry_date,
-                            'cpc_date' : cpc_date,
-                            'minister_date' : minister_date,
-                            'batch_no' : details.get('batch_no'),
                             'details' : details.get('details'),
                             'cc_email' : details.get('cc_email'),
-                            'map_ref' : details.get('map_ref'),
-                            'forest_block' : details.get('forest_block'),
-                            'cog' : details.get('cog'),
-                            'roadtrack' : details.get('roadtrack'),
-                            'zone' : details.get('zone'),
-                            'catchment' : details.get('catchment'),
-                            'dra_permit' : details.get('dra_permit'),
+
+                            #'cpc_date' : cpc_date,
+                            #'minister_date' : minister_date,
+#                            'batch_no' : details.get('batch_no'),
+#                            'map_ref' : details.get('map_ref'),
+#                            'forest_block' : details.get('forest_block'),
+#                            'cog' : details.get('cog'),
+#                            'roadtrack' : details.get('roadtrack'),
+#                            'zone' : details.get('zone'),
+#                            'catchment' : details.get('catchment'),
+#                            'dra_permit' : details.get('dra_permit'),
                     }
 
                 self.proposed_decline_status = False
@@ -1342,7 +1345,8 @@ class Proposal(RevisionedMixin):
                                 apiary_sites_list.append(apiary_site.get('id'))
                                 relation = self.proposal_apiary.get_relation(my_site)
                                 from disturbance.components.proposals.serializers_apiary import ApiarySiteOnProposalProcessedLicensedSiteSaveSerializer
-                                serializer = ApiarySiteOnProposalProcessedLicensedSiteSaveSerializer(relation, data={'licensed_site': apiary_site['properties'].get('licensed_site')})
+                                #serializer = ApiarySiteOnProposalProcessedLicensedSiteSaveSerializer(relation, data={'licensed_site': apiary_site['properties'].get('licensed_site')})
+                                serializer = ApiarySiteOnProposalProcessedLicensedSiteSaveSerializer(relation, data=apiary_site['properties'])
                                 serializer.is_valid(raise_exception=True)
                                 serializer.save()
                             # my_site.save()
@@ -1376,7 +1380,6 @@ class Proposal(RevisionedMixin):
                                 apiary_sites_list.append(apiary_site.get('id'))
                             transfer_site.save()
 
-                            import ipdb; ipdb.set_trace()
                             asoa = transfer_site.apiary_site_on_approval
                             asoa.licensed_site = apiary_site.get('properties')['licensed_site']
                             asoa.save()
@@ -1490,18 +1493,19 @@ class Proposal(RevisionedMixin):
                 self.proposed_issuance_approval = {
                     'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
                     'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
-                    'cpc_date' : details.get('cpc_date').strftime('%d/%m/%Y'),
-                    'minister_date' : details.get('minister_date').strftime('%d/%m/%Y'),
-                    'batch_no': details.get('batch_no'),
                     'details': details.get('details'),
                     'cc_email':details.get('cc_email'),
-                    'map_ref' : details.get('map_ref'),
-                    'forest_block' : details.get('forest_block'),
-                    'cog' : details.get('cog'),
-                    'roadtrack' : details.get('roadtrack'),
-                    'zone' : details.get('zone'),
-                    'catchment' : details.get('catchment'),
-                    'dra_permit' : details.get('dra_permit'),
+
+#                    'cpc_date' : details.get('cpc_date').strftime('%d/%m/%Y'),
+#                    'minister_date' : details.get('minister_date').strftime('%d/%m/%Y'),
+#                    'batch_no': details.get('batch_no'),
+#                    'map_ref' : details.get('map_ref'),
+#                    'forest_block' : details.get('forest_block'),
+#                    'cog' : details.get('cog'),
+#                    'roadtrack' : details.get('roadtrack'),
+#                    'zone' : details.get('zone'),
+#                    'catchment' : details.get('catchment'),
+#                    'dra_permit' : details.get('dra_permit'),
 
                 }
                 self.proposed_decline_status = False
@@ -2585,6 +2589,21 @@ class HelpPage(models.Model):
 # --------------------------------------------------------------------------------------
 # Apiary Models Start
 # --------------------------------------------------------------------------------------
+
+#class ApiaryPermitIssuance(RevisionedMixin):
+#    apiary_site_on_proposal = models.ForeignKey('ApiarySiteOnProposal')
+#    batch_no = models.CharField(max_length=40, blank=True, null=True)
+#    approval_cpc_date = models.DateTimeField(blank=True, null=True)
+#    approval_minister_date = models.DateTimeField(blank=True, null=True)
+#
+#    def __str__(self):
+#        return 'id:{}: (apiary_site: {}, proposal_apiary: {})'.format(self.id, self.apiary_site.id, self.proposal_apiary.id)
+#
+#    class Meta:
+#        app_label = 'disturbance'
+#        unique_together = ['apiary_site', 'proposal_apiary',]
+
+
 class ApiarySiteOnProposal(RevisionedMixin):
     apiary_site = models.ForeignKey('ApiarySite',)
     proposal_apiary = models.ForeignKey('ProposalApiary',)
@@ -2603,6 +2622,19 @@ class ApiarySiteOnProposal(RevisionedMixin):
     application_fee_paid = models.BooleanField(default=False)  # To avoid overcharging when the proposal is sent back to the customer, we need this flag
     licensed_site = models.BooleanField(default=False)  # used only during approval process, licensed site, have an independent PDF Licence page
     issuance_details = JSONField(blank=True, null=True)
+
+    # permit issuance details
+    batch_no = models.CharField(max_length=40, blank=True, null=True)
+    approval_cpc_date = models.DateField(blank=True, null=True)
+    approval_minister_date = models.DateField(blank=True, null=True)
+    map_ref = models.CharField(max_length=40, blank=True, null=True)
+    forest_block = models.CharField(max_length=40, blank=True, null=True)
+    cog = models.CharField(max_length=40, blank=True, null=True)
+    roadtrack = models.CharField(max_length=40, blank=True, null=True)
+    zone = models.CharField(max_length=40, blank=True, null=True)
+    catchment = models.CharField(max_length=40, blank=True, null=True)
+    dra_permit = models.BooleanField(default=False)
+
     objects = GeoManager()
 
     def __str__(self):
@@ -2925,17 +2957,6 @@ class ProposalApiary(RevisionedMixin):
                     'expiry_date': expiry_date,
                     'details': details.get('details'),
                     'cc_email': details.get('cc_email'),
-
-                    'cpc_date' : details.get('cpc_date').strftime('%d/%m/%Y'),
-                    'minister_date' : details.get('minister_date').strftime('%d/%m/%Y'),
-                    'batch_no': details.get('batch_no'),
-                    'map_ref' : details.get('map_ref'),
-                    'forest_block' : details.get('forest_block'),
-                    'cog' : details.get('cog'),
-                    'roadtrack' : details.get('roadtrack'),
-                    'zone' : details.get('zone'),
-                    'catchment' : details.get('catchment'),
-                    'dra_permit' : details.get('dra_permit'),
             }
 
             sites_received = request.data.get('apiary_sites', [])
@@ -3119,7 +3140,6 @@ class ProposalApiary(RevisionedMixin):
                     relation_original = site_transfer_apiary_site.apiary_site_on_approval
                     from disturbance.components.approvals.models import ApiarySiteOnApproval
 
-                    import ipdb; ipdb.set_trace()
                     relation_target, asoa_created = ApiarySiteOnApproval.objects.get_or_create(
                         apiary_site=relation_original.apiary_site,
                         approval=target_approval,
@@ -3128,9 +3148,30 @@ class ProposalApiary(RevisionedMixin):
                     if asoa_created:
                         for apiary_site in apiary_sites:
                             site_id = apiary_site.get('id')
-                            licensed_site = apiary_site.get('properties')['licensed_site']
+                            #licensed_site = apiary_site.get('properties')['licensed_site']
                             if site_id == relation_target.apiary_site_id:
-                                relation_target.licensed_site = licensed_site
+                                #relation_target.licensed_site = licensed_site
+                                relation_target.licensed_site = apiary_site.get('properties')['licensed_site']
+                                relation_target.batch_no = apiary_site.get('properties')['batch_no']
+
+                                if apiary_site.get('properties')['approval_cpc_date']:
+                                    relation_target.approval_cpc_date = datetime.datetime.strptime(apiary_site.get('properties')['approval_cpc_date'], '%Y-%M-%d')
+                                else:
+                                    relation_target.approval_cpc_date = None
+
+                                if apiary_site.get('properties')['approval_minister_date']:
+                                    relation_target.approval_minister_date = datetime.datetime.strptime(apiary_site.get('properties')['approval_minister_date'], '%Y-%M-%d')
+                                else:
+                                    relation_target.approval_minister_date = None
+
+                                relation_target.map_ref = apiary_site.get('properties')['map_ref']
+                                relation_target.forest_block = apiary_site.get('properties')['forest_block']
+                                relation_target.cog = apiary_site.get('properties')['cog']
+                                relation_target.roadtrack = apiary_site.get('properties')['roadtrack']
+                                relation_target.zone = apiary_site.get('properties')['zone']
+                                relation_target.catchment = apiary_site.get('properties')['catchment']
+                                relation_target.dra_permit = apiary_site.get('properties')['dra_permit']
+
                                 relation_target.save()
 
                     if relation_original.site_status != SITE_STATUS_TRANSFERRED:  # Reissue both licences
@@ -3468,6 +3509,27 @@ class ProposalApiary(RevisionedMixin):
                 raise
 
     def _update_apiary_sites(self, approval, sites_approved, request):
+
+
+        for site in request.data.get('apiary_sites'):
+            # During final approval - Approver may have updated these values
+            if site['properties'].get('licensed_site'):
+                a_site = ApiarySite.objects.get(id=site['id'])
+                apiary_site_on_proposal = self.get_relation(a_site)
+
+                apiary_site_on_proposal.licensed_site = site['properties'].get('licensed_site')
+                apiary_site_on_proposal.batch_no = site['properties'].get('batch_no')
+                apiary_site_on_proposal.approval_cpc_date = datetime.datetime.strptime(site['properties'].get('approval_cpc_date'), '%Y-%M-%d') if site['properties'].get('approval_cpc_date') else None
+                apiary_site_on_proposal.approval_minister_date = datetime.datetime.strptime(site['properties'].get('approval_minister_date'), '%Y-%M-%d') if site['properties'].get('approval_minister_date') else None
+                apiary_site_on_proposal.map_ref = site['properties'].get('map_ref')
+                apiary_site_on_proposal.forest_block = site['properties'].get('forest_block')
+                apiary_site_on_proposal.cog = site['properties'].get('cog')
+                apiary_site_on_proposal.roadtrack = site['properties'].get('roadtrack')
+                apiary_site_on_proposal.zone = site['properties'].get('zone')
+                apiary_site_on_proposal.catchment = site['properties'].get('catchment')
+                apiary_site_on_proposal.dra_permit = site['properties'].get('dra_permit')
+                apiary_site_on_proposal.save()
+           
         for my_site in sites_approved:
             a_site = ApiarySite.objects.get(id=my_site['id'])
             apiary_site_on_proposal = self.get_relation(a_site)
@@ -3503,6 +3565,16 @@ class ProposalApiary(RevisionedMixin):
                 apiary_site_on_approval.wkb_geometry = apiary_site_on_proposal.wkb_geometry_processed
                 apiary_site_on_approval.site_category = apiary_site_on_proposal.site_category_processed
                 apiary_site_on_approval.licensed_site = apiary_site_on_proposal.licensed_site
+                apiary_site_on_approval.batch_no = apiary_site_on_proposal.batch_no
+                apiary_site_on_approval.approval_cpc_date = apiary_site_on_proposal.approval_cpc_date
+                apiary_site_on_approval.approval_minister_date = apiary_site_on_proposal.approval_minister_date
+                apiary_site_on_approval.map_ref = apiary_site_on_proposal.map_ref
+                apiary_site_on_approval.forest_block = apiary_site_on_proposal.forest_block
+                apiary_site_on_approval.cog = apiary_site_on_proposal.cog
+                apiary_site_on_approval.roadtrack = apiary_site_on_proposal.roadtrack
+                apiary_site_on_approval.zone = apiary_site_on_proposal.zone
+                apiary_site_on_approval.catchment = apiary_site_on_proposal.catchment
+                apiary_site_on_approval.dra_permit = apiary_site_on_proposal.dra_permit
                 apiary_site_on_approval.site_status = SITE_STATUS_CURRENT
                 apiary_site_on_approval.save()
             else:
@@ -3513,7 +3585,6 @@ class ProposalApiary(RevisionedMixin):
                         apiary_site_on_approval.delete()
                 except:
                     pass
-
 
 class SiteCategory(models.Model):
     CATEGORY_SOUTH_WEST = 'south_west'

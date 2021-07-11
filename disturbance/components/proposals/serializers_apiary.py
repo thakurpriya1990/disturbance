@@ -281,6 +281,7 @@ class ApiarySiteOnProposalDraftGeometrySerializer(GeoFeatureModelSerializer):
     previous_site_holder_or_applicant = serializers.SerializerMethodField()
     is_vacant = serializers.BooleanField(source='apiary_site.is_vacant')
     stable_coords = serializers.SerializerMethodField()
+    #batch_no = serializers.CharField(source='apiary_site.batch_no')
 
     class Meta:
         model = ApiarySiteOnProposal
@@ -302,6 +303,16 @@ class ApiarySiteOnProposalDraftGeometrySerializer(GeoFeatureModelSerializer):
             'apiary_site_is_vacant_when_submitted',
             'licensed_site',
             'issuance_details',
+            'batch_no',
+            'approval_cpc_date',
+            'approval_minister_date',
+            'map_ref',
+            'forest_block',
+            'cog',
+            'roadtrack',
+            'zone',
+            'catchment',
+            'dra_permit',
         )
 
     def get_stable_coords(self, obj):
@@ -466,6 +477,7 @@ class ApiarySiteOnProposalProcessedGeometrySerializer(GeoFeatureModelSerializer)
     previous_site_holder_or_applicant = serializers.SerializerMethodField()
     is_vacant = serializers.BooleanField(source='apiary_site.is_vacant')
     stable_coords = serializers.SerializerMethodField()
+    #batch_no = serializers.CharField(source='apiary_site.batch_no')
 
     class Meta:
         model = ApiarySiteOnProposal
@@ -487,6 +499,17 @@ class ApiarySiteOnProposalProcessedGeometrySerializer(GeoFeatureModelSerializer)
             'apiary_site_is_vacant_when_submitted',
             'licensed_site',
             'issuance_details',
+            'batch_no',
+            'approval_cpc_date',
+            'approval_minister_date',
+            'map_ref',
+            'forest_block',
+            'cog',
+            'roadtrack',
+            'zone',
+            'catchment',
+            'dra_permit',
+
         )
 
     def get_stable_coords(self, obj):
@@ -640,7 +663,8 @@ class ApiarySiteOnProposalProcessedGeometrySaveSerializer(GeoFeatureModelSeriali
         # TODO: validate 3km radius, etc
         site_category = get_category(attrs['wkb_geometry_processed'])
         attrs['site_category_processed'] = site_category
-        attrs['licensed_site'] = attrs['licensed_site']
+#        attrs['licensed_site'] = attrs['licensed_site']
+#        attrs['batch_no'] = attrs['batch_no']
         return attrs
 
     class Meta:
@@ -650,20 +674,42 @@ class ApiarySiteOnProposalProcessedGeometrySaveSerializer(GeoFeatureModelSeriali
             'wkb_geometry_processed',
             'site_category_processed',
             'licensed_site',
+            'batch_no',
+            'approval_cpc_date',
+            'approval_minister_date',
+            'map_ref',
+            'forest_block',
+            'cog',
+            'roadtrack',
+            'zone',
+            'catchment',
+            'dra_permit',
         )
 
 class ApiarySiteOnProposalProcessedLicensedSiteSaveSerializer(serializers.ModelSerializer):
     """
     For saving as 'processed'
     """
-    def validate(self, attrs):
-        attrs['licensed_site'] = attrs['licensed_site']
-        return attrs
+#    def validate(self, attrs):
+#        import ipdb; ipdb.set_trace()
+#        attrs['licensed_site'] = attrs['licensed_site']
+#        attrs['batch_no'] = attrs['batch_no']
+#        return attrs
 
     class Meta:
         model = ApiarySiteOnProposal
         fields = (
             'licensed_site',
+            'batch_no',
+            'approval_cpc_date',
+            'approval_minister_date',
+            'map_ref',
+            'forest_block',
+            'cog',
+            'roadtrack',
+            'zone',
+            'catchment',
+            'dra_permit',
         )
 
 
@@ -858,6 +904,7 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
             else:
                 serializer = ApiarySiteOnProposalProcessedGeometrySerializer
             ret.append(serializer(inter_obj).data)
+            #import ipdb; ipdb.set_trace()
         return ret
 
     def get_transfer_apiary_sites(self, obj):

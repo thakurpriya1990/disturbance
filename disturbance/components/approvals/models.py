@@ -85,6 +85,19 @@ class ApiarySiteOnApproval(models.Model):
     site_category = models.ForeignKey('SiteCategory', null=True, blank=True,)
     licensed_site = models.BooleanField(default=False)
     issuance_details = JSONField(blank=True, null=True)
+
+    # permit issuance details
+    batch_no = models.CharField(max_length=40, blank=True, null=True)
+    approval_cpc_date = models.DateField(blank=True, null=True)
+    approval_minister_date = models.DateField(blank=True, null=True)
+    map_ref = models.CharField(max_length=40, blank=True, null=True)
+    forest_block = models.CharField(max_length=40, blank=True, null=True)
+    cog = models.CharField(max_length=40, blank=True, null=True)
+    roadtrack = models.CharField(max_length=40, blank=True, null=True)
+    zone = models.CharField(max_length=40, blank=True, null=True)
+    catchment = models.CharField(max_length=40, blank=True, null=True)
+    dra_permit = models.BooleanField(default=False)
+
     objects = GeoManager()
 
     def __str__(self):
