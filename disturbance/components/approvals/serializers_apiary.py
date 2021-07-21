@@ -13,6 +13,7 @@ class ApiarySiteOnApprovalMinimalGeometrySerializer(GeoFeatureModelSerializer):
     site_category = serializers.CharField(source='site_category__name')
     is_vacant = serializers.BooleanField(source='apiary_site__is_vacant')
     site_guid = serializers.CharField(source='apiary_site__site_guid')
+    #licensed_site = serializers.BooleanField(source='apiary_site__licensed_site')
 
     class Meta:
         model = ApiarySiteOnApproval
@@ -24,6 +25,17 @@ class ApiarySiteOnApprovalMinimalGeometrySerializer(GeoFeatureModelSerializer):
             'site_category',
             'status',
             'site_guid',
+            'licensed_site',
+            'batch_no',
+            'approval_cpc_date',
+            'approval_minister_date',
+            'map_ref',
+            'forest_block',
+            'cog',
+            'roadtrack',
+            'zone',
+            'catchment',
+            'dra_permit',
         )
 
 class ApiarySiteOnApprovalGeometrySerializer(GeoFeatureModelSerializer):
@@ -37,6 +49,7 @@ class ApiarySiteOnApprovalGeometrySerializer(GeoFeatureModelSerializer):
     previous_site_holder_or_applicant = serializers.SerializerMethodField()
     is_vacant = serializers.BooleanField(source='apiary_site.is_vacant')
     stable_coords = serializers.SerializerMethodField()
+    #licensed_site = serializers.BooleanField(source='apiary_site.licensed_site')
 
     class Meta:
         model = ApiarySiteOnApproval
@@ -51,6 +64,17 @@ class ApiarySiteOnApprovalGeometrySerializer(GeoFeatureModelSerializer):
             'is_vacant',
             'stable_coords',
             'previous_site_holder_or_applicant',
+            'licensed_site',
+            'batch_no',
+            'approval_cpc_date',
+            'approval_minister_date',
+            'map_ref',
+            'forest_block',
+            'cog',
+            'roadtrack',
+            'zone',
+            'catchment',
+            'dra_permit',
         )
 
     def get_stable_coords(self, obj):
@@ -148,6 +172,20 @@ class ApiarySiteOnApprovalLicenceDocSerializer(serializers.ModelSerializer):
     coords = serializers.SerializerMethodField()
     tenure = serializers.SerializerMethodField()
     region_district = serializers.SerializerMethodField()
+    licensed_site = serializers.SerializerMethodField()
+    batch_no = serializers.SerializerMethodField()
+    approval_cpc_date = serializers.SerializerMethodField()
+    approval_minister_date = serializers.SerializerMethodField()
+    map_ref = serializers.SerializerMethodField()
+    forest_block = serializers.SerializerMethodField()
+    cog = serializers.SerializerMethodField()
+    roadtrack = serializers.SerializerMethodField()
+    zone = serializers.SerializerMethodField()
+    catchment = serializers.SerializerMethodField()
+    dra_permit = serializers.SerializerMethodField()
+    fee_application = serializers.SerializerMethodField()
+    fee_renewal = serializers.SerializerMethodField()
+    fee_transfer = serializers.SerializerMethodField()
 
     class Meta:
         model = ApiarySiteOnApproval
@@ -158,6 +196,22 @@ class ApiarySiteOnApprovalLicenceDocSerializer(serializers.ModelSerializer):
             'site_category',
             'tenure',
             'region_district',
+            'licensed_site',
+            'batch_no',
+            'approval_cpc_date',
+            'approval_minister_date',
+            'map_ref',
+            'forest_block',
+            'cog',
+            'roadtrack',
+            'zone',
+            'catchment',
+            'dra_permit',
+            'fee_application',
+            'fee_renewal',
+            'fee_transfer',
+
+
         )
 
     def get_site_category(self, apiary_site_on_approval):
@@ -190,3 +244,50 @@ class ApiarySiteOnApprovalLicenceDocSerializer(serializers.ModelSerializer):
             return {'lng': apiary_site_on_approval.wkb_geometry.x, 'lat': apiary_site_on_approval.wkb_geometry.y}
         except:
             return {'lng': '', 'lat': ''}
+
+    def get_licensed_site(self, apiary_site_on_proposal):
+        try:
+            return apiary_site_on_proposal.licensed_site
+        except:
+            return ''
+
+    def get_batch_no(self, apiary_site_on_proposal):
+        return apiary_site_on_proposal.batch_no if apiary_site_on_proposal.batch_no else ''
+
+    def get_approval_cpc_date(self, apiary_site_on_proposal):
+        return apiary_site_on_proposal.approval_cpc_date if apiary_site_on_proposal.approval_cpc_date else ''
+
+    def get_approval_minister_date(self, apiary_site_on_proposal):
+        return apiary_site_on_proposal.approval_minister_date if apiary_site_on_proposal.approval_minister_date else ''
+
+    def get_map_ref(self, apiary_site_on_proposal):
+        return apiary_site_on_proposal.map_ref if apiary_site_on_proposal.map_ref else ''
+
+    def get_forest_block(self, apiary_site_on_proposal):
+        return apiary_site_on_proposal.forest_block if apiary_site_on_proposal.forest_block else ''
+
+    def get_cog(self, apiary_site_on_proposal):
+        return apiary_site_on_proposal.cog if apiary_site_on_proposal.cog else ''
+
+    def get_roadtrack(self, apiary_site_on_proposal):
+        return apiary_site_on_proposal.roadtrack if apiary_site_on_proposal.roadtrack else ''
+
+    def get_zone(self, apiary_site_on_proposal):
+        return apiary_site_on_proposal.zone if apiary_site_on_proposal.zone else ''
+
+    def get_catchment(self, apiary_site_on_proposal):
+        return apiary_site_on_proposal.catchment if apiary_site_on_proposal.catchment else ''
+
+    def get_dra_permit(self, apiary_site_on_proposal):
+        return 'Yes' if apiary_site_on_proposal.dra_permit else 'No'
+
+    def get_fee_application(self, apiary_site_on_approval):
+        return apiary_site_on_approval.site_category.fee_application_per_site
+
+    def get_fee_renewal(self, apiary_site_on_approval):
+        return apiary_site_on_approval.site_category.fee_renewal_per_site
+
+    def get_fee_transfer(self, apiary_site_on_approval):
+        return apiary_site_on_approval.site_category.fee_transfer_per_site
+
+

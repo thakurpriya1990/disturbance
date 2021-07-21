@@ -607,6 +607,17 @@ class ProposedApprovalSerializer(serializers.Serializer):
     details = serializers.CharField()
     cc_email = serializers.CharField(required=False,allow_null=True, allow_blank=True)
 
+#    batch_no = serializers.CharField(required=False,allow_null=True, allow_blank=True)
+#    cpc_date = serializers.DateField(input_formats=['%d/%m/%Y'], required=False)
+#    minister_date = serializers.DateField(input_formats=['%d/%m/%Y'], required=False)
+#    map_ref = serializers.CharField(required=False,allow_null=True, allow_blank=True)
+#    forest_block = serializers.CharField(required=False,allow_null=True, allow_blank=True)
+#    cog = serializers.CharField(required=False,allow_null=True, allow_blank=True)
+#    roadtrack = serializers.CharField(required=False,allow_null=True, allow_blank=True)
+#    zone = serializers.CharField(required=False,allow_null=True, allow_blank=True)
+#    catchment = serializers.CharField(required=False,allow_null=True, allow_blank=True)
+#    dra_permit = serializers.BooleanField(required=False,default=False)
+
     def validate(self, attrs):
         return attrs
 
@@ -616,6 +627,18 @@ class ProposedApprovalSiteTransferSerializer(serializers.Serializer):
     #start_date = serializers.DateField(input_formats=['%d/%m/%Y'])
     details = serializers.CharField()
     cc_email = serializers.CharField(required=False,allow_null=True, allow_blank=True)
+
+#    batch_no = serializers.CharField(required=False,allow_null=True, allow_blank=True)
+#    cpc_date = serializers.DateField(input_formats=['%d/%m/%Y'], required=False)
+#    minister_date = serializers.DateField(input_formats=['%d/%m/%Y'], required=False)
+#    map_ref = serializers.CharField(required=False,allow_null=True, allow_blank=True)
+#    forest_block = serializers.CharField(required=False,allow_null=True, allow_blank=True)
+#    cog = serializers.CharField(required=False,allow_null=True, allow_blank=True)
+#    roadtrack = serializers.CharField(required=False,allow_null=True, allow_blank=True)
+#    zone = serializers.CharField(required=False,allow_null=True, allow_blank=True)
+#    catchment = serializers.CharField(required=False,allow_null=True, allow_blank=True)
+#    dra_permit = serializers.BooleanField(required=False,default=False)
+
 
 
 class PropedDeclineSerializer(serializers.Serializer):

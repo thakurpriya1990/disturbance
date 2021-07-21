@@ -4,7 +4,7 @@ from ledger.accounts.models import EmailUser
 from disturbance.components.organisations.models import Organisation, OrganisationContact, UserDelegation
 from disturbance.components.main.models import ApplicationType
 from disturbance.components.main.utils import get_category
-from disturbance.components.proposals.models import Proposal, ProposalType, ApiarySite, ApiarySiteOnProposal#, ProposalOtherDetails, ProposalPark
+from disturbance.components.proposals.models import Proposal, ProposalType, ApiarySite, ApiarySiteOnProposal, ProposalApiary #, ProposalOtherDetails, ProposalPark
 from disturbance.components.approvals.models import Approval, MigratedApiaryLicence, ApiarySiteOnApproval
 #from commercialoperator.components.bookings.models import ApplicationFee, ParkBooking, Booking
 from django.core.exceptions import MultipleObjectsReturned
@@ -16,6 +16,7 @@ import os
 import datetime
 import string
 from dateutil.relativedelta import relativedelta
+from django.utils.timezone import get_current_timezone
 
 import logging
 logger = logging.getLogger(__name__)
@@ -132,8 +133,8 @@ class ApiaryLicenceReader():
                     else:
                         data.update({'issue_date': start_date})
                     data.update({'status': row[4].strip().capitalize()})
-                    data.update({'latitude': row[5].translate(None, string.whitespace)})
-                    data.update({'longitude': row[6].translate(None, string.whitespace)})
+                    data.update({'latitude': row[5].translate(string.whitespace)})
+                    data.update({'longitude': row[6].translate(string.whitespace)})
                     #data.update({'file_no': row[0].translate(None, string.whitespace)})
                     #data.update({'licence_no': row[1].translate(None, string.whitespace)})
                     #data.update({'expiry_date': row[2].strip()})
@@ -142,7 +143,7 @@ class ApiaryLicenceReader():
 
                     data.update({'trading_name': row[7].strip()})
                     data.update({'licencee': row[8].strip()})
-                    data.update({'abn': row[9].translate(None, string.whitespace)})
+                    data.update({'abn': row[9].translate(string.whitespace).replace(' ','')})
                     #data.update({'title': row[10].strip()})
                     first_name_raw = row[10].strip()
                     if first_name_raw:
@@ -154,6 +155,7 @@ class ApiaryLicenceReader():
                         last_name_split = last_name_raw.split('&')
                         data.update({'last_name': last_name_raw.strip().capitalize()})
                     #data.update({'other_contact': row[12].strip()})
+                    #import ipdb; ipdb.set_trace()
                     data.update({'address_line1': row[13].strip()})
                     data.update({'address_line2': row[14].strip()})
                     data.update({'address_line3': row[15].strip()})
@@ -166,22 +168,26 @@ class ApiaryLicenceReader():
                     country_str = 'Australia' if country_raw.lower().startswith('a') else country_raw
                     country=Country.objects.get(printable_name__icontains=country_str)
                     data.update({'country': country.iso_3166_1_a2}) # 2 char 'AU'
-                    data.update({'postcode': row[19].translate(None, string.whitespace)})
-                    data.update({'phone_number1': row[20].translate(None, b' -()')})
-                    data.update({'phone_number2': row[21].translate(None, b' -()')})
-                    data.update({'mobile_number': row[22].translate(None, b' -()')})
+                    data.update({'postcode': row[19].translate(string.whitespace)})
+                    data.update({'phone_number1': row[20].translate(b' -()')})
+                    data.update({'phone_number2': row[21].translate(b' -()')})
+                    data.update({'mobile_number': row[22].translate(b' -()')})
 
-                    emails = row[23].translate(None, b' -()').replace(';', ',').split(',')
+                    emails = row[23].translate(b' -()').replace(';', ',').split(',')
+                    #import ipdb; ipdb.set_trace()
+                    data.update({'licensed_site': eval(row[24].translate(b' -()').capitalize())})
                     #for num, email in enumerate(emails, 1):
                      #   data.update({'email{}'.format(num): email.lower()})
                     if emails:
                         data.update({'email': emails[0].lower()})
                     # Org or individual record
-                    if data.get('licencee') and data.get('abn'):
+                    if data.get('licencee')!='' and data.get('abn')!='':
                         data.update({'licencee_type': 'organisation'})
-                    elif not data.get('licencee'):
+                    #elif not data.get('licencee'):
+                    elif data.get('abn')=='':
                         data.update({'licencee_type': 'individual'})
                     else:
+                        #import ipdb; ipdb.set_trace()
                         raise ImportException("Entry is not a valid organisation or individual licence record")
 
                     #if data['abn'] != '':
@@ -191,7 +197,7 @@ class ApiaryLicenceReader():
                     ##   print
 
         except Exception as e:
-            #import ipdb; ipdb.set_trace()
+            import ipdb; ipdb.set_trace()
             #logger.info('{}'.format(e))
             if data:
                 logger.error('{}'.format(e))
@@ -446,6 +452,7 @@ class ApiaryLicenceReader():
         #elif proxy_applicant:
         #    approval = Approval.objects.filter(proxy_applicant=proxy_applicant, status=Approval.STATUS_CURRENT, apiary_approval=True).first()
 
+        #import ipdb; ipdb.set_trace()
         application_type=ApplicationType.objects.get(name=ApplicationType.APIARY)
         qs_proposal_type = ProposalType.objects.all().order_by('name', '-version').distinct('name')
         proposal_type = qs_proposal_type.get(name=application_type.name)
@@ -461,6 +468,7 @@ class ApiaryLicenceReader():
             if applicant:
                 proposal= Proposal.objects.create(
                                 application_type=application_type,
+                                activity='Apiary',
                                 submitter=submitter,
                                 applicant=applicant,
                                 schema=proposal_type.schema,
@@ -501,6 +509,13 @@ class ApiaryLicenceReader():
             proposal.processing_status='approved'
             proposal.customer_status='approved'
             proposal.migrated=True
+            proposal.proposed_issuance_approval = {
+                    'start_date': data['start_date'].strftime('%d-%m-%Y'),
+                    'expiry_date': data['expiry_date'].strftime('%d-%m-%Y'),
+                    'details': 'Migrated',
+                    'cc_email': 'Migrated',
+            }
+
             approval.migrated=True
             proposal.save()
             approval.save()
@@ -512,19 +527,27 @@ class ApiaryLicenceReader():
                                             apiary_site=apiary_site,
                                             approval=approval,
                                             wkb_geometry=geometry,
-                                            site_category = site_category
+                                            site_category = site_category,
+                                            licensed_site=data['licensed_site'],
                                             )
+            #import ipdb; ipdb.set_trace()
+            pa, pa_created = ProposalApiary.objects.get_or_create(proposal=proposal)
             intermediary_proposal_site = ApiarySiteOnProposal.objects.create(
                                             apiary_site=apiary_site,
                                             #approval=approval,
-                                            proposal=proposal,
-                                            wkb_geometry=geometry,
-                                            site_category = site_category
+                                            proposal_apiary=pa,
+                                            wkb_geometry_draft=geometry,
+                                            site_category_draft = site_category,
+                                            wkb_geometry_processed=geometry,
+                                            site_category_processed = site_category,
+                                            licensed_site=data['licensed_site'],
                                             )
 
             apiary_site.latest_approval_link=intermediary_approval_site
             apiary_site.latest_proposal_link=intermediary_proposal_site
             apiary_site.save()
+
+            approval.generate_doc(submitter)
 
         except Exception as e:
             logger.error('{}'.format(e))

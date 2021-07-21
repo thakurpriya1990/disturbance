@@ -286,6 +286,7 @@ def search_keys(dictionary, search_list=['help_text', 'label']):
         if any(x in k for x in search_list):
             result.append( {k: v} )
 
+    #import ipdb; ipdb.set_trace()
     help_list = []
     for i in result:
         try:
