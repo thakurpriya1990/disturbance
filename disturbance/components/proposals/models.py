@@ -3155,12 +3155,12 @@ class ProposalApiary(RevisionedMixin):
                                 relation_target.batch_no = apiary_site.get('properties')['batch_no']
 
                                 if apiary_site.get('properties')['approval_cpc_date']:
-                                    relation_target.approval_cpc_date = datetime.datetime.strptime(apiary_site.get('properties')['approval_cpc_date'], '%Y-%M-%d')
+                                    relation_target.approval_cpc_date = datetime.datetime.strptime(apiary_site.get('properties')['approval_cpc_date'], '%d-%M-%Y')
                                 else:
                                     relation_target.approval_cpc_date = None
 
                                 if apiary_site.get('properties')['approval_minister_date']:
-                                    relation_target.approval_minister_date = datetime.datetime.strptime(apiary_site.get('properties')['approval_minister_date'], '%Y-%M-%d')
+                                    relation_target.approval_minister_date = datetime.datetime.strptime(apiary_site.get('properties')['approval_minister_date'], '%d-%M-%Y')
                                 else:
                                     relation_target.approval_minister_date = None
 
@@ -3513,14 +3513,14 @@ class ProposalApiary(RevisionedMixin):
 
         for site in request.data.get('apiary_sites'):
             # During final approval - Approver may have updated these values
-            if site['properties'].get('licensed_site'):
+            if not site['properties'].get('licensed_site'):
                 a_site = ApiarySite.objects.get(id=site['id'])
                 apiary_site_on_proposal = self.get_relation(a_site)
 
                 apiary_site_on_proposal.licensed_site = site['properties'].get('licensed_site')
                 apiary_site_on_proposal.batch_no = site['properties'].get('batch_no')
-                apiary_site_on_proposal.approval_cpc_date = datetime.datetime.strptime(site['properties'].get('approval_cpc_date'), '%Y-%M-%d') if site['properties'].get('approval_cpc_date') else None
-                apiary_site_on_proposal.approval_minister_date = datetime.datetime.strptime(site['properties'].get('approval_minister_date'), '%Y-%M-%d') if site['properties'].get('approval_minister_date') else None
+                apiary_site_on_proposal.approval_cpc_date = datetime.datetime.strptime(site['properties'].get('approval_cpc_date'), '%d-%M-%Y') if site['properties'].get('approval_cpc_date') else None
+                apiary_site_on_proposal.approval_minister_date = datetime.datetime.strptime(site['properties'].get('approval_minister_date'), '%d-%M-%Y') if site['properties'].get('approval_minister_date') else None
                 apiary_site_on_proposal.map_ref = site['properties'].get('map_ref')
                 apiary_site_on_proposal.forest_block = site['properties'].get('forest_block')
                 apiary_site_on_proposal.cog = site['properties'].get('cog')
@@ -3623,6 +3623,32 @@ class SiteCategory(models.Model):
             if self.name == item[0]:
                 return item[1]
         return '---'
+
+    @property
+    def fee_application_per_site(self):
+        for item in SiteCategory.CATEGORY_CHOICES:
+            if item[0] == self.name:
+                fee_application = self.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_APPLICATION)
+                return fee_application
+        return '---'
+
+    @property
+    def fee_renewal_per_site(self):
+        for item in SiteCategory.CATEGORY_CHOICES:
+            if item[0] == self.name:
+                fee_renewal = self.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_RENEWAL)
+                return fee_renewal
+        return '---'
+
+    @property
+    def fee_transfer_per_site(self):
+        for item in SiteCategory.CATEGORY_CHOICES:
+            if item[0] == self.name:
+                fee_transfer = self.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_TRANSFER)
+                return fee_transfer
+        return '---'
+
+
 
     def __str__(self):
         for item in SiteCategory.CATEGORY_CHOICES:

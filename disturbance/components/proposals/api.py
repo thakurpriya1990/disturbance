@@ -303,12 +303,12 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if is_internal(self.request): #user.is_authenticated():
             #return Proposal.objects.all().order_by('-id')
-            return Proposal.objects.all()
+            return Proposal.objects.all().exclude(processing_status='hidden')
         elif is_customer(self.request):
             user_orgs = [org.id for org in user.disturbance_organisations.all()]
             #return  Proposal.objects.filter( Q(applicant_id__in = user_orgs) | Q(submitter = user) )
             #return Proposal.objects.filter( Q(applicant_id__in = user_orgs) | Q(submitter = user) | Q(proxy_applicant = user)).order_by('-id')
-            qs = Proposal.objects.filter(Q(applicant_id__in=user_orgs) | Q(submitter=user) | Q(proxy_applicant=user))
+            qs = Proposal.objects.filter(Q(applicant_id__in=user_orgs) | Q(submitter=user) | Q(proxy_applicant=user)).exclude(processing_status='hidden')
             return qs
             #queryset =  Proposal.objects.filter(region__isnull=False).filter( Q(applicant_id__in = user_orgs) | Q(submitter = user) )
         return Proposal.objects.none()

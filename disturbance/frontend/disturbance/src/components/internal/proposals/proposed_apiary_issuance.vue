@@ -135,9 +135,10 @@
 <!--
                             <pre>{{ issuance_details }}</pre>
                                     <pre>{{ site.properties }}</pre>
+                                    <pre>{{ site.properties.licensed_site }}</pre>
 -->
-                            <div v-for="(site, index) in apiary_sites_updated">
-                                <div v-if="site.properties.licensed_site">
+                            <div v-for="(site, index) in apiary_sites_updated_ordered">
+                                <div v-if="!site.properties.licensed_site">
 				    <div class="col-md-12">
 					<div class="row">
 					    <div class="panel panel-default">
@@ -185,13 +186,13 @@
 
 								<div class="col-sm-4">
 								    <label class="control-label pull-left" style="text-align:left" for="name">Conservation and Parks Commission</label>
-								    <input type="text" class="form-control" name="site_cpc_date" placeholder="YYYY-MM-DD" style="width:100%;" ref="cpc_date" 
+								    <input type="text" class="form-control" name="site_cpc_date" placeholder="DD-MM-YYYY" style="width:100%;" ref="cpc_date" 
                                                                         v-model="site.properties.approval_cpc_date"
                                                                     >
 								</div>
 								<div class="col-sm-4">
 								    <label class="control-label pull-left" style="text-align:left" for="name">Minister for Environment or Delegate</label>
-								    <input type="text" class="form-control" name="site_minister_date" placeholder="YYYY-MM-DD" style="width:100%;" ref="minister_date" 
+								    <input type="text" class="form-control" name="site_minister_date" placeholder="DD-MM-YYYY" style="width:100%;" ref="minister_date" 
                                                                         v-model="site.properties.approval_minister_date"
                                                                     >
 								</div>
@@ -558,6 +559,11 @@ export default {
             if (this.proposal.proposal_apiary && this.proposal.proposal_apiary.transferee_email_text && this.proposal.applicant){
                 return  this.proposal.applicant.email;
             }
+        },
+        apiary_sites_updated_ordered: function () {
+            // adding ordering here on client-side, because iserver-side serializer is ordered for 'apiary_site_id'
+            // to allow for PDF ordered output of permits and licences (ApprovalSerializerForLicenceDoc)
+            return _.orderBy(this.apiary_sites_updated, 'id')
         },
 
     },

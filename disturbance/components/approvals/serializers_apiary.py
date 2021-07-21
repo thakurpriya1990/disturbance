@@ -183,6 +183,9 @@ class ApiarySiteOnApprovalLicenceDocSerializer(serializers.ModelSerializer):
     zone = serializers.SerializerMethodField()
     catchment = serializers.SerializerMethodField()
     dra_permit = serializers.SerializerMethodField()
+    fee_application = serializers.SerializerMethodField()
+    fee_renewal = serializers.SerializerMethodField()
+    fee_transfer = serializers.SerializerMethodField()
 
     class Meta:
         model = ApiarySiteOnApproval
@@ -204,6 +207,9 @@ class ApiarySiteOnApprovalLicenceDocSerializer(serializers.ModelSerializer):
             'zone',
             'catchment',
             'dra_permit',
+            'fee_application',
+            'fee_renewal',
+            'fee_transfer',
 
 
         )
@@ -274,4 +280,14 @@ class ApiarySiteOnApprovalLicenceDocSerializer(serializers.ModelSerializer):
 
     def get_dra_permit(self, apiary_site_on_proposal):
         return 'Yes' if apiary_site_on_proposal.dra_permit else 'No'
+
+    def get_fee_application(self, apiary_site_on_approval):
+        return apiary_site_on_approval.site_category.fee_application_per_site
+
+    def get_fee_renewal(self, apiary_site_on_approval):
+        return apiary_site_on_approval.site_category.fee_renewal_per_site
+
+    def get_fee_transfer(self, apiary_site_on_approval):
+        return apiary_site_on_approval.site_category.fee_transfer_per_site
+
 

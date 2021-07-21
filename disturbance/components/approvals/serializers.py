@@ -1,5 +1,6 @@
 from ledger.accounts.models import EmailUser,Address
 from django.utils import timezone
+from disturbance import settings
 from disturbance.components.approvals.models import (
     Approval,
     ApprovalLogEntry,
@@ -109,7 +110,13 @@ class ApprovalSerializerForLicenceDoc(serializers.ModelSerializer):
         return approval.issue_date.strftime('%d/%m/%Y')
 
     def get_approver(self, approval):
-        approver = self.context.get('approver')
+        if approval.migrated:
+            try:
+                approver = EmailUser.objects.get(email=settings.APIARY_MIGRATED_LICENCES_APPROVER)
+            except Exception as e:
+                raise Exception('Cannot find Approver for Migrated Licence: {}/n{}'.format(settings.APIARY_MIGRATED_LICENCES_APPROVER, str(e)))
+        else:
+            approver = self.context.get('approver')
         return approver.get_full_name()
 
     def get_apiary_sites(self, approval):
@@ -128,8 +135,7 @@ class ApprovalSerializerForLicenceDoc(serializers.ModelSerializer):
         #         ret_array.append(serializer.data)
 
         apiary_site_on_approvals = approval.get_relations()
-        #import ipdb; ipdb.set_trace()
-        for relation in apiary_site_on_approvals:
+        for relation in apiary_site_on_approvals.order_by('apiary_site_id'):
             if not relation.licensed_site:
                 serializer = ApiarySiteOnApprovalLicenceDocSerializer(relation)
                 ret_array.append(serializer.data)
@@ -141,7 +147,7 @@ class ApprovalSerializerForLicenceDoc(serializers.ModelSerializer):
         ret_array = []
 
         apiary_site_on_approvals = approval.get_relations()
-        for relation in apiary_site_on_approvals:
+        for relation in apiary_site_on_approvals.order_by('apiary_site_id'):
             if relation.licensed_site:
                 serializer = ApiarySiteOnApprovalLicenceDocSerializer(relation)
                 ret_array.append(serializer.data)
@@ -157,37 +163,67 @@ class ApprovalSerializerForLicenceDoc(serializers.ModelSerializer):
             })
         return ret_array
 
+#    def get_map_ref(self, approval):
+#        return approval.current_proposal.proposed_issuance_approval.get('map_ref')
+#
+#    def get_forest_block(self, approval):
+#        return approval.current_proposal.proposed_issuance_approval.get('forest_block')
+#
+#    def get_cog(self, approval):
+#        return approval.current_proposal.proposed_issuance_approval.get('cog')
+#
+#    def get_roadtrack(self, approval):
+#        return approval.current_proposal.proposed_issuance_approval.get('roadtrack')
+#
+#    def get_zone(self, approval):
+#        return approval.current_proposal.proposed_issuance_approval.get('zone')
+#
+#    def get_catchment(self, approval):
+#        return approval.current_proposal.proposed_issuance_approval.get('catchment')
+#
+#    def get_dra_permit(self, approval):
+#        if approval.current_proposal.proposed_issuance_approval.get('dra_permit'):
+#            return 'Yes'
+#        return 'No'
+#
+#    def get_batch_no(self, approval):
+#        return approval.current_proposal.proposed_issuance_approval.get('batch_no')
+#
+#    def get_cpc_date(self, approval):
+#        return approval.current_proposal.proposed_issuance_approval.get('cpc_date')
+#
+#    def get_minister_date(self, approval):
+#        return approval.current_proposal.proposed_issuance_approval.get('minister_date')
+
     def get_map_ref(self, approval):
-        return approval.current_proposal.proposed_issuance_approval.get('map_ref')
+        return ''
 
     def get_forest_block(self, approval):
-        return approval.current_proposal.proposed_issuance_approval.get('forest_block')
+        return ''
 
     def get_cog(self, approval):
-        return approval.current_proposal.proposed_issuance_approval.get('cog')
+        return ''
 
     def get_roadtrack(self, approval):
-        return approval.current_proposal.proposed_issuance_approval.get('roadtrack')
+        return ''
 
     def get_zone(self, approval):
-        return approval.current_proposal.proposed_issuance_approval.get('zone')
+        return ''
 
     def get_catchment(self, approval):
-        return approval.current_proposal.proposed_issuance_approval.get('catchment')
+        return ''
 
     def get_dra_permit(self, approval):
-        if approval.current_proposal.proposed_issuance_approval.get('dra_permit'):
-            return 'Yes'
         return 'No'
 
     def get_batch_no(self, approval):
-        return approval.current_proposal.proposed_issuance_approval.get('batch_no')
+        return ''
 
     def get_cpc_date(self, approval):
-        return approval.current_proposal.proposed_issuance_approval.get('cpc_date')
+        return ''
 
     def get_minister_date(self, approval):
-        return approval.current_proposal.proposed_issuance_approval.get('minister_date')
+        return ''
 
 
     #def bak_get_requirements(self, approval):
