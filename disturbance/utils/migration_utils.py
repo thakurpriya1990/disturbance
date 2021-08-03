@@ -73,6 +73,7 @@ class ApiaryLicenceReader():
                             'mobile_number': row['mobile_number'],
                             'email': row['email'],
                             'licencee_type': row['licencee_type']
+                            'pli_expiry_date': row['pli_expiry_date'],
                             }
                         )
                     if not created:
@@ -176,6 +177,12 @@ class ApiaryLicenceReader():
                     emails = row[23].translate(b' -()').replace(';', ',').split(',')
                     #import ipdb; ipdb.set_trace()
                     data.update({'licensed_site': eval(row[24].translate(b' -()').capitalize())})
+
+                    #pli_expiry_date_raw = row[25].strip()
+                    #if pli_expiry_date_raw:
+                    #    pli_expiry_date = datetime.datetime.strptime(pli_expiry_date_raw, '%d/%m/%Y').date()
+                    #    data.update({'pli_expiry_date': pli_expiry_date})
+
                     #for num, email in enumerate(emails, 1):
                      #   data.update({'email{}'.format(num): email.lower()})
                     if emails:
@@ -532,6 +539,10 @@ class ApiaryLicenceReader():
                                             )
             #import ipdb; ipdb.set_trace()
             pa, pa_created = ProposalApiary.objects.get_or_create(proposal=proposal)
+            if pa_created:
+                # since this is an application level field
+                pa.public_liability_insurance_expiry_date = data['pli_expiry_date'].strftime('%d-%m-%Y') 
+
             intermediary_proposal_site = ApiarySiteOnProposal.objects.create(
                                             apiary_site=apiary_site,
                                             #approval=approval,
