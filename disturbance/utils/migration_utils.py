@@ -72,8 +72,8 @@ class ApiaryLicenceReader():
                             'phone_number2': row['phone_number2'],
                             'mobile_number': row['mobile_number'],
                             'email': row['email'],
-                            'licencee_type': row['licencee_type']
-                            'pli_expiry_date': row['pli_expiry_date'],
+                            'licencee_type': row['licencee_type'],
+                            #'pli_expiry_date': row['pli_expiry_date'],
                             }
                         )
                     if not created:
@@ -472,8 +472,9 @@ class ApiaryLicenceReader():
 
             #application_name = 'T Class'
             # Get most recent versions of the Proposal Types
+            #import ipdb; ipdb.set_trace()
             if applicant:
-                proposal= Proposal.objects.create(
+                proposal, p_created = Proposal.objects.get_or_create(
                                 application_type=application_type,
                                 activity='Apiary',
                                 submitter=submitter,
@@ -493,25 +494,27 @@ class ApiaryLicenceReader():
                                     }
                             )
             else:
-                proposal= Proposal.objects.create(
-                                application_type=application_type,
-                                submitter=submitter,
-                                applicant=applicant,
-                                schema=proposal_type.schema,
-                            )
-                approval, approval_created = Approval.objects.update_or_create(
-                                proxy_applicant=proxy_applicant,
-                                status=Approval.STATUS_CURRENT,
-                                apiary_approval=True,
-                                defaults = {
-                                    'issue_date':data['issue_date'],
-                                    'expiry_date':data['expiry_date'],
-                                    'start_date':data['start_date'],
-                                    #'submitter':submitter,
-                                    'current_proposal':proposal,
-                                    }
-                            )
-            proposal.lodgement_number = proposal.lodgement_number.replace('P', 'PM') # Application Migrated
+                import ipdb; ipdb.set_trace()
+#                proposal= Proposal.objects.create(
+#                                application_type=application_type,
+#                                submitter=submitter,
+#                                applicant=applicant,
+#                                schema=proposal_type.schema,
+#                            )
+#                approval, approval_created = Approval.objects.update_or_create(
+#                                proxy_applicant=proxy_applicant,
+#                                status=Approval.STATUS_CURRENT,
+#                                apiary_approval=True,
+#                                defaults = {
+#                                    'issue_date':data['issue_date'],
+#                                    'expiry_date':data['expiry_date'],
+#                                    'start_date':data['start_date'],
+#                                    #'submitter':submitter,
+#                                    'current_proposal':proposal,
+#                                    }
+#                            )
+            if 'PM' not in proposal.lodgement_number:
+                proposal.lodgement_number = proposal.lodgement_number.replace('P', 'PM') # Application Migrated
             proposal.approval= approval
             proposal.processing_status='approved'
             proposal.customer_status='approved'
@@ -539,9 +542,9 @@ class ApiaryLicenceReader():
                                             )
             #import ipdb; ipdb.set_trace()
             pa, pa_created = ProposalApiary.objects.get_or_create(proposal=proposal)
-            if pa_created:
-                # since this is an application level field
-                pa.public_liability_insurance_expiry_date = data['pli_expiry_date'].strftime('%d-%m-%Y') 
+            #if pa_created:
+            #    # since this is an application level field
+            #    pa.public_liability_insurance_expiry_date = data['pli_expiry_date'].strftime('%d-%m-%Y') 
 
             intermediary_proposal_site = ApiarySiteOnProposal.objects.create(
                                             apiary_site=apiary_site,
