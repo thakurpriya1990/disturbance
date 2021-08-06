@@ -921,9 +921,22 @@ class OrganisationContactViewSet(viewsets.ModelViewSet):
     def destroy(self, request, *args, **kwargs):
         """ delete an Organisation contact """
         num_admins = self.get_object().organisation.contacts.filter(is_admin=True).count()
-        if num_admins > 1:
-            return super(OrganisationContactViewSet, self).destroy(request, *args, **kwargs)
-        raise serializers.ValidationError('Cannot delete the last Organisation Admin')
+        org_contact =  self.get_object().organisation.contacts.get(id=kwargs['pk'])
+        if num_admins == 1 and org_contact.is_admin:
+            raise serializers.ValidationError('Cannot delete the last Organisation Admin')
+        return super(OrganisationContactViewSet, self).destroy(request, *args, **kwargs)
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        if 'contact_form' in request.data.get('user_status'):
+            serializer.save(user_status='contact_form')
+        else:
+            serializer.save()
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
 
 class MyOrganisationsViewSet(viewsets.ModelViewSet):
     queryset = Organisation.objects.all()

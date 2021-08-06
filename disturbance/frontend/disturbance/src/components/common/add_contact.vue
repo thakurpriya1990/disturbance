@@ -146,6 +146,7 @@ export default {
             } else {
                 let contact = JSON.parse(JSON.stringify(vm.contact));
                 contact.organisation = vm.org_id;
+                contact.user_status = 'contact_form';
                 vm.$http.post(api_endpoints.organisation_contacts,JSON.stringify(contact),{
                         emulateJSON:true,
                     }).then((response)=>{
