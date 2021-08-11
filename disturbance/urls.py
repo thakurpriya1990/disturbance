@@ -54,6 +54,16 @@ router.register(r'apiary_site_fees',proposal_api.ApiarySiteFeeViewSet)
 #router.register(r'payment',payment_api.PaymentViewSet)
 router.register(r'proposal_type_sections', proposal_api.ProposalTypeSectionViewSet)
 
+router.register(
+    r'schema_question_paginated', proposal_api.SchemaQuestionPaginatedViewSet)
+
+router.register(
+    r'schema_masterlist',
+    proposal_api.SchemaMasterlistViewSet
+)
+router.register(
+    r'schema_masterlist_paginated', proposal_api.SchemaMasterlistPaginatedViewSet)
+
 api_patterns = [
     url(r'^api/profile$', users_api.GetProfile.as_view(), name='get-profile'),
     url(r'^api/department_users$', users_api.DepartmentUserList.as_view(), name='department-users-list'),

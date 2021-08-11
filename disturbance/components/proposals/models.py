@@ -4441,6 +4441,7 @@ class MasterlistQuestion(models.Model):
     help_text_assessor_url=models.BooleanField(default=False)
     help_text=RichTextField(null=True, blank=True)
     help_text_assessor=RichTextField(null=True, blank=True)
+    property_cache = JSONField(null=True, blank=True, default={})
 
     class Meta:
         app_label = 'disturbance'
@@ -4448,6 +4449,205 @@ class MasterlistQuestion(models.Model):
 
     def __str__(self):
         return self.question
+
+    def get_options(self):
+        '''
+        Property field for Question Options.
+        '''
+        option_list = []
+        options = self.get_property_cache_options()
+        for o in options:
+            qo = QuestionOption(label=o['label'], value=o['value'])
+            option_list.append(qo)
+        return option_list
+
+    def get_property_cache_options(self):
+        '''
+        Getter for options on the property cache.
+
+        NOTE: only used for presentation purposes.
+
+        :return options_list of QuestionOption values.
+        '''
+        options = []
+        try:
+
+            options = self.property_cache['options']
+
+        except KeyError:
+            pass
+
+        return options
+
+    def set_property_cache_options(self, options):
+        '''
+        Setter for options on the property cache.
+
+        NOTE: only used for presentation purposes.
+
+        :param  options is QuerySet of QuestionOption or List of option value
+                string.
+        '''
+        class MasterlistOptionEncoder(json.JSONEncoder):
+            def default(self, obj):
+                if isinstance(obj, list):
+                    options = []
+                    for o in obj:
+                        option = {
+                            'label': o['label'],
+                            'value': o['value'],
+                        }
+                        options.append(option)
+                    return options
+
+            def encode_list(self, obj, iter=None):
+                if isinstance(obj, (list)):
+                    return self.default(obj)
+                else:
+                    return super(
+                        MasterlistOptionEncoder, self).encode_list(obj, iter)
+
+        if not isinstance(options, list) and self.id:
+            logger.warn('{0} - MasterlistQuestion: {1}'.format(
+                'set_property_cache_options() NOT LIST', self.id))
+            return
+
+        if self.id:
+            data = MasterlistOptionEncoder().encode_list(options)
+            print(options,data)
+            self.property_cache['options'] = data
+
+    def get_headers(self):
+        '''
+        Property field for Question Table Headers.
+        '''
+        header_list = []
+        headers = self.get_property_cache_headers()
+        # for h in headers:
+        #     qh = QuestionOption(label=h, value='')
+        #     header_list.append(qo)
+        return headers
+
+    def get_property_cache_headers(self):
+        '''
+        Getter for headers on the property cache.
+
+        NOTE: only used for presentation purposes.
+
+        :return headers_list of QuestionOption values.
+        '''
+        headers = []
+        try:
+
+            headers = self.property_cache['headers']
+
+        except KeyError:
+            pass
+
+        return headers
+
+    def set_property_cache_headers(self, headers):
+        '''
+        Setter for options on the property cache.
+
+        NOTE: only used for presentation purposes.
+
+        :param  options is QuerySet of MasterlistQuestion or List of ids.
+        '''
+        class TableHeaderEncoder(json.JSONEncoder):
+            def default(self, obj):
+                if isinstance(obj, list):
+                    headers = []
+                    for h in obj:
+                        header = {
+                            'label': h['label'],
+                            'value': h['value'],
+                        }
+                        headers.append(header)
+                    return headers
+
+            def encode_list(self, obj, iter=None):
+                if isinstance(obj, (list)):
+                    return self.default(obj)
+                else:
+                    return super(
+                        TableHeaderEncoder, self).encode_list(obj, iter)
+
+        if not isinstance(headers, list) and self.id:
+            logger.warn('{0} - MasterlistQuestion: {1}'.format(
+                'set_property_cache_headers() NOT LIST', self.id))
+            return
+
+        if self.id:
+            data = TableHeaderEncoder().encode_list(headers)
+            self.property_cache['headers'] = data
+
+    def get_expanders(self):
+        '''
+        Property field for Question Table Expanders.
+        '''
+        expander_list = []
+        expanders = self.get_property_cache_expanders()
+        # for h in headers:
+        #     qh = QuestionOption(label=h, value='')
+        #     header_list.append(qo)
+        return expanders
+
+    def get_property_cache_expanders(self):
+        '''
+        Getter for options on the property cache.
+
+        NOTE: only used for presentation purposes.
+
+        :return options_list of QuestionOption values.
+        '''
+        expanders = []
+        try:
+
+            expanders = self.property_cache['expanders']
+
+        except KeyError:
+            pass
+
+        return expanders
+
+    def set_property_cache_expanders(self, expanders):
+        '''
+        Setter for options on the property cache.
+
+        NOTE: only used for presentation purposes.
+
+        :param  options is QuerySet of QuestionOption or List of option value
+                string.
+        '''
+        class TableExpanderEncoder(json.JSONEncoder):
+            def default(self, obj):
+                if isinstance(obj, list):
+                    expanders = []
+                    for e in obj:
+                        expander = {
+                            'label': e['label'],
+                            'value': e['value'],
+                        }
+                        expanders.append(expander)
+                    return expanders
+
+            def encode_list(self, obj, iter=None):
+                if isinstance(obj, (list)):
+                    return self.default(obj)
+                else:
+                    return super(
+                        TableExpanderEncoder, self).encode_list(obj, iter)
+
+        if not isinstance(expanders, list) and self.id:
+            logger.warn('{0} - MasterlistQuestion: {1}'.format(
+                'set_property_cache_expanders() NOT LIST', self.id))
+            return
+
+        if self.id:
+            data = TableExpanderEncoder().encode_list(expanders)
+            self.property_cache['expanders'] = data
+
 
 @python_2_unicode_compatible
 class ProposalTypeSection(models.Model):

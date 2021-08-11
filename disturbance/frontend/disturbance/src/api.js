@@ -59,4 +59,15 @@ module.exports = {
     proposal_apiary:"/api/proposal_apiary.json",
     apiary_referrals:"/api/apiary_referrals.json",
     apiary_site_transfer_fees:"/api/apiary_site_fees/get_site_transfer_fees.json",
+
+    //schema api's
+    //schema_masterlist:"/api/schema_masterlist/",
+    schema_masterlist:"/api/schema_masterlist.json",
+    schema_masterlist_paginated:"/api/schema_masterlist_paginated/",
+    schema_purpose:"/api/schema_purpose/",
+    schema_purpose_paginated:"/api/schema_purpose_paginated/",
+    schema_group:"/api/schema_group/",
+    schema_group_paginated:"/api/schema_group_paginated/",
+    schema_question:"/api/schema_question/",
+    schema_question_paginated:"/api/schema_question_paginated/",
 }
