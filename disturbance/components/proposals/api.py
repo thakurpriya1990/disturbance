@@ -94,6 +94,8 @@ from disturbance.components.proposals.serializers import (
     DTSchemaQuestionSerializer,
     SchemaMasterlistSerializer,
     DTSchemaMasterlistSerializer,
+    SchemaQuestionSerializer,
+    SelectSchemaMasterlistSerializer,
 )
 from disturbance.components.proposals.serializers_apiary import (
     ProposalApiaryTypeSerializer,
@@ -3111,3 +3113,277 @@ class SchemaQuestionPaginatedViewSet(viewsets.ModelViewSet):
         response = self.paginator.get_paginated_response(serializer.data)
 
         return response
+
+
+class SchemaQuestionViewSet(viewsets.ModelViewSet):
+    queryset = SectionQuestion.objects.all()
+    serializer_class = SchemaQuestionSerializer
+
+    def get_queryset(self):
+        return self.queryset
+
+    @detail_route(methods=['GET', ])
+    def get_question_parents(self, request, *args, **kwargs):
+        '''
+        Get all Parent Question associated with Schema Questions in Section.
+        '''
+        try:
+            section_id = request.query_params.get('section_id', 0)
+            opt_list = MasterlistQuestion.ANSWER_TYPE_OPTIONS
+            all_questions = SectionQuestion.objects.filter(
+                section_id=int(section_id),
+            )
+            questions = [
+                q for q in all_questions if q.question.answer_type in opt_list
+            ]
+
+            parents = [
+                {
+                    'label': q.question.question,
+                    'value': q.question.id,
+                    #'group': q.section_group_id,
+                } for q in questions
+            ]
+
+            # section_groups = SectionGroup.objects.filter(
+            #     section_id=int(section_id)
+            # )
+
+            # groups = [
+            #     {
+            #         'label': g.group_label, 'value': g.id
+            #     } for g in section_groups
+            # ]
+
+            return Response(
+                {
+                    'question_parents': parents,
+                    #'question_groups': groups,
+                },
+                status=status.HTTP_200_OK
+            )
+
+        except serializers.ValidationError as ve:
+            log = '{0} {1}'.format('get_question_parents()', ve)
+            logger.exception(log)
+            raise
+
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0]))
+
+        except Exception as e:
+            logger.exception()
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['GET', ])
+    def get_question_sections(self, request, *args, **kwargs):
+        '''
+        Get all Sections associated with Schema Questions with Licence Purpose.
+        '''
+        try:
+            proposal_type_id = request.query_params.get('proposal_type_id', 0)
+            sections = ProposalTypeSection.objects.filter(
+                proposal_type_id=int(proposal_type_id)
+            )
+            names = [
+                {
+                    'label': s.section_label, 'value': s.id
+                } for s in sections
+            ]
+
+            # section_groups = SectionGroup.objects.filter(
+            #     section__licence_purpose=int(purpose_id)
+            # )
+
+            # groups = [
+            #     {
+            #         'label': g.group_label, 'value': g.id
+            #     } for g in section_groups
+            # ]
+
+            return Response(
+                {
+                    'question_sections': names,
+                    #'question_groups': groups,
+                },
+                status=status.HTTP_200_OK
+            )
+
+        except serializers.ValidationError as ve:
+            log = '{0} {1}'.format('get_question_sections()', ve)
+            logger.exception(log)
+            raise
+
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0]))
+
+        except Exception as e:
+            logger.exception()
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['GET', ])
+    def get_question_order(self, request, *args, **kwargs):
+        '''
+        Get order number for Schema Question using Schema Group.
+        '''
+        try:
+            group_id = request.query_params.get('group_id', 0)
+            questions = SectionQuestion.objects.filter(
+                section_group=int(group_id)
+            )
+            next_order = len(questions) + 1 if questions else 0
+
+            return Response(
+                {'question_order': str(next_order)},
+                status=status.HTTP_200_OK
+            )
+
+        except serializers.ValidationError as ve:
+            log = '{0} {1}'.format('get_question_order()', ve)
+            logger.exception(log)
+            raise
+
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0]))
+
+        except Exception as e:
+            logger.exception()
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['GET', ])
+    def get_question_selects(self, request, *args, **kwargs):
+        '''
+        Get independant Select lists associated with Schema Questions.
+        '''
+        try:
+
+            qs = MasterlistQuestion.objects.all()
+            masterlist = SelectSchemaMasterlistSerializer(qs, many=True).data
+
+            qs = ProposalType.objects.filter().exclude(sections=None)
+            proposal_types = [
+                {
+                    'label': p.name,
+                    'value': p.id
+                } for p in qs
+            ]
+
+            qs = ProposalTypeSection.objects.all()
+            sections = [
+                {
+                    'label': s.section_label, 'value': s.id
+                } for s in qs
+            ]
+
+            # qs = SectionGroup.objects.all()
+            # groups = [
+            #     {
+            #         'label': s.group_label, 'value': s.id
+            #     } for s in qs
+            # ]
+
+            return Response(
+                {
+                    'all_masterlist': masterlist,
+                    'all_proposal_types': proposal_types,
+                    'all_section': sections,
+                    #'all_group': groups,
+                },
+                status=status.HTTP_200_OK
+            )
+
+        except serializers.ValidationError as ve:
+            log = '{0} {1}'.format('get_question_selects()', ve)
+            logger.exception(log)
+            raise
+
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0]))
+
+        except Exception as e:
+            logger.exception()
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['DELETE', ])
+    def delete_question(self, request, *args, **kwargs):
+        '''
+        Delete Section Question record.
+        '''
+        try:
+            instance = self.get_object()
+
+            with transaction.atomic():
+
+                instance.delete()
+
+            return Response(
+                {'masterlist_id': instance.id},
+                status=status.HTTP_200_OK
+            )
+
+        except serializers.ValidationError as ve:
+            log = '{0} {1}'.format('delete_question()', ve)
+            logger.exception(log)
+            raise
+
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0]))
+
+        except Exception as e:
+            logger.exception()
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['POST', ])
+    def save_question(self, request, *args, **kwargs):
+        '''
+        Save Section Question record.
+        '''
+        try:
+            instance = self.get_object()
+
+            with transaction.atomic():
+
+                # process options.
+                options = request.data.get('options', None)
+                instance.set_property_cache_options(options)
+
+                serializer = SchemaQuestionSerializer(
+                    instance, data=request.data
+                )
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+
+            return Response(
+                {'question_id': instance.id},
+                status=status.HTTP_200_OK
+            )
+
+        except serializers.ValidationError as ve:
+            log = '{0} {1}'.format('save_question()', ve)
+            logger.exception(log)
+            raise
+
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0]))
+
+        except Exception as e:
+            logger.exception()
+            raise serializers.ValidationError(str(e))

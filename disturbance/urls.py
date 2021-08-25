@@ -58,6 +58,9 @@ router.register(
     r'schema_question_paginated', proposal_api.SchemaQuestionPaginatedViewSet)
 
 router.register(
+    r'schema_question', proposal_api.SchemaQuestionViewSet)
+
+router.register(
     r'schema_masterlist',
     proposal_api.SchemaMasterlistViewSet
 )

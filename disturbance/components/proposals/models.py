@@ -4412,9 +4412,12 @@ class QuestionOption(models.Model):
 from ckeditor.fields import RichTextField
 @python_2_unicode_compatible
 class MasterlistQuestion(models.Model):
+    ANSWER_TYPE_CHECKBOX = 'checkbox'
+    ANSWER_TYPE_RADIO = 'radiobuttons'
+
     ANSWER_TYPE_CHOICES=(('text', 'Text'),
-                         ('radiobuttons', 'Radio button'),
-                         ('checkbox', 'Checkbox'),
+                         (ANSWER_TYPE_RADIO, 'Radio button'),
+                         (ANSWER_TYPE_CHECKBOX, 'Checkbox'),
                          
                          ('text_info', 'Text Info'),
                          ('iframe', 'IFrame'),
@@ -4429,6 +4432,12 @@ class MasterlistQuestion(models.Model):
                          ('file', 'File'),
                          ('date', 'Date'),
                         )
+    ANSWER_TYPE_OPTIONS = [
+        ANSWER_TYPE_CHECKBOX,
+        # ANSWER_TYPE_SELECT,
+        # ANSWER_TYPE_MULTI,
+        ANSWER_TYPE_RADIO,
+    ]
     name = models.CharField(max_length=100)
     question = models.TextField()
     #answer_type= models.CharField(max_length=100)
@@ -4736,6 +4745,7 @@ class SectionQuestion(models.Model):
     # )
     tag= MultiSelectField(choices=TAG_CHOICES, max_length=400,max_choices=10, null=True, blank=True)
     order = models.PositiveIntegerField(default=1)
+    property_cache = JSONField(null=True, blank=True, default={})
 
 
 
@@ -4755,6 +4765,74 @@ class SectionQuestion(models.Model):
     @property
     def question_options(self):
         return self.question.option.all()
+
+    def get_options(self):
+        '''
+        '''
+        options = self.get_property_cache_options()
+
+        return options
+
+    def get_property_cache_options(self):
+        '''
+        Getter for options on the property cache.
+
+        NOTE: only used for presentation purposes.
+
+        :return options_list of QuestionOption values.
+        '''
+        options = []
+        try:
+
+            options = self.property_cache['options']
+
+        except KeyError:
+            pass
+
+        return options
+
+    def set_property_cache_options(self, options):
+        '''
+        Setter for options on the property cache.
+
+        NOTE: only used for presentation purposes.
+
+        :param  options is QuerySet of QuestionOption or List of option value
+                string.
+        '''
+        class QuestionOptionEncoder(json.JSONEncoder):
+            def default(self, obj):
+                if isinstance(obj, list):
+                    options = []
+                    for o in obj:
+                        o_conditions = [
+                            {
+                                'label': c['label'], 'value': c['value']
+                            } for c in o['conditions']
+                        ]
+                        option = {
+                            'label': o['label'],
+                            'value': o['value'],
+                            'conditions': o_conditions,
+                        }
+                        options.append(option)
+                    return options
+
+            def encode_list(self, obj, iter=None):
+                if isinstance(obj, (list)):
+                    return self.default(obj)
+                else:
+                    return super(
+                        QuestionOptionEncoder, self).encode_list(obj, iter)
+
+        if not isinstance(options, list) and self.id:
+            logger.warn('{0} - SectionQuestion: {1}'.format(
+                'set_property_cache_options() NOT LIST', self.id))
+            return
+
+        if self.id:
+            data = QuestionOptionEncoder().encode_list(options)
+            self.property_cache['options'] = data
     
 
 

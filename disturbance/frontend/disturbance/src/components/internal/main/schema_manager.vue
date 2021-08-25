@@ -4,7 +4,7 @@
 
     <SchemaTabs :tabs="tabs" :initialTab="initialTab">
 
-        <!-- <template slot="tab-panel-question"><SchemaQuestion /></template> -->
+        <template slot="tab-panel-question"><SchemaQuestion /></template>
         <template slot="tab-panel-masterlist"><SchemaMasterlist /></template>
         <!-- <template slot="tab-panel-purpose"><SchemaPurpose /></template> -->
         <!-- <template slot="tab-panel-group"><SchemaGroup /></template> -->
@@ -16,7 +16,7 @@
 </template>
 <script>
 import SchemaTabs from '@/components/forms/tab.vue'
-// import SchemaQuestion from '@/components/internal/main/schema_question.vue'
+import SchemaQuestion from '@/components/internal/main/schema_question.vue'
 import SchemaMasterlist from '@/components/internal/main/schema_masterlist.vue'
 // import SchemaPurpose from '@/components/internal/main/schema_purpose.vue'
 // import SchemaGroup from '@/components/internal/main/schema_group.vue'
@@ -25,7 +25,7 @@ export default {
     name: 'schema-manager',
     components: {
         SchemaTabs,
-        // SchemaQuestion,
+        SchemaQuestion,
         SchemaMasterlist,
         // SchemaPurpose,
         // SchemaGroup,
@@ -37,7 +37,7 @@ export default {
                 {'masterlist': 'Schema Masterlist'},
                 // {'purpose': 'Purpose Sections'},
                 // {'group': 'Section Groups'},
-                // {'question': 'Section Questions'},
+                {'question': 'Section Questions'},
             ],
         }
     },

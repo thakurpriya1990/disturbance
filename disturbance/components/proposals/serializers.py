@@ -751,7 +751,7 @@ class SchemaMasterlistSerializer(serializers.ModelSerializer):
                 opt_id = option_serializer.data['id']
                 o['value'] = opt_id
             obj.set_property_cache_options(option_labels)
-
+            
         except Exception:
             options = None
             option_list = obj.get_options()
@@ -760,7 +760,7 @@ class SchemaMasterlistSerializer(serializers.ModelSerializer):
                     {
                         'label': o.label,
                         'value': o.value,
-                        'conditions': obj.ANSWER_TYPE_CONDITIONS,
+                        #'conditions': obj.ANSWER_TYPE_CONDITIONS,
 
                     } for o in option_list
                 ]
@@ -808,6 +808,68 @@ class SchemaMasterlistSerializer(serializers.ModelSerializer):
                 ]
 
         return expanders
+
+
+class SelectSchemaMasterlistSerializer(serializers.ModelSerializer):
+    '''
+    Serializer for Schema builder using Masterlist questions.
+    '''
+    options = serializers.SerializerMethodField()
+    # headers = serializers.SerializerMethodField()
+    # expanders = serializers.SerializerMethodField()
+    name = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = MasterlistQuestion
+        fields = '__all__'
+
+    def get_options(self, obj):
+        options = None
+        option_list = obj.get_options()
+        if option_list:
+            options = [
+                    {
+                        'label': o.label,
+                        'value': o.value,
+                        #'conditions': obj.ANSWER_TYPE_CONDITIONS,
+
+                    } for o in option_list
+                ]
+
+        return options
+
+        # option_labels = []
+        # try:
+        #     options = self.initial_data.get('options', None)
+        #     for o in options:
+        #         option_labels.append(o)
+        #         qo = QuestionOption.objects.filter(label=o['label'])
+        #         if qo.exists():
+        #             o['value'] = qo[0].id
+        #             continue
+        #         option_serializer = SchemaOptionSerializer(data=o)
+        #         option_serializer.is_valid(raise_exception=True)
+        #         option_serializer.save()
+        #         opt_id = option_serializer.data['id']
+        #         o['value'] = opt_id
+        #     obj.set_property_cache_options(option_labels)
+            
+        # except Exception:
+        #     options = None
+        #     option_list = obj.get_options()
+        #     if option_list:
+        #         options = [
+        #             {
+        #                 'label': o.label,
+        #                 'value': o.value,
+        #                 'conditions': obj.ANSWER_TYPE_CONDITIONS,
+
+        #             } for o in option_list
+        #         ]
+
+        # return options
+
+    
 
 
 class DTSchemaMasterlistSerializer(SchemaMasterlistSerializer):
@@ -878,7 +940,7 @@ class SchemaQuestionSerializer(serializers.ModelSerializer):
             'parent_question',
             'parent_answer',
             'order',
-            'section_group',
+            #'section_group',
             'options',
             'tag',
         )
@@ -915,7 +977,7 @@ class DTSchemaQuestionSerializer(SchemaQuestionSerializer):
     question = serializers.SerializerMethodField()
     section = SchemaSectionSerializer()
     question_id = serializers.SerializerMethodField()
-    #licence_purpose = serializers.SerializerMethodField()
+    proposal_type = serializers.SerializerMethodField()
     options = serializers.SerializerMethodField()
     #section_group = SchemaGroupSerializer()
 
@@ -928,8 +990,8 @@ class DTSchemaQuestionSerializer(SchemaQuestionSerializer):
             'question_id',
             'parent_question',
             'parent_answer',
-            'licence_purpose',
-            'section_group',
+            'proposal_type',
+            #'section_group',
             'options',
             'tag',
             'order',
@@ -948,8 +1010,8 @@ class DTSchemaQuestionSerializer(SchemaQuestionSerializer):
     def get_question_id(self, obj):
         return obj.question_id
 
-    def get_licence_purpose(self, obj):
-        return obj.section.licence_purpose.name
+    def get_proposal_type(self, obj):
+        return obj.section.proposal_type.name
 
     def get_options(self, obj):
         options = obj.get_options()
