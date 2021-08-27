@@ -6,7 +6,7 @@
 
         <template slot="tab-panel-question"><SchemaQuestion /></template>
         <template slot="tab-panel-masterlist"><SchemaMasterlist /></template>
-        <!-- <template slot="tab-panel-purpose"><SchemaPurpose /></template> -->
+        <template slot="tab-panel-proposal-type"><SchemaProposalType /></template>
         <!-- <template slot="tab-panel-group"><SchemaGroup /></template> -->
 
     </SchemaTabs>
@@ -18,7 +18,7 @@
 import SchemaTabs from '@/components/forms/tab.vue'
 import SchemaQuestion from '@/components/internal/main/schema_question.vue'
 import SchemaMasterlist from '@/components/internal/main/schema_masterlist.vue'
-// import SchemaPurpose from '@/components/internal/main/schema_purpose.vue'
+import SchemaProposalType from '@/components/internal/main/schema_proposal_type.vue'
 // import SchemaGroup from '@/components/internal/main/schema_group.vue'
 
 export default {
@@ -27,7 +27,7 @@ export default {
         SchemaTabs,
         SchemaQuestion,
         SchemaMasterlist,
-        // SchemaPurpose,
+        SchemaProposalType,
         // SchemaGroup,
     },
     data() {
@@ -35,7 +35,7 @@ export default {
             initialTab: 'masterlist',
             tabs: [
                 {'masterlist': 'Schema Masterlist'},
-                // {'purpose': 'Purpose Sections'},
+                {'proposal-type': 'Proposal Type Sections'},
                 // {'group': 'Section Groups'},
                 {'question': 'Section Questions'},
             ],

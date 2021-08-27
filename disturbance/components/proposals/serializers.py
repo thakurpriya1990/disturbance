@@ -1023,3 +1023,48 @@ class DTSchemaQuestionSerializer(SchemaQuestionSerializer):
             } for o in options
         ]
         return data
+
+class ProposalTypeSerializer(serializers.ModelSerializer):
+    '''
+    Serializer for Licence ProposalType.
+    '''
+    class Meta:
+        model = ProposalType
+        fields = '__all__'
+
+
+class SchemaProposalTypeSerializer(serializers.ModelSerializer):
+    '''
+    Serializer for Schema builder using ProposalType sections.
+    '''
+    section_name = serializers.CharField(allow_blank=True, required=False)
+
+    class Meta:
+        model = ProposalTypeSection
+        fields = '__all__'
+
+
+class DTSchemaProposalTypeSerializer(SchemaProposalTypeSerializer):
+    '''
+    Serializer for datatables using ProposalType sections.
+    '''
+    proposal_type = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ProposalTypeSection
+        fields = (
+            'id',
+            'section_name',
+            'section_label',
+            'index',
+            'proposal_type',
+        )
+
+        # the serverSide functionality of datatables is such that only columns
+        # that have field 'data' defined are requested from the serializer. Use
+        # datatables_always_serialize to force render of fields that are not
+        # listed as 'data' in the datatable columns.
+        datatables_always_serialize = fields
+
+    def get_proposal_type(self, obj):
+        return ProposalTypeSerializer(obj.proposal_type).data

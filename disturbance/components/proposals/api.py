@@ -96,6 +96,8 @@ from disturbance.components.proposals.serializers import (
     DTSchemaMasterlistSerializer,
     SchemaQuestionSerializer,
     SelectSchemaMasterlistSerializer,
+    DTSchemaProposalTypeSerializer,
+    SchemaProposalTypeSerializer,
 )
 from disturbance.components.proposals.serializers_apiary import (
     ProposalApiaryTypeSerializer,
@@ -3267,7 +3269,8 @@ class SchemaQuestionViewSet(viewsets.ModelViewSet):
         try:
 
             qs = MasterlistQuestion.objects.all()
-            masterlist = SelectSchemaMasterlistSerializer(qs, many=True).data
+            #masterlist = SelectSchemaMasterlistSerializer(qs, many=True).data
+            masterlist = SchemaMasterlistSerializer(qs, many=True).data
 
             qs = ProposalType.objects.filter().exclude(sections=None)
             proposal_types = [
@@ -3375,6 +3378,237 @@ class SchemaQuestionViewSet(viewsets.ModelViewSet):
 
         except serializers.ValidationError as ve:
             log = '{0} {1}'.format('save_question()', ve)
+            logger.exception(log)
+            raise
+
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0]))
+
+        except Exception as e:
+            logger.exception()
+            raise serializers.ValidationError(str(e))
+
+class SchemaProposalTypeFilterBackend(DatatablesFilterBackend):
+    """
+    Custom filters
+    """
+    def filter_queryset(self, request, queryset, view):
+        # Get built-in DRF datatables queryset first to join with search text,
+        # then apply additional filters.
+        search_text = request.GET.get('search[value]')
+        proposal_type = request.GET.get('proposal_type_id')
+
+        if queryset.model is ProposalTypeSection:
+
+            if search_text:
+                search_text = search_text.lower()
+                search_text_proposal_type_ids = ProposalTypeSection.objects.values(
+                    'id'
+                ).filter(section_label__icontains=search_text)
+
+                queryset = queryset.filter(
+                    id__in=search_text_proposal_type_ids
+                ).distinct()
+
+            proposal_type = proposal_type.lower() if proposal_type else 'all'
+            if proposal_type != 'all':
+                proposal_type_ids = ProposalTypeSection.objects.values(
+                    'id'
+                ).filter(
+                    proposal_type_id=int(proposal_type)
+                )
+                queryset = queryset.filter(id__in=proposal_type_ids)
+
+        total_count = queryset.count()
+        # override queryset ordering, required because the ordering is usually
+        # handled in the super call, but is then clobbered by the custom
+        # queryset joining above also needed to disable ordering for all fields
+        # for which data is not an Application model field, as property
+        # functions will not work with order_by.
+        getter = request.query_params.get
+        fields = self.get_fields(getter)
+        ordering = self.get_ordering(getter, fields)
+        if len(ordering):
+            queryset = queryset.order_by(*ordering)
+
+        total_count = queryset.count()
+
+        setattr(view, '_datatables_total_count', total_count)
+        return queryset
+
+
+class SchemaProposalTypeRenderer(DatatablesRenderer):
+    def render(self, data, accepted_media_type=None, renderer_context=None):
+        if 'view' in renderer_context and \
+                hasattr(renderer_context['view'], '_datatables_total_count'):
+            data['recordsTotal'] = \
+                renderer_context['view']._datatables_total_count
+        return super(SchemaProposalTypeRenderer, self).render(
+            data, accepted_media_type, renderer_context)
+
+
+class SchemaProposalTypePaginatedViewSet(viewsets.ModelViewSet):
+    filter_backends = (SchemaProposalTypeFilterBackend,)
+    pagination_class = DatatablesPageNumberPagination
+    renderer_classes = (SchemaProposalTypeRenderer,)
+    queryset = ProposalTypeSection.objects.none()
+    serializer_class = DTSchemaProposalTypeSerializer
+    page_size = 10
+
+    def get_queryset(self):
+        # user = self.request.user
+        return ProposalTypeSection.objects.all()
+
+    @list_route(methods=['GET', ])
+    def schema_proposal_type_datatable_list(self, request, *args, **kwargs):
+        self.serializer_class = DTSchemaProposalTypeSerializer
+        queryset = self.get_queryset()
+
+        queryset = self.filter_queryset(queryset)
+        self.paginator.page_size = queryset.count()
+        # self.paginator.page_size = 0
+        result_page = self.paginator.paginate_queryset(queryset, request)
+        serializer = DTSchemaProposalTypeSerializer(
+            result_page, context={'request': request}, many=True
+        )
+        response = self.paginator.get_paginated_response(serializer.data)
+
+        return response
+
+
+class SchemaProposalTypeViewSet(viewsets.ModelViewSet):
+    queryset = ProposalTypeSection.objects.all()
+    serializer_class = SchemaProposalTypeSerializer
+
+    def get_queryset(self):
+        return self.queryset
+
+    @detail_route(methods=['GET', ])
+    def get_proposal_type_selects(self, request, *args, **kwargs):
+        '''
+        Get independant Select lists associated with Schema Section ProposalType.
+        '''
+        try:
+
+            sections = ProposalType.objects.all()
+            proposal_types = [
+                {
+                    'label': s.name,
+                    'value': s.id,
+                } for s in sections
+            ]
+
+            return Response(
+                {'all_proposal_type': proposal_types},
+                status=status.HTTP_200_OK
+            )
+
+        except serializers.ValidationError as ve:
+            log = '{0} {1}'.format('get_proposal_type_selects()', ve)
+            logger.exception(log)
+            raise
+
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0]))
+
+        except Exception as e:
+            logger.exception()
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['GET', ])
+    def get_proposal_type_sections(self, request, *args, **kwargs):
+        '''
+        Get all Schema Sections associated with Licence ProposalType.
+        '''
+        try:
+            proposal_type_id = request.query_params.get('proposal_type_id', 0)
+            sections = ProposalTypeSection.objects.filter(
+                proposal_type_id=int(proposal_type_id)
+            )
+            names = [
+                {
+                    'label': s.section_label, 'value': s.id
+                } for s in sections
+            ]
+
+            return Response(
+                {'proposal_type_sections': names},
+                status=status.HTTP_200_OK
+            )
+
+        except serializers.ValidationError as ve:
+            log = '{0} {1}'.format('get_proposal_type_sections()', ve)
+            logger.exception(log)
+            raise
+
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0]))
+
+        except Exception as e:
+            logger.exception()
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['DELETE', ])
+    def delete_proposal_type(self, request, *args, **kwargs):
+        '''
+        Delete Licence ProposalType Section record.
+        '''
+        try:
+            instance = self.get_object()
+
+            with transaction.atomic():
+
+                instance.delete()
+
+            return Response(
+                {'proposal_type_id': instance.id},
+                status=status.HTTP_200_OK
+            )
+
+        except serializers.ValidationError as ve:
+            log = '{0} {1}'.format('delete_proposal_type()', ve)
+            logger.exception(log)
+            raise
+
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0]))
+
+        except Exception as e:
+            logger.exception()
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['POST', ])
+    def save_proposal_type(self, request, *args, **kwargs):
+        '''
+        Save Licence ProposalType Section record.
+        '''
+        try:
+            instance = self.get_object()
+
+            with transaction.atomic():
+
+                serializer = SchemaProposalTypeSerializer(
+                    instance, data=request.data
+                )
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+
+            return Response(serializer.data)
+
+        except serializers.ValidationError as ve:
+            log = '{0} {1}'.format('save_proposal_type()', ve)
             logger.exception(log)
             raise
 
