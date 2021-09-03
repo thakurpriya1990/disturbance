@@ -58,6 +58,7 @@
                             <textarea class="form-control" name="question" v-model="masterlist.question"></textarea>
                         </div>
                     </div>
+                    <div class="row"><div class="col-md-12" >&nbsp;</div></div>
                     <div class="row">
                         <div class="col-md-3">
                             <label class="control-label pull-left" >Answer Type</label>
