@@ -10,7 +10,8 @@ module.exports = {
     profile: '/api/profile',
     department_users: '/api/department_users',
     //other
-    countries: "https://restcountries.eu/rest/v1/?fullText=true",
+    //countries: "https://restcountries.eu/rest/v1/?fullText=true",
+    countries: '/api/countries',
     proposal_type:"/api/proposal_type",
     proposals:"/api/proposal.json",
     //list_proposals:"/api/proposal/list_proposal.json",
