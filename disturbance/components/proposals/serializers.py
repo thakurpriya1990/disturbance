@@ -948,6 +948,7 @@ class SchemaQuestionSerializer(serializers.ModelSerializer):
     def get_options(self, obj):
         try:
             options = self.initial_data.get('options', None)
+            print(options)
             obj.set_property_cache_options(options)
             obj.save()
 
@@ -959,7 +960,7 @@ class SchemaQuestionSerializer(serializers.ModelSerializer):
                     {
                         'label': o.label,
                         'value': o.value,
-                        'conditions': self.conditions
+                        #'conditions': self.conditions
 
                     } for o in option_list
                 ]
@@ -1019,7 +1020,7 @@ class DTSchemaQuestionSerializer(SchemaQuestionSerializer):
             {
                 'value': o['value'],
                 'label': o['label'],
-                'conditions': o['conditions']
+                #'conditions': o['conditions']
             } for o in options
         ]
         return data

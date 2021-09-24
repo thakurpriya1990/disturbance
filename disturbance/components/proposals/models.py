@@ -4523,7 +4523,6 @@ class MasterlistQuestion(models.Model):
 
         if self.id:
             data = MasterlistOptionEncoder().encode_list(options)
-            print(options,data)
             self.property_cache['options'] = data
 
     def get_headers(self):
@@ -4805,15 +4804,15 @@ class SectionQuestion(models.Model):
                 if isinstance(obj, list):
                     options = []
                     for o in obj:
-                        o_conditions = [
-                            {
-                                'label': c['label'], 'value': c['value']
-                            } for c in o['conditions']
-                        ]
+                        # o_conditions = [
+                        #     {
+                        #         'label': c['label'], 'value': c['value']
+                        #     } for c in o['conditions']
+                        # ]
                         option = {
                             'label': o['label'],
                             'value': o['value'],
-                            'conditions': o_conditions,
+                            #'conditions': o_conditions,
                         }
                         options.append(option)
                     return options

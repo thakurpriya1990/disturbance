@@ -644,8 +644,9 @@ export default {
                     confirmButtonText: 'Accept'
 
                 }).then(async (result) => {
+                    //console.log(result);
 
-                    if (result.value) {
+                    if (result) {
 
                         await self.$http.delete(helpers.add_endpoint_json(api_endpoints.schema_question,(self.sectionQuestion.id+'/delete_question')))
     
