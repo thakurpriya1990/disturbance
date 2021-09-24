@@ -832,6 +832,14 @@ class Proposal(RevisionedMixin):
         else:
             return False
 
+    @property   
+    def status_without_assessor(self):
+        status_without_assessor = ['with_approver','approved','declined','draft', 'with_referral']
+        if self.processing_status in status_without_assessor:
+            return True
+        return False
+
+
     def has_assessor_mode(self,user):
         status_without_assessor = ['with_approver','approved','declined','draft']
         if self.processing_status in status_without_assessor:
@@ -2565,6 +2573,48 @@ def search_reference(reference_number):
     else:
         raise ValidationError('Record with provided reference number does not exist')
 
+def search_sections(application_type_name, section_label,question_id,option_label,is_internal= True, region=None,district=None,activity=None):
+    from disturbance.utils import search_section
+    #print(application_type_name, section_label,question_label,option_label,is_internal)
+    qs = []
+    if is_internal:
+        if(not application_type_name or not section_label or not question_id or not option_label):
+            raise ValidationError('Some of the mandatory fields are missing')
+        #import ipdb; ipdb.set_trace()
+        proposal_list = Proposal.objects.filter(application_type__name=application_type_name).exclude(processing_status__in=[Proposal.PROCESSING_STATUS_DISCARDED, Proposal.PROCESSING_STATUS_DRAFT])
+        question=MasterlistQuestion.objects.get(id=question_id)
+        filter_conditions={}
+        if region:
+            filter_conditions['region']=region
+        if district:
+            filter_conditions['district']=district
+        if activity:
+            filter_conditions['activity']=activity
+        if filter_conditions:
+            proposal_list=proposal_list.filter(**filter_conditions)
+        if proposal_list:
+            for p in proposal_list:
+                if p.data:
+                    try:
+                        results = search_section(p.schema, section_label, question, p.data, option_label)
+                        final_results = {}
+                        if results:
+                            # for r in results:
+                            #     for key, value in r.items():
+                            #         final_results.update({'key': key, 'value': value})
+                            res = {
+                                'number': p.lodgement_number,
+                                'id': p.id,
+                                'type': 'Proposal',
+                                'applicant': p.applicant.name,
+                                'text': results[0],
+                                }
+                            qs.append(res)
+                    except:
+                        raise
+
+
+    return qs
 
 from ckeditor.fields import RichTextField
 class HelpPage(models.Model):
@@ -4527,9 +4577,12 @@ class QuestionOption(models.Model):
 from ckeditor.fields import RichTextField
 @python_2_unicode_compatible
 class MasterlistQuestion(models.Model):
+    ANSWER_TYPE_CHECKBOX = 'checkbox'
+    ANSWER_TYPE_RADIO = 'radiobuttons'
+
     ANSWER_TYPE_CHOICES=(('text', 'Text'),
-                         ('radiobuttons', 'Radio button'),
-                         ('checkbox', 'Checkbox'),
+                         (ANSWER_TYPE_RADIO, 'Radio button'),
+                         (ANSWER_TYPE_CHECKBOX, 'Checkbox'),
                          
                          #('text_info', 'Text Info'),
                          #('iframe', 'IFrame'),
@@ -4544,6 +4597,12 @@ class MasterlistQuestion(models.Model):
                          ('file', 'File'),
                          ('date', 'Date'),
                         )
+    ANSWER_TYPE_OPTIONS = [
+        ANSWER_TYPE_CHECKBOX,
+        # ANSWER_TYPE_SELECT,
+        # ANSWER_TYPE_MULTI,
+        ANSWER_TYPE_RADIO,
+    ]
     name = models.CharField(max_length=100)
     question = models.TextField()
     #answer_type= models.CharField(max_length=100)
@@ -4556,6 +4615,7 @@ class MasterlistQuestion(models.Model):
     help_text_assessor_url=models.BooleanField(default=False)
     help_text=RichTextField(null=True, blank=True)
     help_text_assessor=RichTextField(null=True, blank=True)
+    property_cache = JSONField(null=True, blank=True, default={})
 
     class Meta:
         app_label = 'disturbance'
@@ -4563,6 +4623,204 @@ class MasterlistQuestion(models.Model):
 
     def __str__(self):
         return self.question
+
+    def get_options(self):
+        '''
+        Property field for Question Options.
+        '''
+        option_list = []
+        options = self.get_property_cache_options()
+        for o in options:
+            qo = QuestionOption(label=o['label'], value=o['value'])
+            option_list.append(qo)
+        return option_list
+
+    def get_property_cache_options(self):
+        '''
+        Getter for options on the property cache.
+
+        NOTE: only used for presentation purposes.
+
+        :return options_list of QuestionOption values.
+        '''
+        options = []
+        try:
+
+            options = self.property_cache['options']
+
+        except KeyError:
+            pass
+
+        return options
+
+    def set_property_cache_options(self, options):
+        '''
+        Setter for options on the property cache.
+
+        NOTE: only used for presentation purposes.
+
+        :param  options is QuerySet of QuestionOption or List of option value
+                string.
+        '''
+        class MasterlistOptionEncoder(json.JSONEncoder):
+            def default(self, obj):
+                if isinstance(obj, list):
+                    options = []
+                    for o in obj:
+                        option = {
+                            'label': o['label'],
+                            'value': o['value'],
+                        }
+                        options.append(option)
+                    return options
+
+            def encode_list(self, obj, iter=None):
+                if isinstance(obj, (list)):
+                    return self.default(obj)
+                else:
+                    return super(
+                        MasterlistOptionEncoder, self).encode_list(obj, iter)
+
+        if not isinstance(options, list) and self.id:
+            logger.warn('{0} - MasterlistQuestion: {1}'.format(
+                'set_property_cache_options() NOT LIST', self.id))
+            return
+
+        if self.id:
+            data = MasterlistOptionEncoder().encode_list(options)
+            self.property_cache['options'] = data
+
+    def get_headers(self):
+        '''
+        Property field for Question Table Headers.
+        '''
+        header_list = []
+        headers = self.get_property_cache_headers()
+        # for h in headers:
+        #     qh = QuestionOption(label=h, value='')
+        #     header_list.append(qo)
+        return headers
+
+    def get_property_cache_headers(self):
+        '''
+        Getter for headers on the property cache.
+
+        NOTE: only used for presentation purposes.
+
+        :return headers_list of QuestionOption values.
+        '''
+        headers = []
+        try:
+
+            headers = self.property_cache['headers']
+
+        except KeyError:
+            pass
+
+        return headers
+
+    def set_property_cache_headers(self, headers):
+        '''
+        Setter for options on the property cache.
+
+        NOTE: only used for presentation purposes.
+
+        :param  options is QuerySet of MasterlistQuestion or List of ids.
+        '''
+        class TableHeaderEncoder(json.JSONEncoder):
+            def default(self, obj):
+                if isinstance(obj, list):
+                    headers = []
+                    for h in obj:
+                        header = {
+                            'label': h['label'],
+                            'value': h['value'],
+                        }
+                        headers.append(header)
+                    return headers
+
+            def encode_list(self, obj, iter=None):
+                if isinstance(obj, (list)):
+                    return self.default(obj)
+                else:
+                    return super(
+                        TableHeaderEncoder, self).encode_list(obj, iter)
+
+        if not isinstance(headers, list) and self.id:
+            logger.warn('{0} - MasterlistQuestion: {1}'.format(
+                'set_property_cache_headers() NOT LIST', self.id))
+            return
+
+        if self.id:
+            data = TableHeaderEncoder().encode_list(headers)
+            self.property_cache['headers'] = data
+
+    def get_expanders(self):
+        '''
+        Property field for Question Table Expanders.
+        '''
+        expander_list = []
+        expanders = self.get_property_cache_expanders()
+        # for h in headers:
+        #     qh = QuestionOption(label=h, value='')
+        #     header_list.append(qo)
+        return expanders
+
+    def get_property_cache_expanders(self):
+        '''
+        Getter for options on the property cache.
+
+        NOTE: only used for presentation purposes.
+
+        :return options_list of QuestionOption values.
+        '''
+        expanders = []
+        try:
+
+            expanders = self.property_cache['expanders']
+
+        except KeyError:
+            pass
+
+        return expanders
+
+    def set_property_cache_expanders(self, expanders):
+        '''
+        Setter for options on the property cache.
+
+        NOTE: only used for presentation purposes.
+
+        :param  options is QuerySet of QuestionOption or List of option value
+                string.
+        '''
+        class TableExpanderEncoder(json.JSONEncoder):
+            def default(self, obj):
+                if isinstance(obj, list):
+                    expanders = []
+                    for e in obj:
+                        expander = {
+                            'label': e['label'],
+                            'value': e['value'],
+                        }
+                        expanders.append(expander)
+                    return expanders
+
+            def encode_list(self, obj, iter=None):
+                if isinstance(obj, (list)):
+                    return self.default(obj)
+                else:
+                    return super(
+                        TableExpanderEncoder, self).encode_list(obj, iter)
+
+        if not isinstance(expanders, list) and self.id:
+            logger.warn('{0} - MasterlistQuestion: {1}'.format(
+                'set_property_cache_expanders() NOT LIST', self.id))
+            return
+
+        if self.id:
+            data = TableExpanderEncoder().encode_list(expanders)
+            self.property_cache['expanders'] = data
+
 
 @python_2_unicode_compatible
 class ProposalTypeSection(models.Model):
@@ -4651,6 +4909,7 @@ class SectionQuestion(models.Model):
     # )
     tag= MultiSelectField(choices=TAG_CHOICES, max_length=400,max_choices=10, null=True, blank=True)
     order = models.PositiveIntegerField(default=1)
+    property_cache = JSONField(null=True, blank=True, default={})
 
 
 
@@ -4666,6 +4925,79 @@ class SectionQuestion(models.Model):
         if self.question and self.parent_question:
             if self.question==self.parent_question:
                 raise ValidationError('Question cannot be linked to itself.')
+
+    @property
+    def question_options(self):
+        return self.question.option.all()
+
+    def get_options(self):
+        '''
+        '''
+        options = self.get_property_cache_options()
+
+        return options
+
+    def get_property_cache_options(self):
+        '''
+        Getter for options on the property cache.
+
+        NOTE: only used for presentation purposes.
+
+        :return options_list of QuestionOption values.
+        '''
+        options = []
+        try:
+
+            options = self.property_cache['options']
+
+        except KeyError:
+            pass
+
+        return options
+
+    def set_property_cache_options(self, options):
+        '''
+        Setter for options on the property cache.
+
+        NOTE: only used for presentation purposes.
+
+        :param  options is QuerySet of QuestionOption or List of option value
+                string.
+        '''
+        class QuestionOptionEncoder(json.JSONEncoder):
+            def default(self, obj):
+                if isinstance(obj, list):
+                    options = []
+                    for o in obj:
+                        # o_conditions = [
+                        #     {
+                        #         'label': c['label'], 'value': c['value']
+                        #     } for c in o['conditions']
+                        # ]
+                        option = {
+                            'label': o['label'],
+                            'value': o['value'],
+                            #'conditions': o_conditions,
+                        }
+                        options.append(option)
+                    return options
+
+            def encode_list(self, obj, iter=None):
+                if isinstance(obj, (list)):
+                    return self.default(obj)
+                else:
+                    return super(
+                        QuestionOptionEncoder, self).encode_list(obj, iter)
+
+        if not isinstance(options, list) and self.id:
+            logger.warn('{0} - SectionQuestion: {1}'.format(
+                'set_property_cache_options() NOT LIST', self.id))
+            return
+
+        if self.id:
+            data = QuestionOptionEncoder().encode_list(options)
+            self.property_cache['options'] = data
+    
 
 
 # --------------------------------------------------------------------------------------
