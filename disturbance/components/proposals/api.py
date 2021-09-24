@@ -33,7 +33,7 @@ from disturbance.components.proposals.utils import (
 from disturbance.components.proposals.models import searchKeyWords, search_reference, \
     OnSiteInformation, ApiarySite, ApiaryChecklistQuestion, ApiaryChecklistAnswer, \
     ProposalApiaryTemporaryUse, ApiarySiteOnProposal, PublicLiabilityInsuranceDocument, DeedPollDocument, \
-    SupportingApplicationDocument
+    SupportingApplicationDocument, search_sections
 from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_APPROVED, SITE_STATUS_CURRENT, SITE_STATUS_DENIED, \
     SITE_STATUS_NOT_TO_BE_REISSUED, SITE_STATUS_VACANT, SITE_STATUS_TRANSFERRED, SITE_STATUS_DISCARDED
 from disturbance.utils import search_tenure
@@ -63,6 +63,9 @@ from disturbance.components.proposals.models import (
     ApiaryReferral,
     SiteTransferApiarySite,
     ApiarySiteFee,
+    ProposalTypeSection,
+    SectionQuestion,
+    MasterlistQuestion,
 )
 from disturbance.components.proposals.serializers import (
     SendReferralSerializer,
@@ -87,6 +90,14 @@ from disturbance.components.proposals.serializers import (
     SaveProposalRegionSerializer,
     ProposalWrapperSerializer,
     ReferralWrapperSerializer,
+    ProposalTypeSectionSerializer,
+    DTSchemaQuestionSerializer,
+    SchemaMasterlistSerializer,
+    DTSchemaMasterlistSerializer,
+    SchemaQuestionSerializer,
+    SelectSchemaMasterlistSerializer,
+    DTSchemaProposalTypeSerializer,
+    SchemaProposalTypeSerializer,
 )
 from disturbance.components.proposals.serializers_apiary import (
     ProposalApiaryTypeSerializer,
@@ -2690,6 +2701,7 @@ class SearchReferenceView(views.APIView):
             raise serializers.ValidationError(str(e))
 
 
+
 class ApiaryReferralGroupViewSet(viewsets.ModelViewSet):
     queryset = ApiaryReferralGroup.objects.none()
     serializer_class = ApiaryReferralGroupSerializer
@@ -2725,3 +2737,887 @@ class ApiarySiteFeeViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
+class ProposalTypeSectionViewSet(viewsets.ReadOnlyModelViewSet):
+    latest_proposal_types=[p.id for p in ProposalType.objects.all() if p.latest ]
+    queryset = ProposalTypeSection.objects.filter(proposal_type_id__in=latest_proposal_types).order_by('id')
+    #queryset = ProposalTypeSection.objects.all().order_by('id')
+    serializer_class = ProposalTypeSectionSerializer
+
+class SearchSectionsView(views.APIView):
+    renderer_classes = [JSONRenderer,]
+    def post(self,request, format=None):
+        qs = []
+        application_type_name= request.data.get('application_type_name')
+        region= request.data.get('region')
+        district= request.data.get('district')
+        activity= request.data.get('activity')
+        section_label= request.data.get('section_label')
+        question_id= request.data.get('question_id')
+        option_label= request.data.get('option_label')
+        is_internal= request.data.get('is_internal')
+        qs= search_sections(application_type_name, section_label,question_id,option_label,is_internal, region,district,activity)
+        #queryset = list(set(qs))
+        serializer = SearchKeywordSerializer(qs, many=True)
+        return Response(serializer.data)
+
+#Schema api's
+class SchemaMasterlistFilterBackend(DatatablesFilterBackend):
+    """
+    Custom filters
+    """
+    def filter_queryset(self, request, queryset, view):
+        # Get built-in DRF datatables queryset first to join with search text,
+        # then apply additional filters.
+        # super_queryset = super(
+        #     SchemaMasterlistFilterBackend, self
+        # ).filter_queryset(request, queryset, view).distinct()
+
+        search_text = request.GET.get('search[value]')
+
+        if queryset.model is MasterlistQuestion:
+
+            if search_text:
+                search_text = search_text.lower()
+                search_text_masterlist_ids = MasterlistQuestion.objects.values(
+                    'id'
+                ).filter(question__icontains=search_text)
+
+                queryset = queryset.filter(
+                    id__in=search_text_masterlist_ids
+                ).distinct()
+
+        total_count = queryset.count()
+        # override queryset ordering, required because the ordering is usually
+        # handled in the super call, but is then clobbered by the custom
+        # queryset joining above also needed to disable ordering for all fields
+        # for which data is not an Application model field, as property
+        # functions will not work with order_by.
+        getter = request.query_params.get
+        fields = self.get_fields(getter)
+        ordering = self.get_ordering(getter, fields)
+        if len(ordering):
+            queryset = queryset.order_by(*ordering)
+
+        total_count = queryset.count()
+
+        setattr(view, '_datatables_total_count', total_count)
+        return queryset
+
+
+class SchemaMasterlistRenderer(DatatablesRenderer):
+    def render(self, data, accepted_media_type=None, renderer_context=None):
+        if 'view' in renderer_context and \
+                hasattr(renderer_context['view'], '_datatables_total_count'):
+            data['recordsTotal'] = \
+                renderer_context['view']._datatables_total_count
+        return super(SchemaMasterlistRenderer, self).render(
+            data, accepted_media_type, renderer_context)
+
+
+class SchemaMasterlistPaginatedViewSet(viewsets.ModelViewSet):
+    filter_backends = (SchemaMasterlistFilterBackend,)
+    pagination_class = DatatablesPageNumberPagination
+    renderer_classes = (SchemaMasterlistRenderer,)
+    queryset = MasterlistQuestion.objects.none()
+    serializer_class = DTSchemaMasterlistSerializer
+    page_size = 10
+
+    def get_queryset(self):
+        # user = self.request.user
+        return MasterlistQuestion.objects.all()
+
+    @list_route(methods=['GET', ])
+    def schema_masterlist_datatable_list(self, request, *args, **kwargs):
+        self.serializer_class = DTSchemaMasterlistSerializer
+        queryset = self.get_queryset()
+
+        queryset = self.filter_queryset(queryset)
+        self.paginator.page_size = queryset.count()
+        result_page = self.paginator.paginate_queryset(queryset, request)
+        serializer = DTSchemaMasterlistSerializer(
+            result_page, context={'request': request}, many=True
+        )
+        response = self.paginator.get_paginated_response(serializer.data)
+
+        return response
+
+
+class SchemaMasterlistViewSet(viewsets.ModelViewSet):
+    queryset = MasterlistQuestion.objects.all()
+    serializer_class = SchemaMasterlistSerializer
+
+    def get_queryset(self):
+        return self.queryset
+
+    @detail_route(methods=['GET', ])
+    def get_masterlist_selects(self, request, *args, **kwargs):
+        '''
+        Get independant Select lists associated with Schema Masterlist.
+        '''
+        try:
+
+            excl_choices = [
+                # None
+            ]
+
+            answer_types = [
+                {
+                    'value': a[0], 'label': a[1]
+                } for a in MasterlistQuestion.ANSWER_TYPE_CHOICES
+                if a[0] not in excl_choices
+            ]
+
+            return Response(
+                {
+                    'all_answer_types': answer_types,
+                },
+                status=status.HTTP_200_OK
+            )
+
+        except serializers.ValidationError as ve:
+            log = '{0} {1}'.format('get_masterlist_selects()', ve)
+            logger.exception(log)
+            raise
+
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0]))
+
+        except Exception as e:
+            logger.exception()
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['GET', ])
+    def get_masterlist_options(self, request, *args, **kwargs):
+        '''
+        Get associated QuestionOption for Schema Masterlist type.
+        '''
+        try:
+
+            masterlist_id = request.query_params.get('masterlist_id', 0)
+            masterlist = MasterlistQuestion.objects.filter(
+                licence_purpose_id=int(masterlist_id)
+            )[0]
+
+            option_list = masterlist.get_property_cache_options()
+            options = [
+                {'label': o.label, 'value': ''} for o in option_list
+            ]
+
+            return Response(
+                {'masterlist_options': options},
+                status=status.HTTP_200_OK
+            )
+
+        except serializers.ValidationError as ve:
+            log = '{0} {1}'.format('get_masterlist_selects()', ve)
+            logger.exception(log)
+            raise
+
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0]))
+
+        except Exception as e:
+            logger.exception()
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['DELETE', ])
+    def delete_masterlist(self, request, *args, **kwargs):
+        '''
+        Delete Masterlist record.
+        '''
+        try:
+            instance = self.get_object()
+
+            with transaction.atomic():
+
+                instance.delete()
+
+            return Response(
+                {'masterlist_id': instance.id},
+                status=status.HTTP_200_OK
+            )
+
+        except serializers.ValidationError as ve:
+            log = '{0} {1}'.format('save_masterlist()', ve)
+            logger.exception(log)
+            raise
+
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0]))
+
+        except Exception as e:
+            logger.exception()
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['POST', ])
+    def save_masterlist(self, request, *args, **kwargs):
+        '''
+        Save Masterlist record.
+        '''
+        try:
+            instance = self.get_object()
+
+            with transaction.atomic():
+
+                options = request.data.get('options', None)
+                instance.set_property_cache_options(options)
+
+                headers = request.data.get('headers', None)
+                instance.set_property_cache_headers(headers)
+
+                expanders = request.data.get('expanders', None)
+                instance.set_property_cache_expanders(expanders)
+
+                serializer = SchemaMasterlistSerializer(
+                    instance, data=request.data
+                )
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+
+            return Response(
+                {'masterlist_id': instance.id},
+                status=status.HTTP_200_OK
+            )
+
+        except serializers.ValidationError as ve:
+            log = '{0} {1}'.format('save_masterlist()', ve)
+            logger.exception(log)
+            raise
+
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0]))
+
+        except Exception as e:
+            logger.exception()
+            raise serializers.ValidationError(str(e))
+
+class SchemaQuestionFilterBackend(DatatablesFilterBackend):
+    """
+    Custom filters
+    """
+    def filter_queryset(self, request, queryset, view):
+        # Get built-in DRF datatables queryset first to join with search text,
+        # then apply additional filters.
+        # super_queryset = super(
+        #     SchemaQuestionFilterBackend, self
+        # ).filter_queryset(request, queryset, view).distinct()
+
+        search_text = request.GET.get('search[value]')
+        purpose = request.GET.get('licence_purpose_id')
+        section = request.GET.get('section_id')
+        group = request.GET.get('group_id')
+
+        if queryset.model is SectionQuestion:
+
+            if search_text:
+                search_text = search_text.lower()
+                search_text_question_ids = SectionQuestion.objects.values(
+                    'id'
+                ).filter(
+                    question__question__icontains=search_text
+                )
+
+                queryset = queryset.filter(
+                    id__in=search_text_question_ids
+                ).distinct()
+
+            purpose = purpose.lower() if purpose else 'all'
+            if purpose != 'all':
+                purpose_ids = SectionQuestion.objects.values(
+                    'id'
+                ).filter(
+                    section__licence_purpose_id=int(purpose)
+                )
+                queryset = queryset.filter(id__in=purpose_ids)
+
+            section = section.lower() if section else 'all'
+            if section != 'all':
+                section_ids = SectionQuestion.objects.values(
+                    'id'
+                ).filter(
+                    section_id=int(section)
+                )
+                queryset = queryset.filter(id__in=section_ids)
+
+            group = group.lower() if group else 'all'
+            if group != 'all':
+                group_ids = SectionQuestion.objects.values(
+                    'id'
+                ).filter(
+                    section_group_id=int(group)
+                )
+                queryset = queryset.filter(id__in=group_ids)
+
+        total_count = queryset.count()
+        # override queryset ordering, required because the ordering is usually
+        # handled in the super call, but is then clobbered by the custom
+        # queryset joining above also needed to disable ordering for all fields
+        # for which data is not an Application model field, as property
+        # functions will not work with order_by.
+        getter = request.query_params.get
+        fields = self.get_fields(getter)
+        ordering = self.get_ordering(getter, fields)
+        if len(ordering):
+            queryset = queryset.order_by(*ordering)
+
+        total_count = queryset.count()
+
+        setattr(view, '_datatables_total_count', total_count)
+        return queryset
+
+
+class SchemaQuestionRenderer(DatatablesRenderer):
+    def render(self, data, accepted_media_type=None, renderer_context=None):
+        if 'view' in renderer_context and \
+                hasattr(renderer_context['view'], '_datatables_total_count'):
+            data['recordsTotal'] = \
+                renderer_context['view']._datatables_total_count
+        return super(SchemaQuestionRenderer, self).render(
+            data, accepted_media_type, renderer_context)
+
+
+class SchemaQuestionPaginatedViewSet(viewsets.ModelViewSet):
+    filter_backends = (SchemaQuestionFilterBackend,)
+    pagination_class = DatatablesPageNumberPagination
+    renderer_classes = (SchemaQuestionRenderer,)
+    queryset = SectionQuestion.objects.none()
+    serializer_class = DTSchemaQuestionSerializer
+    page_size = 10
+
+    def get_queryset(self):
+        # user = self.request.user
+        return SectionQuestion.objects.all()
+
+    @list_route(methods=['GET', ])
+    def schema_question_datatable_list(self, request, *args, **kwargs):
+        self.serializer_class = DTSchemaQuestionSerializer
+        queryset = self.get_queryset()
+
+        queryset = self.filter_queryset(queryset)
+        self.paginator.page_size = queryset.count()
+        # self.paginator.page_size = 0
+        result_page = self.paginator.paginate_queryset(queryset, request)
+        serializer = DTSchemaQuestionSerializer(
+            result_page, context={'request': request}, many=True
+        )
+        response = self.paginator.get_paginated_response(serializer.data)
+
+        return response
+
+
+class SchemaQuestionViewSet(viewsets.ModelViewSet):
+    queryset = SectionQuestion.objects.all()
+    serializer_class = SchemaQuestionSerializer
+
+    def get_queryset(self):
+        return self.queryset
+
+    @detail_route(methods=['GET', ])
+    def get_question_parents(self, request, *args, **kwargs):
+        '''
+        Get all Parent Question associated with Schema Questions in Section.
+        '''
+        try:
+            section_id = request.query_params.get('section_id', 0)
+            opt_list = MasterlistQuestion.ANSWER_TYPE_OPTIONS
+            all_questions = SectionQuestion.objects.filter(
+                section_id=int(section_id),
+            )
+            questions = [
+                q for q in all_questions if q.question.answer_type in opt_list
+            ]
+
+            parents = [
+                {
+                    'label': q.question.question,
+                    'value': q.question.id,
+                    #'group': q.section_group_id,
+                } for q in questions
+            ]
+
+            # section_groups = SectionGroup.objects.filter(
+            #     section_id=int(section_id)
+            # )
+
+            # groups = [
+            #     {
+            #         'label': g.group_label, 'value': g.id
+            #     } for g in section_groups
+            # ]
+
+            return Response(
+                {
+                    'question_parents': parents,
+                    #'question_groups': groups,
+                },
+                status=status.HTTP_200_OK
+            )
+
+        except serializers.ValidationError as ve:
+            log = '{0} {1}'.format('get_question_parents()', ve)
+            logger.exception(log)
+            raise
+
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0]))
+
+        except Exception as e:
+            logger.exception()
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['GET', ])
+    def get_question_sections(self, request, *args, **kwargs):
+        '''
+        Get all Sections associated with Schema Questions with Licence Purpose.
+        '''
+        try:
+            proposal_type_id = request.query_params.get('proposal_type_id', 0)
+            sections = ProposalTypeSection.objects.filter(
+                proposal_type_id=int(proposal_type_id)
+            )
+            names = [
+                {
+                    'label': s.section_label, 'value': s.id
+                } for s in sections
+            ]
+
+            # section_groups = SectionGroup.objects.filter(
+            #     section__licence_purpose=int(purpose_id)
+            # )
+
+            # groups = [
+            #     {
+            #         'label': g.group_label, 'value': g.id
+            #     } for g in section_groups
+            # ]
+
+            return Response(
+                {
+                    'question_sections': names,
+                    #'question_groups': groups,
+                },
+                status=status.HTTP_200_OK
+            )
+
+        except serializers.ValidationError as ve:
+            log = '{0} {1}'.format('get_question_sections()', ve)
+            logger.exception(log)
+            raise
+
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0]))
+
+        except Exception as e:
+            logger.exception()
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['GET', ])
+    def get_question_order(self, request, *args, **kwargs):
+        '''
+        Get order number for Schema Question using Schema Group.
+        '''
+        try:
+            group_id = request.query_params.get('group_id', 0)
+            questions = SectionQuestion.objects.filter(
+                section_group=int(group_id)
+            )
+            next_order = len(questions) + 1 if questions else 0
+
+            return Response(
+                {'question_order': str(next_order)},
+                status=status.HTTP_200_OK
+            )
+
+        except serializers.ValidationError as ve:
+            log = '{0} {1}'.format('get_question_order()', ve)
+            logger.exception(log)
+            raise
+
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0]))
+
+        except Exception as e:
+            logger.exception()
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['GET', ])
+    def get_question_selects(self, request, *args, **kwargs):
+        '''
+        Get independant Select lists associated with Schema Questions.
+        '''
+        try:
+
+            qs = MasterlistQuestion.objects.all()
+            #masterlist = SelectSchemaMasterlistSerializer(qs, many=True).data
+            masterlist = SchemaMasterlistSerializer(qs, many=True).data
+
+            qs = ProposalType.objects.filter().exclude(sections=None)
+            proposal_types = [
+                {
+                    'label': p.name,
+                    'value': p.id
+                } for p in qs
+            ]
+
+            qs = ProposalTypeSection.objects.all()
+            sections = [
+                {
+                    'label': s.section_label, 'value': s.id
+                } for s in qs
+            ]
+
+            # qs = SectionGroup.objects.all()
+            # groups = [
+            #     {
+            #         'label': s.group_label, 'value': s.id
+            #     } for s in qs
+            # ]
+
+            return Response(
+                {
+                    'all_masterlist': masterlist,
+                    'all_proposal_types': proposal_types,
+                    'all_section': sections,
+                    #'all_group': groups,
+                },
+                status=status.HTTP_200_OK
+            )
+
+        except serializers.ValidationError as ve:
+            log = '{0} {1}'.format('get_question_selects()', ve)
+            logger.exception(log)
+            raise
+
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0]))
+
+        except Exception as e:
+            logger.exception()
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['DELETE', ])
+    def delete_question(self, request, *args, **kwargs):
+        '''
+        Delete Section Question record.
+        '''
+        try:
+            instance = self.get_object()
+
+            with transaction.atomic():
+
+                instance.delete()
+
+            return Response(
+                {'masterlist_id': instance.id},
+                status=status.HTTP_200_OK
+            )
+
+        except serializers.ValidationError as ve:
+            log = '{0} {1}'.format('delete_question()', ve)
+            logger.exception(log)
+            raise
+
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0]))
+
+        except Exception as e:
+            logger.exception()
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['POST', ])
+    def save_question(self, request, *args, **kwargs):
+        '''
+        Save Section Question record.
+        '''
+        try:
+            instance = self.get_object()
+
+            with transaction.atomic():
+
+                # process options.
+                options = request.data.get('options', None)
+                instance.set_property_cache_options(options)
+
+                serializer = SchemaQuestionSerializer(
+                    instance, data=request.data
+                )
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+
+            return Response(
+                {'question_id': instance.id},
+                status=status.HTTP_200_OK
+            )
+
+        except serializers.ValidationError as ve:
+            log = '{0} {1}'.format('save_question()', ve)
+            logger.exception(log)
+            raise
+
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0]))
+
+        except Exception as e:
+            logger.exception()
+            raise serializers.ValidationError(str(e))
+
+class SchemaProposalTypeFilterBackend(DatatablesFilterBackend):
+    """
+    Custom filters
+    """
+    def filter_queryset(self, request, queryset, view):
+        # Get built-in DRF datatables queryset first to join with search text,
+        # then apply additional filters.
+        search_text = request.GET.get('search[value]')
+        proposal_type = request.GET.get('proposal_type_id')
+
+        if queryset.model is ProposalTypeSection:
+
+            if search_text:
+                search_text = search_text.lower()
+                search_text_proposal_type_ids = ProposalTypeSection.objects.values(
+                    'id'
+                ).filter(section_label__icontains=search_text)
+
+                queryset = queryset.filter(
+                    id__in=search_text_proposal_type_ids
+                ).distinct()
+
+            proposal_type = proposal_type.lower() if proposal_type else 'all'
+            if proposal_type != 'all':
+                proposal_type_ids = ProposalTypeSection.objects.values(
+                    'id'
+                ).filter(
+                    proposal_type_id=int(proposal_type)
+                )
+                queryset = queryset.filter(id__in=proposal_type_ids)
+
+        total_count = queryset.count()
+        # override queryset ordering, required because the ordering is usually
+        # handled in the super call, but is then clobbered by the custom
+        # queryset joining above also needed to disable ordering for all fields
+        # for which data is not an Application model field, as property
+        # functions will not work with order_by.
+        getter = request.query_params.get
+        fields = self.get_fields(getter)
+        ordering = self.get_ordering(getter, fields)
+        if len(ordering):
+            queryset = queryset.order_by(*ordering)
+
+        total_count = queryset.count()
+
+        setattr(view, '_datatables_total_count', total_count)
+        return queryset
+
+
+class SchemaProposalTypeRenderer(DatatablesRenderer):
+    def render(self, data, accepted_media_type=None, renderer_context=None):
+        if 'view' in renderer_context and \
+                hasattr(renderer_context['view'], '_datatables_total_count'):
+            data['recordsTotal'] = \
+                renderer_context['view']._datatables_total_count
+        return super(SchemaProposalTypeRenderer, self).render(
+            data, accepted_media_type, renderer_context)
+
+
+class SchemaProposalTypePaginatedViewSet(viewsets.ModelViewSet):
+    filter_backends = (SchemaProposalTypeFilterBackend,)
+    pagination_class = DatatablesPageNumberPagination
+    renderer_classes = (SchemaProposalTypeRenderer,)
+    queryset = ProposalTypeSection.objects.none()
+    serializer_class = DTSchemaProposalTypeSerializer
+    page_size = 10
+
+    def get_queryset(self):
+        # user = self.request.user
+        return ProposalTypeSection.objects.all()
+
+    @list_route(methods=['GET', ])
+    def schema_proposal_type_datatable_list(self, request, *args, **kwargs):
+        self.serializer_class = DTSchemaProposalTypeSerializer
+        queryset = self.get_queryset()
+
+        queryset = self.filter_queryset(queryset)
+        self.paginator.page_size = queryset.count()
+        # self.paginator.page_size = 0
+        result_page = self.paginator.paginate_queryset(queryset, request)
+        serializer = DTSchemaProposalTypeSerializer(
+            result_page, context={'request': request}, many=True
+        )
+        response = self.paginator.get_paginated_response(serializer.data)
+
+        return response
+
+
+class SchemaProposalTypeViewSet(viewsets.ModelViewSet):
+    queryset = ProposalTypeSection.objects.all()
+    serializer_class = SchemaProposalTypeSerializer
+
+    def get_queryset(self):
+        return self.queryset
+
+    @detail_route(methods=['GET', ])
+    def get_proposal_type_selects(self, request, *args, **kwargs):
+        '''
+        Get independant Select lists associated with Schema Section ProposalType.
+        '''
+        try:
+
+            sections = ProposalType.objects.all()
+            proposal_types = [
+                {
+                    'label': s.name,
+                    'value': s.id,
+                } for s in sections
+            ]
+
+            return Response(
+                {'all_proposal_type': proposal_types},
+                status=status.HTTP_200_OK
+            )
+
+        except serializers.ValidationError as ve:
+            log = '{0} {1}'.format('get_proposal_type_selects()', ve)
+            logger.exception(log)
+            raise
+
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0]))
+
+        except Exception as e:
+            logger.exception()
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['GET', ])
+    def get_proposal_type_sections(self, request, *args, **kwargs):
+        '''
+        Get all Schema Sections associated with Licence ProposalType.
+        '''
+        try:
+            proposal_type_id = request.query_params.get('proposal_type_id', 0)
+            sections = ProposalTypeSection.objects.filter(
+                proposal_type_id=int(proposal_type_id)
+            )
+            names = [
+                {
+                    'label': s.section_label, 'value': s.id
+                } for s in sections
+            ]
+
+            return Response(
+                {'proposal_type_sections': names},
+                status=status.HTTP_200_OK
+            )
+
+        except serializers.ValidationError as ve:
+            log = '{0} {1}'.format('get_proposal_type_sections()', ve)
+            logger.exception(log)
+            raise
+
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0]))
+
+        except Exception as e:
+            logger.exception()
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['DELETE', ])
+    def delete_proposal_type(self, request, *args, **kwargs):
+        '''
+        Delete Licence ProposalType Section record.
+        '''
+        try:
+            instance = self.get_object()
+
+            with transaction.atomic():
+
+                instance.delete()
+
+            return Response(
+                {'proposal_type_id': instance.id},
+                status=status.HTTP_200_OK
+            )
+
+        except serializers.ValidationError as ve:
+            log = '{0} {1}'.format('delete_proposal_type()', ve)
+            logger.exception(log)
+            raise
+
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0]))
+
+        except Exception as e:
+            logger.exception()
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['POST', ])
+    def save_proposal_type(self, request, *args, **kwargs):
+        '''
+        Save Licence ProposalType Section record.
+        '''
+        try:
+            instance = self.get_object()
+
+            with transaction.atomic():
+
+                serializer = SchemaProposalTypeSerializer(
+                    instance, data=request.data
+                )
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+
+            return Response(serializer.data)
+
+        except serializers.ValidationError as ve:
+            log = '{0} {1}'.format('save_proposal_type()', ve)
+            logger.exception(log)
+            raise
+
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0]))
+
+        except Exception as e:
+            logger.exception()
+            raise serializers.ValidationError(str(e))

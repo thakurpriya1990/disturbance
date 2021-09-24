@@ -1093,8 +1093,19 @@ export default {
         },
         recallReferral:function(r){
             let vm = this;
+            swal({
+                    title: "Loading...",
+                    //text: "Loading...",
+                    allowOutsideClick: false,
+                    allowEscapeKey:false,
+                    onOpen: () =>{
+                        swal.showLoading()
+                    }
+            })
 
             vm.$http.get(helpers.add_endpoint_json(api_endpoints.referrals,r.id+'/recall')).then(response => {
+                swal.hideLoading();
+                swal.close();
                 vm.original_proposal = helpers.copyObject(response.body);
                 vm.proposal = response.body;
                 vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
