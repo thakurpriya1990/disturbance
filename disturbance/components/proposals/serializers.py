@@ -890,6 +890,10 @@ class DTSchemaMasterlistSerializer(SchemaMasterlistSerializer):
             'options',
             'headers',
             'expanders',
+            'help_text_url',
+            'help_text_assessor_url',
+            'help_text',
+            'help_text_assessor',
         )
         # the serverSide functionality of datatables is such that only columns
         # that have field 'data' defined are requested from the serializer. Use
