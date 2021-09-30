@@ -418,7 +418,8 @@ export default {
                     },
                     name: '',
                     searchable: false,
-                    orderable: false
+                    orderable: false,
+                    className: "noexport",
                 });
             console.log(columnList);
             return columnList;
@@ -486,6 +487,9 @@ export default {
                 buttons:[
                     {
                         extend: 'excel',
+                        exportOptions: {
+                            columns: ':not(.noexport)'
+                        }
                         /*
                         exportOptions: {
                             columns: ':visible'
@@ -495,6 +499,9 @@ export default {
                     },
                     {
                         extend: 'csv',
+                        exportOptions: {
+                            columns: ':not(.noexport)'
+                        }
                         /*
                         exportOptions: {
                             columns: ':visible'

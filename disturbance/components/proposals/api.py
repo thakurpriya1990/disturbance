@@ -165,7 +165,6 @@ class GetEmptyList(views.APIView):
 #
 #	def filter_queryset(self, request, queryset, view):
 #		queryset = super(DatatablesFilterBackend, self).filter_queryset(request, queryset, view)
-#		import ipdb; ipdb.set_trace()
 #		return queryset
 
 class ProposalFilterBackend(DatatablesFilterBackend):
@@ -175,7 +174,6 @@ class ProposalFilterBackend(DatatablesFilterBackend):
 
     def filter_queryset(self, request, queryset, view):
         search_text = request.GET.get('search[value]', '')
-        #import ipdb; ipdb.set_trace()
         total_count = queryset.count()
 
         def get_choice(status, choices=Proposal.PROCESSING_STATUS_CHOICES):
@@ -184,7 +182,6 @@ class ProposalFilterBackend(DatatablesFilterBackend):
                     return i[0]
             return None
 
-        #import ipdb; ipdb.set_trace()
         # on the internal dashboard, the Region filter is multi-select - have to use the custom filter below
         regions = request.GET.get('regions')
         if regions:
@@ -202,7 +199,6 @@ class ProposalFilterBackend(DatatablesFilterBackend):
 
 
         # on the internal dashboard, the Referral 'Status' filter - have to use the custom filter below
-        #import ipdb; ipdb.set_trace()
 #        processing_status = request.GET.get('processing_status')
 #        processing_status = get_choice(processing_status, Proposal.PROCESSING_STATUS_CHOICES)
 #        if processing_status:
@@ -237,7 +233,6 @@ class ProposalFilterBackend(DatatablesFilterBackend):
                 queryset = queryset.filter(submitter__email=submitter)
         date_from = request.GET.get('date_from')
         date_to = request.GET.get('date_to')
-        #import ipdb; ipdb.set_trace()
         if queryset.model is Proposal:
             if date_from:
                 queryset = queryset.filter(lodgement_date__gte=date_from)
@@ -291,7 +286,6 @@ class ProposalFilterBackend(DatatablesFilterBackend):
 
 class ProposalRenderer(DatatablesRenderer):
     def render(self, data, accepted_media_type=None, renderer_context=None):
-        #import ipdb; ipdb.set_trace()
         if 'view' in renderer_context and hasattr(renderer_context['view'], '_datatables_total_count'):
             data['recordsTotal'] = renderer_context['view']._datatables_total_count
             # data.pop('recordsTotal')
@@ -301,7 +295,6 @@ class ProposalRenderer(DatatablesRenderer):
 #from django.utils.decorators import method_decorator
 #from django.views.decorators.cache import cache_page
 class ProposalPaginatedViewSet(viewsets.ModelViewSet):
-    #import ipdb; ipdb.set_trace()
     #queryset = Proposal.objects.all()
     #filter_backends = (DatatablesFilterBackend,)
     filter_backends = (ProposalFilterBackend,)
@@ -319,15 +312,14 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        #import ipdb; ipdb.set_trace()
         if is_internal(self.request): #user.is_authenticated():
             #return Proposal.objects.all().order_by('-id')
-            return Proposal.objects.all()
+            return Proposal.objects.all().exclude(processing_status='hidden')
         elif is_customer(self.request):
             user_orgs = [org.id for org in user.disturbance_organisations.all()]
             #return  Proposal.objects.filter( Q(applicant_id__in = user_orgs) | Q(submitter = user) )
             #return Proposal.objects.filter( Q(applicant_id__in = user_orgs) | Q(submitter = user) | Q(proxy_applicant = user)).order_by('-id')
-            qs = Proposal.objects.filter(Q(applicant_id__in=user_orgs) | Q(submitter=user) | Q(proxy_applicant=user))
+            qs = Proposal.objects.filter(Q(applicant_id__in=user_orgs) | Q(submitter=user) | Q(proxy_applicant=user)).exclude(processing_status='hidden')
             return qs
             #queryset =  Proposal.objects.filter(region__isnull=False).filter( Q(applicant_id__in = user_orgs) | Q(submitter = user) )
         return Proposal.objects.none()
@@ -351,7 +343,6 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         http://localhost:8499/api/proposal_paginated/proposal_paginated_internal/?format=datatables&draw=1&length=2
         """
         template_group = get_template_group(request)
-        #import ipdb; ipdb.set_trace()
         if template_group == 'apiary':
             #qs = self.get_queryset().filter(application_type__apiary_group_application_type=True)
             qs = self.get_queryset().filter(
@@ -374,7 +365,6 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
             qs = qs.filter(applicant_id=applicant_id)
 
         self.paginator.page_size = qs.count()
-        #import ipdb; ipdb.set_trace()
         result_page = self.paginator.paginate_queryset(qs, request)
         serializer = ListProposalSerializer(result_page, context={
             'request':request,
@@ -390,7 +380,6 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
 
     #    http://localhost:8499/api/proposal_paginated/referrals_internal/?format=datatables&draw=1&length=2
     #    """
-    #    #import ipdb; ipdb.set_trace()
     #    #self.serializer_class = ReferralSerializer
     #    template_group = get_template_group(request)
     #    referral_id_list = []
@@ -422,7 +411,6 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
 
         http://localhost:8499/api/proposal_paginated/referrals_internal/?format=datatables&draw=1&length=2
         """
-        #import ipdb; ipdb.set_trace()
         #self.serializer_class = ReferralSerializer
         template_group = get_template_group(request)
         if template_group == 'apiary':
@@ -460,7 +448,6 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         http://localhost:8499/api/proposal_paginated/proposal_paginated_external/?format=datatables&draw=1&length=2
         """
         template_group = get_template_group(request)
-        #import ipdb; ipdb.set_trace()
         if template_group == 'apiary':
             qs = self.get_queryset().filter(
                     application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]
@@ -476,7 +463,6 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         if applicant_id:
             qs = qs.filter(applicant_id=applicant_id)
 
-        #import ipdb; ipdb.set_trace()
         self.paginator.page_size = qs.count()
         result_page = self.paginator.paginate_queryset(qs, request)
         serializer = ListProposalSerializer(result_page, context={
@@ -778,7 +764,6 @@ class ProposalApiaryViewSet(viewsets.ModelViewSet):
 
     @basic_exception_handler
     def internal_apiary_serializer_class(self):
-        #import ipdb; ipdb.set_trace()
         #application_type = Proposal.objects.get(id=self.kwargs.get('pk')).application_type.name
         instance = self.get_object()
         application_type = instance.proposal.application_type.name
@@ -840,7 +825,6 @@ class ProposalApiaryViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         #text=serializer.validated_data['text']
         #instance.send_referral(request,serializer.validated_data['email'])
-        #import ipdb; ipdb.set_trace()
         #instance.send_referral(request,serializer.validated_data['email_group'], serializer.validated_data['text'])
         instance.send_referral(request,serializer.validated_data['group_id'], serializer.validated_data['text'])
         serializer_class = self.internal_apiary_serializer_class()
@@ -903,6 +887,8 @@ class ProposalApiaryViewSet(viewsets.ModelViewSet):
             #serializer = InternalProposalSerializer(instance,context={'request':request})
             serializer_class = self.internal_apiary_serializer_class()
             serializer = serializer_class(instance.proposal,context={'request':request})
+
+
             if preview:
                 site_transfer_preview = False
                 if instance.proposal.application_type.name == ApplicationType.SITE_TRANSFER:
@@ -912,18 +898,27 @@ class ProposalApiaryViewSet(viewsets.ModelViewSet):
                         preview_approval_id = serializer.data.get('proposal_apiary', {}).get('originating_approval_id')
                     else:
                         #preview_approval_id = serializer.data.get('proposal_apiary', {}).get('target_approval_id')
-                        #import ipdb; ipdb.set_trace()
                         preview_approval_id = instance.target_approval_id
                 else:
                     preview_approval_id = serializer.data.get('approval', {}).get('id')
                 licence_response = HttpResponse(content_type='application/pdf')
                 preview_approval = Approval.objects.get(id=preview_approval_id)
+
+#                apiary_sites = request.data.get('apiary_sites')
+#                for apiary_site in apiary_sites:
+#                    site_id = apiary_site.get('id')
+#                    licensed_site = apiary_site.get('properties')['licensed_site']
+#                    for orig_asoa in instance.get_relations():
+#                        if site_id == orig_asoa.apiary_site_id:
+#                            asoa = preview_approval.get_relations().get(apiary_site_id=site_id)
+#                            asoa.licensed_site = licensed_site
+#                            asoa.save()
+
                 licence_response.content = preview_approval.generate_doc(
                         request.user, 
                         preview=True, 
                         site_transfer_preview=site_transfer_preview
                         )
-                #import ipdb;ipdb.set_trace()
                 transaction.set_rollback(True)
                 return licence_response
             return Response(serializer.data)
@@ -1013,7 +1008,6 @@ class ApiaryReferralViewSet(viewsets.ModelViewSet):
 
     @list_route(methods=['GET',])
     def datatable_list(self, request, *args, **kwargs):
-        #import ipdb; ipdb.set_trace()
         proposal_field = request.GET.get('proposal',None)
         proposal = Proposal.objects.get(id=int(proposal_field))
         #qs = self.get_queryset().all()
@@ -1075,7 +1069,6 @@ class ApiaryReferralViewSet(viewsets.ModelViewSet):
 
     @detail_route(methods=['GET',])
     def remind(self, request, *args, **kwargs):
-        #import ipdb; ipdb.set_trace()
         try:
             instance = self.get_object()
             instance.remind(request)
@@ -1224,7 +1217,6 @@ class ApiaryReferralViewSet(viewsets.ModelViewSet):
 
 
 class ProposalViewSet(viewsets.ModelViewSet):
-    #import ipdb; ipdb.set_trace()
     #queryset = Proposal.objects.all()
     queryset = Proposal.objects.none()
     serializer_class = ProposalSerializer
@@ -1255,7 +1247,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
             obj = super(ProposalViewSet, self).get_object()
         except Exception as e:
             # because current queryset excludes migrated licences
-            #import ipdb; ipdb.set_trace()
             #obj = get_object_or_404(Proposal, id=self.kwargs['id'])
             obj_id = self.kwargs['id'] if 'id' in self.kwargs else self.kwargs['pk']
             obj = get_object_or_404(Proposal, id=obj_id)
@@ -1279,7 +1270,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
     def internal_serializer_class(self):
         try:
-            #import ipdb; ipdb.set_trace()
             #application_type = Proposal.objects.get(id=self.kwargs.get('pk')).application_type.name
             application_type = self.get_object().application_type.name
             if application_type in (ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE):
@@ -1318,7 +1308,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
     @list_route(methods=['GET',])
     def filter_list(self, request, *args, **kwargs):
-        #import ipdb; ipdb.set_trace()
         """ Used by the internal/external dashboard filters """
         template_group = get_template_group(request)
         region_qs = []
@@ -1358,7 +1347,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
     @renderer_classes((JSONRenderer,))
     def process_document(self, request, *args, **kwargs):
         try:
-            #import ipdb; ipdb.set_trace()
             instance = self.get_object()
             action = request.POST.get('action')
             section = request.POST.get('input_name')
@@ -1395,7 +1383,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 path = default_storage.save('proposals/{}/documents/{}'.format(proposal_id, filename), ContentFile(_file.read()))
 
                 document._file = path
-                #import ipdb; ipdb.set_trace()
                 document.save()
                 instance.save(version_comment='File Added: {}'.format(filename)) # to allow revision to be added to reversion history
                 #instance.current_proposal.save(version_comment='File Added: {}'.format(filename)) # to allow revision to be added to reversion history
@@ -1412,10 +1399,8 @@ class ProposalViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(str(e))
 
 #    def list(self, request, *args, **kwargs):
-#        #import ipdb; ipdb.set_trace()
 #        #queryset = self.get_queryset()
 #        #serializer = DTProposalSerializer(queryset, many=True)
-#        #import ipdb; ipdb.set_trace()
 #        #serializer = DTProposalSerializer(self.get_queryset(), many=True)
 #        serializer = ListProposalSerializer(self.get_queryset(), context={'request':request}, many=True)
 #        return Response(serializer.data)
@@ -1638,7 +1623,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['post'])
     @renderer_classes((JSONRenderer,))
     def submit(self, request, *args, **kwargs):
-        #import ipdb; ipdb.set_trace()
         try:
             instance = self.get_object()
             if instance.apiary_group_application_type:
@@ -2126,7 +2110,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
                         new_answer = ApiaryChecklistAnswer.objects.create(proposal = proposal_apiary,
                                                                                    question = question)
                     # Find relevant approval
-                    #import ipdb; ipdb.set_trace()
                     approval = proposal_apiary.retrieve_approval
                     if approval:
                         # Copy requirements from approval.current_proposal
@@ -2308,7 +2291,6 @@ class ReferralViewSet(viewsets.ModelViewSet):
         return Referral.objects.none()
 
     def get_serializer_class(self):
-        #import ipdb; ipdb.set_trace()
         try:
             #referral_id = self.kwargs.get('referral_id')
             #if referral_id:
@@ -2415,7 +2397,6 @@ class ReferralViewSet(viewsets.ModelViewSet):
     def complete(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
-            #import ipdb; ipdb.set_trace()
             referral_comment = request.data.get('referral_comment')
             instance.complete(request, referral_comment)
             serializer = self.get_serializer(instance, context={'request':request})
@@ -2636,7 +2617,6 @@ class AmendmentRequestViewSet(viewsets.ModelViewSet):
     @renderer_classes((JSONRenderer,))
     def delete_document(self, request, *args, **kwargs):
         try:
-            #import ipdb; ipdb.set_trace()
             instance = self.get_object()
             AmendmentRequestDocument.objects.get(id=request.data.get('id')).delete()
             return Response([dict(id=i.id, name=i.name,_file=i._file.url) for i in instance.requirement_documents.all()])
@@ -2708,7 +2688,6 @@ class ApiaryReferralGroupViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         #user = self.request.user
-        #import ipdb; ipdb.set_trace()
         if is_internal(self.request): #user.is_authenticated():
             return ApiaryReferralGroup.objects.all()
         else:
@@ -2721,7 +2700,6 @@ class ApiarySiteFeeViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         #user = self.request.user
-        #import ipdb; ipdb.set_trace()
         if is_internal(self.request): #user.is_authenticated():
             return ApiarySiteFee.objects.all()
         else:
@@ -2729,7 +2707,6 @@ class ApiarySiteFeeViewSet(viewsets.ModelViewSet):
 
     @list_route(methods=['GET',])
     def get_site_transfer_fees(self, request, *args, **kwargs):
-        #import ipdb; ipdb.set_trace()
         south_west = ApiarySiteFee.objects.filter(apiary_site_fee_type__name='transfer', site_category__name='south_west').order_by('-date_of_enforcement')[0]
         remote = ApiarySiteFee.objects.filter(apiary_site_fee_type__name='transfer', site_category__name='remote').order_by('-date_of_enforcement')[0]
         return_list = [south_west, remote]
