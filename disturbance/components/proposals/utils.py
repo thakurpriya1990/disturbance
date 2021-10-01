@@ -89,11 +89,9 @@ def _create_data_from_item(item, post_data, file_data, repetition, suffix):
     else:
         raise Exception('Missing name in item %s' % item['label'])
 
-    #import ipdb; ipdb.set_trace()
     if 'children' not in item:
         if item['type'] in ['checkbox' 'declaration']:
             #item_data[item['name']] = post_data[item['name']]
-            #import ipdb; ipdb.set_trace()
             item_data[item['name']] = extended_item_name in post_data
         elif item['type'] == 'file':
             if extended_item_name in file_data:
@@ -113,7 +111,6 @@ def _create_data_from_item(item, post_data, file_data, repetition, suffix):
         if 'repetition' in item:
             item_data = generate_item_data(extended_item_name,item,item_data,post_data,file_data,len(post_data[item['name']]),suffix)
         else:
-            #import ipdb; ipdb.set_trace()
             item_data = generate_item_data(extended_item_name, item, item_data, post_data, file_data,1,suffix)
 
 
@@ -122,13 +119,11 @@ def _create_data_from_item(item, post_data, file_data, repetition, suffix):
             for child in item['conditions'][condition]:
                 item_data.update(_create_data_from_item(child, post_data, file_data, repetition, suffix))
 
-    #import ipdb; ipdb.set_trace()
     return item_data
 
 def generate_item_data(item_name,item,item_data,post_data,file_data,repetition,suffix):
     item_data_list = []
     for rep in range(0, repetition):
-        #import ipdb; ipdb.set_trace()
         child_data = {}
         for child_item in item.get('children'):
             child_data.update(_create_data_from_item(child_item, post_data, file_data, 0,
@@ -229,7 +224,6 @@ class CommentDataSearch(object):
             if re.match(item,k):
                 values.append({k:post_data[k]})
         if values:
-            #import ipdb; ipdb.set_trace()
             for v in values:
                 for k,v in v.items():
                     parts = k.split('{}'.format(item))
@@ -250,7 +244,6 @@ class CommentDataSearch(object):
             if re.match(item,k):
                 values.append({k:post_data[k]})
         if values:
-            #import ipdb; ipdb.set_trace()
             for v in values:
                 for k,v in v.items():
                     parts = k.split('{}'.format(item))
@@ -418,10 +411,8 @@ def save_proponent_data_apiary_site_transfer(proposal_obj, request, viewset):
 
             proposal_apiary_data = sc.get('proposal_apiary', None)
             if proposal_apiary_data:
-                #import ipdb;ipdb.set_trace()
                 save_checklist_answers('applicant', proposal_apiary_data.get('applicant_checklist_answers'))
 
-            #import ipdb; ipdb.set_trace()
             transferee_email_text = request.data.get('transferee_email_text')
             if transferee_email_text:
                 proposal_obj.proposal_apiary.transferee_email_text = transferee_email_text
@@ -455,13 +446,19 @@ def save_proponent_data_apiary_site_transfer(proposal_obj, request, viewset):
                     #print(site.get('id'))
                     #print(site.get('checked'))
                     checked_value = bool(site.get('checked'))
+                    licensed_site = site['properties']['licensed_site'] = bool(site['properties'].get('licensed_site'))
                     site_transfer_apiary_site = SiteTransferApiarySite.objects.get(
                             proposal_apiary=proposal_obj.proposal_apiary, 
                             apiary_site_on_approval__apiary_site__id=site.get('id')
                             )
                     site_transfer_apiary_site.customer_selected = checked_value
                     site_transfer_apiary_site.internal_selected = checked_value
+                    #apiary_site_on_approval = transfer_apiary_site.apiary_site_on_approval
+                    #apiary_site_on_approval.licensed_site = licensed_site
                     site_transfer_apiary_site.save()
+                    apiary_site_on_approval = site_transfer_apiary_site.apiary_site_on_approval
+                    apiary_site_on_approval.licensed_site = licensed_site
+                    apiary_site_on_approval.save()
 
             #selected_licence = proposal_apiary_data.get('selected_licence')
             #if selected_licence:
@@ -520,7 +517,6 @@ def save_proponent_data_apiary_site_transfer(proposal_obj, request, viewset):
 
 
 def save_proponent_data_apiary(proposal_obj, request, viewset):
-    #import ipdb;ipdb.set_trace()
     with transaction.atomic():
         try:
             try:
@@ -704,7 +700,6 @@ def save_checklist_answers(checklist_role, checklist_answers=None):
             for ref_answer in referral_answers.get('referral_data'):
                 r_ans = ApiaryChecklistAnswer.objects.get(id=ref_answer['id'])
                 if ref_answer.get('question', {}).get('answer_type') == 'free_text':
-                    #import ipdb; ipdb.set_trace()
                     r_ans.text_answer = ref_answer['text_answer']
                 elif ref_answer.get('question', {}).get('answer_type') == 'yes_no':
                     r_ans.answer = ref_answer['answer']
@@ -792,7 +787,6 @@ def save_proponent_data_disturbance(instance,request,viewset):
 
             extracted_fields,special_fields = create_data_from_form(instance.schema, request.POST, request.FILES, special_fields=lookable_fields)
             instance.data = extracted_fields
-            #import ipdb; ipdb.set_trace()
 
             form_data=json.loads(request.POST['schema'])
             sub_activity_level1=form_data.get('sub_activity_level1')
@@ -848,7 +842,6 @@ def save_proponent_data_disturbance(instance,request,viewset):
         #                document.save()
 
         #            for f in request.FILES:
-        #                #import ipdb; ipdb; ipdb.set_trace()
         #                try:
         #                   document = instance.documents.get(input_name=f, name=request.FILES[f].name)
         #                except ProposalDocument.DoesNotExist:
@@ -899,7 +892,6 @@ def save_assessor_data(instance,request,viewset):
 def save_apiary_assessor_data(instance,request,viewset):
     with transaction.atomic():
         try:
-            #import ipdb; ipdb.set_trace()
             serializer = SaveProposalSerializer(instance, request.data, partial=True)
             serializer.is_valid(raise_exception=True)
             viewset.perform_update(serializer)
@@ -1001,7 +993,6 @@ def proposal_submit_apiary(proposal, request):
             else:
                 raise ValidationError('An error occurred while submitting proposal (Submit email notifications failed)')
 
-            #import ipdb; ipdb.set_trace()
             if proposal.application_type.name == 'Apiary':
                 for question in ApiaryChecklistQuestion.objects.filter(
                         checklist_type='apiary',
@@ -1026,7 +1017,6 @@ def proposal_submit_apiary(proposal, request):
                         ):
                     new_answer = ApiaryChecklistAnswer.objects.create(proposal = proposal.proposal_apiary,
                                                                                question = question)
-                #import ipdb; ipdb.set_trace()
                 # add questions per site
                 for question in ApiaryChecklistQuestion.objects.filter(
                         checklist_type='site_transfer_per_site',
@@ -1164,7 +1154,8 @@ def get_condition_children(question,section, parent_name=''):
             condition_question_count=1
             for q in condition_questions:
                 #question_name=parent_name+'-'+op.label+condition_question_count
-                question_name='{}-{}{}'.format(parent_name,op.label,condition_question_count)
+                #question_name='{}-{}{}'.format(parent_name,op.label,condition_question_count)
+                question_name='{}-{}{}'.format(parent_name,op.label.replace(" ",""),condition_question_count)
                 child={
                     'name': question_name,
                     'type': q.question.answer_type,
@@ -1196,7 +1187,8 @@ def get_condition_children(question,section, parent_name=''):
                 create_richtext_help(q.question, question_name)
                 option_children.append(child)
                 condition_question_count+=1
-            section_group_name=parent_name+'-'+op.label+'Group'
+            #section_group_name=parent_name+'-'+op.label+'Group'
+            section_group_name=parent_name+'-'+op.label.replace(" ","")+'Group'
             option_section_dict={
                 'name':section_group_name,
                 'type': 'group',
@@ -1518,6 +1510,7 @@ def generate_schema_original(proposal_type, request):
     if request.method=='POST':
         create_helppage_object(proposal_type)
     return new_Schema_return
+
 
 
 def generate_schema(proposal_type, request):
