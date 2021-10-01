@@ -17,7 +17,7 @@ Python library requirements should be installed using `pip`:
 # Environment settings
 
 A `.env` file should be created in the project root and used to set
-required environment variables at run time. Example content:
+required environment variables at run time. Example content: 
 
     DEBUG=True
     SECRET_KEY='thisismysecret'
