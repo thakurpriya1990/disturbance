@@ -63,6 +63,13 @@ class ApplicationTypeViewSet(viewsets.ReadOnlyModelViewSet):
         my_list = ApplicationType.objects.order_by('order').filter(visible=True)
         return my_list
 
+    @list_route(methods=['GET',])
+    def searchable_application_types(self, request, *args, **kwargs):
+        queryset = ApplicationType.objects.order_by('order').filter(visible=True, searchable=True)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+
 
 class BookingSettlementReportView(views.APIView):
     renderer_classes = (JSONRenderer,)

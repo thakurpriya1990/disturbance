@@ -52,10 +52,28 @@ router.register(r'apiary_referral_groups', proposal_api.ApiaryReferralGroupViewS
 router.register(r'apiary_referrals',proposal_api.ApiaryReferralViewSet)
 router.register(r'apiary_site_fees',proposal_api.ApiarySiteFeeViewSet)
 #router.register(r'payment',payment_api.PaymentViewSet)
+router.register(r'proposal_type_sections', proposal_api.ProposalTypeSectionViewSet)
 
+router.register(
+    r'schema_question_paginated', proposal_api.SchemaQuestionPaginatedViewSet)
+
+router.register(
+    r'schema_question', proposal_api.SchemaQuestionViewSet)
+
+router.register(
+    r'schema_masterlist',
+    proposal_api.SchemaMasterlistViewSet
+)
+router.register(
+    r'schema_masterlist_paginated', proposal_api.SchemaMasterlistPaginatedViewSet)
+router.register(
+    r'schema_proposal_type', proposal_api.SchemaProposalTypeViewSet)
+router.register(
+    r'schema_proposal_type_paginated', proposal_api.SchemaProposalTypePaginatedViewSet)
 
 api_patterns = [
     url(r'^api/profile$', users_api.GetProfile.as_view(), name='get-profile'),
+    url(r'^api/countries$', users_api.GetCountries.as_view(), name='get-countries'),
     url(r'^api/department_users$', users_api.DepartmentUserList.as_view(), name='department-users-list'),
     url(r'^api/proposal_type$', proposal_api.GetProposalType.as_view(), name='get-proposal-type'),
     url(r'^api/empty_list$', proposal_api.GetEmptyList.as_view(), name='get-empty-list'),
@@ -66,6 +84,7 @@ api_patterns = [
     url(r'^api/compliance_amendment_reason_choices',compliances_api.ComplianceAmendmentReasonChoicesView.as_view(),name='amendment_request_reason_choices'),
     url(r'^api/search_keywords',proposal_api.SearchKeywordsView.as_view(),name='search_keywords'),
     url(r'^api/search_reference',proposal_api.SearchReferenceView.as_view(),name='search_reference'),
+    url(r'^api/search_sections',proposal_api.SearchSectionsView.as_view(),name='search_sections'),
     #url(r'^api/reports/payment_settlements$', main_api.PaymentSettlementReportView.as_view(),name='payment-settlements-report'),
     url(r'^api/deed_poll_url', deed_poll_url, name='deed_poll_url')
 ]

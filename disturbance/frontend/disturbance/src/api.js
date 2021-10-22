@@ -10,7 +10,8 @@ module.exports = {
     profile: '/api/profile',
     department_users: '/api/department_users',
     //other
-    countries: "https://restcountries.eu/rest/v1/?fullText=true",
+    //countries: "https://restcountries.eu/rest/v1/?fullText=true",
+    countries: '/api/countries',
     proposal_type:"/api/proposal_type",
     proposals:"/api/proposal.json",
     //list_proposals:"/api/proposal/list_proposal.json",
@@ -25,7 +26,8 @@ module.exports = {
     regions:"/api/regions.json",
     activity_matrix:"/api/activity_matrix.json",
     application_types:"/api/application_types.json",
-
+    searchable_application_types:"/api/application_types/searchable_application_types.json",
+    proposal_type_sections:"/api/proposal_type_sections.json",
 
     // used in internal and external dashboards
     proposals_paginated_external:   "/api/proposal_paginated/proposals_external/?format=datatables",
@@ -58,4 +60,16 @@ module.exports = {
     proposal_apiary:"/api/proposal_apiary.json",
     apiary_referrals:"/api/apiary_referrals.json",
     apiary_site_transfer_fees:"/api/apiary_site_fees/get_site_transfer_fees.json",
+
+    //schema api's
+    //schema_masterlist:"/api/schema_masterlist/",
+    schema_masterlist:"/api/schema_masterlist.json",
+    schema_masterlist_paginated:"/api/schema_masterlist_paginated/",
+    schema_proposal_type:"/api/schema_proposal_type/",
+    schema_proposal_type_paginated:"/api/schema_proposal_type_paginated/",
+    schema_group:"/api/schema_group/",
+    schema_group_paginated:"/api/schema_group_paginated/",
+    //schema_question:"/api/schema_question/",
+    schema_question:"/api/schema_question.json",
+    schema_question_paginated:"/api/schema_question_paginated/",
 }

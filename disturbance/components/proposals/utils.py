@@ -89,11 +89,9 @@ def _create_data_from_item(item, post_data, file_data, repetition, suffix):
     else:
         raise Exception('Missing name in item %s' % item['label'])
 
-    #import ipdb; ipdb.set_trace()
     if 'children' not in item:
         if item['type'] in ['checkbox' 'declaration']:
             #item_data[item['name']] = post_data[item['name']]
-            #import ipdb; ipdb.set_trace()
             item_data[item['name']] = extended_item_name in post_data
         elif item['type'] == 'file':
             if extended_item_name in file_data:
@@ -113,7 +111,6 @@ def _create_data_from_item(item, post_data, file_data, repetition, suffix):
         if 'repetition' in item:
             item_data = generate_item_data(extended_item_name,item,item_data,post_data,file_data,len(post_data[item['name']]),suffix)
         else:
-            #import ipdb; ipdb.set_trace()
             item_data = generate_item_data(extended_item_name, item, item_data, post_data, file_data,1,suffix)
 
 
@@ -122,13 +119,11 @@ def _create_data_from_item(item, post_data, file_data, repetition, suffix):
             for child in item['conditions'][condition]:
                 item_data.update(_create_data_from_item(child, post_data, file_data, repetition, suffix))
 
-    #import ipdb; ipdb.set_trace()
     return item_data
 
 def generate_item_data(item_name,item,item_data,post_data,file_data,repetition,suffix):
     item_data_list = []
     for rep in range(0, repetition):
-        #import ipdb; ipdb.set_trace()
         child_data = {}
         for child_item in item.get('children'):
             child_data.update(_create_data_from_item(child_item, post_data, file_data, 0,
@@ -219,7 +214,8 @@ class CommentDataSearch(object):
 
     def __init__(self,lookup_field='canBeEditedByAssessor'):
         self.lookup_field = lookup_field
-        self.comment_data = {}
+        #self.comment_data = {}
+        self.comment_data = []
 
     def extract_comment_data_original(self,item,post_data):
         res = {}
@@ -228,7 +224,6 @@ class CommentDataSearch(object):
             if re.match(item,k):
                 values.append({k:post_data[k]})
         if values:
-            #import ipdb; ipdb.set_trace()
             for v in values:
                 for k,v in v.items():
                     parts = k.split('{}'.format(item))
@@ -242,14 +237,13 @@ class CommentDataSearch(object):
                             res = {'{}'.format(item):v}
         return res
 
-    def extract_comment_data(self,item,post_data):
+    def extract_comment_data_existing(self,item,post_data):
         res = {}
         values = []
         for k in post_data:
             if re.match(item,k):
                 values.append({k:post_data[k]})
         if values:
-            #import ipdb; ipdb.set_trace()
             for v in values:
                 for k,v in v.items():
                     parts = k.split('{}'.format(item))
@@ -258,6 +252,37 @@ class CommentDataSearch(object):
                         if len(ref_parts) > 1:
                             if len(ref_parts)==2 and ref_parts[0]=='' and ref_parts[1]=='':
                                 res = {'{}'.format(item):v}
+        return res
+
+    def extract_comment_data(self,item,post_data):
+        #import ipdb; ipdb.set_trace()
+        values = []
+        res = {
+            'name': item,
+            'assessor': '',
+            'referrals':[]
+        }
+        for k in post_data:
+            if re.match(item,k):
+                values.append({k:post_data[k]})
+        if values:
+            for v in values:
+                for k,v in v.items():
+                    parts = k.split('{}-comment-field'.format(item))
+                    if len(parts) > 1:
+                        # split parts to see if referall
+                        ref_parts = parts[1].split('Referral-')
+                        if len(ref_parts) > 1:
+                            # Referrals
+                            res['referrals'].append({
+                                'value':v,
+                                'email':ref_parts[1],
+                                'full_name': EmailUser.objects.get(email=ref_parts[1].lower()).get_full_name()
+                            })
+                        elif k.split('-')[-1].lower() == 'assessor':
+                            # Assessor
+                            res['assessor'] = v
+
         return res
 
     def extract_special_fields(self,item, post_data, file_data, repetition, suffix):
@@ -269,7 +294,8 @@ class CommentDataSearch(object):
 
         if 'children' not in item:
             #print(item, extended_item_name)
-            self.comment_data.update(self.extract_comment_data(extended_item_name,post_data))
+            #self.comment_data.update(self.extract_comment_data(extended_item_name,post_data))
+            self.comment_data.append(self.extract_comment_data(extended_item_name,post_data))
 
         else:
             if 'repetition' in item:
@@ -385,10 +411,8 @@ def save_proponent_data_apiary_site_transfer(proposal_obj, request, viewset):
 
             proposal_apiary_data = sc.get('proposal_apiary', None)
             if proposal_apiary_data:
-                #import ipdb;ipdb.set_trace()
                 save_checklist_answers('applicant', proposal_apiary_data.get('applicant_checklist_answers'))
 
-            #import ipdb; ipdb.set_trace()
             transferee_email_text = request.data.get('transferee_email_text')
             if transferee_email_text:
                 proposal_obj.proposal_apiary.transferee_email_text = transferee_email_text
@@ -422,13 +446,19 @@ def save_proponent_data_apiary_site_transfer(proposal_obj, request, viewset):
                     #print(site.get('id'))
                     #print(site.get('checked'))
                     checked_value = bool(site.get('checked'))
+                    licensed_site = site['properties']['licensed_site'] = bool(site['properties'].get('licensed_site'))
                     site_transfer_apiary_site = SiteTransferApiarySite.objects.get(
                             proposal_apiary=proposal_obj.proposal_apiary, 
                             apiary_site_on_approval__apiary_site__id=site.get('id')
                             )
                     site_transfer_apiary_site.customer_selected = checked_value
                     site_transfer_apiary_site.internal_selected = checked_value
+                    #apiary_site_on_approval = transfer_apiary_site.apiary_site_on_approval
+                    #apiary_site_on_approval.licensed_site = licensed_site
                     site_transfer_apiary_site.save()
+                    apiary_site_on_approval = site_transfer_apiary_site.apiary_site_on_approval
+                    apiary_site_on_approval.licensed_site = licensed_site
+                    apiary_site_on_approval.save()
 
             #selected_licence = proposal_apiary_data.get('selected_licence')
             #if selected_licence:
@@ -487,7 +517,6 @@ def save_proponent_data_apiary_site_transfer(proposal_obj, request, viewset):
 
 
 def save_proponent_data_apiary(proposal_obj, request, viewset):
-    #import ipdb;ipdb.set_trace()
     with transaction.atomic():
         try:
             try:
@@ -671,7 +700,6 @@ def save_checklist_answers(checklist_role, checklist_answers=None):
             for ref_answer in referral_answers.get('referral_data'):
                 r_ans = ApiaryChecklistAnswer.objects.get(id=ref_answer['id'])
                 if ref_answer.get('question', {}).get('answer_type') == 'free_text':
-                    #import ipdb; ipdb.set_trace()
                     r_ans.text_answer = ref_answer['text_answer']
                 elif ref_answer.get('question', {}).get('answer_type') == 'yes_no':
                     r_ans.answer = ref_answer['answer']
@@ -759,7 +787,6 @@ def save_proponent_data_disturbance(instance,request,viewset):
 
             extracted_fields,special_fields = create_data_from_form(instance.schema, request.POST, request.FILES, special_fields=lookable_fields)
             instance.data = extracted_fields
-            #import ipdb; ipdb.set_trace()
 
             form_data=json.loads(request.POST['schema'])
             sub_activity_level1=form_data.get('sub_activity_level1')
@@ -815,7 +842,6 @@ def save_proponent_data_disturbance(instance,request,viewset):
         #                document.save()
 
         #            for f in request.FILES:
-        #                #import ipdb; ipdb; ipdb.set_trace()
         #                try:
         #                   document = instance.documents.get(input_name=f, name=request.FILES[f].name)
         #                except ProposalDocument.DoesNotExist:
@@ -866,7 +892,6 @@ def save_assessor_data(instance,request,viewset):
 def save_apiary_assessor_data(instance,request,viewset):
     with transaction.atomic():
         try:
-            #import ipdb; ipdb.set_trace()
             serializer = SaveProposalSerializer(instance, request.data, partial=True)
             serializer.is_valid(raise_exception=True)
             viewset.perform_update(serializer)
@@ -968,7 +993,6 @@ def proposal_submit_apiary(proposal, request):
             else:
                 raise ValidationError('An error occurred while submitting proposal (Submit email notifications failed)')
 
-            #import ipdb; ipdb.set_trace()
             if proposal.application_type.name == 'Apiary':
                 for question in ApiaryChecklistQuestion.objects.filter(
                         checklist_type='apiary',
@@ -993,7 +1017,6 @@ def proposal_submit_apiary(proposal, request):
                         ):
                     new_answer = ApiaryChecklistAnswer.objects.create(proposal = proposal.proposal_apiary,
                                                                                question = question)
-                #import ipdb; ipdb.set_trace()
                 # add questions per site
                 for question in ApiaryChecklistQuestion.objects.filter(
                         checklist_type='site_transfer_per_site',
@@ -1117,7 +1140,7 @@ def get_options(section_question, question):
             options[0]['isRequired']='true'
     return options
 
-def get_condition_chidren(question,section, parent_name=''):
+def get_condition_children(question,section, parent_name=''):
     conditions={}
     options=question.option.all().order_by('-disturbance_masterlistquestion_option.id')
     special_types=['checkbox',]
@@ -1139,7 +1162,7 @@ def get_condition_chidren(question,section, parent_name=''):
                     'label': q.question.question,
                 }
                 if q.question.answer_type in special_types:
-                        q_option_children=get_checkbox_option_chidren(q, q.question, section, question_name)
+                        q_option_children=get_checkbox_option_children(q, q.question, section, question_name)
                         child['children']=q_option_children
                         child['type']='group'
                 else:
@@ -1147,7 +1170,7 @@ def get_condition_chidren(question,section, parent_name=''):
                         q_options= get_options(q,q.question)
                         child['options']=q_options
                     if q.question.children_question.exists():
-                        q_conditions=get_condition_chidren(q.question, section, question_name)
+                        q_conditions=get_condition_children(q.question, section, question_name)
                         child['conditions']=q_conditions
                 if q.tag:
                     for t in q.tag:
@@ -1178,7 +1201,7 @@ def get_condition_chidren(question,section, parent_name=''):
     return conditions
 
 
-def get_checkbox_option_chidren(section_question,question,section, parent_name=''):
+def get_checkbox_option_children(section_question,question,section, parent_name=''):
     conditions={}
     options=question.option.all().order_by('-disturbance_masterlistquestion_option.id')
     options_list=[]
@@ -1209,7 +1232,7 @@ def get_checkbox_option_chidren(section_question,question,section, parent_name='
                     'label': q.question.question,
                 }
                 if q.question.answer_type in special_types:
-                        q_option_children=get_checkbox_option_chidren(q,q.question, section, question_name)
+                        q_option_children=get_checkbox_option_children(q,q.question, section, question_name)
                         child['children']=q_option_children
                         child['type']='group'
                 else:
@@ -1217,7 +1240,7 @@ def get_checkbox_option_chidren(section_question,question,section, parent_name='
                         q_options= get_options(q,q.question)
                         child['options']=q_options
                     if q.question.children_question.exists():
-                        q_conditions=get_condition_chidren(q.question, section, question_name)
+                        q_conditions=get_condition_children(q.question, section, question_name)
                         child['conditions']=q_conditions
 
                 if q.tag:
@@ -1252,9 +1275,174 @@ def get_checkbox_option_chidren(section_question,question,section, parent_name='
             options_list[0]['isRequired']='true'
     return options_list
 
+def get_options_new(section_question, question):
+    options=[]
+    special_types=['radiobuttons', 'multi-select',]
+    if len(section_question.get_options()) > 0:
+        for op in section_question.get_options():
+            op_dict = {
+                    'label': op['label'],
+                    'value': op['label'].replace(" ", "").lower(),
+                }
+            options.append(op_dict)
+    #For multi-select type questions, the isRequired flag goes to the first option dict instead of question dict
+    if 'isRequired' in section_question.get_tag_list() and question.answer_type in special_types:
+        if options:
+            options[0]['isRequired']='true'
+    return options
+
+def get_condition_children_new(question,section, parent_name=''):
+    conditions={}
+    # options=question.option.all().order_by('-disturbance_masterlistquestion_option.id')
+    options = []
+    special_types=['checkbox',]
+    group_types=['checkbox', 'radiobuttons', 'multi-select']
+    option_count=0
+    if len(question.get_options()) > 0:
+            for op in question.get_options():
+                op_dict = {
+                    'label': op.label,
+                    'value': op.label.replace(" ", "").lower(),
+                    'id': op.value,
+                }
+                options.append(op_dict)
+    for op in options:
+        condition_questions=SectionQuestion.objects.filter(section=section,parent_question=question,parent_answer=op['id']).order_by('order')
+        if condition_questions:
+            option_section=[]
+            option_children=[]
+            condition_question_count=1
+            for q in condition_questions:
+                #question_name=parent_name+'-'+op.label+condition_question_count
+                question_name='{}-{}{}'.format(parent_name,op['label'].replace(" ", ""),condition_question_count)
+                child={
+                    'name': question_name,
+                    'type': q.question.answer_type,
+                    'label': q.question.question,
+                }
+                if q.question.answer_type in special_types:
+                        q_option_children=get_checkbox_option_children_new(q, q.question, section, question_name)
+                        child['children']=q_option_children
+                        child['type']='group'
+                else:
+                    if len(q.question.get_options()) > 0:
+                        q_options= get_options_new(q,q.question)
+                        child['options']=q_options
+                    if q.question.children_question.exists():
+                        q_conditions=get_condition_children_new(q.question, section, question_name)
+                        child['conditions']=q_conditions
+                if q.tag:
+                    for t in q.tag:
+                        if t=='isRequired':
+                            if q.question.answer_type not in group_types:
+                                child[t]='true'
+                        else:
+                            child[t]='true'
+                        #child[t]='true'
+                if q.question.help_text_url:
+                    child['help_text_url']='{0}/anchor={1}'.format(help_site_url, question_name)
+                if q.question.help_text_assessor_url:
+                    child['help_text_assessor_url']='{0}/anchor={1}'.format(help_site_assessor_url, question_name)
+                create_richtext_help(q.question, question_name)
+                option_children.append(child)
+                condition_question_count+=1
+            section_group_name=parent_name+'-'+op['label'].replace(" ", "")+'Group'
+            option_section_dict={
+                'name':section_group_name,
+                'type': 'group',
+                'label':'',
+                'children': option_children
+            }
+            option_section.append(option_section_dict)
+            conditions[op['label'].replace(" ","").lower()]=option_section
+            option_count+=1
+    return conditions
 
 
-def generate_schema(proposal_type, request):
+def get_checkbox_option_children_new(section_question,question,section, parent_name=''):
+    conditions={}
+    # options=question.option.all().order_by('-disturbance_masterlistquestion_option.id')
+    options = []
+    options_list=[]
+    special_types=['checkbox',]
+    group_types=['checkbox', 'radiobuttons', 'multi-select']
+    option_count=0
+    if len(question.get_options()) > 0:
+            for op in question.get_options():
+                op_dict = {
+                    'label': op.label,
+                    'value': op.label.replace(" ", "").lower(),
+                    'id': op.value,
+                }
+                options.append(op_dict)
+    for op in options:
+        #op_name=parent_name+'-'+option_count
+        op_name='{}-{}'.format(parent_name,option_count)
+        op_dict={
+                #'name': op.label,#function generated name
+                'name': op_name,
+                'label': op['label'],
+                'type': 'checkbox',
+                'group': parent_name #function generated name of parent question
+        }
+        condition_questions=SectionQuestion.objects.filter(section=section,parent_question=question,parent_answer=op['id']).order_by('order')
+        if condition_questions:
+            option_section=[]
+            option_children=[]
+            condition_question_count=1
+            for q in condition_questions:
+                #question_name=op_name+'-On-'+condition_question_count
+                question_name='{}-On-{}'.format(op_name,condition_question_count)
+                child={
+                    'name': question_name,
+                    'type': q.question.answer_type,
+                    'label': q.question.question,
+                }
+                if q.question.answer_type in special_types:
+                        q_option_children=get_checkbox_option_children_new(q,q.question, section, question_name)
+                        child['children']=q_option_children
+                        child['type']='group'
+                else:
+                    if len(q.question.get_options()) > 0:
+                        q_options= get_options_new(q,q.question)
+                        child['options']=q_options
+                    if q.question.children_question.exists():
+                        q_conditions=get_condition_children_new(q.question, section, question_name)
+                        child['conditions']=q_conditions
+
+                if q.tag:
+                    for t in q.tag:
+                        #child[t]='true'
+                        if t=='isRequired':
+                            if q.question.answer_type not in group_types:
+                                child[t]='true'
+                        else:
+                            child[t]='true'
+                if q.question.help_text_url:
+                    child['help_text_url']='{0}/anchor={1}'.format(help_site_url, question_name)
+                if q.question.help_text_assessor_url:
+                    child['help_text_assessor_url']='{0}/anchor={1}'.format(help_site_assessor_url, question_name)
+                create_richtext_help(q.question, question_name)
+                option_children.append(child)
+                condition_question_count+=1
+            section_group_name=op_name+'-OnGroup'
+            option_section_dict={
+                'name':section_group_name,
+                'type': 'group',
+                'label':'',
+                'children': option_children
+            }
+            option_section.append(option_section_dict)
+            conditions['on']=option_section
+            op_dict['conditions']=conditions
+        options_list.append(op_dict)
+        option_count+=1
+    if 'isRequired' in section_question.get_tag_list():
+        if options_list:
+            options_list[0]['isRequired']='true'
+    return options_list
+
+def generate_schema_original(proposal_type, request):
     section_list=ProposalTypeSection.objects.filter(proposal_type=proposal_type).order_by('index')
     section_count=0
     schema=[]
@@ -1288,7 +1476,7 @@ def generate_schema(proposal_type, request):
                     'label': sq.question.question,                    
                 }
                 if sq.question.answer_type in special_types:
-                    sq_option_children=get_checkbox_option_chidren(sq,sq.question, section,sq_name)
+                    sq_option_children=get_checkbox_option_children(sq,sq.question, section,sq_name)
                     sc['children']=sq_option_children
                     sc['type']='group'
                 else:
@@ -1296,7 +1484,7 @@ def generate_schema(proposal_type, request):
                         sq_options= get_options(sq,sq.question)
                         sc['options']=sq_options
                     if sq.question.children_question.exists():
-                        sq_children=get_condition_chidren(sq.question,section, sq_name)
+                        sq_children=get_condition_children(sq.question,section, sq_name)
                         sc['conditions']=sq_children
                 if sq.tag:
                     for t in sq.tag:
@@ -1324,4 +1512,97 @@ def generate_schema(proposal_type, request):
     return new_Schema_return
 
 
-                
+def generate_schema(proposal_type, request):
+    section_list=ProposalTypeSection.objects.filter(proposal_type=proposal_type).order_by('index')
+    section_count=0
+    schema=[]
+    special_types=['checkbox',]
+    select_types = ['select', 'multi-select']
+    #'isRequired' tag for following types is added to first option dict instead of question.
+    group_types=['checkbox', 'radiobuttons', 'multi-select']
+    global richtext
+    global richtext_assessor
+    global help_site_url, help_site_assessor_url
+    richtext = u''
+    richtext_assessor=u''
+    help_site_url='site_url:/help/{}/user'.format(proposal_type.name)
+    help_site_assessor_url='site_url:/help/{}/assessor'.format(proposal_type.name)
+    for section in section_list:
+        section_dict={
+            'name': '{}{}'.format(section.section_label.replace(" ",""), section_count),
+            'type': 'section',
+            'label': section.section_label,
+        }
+        section_children=[]
+        section_questions=SectionQuestion.objects.filter(section=section,parent_question__isnull=True,parent_answer__isnull=True).order_by('order')
+        if section_questions:
+            sq_count=0
+            for sq in section_questions:
+                #sq_name='Section'+section_count+'-'+sq_count
+                sq_name='Section{}-{}'.format(section_count,sq_count)
+                sc={
+                    # 'name': sq.question.name,
+                    'name': sq_name,
+                    'type': sq.question.answer_type,
+                    'label': sq.question.question,                    
+                }
+                if sq.question.answer_type in special_types:
+                    sq_option_children=get_checkbox_option_children_new(sq,sq.question, section,sq_name)
+                    sc['children']=sq_option_children
+                    sc['type']='group'
+                elif sq.question.answer_type in select_types:
+                    '''
+                        NOTE: Select type option are defaulted from Masterlist
+                        not from the SectionQuestion. Conditions are NOT added.
+                        '''
+                    if len(sq.question.get_options()) > 0:
+                        #sq_options= get_options(sq,sq.question)
+                        opts = [
+                                {
+                                    'label': o.label,
+                                    'value': o.label.replace(" ", "").lower(),
+                                } for o in sq.question.get_options()
+                            ]
+                        sq.set_property_cache_options(opts)
+                        sq_options = get_options_new(
+                                sq, sq.question
+                            )
+                        sc['options']=sq_options
+                    if sq.question.children_question.exists():
+                        sq_children=get_condition_children_new(sq.question,section, sq_name)
+                        sc['conditions']=sq_children
+
+                else:
+                    if len(sq.question.get_options()) > 0:
+                        sq_options = get_options_new(
+                                sq, sq.question
+                            )
+                        sc['options']=sq_options
+                    if sq.question.children_question.exists():
+                        sq_children=get_condition_children_new(sq.question,section, sq_name)
+                        sc['conditions']=sq_children
+
+                if sq.tag:
+                    for t in sq.tag:
+                        if t=='isRequired':
+                            if sq.question.answer_type not in group_types:
+                                sc[t]='true'
+                        else:
+                            sc[t]='true'
+                if sq.question.help_text_url:
+                    sc['help_text_url']='{0}/anchor={1}'.format(help_site_url, sq_name)
+                if sq.question.help_text_assessor_url:
+                    sc['help_text_assessor_url']='{0}/anchor={1}'.format(help_site_assessor_url, sq_name)
+                create_richtext_help(sq.question, sq_name) 
+                section_children.append(sc)
+                sq_count+=1
+        if section_children:
+            section_dict['children']= section_children
+        section_count+=1
+        schema.append(section_dict)
+    import json
+    new_schema=json.dumps(schema)
+    new_Schema_return=json.loads(new_schema)
+    if request.method=='POST':
+        create_helppage_object(proposal_type)
+    return new_Schema_return            
