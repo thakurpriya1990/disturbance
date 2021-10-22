@@ -122,6 +122,7 @@ class ApplicationType(models.Model):
     oracle_code_application = models.CharField(max_length=50)
     is_gst_exempt = models.BooleanField(default=True)
     domain_used = models.CharField(max_length=40, choices=DOMAIN_USED_CHOICES, default=DOMAIN_USED_CHOICES[0][0])
+    searchable = models.BooleanField(default=True)
 
     class Meta:
         ordering = ['order', 'name']

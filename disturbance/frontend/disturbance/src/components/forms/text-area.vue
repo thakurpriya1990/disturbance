@@ -26,17 +26,20 @@
             </template>
             <textarea :readonly="readonly" class="form-control" rows="5" :name="name" :required="isRequired">{{ value }}</textarea><br/>
         </div>
-        <Comment :question="label" :readonly="assessor_readonly" :name="name+'-comment-field'" v-show="showingComment && assessorMode" :value="comment_value"/> 
+        <!-- <Comment :question="label" :readonly="assessor_readonly" :name="name+'-comment-field'" v-show="showingComment && assessorMode" :value="comment_value"/>  -->
+        <CommentBox :comment_boxes="comment_boxes" v-show="showingComment && assessorMode"/> 
+
     </div>
 </template>
 
 <script>
 import Comment from './comment.vue'
+import CommentBox from './comment_box_referral.vue'
 import HelpText from './help_text.vue'
 import HelpTextUrl from './help_text_url.vue'
 export default {
-    props:["name","value", "id", "isRequired", "help_text","help_text_assessor","assessorMode","label","readonly","comment_value","assessor_readonly", "help_text_url", "help_text_assessor_url"],
-    components: {Comment, HelpText, HelpTextUrl},
+    props:["name","value", "id", "isRequired", "help_text","help_text_assessor","assessorMode","label","readonly","comment_value","assessor_readonly", "help_text_url", "help_text_assessor_url","comment_boxes",],
+    components: {Comment, HelpText, HelpTextUrl, CommentBox},
     data(){
         let vm = this;
         return {

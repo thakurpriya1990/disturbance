@@ -19,6 +19,8 @@ MEDIA_APP_DIR = env('MEDIA_APP_DIR', 'das')
 MEDIA_APIARY_DIR = env('MEDIA_APIARY_DIR', 'apiary')
 SPATIAL_DATA_DIR = env('SPATIAL_DATA_DIR', 'spatial_data')
 ANNUAL_RENTAL_FEE_GST_EXEMPT = True
+FILE_UPLOAD_MAX_MEMORY_SIZE = env('FILE_UPLOAD_MAX_MEMORY_SIZE', 15728640)
+APIARY_MIGRATED_LICENCES_APPROVER = env('APIARY_MIGRATED_LICENCES_APPROVER', 'jacinta.overman@dbca.wa.gov.au')
 
 INSTALLED_APPS += [
     'reversion_compare',
@@ -211,5 +213,4 @@ LOGGING['loggers']['disturbance'] = {
 #        return row
 #    except:
 #        return []
-
 
