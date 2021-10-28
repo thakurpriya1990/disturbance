@@ -119,7 +119,7 @@ from disturbance.components.approvals.models import Approval, ApiarySiteOnApprov
 from disturbance.components.approvals.serializers import ApprovalLogEntrySerializer
 from disturbance.components.compliances.models import Compliance
 
-from disturbance.helpers import is_customer, is_internal, is_das_apiary_admin
+from disturbance.helpers import is_authorised_to_modify, is_customer, is_internal, is_das_apiary_admin
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from rest_framework.pagination import PageNumberPagination
@@ -1285,6 +1285,49 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
+    @detail_route(methods=['POST',])
+    def get_revision(self, request, *args, **kwargs):
+        """
+        Use the Proposal model method to get a particular Proposal revision.
+        """
+        try:
+            instance = self.get_object()
+            version_number = request.data.get("version_number")
+            revision = instance.get_revision_flat(version_number)
+            
+            return Response(revision)
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['POST',])
+    def get_revision_diffs(self, request, *args, **kwargs):
+        """
+        Use the Proposal model method to get the differences between the lastest revision and
+        the revision specified.
+        """
+        try:
+            instance = self.get_object()
+            version_number = request.data.get("version_number")
+            diffs = instance.get_revision_diff(version_number)
+
+            return Response(diffs)
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
     @detail_route(methods=['POST'])
     @renderer_classes((JSONRenderer,))
     def process_deed_poll_document(self, request, *args, **kwargs):
@@ -1613,6 +1656,15 @@ class ProposalViewSet(viewsets.ModelViewSet):
         serializer_class = self.internal_serializer_class()
         serializer = serializer_class(instance,context={'request':request})
         return Response(serializer.data)
+
+    @detail_route(methods=['GET',])
+    def internal_revision_proposal(self, request, *args, **kwargs):
+
+        instance = self.get_object()
+        version_number = int(request.query_params.get("revision_number"))
+        revision = instance.get_revision(version_number)
+
+        return Response(revision)
 
     @detail_route(methods=['GET',])
     def internal_proposal_wrapper(self, request, *args, **kwargs):
@@ -1969,6 +2021,10 @@ class ProposalViewSet(viewsets.ModelViewSet):
     def draft(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
+
+            # Ensure the current user is a member of the organisation that created the draft application.
+            is_authorised_to_modify(request, instance)
+
             save_proponent_data(instance, request, self)
             return redirect(reverse('external'))
         except serializers.ValidationError:
