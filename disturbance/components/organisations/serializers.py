@@ -84,7 +84,8 @@ class DelegateSerializer(serializers.ModelSerializer):
 class OrganisationSerializer(serializers.ModelSerializer):
     address = OrganisationAddressSerializer(read_only=True) 
     pins = serializers.SerializerMethodField(read_only=True)
-    delegates = DelegateSerializer(many=True,read_only=True)
+    #delegates = DelegateSerializer(many=True,read_only=True)
+    delegates = serializers.SerializerMethodField(read_only=True)
     class Meta:
         model = Organisation
         fields = (
@@ -109,6 +110,18 @@ class OrganisationSerializer(serializers.ModelSerializer):
                 return None
         except KeyError:
             return None
+
+    def get_delegates(self,obj):
+        try:
+            delegates = []
+            user = self.context['request'].user
+            # Check if the request user is among the first five delegates in the organisation
+            for user in obj.delegates.all():
+                delegates.append({'id': user.id, 'name': user.get_full_name(), 'is_admin': can_admin_org(obj, user)})
+            return delegates
+        except KeyError:
+            return None
+
 
 
 class OrganisationCheckExistSerializer(serializers.Serializer):

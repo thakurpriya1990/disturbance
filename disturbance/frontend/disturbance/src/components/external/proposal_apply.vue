@@ -19,14 +19,16 @@
                                     <template v-if="apiaryTemplateGroup">
                                         <div class="radio">
                                             <label>
-                                              <input type="radio" name="behalf_of_individual" v-model="behalf_of" value="individual"> On behalf of yourself
+                                              <input :disabled="individualDisableApplyRadioButton" type="radio" name="behalf_of_individual" v-model="behalf_of" value="individual"> On behalf of yourself
+                                                  <span v-html="individualExistingRecordText"></span>
                                             </label>
                                         </div>
                                     </template>
                                     <div v-if="profile.disturbance_organisations.length > 0">
                                         <div v-for="org in profile.disturbance_organisations" class="radio">
                                             <label>
-                                              <input type="radio" name="behalf_of_org" v-model="behalf_of"  :value="org.id"> On behalf of {{org.name}}
+                                              <input :disabled="org.existing_record_text.disable_radio_button" type="radio" name="behalf_of_org" v-model="behalf_of"  :value="org.id"> On behalf of {{org.name}}
+                                                  <span v-html="org.existing_record_text.notification"></span>
                                             </label>
                                         </div>
                                         <!--
@@ -268,6 +270,20 @@ export default {
               returnStr = 'Select application type';
           }
           return returnStr;
+      },
+      individualExistingRecordText: function() {
+          let approvalText = '';
+          if (this.profile && this.profile.existing_record_text) {
+              approvalText = this.profile.existing_record_text.notification;
+          }
+          return approvalText;
+      },
+      individualDisableApplyRadioButton: function() {
+          let approvalText = '';
+          if (this.profile && this.profile.existing_record_text) {
+              approvalText = this.profile.existing_record_text.disable_radio_button;
+          }
+          return approvalText;
       },
       currentApiaryApproval: function() {
           let currentApproval = null;
@@ -731,5 +747,8 @@ input[type=text], select{
 	border-style: solid;
 	border-width: thin;
 	border-color: #FFFFFF;
+}
+.proposalWarning {
+    color: red;
 }
 </style>

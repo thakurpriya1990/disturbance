@@ -1,6 +1,6 @@
 <template lang="html">
     <div id="change-contact">
-        <modal @ok="ok()" @cancel="cancel()" title="Add Contact" large>
+        <modal @ok="ok()" @cancel="cancel()" :title="title()" large>
             <form class="form-horizontal" name="addContactForm">
                 <div class="row">
                     <alert :show.sync="showError" type="danger"><strong>{{errorString}}</strong></alert>
@@ -103,6 +103,13 @@ export default {
         },
         cancel:function () {
         },
+        title:function () {
+            let vm =this;
+            if(vm.contact.id) {
+                return "Update Contact";
+            }
+            return "Add Contact";
+        },
         close:function () {
             this.isModalOpen = false;
             this.contact = {};
@@ -123,10 +130,12 @@ export default {
             //vm.$parent.loading.push('processing contact');
             if (vm.contact.id){
                 let contact = vm.contact;
-                vm.$http.put(api_endpoints.organisation_contacts(contact.id),JSON.stringify(contact),{
+                //vm.$http.put(api_endpoints.organisation_contacts(contact.id),JSON.stringify(contact),{
+                vm.$http.put(helpers.add_endpoint_json(api_endpoints.organisation_contacts,contact.id),JSON.stringify(contact),{
                         emulateJSON:true,
                     }).then((response)=>{
                         //vm.$parent.loading.splice('processing contact',1);
+                        vm.$parent.refreshDatatable();
                         vm.close();
                     },(error)=>{
                         console.log(error);
@@ -137,6 +146,7 @@ export default {
             } else {
                 let contact = JSON.parse(JSON.stringify(vm.contact));
                 contact.organisation = vm.org_id;
+                contact.user_status = 'contact_form';
                 vm.$http.post(api_endpoints.organisation_contacts,JSON.stringify(contact),{
                         emulateJSON:true,
                     }).then((response)=>{

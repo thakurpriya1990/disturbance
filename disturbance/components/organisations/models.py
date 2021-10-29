@@ -480,11 +480,13 @@ class OrganisationContact(models.Model):
         ('active', 'Active'),
         ('declined', 'Declined'),
         ('unlinked', 'Unlinked'),
-        ('suspended', 'Suspended'))
+        ('suspended', 'Suspended'),
+        ('contact_form','ContactForm'), # status 'contact_form' if org contact was added via 'Contact Details' section in manage.vue (allows Org Contact to be distinguished from Org Delegate)
+    )
     USER_ROLE_CHOICES = (('organisation_admin', 'Organisation Admin'),
         ('organisation_user', 'Organisation User'),
         ('consultant','Consultant')
-        )
+    )
     user_status = models.CharField('Status', max_length=40, choices=USER_STATUS_CHOICES,default=USER_STATUS_CHOICES[0][0])
     user_role = models.CharField('Role', max_length=40, choices=USER_ROLE_CHOICES,default='organisation_user')
     is_admin = models.BooleanField(default= False)
