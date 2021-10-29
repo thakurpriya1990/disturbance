@@ -92,6 +92,7 @@ class ApplicationType(models.Model):
     APIARY = 'Apiary'
     TEMPORARY_USE = 'Temporary Use'
     SITE_TRANSFER = 'Site Transfer'
+    FIRE = 'Prescribed Burning'
 
     APPLICATION_TYPES = (
         (DISTURBANCE, 'Disturbance'),
@@ -99,6 +100,7 @@ class ApplicationType(models.Model):
         (APIARY, 'Apiary'),
         (TEMPORARY_USE, 'Temporary Use'),
         (SITE_TRANSFER, 'Site Transfer'),
+        (FIRE, 'Prescribed Burning'),
     )
 
     APIARY_APPLICATION_TYPES = (APIARY, TEMPORARY_USE, SITE_TRANSFER,)
@@ -120,6 +122,7 @@ class ApplicationType(models.Model):
     oracle_code_application = models.CharField(max_length=50)
     is_gst_exempt = models.BooleanField(default=True)
     domain_used = models.CharField(max_length=40, choices=DOMAIN_USED_CHOICES, default=DOMAIN_USED_CHOICES[0][0])
+    searchable = models.BooleanField(default=True)
 
     class Meta:
         ordering = ['order', 'name']
@@ -331,6 +334,8 @@ class TemporaryDocument(Document):
 
     class Meta:
         app_label = 'disturbance'
+
+
 
 
 import reversion

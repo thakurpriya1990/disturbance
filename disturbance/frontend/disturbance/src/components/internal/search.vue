@@ -132,6 +132,9 @@
             </div>
         </div>
     </div>
+    <div class="row">
+      <searchSection></searchSection>
+    </div>
 </div>
 </template>
 <script>
@@ -143,6 +146,7 @@ import {
 }
 from '@/utils/hooks'
 import utils from './utils'
+import searchSection from './search_section.vue'
 export default {
   name: 'ExternalDashboard',
   props: {
@@ -221,6 +225,7 @@ export default {
     },
     components: {
         datatable,
+        searchSection,
     },
     beforeRouteEnter:function(to,from,next){
         utils.fetchOrganisations().then((response)=>{

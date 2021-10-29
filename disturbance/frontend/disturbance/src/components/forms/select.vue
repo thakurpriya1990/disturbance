@@ -18,7 +18,7 @@
             </template> 
 
 
-            <template v-if="assessorMode && !assessor_readonly">
+            <template v-if="assessorMode">
                 <template v-if="!showingComment">
                     <a v-if="comment_value != null && comment_value != undefined && comment_value != ''" href="" @click.prevent="toggleComment"><i style="color:red" class="fa fa-comment-o">&nbsp;</i></a>
                     <a v-else href="" @click.prevent="toggleComment"><i class="fa fa-comment-o">&nbsp;</i></a>
@@ -55,7 +55,8 @@
         </div>
 
         
-        <Comment :question="label" :readonly="assessor_readonly" :name="name+'-comment-field'" v-show="showingComment && assessorMode" :value="comment_value"/> 
+        <!-- <Comment :question="label" :readonly="assessor_readonly" :name="name+'-comment-field'" v-show="showingComment && assessorMode" :value="comment_value"/>  -->
+        <CommentBox :comment_boxes="comment_boxes" v-show="showingComment && assessorMode"/> 
 
 
     </div>
@@ -66,6 +67,7 @@ var select2 = require('select2');
 require("select2/dist/css/select2.min.css");
 require("select2-bootstrap-theme/dist/select2-bootstrap.min.css");
 import Comment from './comment.vue'
+import CommentBox from './comment_box_referral.vue'
 import HelpText from './help_text.vue'
 import HelpTextUrl from './help_text_url.vue'
 export default {
@@ -94,7 +96,8 @@ export default {
                 return false;
             }
         },
-        'readonly': Boolean
+        'readonly': Boolean,
+        "comment_boxes":Array,
     },
     data:function () {
         let vm =this;
@@ -111,7 +114,7 @@ export default {
             return JSON.stringify(this.conditions);
         },
     },
-    components: { Comment, HelpText, HelpTextUrl,},
+    components: { Comment, HelpText, HelpTextUrl, CommentBox},
     methods:{
         toggleComment(){
             this.showingComment = ! this.showingComment;

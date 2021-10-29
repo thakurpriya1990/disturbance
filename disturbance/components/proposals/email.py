@@ -396,8 +396,8 @@ def send_approver_decline_email_notification(reason, request, proposal):
 
     msg = email.send(proposal.approver_recipients, context=context)
     #sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    _log_proposal_email(msg, proposal, sender=sender)
     sender = get_sender_user()
+    _log_proposal_email(msg, proposal, sender=sender)
     if proposal.applicant:
         _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
 
