@@ -18,7 +18,7 @@ from disturbance.components.main.models import ApplicationType, GlobalSettings, 
 from disturbance.components.proposals.models import SiteCategory, ApiarySiteFeeType, \
     ApiarySiteFeeRemainder, ApiaryAnnualRentalFee, ApiarySite, ApiarySiteOnProposal
 from disturbance.components.organisations.models import Organisation
-from disturbance.components.das_payments.models import ApplicationFee, AnnualRentalFee
+from disturbance.components.das_payments.models import ApplicationFee, AnnualRentalFee, ApplicationFeeInvoice
 from ledger.checkout.utils import create_basket_session, create_checkout_session, calculate_excl_gst, \
     use_existing_basket_from_invoice
 from ledger.payments.models import Invoice
@@ -59,6 +59,33 @@ def delete_session_annual_rental_fee(session):
     """ Application Fee session ID """
     if 'annual_rental_fee' in session:
         del session['annual_rental_fee']
+        session.modified = True
+
+
+def set_session_invoice(session, invoice):
+    session['invoice_reference'] = invoice.reference
+    session.modified = True
+
+
+class InvoiceReferenceNotInSettionException(Exception):
+    pass
+
+
+def get_session_invoice(session):
+    if 'invoice_reference' in session:
+        invoice_reference = session['invoice_reference']
+    else:
+        raise InvoiceReferenceNotInSettionException('AnnualRentalFee not in Session')
+
+    try:
+        return Invoice.objects.get(reference=invoice_reference)
+    except Invoice.DoesNotExist:
+        raise Exception('Invoice not found for the reference {}'.format(invoice_reference))
+
+
+def delete_session_invoice(session):
+    if 'invoice_reference' in session:
+        del session['invoice_reference']
         session.modified = True
 
 
@@ -666,9 +693,7 @@ def generate_line_items_for_annual_rental_fee(approval, today_now, period, apiar
 #    return line_items, apiary_sites_charged
 
 
-def checkout_existing_invoice(request, invoice, lines, return_url_ns='public_booking_success',
-                              return_preload_url_ns='public_booking_success', invoice_text=None, vouchers=[],
-                              proxy=False):
+def checkout_existing_invoice(request, invoice, return_url_ns='public_booking_success'):
     #basket_params = {
     #    # 'products': invoice.order.basket.lines.all(),
     #    'products': lines,
@@ -687,6 +712,18 @@ def checkout_existing_invoice(request, invoice, lines, return_url_ns='public_boo
         'invoice_text': invoice.text,
     }
 
+    if request.user.is_anonymous():
+        # We need to determine the basket owner and set it to the checkout_params to proceed the payment
+        annual_rental_fee = AnnualRentalFee.objects.filter(invoice_reference=invoice.reference)
+        application_fee_invoice = ApplicationFeeInvoice.objects.filter(invoice_reference=invoice.reference)
+        if annual_rental_fee:
+            annual_rental_fee = annual_rental_fee[0]
+            checkout_params['basket_owner'] = annual_rental_fee.approval.relevant_applicant_email_user.id
+        else:
+            # Should not reach here
+            # At the moment, there should be only the 'annual rental fee' invoices for anonymous user
+            pass
+
     create_checkout_session(request, checkout_params)
 
     # response = HttpResponseRedirect(reverse('checkout:index'))
@@ -702,5 +739,4 @@ def checkout_existing_invoice(request, invoice, lines, return_url_ns='public_boo
         max_age=settings.OSCAR_BASKET_COOKIE_LIFETIME,
         secure=settings.OSCAR_BASKET_COOKIE_SECURE, httponly=True
     )
-
     return response

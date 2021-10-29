@@ -461,9 +461,8 @@ class ApiarySiteOnProposalDraftMinimalGeometrySerializer(GeoFeatureModelSerializ
             'status',
             'for_renewal',
             'application_fee_paid',
-            'licensed_site',
+            # 'licensed_site',
         )
-
 
 
 class ApiarySiteOnProposalProcessedGeometrySerializer(GeoFeatureModelSerializer):
