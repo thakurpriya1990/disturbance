@@ -38,6 +38,7 @@ class ApiarySiteOnApprovalMinimalGeometrySerializer(GeoFeatureModelSerializer):
             # 'dra_permit',
         )
 
+
 class ApiarySiteOnApprovalGeometrySerializer(GeoFeatureModelSerializer):
     """
     For reading

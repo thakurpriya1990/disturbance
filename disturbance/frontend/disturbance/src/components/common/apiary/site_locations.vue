@@ -1188,6 +1188,7 @@
                 });
                 vm.map.addInteraction(hoverInteraction);
                 hoverInteraction.on('select', function(evt){
+                    console.log('hoverInteraction')
                     if(evt.selected.length > 0){
                         // Mouse hover in
                         let is_vacant = evt.selected[0].get('is_vacant')

@@ -618,6 +618,9 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
     def list_existing_proposal_vacant_draft(self, request):
         qs_vacant_site_proposal, qs_vacant_site_approval = get_qs_vacant_site()
         serializer_vacant_proposal_d = ApiarySiteOnProposalVacantDraftGeometrySerializer(qs_vacant_site_proposal.filter(wkb_geometry_processed__isnull=True), many=True)
+
+        # TODO Create ApiarySiteOnProposalVacantDraftMinimalGeometrySerializer() just for the map on the application page
+
         return Response(serializer_vacant_proposal_d.data)
 
     @list_route(methods=['GET',])
@@ -627,6 +630,9 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
     def list_existing_proposal_vacant_processed(self, request):
         qs_vacant_site_proposal, qs_vacant_site_approval = get_qs_vacant_site()
         serializer_vacant_proposal = ApiarySiteOnProposalVacantProcessedGeometrySerializer(qs_vacant_site_proposal.filter(wkb_geometry_processed__isnull=False), many=True)
+
+        # TODO Create ApiarySiteOnProposalVacantProcessedMinimalGeometrySerializer()  just for the map on the application page
+
         return Response(serializer_vacant_proposal.data)
 
     @list_route(methods=['GET',])
@@ -636,6 +642,9 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
     def list_existing_vacant_approval(self, request):
         qs_vacant_site_proposal, qs_vacant_site_approval = get_qs_vacant_site()
         serializer_vacant_approval = ApiarySiteOnApprovalGeometrySerializer(qs_vacant_site_approval, many=True)
+
+        # TODO Create ApiarySiteOnApprovalMinimalGeometrySerializer()  just for the map on the application page
+
         return Response(serializer_vacant_approval.data)
 
     @list_route(methods=['GET',])
