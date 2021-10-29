@@ -523,6 +523,15 @@ class OrganisationContact(models.Model):
         return self.user_status == 'active' and self.user_role =='consultant'
 
 
+class OrganisationContactDeclinedDetails(models.Model):
+    request = models.ForeignKey(OrganisationContact)
+    officer = models.ForeignKey(EmailUser, null=False)
+    # reason = models.TextField(blank=True)
+
+    class Meta:
+        app_label = 'commercialoperator'
+
+
 class UserDelegation(models.Model):
     organisation = models.ForeignKey(Organisation)
     user = models.ForeignKey(EmailUser)
