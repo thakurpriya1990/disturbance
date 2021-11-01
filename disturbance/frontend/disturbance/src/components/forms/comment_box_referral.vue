@@ -5,10 +5,10 @@
             <div class="row">
               <label :id="id" class="col-md-3" for="label" >{{ box.label }}</label>
               <div class="col-md-9" v-if="box.referral_box">
-                  <textarea :readonly="box.readonly" :type="box.type" class="form-control" :name="box.name" :value="box.value" :data-question="box.question" class="form-control"></textarea>
+                  <textarea :readonly="box.readonly" :type="box.type" class="form-control" :name="box.name" :value="box.value" :data-question="box.question"></textarea>
               </div>
               <div class="col-md-9" v-else>
-                  <textarea :readonly="box.readonly" :type="box.type" class="form-control" :name="box.name" :value="box.value" :data-question="box.question" class="form-control deficiency"></textarea>
+                  <textarea :readonly="box.readonly" :type="box.type" class="form-control" :name="box.name" :value="box.value" :data-question="box.question"></textarea>
               </div>
             </div>
         </div>

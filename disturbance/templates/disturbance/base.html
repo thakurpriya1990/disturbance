@@ -60,80 +60,87 @@
                                     <span class="icon-bar"></span>
                                 </button>
 
-                                <a class="navbar-brand" href="{% url 'ds_home' %}"><div style="inline"><img src="{% static 'disturbance/img/dpaw_small.png' %}">{% if is_internal_login %}{% if TEMPLATE_GROUP == 'apiary' %}Applications{% else %}Proposals{% endif %}{% else %}Home {% endif %}</div></a>
+                                {% if not empty_menu %}
+                                    <a class="navbar-brand" href="{% url 'ds_home' %}"><div style="inline"><img src="{% static 'disturbance/img/dpaw_small.png' %}">{% if is_internal_login %}{% if TEMPLATE_GROUP == 'apiary' %}Applications{% else %}Proposals{% endif %}{% else %}Home {% endif %}</div></a>
+                                {% endif %}
 
                             </div>
                             <div id="navbar" class="navbar-collapse collapse">
                                 <ul class="nav navbar-nav">
                                     {% block left_menu_items %}
-                                        {% if is_internal_login %}
-                                            {% if TEMPLATE_GROUP == 'apiary' %}
-                                                <li><a href="/internal/approvals">Licences</a></li>
-                                            {% else %}
-                                                <li><a href="/internal/approvals">Approvals</a></li>
-                                            {% endif %}
-                                            <li><a href="/internal/compliances">Compliance with Requirements</a></li>
-                                            <li><a href="/internal/organisations/access">Organisation Access</a></li>
-                                            <li><a href="/internal/search">Search</a></li>
-                                            {% if TEMPLATE_GROUP == 'apiary' %}
-                                                <li><a href="/internal/site_transitions">Site Transitions</a></li>
-                                                <li><a href="/internal/available_sites">Available Sites</a></li>
-                                            {% endif %}
-                                        {% else %}
-                                            {% if TEMPLATE_GROUP == 'apiary' %}
-                                                <li><a href="/external/available_sites">Available Sites</a></li>
+                                        {% if not empty_menu %}
+                                            {% if request.user.is_authenticated %}
+                                                {% if is_internal_login %}
+                                                    {% if TEMPLATE_GROUP == 'apiary' %}
+                                                        <li><a href="/internal/approvals">Licences</a></li>
+                                                    {% else %}
+                                                        <li><a href="/internal/approvals">Approvals</a></li>
+                                                    {% endif %}
+                                                    <li><a href="/internal/compliances">Compliance with Requirements</a></li>
+                                                    <li><a href="/internal/organisations/access">Organisation Access</a></li>
+                                                    <li><a href="/internal/search">Search</a></li>
+                                                    {% if TEMPLATE_GROUP == 'apiary' %}
+                                                        <li><a href="/internal/site_transitions">Site Transitions</a></li>
+                                                        <li><a href="/internal/available_sites">Available Sites</a></li>
+                                                    {% endif %}
+                                                {% else %}
+                                                    {% if TEMPLATE_GROUP == 'apiary' %}
+                                                        <li><a href="/external/available_sites">Available Sites</a></li>
+                                                    {% endif %}
+                                                {% endif %}
                                             {% endif %}
                                         {% endif %}
                                     {% endblock %}
                                 </ul>
                                 <ul class="nav navbar-nav navbar-right">
-                                    {% if request.user.is_authenticated %}
-                                        <li>
-                                            <a>
-                                            Welcome
-                                            <strong>
-                                                {% if request.user.first_name %}
-                                                    {{ request.user.get_short_name }}
-                                                {% elif request.user.last_name %}
-                                                    {{ request.user.last_name }}
-                                                {% else %}
-                                                    {{ request.user.email }}
-                                                {% endif %}
-                                            </strong>
-                                            </a>
-                                        </li>
-                                        <li class="dropdown">
-                                            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
-                                                Options
-                                                <span class="caret"></span>
-                                            </a>
-                                            <ul class="dropdown-menu">
-                                                {% if is_disturbance_admin_user or is_apiary_admin_user or request.user.is_superuser %}
-                                                    <li><a href="{% url 'admin:index' %}">Admin</a></li>
-                                                    <li><a href="/internal/schema">Manage Application Schema</a></li>
-                                                    <li role="separator" class="divider"></li>
-                                                {% endif %}
-                                                {% if request.user.is_superuser %}
-                                                    <li><a href="{% url 'mgt-commands' %}">Management Commands</a></li>
-                                                {% endif %}
-                                                <li><a href="{% url 'manage-account' %}">Manage Account</a></li>
-                                                {% for org in request.user.disturbance_organisations.all %}
-                                                    {% if request.user.is_superuser or org.id|is_org_admin:request.user %}
-                                                        <li><a href="/external/organisations/manage/{{org.id}}">Manage {{ org.organisation.name}}</a></li>
-					            {% comment %} --> DAS does not have Org Consultants
-                                                    {% elif org.id|is_org_consultant:request.user %}
-                                                        <li><a href="/external/organisations/manage/{{org.id}}">Manage {{ org.organisation.name}}</a></li>
-				     		    {% endcomment %} 
+                                    {% if not empty_menu %}
+                                        {% if request.user.is_authenticated %}
+                                            <li>
+                                                <a>
+                                                Welcome
+                                                <strong>
+                                                    {% if request.user.first_name %}
+                                                        {{ request.user.get_short_name }}
+                                                    {% elif request.user.last_name %}
+                                                        {{ request.user.last_name }}
+                                                    {% else %}
+                                                        {{ request.user.email }}
                                                     {% endif %}
-                                                {% endfor %}
+                                                </strong>
+                                                </a>
+                                            </li>
+                                            <li class="dropdown">
+                                                <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
+                                                    Options
+                                                    <span class="caret"></span>
+                                                </a>
+                                                <ul class="dropdown-menu">
+                                                    {% if is_disturbance_admin_user or is_apiary_admin_user or request.user.is_superuser %}
+                                                        <li><a href="{% url 'admin:index' %}">Admin</a></li>
+                                                        <li role="separator" class="divider"></li>
+                                                    {% endif %}
+                                                    {% if request.user.is_superuser %}
+                                                        <li><a href="{% url 'mgt-commands' %}">Management Commands</a></li>
+                                                    {% endif %}
+                                                    <li><a href="{% url 'manage-account' %}">Manage Account</a></li>
+                                                    {% for org in request.user.disturbance_organisations.all %}
+                                                        {% if request.user.is_superuser or org.id|is_org_admin:request.user %}
+                                                            <li><a href="/external/organisations/manage/{{org.id}}">Manage {{org.organisation.name}}</a></li>
+                                    {% comment %} --> DAS does not have Org Consultants
+                                                        {% elif org.id|is_org_consultant:request.user %}
+                                                            <li><a href="/external/organisations/manage/{{org.id}}">Manage {{ org.organisation.name}}</a></li>
+                                    {% endcomment %}
+                                                        {% endif %}
+                                                    {% endfor %}
 
-                                                {% if is_payment_admin %}
-                                                    <li><a href="/internal/reports">Reports</a></li>
-                                                {% endif %}
+                                                    {% if is_payment_admin %}
+                                                        <li><a href="/internal/reports">Reports</a></li>
+                                                    {% endif %}
 
-                                                <li><a href="{% url 'accounts:logout' %}?next=/">Logout</a></li>
-                                            </ul>
-                                        </li>
+                                                    <li><a href="{% url 'accounts:logout' %}?next=/">Logout</a></li>
+                                                </ul>
+                                            </li>
+                                        {% endif %}
                                     {% endif %}
                                     {% block right_menu_items %}
                                     {% endblock %}
@@ -163,14 +170,16 @@
 
         {% endblock %}
 
-		{% if system_maintenance_due %}
-		    <div class="alert alert-warning">
-		    	<strong>Notice!</strong> System will be down for maintenance between {{ system_maintenance_due }}
-		    </div>
+        {% if system_maintenance_due %}
+            <div class="alert alert-warning">
+                <strong>Notice!</strong> System will be down for maintenance between {{ system_maintenance_due }}
+            </div>
         {% endif %}
 
         {% block content %}
+        <!-- dash/index.html inserts <div id="app"></div> tag here, which is replaced by the Vue components >-->
         {% endblock %}
+
         {% block modals %}
         {% endblock %}
         {% if not dev %}

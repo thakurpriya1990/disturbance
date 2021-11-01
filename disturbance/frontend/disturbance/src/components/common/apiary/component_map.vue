@@ -22,6 +22,7 @@
 <script>
     import uuid from 'uuid';
     import 'ol/ol.css';
+    import 'ol-layerswitcher/dist/ol-layerswitcher.css'
     //import 'index.css';  // copy-and-pasted the contents of this file at the <style> section below in this file
 
     import Map from 'ol/Map';
@@ -29,6 +30,7 @@
     import WMTSCapabilities from 'ol/format/WMTSCapabilities';
     import TileLayer from 'ol/layer/Tile';
     import OSM from 'ol/source/OSM';
+    import TileWMS from 'ol/source/TileWMS';
     import WMTS, {optionsFromCapabilities} from 'ol/source/WMTS';
     import Collection from 'ol/Collection';
     import {Draw, Modify, Snap} from 'ol/interaction';
@@ -44,6 +46,8 @@
     import GeoJSON from 'ol/format/GeoJSON';
     import Overlay from 'ol/Overlay';
     import { getDisplayNameFromStatus, getDisplayNameOfCategory, getStatusForColour, getApiaryFeatureStyle } from '@/components/common/apiary/site_colours.js'
+    import LayerSwitcher from 'ol-layerswitcher';
+    import { BaseLayerOptions, GroupLayerOptions } from 'ol-layerswitcher';
 
     export default {
         props:{
@@ -120,12 +124,35 @@
             initMap: function() {
                 let vm = this;
 
+                let satelliteTileWms = new TileWMS({
+                            url: 'https://kmi.dpaw.wa.gov.au/geoserver/public/wms',
+                            params: {
+                                'FORMAT': 'image/png',
+                                'VERSION': '1.1.1',
+                                tiled: true,
+                                STYLES: '',
+                                LAYERS: 'public:mapbox-satellite',
+                            }
+                        });
+
+                const osm = new TileLayer({
+                    title: 'OpenStreetMap',
+                    type: 'base',
+                    visible: true,
+                    source: new OSM(),
+                });
+
+                const tileLayerSat = new TileLayer({
+                    title: 'Satellite',
+                    type: 'base',
+                    visible: false,
+                    source: satelliteTileWms,
+                })
+
                 vm.map = new Map({
                     layers: [
-                        new TileLayer({
-                            source: new OSM(),
-                            opacity:0.5
-                        })
+                        osm, 
+                        tileLayerSat,
                     ],
                     //target: 'map',
                     target: vm.elem_id,
@@ -135,6 +162,12 @@
                         projection: 'EPSG:4326'
                     })
                 });
+                let layerSwitcher = new LayerSwitcher({
+                    reverse: true,
+                    groupSelectStyle: 'group'
+                })
+                vm.map.addControl(layerSwitcher)
+
                 vm.apiarySitesQuerySource = new VectorSource({
 
                 });
