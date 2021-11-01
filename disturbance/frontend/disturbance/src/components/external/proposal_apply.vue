@@ -19,14 +19,25 @@
                                     <template v-if="apiaryTemplateGroup">
                                         <div class="radio">
                                             <label>
+                                              <!--
+                                              <input :disabled="individualDisableApplyRadioButton" type="radio" name="behalf_of_individual" v-model="behalf_of" value="individual"> On behalf of yourself
+                                              -->
                                               <input type="radio" name="behalf_of_individual" v-model="behalf_of" value="individual"> On behalf of yourself
+                                                  <span v-html="individualExistingRecordText"></span>
                                             </label>
                                         </div>
                                     </template>
                                     <div v-if="profile.disturbance_organisations.length > 0">
                                         <div v-for="org in profile.disturbance_organisations" class="radio">
                                             <label>
-                                              <input type="radio" name="behalf_of_org" v-model="behalf_of"  :value="org.id"> On behalf of {{org.name}}
+                                                  <div if="apiaryTemplateGroup">
+                                                    <input type="radio" name="behalf_of_org" v-model="behalf_of"  :value="org.id"> On behalf of {{org.name}}
+                                                    <span v-html="org.existing_record_text.notification"></span>
+                                                  </div>
+                                                  <div v-else>
+                                                    <input :disabled="org.existing_record_text.disable_radio_button" type="radio" name="behalf_of_org" v-model="behalf_of"  :value="org.id"> On behalf of {{org.name}}
+                                                    <span v-html="org.existing_record_text.notification"></span>
+                                                  </div>
                                             </label>
                                         </div>
                                         <!--
@@ -269,6 +280,21 @@ export default {
           }
           return returnStr;
       },
+      individualExistingRecordText: function() {
+          let approvalText = '';
+          // The below notification message no longer required because now always allowing Temp Use applications to be submitted
+          //if (this.profile && this.profile.existing_record_text) {
+          //    approvalText = this.profile.existing_record_text.notification;
+          //}
+          return approvalText;
+      },
+      individualDisableApplyRadioButton: function() {
+          let approvalText = '';
+          if (this.profile && this.profile.existing_record_text) {
+              approvalText = this.profile.existing_record_text.disable_radio_button;
+          }
+          return approvalText;
+      },
       currentApiaryApproval: function() {
           let currentApproval = null;
           if (this.behalf_of === "individual" && this.profile.current_apiary_approval) {
@@ -288,6 +314,21 @@ export default {
               // for individual applications, only Apiary should show
               //if (this.behalf_of === 'individual') {
               if (this.apiaryTemplateGroup) {
+                  if (this.behalf_of === 'individual' && this.profile.existing_record_text.disable_radio_button) {
+                      // There is already an application in progress - only allow New Temp Use Applications
+                      applicationType.display_text = "Temporary Use of Apiary Sites";
+                      returnList.push(applicationType);
+                      return returnList;
+                  } else if (this.behalf_of !== 'individual' && this.behalf_of != '') {
+                      // Find org_id in JSON Array (org_id => behalf_of)
+                      let org = this.profile.disturbance_organisations.find(item => item.id === this.behalf_of)
+                      if (org.existing_record_text.disable_radio_button) {
+                          // There is already an application in progress - only allow New Temp Use Applications
+                          applicationType.display_text = "Temporary Use of Apiary Sites";
+                          returnList.push(applicationType);
+                          return returnList;
+                      }
+                  } 
                   if (applicationType.domain_used.toLowerCase() === "apiary") {
                       if (applicationType.text.toLowerCase() === "apiary"){
                           applicationType.display_text = "Apiary Sites";
@@ -298,7 +339,9 @@ export default {
                           applicationType.display_text = "Transfer Apiary Sites";
                           returnList.push(applicationType);
                       }
-                      if (applicationType.text.toLowerCase() === "temporary use" && this.currentApiaryApproval){
+                      //if (applicationType.text.toLowerCase() === "temporary use" && this.currentApiaryApproval){
+                      if (applicationType.text.toLowerCase() === "temporary use"){
+                          // always allow New Temp Use Applications
                           applicationType.display_text = "Temporary Use of Apiary Sites";
                           returnList.push(applicationType);
                       }
@@ -731,5 +774,8 @@ input[type=text], select{
 	border-style: solid;
 	border-width: thin;
 	border-color: #FFFFFF;
+}
+.proposalWarning {
+    color: red;
 }
 </style>

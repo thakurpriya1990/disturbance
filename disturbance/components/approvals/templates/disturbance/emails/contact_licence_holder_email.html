@@ -1,7 +1,7 @@
-{%  extends 'disturbance/emails/base_email.html' %}
+{%  extends 'disturbance/emails/base_email_apiary.html' %}
 
 {%  block content %}
-    <p>Someone is interested in one of your apiary site available:</p>
+    <p>Someone is interested in your apiary site:</p>
     <p><strong>Approval : {{ apiary_site.approval.lodgement_number}}</strong></p>
     <p><strong>Apiary Site: {{ apiary_site.id }}</strong></p>
     <p><strong>Name: {{ sender.get_full_name }}</strong></p>

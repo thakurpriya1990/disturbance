@@ -19,6 +19,8 @@ MEDIA_APP_DIR = env('MEDIA_APP_DIR', 'das')
 MEDIA_APIARY_DIR = env('MEDIA_APIARY_DIR', 'apiary')
 SPATIAL_DATA_DIR = env('SPATIAL_DATA_DIR', 'spatial_data')
 ANNUAL_RENTAL_FEE_GST_EXEMPT = True
+FILE_UPLOAD_MAX_MEMORY_SIZE = env('FILE_UPLOAD_MAX_MEMORY_SIZE', 15728640)
+APIARY_MIGRATED_LICENCES_APPROVER = env('APIARY_MIGRATED_LICENCES_APPROVER', 'jacinta.overman@dbca.wa.gov.au')
 
 INSTALLED_APPS += [
     'reversion_compare',
@@ -38,6 +40,7 @@ INSTALLED_APPS += [
     'reset_migrations',
     'ckeditor',
     # 'corsheaders',
+    'smart_selects',
 ]
 
 ADD_REVERSION_ADMIN=True
@@ -70,6 +73,8 @@ REST_FRAMEWORK = {
     #'PAGE_SIZE': 20,
 }
 
+USE_DJANGO_JQUERY= True
+# JQUERY_URL = True
 
 MIDDLEWARE_CLASSES += [
     'disturbance.middleware.BookingTimerMiddleware',
@@ -104,6 +109,7 @@ CACHES = {
 }
 STATIC_ROOT=os.path.join(BASE_DIR, 'staticfiles_ds')
 STATICFILES_DIRS.append(os.path.join(os.path.join(BASE_DIR, 'disturbance', 'static')))
+STATICFILES_DIRS.append(os.path.join(os.path.join(BASE_DIR, 'disturbance', 'static', 'disturbance_vue', 'static')))
 DEV_STATIC = env('DEV_STATIC',False)
 DEV_STATIC_URL = env('DEV_STATIC_URL')
 if DEV_STATIC and not DEV_STATIC_URL:
@@ -133,6 +139,7 @@ ADMIN_GROUP = env('ADMIN_GROUP', 'Disturbance Admin')
 APIARY_ADMIN_GROUP = 'Apiary Admin'
 DAS_APIARY_ADMIN_GROUP = 'DAS-Apiary Admin'
 APIARY_PAYMENTS_OFFICERS_GROUP = 'Apiary Payments Officers'
+APPROVED_EXTERNAL_USERS_GROUP = env('APPROVED_EXTERNAL_USERS_GROUP', 'Disturbance Approved External Users')
 CRON_EMAIL = env('CRON_EMAIL', 'cron@' + SITE_DOMAIN).lower()
 TENURE_SECTION = env('TENURE_SECTION', None)
 ASSESSMENT_REMINDER_DAYS = env('ASSESSMENT_REMINDER_DAYS', 15)
@@ -195,4 +202,19 @@ LOGGING['loggers']['disturbance'] = {
             'level': 'INFO'
         }
 
+
+#APPLICATION_TYPES_SQL='''
+#        SELECT name, name FROM disturbance_applicationtypechoice
+#        WHERE archive_date IS NULL OR archive_date > now()
+#    '''
+
+#from django.db import connection
+#def run_select_sql(sql):
+#    try:
+#        with connection.cursor() as cursor:
+#            cursor.execute(sql)
+#            row = cursor.fetchall()
+#        return row
+#    except:
+#        return []
 

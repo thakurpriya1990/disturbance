@@ -18,7 +18,7 @@
             </template> 
 
 
-            <template v-if="assessorMode && !assessor_readonly">
+            <template v-if="assessorMode">
                 <template v-if="!showingComment">
                     <a v-if="comment_value != null && comment_value != undefined && comment_value != ''" href="" @click.prevent="toggleComment"><i style="color:red" class="fa fa-comment-o">&nbsp;</i></a>
                     <a v-else href="" @click.prevent="toggleComment"><i class="fa fa-comment-o">&nbsp;</i></a>
@@ -32,7 +32,8 @@
                 </span>
             </div>
         </div>
-        <Comment :question="label" :readonly="assessor_readonly" :name="name+'-comment-field'" v-show="showingComment && assessorMode" :value="comment_value"/> 
+        <!-- <Comment :question="label" :readonly="assessor_readonly" :name="name+'-comment-field'" v-show="showingComment && assessorMode" :value="comment_value"/>  -->
+        <CommentBox :comment_boxes="comment_boxes" v-show="showingComment && assessorMode"/> 
     </div>
 </template>
 
@@ -40,16 +41,17 @@
 import moment from 'moment'
 import datetimepicker from 'datetimepicker'
 import Comment from './comment.vue'
+import CommentBox from './comment_box_referral.vue'
 import HelpText from './help_text.vue'
 import HelpTextUrl from './help_text_url.vue'
 export default {
-    props: ['name', 'label', 'id', 'readonly', 'help_text', 'help_text_assessor', 'assessorMode', 'value', 'conditions', "handleChange","comment_value","assessor_readonly", "isRequired", 'help_text_url', 'help_text_assessor_url'],
+    props: ['name', 'label', 'id', 'readonly', 'help_text', 'help_text_assessor', 'assessorMode', 'value', 'conditions', "handleChange","comment_value","assessor_readonly", "isRequired", 'help_text_url', 'help_text_assessor_url', 'comment_boxes',],
     data(){
         return {
             showingComment: false
         }
     },
-    components: {Comment, HelpText, HelpTextUrl},
+    components: {Comment, HelpText, HelpTextUrl, CommentBox},
     computed: {
         isChecked: function() {
         //TODO return value from database

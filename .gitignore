@@ -109,3 +109,5 @@ disturbance/static/disturbance_vue/static/*
 # to avoid accidentally making it under the version control
 # add this file to here
 apiary.txt
+
+disturbance/static/disturbance_vue/static/js*

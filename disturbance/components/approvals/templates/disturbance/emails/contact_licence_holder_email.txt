@@ -1,7 +1,7 @@
-{%  extends 'disturbance/emails/base_email.txt' %}
+{%  extends 'disturbance/emails/base_email_apiary.txt' %}
 
 {%  block content %}
-    Someone is interested in one of your apiary site available:
+    Someone is interested in your apiary site:
 
     Approval : {{ apiary_site.approval.lodgement_number}}
 
