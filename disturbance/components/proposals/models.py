@@ -1197,7 +1197,7 @@ class Proposal(RevisionedMixin):
                     raise exceptions.ProposalNotAuthorized()
                 #if not self.applicant.organisation.postal_address:
                 if not self.relevant_applicant_address:
-                    raise ValidationError('The applicant needs to have set their postal address before approving this proposal.')
+                    raise ValidationError('The applicant needs to have set their postal address before approving this proposal. (Applicant: {})'.format(self.relevant_applicant))
 
                 lodgement_number = self.previous_application.approval.lodgement_number if self.proposal_type in ['renewal', 'amendment'] else '' # renewals/amendments keep same licence number
                 # Apiary Site Transfer logic
@@ -1496,7 +1496,7 @@ class Proposal(RevisionedMixin):
                     raise ValidationError('You cannot issue the approval if it is not with an approver')
                 #if not self.applicant.organisation.postal_address:
                 if not self.relevant_applicant_address:
-                    raise ValidationError('The applicant needs to have set their postal address before approving this proposal.')
+                    raise ValidationError('The applicant needs to have set their postal address before approving this proposal. (Applicant: {})'.format(self.relevant_applicant))
 
                 self.proposed_issuance_approval = {
                     'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
@@ -2999,7 +2999,7 @@ class ProposalApiary(RevisionedMixin):
             if self.proposal.processing_status != Proposal.PROCESSING_STATUS_WITH_APPROVER:
                 raise ValidationError('You cannot issue the approval if it is not with an approver')
             if not self.proposal.relevant_applicant_address:
-                raise ValidationError('The applicant needs to have set their postal address before approving this proposal.')
+                raise ValidationError('The applicant needs to have set their postal address before approving this proposal (Applicant: {})'.format(self.proposal.relevant_applicant))
             start_date = details.get('start_date').strftime('%d/%m/%Y') if details.get('start_date') else None
             expiry_date = details.get('expiry_date').strftime('%d/%m/%Y') if details.get('expiry_date') else None
             self.proposal.proposed_issuance_approval = {
