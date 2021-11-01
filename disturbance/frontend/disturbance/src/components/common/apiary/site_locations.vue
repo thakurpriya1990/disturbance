@@ -37,12 +37,12 @@
                 v-model.number="proposal.proposal_apiary.longitude"
                 :readonly="readonly"
             />
-            <input 
-                v-if="!readonly" 
-                type="button" 
-                @click="tryCreateNewSiteFromForm" 
-                value="Add proposed site" 
-                class="btn btn-primary grow1 ml-3" 
+            <input
+                v-if="!readonly"
+                type="button"
+                @click="tryCreateNewSiteFromForm"
+                value="Add proposed site"
+                class="btn btn-primary grow1 ml-3"
             />
         </div>
 
@@ -97,12 +97,14 @@
 
 <script>
     import 'ol/ol.css';
+    import 'ol-layerswitcher/dist/ol-layerswitcher.css'
     //import 'index.css';  // copy-and-pasted the contents of this file at the <style> section below in this file
     import Map from 'ol/Map';
     import View from 'ol/View';
     import WMTSCapabilities from 'ol/format/WMTSCapabilities';
     import TileLayer from 'ol/layer/Tile';
     import OSM from 'ol/source/OSM';
+    import TileWMS from 'ol/source/TileWMS';
     import WMTS, {optionsFromCapabilities} from 'ol/source/WMTS';
     import Collection from 'ol/Collection';
     import {Draw, Modify, Snap, Select} from 'ol/interaction';
@@ -123,6 +125,8 @@
     import uuid from 'uuid';
     import { getStatusForColour, getApiaryFeatureStyle, drawingSiteRadius, existingSiteRadius, SiteColours } from '@/components/common/apiary/site_colours.js'
     import Overlay from 'ol/Overlay';
+    import LayerSwitcher from 'ol-layerswitcher';
+    import { BaseLayerOptions, GroupLayerOptions } from 'ol-layerswitcher';
 
     export default {
         props:{
@@ -228,7 +232,7 @@
                 // variables for the GIS
                 map: null,
                 apiarySitesQuerySource: new VectorSource(),
-                apiarySitesQueryLayer: null,
+                //apiarySitesQueryLayer: null,
                 apiarySitesClusterLayer: null,
                 bufferedSites: null,
                 drawingLayerSource:  new VectorSource(),
@@ -511,9 +515,9 @@
 
             // Total
             total_num_of_sites_on_map_unpaid: function(){
-                return this.num_of_sites_south_west_applied_unpaid + 
-                       this.num_of_sites_south_west_renewal_applied_unpaid + 
-                       this.num_of_sites_remote_applied_unpaid + 
+                return this.num_of_sites_south_west_applied_unpaid +
+                       this.num_of_sites_south_west_renewal_applied_unpaid +
+                       this.num_of_sites_remote_applied_unpaid +
                        this.num_of_sites_remote_renewal_applied_unpaid
             },
             total_num_of_sites_on_map: function(){
@@ -893,12 +897,35 @@
             initMap: async function() {
                 let vm = this;
 
+                let satelliteTileWms = new TileWMS({
+                            url: 'https://kmi.dpaw.wa.gov.au/geoserver/public/wms',
+                            params: {
+                                'FORMAT': 'image/png',
+                                'VERSION': '1.1.1',
+                                tiled: true,
+                                STYLES: '',
+                                LAYERS: 'public:mapbox-satellite',
+                            }
+                        });
+
+                const osm = new TileLayer({
+                    title: 'OpenStreetMap',
+                    type: 'base',
+                    visible: true,
+                    source: new OSM(),
+                });
+
+                const tileLayerSat = new TileLayer({
+                    title: 'Satellite',
+                    type: 'base',
+                    visible: false,
+                    source: satelliteTileWms,
+                })
+
                 vm.map = new Map({
                     layers: [
-                        new TileLayer({
-                            source: new OSM(),
-                            opacity:0.5
-                        })
+                        osm, 
+                        tileLayerSat,
                     ],
                     target: 'map',
                     view: new View({
@@ -907,6 +934,12 @@
                         projection: 'EPSG:4326'
                     })
                 });
+
+                let layerSwitcher = new LayerSwitcher({
+                    reverse: true,
+                    groupSelectStyle: 'group'
+                })
+                vm.map.addControl(layerSwitcher)
 
                 let clusterSource = new Cluster({
                     distance: 50,
@@ -1151,17 +1184,28 @@
 
                 let hoverInteraction = new Select({
                     condition: pointerMove,
-                    layers: [vm.apiarySitesQueryLayer]
+                    //layers: [vm.apiarySitesQueryLayer]
+                    layers:[vm.apiarySitesClusterLayer]
                 });
                 vm.map.addInteraction(hoverInteraction);
                 hoverInteraction.on('select', function(evt){
-                    if(evt.selected.length > 0){
+                    if(evt.selected.length > 0 && evt.selected[0].get('features').length > 0){
+                        console.log('in if')
                         // Mouse hover in
-                        let is_vacant = evt.selected[0].get('is_vacant')
-                        let making_payment = evt.selected[0].get('making_payment') || false
-                        let status = evt.selected[0].get('status')
+                        console.log(evt.selected[0].get('features')[0])
+                        let feature_hovered = evt.selected[0].get('features')[0]
+
+                        //let is_vacant = evt.selected[0].get('is_vacant')
+                        let is_vacant = feature_hovered.get('is_vacant')
+                        let making_payment = feature_hovered.get('making_payment') || false
+                        let status = feature_hovered.get('status')
+
+                        console.log('is_vacant: ' + is_vacant)
+                        console.log('making_payment: ' + making_payment)
+                        console.log('status: ' + status)
 
                         if(is_vacant && !making_payment && status != 'pending'){
+                            console.log('3')
                             // When mouse hover on the 'vacant' apiary site, temporarily store it
                             // so that it can be added to the new apiary site application when user clicking on it.
                             vm.vacant_site_being_selected = evt.selected[0]
@@ -1171,13 +1215,15 @@
                             vm.vacant_site_being_selected.setStyle(style_applied)
                         }
                         else {
-
+                            console.log('4')
                         }
                         if (vm.$route.query.debug === 'true'){
                         }
                     } else {
+                        console.log('in else')
                         // Mouse hover out
                         if (vm.vacant_site_being_selected){
+                            console.log('5')
                             //let status = vm.get_status_for_colour(vm.vacant_site_being_selected)
                             let status = getStatusForColour(vm.vacant_site_being_selected)
                             let style_applied = getApiaryFeatureStyle(status, false)
@@ -1239,11 +1285,11 @@
                 let finishedDate = new Date()
                 let delta = finishedDate - this.startTime
                 console.log(label + ' ' + delta + ' [ms]')
-                if (this.proposal_vacant_draft_loaded && 
-                    this.proposal_vacant_processed_loaded && 
-                    this.approval_vacant_loaded && 
-                    this.proposal_draft_loaded && 
-                    this.proposal_processed_loaded && 
+                if (this.proposal_vacant_draft_loaded &&
+                    this.proposal_vacant_processed_loaded &&
+                    this.approval_vacant_loaded &&
+                    this.proposal_draft_loaded &&
+                    this.proposal_processed_loaded &&
                     this.approval_loaded){
                         this.endTime = new Date()
                         let timeDiff = this.endTime - this.startTime
@@ -1268,6 +1314,7 @@
                 this.$http.get('/api/apiary_site/list_existing_proposal_vacant_processed/?proposal_id=' + this.proposal.id).then(
                     res => {
                         let num_sites = 0
+                        console.log(res.body)
                         if(res.body.features){
                             vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
                             num_sites = res.body.features.length
