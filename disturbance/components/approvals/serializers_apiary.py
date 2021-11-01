@@ -25,18 +25,57 @@ class ApiarySiteOnApprovalMinimalGeometrySerializer(GeoFeatureModelSerializer):
             'site_category',
             'status',
             'site_guid',
-            'licensed_site',
-            'batch_no',
-            'approval_cpc_date',
-            'approval_minister_date',
-            'map_ref',
-            'forest_block',
-            'cog',
-            'roadtrack',
-            'zone',
-            'catchment',
-            'dra_permit',
+            # 'licensed_site',
+            # 'batch_no',
+            # 'approval_cpc_date',
+            # 'approval_minister_date',
+            # 'map_ref',
+            # 'forest_block',
+            # 'cog',
+            # 'roadtrack',
+            # 'zone',
+            # 'catchment',
+            # 'dra_permit',
         )
+
+
+class ApiarySiteOnApprovalMinGeometrySerializer(GeoFeatureModelSerializer):
+    """
+    For reading
+    """
+    id = serializers.IntegerField(source='apiary_site.id')
+    site_guid = serializers.CharField(source='apiary_site.site_guid')
+    status = serializers.CharField(source='site_status')
+    site_category = serializers.CharField(source='site_category.name')
+    previous_site_holder_or_applicant = serializers.SerializerMethodField()
+    is_vacant = serializers.BooleanField(source='apiary_site.is_vacant')
+    stable_coords = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ApiarySiteOnApproval
+        geo_field = 'wkb_geometry'
+        fields = (
+            'id',
+            'site_guid',
+            'available',
+            'wkb_geometry',
+            'site_category',
+            'status',
+            'is_vacant',
+            'stable_coords',
+            'previous_site_holder_or_applicant',
+        )
+
+    def get_stable_coords(self, obj):
+        return obj.wkb_geometry.get_coords()
+
+    def get_previous_site_holder_or_applicant(self, obj):
+        try:
+            relevant_applicant_name = obj.approval.relevant_applicant_name
+            return relevant_applicant_name
+        except:
+            return ''
+
 
 class ApiarySiteOnApprovalGeometrySerializer(GeoFeatureModelSerializer):
     """

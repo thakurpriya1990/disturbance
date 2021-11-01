@@ -277,6 +277,7 @@ def get_qs_proposal(draft_processed, proposal=None):
                                                         )
     return qs_on_proposal
 
+
 def get_qs_approval():
     from disturbance.components.proposals.models import ApiarySite
     from disturbance.components.approvals.models import ApiarySiteOnApproval
