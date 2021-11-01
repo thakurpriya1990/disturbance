@@ -30,7 +30,7 @@
                                     <div v-if="profile.disturbance_organisations.length > 0">
                                         <div v-for="org in profile.disturbance_organisations" class="radio">
                                             <label>
-                                                  <div if="apiaryTemplateGroup">
+                                                  <div v-if="apiaryTemplateGroup">
                                                     <input type="radio" name="behalf_of_org" v-model="behalf_of"  :value="org.id"> On behalf of {{org.name}}
                                                     <span v-html="org.existing_record_text.notification"></span>
                                                   </div>
