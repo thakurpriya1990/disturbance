@@ -232,7 +232,7 @@
                 // variables for the GIS
                 map: null,
                 apiarySitesQuerySource: new VectorSource(),
-                apiarySitesQueryLayer: null,
+                //apiarySitesQueryLayer: null,
                 apiarySitesClusterLayer: null,
                 bufferedSites: null,
                 drawingLayerSource:  new VectorSource(),
@@ -1184,18 +1184,28 @@
 
                 let hoverInteraction = new Select({
                     condition: pointerMove,
-                    layers: [vm.apiarySitesQueryLayer]
+                    //layers: [vm.apiarySitesQueryLayer]
+                    layers:[vm.apiarySitesClusterLayer]
                 });
                 vm.map.addInteraction(hoverInteraction);
                 hoverInteraction.on('select', function(evt){
-                    console.log('hoverInteraction')
-                    if(evt.selected.length > 0){
+                    if(evt.selected.length > 0 && evt.selected[0].get('features').length > 0){
+                        console.log('in if')
                         // Mouse hover in
-                        let is_vacant = evt.selected[0].get('is_vacant')
-                        let making_payment = evt.selected[0].get('making_payment') || false
-                        let status = evt.selected[0].get('status')
+                        console.log(evt.selected[0].get('features')[0])
+                        let feature_hovered = evt.selected[0].get('features')[0]
+
+                        //let is_vacant = evt.selected[0].get('is_vacant')
+                        let is_vacant = feature_hovered.get('is_vacant')
+                        let making_payment = feature_hovered.get('making_payment') || false
+                        let status = feature_hovered.get('status')
+
+                        console.log('is_vacant: ' + is_vacant)
+                        console.log('making_payment: ' + making_payment)
+                        console.log('status: ' + status)
 
                         if(is_vacant && !making_payment && status != 'pending'){
+                            console.log('3')
                             // When mouse hover on the 'vacant' apiary site, temporarily store it
                             // so that it can be added to the new apiary site application when user clicking on it.
                             vm.vacant_site_being_selected = evt.selected[0]
@@ -1205,13 +1215,15 @@
                             vm.vacant_site_being_selected.setStyle(style_applied)
                         }
                         else {
-
+                            console.log('4')
                         }
                         if (vm.$route.query.debug === 'true'){
                         }
                     } else {
+                        console.log('in else')
                         // Mouse hover out
                         if (vm.vacant_site_being_selected){
+                            console.log('5')
                             //let status = vm.get_status_for_colour(vm.vacant_site_being_selected)
                             let status = getStatusForColour(vm.vacant_site_being_selected)
                             let style_applied = getApiaryFeatureStyle(status, false)
@@ -1302,6 +1314,7 @@
                 this.$http.get('/api/apiary_site/list_existing_proposal_vacant_processed/?proposal_id=' + this.proposal.id).then(
                     res => {
                         let num_sites = 0
+                        console.log(res.body)
                         if(res.body.features){
                             vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
                             num_sites = res.body.features.length

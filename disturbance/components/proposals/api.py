@@ -17,13 +17,12 @@ from ledger.accounts.models import EmailUser
 from datetime import datetime
 
 from django.http import HttpResponse#, JsonResponse, Http404
-from disturbance import settings
 from disturbance.components.approvals.email import send_contact_licence_holder_email
 from disturbance.components.approvals.serializers_apiary import (
-        ApiarySiteOnApprovalGeometrySerializer, 
-        ApiarySiteOnApprovalMinimalGeometrySerializer, 
-        ApiarySiteOnApprovalGeometryExportSerializer,
-        )
+    ApiarySiteOnApprovalGeometrySerializer,
+    ApiarySiteOnApprovalMinimalGeometrySerializer,
+    ApiarySiteOnApprovalMinGeometrySerializer,
+)
 from disturbance.components.main.decorators import basic_exception_handler, timeit, query_debugger
 from disturbance.components.proposals.utils import (
     save_proponent_data,
@@ -118,13 +117,10 @@ from disturbance.components.proposals.serializers_apiary import (
     UserApiaryApprovalSerializer,
     ApiarySiteOnProposalProcessedGeometrySerializer,
     ApiarySiteOnProposalProcessedMinimalGeometrySerializer,
-    ApiarySiteOnProposalDraftGeometrySerializer,
     ApiarySiteOnProposalDraftMinimalGeometrySerializer,
-    ApiarySiteFeeSerializer, 
-    ApiarySiteOnProposalVacantDraftGeometrySerializer,
-    ApiarySiteOnProposalVacantProcessedGeometrySerializer, 
-    ApiarySiteOnProposalDraftGeometryExportSerializer,
-    ApiarySiteOnProposalProcessedGeometryExportSerializer,
+    ApiarySiteFeeSerializer,
+    ApiarySiteOnProposalVacantDraftMinimalGeometrySerializer,
+    ApiarySiteOnProposalVacantProcessedMinimalGeometrySerializer,
 )
 from disturbance.components.approvals.models import Approval, ApiarySiteOnApproval
 from disturbance.components.approvals.serializers import ApprovalLogEntrySerializer
@@ -617,10 +613,8 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
     #@query_debugger
     def list_existing_proposal_vacant_draft(self, request):
         qs_vacant_site_proposal, qs_vacant_site_approval = get_qs_vacant_site()
-        serializer_vacant_proposal_d = ApiarySiteOnProposalVacantDraftGeometrySerializer(qs_vacant_site_proposal.filter(wkb_geometry_processed__isnull=True), many=True)
-
-        # TODO Create ApiarySiteOnProposalVacantDraftMinimalGeometrySerializer() just for the map on the application page
-
+        # serializer_vacant_proposal_d = ApiarySiteOnProposalVacantDraftGeometrySerializer(qs_vacant_site_proposal.filter(wkb_geometry_processed__isnull=True), many=True)
+        serializer_vacant_proposal_d = ApiarySiteOnProposalVacantDraftMinimalGeometrySerializer(qs_vacant_site_proposal.filter(wkb_geometry_processed__isnull=True), many=True)
         return Response(serializer_vacant_proposal_d.data)
 
     @list_route(methods=['GET',])
@@ -629,10 +623,8 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
     #@query_debugger
     def list_existing_proposal_vacant_processed(self, request):
         qs_vacant_site_proposal, qs_vacant_site_approval = get_qs_vacant_site()
-        serializer_vacant_proposal = ApiarySiteOnProposalVacantProcessedGeometrySerializer(qs_vacant_site_proposal.filter(wkb_geometry_processed__isnull=False), many=True)
-
-        # TODO Create ApiarySiteOnProposalVacantProcessedMinimalGeometrySerializer()  just for the map on the application page
-
+        # serializer_vacant_proposal = ApiarySiteOnProposalVacantProcessedGeometrySerializer(qs_vacant_site_proposal.filter(wkb_geometry_processed__isnull=False), many=True)
+        serializer_vacant_proposal = ApiarySiteOnProposalVacantProcessedMinimalGeometrySerializer(qs_vacant_site_proposal.filter(wkb_geometry_processed__isnull=False), many=True )
         return Response(serializer_vacant_proposal.data)
 
     @list_route(methods=['GET',])
@@ -641,10 +633,8 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
     #@query_debugger
     def list_existing_vacant_approval(self, request):
         qs_vacant_site_proposal, qs_vacant_site_approval = get_qs_vacant_site()
-        serializer_vacant_approval = ApiarySiteOnApprovalGeometrySerializer(qs_vacant_site_approval, many=True)
-
-        # TODO Create ApiarySiteOnApprovalMinimalGeometrySerializer()  just for the map on the application page
-
+        # serializer_vacant_approval = ApiarySiteOnApprovalGeometrySerializer(qs_vacant_site_approval, many=True)
+        serializer_vacant_approval = ApiarySiteOnApprovalMinGeometrySerializer(qs_vacant_site_approval, many=True)
         return Response(serializer_vacant_approval.data)
 
     @list_route(methods=['GET',])
