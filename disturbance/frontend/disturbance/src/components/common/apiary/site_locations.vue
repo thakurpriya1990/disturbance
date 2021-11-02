@@ -316,6 +316,7 @@
                         {
                             // Vacant
                             mRender: function (data, type, feature) {
+                                console.log(feature)
                                 let my_status = feature.get('status')
                                 let is_vacant = feature.get('is_vacant')
                                 if(my_status === 'vacant' || is_vacant === true){
@@ -819,9 +820,12 @@
                     let features = this.drawingLayerSource.getFeatures()
 
                     // Insert data into the table
+                    console.log('---')
                     for(let i=0; i<features.length; i++){
+                        console.log(features[i])
                         this.$refs.site_locations_table.vmDataTable.row.add(features[i]).draw();
                     }
+                    console.log('---')
 
                     this.calculateRemainders(features)
                 }
@@ -1208,7 +1212,8 @@
                             console.log('3')
                             // When mouse hover on the 'vacant' apiary site, temporarily store it
                             // so that it can be added to the new apiary site application when user clicking on it.
-                            vm.vacant_site_being_selected = evt.selected[0]
+                            //vm.vacant_site_being_selected = evt.selected[0]
+                            vm.vacant_site_being_selected = feature_hovered
 
                             // Thicken border when hover
                             let style_applied = getApiaryFeatureStyle(vm.vacant_site_being_selected.get('status'), true, 5)
