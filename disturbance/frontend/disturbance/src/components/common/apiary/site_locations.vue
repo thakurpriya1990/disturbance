@@ -1,19 +1,5 @@
 <template lang="html">
     <div>
-
-        <!-- div class="row col-sm-12">
-            <div class="form-group">
-                <label class="inline">Title:</label>
-                <input
-                    type="text"
-                    class="form-control"
-                    v-model="proposal.proposal_apiary.title"
-                    :readonly="readonly"
-                    style="width: 100%;"
-                />
-            </div>
-        </div -->
-
         <div class="row col-sm-12">
             Mark the location of the new proposed site either by entering the latitude and longitude or by clicking the location in the map.
         </div>
@@ -76,7 +62,13 @@
             <span class="view_all_button action_link" @click="displayAllFeatures">View All Proposed Sites On Map</span>
         </div>
 
-        <div id="map" class="map"></div>
+        <div id="map-wrapper" class="row col-sm-12">
+            <div id="map" class="map"></div>
+            <div id="basemap-button">
+                <img id="basemap_sat" src="../../../assets/satellite_icon.jpg" @click="setBaseLayer('sat')" />
+                <img id="basemap_osm" src="../../../assets/map_icon.png" @click="setBaseLayer('osm')" />
+            </div>
+        </div>
 
         <div :id="popup_id" class="ol-popup">
             <!--
@@ -316,7 +308,6 @@
                         {
                             // Vacant
                             mRender: function (data, type, feature) {
-                                console.log(feature)
                                 let my_status = feature.get('status')
                                 let is_vacant = feature.get('is_vacant')
                                 if(my_status === 'vacant' || is_vacant === true){
@@ -584,6 +575,20 @@
             }
         },
         methods:{
+            setBaseLayer: function(selected_layer_name){
+                console.log('in setBaseLayer')
+                if (selected_layer_name == 'sat') {
+                    //this.map.removeLayer(this.tileLayer)
+                    //this.map.addLayer(this.tileLayerSat)
+                    $('#basemap_sat').hide()
+                    $('#basemap_osm').show()
+                } else {
+                    //this.map.removeLayer(this.tileLayerSat)
+                    //this.map.addLayer(this.tileLayer)
+                    $('#basemap_osm').hide()
+                    $('#basemap_sat').show()
+                }
+            },
             datatable_mounted: function(){
                 this.constructSiteLocationsTable();
             },
@@ -820,12 +825,10 @@
                     let features = this.drawingLayerSource.getFeatures()
 
                     // Insert data into the table
-                    console.log('---')
                     for(let i=0; i<features.length; i++){
                         console.log(features[i])
                         this.$refs.site_locations_table.vmDataTable.row.add(features[i]).draw();
                     }
-                    console.log('---')
 
                     this.calculateRemainders(features)
                 }
@@ -1194,9 +1197,7 @@
                 vm.map.addInteraction(hoverInteraction);
                 hoverInteraction.on('select', function(evt){
                     if(evt.selected.length > 0 && evt.selected[0].get('features').length > 0){
-                        console.log('in if')
                         // Mouse hover in
-                        console.log(evt.selected[0].get('features')[0])
                         let feature_hovered = evt.selected[0].get('features')[0]
 
                         //let is_vacant = evt.selected[0].get('is_vacant')
@@ -1204,15 +1205,9 @@
                         let making_payment = feature_hovered.get('making_payment') || false
                         let status = feature_hovered.get('status')
 
-                        console.log('is_vacant: ' + is_vacant)
-                        console.log('making_payment: ' + making_payment)
-                        console.log('status: ' + status)
-
                         if(is_vacant && !making_payment && status != 'pending'){
-                            console.log('3')
                             // When mouse hover on the 'vacant' apiary site, temporarily store it
                             // so that it can be added to the new apiary site application when user clicking on it.
-                            //vm.vacant_site_being_selected = evt.selected[0]
                             vm.vacant_site_being_selected = feature_hovered
 
                             // Thicken border when hover
@@ -1220,15 +1215,12 @@
                             vm.vacant_site_being_selected.setStyle(style_applied)
                         }
                         else {
-                            console.log('4')
                         }
                         if (vm.$route.query.debug === 'true'){
                         }
                     } else {
-                        console.log('in else')
                         // Mouse hover out
                         if (vm.vacant_site_being_selected){
-                            console.log('5')
                             //let status = vm.get_status_for_colour(vm.vacant_site_being_selected)
                             let status = getStatusForColour(vm.vacant_site_being_selected)
                             let style_applied = getApiaryFeatureStyle(status, false)
@@ -1319,7 +1311,6 @@
                 this.$http.get('/api/apiary_site/list_existing_proposal_vacant_processed/?proposal_id=' + this.proposal.id).then(
                     res => {
                         let num_sites = 0
-                        console.log(res.body)
                         if(res.body.features){
                             vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
                             num_sites = res.body.features.length
@@ -1422,10 +1413,45 @@
     .debug-remainders {
         padding: 0 0 0 1em
     }
+    #map-wrapper {
+        position: relative;
+    }
     .map {
         display: inline-block;
         width: 100%;
         height: 500px;
+    }
+    #basemap-button {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 400;
+        -moz-box-shadow: 3px 3px 3px #777;
+        -webkit-box-shadow: 3px 3px 3px #777;
+        box-shadow: 3px 3px 3px #777;
+        -moz-filter: brightness(1.0);
+        -webkit-filter: brightness(1.0);
+        filter: brightness(1.0);
+        border: 2px white solid;
+    }
+    #basemap_sat,#basemap_osm {
+    /* border-radius: 5px; */
+    }
+    #basemap-button:hover {
+        cursor: pointer;
+        -moz-filter: brightness(0.9);
+        -webkit-filter: brightness(0.9);
+        filter: brightness(0.9);
+    }
+    #basemap-button:active {
+        top: 11px;
+        right: 9px;
+        -moz-box-shadow: 2px 2px 2px #555;
+        -webkit-box-shadow: 2px 2px 2px #555;
+        box-shadow: 2px 2px 2px #555;
+        -moz-filter: brightness(0.8);
+        -webkit-filter: brightness(0.8);
+        filter: brightness(0.8);
     }
     .custom-mouse-position {
         position: absolute;
