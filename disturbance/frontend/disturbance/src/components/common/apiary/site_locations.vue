@@ -335,6 +335,9 @@
                         },
                     ],
                 },
+
+                tileLayerOsm: null,
+                tileLayerSat: null,
             }
         },
         components: {
@@ -576,15 +579,15 @@
         },
         methods:{
             setBaseLayer: function(selected_layer_name){
-                console.log('in setBaseLayer')
+                let vm = this
                 if (selected_layer_name == 'sat') {
-                    //this.map.removeLayer(this.tileLayer)
-                    //this.map.addLayer(this.tileLayerSat)
+                    vm.tileLayerOsm.setVisible(false)
+                    vm.tileLayerSat.setVisible(true)
                     $('#basemap_sat').hide()
                     $('#basemap_osm').show()
                 } else {
-                    //this.map.removeLayer(this.tileLayerSat)
-                    //this.map.addLayer(this.tileLayer)
+                    vm.tileLayerOsm.setVisible(true)
+                    vm.tileLayerSat.setVisible(false)
                     $('#basemap_osm').hide()
                     $('#basemap_sat').show()
                 }
@@ -915,24 +918,26 @@
                             }
                         });
 
-                const osm = new TileLayer({
+                //const osm = new TileLayer({
+                vm.tileLayerOsm = new TileLayer({
                     title: 'OpenStreetMap',
                     type: 'base',
                     visible: true,
                     source: new OSM(),
                 });
 
-                const tileLayerSat = new TileLayer({
+                //const tileLayerSat = new TileLayer({
+                vm.tileLayerSat = new TileLayer({
                     title: 'Satellite',
                     type: 'base',
-                    visible: false,
+                    visible: true,
                     source: satelliteTileWms,
                 })
 
                 vm.map = new Map({
                     layers: [
-                        osm, 
-                        tileLayerSat,
+                        vm.tileLayerOsm, 
+                        vm.tileLayerSat,
                     ],
                     target: 'map',
                     view: new View({
@@ -942,11 +947,11 @@
                     })
                 });
 
-                let layerSwitcher = new LayerSwitcher({
-                    reverse: true,
-                    groupSelectStyle: 'group'
-                })
-                vm.map.addControl(layerSwitcher)
+                //let layerSwitcher = new LayerSwitcher({
+                //    reverse: true,
+                //    groupSelectStyle: 'group'
+                //})
+                //vm.map.addControl(layerSwitcher)
 
                 let clusterSource = new Cluster({
                     distance: 50,
@@ -1237,6 +1242,7 @@
                         vm.vacant_site_being_selected = null
                     }
                 });
+                vm.setBaseLayer('osm')
             },  // End: initMap()
             //get_status_for_colour: function(feature){
             //    let status = feature.get("status");
@@ -1415,11 +1421,16 @@
     }
     #map-wrapper {
         position: relative;
+        padding: 0;
+        margin: 0;
     }
     .map {
         display: inline-block;
         width: 100%;
         height: 500px;
+    }
+    canvas {
+        width: 100%;
     }
     #basemap-button {
         position: absolute;
