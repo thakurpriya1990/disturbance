@@ -68,13 +68,16 @@
                 <img id="basemap_sat" src="../../../assets/satellite_icon.jpg" @click="setBaseLayer('sat')" />
                 <img id="basemap_osm" src="../../../assets/map_icon.png" @click="setBaseLayer('osm')" />
             </div>
-<!--
-            <div id="optional-layers">
-                <template v-for="layer in optionalLayers">
-                    <div>{{ layer.get('title') }}</div>
-                </template>
+            <div id="optional-layers-wrapper">
+                <div id="optional-layers-button">
+                    <img src="../../../assets/layer-switcher-icon.png" @mouseover="hover = true" />
+                </div>
+                <div id="layer_options" v-if="hover" @mouseleave="hover = false">
+                    <div v-for="layer in optionalLayers">
+                        {{ layer.get('title') }}
+                    </div>
+                </div>
             </div>
--->
         </div>
 
         <div :id="popup_id" class="ol-popup">
@@ -346,6 +349,7 @@
                 tileLayerOsm: null,
                 tileLayerSat: null,
                 optionalLayers: [],
+                hover: false,
             }
         },
         components: {
@@ -529,6 +533,9 @@
             }
         },
         watch:{
+            hover: function(){
+                console.log(this.hover)
+            },
             fee_remote_renewal: function(){
                 this.$emit('fee_remote_renewal', this.fee_remote_renewal)
             },
@@ -610,7 +617,7 @@
                             source: l,
                         })
 
-                        //vm.optionalLayers.push(tileLayer)
+                        vm.optionalLayers.push(tileLayer)
                         vm.map.addLayer(tileLayer)
                     }
                 })
@@ -984,11 +991,11 @@
                     })
                 });
 
-                let layerSwitcher = new LayerSwitcher({
+                //let layerSwitcher = new LayerSwitcher({
                 //    reverse: true,
                 //    groupSelectStyle: 'group'
-                })
-                vm.map.addControl(layerSwitcher)
+                //})
+                //vm.map.addControl(layerSwitcher)
 
                 let clusterSource = new Cluster({
                     distance: 50,
@@ -1471,7 +1478,6 @@
         width: 100%;
     }
     #basemap-button {
-        display: none;
         position: absolute;
         top: 10px;
         right: 10px;
@@ -1503,11 +1509,37 @@
         -webkit-filter: brightness(0.8);
         filter: brightness(0.8);
     }
-    #optional-layers {
+    #optional-layers-wrapper {
         position: absolute;
-        top: 10px;
+        top: 70px;
         left: 10px;
+    }
+    #optional-layers-button {
+        position: absolute;
         z-index: 400;
+        background: white;
+        border-radius: 2px;
+        /*
+        box-shadow: 3px 3px 3px #777;
+        -moz-filter: brightness(1.0);
+        -webkit-filter: brightness(1.0);
+        */
+        border: 3px solid rgba(5, 5, 5, .1);
+    }
+    #layer_options {
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 400;
+        background: white;
+        border-radius: 2px;
+        /*
+        box-shadow: 3px 3px 3px #777;
+        -moz-filter: brightness(1.0);
+        -webkit-filter: brightness(1.0);
+        */
+        padding: 0.5em;
+        border: 3px solid rgba(5, 5, 5, .1);
     }
     .custom-mouse-position {
         position: absolute;
