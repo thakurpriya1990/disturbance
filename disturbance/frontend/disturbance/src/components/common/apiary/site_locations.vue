@@ -68,6 +68,13 @@
                 <img id="basemap_sat" src="../../../assets/satellite_icon.jpg" @click="setBaseLayer('sat')" />
                 <img id="basemap_osm" src="../../../assets/map_icon.png" @click="setBaseLayer('osm')" />
             </div>
+<!--
+            <div id="optional-layers">
+                <template v-for="layer in optionalLayers">
+                    <div>{{ layer.get('title') }}</div>
+                </template>
+            </div>
+-->
         </div>
 
         <div :id="popup_id" class="ol-popup">
@@ -338,6 +345,7 @@
 
                 tileLayerOsm: null,
                 tileLayerSat: null,
+                optionalLayers: [],
             }
         },
         components: {
@@ -578,6 +586,35 @@
             }
         },
         methods:{
+            addOptionalLayers: function(){
+                let vm = this
+                var overlayMaps = {}
+                this.$http.get('/api/map_layers/').then(response => {
+                    let layers = response.body
+                    for (var i = 0; i < layers.length; i++){
+                        let l = new TileWMS({
+                            url: 'https://kmi.dpaw.wa.gov.au/geoserver/public/wms',
+                            params: {
+                                'FORMAT': 'image/png',
+                                'VERSION': '1.1.1',
+                                tiled: true,
+                                STYLES: '',
+                                LAYERS: layers[i].layer_name.trim()
+                                //LAYERS: 'public:mapbox-satellite'
+                            }
+                        });
+
+                        let tileLayer= new TileLayer({
+                            title: layers[i].display_name.trim(),
+                            visible: false,
+                            source: l,
+                        })
+
+                        //vm.optionalLayers.push(tileLayer)
+                        vm.map.addLayer(tileLayer)
+                    }
+                })
+            },
             setBaseLayer: function(selected_layer_name){
                 let vm = this
                 if (selected_layer_name == 'sat') {
@@ -908,15 +945,15 @@
                 let vm = this;
 
                 let satelliteTileWms = new TileWMS({
-                            url: 'https://kmi.dpaw.wa.gov.au/geoserver/public/wms',
-                            params: {
-                                'FORMAT': 'image/png',
-                                'VERSION': '1.1.1',
-                                tiled: true,
-                                STYLES: '',
-                                LAYERS: 'public:mapbox-satellite',
-                            }
-                        });
+                    url: 'https://kmi.dpaw.wa.gov.au/geoserver/public/wms',
+                    params: {
+                        'FORMAT': 'image/png',
+                        'VERSION': '1.1.1',
+                        tiled: true,
+                        STYLES: '',
+                        LAYERS: 'public:mapbox-satellite',
+                    }
+                });
 
                 //const osm = new TileLayer({
                 vm.tileLayerOsm = new TileLayer({
@@ -947,11 +984,11 @@
                     })
                 });
 
-                //let layerSwitcher = new LayerSwitcher({
+                let layerSwitcher = new LayerSwitcher({
                 //    reverse: true,
                 //    groupSelectStyle: 'group'
-                //})
-                //vm.map.addControl(layerSwitcher)
+                })
+                vm.map.addControl(layerSwitcher)
 
                 let clusterSource = new Cluster({
                     distance: 50,
@@ -1243,6 +1280,7 @@
                     }
                 });
                 vm.setBaseLayer('osm')
+                vm.addOptionalLayers()
             },  // End: initMap()
             //get_status_for_colour: function(feature){
             //    let status = feature.get("status");
@@ -1433,6 +1471,7 @@
         width: 100%;
     }
     #basemap-button {
+        display: none;
         position: absolute;
         top: 10px;
         right: 10px;
@@ -1463,6 +1502,12 @@
         -moz-filter: brightness(0.8);
         -webkit-filter: brightness(0.8);
         filter: brightness(0.8);
+    }
+    #optional-layers {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        z-index: 400;
     }
     .custom-mouse-position {
         position: absolute;
