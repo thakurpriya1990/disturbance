@@ -11,6 +11,20 @@ from ledger.accounts.models import EmailUser, Document, RevisionedMixin
 from django.contrib.postgres.fields.jsonb import JSONField
 
 
+class MapLayer(models.Model):
+    display_name = models.CharField(max_length=100, blank=True, null=True)
+    layer_name = models.CharField(max_length=200, blank=True, null=True)  # layer name defined in geoserver (kmi.dpaw.wa.gov.au)
+    availability = models.BooleanField(default=True)  # False to hide from the frontend options
+    option_for_internal = models.BooleanField(default=True)
+    option_for_external = models.BooleanField(default=True)
+
+    class Meta:
+        app_label = 'disturbance'
+
+    def __str__(self):
+        return '{0}, {1}'.format(self.display_name, self.layer_name)
+
+
 @python_2_unicode_compatible
 class Region(models.Model):
     name = models.CharField(max_length=200, unique=True)
