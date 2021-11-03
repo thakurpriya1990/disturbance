@@ -1144,9 +1144,10 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
         referral_list = []
         for referral in obj.proposal.referrals.all():
             for site in obj.apiary_sites.all():
+                #import ipdb; ipdb.set_trace()
                 qs = ApiaryChecklistAnswerSerializer(
                     #obj.apiary_checklist.filter(apiary_referral_id=referral.apiary_referral.id).order_by('question__order'),
-                    obj.apiary_checklist.filter(apiary_referral_id=referral.apiary_referral.id).filter(question__checklist_type='apiary_per_site').filter(site__apiary_site=site).order_by('question__order'),
+                    obj.apiary_checklist.filter(apiary_referral_id=referral.apiary_referral.id).filter(question__checklist_type='apiary_per_site').filter(apiary_site=site).order_by('question__order'),
                     many=True).data
                 referral_list.append({
                     "referral_id": referral.id, 
