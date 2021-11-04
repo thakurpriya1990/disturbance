@@ -69,21 +69,23 @@
                 <img id="basemap_osm" src="../../../assets/map_icon.png" @click="setBaseLayer('osm')" />
             </div>
             <div id="optional-layers-wrapper">
-                <div id="optional-layers-button">
-                    <img src="../../../assets/layer-switcher-icon.png" @mouseover="hover = true" />
+                <transition>
+                <div id="optional-layers-button" v-show="!hover">
+                    <img src="../../../assets/layer-switcher-icon.png" @mouseover="hover=true" />
                 </div>
-                <div id="layer_options" v-if="hover" @mouseleave="hover = false">
+                </transition>
+                <transition>
+                <div div id="layer_options" v-show="hover" @mouseleave="hover=false" >
                     <div v-for="layer in optionalLayers">
-                        {{ layer.get('title') }}
+                        <input type="checkbox" :id="layer.ol_uid" :checked="layer.values_.visible" @change="changeLayerVisibility(layer)"/>
+                        <label :for="layer.ol_uid">{{ layer.get('title') }}</label>
                     </div>
                 </div>
+                </transition>
             </div>
         </div>
 
         <div :id="popup_id" class="ol-popup">
-            <!--
-            <a href="#" :id="popup_closer_id" class="ol-popup-closer"></a>
-            -->
             <div :id="popup_content_id" class="text-center"></div>
         </div>
 
@@ -533,9 +535,6 @@
             }
         },
         watch:{
-            hover: function(){
-                console.log(this.hover)
-            },
             fee_remote_renewal: function(){
                 this.$emit('fee_remote_renewal', this.fee_remote_renewal)
             },
@@ -593,6 +592,9 @@
             }
         },
         methods:{
+            changeLayerVisibility: function(targetLayer){
+                targetLayer.setVisible(!targetLayer.getVisible())
+            },
             addOptionalLayers: function(){
                 let vm = this
                 var overlayMaps = {}
@@ -619,6 +621,7 @@
 
                         vm.optionalLayers.push(tileLayer)
                         vm.map.addLayer(tileLayer)
+                        console.log(tileLayer)
                     }
                 })
             },
@@ -1527,12 +1530,15 @@
         border: 3px solid rgba(5, 5, 5, .1);
     }
     #layer_options {
+        /*
         position: absolute;
+        */
         top: 0;
         left: 0;
         z-index: 400;
         background: white;
         border-radius: 2px;
+        cursor: pointer;
         /*
         box-shadow: 3px 3px 3px #777;
         -moz-filter: brightness(1.0);
@@ -1651,5 +1657,9 @@
     }
     .mb-4 {
         margin-bottom: 2em !important;
+    }
+    .v-enter-active,
+    .v-leave-active {
+          transition: 0.4s;
     }
 </style>

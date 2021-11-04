@@ -13,7 +13,7 @@ from django.contrib.postgres.fields.jsonb import JSONField
 
 class MapLayer(models.Model):
     display_name = models.CharField(max_length=100, blank=True, null=True)
-    layer_name = models.CharField(max_length=200, blank=True, null=True)  # layer name defined in geoserver (kmi.dpaw.wa.gov.au)
+    layer_name = models.CharField(max_length=200, blank=True, null=True)
     option_for_internal = models.BooleanField(default=True)
     option_for_external = models.BooleanField(default=True)
 
