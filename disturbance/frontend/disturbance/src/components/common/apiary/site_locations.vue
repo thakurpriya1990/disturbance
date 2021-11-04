@@ -594,8 +594,20 @@
             }
         },
         methods:{
+            console_layers: function(){
+                let layers = this.map.getLayers()
+                for (var i = 0; i < layers.array_.length; i++){
+                    console.log(i + ': ' + layers.array_[i].get('title'))
+                }
+            },
             changeLayerVisibility: function(targetLayer){
                 targetLayer.setVisible(!targetLayer.getVisible())
+                let layers = this.map.getLayers()
+                for (var i = 0; i < layers.array_.length; i++){
+                    if (layers.array_[i].get('title') === 'Drawing Layer' || layers.array_[i].get('title') === 'Cluster Layer'){
+                        layers.array_[i].refresh()
+                    }
+                }
             },
             addOptionalLayers: function(){
                 let vm = this
@@ -638,6 +650,7 @@
                     $('#basemap_osm').hide()
                     $('#basemap_sat').show()
                 }
+                vm.console_layers()
             },
             datatable_mounted: function(){
                 this.constructSiteLocationsTable();
@@ -981,8 +994,8 @@
 
                 vm.map = new Map({
                     layers: [
-                        vm.tileLayerOsm, 
-                        vm.tileLayerSat,
+                        //vm.tileLayerOsm, 
+                        //vm.tileLayerSat,
                     ],
                     target: 'map',
                     view: new View({
@@ -999,6 +1012,7 @@
 
                 let styleCache = {}
                 vm.apiarySitesClusterLayer = new VectorLayer({
+                    title: 'Cluster Layer',
                     source: clusterSource,
                     style: function (clusteredFeature){
                         let featuresInClusteredFeature = clusteredFeature.get('features')
@@ -1041,7 +1055,7 @@
                         return style
                     },
                 });
-                vm.map.addLayer(vm.apiarySitesClusterLayer);
+                //vm.map.addLayer(vm.apiarySitesClusterLayer);
 
                 vm.bufferedSites = [];
                 vm.map.on("moveend", function(attributes){
@@ -1078,10 +1092,10 @@
                     vm.constructSiteLocationsTable()
                 });
                 vm.drawingLayer = new VectorLayer({
+                    title: 'Drawing Layer',
                     source: vm.drawingLayerSource,
                     style: vm.apiaryStyleFunctionProposed,
                 });
-                vm.map.addLayer(vm.drawingLayer);
 
                 let container = document.getElementById(vm.popup_id)
                 vm.content_element = document.getElementById(vm.popup_content_id)
@@ -1095,11 +1109,11 @@
 
                 //vm.bufferLayerSource = new VectorSource();
                 vm.bufferLayer = new VectorLayer({
+                    title: 'Buffer Layer',
                     source: vm.bufferLayerSource,
                     minZoom: 11,
 
                 });
-                vm.map.addLayer(vm.bufferLayer);
 
                 vm.swZoneSource = new VectorSource({
                     url: "/static/disturbance/gis/sw_apiary_zone.geojson",
@@ -1107,11 +1121,24 @@
                 });
                 // a visible layer is required to trigger loading the data, the empty style will mean that the features are not drawn
                 let swZoneLayer = new VectorLayer({
+                    title: 'South West Zone Layer',
                     source: vm.swZoneSource,
                     style: new Style(),
                     visible: true,
                 });
-                vm.map.addLayer(swZoneLayer);
+
+                // Add layers to the map
+                vm.map.addLayer(vm.tileLayerOsm)
+                vm.map.addLayer(vm.tileLayerSat)
+                vm.map.addLayer(swZoneLayer)
+                vm.map.addLayer(vm.apiarySitesClusterLayer)
+                vm.map.addLayer(vm.bufferLayer)
+                vm.map.addLayer(vm.drawingLayer)
+
+                // Set zIndex to some layers to be rendered over the other layers
+                vm.apiarySitesClusterLayer.setZIndex(10)
+                vm.bufferLayer.setZIndex(20)
+                vm.drawingLayer.setZIndex(30)
 
                 // Full screen toggle
                 vm.map.addControl(new FullScreenControl());
@@ -1283,6 +1310,7 @@
                 });
                 vm.setBaseLayer('osm')
                 vm.addOptionalLayers()
+                vm.console_layers()
             },  // End: initMap()
             //get_status_for_colour: function(feature){
             //    let status = feature.get("status");

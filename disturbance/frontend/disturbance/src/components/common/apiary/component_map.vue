@@ -129,10 +129,11 @@
             this.$nextTick(() => {
                 vm.addEventListeners()
             });
-            this.initMap()
-            this.setBaseLayer('osm')
-            this.addOptionalLayers()
-            this.displayAllFeatures()
+            vm.initMap()
+            vm.setBaseLayer('osm')
+            vm.addOptionalLayers()
+            //vm.map.addLayer(vm.apiarySitesQueryLayer);
+            vm.displayAllFeatures()
         },
         components: {
 
@@ -250,6 +251,9 @@
                     },
                 });
                 vm.map.addLayer(vm.apiarySitesQueryLayer);
+
+                // Set zIndex to some layers to be rendered over the other layers
+                vm.apiarySitesQueryLayer.setZIndex(10)  
 
                 // Full screen toggle
                 vm.map.addControl(new FullScreenControl());
