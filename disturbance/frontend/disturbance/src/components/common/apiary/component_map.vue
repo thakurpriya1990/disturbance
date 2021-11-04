@@ -1,6 +1,32 @@
 <template lang="html">
     <div>
-        <div :id="elem_id" class="map"></div>
+        <div class="map-wrapper row col-sm-12">
+            <div :id="elem_id" class="map"></div>
+            <div class="basemap-button">
+                <img id="basemap_sat" src="../../../assets/satellite_icon.jpg" @click="setBaseLayer('sat')" />
+                <img id="basemap_osm" src="../../../assets/map_icon.png" @click="setBaseLayer('osm')" />
+            </div>
+            <div class="optional-layers-wrapper">
+                <transition v-if="optionalLayers.length">
+                    <div class="optional-layers-button" v-show="!hover">
+                        <img src="../../../assets/layer-switcher-icon.png" @mouseover="hover=true" />
+                    </div>
+                </transition>
+                <transition v-if="optionalLayers.length">
+                    <div div class="layer_options" v-show="hover" @mouseleave="hover=false" >
+                        <div v-for="layer in optionalLayers">
+                            <input
+                                type="checkbox"
+                                :id="layer.ol_uid"
+                                :checked="layer.values_.visible"
+                                @change="changeLayerVisibility(layer)"
+                            />
+                            <label :for="layer.ol_uid">{{ layer.get('title') }}</label>
+                        </div>
+                    </div>
+                </transition>
+            </div>
+        </div>
 
         <div :id="popup_id" class="ol-popup">
             <a href="#" :id="popup_closer_id" class="ol-popup-closer">
@@ -46,8 +72,6 @@
     import GeoJSON from 'ol/format/GeoJSON';
     import Overlay from 'ol/Overlay';
     import { getDisplayNameFromStatus, getDisplayNameOfCategory, getStatusForColour, getApiaryFeatureStyle } from '@/components/common/apiary/site_colours.js'
-    import LayerSwitcher from 'ol-layerswitcher';
-    import { BaseLayerOptions, GroupLayerOptions } from 'ol-layerswitcher';
 
     export default {
         props:{
@@ -90,7 +114,11 @@
                 popup_content_id: uuid(),
                 overlay: null,
                 content_element: null,
-                modifyInProgressList: []
+                modifyInProgressList: [],
+                tileLayerOsm: null,
+                tileLayerSat: null,
+                optionalLayers: [],
+                hover: false,
             }
         },
         created: function(){
@@ -102,6 +130,8 @@
                 vm.addEventListeners()
             });
             this.initMap()
+            this.setBaseLayer('osm')
+            this.addOptionalLayers()
             this.displayAllFeatures()
         },
         components: {
@@ -111,6 +141,51 @@
 
         },
         methods: {
+            changeLayerVisibility: function(targetLayer){
+                targetLayer.setVisible(!targetLayer.getVisible())
+            },
+            addOptionalLayers: function(){
+                let vm = this
+                this.$http.get('/api/map_layers/').then(response => {
+                    let layers = response.body
+                    for (var i = 0; i < layers.length; i++){
+                        let l = new TileWMS({
+                            url: 'https://kmi.dpaw.wa.gov.au/geoserver/public/wms',
+                            params: {
+                                'FORMAT': 'image/png',
+                                'VERSION': '1.1.1',
+                                tiled: true,
+                                STYLES: '',
+                                LAYERS: layers[i].layer_name.trim()
+                                //LAYERS: 'public:mapbox-satellite'
+                            }
+                        });
+
+                        let tileLayer= new TileLayer({
+                            title: layers[i].display_name.trim(),
+                            visible: false,
+                            source: l,
+                        })
+
+                        vm.optionalLayers.push(tileLayer)
+                        vm.map.addLayer(tileLayer)
+                    }
+                })
+            },
+            setBaseLayer: function(selected_layer_name){
+                let vm = this
+                if (selected_layer_name == 'sat') {
+                    vm.tileLayerOsm.setVisible(false)
+                    vm.tileLayerSat.setVisible(true)
+                    $('#basemap_sat').hide()
+                    $('#basemap_osm').show()
+                } else {
+                    vm.tileLayerOsm.setVisible(true)
+                    vm.tileLayerSat.setVisible(false)
+                    $('#basemap_osm').hide()
+                    $('#basemap_sat').show()
+                }
+            },
             closePopup: function(){
                 this.overlay.setPosition(undefined)
                 this.$emit('popupClosed')
@@ -135,24 +210,24 @@
                             }
                         });
 
-                const osm = new TileLayer({
+                vm.tileLayerOsm = new TileLayer({
                     title: 'OpenStreetMap',
                     type: 'base',
                     visible: true,
                     source: new OSM(),
                 });
 
-                const tileLayerSat = new TileLayer({
+                vm.tileLayerSat = new TileLayer({
                     title: 'Satellite',
                     type: 'base',
-                    visible: false,
+                    visible: true,
                     source: satelliteTileWms,
                 })
 
                 vm.map = new Map({
                     layers: [
-                        osm, 
-                        tileLayerSat,
+                        vm.tileLayerOsm, 
+                        vm.tileLayerSat,
                     ],
                     //target: 'map',
                     target: vm.elem_id,
@@ -162,11 +237,6 @@
                         projection: 'EPSG:4326'
                     })
                 });
-                let layerSwitcher = new LayerSwitcher({
-                    reverse: true,
-                    groupSelectStyle: 'group'
-                })
-                vm.map.addControl(layerSwitcher)
 
                 vm.apiarySitesQuerySource = new VectorSource({
 
@@ -344,6 +414,75 @@
 </script>
 
 <style lang="css" scoped>
+    .map-wrapper {
+        position: relative;
+        padding: 0;
+        margin: 0;
+    }
+    .basemap-button {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 400;
+        -moz-box-shadow: 3px 3px 3px #777;
+        -webkit-box-shadow: 3px 3px 3px #777;
+        box-shadow: 3px 3px 3px #777;
+        -moz-filter: brightness(1.0);
+        -webkit-filter: brightness(1.0);
+        filter: brightness(1.0);
+        border: 2px white solid;
+    }
+    .basemap-button:hover {
+        cursor: pointer;
+        -moz-filter: brightness(0.9);
+        -webkit-filter: brightness(0.9);
+        filter: brightness(0.9);
+    }
+    .basemap-button:active {
+        top: 11px;
+        right: 9px;
+        -moz-box-shadow: 2px 2px 2px #555;
+        -webkit-box-shadow: 2px 2px 2px #555;
+        box-shadow: 2px 2px 2px #555;
+        -moz-filter: brightness(0.8);
+        -webkit-filter: brightness(0.8);
+        filter: brightness(0.8);
+    }
+    .optional-layers-wrapper {
+        position: absolute;
+        top: 70px;
+        left: 10px;
+    }
+    .optional-layers-button {
+        position: absolute;
+        z-index: 400;
+        background: white;
+        border-radius: 2px;
+        /*
+        box-shadow: 3px 3px 3px #777;
+        -moz-filter: brightness(1.0);
+        -webkit-filter: brightness(1.0);
+        */
+        border: 3px solid rgba(5, 5, 5, .1);
+    }
+    .layer_options {
+        /*
+        position: absolute;
+        */
+        top: 0;
+        left: 0;
+        z-index: 400;
+        background: white;
+        border-radius: 2px;
+        cursor: pointer;
+        /*
+        box-shadow: 3px 3px 3px #777;
+        -moz-filter: brightness(1.0);
+        -webkit-filter: brightness(1.0);
+        */
+        padding: 0.5em;
+        border: 3px solid rgba(5, 5, 5, .1);
+    }
     .ol-popup {
         position: absolute;
         min-width: 95px;

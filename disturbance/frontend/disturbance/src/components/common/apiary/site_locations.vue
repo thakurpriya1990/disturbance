@@ -69,18 +69,23 @@
                 <img id="basemap_osm" src="../../../assets/map_icon.png" @click="setBaseLayer('osm')" />
             </div>
             <div id="optional-layers-wrapper">
-                <transition>
-                <div id="optional-layers-button" v-show="!hover">
-                    <img src="../../../assets/layer-switcher-icon.png" @mouseover="hover=true" />
-                </div>
-                </transition>
-                <transition>
-                <div div id="layer_options" v-show="hover" @mouseleave="hover=false" >
-                    <div v-for="layer in optionalLayers">
-                        <input type="checkbox" :id="layer.ol_uid" :checked="layer.values_.visible" @change="changeLayerVisibility(layer)"/>
-                        <label :for="layer.ol_uid">{{ layer.get('title') }}</label>
+                <transition v-if="optionalLayers.length">
+                    <div id="optional-layers-button" v-show="!hover">
+                        <img src="../../../assets/layer-switcher-icon.png" @mouseover="hover=true" />
                     </div>
-                </div>
+                </transition>
+                <transition v-if="optionalLayers.length">
+                    <div div id="layer_options" v-show="hover" @mouseleave="hover=false" >
+                        <div v-for="layer in optionalLayers">
+                            <input
+                                type="checkbox"
+                                :id="layer.ol_uid"
+                                :checked="layer.values_.visible"
+                                @change="changeLayerVisibility(layer)"
+                            />
+                            <label :for="layer.ol_uid">{{ layer.get('title') }}</label>
+                        </div>
+                    </div>
                 </transition>
             </div>
         </div>
@@ -102,7 +107,6 @@
 <script>
     import 'ol/ol.css';
     import 'ol-layerswitcher/dist/ol-layerswitcher.css'
-    //import 'index.css';  // copy-and-pasted the contents of this file at the <style> section below in this file
     import Map from 'ol/Map';
     import View from 'ol/View';
     import WMTSCapabilities from 'ol/format/WMTSCapabilities';
@@ -129,8 +133,6 @@
     import uuid from 'uuid';
     import { getStatusForColour, getApiaryFeatureStyle, drawingSiteRadius, existingSiteRadius, SiteColours } from '@/components/common/apiary/site_colours.js'
     import Overlay from 'ol/Overlay';
-    import LayerSwitcher from 'ol-layerswitcher';
-    import { BaseLayerOptions, GroupLayerOptions } from 'ol-layerswitcher';
 
     export default {
         props:{
@@ -597,7 +599,6 @@
             },
             addOptionalLayers: function(){
                 let vm = this
-                var overlayMaps = {}
                 this.$http.get('/api/map_layers/').then(response => {
                     let layers = response.body
                     for (var i = 0; i < layers.length; i++){
@@ -621,7 +622,6 @@
 
                         vm.optionalLayers.push(tileLayer)
                         vm.map.addLayer(tileLayer)
-                        console.log(tileLayer)
                     }
                 })
             },
@@ -965,7 +965,6 @@
                     }
                 });
 
-                //const osm = new TileLayer({
                 vm.tileLayerOsm = new TileLayer({
                     title: 'OpenStreetMap',
                     type: 'base',
@@ -973,7 +972,6 @@
                     source: new OSM(),
                 });
 
-                //const tileLayerSat = new TileLayer({
                 vm.tileLayerSat = new TileLayer({
                     title: 'Satellite',
                     type: 'base',
@@ -993,12 +991,6 @@
                         projection: 'EPSG:4326'
                     })
                 });
-
-                //let layerSwitcher = new LayerSwitcher({
-                //    reverse: true,
-                //    groupSelectStyle: 'group'
-                //})
-                //vm.map.addControl(layerSwitcher)
 
                 let clusterSource = new Cluster({
                     distance: 50,
