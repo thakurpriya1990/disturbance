@@ -71,6 +71,7 @@ router.register(
     r'schema_proposal_type', proposal_api.SchemaProposalTypeViewSet)
 router.register(
     r'schema_proposal_type_paginated', proposal_api.SchemaProposalTypePaginatedViewSet)
+router.register(r'map_layers', main_api.MapLayerViewSet)
 
 api_patterns = [
     url(r'^api/profile$', users_api.GetProfile.as_view(), name='get-profile'),
