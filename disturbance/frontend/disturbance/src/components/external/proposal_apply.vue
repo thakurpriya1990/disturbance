@@ -18,26 +18,17 @@
                                 <div class="form-group" v-if="!isLoading">
                                     <template v-if="apiaryTemplateGroup">
                                         <div class="radio">
-                                            <label>
-                                              <!--
-                                              <input :disabled="individualDisableApplyRadioButton" type="radio" name="behalf_of_individual" v-model="behalf_of" value="individual"> On behalf of yourself
-                                              -->
-                                              <input type="radio" name="behalf_of_individual" v-model="behalf_of" value="individual"> On behalf of yourself
-                                                  <span v-html="individualExistingRecordText"></span>
+                                            <label :title="individualHasNoLicenceTitle()">
+                                              <input :disabled="individualDisableApplyRadioButton()" type="radio" name="behalf_of_individual" v-model="behalf_of" value="individual"> On behalf of yourself
+                                              <span v-html="individualExistingRecordText"></span>
                                             </label>
                                         </div>
                                     </template>
                                     <div v-if="profile.disturbance_organisations.length > 0">
                                         <div v-for="org in profile.disturbance_organisations" class="radio">
-                                            <label>
-                                                  <div if="apiaryTemplateGroup">
-                                                    <input type="radio" name="behalf_of_org" v-model="behalf_of"  :value="org.id"> On behalf of {{org.name}}
-                                                    <span v-html="org.existing_record_text.notification"></span>
-                                                  </div>
-                                                  <div v-else>
-                                                    <input :disabled="org.existing_record_text.disable_radio_button" type="radio" name="behalf_of_org" v-model="behalf_of"  :value="org.id"> On behalf of {{org.name}}
-                                                    <span v-html="org.existing_record_text.notification"></span>
-                                                  </div>
+                                            <label :title="orgHasNoLicenceTitle(org)">
+                                              <input :disabled="orgDisableApplyRadioButton(org)" type="radio" name="behalf_of_org" v-model="behalf_of"  :value="org.id"> On behalf of {{org.name}}
+                                              <span v-html="org.existing_record_text.notification"></span>
                                             </label>
                                         </div>
                                         <!--
@@ -288,13 +279,6 @@ export default {
           //}
           return approvalText;
       },
-      individualDisableApplyRadioButton: function() {
-          let approvalText = '';
-          if (this.profile && this.profile.existing_record_text) {
-              approvalText = this.profile.existing_record_text.disable_radio_button;
-          }
-          return approvalText;
-      },
       currentApiaryApproval: function() {
           let currentApproval = null;
           if (this.behalf_of === "individual" && this.profile.current_apiary_approval) {
@@ -308,39 +292,35 @@ export default {
           }
           return currentApproval;
       },
+      currentApiaryButtonDisabled: function() {
+          let currentDisabled = null;
+          if (this.behalf_of === "individual" && this.profile.existing_record_text.disable_radio_button) {
+              currentDisabled = this.profile.existing_record_text.disable_radio_button;
+          } else if (this.behalf_of > 0 && parseInt(this.behalf_of)) {
+              let org = this.profile.disturbance_organisations.find(item => item.id === this.behalf_of)
+              currentDisabled = org.existing_record_text.disable_radio_button;
+          }
+          
+          return currentDisabled;
+      },
+
       applicationTypesList: function() {
           let returnList = [];
           for (let applicationType of this.application_types) {
               // for individual applications, only Apiary should show
               //if (this.behalf_of === 'individual') {
               if (this.apiaryTemplateGroup) {
-                  if (this.behalf_of === 'individual' && this.profile.existing_record_text.disable_radio_button) {
-                      // There is already an application in progress - only allow New Temp Use Applications
-                      applicationType.display_text = "Temporary Use of Apiary Sites";
-                      returnList.push(applicationType);
-                      return returnList;
-                  } else if (this.behalf_of !== 'individual' && this.behalf_of != '') {
-                      // Find org_id in JSON Array (org_id => behalf_of)
-                      let org = this.profile.disturbance_organisations.find(item => item.id === this.behalf_of)
-                      if (org.existing_record_text.disable_radio_button) {
-                          // There is already an application in progress - only allow New Temp Use Applications
-                          applicationType.display_text = "Temporary Use of Apiary Sites";
-                          returnList.push(applicationType);
-                          return returnList;
-                      }
-                  } 
                   if (applicationType.domain_used.toLowerCase() === "apiary") {
-                      if (applicationType.text.toLowerCase() === "apiary"){
+                      if (applicationType.text.toLowerCase() === "apiary" && !this.currentApiaryButtonDisabled && !this.currentApiaryButtonDisabled){
                           applicationType.display_text = "Apiary Sites";
                           returnList.push(applicationType);
                       }
                       // add Site Transfer if selected applicant has an associated current_apiary_approval
-                      if (applicationType.text.toLowerCase() === "site transfer" && this.currentApiaryApproval){
+                      if (applicationType.text.toLowerCase() === "site transfer" && this.currentApiaryApproval && !this.currentApiaryButtonDisabled){
                           applicationType.display_text = "Transfer Apiary Sites";
                           returnList.push(applicationType);
                       }
-                      //if (applicationType.text.toLowerCase() === "temporary use" && this.currentApiaryApproval){
-                      if (applicationType.text.toLowerCase() === "temporary use"){
+                      if (applicationType.text.toLowerCase() === "temporary use" && this.currentApiaryApproval){
                           // always allow New Temp Use Applications
                           applicationType.display_text = "Temporary Use of Apiary Sites";
                           returnList.push(applicationType);
@@ -417,6 +397,28 @@ export default {
         },(error) => {
         });
     },
+    individualDisableApplyRadioButton: function() {
+        return this.profile.current_apiary_approval===null && this.profile.existing_record_text.disable_radio_button;
+    },
+    orgDisableApplyRadioButton: function(org) {
+        //let org = this.profile.disturbance_organisations.find(item => item.id === _org.id)
+        return org.current_apiary_approval===null && org.existing_record_text.disable_radio_button;
+    },
+    individualHasNoLicenceTitle: function() {
+      console.log(3);
+      if (this.individualDisableApplyRadioButton()) {
+          //console.lo4(this.profile.full_name + ' has no current licence');
+          return this.profile.full_name + ' has no current licence'
+      }
+    },
+    orgHasNoLicenceTitle: function(org) {
+      console.log(1);
+      if (this.orgDisableApplyRadioButton(org)) {
+          //console.log(this.name + ' has no current licence');
+          return org.name + ' has no current licence'
+      }
+    },
+
     alertText: function() {
         let vm = this;
 		if (vm.selected_application_name == 'Apiary') {
