@@ -4112,6 +4112,20 @@ class PublicLiabilityInsuranceDocument(Document):
         app_label = 'disturbance'
 
 
+class TemporaryUsePublicLiabilityInsuranceDocument(Document):
+    DOC_TYPE_NAME = 'public_liability_document'
+
+    proposal = models.ForeignKey(ProposalApiaryTemporaryUse, related_name='public_liability_insurance_documents', blank=True, null=True)
+    _file = models.FileField(max_length=255)
+    input_name = models.CharField(max_length=255, blank=True, null=True)
+    can_delete = models.BooleanField(default=True)
+    visible = models.BooleanField(default=True)
+
+    class Meta:
+        app_label = 'disturbance'
+
+
+
 class SupportingApplicationDocument(Document):
     DOC_TYPE_NAME = 'supporting_application_document'
 

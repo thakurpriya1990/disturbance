@@ -5,8 +5,14 @@ import traceback
 from disturbance.components.main.models import TemporaryDocument
 from django.conf import settings
 
-from disturbance.components.proposals.models import ProposalApiary, Proposal, PublicLiabilityInsuranceDocument, \
-    DeedPollDocument, SupportingApplicationDocument
+from disturbance.components.proposals.models import (
+    ProposalApiaryTemporaryUse,
+    ProposalApiary,
+    Proposal,
+    PublicLiabilityInsuranceDocument,
+    DeedPollDocument,
+    SupportingApplicationDocument
+    )
 
 
 def process_generic_document(request, instance, document_type=None, *args, **kwargs):
@@ -130,7 +136,7 @@ def save_document(request, instance, comms_instance, document_type, input_name=N
                 document = instance.supporting_application_documents.get_or_create(input_name=input_name, name=filename)[0]
                 path_format_string = '{}/proposals/{}/supporting_application_documents/{}'
 
-            if isinstance(instance, ProposalApiary):
+            if isinstance(instance, ProposalApiary) or isinstance(instance, ProposalApiaryTemporaryUse):
                 id_number = instance.proposal.id
             elif isinstance(instance, Proposal):
                 id_number = instance.id

@@ -495,7 +495,7 @@
                     for (let referral of this.proposal.proposal_apiary.referrer_checklist_answers_per_site) {
                         if (referral.referral_data && referral.referral_data.length > 0) {
                             for (let answer of referral.referral_data) {
-                                if (answer.site && answer.apiary_site_id === siteId && answer.apiary_referral_id === referralId) {
+                                if (answer.apiary_site_id && answer.apiary_site_id === siteId && answer.apiary_referral_id === referralId) {
                                     siteList.push(answer)
                                 }
                             }
