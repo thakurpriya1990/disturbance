@@ -1,19 +1,5 @@
 <template lang="html">
     <div>
-
-        <!-- div class="row col-sm-12">
-            <div class="form-group">
-                <label class="inline">Title:</label>
-                <input
-                    type="text"
-                    class="form-control"
-                    v-model="proposal.proposal_apiary.title"
-                    :readonly="readonly"
-                    style="width: 100%;"
-                />
-            </div>
-        </div -->
-
         <div class="row col-sm-12">
             Mark the location of the new proposed site either by entering the latitude and longitude or by clicking the location in the map.
         </div>
@@ -76,12 +62,35 @@
             <span class="view_all_button action_link" @click="displayAllFeatures">View All Proposed Sites On Map</span>
         </div>
 
-        <div id="map" class="map"></div>
+        <div id="map-wrapper" class="row col-sm-12">
+            <div id="map" class="map"></div>
+            <div id="basemap-button">
+                <img id="basemap_sat" src="../../../assets/satellite_icon.jpg" @click="setBaseLayer('sat')" />
+                <img id="basemap_osm" src="../../../assets/map_icon.png" @click="setBaseLayer('osm')" />
+            </div>
+            <div id="optional-layers-wrapper">
+                <transition v-if="optionalLayers.length">
+                    <div id="optional-layers-button" v-show="!hover">
+                        <img src="../../../assets/layer-switcher-icon.png" @mouseover="hover=true" />
+                    </div>
+                </transition>
+                <transition v-if="optionalLayers.length">
+                    <div div id="layer_options" v-show="hover" @mouseleave="hover=false" >
+                        <div v-for="layer in optionalLayers">
+                            <input
+                                type="checkbox"
+                                :id="layer.ol_uid"
+                                :checked="layer.values_.visible"
+                                @change="changeLayerVisibility(layer)"
+                            />
+                            <label :for="layer.ol_uid">{{ layer.get('title') }}</label>
+                        </div>
+                    </div>
+                </transition>
+            </div>
+        </div>
 
         <div :id="popup_id" class="ol-popup">
-            <!--
-            <a href="#" :id="popup_closer_id" class="ol-popup-closer"></a>
-            -->
             <div :id="popup_content_id" class="text-center"></div>
         </div>
 
@@ -98,7 +107,6 @@
 <script>
     import 'ol/ol.css';
     import 'ol-layerswitcher/dist/ol-layerswitcher.css'
-    //import 'index.css';  // copy-and-pasted the contents of this file at the <style> section below in this file
     import Map from 'ol/Map';
     import View from 'ol/View';
     import WMTSCapabilities from 'ol/format/WMTSCapabilities';
@@ -125,8 +133,6 @@
     import uuid from 'uuid';
     import { getStatusForColour, getApiaryFeatureStyle, drawingSiteRadius, existingSiteRadius, SiteColours } from '@/components/common/apiary/site_colours.js'
     import Overlay from 'ol/Overlay';
-    import LayerSwitcher from 'ol-layerswitcher';
-    import { BaseLayerOptions, GroupLayerOptions } from 'ol-layerswitcher';
 
     export default {
         props:{
@@ -343,6 +349,11 @@
                         },
                     ],
                 },
+
+                tileLayerOsm: null,
+                tileLayerSat: null,
+                optionalLayers: [],
+                hover: false,
             }
         },
         components: {
@@ -583,6 +594,64 @@
             }
         },
         methods:{
+            console_layers: function(){
+                let layers = this.map.getLayers()
+                for (var i = 0; i < layers.array_.length; i++){
+                    console.log(i + ': ' + layers.array_[i].get('title'))
+                }
+            },
+            changeLayerVisibility: function(targetLayer){
+                targetLayer.setVisible(!targetLayer.getVisible())
+                let layers = this.map.getLayers()
+                for (var i = 0; i < layers.array_.length; i++){
+                    if (layers.array_[i].get('title') === 'Drawing Layer' || layers.array_[i].get('title') === 'Cluster Layer'){
+                        layers.array_[i].refresh()
+                    }
+                }
+            },
+            addOptionalLayers: function(){
+                let vm = this
+                this.$http.get('/api/map_layers/').then(response => {
+                    let layers = response.body
+                    for (var i = 0; i < layers.length; i++){
+                        let l = new TileWMS({
+                            url: 'https://kmi.dpaw.wa.gov.au/geoserver/public/wms',
+                            params: {
+                                'FORMAT': 'image/png',
+                                'VERSION': '1.1.1',
+                                tiled: true,
+                                STYLES: '',
+                                LAYERS: layers[i].layer_name.trim()
+                                //LAYERS: 'public:mapbox-satellite'
+                            }
+                        });
+
+                        let tileLayer= new TileLayer({
+                            title: layers[i].display_name.trim(),
+                            visible: false,
+                            source: l,
+                        })
+
+                        vm.optionalLayers.push(tileLayer)
+                        vm.map.addLayer(tileLayer)
+                    }
+                })
+            },
+            setBaseLayer: function(selected_layer_name){
+                let vm = this
+                if (selected_layer_name == 'sat') {
+                    vm.tileLayerOsm.setVisible(false)
+                    vm.tileLayerSat.setVisible(true)
+                    $('#basemap_sat').hide()
+                    $('#basemap_osm').show()
+                } else {
+                    vm.tileLayerOsm.setVisible(true)
+                    vm.tileLayerSat.setVisible(false)
+                    $('#basemap_osm').hide()
+                    $('#basemap_sat').show()
+                }
+                vm.console_layers()
+            },
             datatable_mounted: function(){
                 this.constructSiteLocationsTable();
             },
@@ -820,6 +889,7 @@
 
                     // Insert data into the table
                     for(let i=0; i<features.length; i++){
+                        console.log(features[i])
                         this.$refs.site_locations_table.vmDataTable.row.add(features[i]).draw();
                     }
 
@@ -898,34 +968,34 @@
                 let vm = this;
 
                 let satelliteTileWms = new TileWMS({
-                            url: 'https://kmi.dpaw.wa.gov.au/geoserver/public/wms',
-                            params: {
-                                'FORMAT': 'image/png',
-                                'VERSION': '1.1.1',
-                                tiled: true,
-                                STYLES: '',
-                                LAYERS: 'public:mapbox-satellite',
-                            }
-                        });
+                    url: 'https://kmi.dpaw.wa.gov.au/geoserver/public/wms',
+                    params: {
+                        'FORMAT': 'image/png',
+                        'VERSION': '1.1.1',
+                        tiled: true,
+                        STYLES: '',
+                        LAYERS: 'public:mapbox-satellite',
+                    }
+                });
 
-                const osm = new TileLayer({
+                vm.tileLayerOsm = new TileLayer({
                     title: 'OpenStreetMap',
                     type: 'base',
                     visible: true,
                     source: new OSM(),
                 });
 
-                const tileLayerSat = new TileLayer({
+                vm.tileLayerSat = new TileLayer({
                     title: 'Satellite',
                     type: 'base',
-                    visible: false,
+                    visible: true,
                     source: satelliteTileWms,
                 })
 
                 vm.map = new Map({
                     layers: [
-                        osm, 
-                        tileLayerSat,
+                        //vm.tileLayerOsm, 
+                        //vm.tileLayerSat,
                     ],
                     target: 'map',
                     view: new View({
@@ -935,12 +1005,6 @@
                     })
                 });
 
-                let layerSwitcher = new LayerSwitcher({
-                    reverse: true,
-                    groupSelectStyle: 'group'
-                })
-                vm.map.addControl(layerSwitcher)
-
                 let clusterSource = new Cluster({
                     distance: 50,
                     source: vm.apiarySitesQuerySource,
@@ -948,6 +1012,7 @@
 
                 let styleCache = {}
                 vm.apiarySitesClusterLayer = new VectorLayer({
+                    title: 'Cluster Layer',
                     source: clusterSource,
                     style: function (clusteredFeature){
                         let featuresInClusteredFeature = clusteredFeature.get('features')
@@ -990,7 +1055,7 @@
                         return style
                     },
                 });
-                vm.map.addLayer(vm.apiarySitesClusterLayer);
+                //vm.map.addLayer(vm.apiarySitesClusterLayer);
 
                 vm.bufferedSites = [];
                 vm.map.on("moveend", function(attributes){
@@ -1027,10 +1092,10 @@
                     vm.constructSiteLocationsTable()
                 });
                 vm.drawingLayer = new VectorLayer({
+                    title: 'Drawing Layer',
                     source: vm.drawingLayerSource,
                     style: vm.apiaryStyleFunctionProposed,
                 });
-                vm.map.addLayer(vm.drawingLayer);
 
                 let container = document.getElementById(vm.popup_id)
                 vm.content_element = document.getElementById(vm.popup_content_id)
@@ -1044,11 +1109,11 @@
 
                 //vm.bufferLayerSource = new VectorSource();
                 vm.bufferLayer = new VectorLayer({
+                    title: 'Buffer Layer',
                     source: vm.bufferLayerSource,
                     minZoom: 11,
 
                 });
-                vm.map.addLayer(vm.bufferLayer);
 
                 vm.swZoneSource = new VectorSource({
                     url: "/static/disturbance/gis/sw_apiary_zone.geojson",
@@ -1056,11 +1121,24 @@
                 });
                 // a visible layer is required to trigger loading the data, the empty style will mean that the features are not drawn
                 let swZoneLayer = new VectorLayer({
+                    title: 'South West Zone Layer',
                     source: vm.swZoneSource,
                     style: new Style(),
                     visible: true,
                 });
-                vm.map.addLayer(swZoneLayer);
+
+                // Add layers to the map
+                vm.map.addLayer(vm.tileLayerOsm)
+                vm.map.addLayer(vm.tileLayerSat)
+                vm.map.addLayer(swZoneLayer)
+                vm.map.addLayer(vm.apiarySitesClusterLayer)
+                vm.map.addLayer(vm.bufferLayer)
+                vm.map.addLayer(vm.drawingLayer)
+
+                // Set zIndex to some layers to be rendered over the other layers
+                vm.apiarySitesClusterLayer.setZIndex(10)
+                vm.bufferLayer.setZIndex(20)
+                vm.drawingLayer.setZIndex(30)
 
                 // Full screen toggle
                 vm.map.addControl(new FullScreenControl());
@@ -1190,9 +1268,7 @@
                 vm.map.addInteraction(hoverInteraction);
                 hoverInteraction.on('select', function(evt){
                     if(evt.selected.length > 0 && evt.selected[0].get('features').length > 0){
-                        console.log('in if')
                         // Mouse hover in
-                        console.log(evt.selected[0].get('features')[0])
                         let feature_hovered = evt.selected[0].get('features')[0]
 
                         //let is_vacant = evt.selected[0].get('is_vacant')
@@ -1200,30 +1276,22 @@
                         let making_payment = feature_hovered.get('making_payment') || false
                         let status = feature_hovered.get('status')
 
-                        console.log('is_vacant: ' + is_vacant)
-                        console.log('making_payment: ' + making_payment)
-                        console.log('status: ' + status)
-
                         if(is_vacant && !making_payment && status != 'pending'){
-                            console.log('3')
                             // When mouse hover on the 'vacant' apiary site, temporarily store it
                             // so that it can be added to the new apiary site application when user clicking on it.
-                            vm.vacant_site_being_selected = evt.selected[0]
+                            vm.vacant_site_being_selected = feature_hovered
 
                             // Thicken border when hover
                             let style_applied = getApiaryFeatureStyle(vm.vacant_site_being_selected.get('status'), true, 5)
                             vm.vacant_site_being_selected.setStyle(style_applied)
                         }
                         else {
-                            console.log('4')
                         }
                         if (vm.$route.query.debug === 'true'){
                         }
                     } else {
-                        console.log('in else')
                         // Mouse hover out
                         if (vm.vacant_site_being_selected){
-                            console.log('5')
                             //let status = vm.get_status_for_colour(vm.vacant_site_being_selected)
                             let status = getStatusForColour(vm.vacant_site_being_selected)
                             let style_applied = getApiaryFeatureStyle(status, false)
@@ -1240,6 +1308,9 @@
                         vm.vacant_site_being_selected = null
                     }
                 });
+                vm.setBaseLayer('osm')
+                vm.addOptionalLayers()
+                vm.console_layers()
             },  // End: initMap()
             //get_status_for_colour: function(feature){
             //    let status = feature.get("status");
@@ -1314,7 +1385,6 @@
                 this.$http.get('/api/apiary_site/list_existing_proposal_vacant_processed/?proposal_id=' + this.proposal.id).then(
                     res => {
                         let num_sites = 0
-                        console.log(res.body)
                         if(res.body.features){
                             vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
                             num_sites = res.body.features.length
@@ -1417,10 +1487,85 @@
     .debug-remainders {
         padding: 0 0 0 1em
     }
+    #map-wrapper {
+        position: relative;
+        padding: 0;
+        margin: 0;
+    }
     .map {
         display: inline-block;
         width: 100%;
         height: 500px;
+    }
+    canvas {
+        width: 100%;
+    }
+    #basemap-button {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 400;
+        -moz-box-shadow: 3px 3px 3px #777;
+        -webkit-box-shadow: 3px 3px 3px #777;
+        box-shadow: 3px 3px 3px #777;
+        -moz-filter: brightness(1.0);
+        -webkit-filter: brightness(1.0);
+        filter: brightness(1.0);
+        border: 2px white solid;
+    }
+    #basemap_sat,#basemap_osm {
+    /* border-radius: 5px; */
+    }
+    #basemap-button:hover {
+        cursor: pointer;
+        -moz-filter: brightness(0.9);
+        -webkit-filter: brightness(0.9);
+        filter: brightness(0.9);
+    }
+    #basemap-button:active {
+        top: 11px;
+        right: 9px;
+        -moz-box-shadow: 2px 2px 2px #555;
+        -webkit-box-shadow: 2px 2px 2px #555;
+        box-shadow: 2px 2px 2px #555;
+        -moz-filter: brightness(0.8);
+        -webkit-filter: brightness(0.8);
+        filter: brightness(0.8);
+    }
+    #optional-layers-wrapper {
+        position: absolute;
+        top: 70px;
+        left: 10px;
+    }
+    #optional-layers-button {
+        position: absolute;
+        z-index: 400;
+        background: white;
+        border-radius: 2px;
+        /*
+        box-shadow: 3px 3px 3px #777;
+        -moz-filter: brightness(1.0);
+        -webkit-filter: brightness(1.0);
+        */
+        border: 3px solid rgba(5, 5, 5, .1);
+    }
+    #layer_options {
+        /*
+        position: absolute;
+        */
+        top: 0;
+        left: 0;
+        z-index: 400;
+        background: white;
+        border-radius: 2px;
+        cursor: pointer;
+        /*
+        box-shadow: 3px 3px 3px #777;
+        -moz-filter: brightness(1.0);
+        -webkit-filter: brightness(1.0);
+        */
+        padding: 0.5em;
+        border: 3px solid rgba(5, 5, 5, .1);
     }
     .custom-mouse-position {
         position: absolute;
@@ -1532,5 +1677,9 @@
     }
     .mb-4 {
         margin-bottom: 2em !important;
+    }
+    .v-enter-active,
+    .v-leave-active {
+          transition: 0.4s;
     }
 </style>

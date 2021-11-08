@@ -401,7 +401,6 @@ import CommsLogs from '@common-utils/comms_logs.vue'
 import MoreReferrals from '@common-utils/more_referrals.vue'
 import ResponsiveDatatablesHelper from "@/utils/responsive_datatable_helper.js"
 import { api_endpoints, helpers } from '@/utils/hooks'
-import MapLocations from '@common-utils/map_locations.vue'
 export default {
     name: 'InternalProposal',
     data: function() {
@@ -486,7 +485,6 @@ export default {
         CommsLogs,
         MoreReferrals,
         NewApply,
-        MapLocations,
     },
     filters: {
         formatDate: function(data){

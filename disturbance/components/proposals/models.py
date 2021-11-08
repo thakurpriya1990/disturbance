@@ -4606,7 +4606,7 @@ class MasterlistQuestion(models.Model):
     name = models.CharField(max_length=100)
     question = models.TextField()
     #answer_type= models.CharField(max_length=100)
-    option = models.ManyToManyField(QuestionOption, blank=True, null=True)
+    option = models.ManyToManyField(QuestionOption, blank=True)
     answer_type = models.CharField('Answer Type', max_length=40, choices=ANSWER_TYPE_CHOICES,
                                         default=ANSWER_TYPE_CHOICES[0][0])
     # help_text_url=models.CharField(max_length=400, blank=True, null=True)
