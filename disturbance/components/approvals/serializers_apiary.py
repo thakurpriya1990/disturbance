@@ -128,6 +128,7 @@ class ApiarySiteOnApprovalGeometrySerializer(GeoFeatureModelSerializer):
 
 
 class ApiarySiteOnApprovalGeometryExportSerializer(ApiarySiteOnApprovalGeometrySerializer):
+    site_id = serializers.IntegerField(source='apiary_site.id')
     status = serializers.SerializerMethodField()
     category = serializers.CharField(source='site_category.name')
     surname = serializers.SerializerMethodField()
@@ -137,10 +138,13 @@ class ApiarySiteOnApprovalGeometryExportSerializer(ApiarySiteOnApprovalGeometryS
     mobile = serializers.SerializerMethodField()
     email = serializers.SerializerMethodField()
     organisation_name = serializers.SerializerMethodField()
+    approval_lodgement_number = serializers.CharField(source='approval.lodgement_number')
+    proposal_lodgement_number = serializers.SerializerMethodField()
 
     class Meta(ApiarySiteOnApprovalGeometrySerializer.Meta):
         fields = (
             'id',
+            'site_id',
             'status',
             'category',
             'surname',
@@ -150,7 +154,12 @@ class ApiarySiteOnApprovalGeometryExportSerializer(ApiarySiteOnApprovalGeometryS
             'mobile',
             'email',
             'organisation_name',
+            'approval_lodgement_number',
+            'proposal_lodgement_number',
         )
+
+    def get_proposal_lodgement_number(self, obj):
+        return ''
 
     def get_organisation_name(self, relation):
         relevant_applicant = relation.approval.relevant_applicant
