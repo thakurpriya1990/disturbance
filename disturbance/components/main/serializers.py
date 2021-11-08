@@ -2,7 +2,7 @@ from rest_framework import serializers
 from rest_framework_gis.serializers import GeoFeatureModelSerializer
 
 from disturbance.components.main.models import CommunicationsLogEntry, Region, District, Tenure, ApplicationType, \
-    ActivityMatrix, WaCoast
+    ActivityMatrix, WaCoast, MapLayer
 from ledger.accounts.models import EmailUser
 
 
@@ -105,3 +105,12 @@ class BookingSettlementReportSerializer(serializers.Serializer):
 class OracleSerializer(serializers.Serializer):
     date = serializers.DateField(input_formats=['%d/%m/%Y','%Y-%m-%d'])
     override = serializers.BooleanField(default=False)
+
+
+class MapLayerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MapLayer
+        fields = (
+            'display_name',
+            'layer_name',
+        )

@@ -131,7 +131,7 @@
                                     </div>
                                 </div>
                             </div>
- 
+
 <!--
                             <pre>{{ issuance_details }}</pre>
                                     <pre>{{ site.properties }}</pre>
@@ -156,7 +156,7 @@
 							    <div class="form-group">
 								<div class="col-sm-4">
 								    <label class="control-label pull-left"  for="name">Batch Number</label><br>
-								    <input type="text" class="form-control" name="site_batch_no" style="width:100%;" ref="batch_no" 
+								    <input type="text" class="form-control" name="site_batch_no" style="width:100%;" ref="batch_no"
                                                                         v-model="site.properties.batch_no"
                                                                     >
 								</div>
@@ -166,7 +166,7 @@
                                     <pre>{{ site.properties.issuance_details }}</pre>
 								<div class="col-sm-4">
 								    <label class="control-label pull-left"  for="name">Batch Number</label><br>
-								    <input type="text" class="form-control" name="approval_batch_no" style="width:100%;" ref="batch_no" 
+								    <input type="text" class="form-control" name="approval_batch_no" style="width:100%;" ref="batch_no"
                                                                         v-model="issuance_details.batch_no"
                                                                     >
 								</div>
@@ -249,7 +249,7 @@
                                     </div>
                                 </div>
                             </div>
-  
+
 
 <!--
                             <pre>{{ apiary_sites_updated }}</pre>
@@ -290,7 +290,6 @@
                         :show_col_checkbox="true"
                         :show_col_status_when_submitted="true"
                         :show_col_decision="false"
-                        :apiary_licensed_sites="apiary_licenced_sites_prop"
                         :show_col_licensed_site="true"
                         :show_col_licensed_site_checkbox="true"
                         :key="component_site_selection_key"
