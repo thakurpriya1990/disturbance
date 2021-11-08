@@ -798,7 +798,11 @@ class ProposalApiaryViewSet(viewsets.ModelViewSet):
     @renderer_classes((JSONRenderer,))
     @basic_exception_handler
     def process_public_liability_insurance_document(self, request, *args, **kwargs):
-        instance = self.get_object()
+        try:
+            instance = self.get_object()
+        except:
+            instance = ProposalApiaryTemporaryUse.objects.get(proposal__id=kwargs.get('pk'))
+
         returned_data = process_generic_document(request, instance, document_type=PublicLiabilityInsuranceDocument.DOC_TYPE_NAME)
         if returned_data:
             return Response(returned_data)

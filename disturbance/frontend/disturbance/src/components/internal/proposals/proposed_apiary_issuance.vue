@@ -186,13 +186,13 @@
 
 								<div class="col-sm-4">
 								    <label class="control-label pull-left" style="text-align:left" for="name">Conservation and Parks Commission</label>
-								    <input type="text" class="form-control" name="site_cpc_date" placeholder="DD-MM-YYYY" style="width:100%;" ref="cpc_date"
+								    <input type="text" class="form-control" name="site_cpc_date" placeholder="YYYY-MM-DD" style="width:100%;" ref="cpc_date" 
                                                                         v-model="site.properties.approval_cpc_date"
                                                                     >
 								</div>
 								<div class="col-sm-4">
 								    <label class="control-label pull-left" style="text-align:left" for="name">Minister for Environment or Delegate</label>
-								    <input type="text" class="form-control" name="site_minister_date" placeholder="DD-MM-YYYY" style="width:100%;" ref="minister_date"
+								    <input type="text" class="form-control" name="site_minister_date" placeholder="YYYY-MM-DD" style="width:100%;" ref="minister_date" 
                                                                         v-model="site.properties.approval_minister_date"
                                                                     >
 								</div>
