@@ -113,7 +113,6 @@
     import TileLayer from 'ol/layer/Tile';
     import OSM from 'ol/source/OSM';
     import TileWMS from 'ol/source/TileWMS';
-    import WMTS, {optionsFromCapabilities} from 'ol/source/WMTS';
     import Collection from 'ol/Collection';
     import {Draw, Modify, Snap, Select} from 'ol/interaction';
     import {pointerMove} from 'ol/events/condition';
@@ -133,6 +132,28 @@
     import uuid from 'uuid';
     import { getStatusForColour, getApiaryFeatureStyle, drawingSiteRadius, existingSiteRadius, SiteColours } from '@/components/common/apiary/site_colours.js'
     import Overlay from 'ol/Overlay';
+
+    import WMTS, {optionsFromCapabilities} from 'ol/source/WMTS';
+    //import WMTSTileGrid from 'ol/source/WMTS';
+    import WMTSTileGrid from 'ol/tilegrid/WMTS';
+    import {get as getProjection} from 'ol/proj';
+    import {getTopLeft, getWidth} from 'ol/extent';
+
+    // create the WMTS tile grid in the google projection
+    const projection = getProjection('EPSG:3857');
+    const tileSizePixels = 256;
+    const tileSizeMtrs = getWidth(projection.getExtent()) / tileSizePixels;
+    const matrixIds = [];
+    const resolutions = [];
+    for (let i = 0; i <= 14; i++) {
+          matrixIds[i] = i;
+          resolutions[i] = tileSizeMtrs / Math.pow(2, i);
+    }
+    const tileGrid = new WMTSTileGrid({
+          origin: getTopLeft(projection.getExtent()),
+          resolutions: resolutions,
+          matrixIds: matrixIds,
+    });
 
     export default {
         props:{
@@ -967,16 +988,27 @@
             initMap: async function() {
                 let vm = this;
 
-                let satelliteTileWms = new TileWMS({
-                    url: 'https://kmi.dpaw.wa.gov.au/geoserver/public/wms',
-                    params: {
-                        'FORMAT': 'image/png',
-                        'VERSION': '1.1.1',
-                        tiled: true,
-                        STYLES: '',
-                        LAYERS: 'public:mapbox-satellite',
-                    }
-                });
+                let satelliteTileWms = new WMTS({
+                    url: 'https://kmi.dpaw.wa.gov.au/geoserver/gwc/service/wmts',
+                    layer: 'landgate:vitual_mosaic',
+                    format: 'image/jpeg',
+                    matrixSet: 'EPSG:3857',
+                    tileGrid: tileGrid,
+                    style: 'default',
+                    dimensions: {
+                        'threshold': 100,
+                    },
+                })
+                //let satelliteTileWms = new TileWMS({
+                //    url: 'https://kmi.dpaw.wa.gov.au/geoserver/public/wms',
+                //    params: {
+                //        'FORMAT': 'image/png',
+                //        'VERSION': '1.1.1',
+                //        tiled: true,
+                //        STYLES: '',
+                //        LAYERS: 'public:mapbox-satellite',
+                //    }
+                //});
 
                 vm.tileLayerOsm = new TileLayer({
                     title: 'OpenStreetMap',
