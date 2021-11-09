@@ -143,7 +143,9 @@
     const projection = getProjection('EPSG:4326');
     const tileSizePixels = 1024;
     const tileSizeMtrs = getWidth(projection.getExtent()) / tileSizePixels;
-    //const matrixIds = [];
+console.log('tileSizeMtrs')
+console.log(tileSizeMtrs)
+console.log(getWidth([-180, -90, 180, 90]) / tileSizePixels)
     //const resolutions = [];
     //for (let i = 0; i <= 17; ++i) {
     //      resolutions[i] = tileSizeMtrs / Math.pow(2, i);
@@ -176,20 +178,21 @@
     let matrixSet = matrixSets['EPSG:4326']['1024']
     console.log(matrixSet)
     const tileGrid = new WMTSTileGrid({
-        origin: getTopLeft([-180, -90, 180, 90]),
+        //origin: getTopLeft([-180, -90, 180, 90]),
+        origin: getTopLeft(projection.getExtent()),
         resolutions: resolutions,
         matrixIds: matrixSet.matrixIds,
-        tileSize: 1024,
+        tileSize: 1024,  // default: 256
     })
     // override getZForResolution on tile grid object;
     // for weird zoom levels, the default is to round up or down to the
     // nearest integer to determine which tiles to use.
     // because we want the printing rasters to contain as much detail as
     // possible, we rig it here to always round up.
-    //tileGrid.origGetZForResolution = tileGrid.getZForResolution
-    //tileGrid.getZForResolution = function (resolution, optDirection) {
-    //    return tileGrid.origGetZForResolution(resolution*1.4, -1)
-    //}
+    tileGrid.origGetZForResolution = tileGrid.getZForResolution
+    tileGrid.getZForResolution = function (resolution, optDirection) {
+        return tileGrid.origGetZForResolution(resolution*1.4, -1)
+    }
     export default {
         props:{
             proposal:{
