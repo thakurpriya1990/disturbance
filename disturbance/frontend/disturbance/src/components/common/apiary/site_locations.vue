@@ -113,7 +113,6 @@
     import TileLayer from 'ol/layer/Tile';
     import OSM from 'ol/source/OSM';
     import TileWMS from 'ol/source/TileWMS';
-    import WMTS, {optionsFromCapabilities} from 'ol/source/WMTS';
     import Collection from 'ol/Collection';
     import {Draw, Modify, Snap, Select} from 'ol/interaction';
     import {pointerMove} from 'ol/events/condition';
@@ -134,6 +133,66 @@
     import { getStatusForColour, getApiaryFeatureStyle, drawingSiteRadius, existingSiteRadius, SiteColours } from '@/components/common/apiary/site_colours.js'
     import Overlay from 'ol/Overlay';
 
+    import WMTS, {optionsFromCapabilities} from 'ol/source/WMTS';
+    //import WMTSTileGrid from 'ol/source/WMTS';
+    import WMTSTileGrid from 'ol/tilegrid/WMTS';
+    import {get as getProjection} from 'ol/proj';
+    import {getTopLeft, getWidth} from 'ol/extent';
+
+    // create the WMTS tile grid in the google projection
+    const projection = getProjection('EPSG:4326');
+    const tileSizePixels = 1024;
+    const tileSizeMtrs = getWidth(projection.getExtent()) / tileSizePixels;
+console.log('tileSizeMtrs')
+console.log(tileSizeMtrs)
+console.log(getWidth([-180, -90, 180, 90]) / tileSizePixels)
+    //const resolutions = [];
+    //for (let i = 0; i <= 17; ++i) {
+    //      resolutions[i] = tileSizeMtrs / Math.pow(2, i);
+    //}
+    const resolutions = [0.17578125, 0.087890625, 0.0439453125, 0.02197265625, 0.010986328125, 0.0054931640625, 0.00274658203125, 0.001373291015625, 0.0006866455078125, 0.0003433227539062, 0.0001716613769531, 858306884766e-16, 429153442383e-16, 214576721191e-16, 107288360596e-16, 53644180298e-16, 26822090149e-16, 13411045074e-16]
+    //const tileGrid = new WMTSTileGrid({
+    //      origin: getTopLeft(projection.getExtent()),
+    //      resolutions: resolutions,
+    //      matrixIds: matrixIds,
+    //});
+
+    let matrixSets = {
+        'EPSG:4326': {
+            '1024': {
+                'name': 'gda94',
+                'minLevel': 0,
+                'maxLevel': 17
+            }
+        }
+    }
+    $.each(matrixSets, function (projection, innerMatrixSets) {
+        $.each(innerMatrixSets, function (tileSize, matrixSet) {
+            var matrixIds = new Array(matrixSet.maxLevel - matrixSet.minLevel + 1)
+            for (var z = matrixSet.minLevel; z <= matrixSet.maxLevel; ++z) {
+                matrixIds[z] = matrixSet.name + ':' + z
+            }
+            matrixSet.matrixIds = matrixIds
+        })
+    })
+    let matrixSet = matrixSets['EPSG:4326']['1024']
+    console.log(matrixSet)
+    const tileGrid = new WMTSTileGrid({
+        //origin: getTopLeft([-180, -90, 180, 90]),
+        origin: getTopLeft(projection.getExtent()),
+        resolutions: resolutions,
+        matrixIds: matrixSet.matrixIds,
+        tileSize: 1024,  // default: 256
+    })
+    // override getZForResolution on tile grid object;
+    // for weird zoom levels, the default is to round up or down to the
+    // nearest integer to determine which tiles to use.
+    // because we want the printing rasters to contain as much detail as
+    // possible, we rig it here to always round up.
+    tileGrid.origGetZForResolution = tileGrid.getZForResolution
+    tileGrid.getZForResolution = function (resolution, optDirection) {
+        return tileGrid.origGetZForResolution(resolution*1.4, -1)
+    }
     export default {
         props:{
             proposal:{
@@ -967,16 +1026,25 @@
             initMap: async function() {
                 let vm = this;
 
-                let satelliteTileWms = new TileWMS({
-                    url: 'https://kmi.dpaw.wa.gov.au/geoserver/public/wms',
-                    params: {
-                        'FORMAT': 'image/png',
-                        'VERSION': '1.1.1',
-                        tiled: true,
-                        STYLES: '',
-                        LAYERS: 'public:mapbox-satellite',
-                    }
-                });
+                let satelliteTileWms = new WMTS({
+                    url: 'https://kmi.dpaw.wa.gov.au/geoserver/gwc/service/wmts',
+                    layer: 'public:mapbox-satellite',
+                    format: 'image/png',
+                    matrixSet: 'gda94',
+                    projection: 'EPSG:4326',
+                    tileGrid: tileGrid,
+                    style: '',
+                })
+                //let satelliteTileWms = new TileWMS({
+                //    url: 'https://kmi.dpaw.wa.gov.au/geoserver/public/wms',
+                //    params: {
+                //        'FORMAT': 'image/png',
+                //        'VERSION': '1.1.1',
+                //        tiled: true,
+                //        STYLES: '',
+                //        LAYERS: 'public:mapbox-satellite',
+                //    }
+                //});
 
                 vm.tileLayerOsm = new TileLayer({
                     title: 'OpenStreetMap',
