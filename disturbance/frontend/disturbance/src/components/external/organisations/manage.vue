@@ -1,7 +1,7 @@
 <template>
     <div class="container" v-if="org" id="userInfo">
         <div class="row">
-            <div class="col-sm-12">
+            <div class="col-sm-12" v-if="show_org">
                 <div class="panel panel-default">
                   <div class="panel-heading">
                     <h3 class="panel-title">Organisation Details <small> - View and update the organisation's details</small>
@@ -41,17 +41,17 @@
                 </div>
             </div>
         </div>
-        <div class="row">
+        <div class="row" v-if="show_address">
             <div class="col-sm-12">
                 <div class="panel panel-default">
                   <div class="panel-heading">
                     <h3 class="panel-title">Address Details <small> - View and update the organisation's address details</small>
-                        <a class="panelClicker" :href="'#'+adBody" data-toggle="collapse" expanded="false"  data-parent="#userInfo" :aria-controls="adBody">
+                        <a class="panelClicker" :href="'#'+adBody" data-toggle="collapse" expanded="true"  data-parent="#userInfo" :aria-controls="adBody">
                             <span class="glyphicon glyphicon-chevron-down pull-right "></span>
                         </a>
                     </h3>
                   </div>
-                  <div v-if="loading.length == 0" class="panel-body collapse" :id="adBody">
+                  <div v-if="loading.length == 0" class="panel-body collapse in" :id="adBody">
                       <form class="form-horizontal" action="index.html" method="post">
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label">Street</label>
@@ -117,7 +117,7 @@
             </div>
         </div>
         -->
-        <div class="row">
+        <div class="row" v-if="show_linked">
             <div class="col-sm-12">
                 <div class="panel panel-default">
                   <div class="panel-heading">
@@ -187,8 +187,8 @@
                   </div>
                 </div>
             </div>
-        </div>
-        <AddContact ref="add_contact" :org_id="org.id" />
+	    </div>
+	    <AddContact v-if="show_contact" ref="add_contact" :org_id="org.id" />
     </div>
 </template>
 
@@ -202,6 +202,32 @@ import api from '../api'
 import AddContact from '@common-utils/add_contact.vue'
 export default {
     name: 'Organisation',
+    props:{
+        org_id:{
+            type: Number,
+            default: null
+        },
+        isApplication:{
+            type: Boolean,
+            default: false
+        },
+        show_org:{
+            type: Boolean,
+            default: true
+        },
+        show_address:{
+            type: Boolean,
+            default: true
+        },
+        show_linked:{
+            type: Boolean,
+            default: true
+        },
+        show_contact:{
+            type: Boolean,
+            default: true
+        },
+    },
     data () {
         let vm = this;
         return {
@@ -1055,19 +1081,19 @@ export default {
     mounted: function(){
         this.personal_form = document.forms.personal_form;
         let vm=this;
-        // let initialisers = [
-        //     utils.fetchCountries(),
-        //     utils.fetchOrganisation(vm.org_id),
-        //     utils.fetchOrganisationPermissions(vm.org_id)
-        // ]
-        // Promise.all(initialisers).then(data => {
-        //         vm.countries = data[0];
-        //         vm.org = data[1];
-        //         vm.myorgperms = data[2];
-        //         vm.org.address = vm.org.address != null ? vm.org.address : {};
-        //         vm.org.pins = vm.org.pins != null ? vm.org.pins : {};
+         let initialisers = [
+             utils.fetchCountries(),
+             utils.fetchOrganisation(vm.org_id),
+             utils.fetchOrganisationPermissions(vm.org_id)
+         ]
+         Promise.all(initialisers).then(data => {
+                 vm.countries = data[0];
+                 vm.org = data[1];
+                 vm.myorgperms = data[2];
+                 vm.org.address = vm.org.address != null ? vm.org.address : {};
+                 vm.org.pins = vm.org.pins != null ? vm.org.pins : {};
             
-        // });
+         });
     },
     updated: function(){
         let vm = this;
