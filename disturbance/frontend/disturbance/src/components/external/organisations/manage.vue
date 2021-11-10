@@ -1,5 +1,5 @@
 <template>
-    <div>
+    <div :class="div_container ? 'container' : ''">
 
         <FormSection v-if="org && show_org" :formCollapse="org_collapse" label="Organisation Details" Index="org_details" subheading="View and update the organisation's details">
             <form class="form-horizontal" name="personal_form" method="post">
@@ -118,7 +118,7 @@
             </div>
         </FormSection>
 
-  </div>
+    </div>
 </template>
 
 <script>
@@ -168,6 +168,10 @@ export default {
             default: true
         },
         linked_collapse:{
+            type: Boolean,
+            default: true
+        },
+        div_container:{
             type: Boolean,
             default: true
         },

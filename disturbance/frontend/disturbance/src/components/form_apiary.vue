@@ -12,7 +12,14 @@
         </div>
 
         <div :class="apiary_sections_classname">
-            <ManageUser :org_id="proposal.applicant" :isApplication="true" ref="mu_details" :show_linked="false" org_collapse="true""></ManageUser>
+            <ManageUser
+                :org_id="proposal.applicant" 
+                :isApplication="true" 
+                :show_linked="false" 
+                :org_collapse="true" 
+                :div_container="false"
+                ref="mu_details" 
+            />
 
             <FormSection :formCollapse="false" label="Site Locations" Index="site_locations">
                 <div v-if="draftApiaryApplication">
