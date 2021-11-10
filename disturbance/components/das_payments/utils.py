@@ -31,7 +31,7 @@ import logging
 
 from disturbance.settings import PAYMENT_SYSTEM_ID, DEBUG, PRODUCTION_EMAIL, ANNUAL_RENTAL_FEE_GST_EXEMPT
 
-logger = logging.getLogger('payment_checkout')
+logger = logging.getLogger('apiary')
 
 
 def get_session_application_invoice(session):
@@ -422,6 +422,8 @@ def checkout(request, proposal, lines, return_url_ns='public_payment_success', r
         'vouchers': vouchers,
         'system': settings.PAYMENT_SYSTEM_ID,
         'custom_basket': True,
+        'booking_reference': proposal.lodgement_number,
+        # 'booking_reference_linked': OLD booking number
     }
 
     basket, basket_hash = create_basket_session(request, basket_params)

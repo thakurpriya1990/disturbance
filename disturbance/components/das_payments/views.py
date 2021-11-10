@@ -58,7 +58,7 @@ from disturbance.helpers import is_internal, is_disturbance_admin, is_in_organis
 from disturbance.context_processors import apiary_url
 
 import logging
-logger = logging.getLogger('payment_checkout')
+logger = logging.getLogger('apiary')
 
 
 class AnnualRentalFeeView(TemplateView):

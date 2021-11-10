@@ -1043,9 +1043,12 @@ class ApiaryReferralViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             instance.complete(request)
-            data={}
-            data['type']=u'referral_complete'
-            data['fromm']=u'{}'.format(instance.referral_group.name)
+            data = {}
+            # data['type'] = u'referral_complete'
+            data['type'] = u'email'
+            # data['fromm'] = u'{}'.format(instance.referral_group.name)
+            data['fromm'] = u'{}'.format(request.user.get_full_name())
+            data['to'] = u'{}'.format(instance.referral_group.name)
             data['proposal'] = u'{}'.format(instance.referral.proposal.id)
             data['staff'] = u'{}'.format(request.user.id)
             data['text'] = u'{}'.format(instance.referral.referral_text)

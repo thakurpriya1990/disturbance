@@ -201,7 +201,19 @@ LOGGING['loggers']['disturbance'] = {
             'handlers': ['file'],
             'level': 'INFO'
         }
-
+# Add a handler
+LOGGING['handlers']['file_apiary'] = {
+    'level': 'INFO',
+    'class': 'logging.handlers.RotatingFileHandler',
+    'filename': os.path.join(BASE_DIR, 'logs', 'apiary.log'),
+    'formatter': 'verbose',
+    'maxBytes': 5242880
+}
+# define logger
+LOGGING['loggers']['apiary'] = {
+    'handlers': ['file_apiary'],
+    'level': 'INFO'
+}
 
 #APPLICATION_TYPES_SQL='''
 #        SELECT name, name FROM disturbance_applicationtypechoice
