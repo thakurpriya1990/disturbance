@@ -11,321 +11,196 @@
             </div>
         </div>
 
-        <div class="col-md-12">
-            <ul class="nav nav-pills mb-3" id="pills-tab" role="tablist">
-              <li class="nav-item">
-                <a class="nav-link active" id="pills-applicant-tab" data-toggle="pill" href="#pills-applicant" role="tab" aria-controls="pills-applicant" aria-selected="true">
-                  Applicant
-                </a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" id="pills-application-tab" data-toggle="pill" href="#pills-application" role="tab" aria-controls="pills-application" aria-selected="false">
-                  Application
-                </a>
-              </li>
-            </ul>
-            <div class="tab-content" id="pills-tabContent">
-              <div class="tab-pane fade" id="pills-applicant" role="tabpanel" aria-labelledby="pills-applicant-tab">
-                  <p> ** Applicant ** </p>
-			  <!--
-                        <Organisation org_id="44" :isApplication="true" ref="organisation" :show_linked="false" :show_contact="false" :address_expanded="false"></Organisation>
-			  -->
+        <div :class="apiary_sections_classname">
+            <ManageUser :org_id="proposal.applicant" :isApplication="true" ref="mu_details" :show_linked="false" org_collapse="true""></ManageUser>
 
-			  <!--
-			    <Profile :isApplication="true" v-if="applicantType == 'SUB'" ref="profile"></Profile>
-			    <Organisation :org_id="proposal.org_applicant" :isApplication="true" v-if="applicantType == 'ORG'" ref="organisation"></Organisation>
-			    <Applicant :proposal="proposal" id="proposalStartApplicant"></Applicant>
-			  -->
-                        <!--
-			<div class="row">
-			    <div class="col-sm-12">
-				<div class="panel panel-default">
-				  <div class="panel-heading">
-				    <h3 class="panel-title">Organisation Details <small> - View and update the organisation's details</small>
-					<a class="panelClicker" :href="'#'+pBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="pBody">
-					    <span class="glyphicon glyphicon-chevron-up pull-right "></span>
-					</a>
-				    </h3>
-				  </div>
-				  <div class="panel-body collapse in" :id="pBody">
-				      <form class="form-horizontal" name="personal_form" method="post">
-					  <div class="form-group">
-					    <label for="" class="col-sm-3 control-label">Name</label>
-					    <div class="col-sm-6">
-						<input type="text" class="form-control" name="first_name" placeholder="" v-model="org.name">
-					    </div>
-					  </div>
-					  <div class="form-group">
-					    <label for="" class="col-sm-3 control-label" >ABN</label>
-					    <div class="col-sm-6">
-						<input type="text" disabled class="form-control" name="last_name" placeholder="" v-model="org.abn">
-					    </div>
-					  </div>
-					  <div class="form-group">
-					    <label for="" class="col-sm-3 control-label" >Email</label>
-					    <div class="col-sm-6">
-						<input type="text" class="form-control" name="email" placeholder="" v-model="org.email">
-					    </div>
-					  </div>
-					  <div class="form-group">
-					    <div class="col-sm-12">
-						<button v-if="!updatingDetails" class="pull-right btn btn-primary" @click.prevent="updateDetails()">Update</button>
-						<button v-else disabled class="pull-right btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Updating</button>
-					    </div>
-					  </div>
-				       </form>
-				  </div>
-				</div>
-			    </div>
-			</div>
+            <FormSection :formCollapse="false" label="Site Locations" Index="site_locations">
+                <div v-if="draftApiaryApplication">
 
-			<div class="row">
-			    <div class="col-sm-12">
-				<div class="panel panel-default">
-				  <div class="panel-heading">
-				    <h3 class="panel-title">Address Details <small> - View and update the organisation's address details</small>
-					<a class="panelClicker" :href="'#'+adBody" data-toggle="collapse" expanded="false"  data-parent="#userInfo" :aria-controls="adBody">
-					    <span class="glyphicon glyphicon-chevron-down pull-right "></span>
-					</a>
-				    </h3>
-				  </div>
-				  <div v-if="loading.length == 0" class="panel-body collapse" :id="adBody">
-				      <form class="form-horizontal" action="index.html" method="post">
-					  <div class="form-group">
-					    <label for="" class="col-sm-3 control-label">Street</label>
-					    <div class="col-sm-6">
-						<input type="text" class="form-control" name="street" placeholder="" v-model="org.address.line1">
-					    </div>
-					  </div>
-					  <div class="form-group">
-					    <label for="" class="col-sm-3 control-label" >Town/Suburb</label>
-					    <div class="col-sm-6">
-						<input type="text" class="form-control" name="surburb" placeholder="" v-model="org.address.locality">
-					    </div>
-					  </div>
-					  <div class="form-group">
-					    <label for="" class="col-sm-3 control-label">State</label>
-					    <div class="col-sm-3">
-						<input type="text" class="form-control" name="country" placeholder="" v-model="org.address.state">
-					    </div>
-					    <label for="" class="col-sm-1 control-label">Postcode</label>
-					    <div class="col-sm-2">
-						<input type="text" class="form-control" name="postcode" placeholder="" v-model="org.address.postcode">
-					    </div>
-					  </div>
-					  <div class="form-group">
-					    <label for="" class="col-sm-3 control-label" >Country</label>
-					    <div class="col-sm-4">
-						<select class="form-control" name="country" v-model="org.address.country">
-						    <option v-for="c in countries" :value="c.code">{{ c.name }}</option>
-						</select>
-					    </div>
-					  </div>
-					  <div class="form-group">
-					    <div class="col-sm-12">
-						<button v-if="!updatingAddress" class="pull-right btn btn-primary" @click.prevent="updateAddress()">Update</button>
-						<button v-else disabled class="pull-right btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Updating</button>
-					    </div>
-					  </div>
-				       </form>
-				  </div>
-				</div>
-			    </div>
-			</div>
-                        -->
+                    <SiteLocations
+                        :proposal="proposal"
+                        id="site_locations"
+                        ref="apiary_site_locations"
+                        :is_external="is_external"
+                        :is_internal="is_internal"
+                        @button_text="button_text"
+                        @total_fee_south_west="total_fee_south_west"
+                        @total_fee_remote="total_fee_remote"
+                        @total_fee_south_west_renewal="total_fee_south_west_renewal"
+                        @total_fee_remote_renewal="total_fee_remote_renewal"
+                        @num_of_sites_remain_south_west="num_of_sites_remain_south_west"
+                        @num_of_sites_remain_remote="num_of_sites_remain_remote"
+                        @num_of_sites_remain_south_west_renewal="num_of_sites_remain_south_west_renewal"
+                        @num_of_sites_remain_remote_renewal="num_of_sites_remain_remote_renewal"
+                        @num_of_sites_south_west_to_add_as_remainder="num_of_sites_south_west_to_add_as_remainder"
+                        @num_of_sites_remote_to_add_as_remainder="num_of_sites_remote_to_add_as_remainder"
+                        @num_of_sites_south_west_renewal_to_add_as_remainder="num_of_sites_south_west_renewal_to_add_as_remainder"
+                        @num_of_sites_remote_renewal_to_add_as_remainder="num_of_sites_remote_renewal_to_add_as_remainder"
+                        @total_num_of_sites_on_map_unpaid="total_num_of_sites_on_map_unpaid"
+                        @total_num_of_sites_on_map="total_num_of_sites_on_map"
+                        @fee_remote_renewal="fee_remote_renewal"
+                        @fee_south_west_renewal="fee_south_west_renewal"
+                    />
 
-                  <!--
-                    <Profile :isApplication="true" v-if="applicantType == 'SUB'" ref="profile"></Profile>
-                    <Organisation :org_id="proposal.org_applicant" :isApplication="true" v-if="applicantType == 'ORG'" ref="organisation"></Organisation>
-                    <Applicant :proposal="proposal" id="proposalStartApplicant"></Applicant>
-                  -->
-                  <!--
-                  <div v-if="is_external">
-                  </div>
-                  -->
-              </div>
-              <div class="tab-pane fade" id="pills-application" role="tabpanel" aria-labelledby="pills-application-tab">
-                  <p> ** Application ** </p>
-			<div :class="apiary_sections_classname">
-			    <FormSection :formCollapse="false" label="Site Locations" Index="site_locations">
+                </div>
+                <div v-else>
+                    <ComponentSiteSelection
+                        :apiary_sites="apiary_sites"
+                        :is_internal="is_internal"
+                        :is_external="is_external"
+                        :show_col_site="false"
+                        :show_col_site_when_submitted="true"
+                        :show_col_checkbox="false"
+                        :show_action_available_unavailable="showActionAvailableUnavailable"
+                        :show_col_status="false"
+                        :show_col_status_when_submitted="true"
+                        :key="component_site_selection_key"
+                      />
+                </div>
+            </FormSection>
 
-				<div v-if="draftApiaryApplication">
+            <FormSection :formCollapse="false" label="Supporting Application Documents" Index="supporting_application_documents">
+                <div class="row">
+                    <div class="col-sm-12">
+                        <label>
+                            Please provide supporting documents to your application this includes site photos, proposed access routes and details on native vegetation clearing (if applicable).
+                        </label>
+                        <div class="input-file-wrapper">
+                            <FileField
+                                ref="supporting_application_documents"
+                                name="supporting-application-documents"
+                                :isRepeatable="true"
+                                :documentActionUrl="supportingApplicationDocumentUrl"
+                                :readonly="readonly"
+                                :replace_button_by_text="true"
+                            />
+                        </div>
+                    </div>
+                </div>
+            </FormSection>
 
+            <FormSection :formCollapse="false" label="Public Liability Insurance" Index="public_liability_insurance">
+                <div class="row">
+                    <div class="col-sm-12">
+                        <label>
+                            <ol type="a" class="insurance-items">
+                            <li>Attach your policy for public liability insurance that covers the areas and operations allowed under the apiary authority, and in the name of the applicant to the extent of its rights and interests, for a sum of not less than AU$10 million per event.</li>
+                            <li>It is a requirement of all apiary authority holders to maintain appropriate public liability insurance.</li>
+                            </ol>
+                        </label>
+                    </div>
+                </div>
+                    <div class="my-container input-file-wrapper">
+                        <div class="grow1">
+                            <label>Certificate of currency</label>
+                        </div>
+                        <div class="grow2">
+                            <FileField
+                                ref="public_liability_insurance_documents"
+                                name="public-liability-insurance-documents"
+                                :isRepeatable="false"
+                                :documentActionUrl="publicLiabilityInsuranceDocumentUrl"
+                                :readonly="readonly"
+                                :replace_button_by_text="true"
+                            />
+                        </div>
+                        <div class="grow1">
+                            <label>Expiry Date</label>
+                        </div>
+                        <div class="grow1">
+                            <div class="input-group date" ref="expiryDatePicker">
+                                <input type="text" class="form-control" placeholder="DD/MM/YYYY" id="expiry_date_input_element" :readonly="readonly"/>
+                                <span class="input-group-addon">
+                                    <span class="glyphicon glyphicon-calendar"></span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+            </FormSection>
 
-				    <SiteLocations
-					:proposal="proposal"
-					id="site_locations"
-					ref="apiary_site_locations"
-					:is_external="is_external"
-					:is_internal="is_internal"
-					@button_text="button_text"
-					@total_fee_south_west="total_fee_south_west"
-					@total_fee_remote="total_fee_remote"
-					@total_fee_south_west_renewal="total_fee_south_west_renewal"
-					@total_fee_remote_renewal="total_fee_remote_renewal"
-					@num_of_sites_remain_south_west="num_of_sites_remain_south_west"
-					@num_of_sites_remain_remote="num_of_sites_remain_remote"
-					@num_of_sites_remain_south_west_renewal="num_of_sites_remain_south_west_renewal"
-					@num_of_sites_remain_remote_renewal="num_of_sites_remain_remote_renewal"
-					@num_of_sites_south_west_to_add_as_remainder="num_of_sites_south_west_to_add_as_remainder"
-					@num_of_sites_remote_to_add_as_remainder="num_of_sites_remote_to_add_as_remainder"
-					@num_of_sites_south_west_renewal_to_add_as_remainder="num_of_sites_south_west_renewal_to_add_as_remainder"
-					@num_of_sites_remote_renewal_to_add_as_remainder="num_of_sites_remote_renewal_to_add_as_remainder"
-					@total_num_of_sites_on_map_unpaid="total_num_of_sites_on_map_unpaid"
-					@total_num_of_sites_on_map="total_num_of_sites_on_map"
-					@fee_remote_renewal="fee_remote_renewal"
-					@fee_south_west_renewal="fee_south_west_renewal"
-				    />
+            <FormSection :formCollapse="false" label="Deed Poll" Index="deed_poll">
+                <DeedPoll
+                    ref="deed_poll_component"
+                    :isRepeatable="false"
+                    :isReadonly="readonly"
+                    :documentActionUrl="deedPollDocumentUrl"
+                />
+            </FormSection>
 
-				</div>
-				<div v-else>
-				    <ComponentSiteSelection
-					:apiary_sites="apiary_sites"
-					:is_internal="is_internal"
-					:is_external="is_external"
-					:show_col_site="false"
-					:show_col_site_when_submitted="true"
-					:show_col_checkbox="false"
-					:show_action_available_unavailable="showActionAvailableUnavailable"
-					:show_col_status="false"
-					:show_col_status_when_submitted="true"
-					:key="component_site_selection_key"
-				      />
-				</div>
-
-			    </FormSection>
-
-			    <FormSection :formCollapse="false" label="Supporting Application Documents" Index="supporting_application_documents">
-				<div class="row">
-				    <div class="col-sm-12">
-					<label>
-					    Please provide supporting documents to your application this includes site photos, proposed access routes and details on native vegetation clearing (if applicable).
-					</label>
-					<div class="input-file-wrapper">
-					    <FileField
-						ref="supporting_application_documents"
-						name="supporting-application-documents"
-						:isRepeatable="true"
-						:documentActionUrl="supportingApplicationDocumentUrl"
-						:readonly="readonly"
-						:replace_button_by_text="true"
-					    />
-					</div>
-				    </div>
-				</div>
-			    </FormSection>
-
-			    <FormSection :formCollapse="false" label="Public Liability Insurance" Index="public_liability_insurance">
-				<div class="row">
-				    <div class="col-sm-12">
-					<label>
-					    <ol type="a" class="insurance-items">
-					    <li>Attach your policy for public liability insurance that covers the areas and operations allowed under the apiary authority, and in the name of the applicant to the extent of its rights and interests, for a sum of not less than AU$10 million per event.</li>
-					    <li>It is a requirement of all apiary authority holders to maintain appropriate public liability insurance.</li>
-					    </ol>
-					</label>
-				    </div>
-				</div>
-				    <div class="my-container input-file-wrapper">
-					<div class="grow1">
-					    <label>Certificate of currency</label>
-					</div>
-					<div class="grow2">
-					    <FileField
-						ref="public_liability_insurance_documents"
-						name="public-liability-insurance-documents"
-						:isRepeatable="false"
-						:documentActionUrl="publicLiabilityInsuranceDocumentUrl"
-						:readonly="readonly"
-						:replace_button_by_text="true"
-					    />
-					</div>
-					<div class="grow1">
-					    <label>Expiry Date</label>
-					</div>
-					<div class="grow1">
-					    <div class="input-group date" ref="expiryDatePicker">
-						<input type="text" class="form-control" placeholder="DD/MM/YYYY" id="expiry_date_input_element" :readonly="readonly"/>
-						<span class="input-group-addon">
-						    <span class="glyphicon glyphicon-calendar"></span>
-						</span>
-					    </div>
-					</div>
-				    </div>
-			    </FormSection>
-
-			    <FormSection :formCollapse="false" label="Deed Poll" Index="deed_poll">
-				<DeedPoll
-				    ref="deed_poll_component"
-				    :isRepeatable="false"
-				    :isReadonly="readonly"
-				    :documentActionUrl="deedPollDocumentUrl"
-				/>
-			    </FormSection>
-
-			    <ApiaryChecklist
-				:checklist="applicantChecklistAnswers"
-				section_title="Applicant Checklist"
-				:readonly="readonly"
-				ref="applicant_checklist"
-				index="1"
-			    />
-			    <div v-if="assessorChecklistVisibility">
-				<ApiaryChecklist
-				:checklist="assessorChecklistAnswers"
-				section_title="Assessor Checklist"
-				:readonly="assessorChecklistReadonly"
-				ref="assessor_checklist"
-				index="2"
-				/>
-				<div v-for="site in apiary_sites">
-				    <ApiaryChecklist
-				    :checklist="assessorChecklistAnswersPerSite(site.id)"
-				    :section_title="'Assessor checklist for site ' + site.id"
-				    :readonly="assessorChecklistReadonly"
-				    v-bind:key="'assessor_checklist_per_site_' + site.id"
-				    :index="'2_' + site.id"
-				    />
-				</div>
-			    </div>
-			    <div v-for="r in referrerChecklistAnswers">
-				<!--div v-if="(referral && r.referral_id === referral.id) || (assessorChecklistVisibility && proposal.processing_status === 'With Assessor')"-->
-				<div v-if="(referral && r.referral_id === referral.id) || (assessorChecklistVisibility)">
-				<!--div v-if="r.id = referral.id"-->
-				    <ApiaryChecklist
-				    :checklist="r.referral_data"
-				    :section_title="'Referral Checklist: ' + r.referrer_group_name"
-				    :readonly="referrerChecklistReadonly"
-				    ref="referrer_checklist"
-				    index="3"
-				    />
-				    <div v-for="site in apiary_sites">
-					<ApiaryChecklist
-					:checklist="referrerChecklistAnswersPerSite(r.apiary_referral_id, site.id)"
-					:section_title="'Referral Checklist: ' + r.referrer_group_name + ' for site ' + site.id"
-					:readonly="referrerChecklistReadonly"
-					v-bind:key="'referrer_checklist_per_site_' + r.apiary_referral_id + site.id"
-					:index="'3_' + r.apiary_referral_id + '_' + site.id"
-					/>
-				    </div>
-				</div>
-			    </div>
-			</div>
-
-                  <!--
-                <ActivitiesLand :proposal="proposal" id="proposalStartActivitiesLand" :canEditActivities="canEditActivities" :proposal_parks="proposal_parks" ref="activities_land" :is_external="is_external"></ActivitiesLand>
-                  -->
-              </div>
+            <ApiaryChecklist
+                :checklist="applicantChecklistAnswers"
+                section_title="Applicant Checklist"
+                :readonly="readonly"
+                ref="applicant_checklist"
+                index="1"
+            />
+            <div v-if="assessorChecklistVisibility">
+                <ApiaryChecklist
+                :checklist="assessorChecklistAnswers"
+                section_title="Assessor Checklist"
+                :readonly="assessorChecklistReadonly"
+                ref="assessor_checklist"
+                index="2"
+                />
+                <div v-for="site in apiary_sites">
+                    <ApiaryChecklist
+                    :checklist="assessorChecklistAnswersPerSite(site.id)"
+                    :section_title="'Assessor checklist for site ' + site.id"
+                    :readonly="assessorChecklistReadonly"
+                    v-bind:key="'assessor_checklist_per_site_' + site.id"
+                    :index="'2_' + site.id"
+                    />
+                </div>
             </div>
-        </div>
+            <div v-for="r in referrerChecklistAnswers">
+                <!--div v-if="(referral && r.referral_id === referral.id) || (assessorChecklistVisibility && proposal.processing_status === 'With Assessor')"-->
+                <div v-if="(referral && r.referral_id === referral.id) || (assessorChecklistVisibility)">
+                <!--div v-if="r.id = referral.id"-->
+                    <ApiaryChecklist
+                    :checklist="r.referral_data"
+                    :section_title="'Referral Checklist: ' + r.referrer_group_name"
+                    :readonly="referrerChecklistReadonly"
+                    ref="referrer_checklist"
+                    index="3"
+                    />
+                    <div v-for="site in apiary_sites">
+                        <ApiaryChecklist
+                        :checklist="referrerChecklistAnswersPerSite(r.apiary_referral_id, site.id)"
+                        :section_title="'Referral Checklist: ' + r.referrer_group_name + ' for site ' + site.id"
+                        :readonly="referrerChecklistReadonly"
+                        v-bind:key="'referrer_checklist_per_site_' + r.apiary_referral_id + site.id"
+                        :index="'3_' + r.apiary_referral_id + '_' + site.id"
+                        />
+                    </div>
+                </div>
+            </div>
 
+            <!--FormSection :formCollapse="false" label="Checklist" Index="checklist">
+                <ul class="list-unstyled col-sm-12" v-for="q in proposal.proposal_apiary.applicant_checklist_answers">
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <li class="col-sm-6">
+                                <label class="control-label">{{q.question.text}}</label>
+                            </li>
+                            <ul  class="list-inline col-sm-6">
+                                <li class="list-inline-item">
+                                    <input  class="form-check-input" v-model="q.answer" ref="Checkbox" type="radio" :name="'option'+q.id" :id="'answer_one'+q.id":value="true" data-parsley-required :disabled="readonly"/> Yes
+                                </li>
+                                <li class="list-inline-item">
+                                    <input  class="form-check-input" v-model="q.answer" ref="Checkbox" type="radio" :name="'option'+q.id" :id="'answer_two'+q.id" :value="false" data-parsley-required :disabled="readonly"/> No
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </ul>
+            </FormSection-->
+        </div>
 
     </div>
 </template>
 
 <script>
-
-    import Organisation from '@/components/external/organisations/manage.vue'
+    import ManageUser from '@/components/external/organisations/manage.vue'
     import ComponentSiteSelection from '@/components/common/apiary/component_site_selection.vue'
     import FileField from '@/components/forms/filefield_immediate.vue'
     import FormSection from "@/components/forms/section_toggle.vue"
@@ -334,7 +209,6 @@
     import uuid from 'uuid'
     import DeedPoll from "@/components/common/apiary/section_deed_poll.vue"
     import { api_endpoints, helpers }from '@/utils/hooks'
-
     export default {
         name: 'ApiaryForm',
         props:{
@@ -384,8 +258,6 @@
                 expiry_date_local: '',
                 deed_poll_url: '',
                 is_local: helpers.is_local(),
-
-                //org: null,
             }
         },
         components: {
@@ -395,7 +267,7 @@
             FormSection,
             ApiaryChecklist,
             DeedPoll,
-            Organisation,
+            ManageUser,
         },
         computed:{
             showVacantWhenSubmitted: function(){
@@ -498,7 +370,6 @@
             },
             getUnansweredChecklistQuestions: function() {
                 let UnansweredChecklistQuestions = false;
-
                 if(this.applicantChecklistAnswers){
                     let numOfAnswers = this.applicantChecklistAnswers.length;
                     for( let i=0; i< numOfAnswers ; i ++){
@@ -539,7 +410,6 @@
                     return this.proposal.proposal_apiary.referrer_checklist_answers;
                 }
             },
-
           //applicantType: function(){
           //  return this.proposal.applicant_type;
           //},
@@ -573,9 +443,7 @@
                     showClear: true ,
                     useCurrent: false,
                 };
-
                 el_fr.datetimepicker(options);
-
                 el_fr.on("dp.change", function(e) {
                     if (e.date){
                         // Date selected
@@ -586,12 +454,10 @@
                     }
                     vm.$emit('expiry_date_changed', vm.expiry_date_local)
                 });
-
                 //***
                 // Set dates in case they are passed from the parent component
                 //***
                 let searchPattern = /^[0-9]{4}/
-
                 let expiry_date_passed = vm.proposal.proposal_apiary.public_liability_insurance_expiry_date;
                 console.log('passed')
                 console.log(expiry_date_passed)
@@ -632,7 +498,6 @@
                 console.log(siteList)
                 return siteList;
             },
-
             num_of_sites_south_west_to_add_as_remainder: function(value){
                 this.$emit('num_of_sites_south_west_to_add_as_remainder', value)
             },
@@ -685,7 +550,6 @@
              return checklist_answers;
             },
             */
-
         },
         created: function() {
             this.fetchDeedPollUrl()
@@ -700,7 +564,6 @@
             //window.addEventListener('beforeunload', vm.leaving);
             //window.addEventListener('onblur', vm.leaving);
         }
-
     }
 </script>
 
