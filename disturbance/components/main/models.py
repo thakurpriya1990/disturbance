@@ -19,6 +19,7 @@ class MapLayer(models.Model):
 
     class Meta:
         app_label = 'disturbance'
+        verbose_name = 'apiary map layer'
 
     def __str__(self):
         return '{0}, {1}'.format(self.display_name, self.layer_name)

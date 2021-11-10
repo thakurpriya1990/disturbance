@@ -3473,20 +3473,18 @@ class ProposalApiary(RevisionedMixin):
             unlink_r.apiary_approval = None
             unlink_r.save()
 
-    def generate_apiary_compliances(self,approval, request):
+    def generate_apiary_compliances(self, approval, request):
         today = timezone.now().date()
         timedelta = datetime.timedelta
         from disturbance.components.compliances.models import Compliance, ComplianceUserAction
 
-        proposal = self.proposal
         #For amendment type of Proposal, check for copied requirements from previous proposal
-        #if proposal.proposal_type == 'amendment':
         if self.proposal.previous_application:
             try:
-                for r in proposal.requirements.filter(apiary_approval=approval).filter(copied_from__isnull=False):
-                    cs=[]
+                for r in self.proposal.requirements.filter(apiary_approval=approval).filter(copied_from__isnull=False):
+                    cs = []
                     # Now discard all of the due compliances
-                    cs=Compliance.objects.filter(
+                    cs = Compliance.objects.filter(
                             requirement=r.copied_from,
                             approval=approval,
                             processing_status='due'
@@ -3494,21 +3492,15 @@ class ProposalApiary(RevisionedMixin):
                     if cs:
                         if r.is_deleted:
                             for c in cs:
-                                c.processing_status='discarded'
+                                c.processing_status = 'discarded'
                                 c.customer_status = 'discarded'
-                                c.reminder_sent=True
-                                c.post_reminder_sent=True
+                                c.reminder_sent = True
+                                c.post_reminder_sent = True
                                 c.save()
-                        #if r.is_deleted == False:
-                        #    for c in cs:
-                        #        #c.proposal= proposal
-                        #        c.approval=approval
-                        #        c.requirement=r
-                        #        c.save()
             except:
                 raise
         #requirement_set= self.requirements.filter(copied_from__isnull=True).exclude(is_deleted=True)
-        requirement_set= proposal.requirements.filter(apiary_approval=approval).exclude(is_deleted=True)
+        requirement_set= self.proposal.requirements.filter(apiary_approval=approval).exclude(is_deleted=True)
 
         #for req in self.requirements.all():
         for req in requirement_set:
@@ -3517,10 +3509,10 @@ class ProposalApiary(RevisionedMixin):
                     current_date = req.due_date
                     #create a first Compliance
                     try:
-                        compliance= Compliance.objects.get(requirement = req, due_date = current_date)
+                        compliance = Compliance.objects.get(requirement=req, due_date=current_date)
                     except Compliance.DoesNotExist:
                         compliance =Compliance.objects.create(
-                                    #proposal=proposal,
+                                    proposal=self.proposal,
                                     due_date=current_date,
                                     processing_status='future',
                                     approval=approval,
@@ -3544,17 +3536,17 @@ class ProposalApiary(RevisionedMixin):
                             # Create the compliance
                             if current_date <= approval.expiry_date:
                                 try:
-                                    compliance= Compliance.objects.get(requirement = req, due_date = current_date)
+                                    compliance = Compliance.objects.get(requirement = req, due_date = current_date)
                                 except Compliance.DoesNotExist:
-                                    compliance =Compliance.objects.create(
-                                                #proposal=self,
+                                    compliance = Compliance.objects.create(
+                                                proposal=self.proposal,
                                                 due_date=current_date,
                                                 processing_status='future',
                                                 approval=approval,
                                                 requirement=req,
                                                 apiary_compliance=True
                                     )
-                                    compliance.log_user_action(ComplianceUserAction.ACTION_CREATE.format(compliance.lodgement_number),request)
+                                    compliance.log_user_action(ComplianceUserAction.ACTION_CREATE.format(compliance.lodgement_number), request)
             except:
                 raise
 
