@@ -425,7 +425,7 @@
     }
     .basemap-button {
         position: absolute;
-        top: 10px;
+        bottom: 25px;
         right: 10px;
         z-index: 400;
         -moz-box-shadow: 3px 3px 3px #777;
@@ -443,7 +443,7 @@
         filter: brightness(0.9);
     }
     .basemap-button:active {
-        top: 11px;
+        bottom: 24px;
         right: 9px;
         -moz-box-shadow: 2px 2px 2px #555;
         -webkit-box-shadow: 2px 2px 2px #555;
