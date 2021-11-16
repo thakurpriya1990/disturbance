@@ -505,6 +505,8 @@ export default {
         applicantAddress: function() {
             if (this.proposal && this.proposal.applicant_address) {
                 return this.proposal.applicant_address;
+            } else {
+                return {}
             }
         },
         canAction: function() {
