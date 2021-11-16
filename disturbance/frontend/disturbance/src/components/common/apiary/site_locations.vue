@@ -663,8 +663,13 @@ console.log(getWidth([-180, -90, 180, 90]) / tileSizePixels)
                 targetLayer.setVisible(!targetLayer.getVisible())
                 let layers = this.map.getLayers()
                 for (var i = 0; i < layers.array_.length; i++){
+                    console.log(layers.array_[i].get('title'))
                     if (layers.array_[i].get('title') === 'Drawing Layer' || layers.array_[i].get('title') === 'Cluster Layer'){
-                        layers.array_[i].refresh()
+                        try{
+                            layers.array_[i].refresh()
+                        } catch (err){
+                            console.log('Error: ' + layers.array_[i].get('title'))
+                        }
                     }
                 }
             },
@@ -674,13 +679,13 @@ console.log(getWidth([-180, -90, 180, 90]) / tileSizePixels)
                     let layers = response.body
                     for (var i = 0; i < layers.length; i++){
                         let l = new TileWMS({
-                            url: 'https://kmi.dpaw.wa.gov.au/geoserver/public/wms',
+                            url: 'https://kmi.dpaw.wa.gov.au/geoserver/' + layers[i].layer_group_name + '/wms',
                             params: {
                                 'FORMAT': 'image/png',
                                 'VERSION': '1.1.1',
                                 tiled: true,
                                 STYLES: '',
-                                LAYERS: layers[i].layer_name.trim()
+                                LAYERS: layers[i].layer_full_name,
                                 //LAYERS: 'public:mapbox-satellite'
                             }
                         });
@@ -1026,7 +1031,7 @@ console.log(getWidth([-180, -90, 180, 90]) / tileSizePixels)
             initMap: async function() {
                 let vm = this;
 
-                let satelliteTileWms = new WMTS({
+                let satelliteTileWmts = new WMTS({
                     url: 'https://kmi.dpaw.wa.gov.au/geoserver/gwc/service/wmts',
                     layer: 'public:mapbox-satellite',
                     format: 'image/png',
@@ -1035,16 +1040,6 @@ console.log(getWidth([-180, -90, 180, 90]) / tileSizePixels)
                     tileGrid: tileGrid,
                     style: '',
                 })
-                //let satelliteTileWms = new TileWMS({
-                //    url: 'https://kmi.dpaw.wa.gov.au/geoserver/public/wms',
-                //    params: {
-                //        'FORMAT': 'image/png',
-                //        'VERSION': '1.1.1',
-                //        tiled: true,
-                //        STYLES: '',
-                //        LAYERS: 'public:mapbox-satellite',
-                //    }
-                //});
 
                 vm.tileLayerOsm = new TileLayer({
                     title: 'OpenStreetMap',
@@ -1057,7 +1052,7 @@ console.log(getWidth([-180, -90, 180, 90]) / tileSizePixels)
                     title: 'Satellite',
                     type: 'base',
                     visible: true,
-                    source: satelliteTileWms,
+                    source: satelliteTileWmts,
                 })
 
                 vm.map = new Map({
