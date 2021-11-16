@@ -151,13 +151,14 @@
                     let layers = response.body
                     for (var i = 0; i < layers.length; i++){
                         let l = new TileWMS({
-                            url: 'https://kmi.dpaw.wa.gov.au/geoserver/' + layers[i].layer_group_name + '/wms',
+                            //url: 'https://kmi.dbca.wa.gov.au/geoserver/' + layers[i].layer_group_name + '/wms',
+                            url: env['kmi_server_url'] + '/geoserver/' + layers[i].layer_group_name + '/wms',
                             params: {
                                 'FORMAT': 'image/png',
                                 'VERSION': '1.1.1',
                                 tiled: true,
                                 STYLES: '',
-                                LAYERS: layers[i].layer_full_name,
+                                LAYERS: layers[i].layer_full_name
                             }
                         });
 
@@ -200,7 +201,7 @@
                 let vm = this;
 
                 let satelliteTileWms = new TileWMS({
-                            url: 'https://kmi.dpaw.wa.gov.au/geoserver/public/wms',
+                            url: env['kmi_server_url'] + '/geoserver/public/wms',
                             params: {
                                 'FORMAT': 'image/png',
                                 'VERSION': '1.1.1',
