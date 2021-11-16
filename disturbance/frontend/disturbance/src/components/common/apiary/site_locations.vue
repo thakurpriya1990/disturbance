@@ -143,9 +143,6 @@
     const projection = getProjection('EPSG:4326');
     const tileSizePixels = 1024;
     const tileSizeMtrs = getWidth(projection.getExtent()) / tileSizePixels;
-console.log('tileSizeMtrs')
-console.log(tileSizeMtrs)
-console.log(getWidth([-180, -90, 180, 90]) / tileSizePixels)
     //const resolutions = [];
     //for (let i = 0; i <= 17; ++i) {
     //      resolutions[i] = tileSizeMtrs / Math.pow(2, i);
@@ -176,7 +173,6 @@ console.log(getWidth([-180, -90, 180, 90]) / tileSizePixels)
         })
     })
     let matrixSet = matrixSets['EPSG:4326']['1024']
-    console.log(matrixSet)
     const tileGrid = new WMTSTileGrid({
         //origin: getTopLeft([-180, -90, 180, 90]),
         origin: getTopLeft(projection.getExtent()),
@@ -663,7 +659,6 @@ console.log(getWidth([-180, -90, 180, 90]) / tileSizePixels)
                 targetLayer.setVisible(!targetLayer.getVisible())
                 let layers = this.map.getLayers()
                 for (var i = 0; i < layers.array_.length; i++){
-                    console.log(layers.array_[i].get('title'))
                     if (layers.array_[i].get('title') === 'Drawing Layer' || layers.array_[i].get('title') === 'Cluster Layer'){
                         try{
                             layers.array_[i].refresh()
@@ -679,7 +674,8 @@ console.log(getWidth([-180, -90, 180, 90]) / tileSizePixels)
                     let layers = response.body
                     for (var i = 0; i < layers.length; i++){
                         let l = new TileWMS({
-                            url: 'https://kmi.dpaw.wa.gov.au/geoserver/' + layers[i].layer_group_name + '/wms',
+                            //url: 'https://kmi.dpaw.wa.gov.au/geoserver/' + layers[i].layer_group_name + '/wms',
+                            url: env['kmi_server_url'] + '/geoserver/' + layers[i].layer_group_name + '/wms',
                             params: {
                                 'FORMAT': 'image/png',
                                 'VERSION': '1.1.1',
@@ -714,7 +710,6 @@ console.log(getWidth([-180, -90, 180, 90]) / tileSizePixels)
                     $('#basemap_osm').hide()
                     $('#basemap_sat').show()
                 }
-                vm.console_layers()
             },
             datatable_mounted: function(){
                 this.constructSiteLocationsTable();
@@ -953,7 +948,6 @@ console.log(getWidth([-180, -90, 180, 90]) / tileSizePixels)
 
                     // Insert data into the table
                     for(let i=0; i<features.length; i++){
-                        console.log(features[i])
                         this.$refs.site_locations_table.vmDataTable.row.add(features[i]).draw();
                     }
 
@@ -1032,7 +1026,7 @@ console.log(getWidth([-180, -90, 180, 90]) / tileSizePixels)
                 let vm = this;
 
                 let satelliteTileWmts = new WMTS({
-                    url: 'https://kmi.dpaw.wa.gov.au/geoserver/gwc/service/wmts',
+                    url: 'https://kmi.dbca.wa.gov.au/geoserver/gwc/service/wmts',
                     layer: 'public:mapbox-satellite',
                     format: 'image/png',
                     matrixSet: 'gda94',
@@ -1373,7 +1367,6 @@ console.log(getWidth([-180, -90, 180, 90]) / tileSizePixels)
                 });
                 vm.setBaseLayer('osm')
                 vm.addOptionalLayers()
-                vm.console_layers()
             },  // End: initMap()
             //get_status_for_colour: function(feature){
             //    let status = feature.get("status");
