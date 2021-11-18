@@ -291,7 +291,8 @@
 
                 vm.map.addOverlay(vm.overlay)
 
-                vm.map.on('click', function(evt){
+                vm.map.on('singleclick', function(evt){
+                    console.log('***singleclick')
                     let feature = vm.map.forEachFeatureAtPixel(evt.pixel, function(feature, layer) {
                         return feature;
                     });
@@ -304,6 +305,22 @@
                             feature = vm.apiarySitesQuerySource.getFeaturesAtCoordinate(coord)
                         }
                         vm.showPopup(feature[0])
+                    } else {
+                        let view = vm.map.getView()
+                        let viewResolution = view.getResolution()
+                        let source = null
+                        for (let i=0; i < vm.optionalLayers.length; i++){
+                            source = vm.optionalLayers[i].getSource()
+                            break;
+                        }
+                        console.log(source)
+                        if (source){
+                            let url = source.getFeatureInfoUrl(
+                                evt.coordinate, viewResolution, view.getProjection(),
+                                {'INFO_FORMAT': 'text/html', 'FEATURE_COUNT': 50}
+                            )
+                            console.log(url)
+                        }
                     }
                 })
                 vm.map.on('pointermove', function(e) {
