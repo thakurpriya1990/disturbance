@@ -325,7 +325,8 @@
                         for (let i=0; i < sources.length; i++){
                             let url = sources[i].getFeatureInfoUrl(
                                 evt.coordinate, viewResolution, view.getProjection(),
-                                {'INFO_FORMAT': 'application/json'} //{'INFO_FORMAT': 'application/json', 'FEATURE_COUNT': 50}
+                                //{'INFO_FORMAT': 'application/json'} //{'INFO_FORMAT': 'application/json', 'FEATURE_COUNT': 50}
+                                {'INFO_FORMAT': 'text/html'} //{'INFO_FORMAT': 'application/json', 'FEATURE_COUNT': 50}
                             )
                             urls.push(url)
                         }
@@ -334,10 +335,14 @@
                         for (let i=0; i<urls.length; i++){
                             console.log(urls[i])
                             let p = fetch(urls[i])  //.then(res => res.json()).then(data => console.log(data))
-                            p.then(res => res.json()).then(function(data){
-                                let feature = data.features[0]
-                                console.log(feature)
-                                vm.showPopupForLayers(feature, evt.coordinate)
+                            //p.then(res => res.json()).then(function(data){
+                            //    let feature = data.features[0]
+                            //    console.log(feature)
+                            //    vm.showPopupForLayersJson(feature, evt.coordinate)
+                            //})
+                            p.then(res => res.text()).then(function(data){
+                                console.log(data)
+                                vm.showPopupForLayersHTML(data, evt.coordinate)
                             })
                         }
                     }
@@ -401,9 +406,25 @@
                     this.overlay.setPosition(coord);
                 }
             },
-            showPopupForLayers: function(feature_dict, coord){
+            showPopupForLayersJson: function(feature_dict, coord){
                 if (feature_dict){
                     this.content_element.innerHTML += feature_dict.id + '<br />'
+                    this.overlay.setPosition(coord);
+                }
+            },
+            showPopupForLayersHTML: function(html, coord){
+                let elements = $.parseHTML(html)
+                console.log('elements')
+                console.log(elements)
+                let body_elem = $('body', elements)
+                console.log('body_elem')
+                console.log(body_elem)
+                let body_contents = body_elem.text()
+                console.log('text()')
+                console.log(body_contents)
+
+                if (html){
+                    this.content_element.innerHTML += html
                     this.overlay.setPosition(coord);
                 }
             },
