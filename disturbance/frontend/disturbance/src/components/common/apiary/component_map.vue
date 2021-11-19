@@ -100,7 +100,7 @@
         },
         watch: {
             display_at_time_of_submitted: function(){
-                console.log('ahoooooooooooo')
+
             }
         },
         data: function(){
@@ -292,7 +292,6 @@
                 vm.map.addOverlay(vm.overlay)
 
                 vm.map.on('singleclick', function(evt){
-                    console.log('***singleclick')
                     let feature = vm.map.forEachFeatureAtPixel(evt.pixel, function(feature, layer) {
                         return feature;
                     });
@@ -308,18 +307,36 @@
                     } else {
                         let view = vm.map.getView()
                         let viewResolution = view.getResolution()
-                        let source = null
+                        let sources = []
+                        let urls = []
+
+                        // Retrieve active layers' sources
                         for (let i=0; i < vm.optionalLayers.length; i++){
-                            source = vm.optionalLayers[i].getSource()
-                            break;
+                            let visibility = vm.optionalLayers[i].getVisible()
+                            if (visibility){
+                                let source = vm.optionalLayers[i].getSource()
+                                sources.push(source)
+                            }
                         }
-                        console.log(source)
-                        if (source){
-                            let url = source.getFeatureInfoUrl(
+
+                        // Retrieve urls to fetch data
+                        for (let i=0; i < sources.length; i++){
+                            let url = sources[i].getFeatureInfoUrl(
                                 evt.coordinate, viewResolution, view.getProjection(),
-                                {'INFO_FORMAT': 'text/html', 'FEATURE_COUNT': 50}
+                                {'INFO_FORMAT': 'application/json'} //{'INFO_FORMAT': 'application/json', 'FEATURE_COUNT': 50}
                             )
-                            console.log(url)
+                            urls.push(url)
+                        }
+
+                        // Fetch data from each url
+                        for (let i=0; i<urls.length; i++){
+                            console.log(urls[i])
+                            let p = fetch(urls[i])  //.then(res => res.json()).then(data => console.log(data))
+                            p.then(res => res.json()).then(function(data){
+                                let feature = data.features[0]
+                                console.log(feature)
+                                vm.showPopupForLayers(feature, evt.coordinate)
+                            })
                         }
                     }
                 })
@@ -365,6 +382,7 @@
                 if (feature){
                     let geometry = feature.getGeometry();
                     let coord = geometry.getCoordinates();
+                    console.log(coord)
                     let svg_hexa = "<svg xmlns='http://www.w3.org/2000/svg' version='1.1' height='20' width='15'>" +
                     '<g transform="translate(0, 4) scale(0.9)"><path d="M 14.3395,12.64426 7.5609998,16.557828 0.78249996,12.64426 0.7825,4.8171222 7.5609999,0.90355349 14.3395,4.8171223 Z" id="path837" style="fill:none;stroke:#ffffff;stroke-width:1.565;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" /></g></svg>'
                     //let status_str = feature.get('is_vacant') ? getDisplayNameFromStatus(feature.get('status')) + ' (vacant)' : getDisplayNameFromStatus(feature.get('status'))
@@ -378,6 +396,12 @@
                                       '</div>' +
                                   '</div>'
                     this.content_element.innerHTML = content;
+                    this.overlay.setPosition(coord);
+                }
+            },
+            showPopupForLayers: function(feature_dict, coord){
+                if (feature_dict){
+                    this.content_element.innerHTML = feature_dict.properties.name
                     this.overlay.setPosition(coord);
                 }
             },
