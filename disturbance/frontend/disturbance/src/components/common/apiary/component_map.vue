@@ -188,6 +188,7 @@
                 }
             },
             closePopup: function(){
+                this.content_element.innerHTML = null
                 this.overlay.setPosition(undefined)
                 this.$emit('popupClosed')
             },
@@ -305,6 +306,7 @@
                         }
                         vm.showPopup(feature[0])
                     } else {
+                        vm.closePopup()
                         let view = vm.map.getView()
                         let viewResolution = view.getResolution()
                         let sources = []
@@ -401,7 +403,7 @@
             },
             showPopupForLayers: function(feature_dict, coord){
                 if (feature_dict){
-                    this.content_element.innerHTML = feature_dict.properties.name
+                    this.content_element.innerHTML += feature_dict.id + '<br />'
                     this.overlay.setPosition(coord);
                 }
             },
