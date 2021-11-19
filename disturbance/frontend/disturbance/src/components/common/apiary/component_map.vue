@@ -100,7 +100,7 @@
         },
         watch: {
             display_at_time_of_submitted: function(){
-                console.log('ahoooooooooooo')
+
             }
         },
         data: function(){
@@ -188,6 +188,7 @@
                 }
             },
             closePopup: function(){
+                this.content_element.innerHTML = null
                 this.overlay.setPosition(undefined)
                 this.$emit('popupClosed')
             },
@@ -291,7 +292,7 @@
 
                 vm.map.addOverlay(vm.overlay)
 
-                vm.map.on('click', function(evt){
+                vm.map.on('singleclick', function(evt){
                     let feature = vm.map.forEachFeatureAtPixel(evt.pixel, function(feature, layer) {
                         return feature;
                     });
@@ -304,6 +305,46 @@
                             feature = vm.apiarySitesQuerySource.getFeaturesAtCoordinate(coord)
                         }
                         vm.showPopup(feature[0])
+                    } else {
+                        vm.closePopup()
+                        let view = vm.map.getView()
+                        let viewResolution = view.getResolution()
+                        let sources = []
+                        let urls = []
+
+                        // Retrieve active layers' sources
+                        for (let i=0; i < vm.optionalLayers.length; i++){
+                            let visibility = vm.optionalLayers[i].getVisible()
+                            if (visibility){
+                                let source = vm.optionalLayers[i].getSource()
+                                sources.push(source)
+                            }
+                        }
+
+                        // Retrieve urls to fetch data
+                        for (let i=0; i < sources.length; i++){
+                            let url = sources[i].getFeatureInfoUrl(
+                                evt.coordinate, viewResolution, view.getProjection(),
+                                //{'INFO_FORMAT': 'application/json'} //{'INFO_FORMAT': 'application/json', 'FEATURE_COUNT': 50}
+                                {'INFO_FORMAT': 'text/html'} //{'INFO_FORMAT': 'application/json', 'FEATURE_COUNT': 50}
+                            )
+                            urls.push(url)
+                        }
+
+                        // Fetch data from each url
+                        for (let i=0; i<urls.length; i++){
+                            console.log(urls[i])
+                            let p = fetch(urls[i])  //.then(res => res.json()).then(data => console.log(data))
+                            //p.then(res => res.json()).then(function(data){
+                            //    let feature = data.features[0]
+                            //    console.log(feature)
+                            //    vm.showPopupForLayersJson(feature, evt.coordinate)
+                            //})
+                            p.then(res => res.text()).then(function(data){
+                                console.log(data)
+                                vm.showPopupForLayersHTML(data, evt.coordinate)
+                            })
+                        }
                     }
                 })
                 vm.map.on('pointermove', function(e) {
@@ -348,6 +389,7 @@
                 if (feature){
                     let geometry = feature.getGeometry();
                     let coord = geometry.getCoordinates();
+                    console.log(coord)
                     let svg_hexa = "<svg xmlns='http://www.w3.org/2000/svg' version='1.1' height='20' width='15'>" +
                     '<g transform="translate(0, 4) scale(0.9)"><path d="M 14.3395,12.64426 7.5609998,16.557828 0.78249996,12.64426 0.7825,4.8171222 7.5609999,0.90355349 14.3395,4.8171223 Z" id="path837" style="fill:none;stroke:#ffffff;stroke-width:1.565;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" /></g></svg>'
                     //let status_str = feature.get('is_vacant') ? getDisplayNameFromStatus(feature.get('status')) + ' (vacant)' : getDisplayNameFromStatus(feature.get('status'))
@@ -361,6 +403,28 @@
                                       '</div>' +
                                   '</div>'
                     this.content_element.innerHTML = content;
+                    this.overlay.setPosition(coord);
+                }
+            },
+            showPopupForLayersJson: function(feature_dict, coord){
+                if (feature_dict){
+                    this.content_element.innerHTML += feature_dict.id + '<br />'
+                    this.overlay.setPosition(coord);
+                }
+            },
+            showPopupForLayersHTML: function(html, coord){
+                let elements = $.parseHTML(html)
+                console.log('elements')
+                console.log(elements)
+                let body_elem = $('body', elements)
+                console.log('body_elem')
+                console.log(body_elem)
+                let body_contents = body_elem.text()
+                console.log('text()')
+                console.log(body_contents)
+
+                if (html){
+                    this.content_element.innerHTML += html
                     this.overlay.setPosition(coord);
                 }
             },
