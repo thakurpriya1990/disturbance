@@ -17,7 +17,10 @@ from ledger.accounts.models import EmailUser
 from datetime import datetime
 
 from django.http import HttpResponse#, JsonResponse, Http404
-from disturbance.components.approvals.email import send_contact_licence_holder_email
+from disturbance.components.approvals.email import (
+    send_contact_licence_holder_email,
+    send_on_site_notification_email,
+)
 from disturbance.components.approvals.serializers_apiary import (
     ApiarySiteOnApprovalGeometrySerializer,
     ApiarySiteOnApprovalMinimalGeometrySerializer,
@@ -550,6 +553,9 @@ class OnSiteInformationViewSet(viewsets.ModelViewSet):
             serializer = OnSiteInformationSerializer(instance, data=request_data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
+
+            sender = request.user
+            email_data = send_on_site_notification_email(request_data, sender, update=True)
             return Response(serializer.data)
 
     @basic_exception_handler
@@ -560,6 +566,9 @@ class OnSiteInformationViewSet(viewsets.ModelViewSet):
             serializer = OnSiteInformationSerializer(data=request_data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
+
+            sender = request.user
+            email_data = send_on_site_notification_email(request_data, sender)
             return Response(serializer.data)
 
 

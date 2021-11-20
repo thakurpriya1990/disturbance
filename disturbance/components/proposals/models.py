@@ -2030,6 +2030,16 @@ class ApiaryReferralGroup(models.Model):
     #site = models.OneToOneField(Site, default='1')
     name = models.CharField(max_length=30, unique=True)
     members = models.ManyToManyField(EmailUser)
+    region = models.ForeignKey(Region, blank=True, null=True, on_delete=models.PROTECT)
+    district = ChainedForeignKey(
+        District,
+        chained_field="region",
+        chained_model_field="region",
+        show_all=False,
+        auto_choose=True,
+        sort=True,
+        #on_delete=models.PROTECT
+    )
 
     def __str__(self):
         #return 'Referral Recipient Group'
@@ -3946,6 +3956,10 @@ class OnSiteInformation(models.Model):
     apiary_site_on_approval = models.ForeignKey('ApiarySiteOnApproval', blank=True, null=True)
     period_from = models.DateField(null=True, blank=True)
     period_to = models.DateField(null=True, blank=True)
+    hives_loc = models.TextField(blank=True)
+    hives_num = models.SmallIntegerField(blank=True, null=True)
+    people_names = models.TextField(blank=True)
+    flora = models.TextField(blank=True)
     comments = models.TextField(blank=True)
     datetime_deleted = models.DateTimeField(null=True, blank=True)
 

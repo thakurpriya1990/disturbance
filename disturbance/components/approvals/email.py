@@ -12,6 +12,7 @@ from disturbance.components.emails.emails import TemplateEmailBase
 from ledger.accounts.models import EmailUser
 
 from disturbance.components.main.email import _extract_email_headers
+from disturbance.components.main.models import Region, District
 from disturbance.settings import SITE_DOMAIN, SITE_URL
 
 logger = logging.getLogger(__name__)
@@ -119,6 +120,17 @@ class ContactLicenceHolderEmail(TemplateEmailBase):
     txt_template = 'disturbance/emails/contact_licence_holder_email.txt'
 
 
+class OnSiteNotificationEmail(TemplateEmailBase):
+    subject = 'On-site notification submitted for site'
+    html_template = 'disturbance/emails/onsite-notification_email.html'
+    txt_template = 'disturbance/emails/onsite-notification_email.txt'
+
+class OnSiteNotificationUpdateEmail(TemplateEmailBase):
+    subject = 'On-site notification update submitted for site'
+    html_template = 'disturbance/emails/onsite-notification_update_email.html'
+    txt_template = 'disturbance/emails/onsite-notification_update_email.txt'
+
+
 def get_value_of_annual_rental_fee_awaiting_payment_confirmation(annual_rental_fee):
     invoice_buffer = BytesIO()
     create_annual_rental_fee_awaiting_payment_confirmation(invoice_buffer, annual_rental_fee)
@@ -159,6 +171,73 @@ def send_contact_licence_holder_email(apiary_site_on_approval, comments, sender)
     sender = settings.DEFAULT_FROM_EMAIL
     email_data = _extract_email_headers(msg, sender=sender)
     return email_data
+
+
+from disturbance.components.main.utils import get_region_district
+def send_on_site_notification_email(request_data, sender, update=False):
+
+    def get_recipients():
+        rd=get_region_district(asoa.wkb_geometry)
+
+        try:
+            district=District.objects.get(name__icontains=rd.split('/')[1])
+        except:
+            try:
+                district_name = rd.title().split('/')[0].split(' ')[0]
+                region = Region.objects.get(name=district_name)
+                no_region_district_name = region.name + ' Region'
+                district = District.objects.get(name=no_region_district_name)
+            except:
+                logger.error('Error sending onsite-notification email - District not found: {rd}')
+                raise Exception(f'District not found: {rd}')
+        
+        try:
+            recipients = ApiaryReferralGroup.objects.get(district=district).members_email
+            return recipients
+        except:
+            logger.error('Error sending onsite-notification email - Cannot find Apiary Referral Group for District {district.name}')
+            raise Exception(f'Cannot find Apiary Referral Group for District {district.name}')
+            
+
+    email = OnSiteNotificationUpdateEmail() if update else OnSiteNotificationEmail()
+
+    from disturbance.components.approvals.models import ApiarySiteOnApproval
+    from disturbance.components.proposals.models import ApiaryReferralGroup
+    from disturbance.components.organisations.models import Organisation
+    asoa = ApiarySiteOnApproval.objects.get(id=request_data.get('apiary_site_on_approval_id'))
+    period_from = request_data.get('period_from')
+    period_to = request_data.get('period_to')
+    comments = request_data.get('comments')
+    approval = asoa.approval
+    proposal = asoa.approval.current_proposal
+
+    applicant = approval.relevant_applicant if isinstance(approval.relevant_applicant, Organisation) else approval.relevant_applicant.get_full_name(),
+    if isinstance(approval.relevant_applicant, Organisation):
+        applicant = approval.relevant_applicant.name
+        delegate = approval.relevant_applicant.delegates.all()[0]
+        contact = delegate.phone_number if delegate.phone_number else delegate.mobile_number
+    else:
+        approval = approval.relevant_applicant.get_full_name(),
+        contact = approval.relevant_applicant.phone_number if approval.relevant_applicant.phone_number else approval.relevant_applicant.mobile_number
+
+    context = {
+        'apiary_site': asoa.apiary_site,
+        'approval': approval,
+        'applicant': applicant,
+        'contact': contact,
+        'period_from': period_from,
+        'period_to': period_to,
+        'comments': comments,
+        'sender': sender,
+    }
+
+    # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    #sender = settings.DEFAULT_FROM_EMAIL
+    cc = []
+    msg = email.send(get_recipients(), cc=cc, context=context)
+    _log_approval_email(msg, approval, sender=sender)
+    if proposal.applicant:
+        _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
 
 
 def send_annual_rental_fee_awaiting_payment_confirmation(approval, annual_rental_fee, invoice):
@@ -253,7 +332,7 @@ def send_approval_expire_email_notification(approval):
     #sender = settings.DEFAULT_FROM_EMAIL
     sender = get_sender_user()
     # try:
-    # 	sender_user = EmailUser.objects.get(email__icontains=sender)
+    #   sender_user = EmailUser.objects.get(email__icontains=sender)
     # except:
     #     EmailUser.objects.create(email=sender, password='')
     #     sender_user = EmailUser.objects.get(email__icontains=sender)
