@@ -1,0 +1,19 @@
+{%  extends 'disturbance/emails/base_email_apiary.txt' %}
+
+{%  block content %}
+
+    The following on-site information has been re-submitted (updated):
+
+    Approval : {{ approval.lodgement_number}}
+
+    Apiary Site : {{ apiary_site.id }}
+
+    Licence holder: {{ applicant }}
+
+    Contact number: {{ contact }}
+
+    Arrival date: {{ period_from }} 
+
+    Departure date: {{ period_to }}
+
+{%  endblock %}
