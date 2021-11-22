@@ -113,7 +113,6 @@
     import TileLayer from 'ol/layer/Tile';
     import OSM from 'ol/source/OSM';
     import TileWMS from 'ol/source/TileWMS';
-    import WMTS, {optionsFromCapabilities} from 'ol/source/WMTS';
     import Collection from 'ol/Collection';
     import {Draw, Modify, Snap, Select} from 'ol/interaction';
     import {pointerMove} from 'ol/events/condition';
@@ -134,6 +133,62 @@
     import { getStatusForColour, getApiaryFeatureStyle, drawingSiteRadius, existingSiteRadius, SiteColours } from '@/components/common/apiary/site_colours.js'
     import Overlay from 'ol/Overlay';
 
+    import WMTS, {optionsFromCapabilities} from 'ol/source/WMTS';
+    //import WMTSTileGrid from 'ol/source/WMTS';
+    import WMTSTileGrid from 'ol/tilegrid/WMTS';
+    import {get as getProjection} from 'ol/proj';
+    import {getTopLeft, getWidth} from 'ol/extent';
+
+    // create the WMTS tile grid in the google projection
+    const projection = getProjection('EPSG:4326');
+    const tileSizePixels = 1024;
+    const tileSizeMtrs = getWidth(projection.getExtent()) / tileSizePixels;
+    //const resolutions = [];
+    //for (let i = 0; i <= 17; ++i) {
+    //      resolutions[i] = tileSizeMtrs / Math.pow(2, i);
+    //}
+    const resolutions = [0.17578125, 0.087890625, 0.0439453125, 0.02197265625, 0.010986328125, 0.0054931640625, 0.00274658203125, 0.001373291015625, 0.0006866455078125, 0.0003433227539062, 0.0001716613769531, 858306884766e-16, 429153442383e-16, 214576721191e-16, 107288360596e-16, 53644180298e-16, 26822090149e-16, 13411045074e-16]
+    //const tileGrid = new WMTSTileGrid({
+    //      origin: getTopLeft(projection.getExtent()),
+    //      resolutions: resolutions,
+    //      matrixIds: matrixIds,
+    //});
+
+    let matrixSets = {
+        'EPSG:4326': {
+            '1024': {
+                'name': 'gda94',
+                'minLevel': 0,
+                'maxLevel': 17
+            }
+        }
+    }
+    $.each(matrixSets, function (projection, innerMatrixSets) {
+        $.each(innerMatrixSets, function (tileSize, matrixSet) {
+            var matrixIds = new Array(matrixSet.maxLevel - matrixSet.minLevel + 1)
+            for (var z = matrixSet.minLevel; z <= matrixSet.maxLevel; ++z) {
+                matrixIds[z] = matrixSet.name + ':' + z
+            }
+            matrixSet.matrixIds = matrixIds
+        })
+    })
+    let matrixSet = matrixSets['EPSG:4326']['1024']
+    const tileGrid = new WMTSTileGrid({
+        //origin: getTopLeft([-180, -90, 180, 90]),
+        origin: getTopLeft(projection.getExtent()),
+        resolutions: resolutions,
+        matrixIds: matrixSet.matrixIds,
+        tileSize: 1024,  // default: 256
+    })
+    // override getZForResolution on tile grid object;
+    // for weird zoom levels, the default is to round up or down to the
+    // nearest integer to determine which tiles to use.
+    // because we want the printing rasters to contain as much detail as
+    // possible, we rig it here to always round up.
+    tileGrid.origGetZForResolution = tileGrid.getZForResolution
+    tileGrid.getZForResolution = function (resolution, optDirection) {
+        return tileGrid.origGetZForResolution(resolution*1.4, -1)
+    }
     export default {
         props:{
             proposal:{
@@ -605,7 +660,11 @@
                 let layers = this.map.getLayers()
                 for (var i = 0; i < layers.array_.length; i++){
                     if (layers.array_[i].get('title') === 'Drawing Layer' || layers.array_[i].get('title') === 'Cluster Layer'){
-                        layers.array_[i].refresh()
+                        try{
+                            layers.array_[i].refresh()
+                        } catch (err){
+                            console.log('Error: ' + layers.array_[i].get('title'))
+                        }
                     }
                 }
             },
@@ -615,13 +674,14 @@
                     let layers = response.body
                     for (var i = 0; i < layers.length; i++){
                         let l = new TileWMS({
-                            url: 'https://kmi.dpaw.wa.gov.au/geoserver/public/wms',
+                            //url: 'https://kmi.dpaw.wa.gov.au/geoserver/' + layers[i].layer_group_name + '/wms',
+                            url: env['kmi_server_url'] + '/geoserver/' + layers[i].layer_group_name + '/wms',
                             params: {
                                 'FORMAT': 'image/png',
                                 'VERSION': '1.1.1',
                                 tiled: true,
                                 STYLES: '',
-                                LAYERS: layers[i].layer_name.trim()
+                                LAYERS: layers[i].layer_full_name,
                                 //LAYERS: 'public:mapbox-satellite'
                             }
                         });
@@ -650,7 +710,6 @@
                     $('#basemap_osm').hide()
                     $('#basemap_sat').show()
                 }
-                vm.console_layers()
             },
             datatable_mounted: function(){
                 this.constructSiteLocationsTable();
@@ -889,7 +948,6 @@
 
                     // Insert data into the table
                     for(let i=0; i<features.length; i++){
-                        console.log(features[i])
                         this.$refs.site_locations_table.vmDataTable.row.add(features[i]).draw();
                     }
 
@@ -967,16 +1025,15 @@
             initMap: async function() {
                 let vm = this;
 
-                let satelliteTileWms = new TileWMS({
-                    url: 'https://kmi.dpaw.wa.gov.au/geoserver/public/wms',
-                    params: {
-                        'FORMAT': 'image/png',
-                        'VERSION': '1.1.1',
-                        tiled: true,
-                        STYLES: '',
-                        LAYERS: 'public:mapbox-satellite',
-                    }
-                });
+                let satelliteTileWmts = new WMTS({
+                    url: 'https://kmi.dbca.wa.gov.au/geoserver/gwc/service/wmts',
+                    layer: 'public:mapbox-satellite',
+                    format: 'image/png',
+                    matrixSet: 'gda94',
+                    projection: 'EPSG:4326',
+                    tileGrid: tileGrid,
+                    style: '',
+                })
 
                 vm.tileLayerOsm = new TileLayer({
                     title: 'OpenStreetMap',
@@ -989,7 +1046,7 @@
                     title: 'Satellite',
                     type: 'base',
                     visible: true,
-                    source: satelliteTileWms,
+                    source: satelliteTileWmts,
                 })
 
                 vm.map = new Map({
@@ -1310,7 +1367,6 @@
                 });
                 vm.setBaseLayer('osm')
                 vm.addOptionalLayers()
-                vm.console_layers()
             },  // End: initMap()
             //get_status_for_colour: function(feature){
             //    let status = feature.get("status");
@@ -1502,7 +1558,7 @@
     }
     #basemap-button {
         position: absolute;
-        top: 10px;
+        bottom: 25px;
         right: 10px;
         z-index: 400;
         -moz-box-shadow: 3px 3px 3px #777;
@@ -1523,7 +1579,7 @@
         filter: brightness(0.9);
     }
     #basemap-button:active {
-        top: 11px;
+        bottom: 24px;
         right: 9px;
         -moz-box-shadow: 2px 2px 2px #555;
         -webkit-box-shadow: 2px 2px 2px #555;

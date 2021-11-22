@@ -108,9 +108,24 @@ class OracleSerializer(serializers.Serializer):
 
 
 class MapLayerSerializer(serializers.ModelSerializer):
+    layer_full_name = serializers.SerializerMethodField()
+    layer_group_name = serializers.SerializerMethodField()
+    layer_name = serializers.SerializerMethodField()
+
     class Meta:
         model = MapLayer
         fields = (
             'display_name',
+            'layer_full_name',
+            'layer_group_name',
             'layer_name',
         )
+
+    def get_layer_full_name(self, obj):
+        return obj.layer_name.strip()
+
+    def get_layer_group_name(self, obj):
+        return obj.layer_name.strip().split(':')[0]
+
+    def get_layer_name(self, obj):
+        return obj.layer_name.strip().split(':')[1]

@@ -1,22 +1,11 @@
 from django.http import Http404, HttpResponse, HttpResponseRedirect, JsonResponse
-from django.core.urlresolvers import reverse
-from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, get_object_or_404, redirect
-from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView, FormView
 from django.views.generic.base import View, TemplateView
-from django.conf import settings
-from django.contrib.auth.mixins import UserPassesTestMixin, LoginRequiredMixin
-from django.views.decorators.csrf import csrf_protect
-from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.core.exceptions import PermissionDenied
 
 from datetime import datetime, timedelta, date
-from django.utils import timezone
-from dateutil.relativedelta import relativedelta
 from ledger.accounts.models import EmailUser
-from ledger.settings_base import PRODUCTION_EMAIL, DEBUG
-from rest_framework.response import Response
 
 from disturbance.components.approvals.email import get_value_of_annual_rental_fee_awaiting_payment_confirmation, \
     send_annual_rental_fee_invoice

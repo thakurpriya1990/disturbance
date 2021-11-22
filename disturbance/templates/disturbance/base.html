@@ -39,6 +39,11 @@
         {% if DOMAIN_DETECTED == 'apiary' %}
             <link rel="shortcut icon" type="image/ico" href="/static/favicon.ico"/>
         {% endif %}
+        <script language="javascript">
+            env = {
+                "kmi_server_url": "{{ KMI_SERVER_URL }}"
+            }
+        </script>
     </head>
     <body>
         {% if DEBUG %}<div style="position: absolute; color: dodgerblue; font-size: 0.5em;">{{ DOMAIN_DETECTED }}</div>{% endif %}
