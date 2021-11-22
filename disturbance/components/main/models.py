@@ -26,6 +26,18 @@ class MapLayer(models.Model):
         return '{0}, {1}'.format(self.display_name, self.layer_name)
 
 
+class MapColumn(models.Model):
+    map_layer = models.ForeignKey(MapLayer, null=True, blank=True)
+    name = models.CharField(max_length=100, blank=True, null=True)
+
+    class Meta:
+        app_label = 'disturbance'
+        verbose_name = 'apiary map column'
+
+    def __str__(self):
+        return '{0}, {1}'.format(self.map_layer, self.name)
+
+
 @python_2_unicode_compatible
 class Region(models.Model):
     name = models.CharField(max_length=200, unique=True)
