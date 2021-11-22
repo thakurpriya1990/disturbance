@@ -151,7 +151,6 @@
                     let layers = response.body
                     for (var i = 0; i < layers.length; i++){
                         let l = new TileWMS({
-                            //url: 'https://kmi.dbca.wa.gov.au/geoserver/' + layers[i].layer_group_name + '/wms',
                             url: env['kmi_server_url'] + '/geoserver/' + layers[i].layer_group_name + '/wms',
                             params: {
                                 'FORMAT': 'image/png',
@@ -167,6 +166,8 @@
                             visible: false,
                             source: l,
                         })
+                        tileLayer.set('columns', layers[i].columns)
+                        tileLayer.set('display_all_columns', layers[i].display_all_columns)
 
                         vm.optionalLayers.push(tileLayer)
                         vm.map.addLayer(tileLayer)
@@ -309,41 +310,34 @@
                         vm.closePopup()
                         let view = vm.map.getView()
                         let viewResolution = view.getResolution()
-                        let sources = []
-                        let urls = []
 
                         // Retrieve active layers' sources
                         for (let i=0; i < vm.optionalLayers.length; i++){
                             let visibility = vm.optionalLayers[i].getVisible()
                             if (visibility){
+                                // Retrieve column names to be displayed
+                                let column_names = vm.optionalLayers[i].get('columns')
+                                column_names = column_names.map(function(col){
+                                    // Convert array of dictionaries to simple array
+                                    return col.name
+                                })
+                                // Retrieve the value of display_all_columns boolean flag
+                                let display_all_columns = vm.optionalLayers[i].get('display_all_columns')
+
+                                // Retrieve the URL to query the attributes
                                 let source = vm.optionalLayers[i].getSource()
-                                sources.push(source)
+                                let url = source.getFeatureInfoUrl(
+                                    evt.coordinate, viewResolution, view.getProjection(),
+                                    {'INFO_FORMAT': 'text/html'}
+                                )
+
+                                // Query 
+                                let p = fetch(url)
+
+                                p.then(res => res.text()).then(function(html_str){
+                                    vm.showPopupForLayersHTML(html_str, evt.coordinate, column_names, display_all_columns)
+                                })
                             }
-                        }
-
-                        // Retrieve urls to fetch data
-                        for (let i=0; i < sources.length; i++){
-                            let url = sources[i].getFeatureInfoUrl(
-                                evt.coordinate, viewResolution, view.getProjection(),
-                                //{'INFO_FORMAT': 'application/json'} //{'INFO_FORMAT': 'application/json', 'FEATURE_COUNT': 50}
-                                {'INFO_FORMAT': 'text/html'} //{'INFO_FORMAT': 'application/json', 'FEATURE_COUNT': 50}
-                            )
-                            urls.push(url)
-                        }
-
-                        // Fetch data from each url
-                        for (let i=0; i<urls.length; i++){
-                            console.log(urls[i])
-                            let p = fetch(urls[i])  //.then(res => res.json()).then(data => console.log(data))
-                            //p.then(res => res.json()).then(function(data){
-                            //    let feature = data.features[0]
-                            //    console.log(feature)
-                            //    vm.showPopupForLayersJson(feature, evt.coordinate)
-                            //})
-                            p.then(res => res.text()).then(function(data){
-                                console.log(data)
-                                vm.showPopupForLayersHTML(data, evt.coordinate)
-                            })
                         }
                     }
                 })
@@ -412,19 +406,35 @@
                     this.overlay.setPosition(coord);
                 }
             },
-            showPopupForLayersHTML: function(html, coord){
-                let elements = $.parseHTML(html)
-                console.log('elements')
-                console.log(elements)
-                let body_elem = $('body', elements)
-                console.log('body_elem')
-                console.log(body_elem)
-                let body_contents = body_elem.text()
-                console.log('text()')
-                console.log(body_contents)
+            showPopupForLayersHTML: function(html_str, coord, column_names, display_all_columns){
+                // Generate jquery object from html_str
+                let html_obj = $('<div>').html(html_str)
 
-                if (html){
-                    this.content_element.innerHTML += html
+                // Retrieve tables as jquery object
+                let tables = html_obj.find("table")
+
+                if (!display_all_columns){
+                    // Hide all columns
+                    tables.find('th,td').css('display', 'none')
+
+                    // Make a certain column visible
+                    for (let i=0; i<column_names.length; i++){
+                        let index = tables.find('th').filter(function(){
+                            // <th> element whoose text is exactly same as column_names[i]
+                            return $(this).text() === column_names[i]
+                        }).css('display', '').index()
+
+                        let idx = index + 1
+
+                        // Display <td> in the same column
+                        let td = tables.find('td:nth-child(' + idx + ')')
+                        console.log(td)
+                        td.css('display', '')
+                    }
+                }
+
+                if (tables.length){
+                    this.content_element.innerHTML += html_obj.html()
                     this.overlay.setPosition(coord);
                 }
             },
