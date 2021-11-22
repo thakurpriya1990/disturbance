@@ -341,7 +341,7 @@
                             //    vm.showPopupForLayersJson(feature, evt.coordinate)
                             //})
                             p.then(res => res.text()).then(function(data){
-                                console.log(data)
+                            //p.then(res => res.json()).then(function(data){
                                 vm.showPopupForLayersHTML(data, evt.coordinate)
                             })
                         }
@@ -412,19 +412,12 @@
                     this.overlay.setPosition(coord);
                 }
             },
-            showPopupForLayersHTML: function(html, coord){
-                let elements = $.parseHTML(html)
-                console.log('elements')
-                console.log(elements)
-                let body_elem = $('body', elements)
-                console.log('body_elem')
-                console.log(body_elem)
-                let body_contents = body_elem.text()
-                console.log('text()')
-                console.log(body_contents)
+            showPopupForLayersHTML: function(html_str, coord){
+                let html_obj = $('<div>').html(html_str)
+                let tables = html_obj.find("table")
 
-                if (html){
-                    this.content_element.innerHTML += html
+                if (tables.length){
+                    this.content_element.innerHTML += html_str
                     this.overlay.setPosition(coord);
                 }
             },
