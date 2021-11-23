@@ -36,6 +36,8 @@ class MapLayer(models.Model):
 class MapColumn(models.Model):
     map_layer = models.ForeignKey(MapLayer, null=True, blank=True, related_name='columns')
     name = models.CharField(max_length=100, blank=True, null=True)
+    option_for_internal = models.BooleanField(default=True)
+    option_for_external = models.BooleanField(default=True)
 
     class Meta:
         app_label = 'disturbance'

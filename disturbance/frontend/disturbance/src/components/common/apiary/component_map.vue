@@ -166,6 +166,8 @@
                             visible: false,
                             source: l,
                         })
+
+                        // Set additional attributes to the layer
                         tileLayer.set('columns', layers[i].columns)
                         tileLayer.set('display_all_columns', layers[i].display_all_columns)
 
@@ -319,7 +321,12 @@
                                 let column_names = vm.optionalLayers[i].get('columns')
                                 column_names = column_names.map(function(col){
                                     // Convert array of dictionaries to simple array
-                                    return col.name
+                                    if (vm.is_internal && col.option_for_internal){
+                                        return col.name
+                                    }
+                                    if (vm.is_external && col.option_for_external){
+                                        return col.name
+                                    }
                                 })
                                 // Retrieve the value of display_all_columns boolean flag
                                 let display_all_columns = vm.optionalLayers[i].get('display_all_columns')
@@ -328,14 +335,17 @@
                                 let source = vm.optionalLayers[i].getSource()
                                 let url = source.getFeatureInfoUrl(
                                     evt.coordinate, viewResolution, view.getProjection(),
-                                    {'INFO_FORMAT': 'text/html'}
+                                    //{'INFO_FORMAT': 'text/html'}
+                                    {'INFO_FORMAT': 'application/json'}
                                 )
 
                                 // Query 
                                 let p = fetch(url)
 
-                                p.then(res => res.text()).then(function(html_str){
-                                    vm.showPopupForLayersHTML(html_str, evt.coordinate, column_names, display_all_columns)
+                                //p.then(res => res.text()).then(function(data){
+                                p.then(res => res.json()).then(function(data){
+                                    //vm.showPopupForLayersHTML(data, evt.coordinate, column_names, display_all_columns)
+                                    vm.showPopupForLayersJson(data, evt.coordinate, column_names, display_all_columns, vm.optionalLayers[i])
                                 })
                             }
                         }
@@ -400,9 +410,27 @@
                     this.overlay.setPosition(coord);
                 }
             },
-            showPopupForLayersJson: function(feature_dict, coord){
-                if (feature_dict){
-                    this.content_element.innerHTML += feature_dict.id + '<br />'
+            showPopupForLayersJson: function(geojson, coord, column_names, display_all_columns, target_layer){
+                let wrapper = $('<div>')  // Add wrapper element because html() used at the end exports only the contents of the jquery object
+                let caption = $('<div style="text-align:center; font-weight: bold;">').text(target_layer.get('title'))
+                let table = $('<table style="margin-bottom: 1em;">') //.addClass('table')
+                let tbody = $('<tbody>')
+                wrapper.append(caption)
+                wrapper.append(table.append(tbody))
+
+                for (let feature of geojson.features){
+                    for (let key in feature.properties){
+                        //console.log(key + ': ' + feature.properties[key])
+                        if (display_all_columns || column_names.includes(key)){
+                            let tr = $('<tr style="border-bottom:1px solid lightgray;">')
+                            let th = $('<th style="padding:0 0.5em;">').text(key)
+                            let td = $('<td>').addClass('text-nowrap').text(feature.properties[key])
+                            tr.append(th)
+                            tr.append(td)
+                            tbody.append(tr)
+                        }
+                    }
+                    this.content_element.innerHTML += wrapper.html()  // Export contents as HTML string
                     this.overlay.setPosition(coord);
                 }
             },
@@ -623,5 +651,8 @@
     }
     .popup-content {
         font-size: small;
+    }
+    .table_caption {
+        color: green;
     }
 </style>

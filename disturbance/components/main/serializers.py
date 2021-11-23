@@ -113,6 +113,8 @@ class MapColumnSerializer(serializers.ModelSerializer):
         model = MapColumn
         fields = (
             'name',
+            'option_for_internal',
+            'option_for_external',
         )
 
 

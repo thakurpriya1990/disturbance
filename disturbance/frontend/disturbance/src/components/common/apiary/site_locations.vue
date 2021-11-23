@@ -692,6 +692,10 @@
                             source: l,
                         })
 
+                        // Set additional attributes to the layer
+                        tileLayer.set('columns', layers[i].columns)
+                        tileLayer.set('display_all_columns', layers[i].display_all_columns)
+
                         vm.optionalLayers.push(tileLayer)
                         vm.map.addLayer(tileLayer)
                     }
