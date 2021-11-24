@@ -2972,6 +2972,7 @@ class SchemaMasterlistViewSet(viewsets.ModelViewSet):
                 serializer = SchemaMasterlistSerializer(
                     instance, data=request.data
                 )
+                serializer.get_options(instance)
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
 
@@ -3490,7 +3491,7 @@ class SchemaProposalTypeViewSet(viewsets.ModelViewSet):
                 {
                     'label': s.name,
                     'value': s.id,
-                } for s in sections
+                } for s in sections if not s.apiary_group_proposal_type and s.latest
             ]
 
             return Response(
