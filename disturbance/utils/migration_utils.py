@@ -1,10 +1,8 @@
 from ledger.accounts.models import Organisation as ledger_organisation
 from ledger.accounts.models import OrganisationAddress
 from ledger.accounts.models import EmailUser
-from disturbance.settings import (
-    SITE_STATUS_CURRENT, 
-    SITE_STATUS_SUSPENDED,
-)
+from ledger.payments.models import Invoice
+from django.conf import settings
 from disturbance.components.organisations.models import Organisation, OrganisationContact, UserDelegation
 from disturbance.components.main.models import ApplicationType
 from disturbance.components.main.utils import get_category
@@ -13,14 +11,15 @@ from disturbance.components.approvals.models import Approval, MigratedApiaryLice
 #from commercialoperator.components.bookings.models import ApplicationFee, ParkBooking, Booking
 from django.core.exceptions import MultipleObjectsReturned
 from django.db import IntegrityError, transaction
-from ledger.address.models import Country
 from django.contrib.gis.geos import GEOSGeometry
+from django.utils import timezone
+from ledger.address.models import Country
 import csv
 import os
 import datetime
 import string
 from dateutil.relativedelta import relativedelta
-from django.utils.timezone import get_current_timezone
+from decimal import Decimal
 
 import logging
 logger = logging.getLogger(__name__)
@@ -33,7 +32,7 @@ class ImportException(Exception):
 class ApiaryLicenceReader():
     '''
     from disturbance.utils.migration_utils import ApiaryLicenceReader
-    reader=ApiaryLicenceReader('disturbance/utils/apiary_migration_file_01Sep20211-TEST.csv')
+    reader=ApiaryLicenceReader('disturbance/utils/csv/apiary_migration_file_01Sep20211-TEST.csv')
     reader.run_migration()
     '''
     def __init__(self, filename):
@@ -270,7 +269,7 @@ class ApiaryLicenceReader():
                         data.update({'zone': row[32].strip()})
                         data.update({'catchment': row[33].strip()})
                         data.update({'dra_permit': row[34].strip() if row[34].strip() else False})
-                        data.update({'site_status': SITE_STATUS_SUSPENDED if row[35].strip() else SITE_STATUS_CURRENT})
+                        data.update({'site_status': settings.SITE_STATUS_SUSPENDED if row[35].strip() else settings.SITE_STATUS_CURRENT})
 
                         #pli_expiry_date_raw = row[25].strip()
                         #if pli_expiry_date_raw:
@@ -635,6 +634,12 @@ class ApiaryLicenceReader():
             }
 
             approval.migrated=True
+
+            # create invoice for payment of zero dollars
+            order = create_invoice(proposal)
+            invoice = Invoice.objects.get(order_number=order.number) 
+            proposal.fee_invoice_references = [invoice.reference]
+
             proposal.save()
             approval.save()
             # create apiary sites and intermediate table entries
@@ -739,4 +744,31 @@ class ApiaryLicenceReader():
     #    print 'Approvals: {}, Approval_Errors: {}'.format(len(approval_new), len(approval_error))
 
     #def import denied sites with no licencee data
+
+def create_invoice(proposal, payment_method='other'):
+        """
+        This will create and invoice and order from a basket bypassing the session
+        and payment bpoint code constraints.
+        """
+        from ledger.checkout.utils import createCustomBasket
+        from ledger.payments.invoice.utils import CreateInvoiceBasket
+        from ledger.accounts.models import EmailUser
+
+        now = timezone.now().date()
+        line_items = [
+            {'ledger_description': 'Migration Licence Charge Waiver - {} - {}'.format(now, proposal.lodgement_number),
+             'oracle_code': 'N/A', #proposal.application_type.oracle_code_application,
+             'price_incl_tax':  Decimal(0.0),
+             'price_excl_tax':  Decimal(0.0),
+             'quantity': 1,
+            }
+        ]
+
+        user = EmailUser.objects.get(email__icontains='das@dbca.wa.gov.au')
+        invoice_text = 'Migration Invoice'
+
+        basket  = createCustomBasket(line_items, user, settings.PAYMENT_SYSTEM_ID)
+        order = CreateInvoiceBasket(payment_method=payment_method, system=settings.PAYMENT_SYSTEM_PREFIX).create_invoice_and_order(basket, 0, None, None, user=user, invoice_text=invoice_text)
+
+        return order
 
