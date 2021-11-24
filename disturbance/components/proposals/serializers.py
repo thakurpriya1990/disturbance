@@ -778,21 +778,54 @@ class SchemaMasterlistSerializer(serializers.ModelSerializer):
         model = MasterlistQuestion
         fields = '__all__'
 
+    # def get_options_orig(self, obj):
+    #     option_labels = []
+    #     try:
+    #         options = self.initial_data.get('options', None)
+    #         for o in options:
+    #             option_labels.append(o)
+    #             qo = QuestionOption.objects.filter(label=o['label'])
+    #             if qo.exists():
+    #                 o['value'] = qo[0].id
+    #                 continue
+    #             option_serializer = SchemaOptionSerializer(data=o)
+    #             option_serializer.is_valid(raise_exception=True)
+    #             option_serializer.save()
+    #             opt_id = option_serializer.data['id']
+    #             o['value'] = opt_id
+    #         obj.set_property_cache_options(option_labels)
+            
+    #     except Exception:
+    #         options = None
+    #         option_list = obj.get_options()
+    #         if option_list:
+    #             options = [
+    #                 {
+    #                     'label': o.label,
+    #                     'value': o.value,
+    #                     #'conditions': obj.ANSWER_TYPE_CONDITIONS,
+
+    #                 } for o in option_list
+    #             ]
+
+    #     return options
+
     def get_options(self, obj):
         option_labels = []
         try:
             options = self.initial_data.get('options', None)
             for o in options:
-                option_labels.append(o)
+                #option_labels.append(o)
                 qo = QuestionOption.objects.filter(label=o['label'])
                 if qo.exists():
                     o['value'] = qo[0].id
-                    continue
-                option_serializer = SchemaOptionSerializer(data=o)
-                option_serializer.is_valid(raise_exception=True)
-                option_serializer.save()
-                opt_id = option_serializer.data['id']
-                o['value'] = opt_id
+                else:
+                    option_serializer = SchemaOptionSerializer(data=o)
+                    option_serializer.is_valid(raise_exception=True)
+                    option_serializer.save()
+                    opt_id = option_serializer.data['id']
+                    o['value'] = opt_id
+                option_labels.append(o)
             obj.set_property_cache_options(option_labels)
             
         except Exception:
