@@ -3571,8 +3571,8 @@ class ProposalApiary(RevisionedMixin):
 
                 apiary_site_on_proposal.licensed_site = site['properties'].get('licensed_site')
                 apiary_site_on_proposal.batch_no = site['properties'].get('batch_no')
-                apiary_site_on_proposal.approval_cpc_date = datetime.datetime.strptime(site['properties'].get('approval_cpc_date'), '%d-%M-%Y') if site['properties'].get('approval_cpc_date') else None
-                apiary_site_on_proposal.approval_minister_date = datetime.datetime.strptime(site['properties'].get('approval_minister_date'), '%d-%M-%Y') if site['properties'].get('approval_minister_date') else None
+                apiary_site_on_proposal.approval_cpc_date = datetime.datetime.strptime(site['properties'].get('approval_cpc_date'), '%Y-%M-%d') if site['properties'].get('approval_cpc_date') else None
+                apiary_site_on_proposal.approval_minister_date = datetime.datetime.strptime(site['properties'].get('approval_minister_date'), '%Y-%M-%d') if site['properties'].get('approval_minister_date') else None
                 apiary_site_on_proposal.map_ref = site['properties'].get('map_ref')
                 apiary_site_on_proposal.forest_block = site['properties'].get('forest_block')
                 apiary_site_on_proposal.cog = site['properties'].get('cog')
