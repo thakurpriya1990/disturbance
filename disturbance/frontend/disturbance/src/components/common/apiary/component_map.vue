@@ -26,6 +26,9 @@
                     </div>
                 </transition>
             </div>
+            <div @click="toggle_mode(mode)">
+                {{ mode }}
+            </div>
         </div>
 
         <div :id="popup_id" class="ol-popup">
@@ -59,19 +62,20 @@
     import TileWMS from 'ol/source/TileWMS';
     import WMTS, {optionsFromCapabilities} from 'ol/source/WMTS';
     import Collection from 'ol/Collection';
-    import {Draw, Modify, Snap} from 'ol/interaction';
+    import { Draw, Modify, Snap } from 'ol/interaction';
     import VectorLayer from 'ol/layer/Vector';
     import VectorSource from 'ol/source/Vector';
-    import {Circle as CircleStyle, Fill, Stroke, Style} from 'ol/style';
-    import {FullScreen as FullScreenControl, MousePosition as MousePositionControl} from 'ol/control';
+    import { Circle as CircleStyle, Fill, Stroke, Style, Text, RegularShape } from 'ol/style';
+    import { FullScreen as FullScreenControl, MousePosition as MousePositionControl } from 'ol/control';
     import Vue from 'vue/dist/vue';
     import { Feature } from 'ol';
-    import { Point } from 'ol/geom';
+    import { LineString, Point } from 'ol/geom';
     import { getDistance } from 'ol/sphere';
     import { circular} from 'ol/geom/Polygon';
     import GeoJSON from 'ol/format/GeoJSON';
     import Overlay from 'ol/Overlay';
     import { getDisplayNameFromStatus, getDisplayNameOfCategory, getStatusForColour, getApiaryFeatureStyle } from '@/components/common/apiary/site_colours.js'
+    import { getArea, getLength } from 'ol/sphere'
 
     export default {
         props:{
@@ -104,6 +108,7 @@
             }
         },
         data: function(){
+            let vm = this
             return{
                 map: null,
                 apiarySitesQuerySource: null,
@@ -119,6 +124,74 @@
                 tileLayerSat: null,
                 optionalLayers: [],
                 hover: false,
+                mode: 'normal',
+                draw: null,
+                style: new Style({
+                    fill: new Fill({
+                        color: 'rgba(255, 255, 255, 0.2)',
+                    }),
+                    stroke: new Stroke({
+                        color: 'rgba(0, 0, 0, 0.5)',
+                        //lineDash: [10, 10],
+                        width: 1,
+                    }),
+                    image: new CircleStyle({
+                        radius: 5,
+                        stroke: new Stroke({
+                            color: 'rgba(0, 0, 0, 0.7)',
+                        }),
+                        fill: new Fill({
+                            color: 'rgba(255, 255, 255, 0.2)',
+                        }),
+                    }),
+                }),
+                segmentStyle: new Style({
+                    text: new Text({
+                        font: '12px Calibri,sans-serif',
+                        fill: new Fill({
+                            color: 'rgba(255, 255, 255, 1)',
+                        }),
+                        backgroundFill: new Fill({
+                            color: 'rgba(0, 0, 0, 0.4)',
+                        }),
+                        padding: [2, 2, 2, 2],
+                        textBaseline: 'bottom',
+                        offsetY: -12,
+                    }),
+                    image: new RegularShape({
+                        radius: 6,
+                        points: 3,
+                        angle: Math.PI,
+                        displacement: [0, 8],
+                        fill: new Fill({
+                            color: 'rgba(0, 0, 0, 0.4)',
+                        }),
+                    }),
+                }),
+                labelStyle: new Style({
+                    text: new Text({
+                        font: '14px Calibri,sans-serif',
+                        fill: new Fill({
+                            color: 'rgba(255, 255, 255, 1)',
+                        }),
+                        backgroundFill: new Fill({
+                            color: 'rgba(0, 0, 0, 0.7)',
+                        }),
+                        padding: [3, 3, 3, 3],
+                        textBaseline: 'bottom',
+                        offsetY: -15,
+                    }),
+                    image: new RegularShape({
+                        radius: 8,
+                        points: 3,
+                        angle: Math.PI,
+                        displacement: [0, 10],
+                        fill: new Fill({
+                            color: 'rgba(0, 0, 0, 0.7)',
+                        }),
+                    }),
+                }),
+                segmentStyles: null,
             }
         },
         created: function(){
@@ -142,6 +215,73 @@
 
         },
         methods: {
+            styleFunction: function (feature, resolution){
+                let vm = this
+
+                const styles = [vm.style]
+                const geometry = feature.getGeometry();
+                const type = geometry.getType();
+                vm.segmentStyles = [vm.segmentStyle]
+
+                let point, label, line
+                if (type === 'LineString'){
+                    point = new Point(geometry.getLastCoordinate());
+                    label = vm.formatLength(geometry);
+                    line = geometry;
+                }
+
+                if (line){
+                    let count = 0;
+                    line.forEachSegment(function (a, b) {
+                        const segment = new LineString([a, b]);
+                        const label = vm.formatLength(segment);
+
+                        if (vm.segmentStyles.length - 1 < count) {
+                            vm.segmentStyles.push(vm.segmentStyle.clone());
+                        }
+                        const segmentPoint = new Point(segment.getCoordinateAt(0.5));
+                        vm.segmentStyles[count].setGeometry(segmentPoint);
+                        vm.segmentStyles[count].getText().setText(label);
+                        styles.push(vm.segmentStyles[count]);
+                        count++;
+                    });
+                }
+
+                if (label){
+                    vm.labelStyle.setGeometry(point);
+                    vm.labelStyle.getText().setText(label);
+                    styles.push(vm.labelStyle);
+                }
+
+                return styles
+            },
+            formatLength: function (line) {
+                let cloned_line = line.clone()
+                cloned_line.transform('EPSG:4326', 'EPSG:3857')
+                const length = getLength(cloned_line);
+                let output;
+                if (length > 100) {
+                    output = Math.round((length / 1000) * 100) / 100 + ' km';
+                } else {
+                    output = Math.round(length * 100) / 100 + ' m';
+                }
+                return output;
+            },
+            toggle_mode: function(mode){
+                if (mode === 'normal'){
+                    this.mode = 'measure'
+                    this.addMeasurementTool()
+                } else {
+                    this.mode = 'normal';
+                    this.removeMeasurementTool()
+                }
+            },
+            addMeasurementTool: function(){
+                this.map.addInteraction(this.draw)
+            },
+            removeMeasurementTool: function(){
+                this.map.removeInteraction(this.draw)
+            },
             changeLayerVisibility: function(targetLayer){
                 targetLayer.setVisible(!targetLayer.getVisible())
             },
@@ -243,12 +383,9 @@
                     })
                 });
 
-                vm.apiarySitesQuerySource = new VectorSource({
-
-                });
+                vm.apiarySitesQuerySource = new VectorSource({ });
                 vm.apiarySitesQueryLayer = new VectorLayer({
                     source: vm.apiarySitesQuerySource,
-                    //style: this.drawStyle
                     style: function(feature, resolution){
                         let status = getStatusForColour(feature, false, vm.display_at_time_of_submitted)
                         return getApiaryFeatureStyle(status, feature.get('checked'))
@@ -261,6 +398,27 @@
 
                 // Full screen toggle
                 vm.map.addControl(new FullScreenControl());
+
+                // Measure tool
+                let draw_source = new VectorSource({ wrapX: false })
+                vm.draw = new Draw({
+                    source: draw_source,
+                    type: 'LineString',
+                    style: function(feature, resolution){
+                        return vm.styleFunction(feature, resolution)
+                    },
+                })
+
+                let measureLayer = new VectorLayer({
+                    source: draw_source,
+                })
+                vm.map.addLayer(measureLayer)
+                vm.draw.on('drawstart', function(evt){
+                    console.log('drawstart')
+                })
+                vm.draw.on('drawend', function(evt){
+                    console.log('drawend')
+                })
 
                 // Show mouse coordinates
                 vm.map.addControl(new MousePositionControl({
@@ -296,59 +454,63 @@
                 vm.map.addOverlay(vm.overlay)
 
                 vm.map.on('singleclick', function(evt){
-                    let feature = vm.map.forEachFeatureAtPixel(evt.pixel, function(feature, layer) {
-                        return feature;
-                    });
-                    if (feature){
-                        if (!feature.id){
-                            // When the Modify object is used for the layer, 'feature' losts some of the attributes including 'id', 'status'...
-                            // Therefore try to get the correct feature by the coordinate
-                            let geometry = feature.getGeometry();
-                            let coord = geometry.getCoordinates();
-                            feature = vm.apiarySitesQuerySource.getFeaturesAtCoordinate(coord)
-                        }
-                        vm.showPopup(feature[0])
-                    } else {
-                        vm.closePopup()
-                        let view = vm.map.getView()
-                        let viewResolution = view.getResolution()
+                    if (vm.mode === 'normal'){
+                        let feature = vm.map.forEachFeatureAtPixel(evt.pixel, function(feature, layer) {
+                            return feature;
+                        });
+                        if (feature){
+                            if (!feature.id){
+                                // When the Modify object is used for the layer, 'feature' losts some of the attributes including 'id', 'status'...
+                                // Therefore try to get the correct feature by the coordinate
+                                let geometry = feature.getGeometry();
+                                let coord = geometry.getCoordinates();
+                                feature = vm.apiarySitesQuerySource.getFeaturesAtCoordinate(coord)
+                            }
+                            vm.showPopup(feature[0])
+                        } else {
+                            vm.closePopup()
+                            let view = vm.map.getView()
+                            let viewResolution = view.getResolution()
 
-                        // Retrieve active layers' sources
-                        for (let i=0; i < vm.optionalLayers.length; i++){
-                            let visibility = vm.optionalLayers[i].getVisible()
-                            if (visibility){
-                                // Retrieve column names to be displayed
-                                let column_names = vm.optionalLayers[i].get('columns')
-                                column_names = column_names.map(function(col){
-                                    // Convert array of dictionaries to simple array
-                                    if (vm.is_internal && col.option_for_internal){
-                                        return col.name
-                                    }
-                                    if (vm.is_external && col.option_for_external){
-                                        return col.name
-                                    }
-                                })
-                                // Retrieve the value of display_all_columns boolean flag
-                                let display_all_columns = vm.optionalLayers[i].get('display_all_columns')
+                            // Retrieve active layers' sources
+                            for (let i=0; i < vm.optionalLayers.length; i++){
+                                let visibility = vm.optionalLayers[i].getVisible()
+                                if (visibility){
+                                    // Retrieve column names to be displayed
+                                    let column_names = vm.optionalLayers[i].get('columns')
+                                    column_names = column_names.map(function(col){
+                                        // Convert array of dictionaries to simple array
+                                        if (vm.is_internal && col.option_for_internal){
+                                            return col.name
+                                        }
+                                        if (vm.is_external && col.option_for_external){
+                                            return col.name
+                                        }
+                                    })
+                                    // Retrieve the value of display_all_columns boolean flag
+                                    let display_all_columns = vm.optionalLayers[i].get('display_all_columns')
 
-                                // Retrieve the URL to query the attributes
-                                let source = vm.optionalLayers[i].getSource()
-                                let url = source.getFeatureInfoUrl(
-                                    evt.coordinate, viewResolution, view.getProjection(),
-                                    //{'INFO_FORMAT': 'text/html'}
-                                    {'INFO_FORMAT': 'application/json'}
-                                )
+                                    // Retrieve the URL to query the attributes
+                                    let source = vm.optionalLayers[i].getSource()
+                                    let url = source.getFeatureInfoUrl(
+                                        evt.coordinate, viewResolution, view.getProjection(),
+                                        //{'INFO_FORMAT': 'text/html'}
+                                        {'INFO_FORMAT': 'application/json'}
+                                    )
 
-                                // Query 
-                                let p = fetch(url)
+                                    // Query 
+                                    let p = fetch(url)
 
-                                //p.then(res => res.text()).then(function(data){
-                                p.then(res => res.json()).then(function(data){
-                                    //vm.showPopupForLayersHTML(data, evt.coordinate, column_names, display_all_columns)
-                                    vm.showPopupForLayersJson(data, evt.coordinate, column_names, display_all_columns, vm.optionalLayers[i])
-                                })
+                                    //p.then(res => res.text()).then(function(data){
+                                    p.then(res => res.json()).then(function(data){
+                                        //vm.showPopupForLayersHTML(data, evt.coordinate, column_names, display_all_columns)
+                                        vm.showPopupForLayersJson(data, evt.coordinate, column_names, display_all_columns, vm.optionalLayers[i])
+                                    })
+                                }
                             }
                         }
+                    } else if (vm.mode === 'measure'){
+
                     }
                 })
                 vm.map.on('pointermove', function(e) {
@@ -393,7 +555,6 @@
                 if (feature){
                     let geometry = feature.getGeometry();
                     let coord = geometry.getCoordinates();
-                    console.log(coord)
                     let svg_hexa = "<svg xmlns='http://www.w3.org/2000/svg' version='1.1' height='20' width='15'>" +
                     '<g transform="translate(0, 4) scale(0.9)"><path d="M 14.3395,12.64426 7.5609998,16.557828 0.78249996,12.64426 0.7825,4.8171222 7.5609999,0.90355349 14.3395,4.8171223 Z" id="path837" style="fill:none;stroke:#ffffff;stroke-width:1.565;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" /></g></svg>'
                     //let status_str = feature.get('is_vacant') ? getDisplayNameFromStatus(feature.get('status')) + ' (vacant)' : getDisplayNameFromStatus(feature.get('status'))
@@ -420,7 +581,6 @@
 
                 for (let feature of geojson.features){
                     for (let key in feature.properties){
-                        //console.log(key + ': ' + feature.properties[key])
                         if (display_all_columns || column_names.includes(key)){
                             let tr = $('<tr style="border-bottom:1px solid lightgray;">')
                             let th = $('<th style="padding:0 0.5em;">').text(key)
@@ -456,7 +616,6 @@
 
                         // Display <td> in the same column
                         let td = tables.find('td:nth-child(' + idx + ')')
-                        console.log(td)
                         td.css('display', '')
                     }
                 }
