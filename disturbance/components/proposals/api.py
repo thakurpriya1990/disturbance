@@ -3491,7 +3491,7 @@ class SchemaProposalTypeViewSet(viewsets.ModelViewSet):
                 {
                     'label': s.name,
                     'value': s.id,
-                } for s in sections
+                } for s in sections if not s.apiary_group_proposal_type and s.latest
             ]
 
             return Response(
