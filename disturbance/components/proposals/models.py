@@ -4948,7 +4948,8 @@ class SectionQuestion(models.Model):
 
     @property
     def question_options(self):
-        return self.question.option.all()
+        #return self.question.option.all()
+        return self.question.get_options()
 
     def get_options(self):
         '''

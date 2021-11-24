@@ -722,11 +722,27 @@ class QuestionOptionSerializer(serializers.ModelSerializer):
 class SectionQuestionSerializer(serializers.ModelSerializer):
     question_name=serializers.CharField(source='question.question')
     answer_type=serializers.CharField(source='question.answer_type')
-    question_options= QuestionOptionSerializer(many=True, read_only=True)
+    #question_options= QuestionOptionSerializer(many=True, read_only=True)
+    question_options= serializers.SerializerMethodField()
 
     class Meta:
         model = SectionQuestion
         fields = ('section', 'question_id', 'question_options', 'question_name', 'answer_type',)
+
+    def get_question_options(self, obj):
+        options = None
+        option_list = obj.question_options
+        if option_list:
+            options = [
+                    {
+                        'label': o.label,
+                        'value': o.value,
+                        #'conditions': obj.ANSWER_TYPE_CONDITIONS,
+
+                    } for o in option_list
+                ]
+
+        return options
 
 class ProposalTypeSectionSerializer(serializers.ModelSerializer):
     section_questions = SectionQuestionSerializer(many=True, read_only=True)
