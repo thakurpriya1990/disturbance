@@ -175,15 +175,19 @@ class ListProposalSerializer(BaseProposalSerializer):
 
     def get_fee_invoice_references(self, obj):
         invoice_references = []
-        for inv_ref in obj.fee_invoice_references:
-            inv = Invoice.objects.get(reference=inv_ref)
-            from disturbance.helpers import is_internal
-            if is_internal(self.context['request']):
-                invoice_references.append(inv_ref)
-            else:
-                # We don't want to show 0 doller invoices to external
-                if inv.amount > 0:
-                    invoice_references.append(inv_ref)
+        if obj.fee_invoice_references:
+            for inv_ref in obj.fee_invoice_references:
+                try:
+                    inv = Invoice.objects.get(reference=inv_ref)
+                    from disturbance.helpers import is_internal
+                    if is_internal(self.context['request']):
+                        invoice_references.append(inv_ref)
+                    else:
+                        # We don't want to show 0 doller invoices to external
+                        if inv.amount > 0:
+                            invoice_references.append(inv_ref)
+                except:
+                    pass
         return invoice_references
 
     def get_relevant_applicant_name(self,obj):
