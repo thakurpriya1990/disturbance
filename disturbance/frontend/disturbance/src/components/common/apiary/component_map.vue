@@ -25,9 +25,14 @@
                         </div>
                     </div>
                 </transition>
-            </div>
-            <div @click="toggle_mode(mode)">
-                {{ mode }}
+                <div class="optional-layers-button" @click="toggle_mode(mode)" style="padding: 4px 0 0 4px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" >
+                        <path 
+                            d="M18.342 0l-2.469 2.47 2.121 2.121-.707.707-2.121-2.121-1.414 1.414 1.414 1.414-.707.707-1.414-1.414-1.414 1.414 1.414 1.414-.707.707-1.414-1.414-1.414 1.414 2.121 2.122-.707.707-2.121-2.121-1.414 1.414 1.414 1.414-.708.707-1.414-1.414-1.414 1.414 1.414 1.414-.708.709-1.414-1.414-1.414 1.413 2.121 2.121-.706.706-2.122-2.121-2.438 2.439 5.656 5.657 18.344-18.343z" 
+                            :fill="ruler_colour"
+                        />
+                    </svg>
+                </div>
             </div>
         </div>
 
@@ -212,7 +217,13 @@
 
         },
         computed: {
-
+            ruler_colour: function(){
+                if (this.mode === 'normal'){
+                    return '#aaa';
+                } else {
+                    return '#53c2cf';
+                }
+            }
         },
         methods: {
             styleFunction: function (feature, resolution){
@@ -719,7 +730,7 @@
         left: 10px;
     }
     .optional-layers-button {
-        position: absolute;
+        position: relative;
         z-index: 400;
         background: white;
         border-radius: 2px;
@@ -729,14 +740,14 @@
         -webkit-filter: brightness(1.0);
         */
         border: 3px solid rgba(5, 5, 5, .1);
+        margin-bottom: 2px;
+        cursor: pointer;
     }
     .layer_options {
-        /*
         position: absolute;
-        */
         top: 0;
         left: 0;
-        z-index: 400;
+        z-index: 410;
         background: white;
         border-radius: 2px;
         cursor: pointer;
