@@ -47,3 +47,9 @@ export default {
     },
 }
 </script>
+<style scoped>
+    .nav-item {
+    background-color: rgba(200,200,200,0.8) !important;
+    cursor: pointer;
+}
+</style>

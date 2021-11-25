@@ -214,6 +214,10 @@ class OnSiteInformationSerializer(serializers.ModelSerializer):
             'apiary_site_on_approval_id',
             'period_from',
             'period_to',
+            'hives_loc',
+            'hives_num',
+            'people_names',
+            'flora',
             'comments',
             'datetime_deleted',
         )

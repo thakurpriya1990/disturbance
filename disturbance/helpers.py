@@ -48,8 +48,18 @@ def in_dbca_domain(request):
 def is_in_organisation_contacts(request, organisation):
     return request.user.email in organisation.contacts.all().values_list('email', flat=True)
 
+def is_approved_external_user(request):
+    http_host = request.META.get('HTTP_HOST', None)
+    if http_host and ('apiary' in http_host.lower() or http_host in settings.APIARY_URL):
+        if belongs_to(request.user, settings.APPROVED_APIARY_EXTERNAL_USERS_GROUP):
+            return True
+    else:
+        if belongs_to(request.user, settings.APPROVED_DAS_EXTERNAL_USERS_GROUP):
+            return True
+    return False
+
 def is_departmentUser(request):
-    return request.user.is_authenticated() and ( (is_model_backend(request) and in_dbca_domain(request)) or (belongs_to(request.user, settings.APPROVED_EXTERNAL_USERS_GROUP)) )
+    return request.user.is_authenticated() and ( (is_model_backend(request) and in_dbca_domain(request)) or is_approved_external_user(request) )
 
 def is_customer(request):
     return request.user.is_authenticated() and is_email_auth_backend(request)

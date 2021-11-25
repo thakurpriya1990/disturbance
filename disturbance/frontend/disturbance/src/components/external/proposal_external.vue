@@ -748,16 +748,18 @@ export default {
             let blank_fields = []
 
             // Org Details
-            if (!org.name) { blank_fields.push('org name') }
-            if (!org.abn) { blank_fields.push('org abn') }
-            if (!org.email) { blank_fields.push('org email') }
+            if (org) {
+                if (!org.name) { blank_fields.push('org name') }
+                if (!org.abn) { blank_fields.push('org abn') }
+                if (!org.email) { blank_fields.push('org email') }
 
-            // Address Details
-            if (!org.address.line1) { blank_fields.push('street') }
-            if (!org.address.locality) { blank_fields.push('town/suburb') }
-            if (!org.address.state) { blank_fields.push('state') }
-            if (!org.address.postcode) { blank_fields.push('postcode') }
-            if (!org.address.country) { blank_fields.push('country') }
+                // Address Details
+                if (!org.address.line1) { blank_fields.push('street') }
+                if (!org.address.locality) { blank_fields.push('town/suburb') }
+                if (!org.address.state) { blank_fields.push('state') }
+                if (!org.address.postcode) { blank_fields.push('postcode') }
+                if (!org.address.country) { blank_fields.push('country') }
+            }
 
             return blank_fields;
         },

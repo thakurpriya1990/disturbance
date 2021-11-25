@@ -317,6 +317,7 @@ class ApprovalSerializer(serializers.ModelSerializer):
         fields = (
             'id',
             'lodgement_number',
+            'migrated',
             'licence_document',
             'replaced_by',
             'current_proposal',
@@ -375,6 +376,7 @@ class ApprovalSerializer(serializers.ModelSerializer):
         # also require the following additional fields for some of the mRender functions
         datatables_always_serialize = (
             'id',
+            'migrated',
             'activity',
             'region',
             'title',
@@ -556,6 +558,7 @@ class DTApprovalSerializer(serializers.ModelSerializer):
         model = Approval
         fields = (
             'id',
+            'migrated',
             'activity',
             'region',
             'title',

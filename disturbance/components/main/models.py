@@ -9,6 +9,7 @@ from django.utils.encoding import python_2_unicode_compatible
 from django.core.exceptions import ValidationError
 from ledger.accounts.models import EmailUser, Document, RevisionedMixin
 from django.contrib.postgres.fields.jsonb import JSONField
+from datetime import date
 
 
 class MapLayer(models.Model):
@@ -60,12 +61,19 @@ class Region(models.Model):
         return self.name
 
 
+class ArchivedDistrictManager(models.Manager):
+    def get_queryset(self):
+        #return super().get_queryset().all()
+        return super().get_queryset().exclude(archive_date__lte=date.today())
+
 @python_2_unicode_compatible
 class District(models.Model):
     region = models.ForeignKey(Region, related_name='districts')
     name = models.CharField(max_length=200, unique=True)
     code = models.CharField(max_length=3)
     archive_date = models.DateField(null=True, blank=True)
+
+    objects = ArchivedDistrictManager()
 
     class Meta:
         ordering = ['name']
