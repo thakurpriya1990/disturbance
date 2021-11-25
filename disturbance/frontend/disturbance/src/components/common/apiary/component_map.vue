@@ -708,7 +708,7 @@
         filter: brightness(1.0);
         border: 2px white solid;
     }
-    .basemap-button:hover {
+    .basemap-button:hover,.optional-layers-button:hover{
         cursor: pointer;
         -moz-filter: brightness(0.9);
         -webkit-filter: brightness(0.9);
@@ -734,11 +734,6 @@
         z-index: 400;
         background: white;
         border-radius: 2px;
-        /*
-        box-shadow: 3px 3px 3px #777;
-        -moz-filter: brightness(1.0);
-        -webkit-filter: brightness(1.0);
-        */
         border: 3px solid rgba(5, 5, 5, .1);
         margin-bottom: 2px;
         cursor: pointer;
