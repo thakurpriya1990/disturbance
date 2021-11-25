@@ -20,8 +20,9 @@
                                 :id="layer.ol_uid"
                                 :checked="layer.values_.visible"
                                 @change="changeLayerVisibility(layer)"
+                                class="layer_option"
                             />
-                            <label :for="layer.ol_uid">{{ layer.get('title') }}</label>
+                            <label :for="layer.ol_uid" class="layer_option">{{ layer.get('title') }}</label>
                         </div>
                     </div>
                 </transition>
@@ -136,7 +137,8 @@
                         color: 'rgba(255, 255, 255, 0.2)',
                     }),
                     stroke: new Stroke({
-                        color: 'rgba(0, 0, 0, 0.5)',
+                        //color: 'rgba(0, 0, 0, 0.5)',
+                        color: '#53c2cf',
                         //lineDash: [10, 10],
                         width: 1,
                     }),
@@ -328,6 +330,7 @@
                 })
             },
             setBaseLayer: function(selected_layer_name){
+                console.log('in setBaseLayer')
                 let vm = this
                 if (selected_layer_name == 'sat') {
                     vm.tileLayerOsm.setVisible(false)
@@ -745,7 +748,7 @@
         z-index: 410;
         background: white;
         border-radius: 2px;
-        cursor: pointer;
+        cursor: auto;
         /*
         box-shadow: 3px 3px 3px #777;
         -moz-filter: brightness(1.0);
@@ -819,5 +822,8 @@
     }
     .table_caption {
         color: green;
+    }
+    .layer_option:hover {
+        cursor: pointer;
     }
 </style>
