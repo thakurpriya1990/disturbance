@@ -68,14 +68,14 @@
                 <img id="basemap_sat" src="../../../assets/satellite_icon.jpg" @click="setBaseLayer('sat')" />
                 <img id="basemap_osm" src="../../../assets/map_icon.png" @click="setBaseLayer('osm')" />
             </div>
-            <div id="optional-layers-wrapper">
+            <div class="optional-layers-wrapper">
                 <transition v-if="optionalLayers.length">
-                    <div id="optional-layers-button" v-show="!hover">
+                    <div class="optional-layers-button" v-show="!hover">
                         <img src="../../../assets/layer-switcher-icon.png" @mouseover="hover=true" />
                     </div>
                 </transition>
                 <transition v-if="optionalLayers.length">
-                    <div div id="layer_options" v-show="hover" @mouseleave="hover=false" >
+                    <div div class="layer_options" v-show="hover" @mouseleave="hover=false" >
                         <div v-for="layer in optionalLayers">
                             <input
                                 type="checkbox"
@@ -87,6 +87,14 @@
                         </div>
                     </div>
                 </transition>
+                <div class="optional-layers-button" @click="toggle_mode(mode)" style="padding: 4px 0 0 4px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" >
+                        <path 
+                            d="M18.342 0l-2.469 2.47 2.121 2.121-.707.707-2.121-2.121-1.414 1.414 1.414 1.414-.707.707-1.414-1.414-1.414 1.414 1.414 1.414-.707.707-1.414-1.414-1.414 1.414 2.121 2.122-.707.707-2.121-2.121-1.414 1.414 1.414 1.414-.708.707-1.414-1.414-1.414 1.414 1.414 1.414-.708.709-1.414-1.414-1.414 1.413 2.121 2.121-.706.706-2.122-2.121-2.438 2.439 5.656 5.657 18.344-18.343z" 
+                            :fill="ruler_colour"
+                        />
+                    </svg>
+                </div>
             </div>
         </div>
 
@@ -123,7 +131,7 @@
     import {FullScreen as FullScreenControl, MousePosition as MousePositionControl} from 'ol/control';
     import Vue from 'vue/dist/vue';
     import { Feature } from 'ol';
-    import { Point } from 'ol/geom';
+    import { Point, LineString } from 'ol/geom';
     import { getDistance } from 'ol/sphere';
     import { circular} from 'ol/geom/Polygon';
     import GeoJSON from 'ol/format/GeoJSON';
@@ -138,6 +146,8 @@
     import WMTSTileGrid from 'ol/tilegrid/WMTS';
     import {get as getProjection} from 'ol/proj';
     import {getTopLeft, getWidth} from 'ol/extent';
+    import MeasureStyles, { formatLength } from '@/components/common/apiary/measure.js'
+    import { getArea, getLength } from 'ol/sphere'
 
     // create the WMTS tile grid in the google projection
     const projection = getProjection('EPSG:4326');
@@ -409,6 +419,14 @@
                 tileLayerSat: null,
                 optionalLayers: [],
                 hover: false,
+
+                // For Measurement tool
+                mode: 'normal',
+                drawForMeasure: null,
+                style: MeasureStyles.style,
+                segmentStyle: MeasureStyles.segmentStyle,
+                labelStyle: MeasureStyles.labelStyle,
+                segmentStyles: null,
             }
         },
         components: {
@@ -416,6 +434,13 @@
             datatable,
         },
         computed:{
+            ruler_colour: function(){
+                if (this.mode === 'normal'){
+                    return '#aaa';
+                } else {
+                    return '#53c2cf';
+                }
+            },
             display_debug_info: function(){
                 if (location.host === 'localhost:8071'){
                     return true
@@ -649,6 +674,61 @@
             }
         },
         methods:{
+            styleFunction: function (feature, resolution){
+                let vm = this
+
+                const styles = [vm.style]
+                const geometry = feature.getGeometry();
+                const type = geometry.getType();
+                vm.segmentStyles = [vm.segmentStyle]
+
+                let point, label, line
+                if (type === 'LineString'){
+                    point = new Point(geometry.getLastCoordinate());
+                    label = formatLength(geometry);
+                    line = geometry;
+                }
+
+                if (line){
+                    let count = 0;
+                    line.forEachSegment(function (a, b) {
+                        const segment = new LineString([a, b]);
+                        const label = formatLength(segment);
+
+                        if (vm.segmentStyles.length - 1 < count) {
+                            vm.segmentStyles.push(vm.segmentStyle.clone());
+                        }
+                        const segmentPoint = new Point(segment.getCoordinateAt(0.5));
+                        vm.segmentStyles[count].setGeometry(segmentPoint);
+                        vm.segmentStyles[count].getText().setText(label);
+                        styles.push(vm.segmentStyles[count]);
+                        count++;
+                    });
+                }
+
+                if (label){
+                    vm.labelStyle.setGeometry(point);
+                    vm.labelStyle.getText().setText(label);
+                    styles.push(vm.labelStyle);
+                }
+
+                return styles
+            },
+            toggle_mode: function(mode){
+                if (mode === 'normal'){
+                    this.mode = 'measure'
+                    this.addMeasurementTool()
+                } else {
+                    this.mode = 'normal';
+                    this.removeMeasurementTool()
+                }
+            },
+            addMeasurementTool: function(){
+                this.map.addInteraction(this.drawForMeasure)
+            },
+            removeMeasurementTool: function(){
+                this.map.removeInteraction(this.drawForMeasure)
+            },
             console_layers: function(){
                 let layers = this.map.getLayers()
                 for (var i = 0; i < layers.array_.length; i++){
@@ -1226,24 +1306,28 @@
                         type: "Point",
                     });
                     drawTool.on("drawstart", async function(attributes){
-                        let coords = attributes.feature.getGeometry().getCoordinates()
-
-                        if (vm.vacant_site_being_selected){
-                            // Abort drawing, instead 'vacant' site is to be added
+                        if (vm.mode === 'measure'){
                             drawTool.abortDrawing();
-
-                            vm.vacant_site_being_selected.set('vacant_selected', true)
-
-                            vm.drawingLayerSource.addFeature(vm.vacant_site_being_selected);
-                            vm.vacant_site_being_selected.getGeometry().on("change", function() {
-                                if (modifyInProgressList.indexOf(vm.vacant_site_being_selected.getId()) == -1) {
-                                    modifyInProgressList.push(vm.vacant_site_being_selected.getId());
-                                }
-                            });
-                        } else {
+                        } else if (vm.mode === 'normal'){
                             let coords = attributes.feature.getGeometry().getCoordinates()
-                            if (!vm.isNewPositionValid(coords)) {
+
+                            if (vm.vacant_site_being_selected){
+                                // Abort drawing, instead 'vacant' site is to be added
                                 drawTool.abortDrawing();
+
+                                vm.vacant_site_being_selected.set('vacant_selected', true)
+
+                                vm.drawingLayerSource.addFeature(vm.vacant_site_being_selected);
+                                vm.vacant_site_being_selected.getGeometry().on("change", function() {
+                                    if (modifyInProgressList.indexOf(vm.vacant_site_being_selected.getId()) == -1) {
+                                        modifyInProgressList.push(vm.vacant_site_being_selected.getId());
+                                    }
+                                });
+                            } else {
+                                let coords = attributes.feature.getGeometry().getCoordinates()
+                                if (!vm.isNewPositionValid(coords)) {
+                                    drawTool.abortDrawing();
+                                }
                             }
                         }
                     });
@@ -1320,6 +1404,15 @@
                     });
                     vm.map.addInteraction(modifyTool);
                 }
+                // Measure tool
+                let draw_source = new VectorSource({ wrapX: false })
+                vm.drawForMeasure = new Draw({
+                    source: draw_source,
+                    type: 'LineString',
+                    style: function(feature, resolution){
+                        return vm.styleFunction(feature, resolution)
+                    },
+                })
 
                 let hoverInteraction = new Select({
                     condition: pointerMove,
@@ -1576,7 +1669,7 @@
     #basemap_sat,#basemap_osm {
     /* border-radius: 5px; */
     }
-    #basemap-button:hover {
+    #basemap-button:hover,.optional-layers-button:hover {
         cursor: pointer;
         -moz-filter: brightness(0.9);
         -webkit-filter: brightness(0.9);
@@ -1592,30 +1685,25 @@
         -webkit-filter: brightness(0.8);
         filter: brightness(0.8);
     }
-    #optional-layers-wrapper {
+    .optional-layers-wrapper {
         position: absolute;
         top: 70px;
         left: 10px;
     }
-    #optional-layers-button {
-        position: absolute;
+    .optional-layers-button {
+        position: relative;
         z-index: 400;
         background: white;
         border-radius: 2px;
-        /*
-        box-shadow: 3px 3px 3px #777;
-        -moz-filter: brightness(1.0);
-        -webkit-filter: brightness(1.0);
-        */
         border: 3px solid rgba(5, 5, 5, .1);
+        margin-bottom: 2px;
+        cursor: pointer;
     }
-    #layer_options {
-        /*
+    .layer_options {
         position: absolute;
-        */
         top: 0;
         left: 0;
-        z-index: 400;
+        z-index: 410;
         background: white;
         border-radius: 2px;
         cursor: pointer;
