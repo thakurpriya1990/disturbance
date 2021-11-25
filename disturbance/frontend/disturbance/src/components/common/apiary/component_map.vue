@@ -39,6 +39,7 @@
 
         <div :id="popup_id" class="ol-popup">
             <a href="#" :id="popup_closer_id" class="ol-popup-closer">
+            <!--
            <svg xmlns='http://www.w3.org/2000/svg' version='1.1' height='20' width='20' class="close-icon">
 
                <g transform='scale(3)'>
@@ -47,6 +48,7 @@
   </g>
            </svg>
 
+            -->
             </a>
             <div :id="popup_content_id"></div>
         </div>

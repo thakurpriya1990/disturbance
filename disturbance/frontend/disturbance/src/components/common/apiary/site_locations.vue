@@ -437,8 +437,10 @@
             ruler_colour: function(){
                 if (this.mode === 'normal'){
                     return '#aaa';
-                } else {
+                } else if(this.mode === 'measure') {
                     return '#53c2cf';
+                } else {
+                    return '#ff7f50';
                 }
             },
             display_debug_info: function(){
@@ -674,6 +676,29 @@
             }
         },
         methods:{
+            showPopupForLayersJson: function(geojson, coord, column_names, display_all_columns, target_layer){
+                let wrapper = $('<div>')  // Add wrapper element because html() used at the end exports only the contents of the jquery object
+                let caption = $('<div style="text-align:center; font-weight: bold;">').text(target_layer.get('title'))
+                let table = $('<table style="margin-bottom: 1em;">') //.addClass('table')
+                let tbody = $('<tbody>')
+                wrapper.append(caption)
+                wrapper.append(table.append(tbody))
+
+                for (let feature of geojson.features){
+                    for (let key in feature.properties){
+                        if (display_all_columns || column_names.includes(key)){
+                            let tr = $('<tr style="border-bottom:1px solid lightgray;">')
+                            let th = $('<th style="padding:0 0.5em;">').text(key)
+                            let td = $('<td>').addClass('text-nowrap').text(feature.properties[key])
+                            tr.append(th)
+                            tr.append(td)
+                            tbody.append(tr)
+                        }
+                    }
+                    this.content_element.innerHTML += wrapper.html()  // Export contents as HTML string
+                    this.overlay.setPosition(coord);
+                }
+            },
             styleFunction: function (feature, resolution){
                 let vm = this
 
@@ -716,12 +741,18 @@
             },
             toggle_mode: function(mode){
                 if (mode === 'normal'){
+                    // normal --> measure
                     this.mode = 'measure'
                     this.addMeasurementTool()
-                } else {
-                    this.mode = 'normal';
+                } else if (mode === 'measure'){
+                    // measure --> layer
+                    this.mode = 'layer';
                     this.removeMeasurementTool()
+                } else {
+                    // layer --> normal
+                    this.mode = 'normal'
                 }
+                console.log(this.mode)
             },
             addMeasurementTool: function(){
                 this.map.addInteraction(this.drawForMeasure)
@@ -833,9 +864,33 @@
                 this.content_element.innerHTML = content;
                 this.overlay.setPosition(coord);
             },
+            howPopupForLayersJson: function(geojson, coord, column_names, display_all_columns, target_layer){
+                let wrapper = $('<div>')  // Add wrapper element because html() used at the end exports only the contents of the jquery object
+                let caption = $('<div style="text-align:center; font-weight: bold;">').text(target_layer.get('title'))
+                let table = $('<table style="margin-bottom: 1em;">') //.addClass('table')
+                let tbody = $('<tbody>')
+                wrapper.append(caption)
+                wrapper.append(table.append(tbody))
+
+                for (let feature of geojson.features){
+                    for (let key in feature.properties){
+                        if (display_all_columns || column_names.includes(key)){
+                            let tr = $('<tr style="border-bottom:1px solid lightgray;">')
+                            let th = $('<th style="padding:0 0.5em;">').text(key)
+                            let td = $('<td>').addClass('text-nowrap').text(feature.properties[key])
+                            tr.append(th)
+                            tr.append(td)
+                            tbody.append(tr)
+                        }
+                    }
+                    this.content_element.innerHTML += wrapper.html()  // Export contents as HTML string
+                    this.overlay.setPosition(coord);
+                }
+            },
             closePopup: function(){
+                this.content_element.innerHTML = null
+                this.$emit('popupClosed')
                 this.overlay.setPosition(undefined)
-                //closer.blur()
                 return false
             },
             displayAllFeatures: function() {
@@ -1220,6 +1275,55 @@
                         }
                     });
                 });
+                vm.map.on('singleclick', function(evt){
+                    console.log('in singleclick')
+                    console.log('2')
+                    console.log(vm.mode)
+                    if(vm.mode === 'layer'){
+                        console.log('3')
+                        vm.closePopup()
+                        console.log('4')
+                        let view = vm.map.getView()
+                        let viewResolution = view.getResolution()
+
+                        // Retrieve active layers' sources
+                        for (let i=0; i < vm.optionalLayers.length; i++){
+                            let visibility = vm.optionalLayers[i].getVisible()
+                            if (visibility){
+                                // Retrieve column names to be displayed
+                                let column_names = vm.optionalLayers[i].get('columns')
+                                column_names = column_names.map(function(col){
+                                    // Convert array of dictionaries to simple array
+                                    if (vm.is_internal && col.option_for_internal){
+                                        return col.name
+                                    }
+                                    if (vm.is_external && col.option_for_external){
+                                        return col.name
+                                    }
+                                })
+                                // Retrieve the value of display_all_columns boolean flag
+                                let display_all_columns = vm.optionalLayers[i].get('display_all_columns')
+
+                                // Retrieve the URL to query the attributes
+                                let source = vm.optionalLayers[i].getSource()
+                                let url = source.getFeatureInfoUrl(
+                                    evt.coordinate, viewResolution, view.getProjection(),
+                                    //{'INFO_FORMAT': 'text/html'}
+                                    {'INFO_FORMAT': 'application/json'}
+                                )
+
+                                // Query 
+                                let p = fetch(url)
+
+                                //p.then(res => res.text()).then(function(data){
+                                p.then(res => res.json()).then(function(data){
+                                    //vm.showPopupForLayersHTML(data, evt.coordinate, column_names, display_all_columns)
+                                    vm.showPopupForLayersJson(data, evt.coordinate, column_names, display_all_columns, vm.optionalLayers[i])
+                                })
+                            }
+                        }
+                    }
+                })
 
                 // In memory vector layer for digitization
                 //vm.drawingLayerSource = new VectorSource();
@@ -1329,6 +1433,8 @@
                                     drawTool.abortDrawing();
                                 }
                             }
+                        } else {
+                            drawTool.abortDrawing();
                         }
                     });
                     //drawTool.on('drawend', function(attributes){
