@@ -45,6 +45,35 @@
                     </div></div>
 
                     <div class="form-group"><div class="row">
+                        <label class="col-sm-3">The proposed location of the hives</label>
+                        <div class="col-sm-3">
+                            <textarea class="form-control" v-model="on_site_information.hives_loc"/>
+                        </div>
+                    </div></div>
+
+                    <div class="form-group"><div class="row">
+                        <label class="col-sm-3">Number of hives proposed to be placed on the site</label>
+                        <div class="col-sm-3">
+                            <input type='number' value="0" class="form-control" v-model="on_site_information.hives_num"/>
+                        </div>
+                    </div></div>
+
+                    <div class="form-group"><div class="row">
+                        <label class="col-sm-3">The names of the people who are expected to be entering the site for apiary purposes</label>
+                        <div class="col-sm-3">
+                            <textarea class="form-control" v-model="on_site_information.people_names"/>
+                        </div>
+                    </div></div>
+
+                    <div class="form-group"><div class="row">
+                        <label class="col-sm-3">Flora targeted</label>
+                        <div class="col-sm-3">
+                            <textarea class="form-control" v-model="on_site_information.flora"/>
+                        </div>
+                    </div></div>
+
+
+                    <div class="form-group"><div class="row">
                         <label class="col-sm-3">Comments</label>
                         <div class="col-sm-3">
                             <textarea class="form-control" v-model="on_site_information.comments"/>

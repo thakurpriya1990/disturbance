@@ -273,10 +273,9 @@ export default {
       },
       individualExistingRecordText: function() {
           let approvalText = '';
-          // The below notification message no longer required because now always allowing Temp Use applications to be submitted
-          //if (this.profile && this.profile.existing_record_text) {
-          //    approvalText = this.profile.existing_record_text.notification;
-          //}
+          if (this.profile && this.profile.existing_record_text && this.profile.current_apiary_approval===null) {
+              approvalText = this.profile.existing_record_text.notification + ' (There is no current Apiary Approval)';
+          }
           return approvalText;
       },
       currentApiaryApproval: function() {
@@ -311,7 +310,7 @@ export default {
               //if (this.behalf_of === 'individual') {
               if (this.apiaryTemplateGroup) {
                   if (applicationType.domain_used.toLowerCase() === "apiary") {
-                      if (applicationType.text.toLowerCase() === "apiary" && !this.currentApiaryButtonDisabled && !this.currentApiaryButtonDisabled){
+                      if (applicationType.text.toLowerCase() === "apiary" && !this.currentApiaryButtonDisabled){
                           applicationType.display_text = "Apiary Sites";
                           returnList.push(applicationType);
                       }
@@ -407,7 +406,7 @@ export default {
     individualHasNoLicenceTitle: function() {
       console.log(3);
       if (this.individualDisableApplyRadioButton()) {
-          //console.lo4(this.profile.full_name + ' has no current licence');
+          //console.log(this.profile.full_name + ' has no current licence');
           return this.profile.full_name + ' has no current licence'
       }
     },

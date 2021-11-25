@@ -681,7 +681,8 @@ class MigratedApiaryLicence(models.Model):
         (LICENCEE_TYPE_INDIVIDUAL, 'Individual'),
     )
 
-    permit_number = models.IntegerField(unique=True)
+    #permit_number = models.IntegerField(unique=True)
+    permit_number = models.IntegerField(null=True, blank=True)
     start_date = models.DateField()
     expiry_date = models.DateField()
     issue_date = models.DateField()
