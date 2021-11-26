@@ -68,26 +68,8 @@
                 <img id="basemap_sat" src="../../../assets/satellite_icon.jpg" @click="setBaseLayer('sat')" />
                 <img id="basemap_osm" src="../../../assets/map_icon.png" @click="setBaseLayer('osm')" />
             </div>
-            <div class="optional-layers-wrapper">
-                <transition v-if="optionalLayers.length">
-                    <div class="optional-layers-button" v-show="!hover">
-                        <img src="../../../assets/layer-switcher-icon.png" @mouseover="hover=true" />
-                    </div>
-                </transition>
-                <transition v-if="optionalLayers.length">
-                    <div div class="layer_options" v-show="hover" @mouseleave="hover=false" >
-                        <div v-for="layer in optionalLayers">
-                            <input
-                                type="checkbox"
-                                :id="layer.ol_uid"
-                                :checked="layer.values_.visible"
-                                @change="changeLayerVisibility(layer)"
-                            />
-                            <label :for="layer.ol_uid">{{ layer.get('title') }}</label>
-                        </div>
-                    </div>
-                </transition>
-                <div class="optional-layers-button" @click="toggle_mode(mode)" style="padding: 4px 0 0 4px;">
+            <div class="optional-layers-wrapper" @mouseleave="hover=false">
+                <div class="optional-layers-button" @click="toggle_mode(mode)" @mouseover="display_layers_option(mode)">
                     <svg width="24" height="24" version="1.1" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <template v-if="mode === 'normal'">
                              <circle cx="12" cy="12" r="5.8288" fill="#53c2cf" stop-color="#000000"/>
@@ -107,6 +89,20 @@
                         </template>
                     </svg>
                 </div>
+                <!--div div class="layer_options" v-show="hover" @mouseleave="hover=false" -->
+                <transition>
+                    <div div class="layer_options" v-show="hover" @mouseleave="hover=false">
+                        <div v-for="layer in optionalLayers">
+                            <input
+                                type="checkbox"
+                                :id="layer.ol_uid"
+                                :checked="layer.values_.visible"
+                                @change="changeLayerVisibility(layer)"
+                            />
+                            <label :for="layer.ol_uid">{{ layer.get('title') }}</label>
+                        </div>
+                    </div>
+                </transition>
             </div>
         </div>
 
@@ -688,6 +684,11 @@
             }
         },
         methods:{
+            display_layers_option: function(mode){
+                if(mode === 'layer'){
+                    this.hover = true
+                }
+            },
             showPopupForLayersJson: function(geojson, coord, column_names, display_all_columns, target_layer){
                 let wrapper = $('<div>')  // Add wrapper element because html() used at the end exports only the contents of the jquery object
                 let caption = $('<div style="text-align:center; font-weight: bold;">').text(target_layer.get('title'))
@@ -756,13 +757,16 @@
                     // normal --> measure
                     this.mode = 'measure'
                     this.addMeasurementTool()
+                    this.hover = false
                 } else if (mode === 'measure'){
                     // measure --> layer
-                    this.mode = 'layer';
+                    this.mode = 'layer'
                     this.removeMeasurementTool()
+                    this.hover = true
                 } else {
                     // layer --> normal
                     this.mode = 'normal'
+                    this.hover = false
                 }
                 console.log(this.mode)
             },
@@ -1809,16 +1813,18 @@
         left: 10px;
     }
     .optional-layers-button {
+        padding: 4px;
+        display: inline-block;
         position: relative;
         z-index: 400;
         background: white;
         border-radius: 2px;
         border: 3px solid rgba(5, 5, 5, .1);
-        margin-bottom: 2px;
         cursor: pointer;
+        font-size: 0;
     }
     .layer_options {
-        position: absolute;
+        position: relative;
         top: 0;
         left: 0;
         z-index: 410;
