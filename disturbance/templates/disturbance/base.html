@@ -122,7 +122,9 @@
                                                 <ul class="dropdown-menu">
                                                     {% if is_disturbance_admin_user or is_apiary_admin_user or request.user.is_superuser %}
                                                         <li><a href="{% url 'admin:index' %}">Admin</a></li>
-                                                        <li><a href="/internal/schema">Manage Application Schema</a></li>
+							{% if DOMAIN_DETECTED != 'apiary' %}
+                                                            <li><a href="/internal/schema">Manage Application Schema</a></li>
+                                                        {% endif %}
                                                         <li role="separator" class="divider"></li>
                                                     {% endif %}
                                                     {% if request.user.is_superuser %}
