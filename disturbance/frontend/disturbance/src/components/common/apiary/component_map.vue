@@ -20,8 +20,9 @@
                                 :id="layer.ol_uid"
                                 :checked="layer.values_.visible"
                                 @change="changeLayerVisibility(layer)"
+                                class="layer_option"
                             />
-                            <label :for="layer.ol_uid">{{ layer.get('title') }}</label>
+                            <label :for="layer.ol_uid" class="layer_option">{{ layer.get('title') }}</label>
                         </div>
                     </div>
                 </transition>
@@ -38,6 +39,7 @@
 
         <div :id="popup_id" class="ol-popup">
             <a href="#" :id="popup_closer_id" class="ol-popup-closer">
+            <!--
            <svg xmlns='http://www.w3.org/2000/svg' version='1.1' height='20' width='20' class="close-icon">
 
                <g transform='scale(3)'>
@@ -46,6 +48,7 @@
   </g>
            </svg>
 
+            -->
             </a>
             <div :id="popup_content_id"></div>
         </div>
@@ -81,6 +84,7 @@
     import Overlay from 'ol/Overlay';
     import { getDisplayNameFromStatus, getDisplayNameOfCategory, getStatusForColour, getApiaryFeatureStyle } from '@/components/common/apiary/site_colours.js'
     import { getArea, getLength } from 'ol/sphere'
+    import MeasureStyles, { formatLength } from '@/components/common/apiary/measure.js'
 
     export default {
         props:{
@@ -131,71 +135,9 @@
                 hover: false,
                 mode: 'normal',
                 draw: null,
-                style: new Style({
-                    fill: new Fill({
-                        color: 'rgba(255, 255, 255, 0.2)',
-                    }),
-                    stroke: new Stroke({
-                        color: 'rgba(0, 0, 0, 0.5)',
-                        //lineDash: [10, 10],
-                        width: 1,
-                    }),
-                    image: new CircleStyle({
-                        radius: 5,
-                        stroke: new Stroke({
-                            color: 'rgba(0, 0, 0, 0.7)',
-                        }),
-                        fill: new Fill({
-                            color: 'rgba(255, 255, 255, 0.2)',
-                        }),
-                    }),
-                }),
-                segmentStyle: new Style({
-                    text: new Text({
-                        font: '12px Calibri,sans-serif',
-                        fill: new Fill({
-                            color: 'rgba(255, 255, 255, 1)',
-                        }),
-                        backgroundFill: new Fill({
-                            color: 'rgba(0, 0, 0, 0.4)',
-                        }),
-                        padding: [2, 2, 2, 2],
-                        textBaseline: 'bottom',
-                        offsetY: -12,
-                    }),
-                    image: new RegularShape({
-                        radius: 6,
-                        points: 3,
-                        angle: Math.PI,
-                        displacement: [0, 8],
-                        fill: new Fill({
-                            color: 'rgba(0, 0, 0, 0.4)',
-                        }),
-                    }),
-                }),
-                labelStyle: new Style({
-                    text: new Text({
-                        font: '14px Calibri,sans-serif',
-                        fill: new Fill({
-                            color: 'rgba(255, 255, 255, 1)',
-                        }),
-                        backgroundFill: new Fill({
-                            color: 'rgba(0, 0, 0, 0.7)',
-                        }),
-                        padding: [3, 3, 3, 3],
-                        textBaseline: 'bottom',
-                        offsetY: -15,
-                    }),
-                    image: new RegularShape({
-                        radius: 8,
-                        points: 3,
-                        angle: Math.PI,
-                        displacement: [0, 10],
-                        fill: new Fill({
-                            color: 'rgba(0, 0, 0, 0.7)',
-                        }),
-                    }),
-                }),
+                style: MeasureStyles.style,
+                segmentStyle: MeasureStyles.segmentStyle,
+                labelStyle: MeasureStyles.labelStyle,
                 segmentStyles: null,
             }
         },
@@ -212,6 +154,8 @@
             vm.addOptionalLayers()
             //vm.map.addLayer(vm.apiarySitesQueryLayer);
             vm.displayAllFeatures()
+            console.log('MeasureStyles')
+            console.log(MeasureStyles)
         },
         components: {
 
@@ -237,7 +181,7 @@
                 let point, label, line
                 if (type === 'LineString'){
                     point = new Point(geometry.getLastCoordinate());
-                    label = vm.formatLength(geometry);
+                    label = formatLength(geometry);
                     line = geometry;
                 }
 
@@ -245,7 +189,7 @@
                     let count = 0;
                     line.forEachSegment(function (a, b) {
                         const segment = new LineString([a, b]);
-                        const label = vm.formatLength(segment);
+                        const label = formatLength(segment);
 
                         if (vm.segmentStyles.length - 1 < count) {
                             vm.segmentStyles.push(vm.segmentStyle.clone());
@@ -265,18 +209,6 @@
                 }
 
                 return styles
-            },
-            formatLength: function (line) {
-                let cloned_line = line.clone()
-                cloned_line.transform('EPSG:4326', 'EPSG:3857')
-                const length = getLength(cloned_line);
-                let output;
-                if (length > 100) {
-                    output = Math.round((length / 1000) * 100) / 100 + ' km';
-                } else {
-                    output = Math.round(length * 100) / 100 + ' m';
-                }
-                return output;
             },
             toggle_mode: function(mode){
                 if (mode === 'normal'){
@@ -328,6 +260,7 @@
                 })
             },
             setBaseLayer: function(selected_layer_name){
+                console.log('in setBaseLayer')
                 let vm = this
                 if (selected_layer_name == 'sat') {
                     vm.tileLayerOsm.setVisible(false)
@@ -521,7 +454,7 @@
                             }
                         }
                     } else if (vm.mode === 'measure'){
-
+                        // When in measure mode, the styleFunction() is responsible for the drawing
                     }
                 })
                 vm.map.on('pointermove', function(e) {
@@ -540,7 +473,7 @@
                         source: vm.apiarySitesQuerySource,
                     });
                     modifyTool.on("modifystart", function(attributes){
-                        attributes.features.forEach(function(feature){
+                            attributes.features.forEach(function(feature){
                         })
                     });
                     modifyTool.on("modifyend", function(attributes){
@@ -745,7 +678,7 @@
         z-index: 410;
         background: white;
         border-radius: 2px;
-        cursor: pointer;
+        cursor: auto;
         /*
         box-shadow: 3px 3px 3px #777;
         -moz-filter: brightness(1.0);
@@ -819,5 +752,8 @@
     }
     .table_caption {
         color: green;
+    }
+    .layer_option:hover {
+        cursor: pointer;
     }
 </style>
