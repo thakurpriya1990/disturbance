@@ -3,6 +3,8 @@
         <div class="row col-sm-12">
             <ComponentMap
                 ref="component_map"
+                :is_internal="is_internal"
+                :is_external="is_external"
                 :apiary_site_geojson_array="apiary_site_geojson_array"
                 :key="component_map_key"
                 @featuresDisplayed="updateTableByFeatures"

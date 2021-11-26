@@ -17,6 +17,7 @@ class MapLayer(models.Model):
     layer_name = models.CharField(max_length=200, blank=True, null=True)
     option_for_internal = models.BooleanField(default=True)
     option_for_external = models.BooleanField(default=True)
+    display_all_columns = models.BooleanField(default=False)
 
     class Meta:
         app_label = 'disturbance'
@@ -25,10 +26,19 @@ class MapLayer(models.Model):
     def __str__(self):
         return '{0}, {1}'.format(self.display_name, self.layer_name)
 
+    @property
+    def column_names(self):
+        column_names = []
+        for column in self.columns.all():
+            column_names.append(column.name)
+        return ','.join(column_names)
+
 
 class MapColumn(models.Model):
-    map_layer = models.ForeignKey(MapLayer, null=True, blank=True)
+    map_layer = models.ForeignKey(MapLayer, null=True, blank=True, related_name='columns')
     name = models.CharField(max_length=100, blank=True, null=True)
+    option_for_internal = models.BooleanField(default=True)
+    option_for_external = models.BooleanField(default=True)
 
     class Meta:
         app_label = 'disturbance'

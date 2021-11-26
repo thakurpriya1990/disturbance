@@ -25,6 +25,14 @@
                         </div>
                     </div>
                 </transition>
+                <div class="optional-layers-button" @click="toggle_mode(mode)" style="padding: 4px 0 0 4px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" >
+                        <path 
+                            d="M18.342 0l-2.469 2.47 2.121 2.121-.707.707-2.121-2.121-1.414 1.414 1.414 1.414-.707.707-1.414-1.414-1.414 1.414 1.414 1.414-.707.707-1.414-1.414-1.414 1.414 2.121 2.122-.707.707-2.121-2.121-1.414 1.414 1.414 1.414-.708.707-1.414-1.414-1.414 1.414 1.414 1.414-.708.709-1.414-1.414-1.414 1.413 2.121 2.121-.706.706-2.122-2.121-2.438 2.439 5.656 5.657 18.344-18.343z" 
+                            :fill="ruler_colour"
+                        />
+                    </svg>
+                </div>
             </div>
         </div>
 
@@ -59,19 +67,20 @@
     import TileWMS from 'ol/source/TileWMS';
     import WMTS, {optionsFromCapabilities} from 'ol/source/WMTS';
     import Collection from 'ol/Collection';
-    import {Draw, Modify, Snap} from 'ol/interaction';
+    import { Draw, Modify, Snap } from 'ol/interaction';
     import VectorLayer from 'ol/layer/Vector';
     import VectorSource from 'ol/source/Vector';
-    import {Circle as CircleStyle, Fill, Stroke, Style} from 'ol/style';
-    import {FullScreen as FullScreenControl, MousePosition as MousePositionControl} from 'ol/control';
+    import { Circle as CircleStyle, Fill, Stroke, Style, Text, RegularShape } from 'ol/style';
+    import { FullScreen as FullScreenControl, MousePosition as MousePositionControl } from 'ol/control';
     import Vue from 'vue/dist/vue';
     import { Feature } from 'ol';
-    import { Point } from 'ol/geom';
+    import { LineString, Point } from 'ol/geom';
     import { getDistance } from 'ol/sphere';
     import { circular} from 'ol/geom/Polygon';
     import GeoJSON from 'ol/format/GeoJSON';
     import Overlay from 'ol/Overlay';
     import { getDisplayNameFromStatus, getDisplayNameOfCategory, getStatusForColour, getApiaryFeatureStyle } from '@/components/common/apiary/site_colours.js'
+    import { getArea, getLength } from 'ol/sphere'
 
     export default {
         props:{
@@ -104,6 +113,7 @@
             }
         },
         data: function(){
+            let vm = this
             return{
                 map: null,
                 apiarySitesQuerySource: null,
@@ -119,6 +129,74 @@
                 tileLayerSat: null,
                 optionalLayers: [],
                 hover: false,
+                mode: 'normal',
+                draw: null,
+                style: new Style({
+                    fill: new Fill({
+                        color: 'rgba(255, 255, 255, 0.2)',
+                    }),
+                    stroke: new Stroke({
+                        color: 'rgba(0, 0, 0, 0.5)',
+                        //lineDash: [10, 10],
+                        width: 1,
+                    }),
+                    image: new CircleStyle({
+                        radius: 5,
+                        stroke: new Stroke({
+                            color: 'rgba(0, 0, 0, 0.7)',
+                        }),
+                        fill: new Fill({
+                            color: 'rgba(255, 255, 255, 0.2)',
+                        }),
+                    }),
+                }),
+                segmentStyle: new Style({
+                    text: new Text({
+                        font: '12px Calibri,sans-serif',
+                        fill: new Fill({
+                            color: 'rgba(255, 255, 255, 1)',
+                        }),
+                        backgroundFill: new Fill({
+                            color: 'rgba(0, 0, 0, 0.4)',
+                        }),
+                        padding: [2, 2, 2, 2],
+                        textBaseline: 'bottom',
+                        offsetY: -12,
+                    }),
+                    image: new RegularShape({
+                        radius: 6,
+                        points: 3,
+                        angle: Math.PI,
+                        displacement: [0, 8],
+                        fill: new Fill({
+                            color: 'rgba(0, 0, 0, 0.4)',
+                        }),
+                    }),
+                }),
+                labelStyle: new Style({
+                    text: new Text({
+                        font: '14px Calibri,sans-serif',
+                        fill: new Fill({
+                            color: 'rgba(255, 255, 255, 1)',
+                        }),
+                        backgroundFill: new Fill({
+                            color: 'rgba(0, 0, 0, 0.7)',
+                        }),
+                        padding: [3, 3, 3, 3],
+                        textBaseline: 'bottom',
+                        offsetY: -15,
+                    }),
+                    image: new RegularShape({
+                        radius: 8,
+                        points: 3,
+                        angle: Math.PI,
+                        displacement: [0, 10],
+                        fill: new Fill({
+                            color: 'rgba(0, 0, 0, 0.7)',
+                        }),
+                    }),
+                }),
+                segmentStyles: null,
             }
         },
         created: function(){
@@ -139,9 +217,82 @@
 
         },
         computed: {
-
+            ruler_colour: function(){
+                if (this.mode === 'normal'){
+                    return '#aaa';
+                } else {
+                    return '#53c2cf';
+                }
+            }
         },
         methods: {
+            styleFunction: function (feature, resolution){
+                let vm = this
+
+                const styles = [vm.style]
+                const geometry = feature.getGeometry();
+                const type = geometry.getType();
+                vm.segmentStyles = [vm.segmentStyle]
+
+                let point, label, line
+                if (type === 'LineString'){
+                    point = new Point(geometry.getLastCoordinate());
+                    label = vm.formatLength(geometry);
+                    line = geometry;
+                }
+
+                if (line){
+                    let count = 0;
+                    line.forEachSegment(function (a, b) {
+                        const segment = new LineString([a, b]);
+                        const label = vm.formatLength(segment);
+
+                        if (vm.segmentStyles.length - 1 < count) {
+                            vm.segmentStyles.push(vm.segmentStyle.clone());
+                        }
+                        const segmentPoint = new Point(segment.getCoordinateAt(0.5));
+                        vm.segmentStyles[count].setGeometry(segmentPoint);
+                        vm.segmentStyles[count].getText().setText(label);
+                        styles.push(vm.segmentStyles[count]);
+                        count++;
+                    });
+                }
+
+                if (label){
+                    vm.labelStyle.setGeometry(point);
+                    vm.labelStyle.getText().setText(label);
+                    styles.push(vm.labelStyle);
+                }
+
+                return styles
+            },
+            formatLength: function (line) {
+                let cloned_line = line.clone()
+                cloned_line.transform('EPSG:4326', 'EPSG:3857')
+                const length = getLength(cloned_line);
+                let output;
+                if (length > 100) {
+                    output = Math.round((length / 1000) * 100) / 100 + ' km';
+                } else {
+                    output = Math.round(length * 100) / 100 + ' m';
+                }
+                return output;
+            },
+            toggle_mode: function(mode){
+                if (mode === 'normal'){
+                    this.mode = 'measure'
+                    this.addMeasurementTool()
+                } else {
+                    this.mode = 'normal';
+                    this.removeMeasurementTool()
+                }
+            },
+            addMeasurementTool: function(){
+                this.map.addInteraction(this.draw)
+            },
+            removeMeasurementTool: function(){
+                this.map.removeInteraction(this.draw)
+            },
             changeLayerVisibility: function(targetLayer){
                 targetLayer.setVisible(!targetLayer.getVisible())
             },
@@ -151,7 +302,6 @@
                     let layers = response.body
                     for (var i = 0; i < layers.length; i++){
                         let l = new TileWMS({
-                            //url: 'https://kmi.dbca.wa.gov.au/geoserver/' + layers[i].layer_group_name + '/wms',
                             url: env['kmi_server_url'] + '/geoserver/' + layers[i].layer_group_name + '/wms',
                             params: {
                                 'FORMAT': 'image/png',
@@ -167,6 +317,10 @@
                             visible: false,
                             source: l,
                         })
+
+                        // Set additional attributes to the layer
+                        tileLayer.set('columns', layers[i].columns)
+                        tileLayer.set('display_all_columns', layers[i].display_all_columns)
 
                         vm.optionalLayers.push(tileLayer)
                         vm.map.addLayer(tileLayer)
@@ -240,12 +394,9 @@
                     })
                 });
 
-                vm.apiarySitesQuerySource = new VectorSource({
-
-                });
+                vm.apiarySitesQuerySource = new VectorSource({ });
                 vm.apiarySitesQueryLayer = new VectorLayer({
                     source: vm.apiarySitesQuerySource,
-                    //style: this.drawStyle
                     style: function(feature, resolution){
                         let status = getStatusForColour(feature, false, vm.display_at_time_of_submitted)
                         return getApiaryFeatureStyle(status, feature.get('checked'))
@@ -258,6 +409,27 @@
 
                 // Full screen toggle
                 vm.map.addControl(new FullScreenControl());
+
+                // Measure tool
+                let draw_source = new VectorSource({ wrapX: false })
+                vm.draw = new Draw({
+                    source: draw_source,
+                    type: 'LineString',
+                    style: function(feature, resolution){
+                        return vm.styleFunction(feature, resolution)
+                    },
+                })
+
+                let measureLayer = new VectorLayer({
+                    source: draw_source,
+                })
+                vm.map.addLayer(measureLayer)
+                vm.draw.on('drawstart', function(evt){
+                    console.log('drawstart')
+                })
+                vm.draw.on('drawend', function(evt){
+                    console.log('drawend')
+                })
 
                 // Show mouse coordinates
                 vm.map.addControl(new MousePositionControl({
@@ -293,58 +465,63 @@
                 vm.map.addOverlay(vm.overlay)
 
                 vm.map.on('singleclick', function(evt){
-                    let feature = vm.map.forEachFeatureAtPixel(evt.pixel, function(feature, layer) {
-                        return feature;
-                    });
-                    if (feature){
-                        if (!feature.id){
-                            // When the Modify object is used for the layer, 'feature' losts some of the attributes including 'id', 'status'...
-                            // Therefore try to get the correct feature by the coordinate
-                            let geometry = feature.getGeometry();
-                            let coord = geometry.getCoordinates();
-                            feature = vm.apiarySitesQuerySource.getFeaturesAtCoordinate(coord)
-                        }
-                        vm.showPopup(feature[0])
-                    } else {
-                        vm.closePopup()
-                        let view = vm.map.getView()
-                        let viewResolution = view.getResolution()
-                        let sources = []
-                        let urls = []
+                    if (vm.mode === 'normal'){
+                        let feature = vm.map.forEachFeatureAtPixel(evt.pixel, function(feature, layer) {
+                            return feature;
+                        });
+                        if (feature){
+                            if (!feature.id){
+                                // When the Modify object is used for the layer, 'feature' losts some of the attributes including 'id', 'status'...
+                                // Therefore try to get the correct feature by the coordinate
+                                let geometry = feature.getGeometry();
+                                let coord = geometry.getCoordinates();
+                                feature = vm.apiarySitesQuerySource.getFeaturesAtCoordinate(coord)
+                            }
+                            vm.showPopup(feature[0])
+                        } else {
+                            vm.closePopup()
+                            let view = vm.map.getView()
+                            let viewResolution = view.getResolution()
 
-                        // Retrieve active layers' sources
-                        for (let i=0; i < vm.optionalLayers.length; i++){
-                            let visibility = vm.optionalLayers[i].getVisible()
-                            if (visibility){
-                                let source = vm.optionalLayers[i].getSource()
-                                sources.push(source)
+                            // Retrieve active layers' sources
+                            for (let i=0; i < vm.optionalLayers.length; i++){
+                                let visibility = vm.optionalLayers[i].getVisible()
+                                if (visibility){
+                                    // Retrieve column names to be displayed
+                                    let column_names = vm.optionalLayers[i].get('columns')
+                                    column_names = column_names.map(function(col){
+                                        // Convert array of dictionaries to simple array
+                                        if (vm.is_internal && col.option_for_internal){
+                                            return col.name
+                                        }
+                                        if (vm.is_external && col.option_for_external){
+                                            return col.name
+                                        }
+                                    })
+                                    // Retrieve the value of display_all_columns boolean flag
+                                    let display_all_columns = vm.optionalLayers[i].get('display_all_columns')
+
+                                    // Retrieve the URL to query the attributes
+                                    let source = vm.optionalLayers[i].getSource()
+                                    let url = source.getFeatureInfoUrl(
+                                        evt.coordinate, viewResolution, view.getProjection(),
+                                        //{'INFO_FORMAT': 'text/html'}
+                                        {'INFO_FORMAT': 'application/json'}
+                                    )
+
+                                    // Query 
+                                    let p = fetch(url)
+
+                                    //p.then(res => res.text()).then(function(data){
+                                    p.then(res => res.json()).then(function(data){
+                                        //vm.showPopupForLayersHTML(data, evt.coordinate, column_names, display_all_columns)
+                                        vm.showPopupForLayersJson(data, evt.coordinate, column_names, display_all_columns, vm.optionalLayers[i])
+                                    })
+                                }
                             }
                         }
+                    } else if (vm.mode === 'measure'){
 
-                        // Retrieve urls to fetch data
-                        for (let i=0; i < sources.length; i++){
-                            let url = sources[i].getFeatureInfoUrl(
-                                evt.coordinate, viewResolution, view.getProjection(),
-                                //{'INFO_FORMAT': 'application/json'} //{'INFO_FORMAT': 'application/json', 'FEATURE_COUNT': 50}
-                                {'INFO_FORMAT': 'text/html'} //{'INFO_FORMAT': 'application/json', 'FEATURE_COUNT': 50}
-                            )
-                            urls.push(url)
-                        }
-
-                        // Fetch data from each url
-                        for (let i=0; i<urls.length; i++){
-                            console.log(urls[i])
-                            let p = fetch(urls[i])  //.then(res => res.json()).then(data => console.log(data))
-                            //p.then(res => res.json()).then(function(data){
-                            //    let feature = data.features[0]
-                            //    console.log(feature)
-                            //    vm.showPopupForLayersJson(feature, evt.coordinate)
-                            //})
-                            p.then(res => res.text()).then(function(data){
-                                console.log(data)
-                                vm.showPopupForLayersHTML(data, evt.coordinate)
-                            })
-                        }
                     }
                 })
                 vm.map.on('pointermove', function(e) {
@@ -389,7 +566,6 @@
                 if (feature){
                     let geometry = feature.getGeometry();
                     let coord = geometry.getCoordinates();
-                    console.log(coord)
                     let svg_hexa = "<svg xmlns='http://www.w3.org/2000/svg' version='1.1' height='20' width='15'>" +
                     '<g transform="translate(0, 4) scale(0.9)"><path d="M 14.3395,12.64426 7.5609998,16.557828 0.78249996,12.64426 0.7825,4.8171222 7.5609999,0.90355349 14.3395,4.8171223 Z" id="path837" style="fill:none;stroke:#ffffff;stroke-width:1.565;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" /></g></svg>'
                     //let status_str = feature.get('is_vacant') ? getDisplayNameFromStatus(feature.get('status')) + ' (vacant)' : getDisplayNameFromStatus(feature.get('status'))
@@ -406,25 +582,57 @@
                     this.overlay.setPosition(coord);
                 }
             },
-            showPopupForLayersJson: function(feature_dict, coord){
-                if (feature_dict){
-                    this.content_element.innerHTML += feature_dict.id + '<br />'
+            showPopupForLayersJson: function(geojson, coord, column_names, display_all_columns, target_layer){
+                let wrapper = $('<div>')  // Add wrapper element because html() used at the end exports only the contents of the jquery object
+                let caption = $('<div style="text-align:center; font-weight: bold;">').text(target_layer.get('title'))
+                let table = $('<table style="margin-bottom: 1em;">') //.addClass('table')
+                let tbody = $('<tbody>')
+                wrapper.append(caption)
+                wrapper.append(table.append(tbody))
+
+                for (let feature of geojson.features){
+                    for (let key in feature.properties){
+                        if (display_all_columns || column_names.includes(key)){
+                            let tr = $('<tr style="border-bottom:1px solid lightgray;">')
+                            let th = $('<th style="padding:0 0.5em;">').text(key)
+                            let td = $('<td>').addClass('text-nowrap').text(feature.properties[key])
+                            tr.append(th)
+                            tr.append(td)
+                            tbody.append(tr)
+                        }
+                    }
+                    this.content_element.innerHTML += wrapper.html()  // Export contents as HTML string
                     this.overlay.setPosition(coord);
                 }
             },
-            showPopupForLayersHTML: function(html, coord){
-                let elements = $.parseHTML(html)
-                console.log('elements')
-                console.log(elements)
-                let body_elem = $('body', elements)
-                console.log('body_elem')
-                console.log(body_elem)
-                let body_contents = body_elem.text()
-                console.log('text()')
-                console.log(body_contents)
+            showPopupForLayersHTML: function(html_str, coord, column_names, display_all_columns){
+                // Generate jquery object from html_str
+                let html_obj = $('<div>').html(html_str)
 
-                if (html){
-                    this.content_element.innerHTML += html
+                // Retrieve tables as jquery object
+                let tables = html_obj.find("table")
+
+                if (!display_all_columns){
+                    // Hide all columns
+                    tables.find('th,td').css('display', 'none')
+
+                    // Make a certain column visible
+                    for (let i=0; i<column_names.length; i++){
+                        let index = tables.find('th').filter(function(){
+                            // <th> element whoose text is exactly same as column_names[i]
+                            return $(this).text() === column_names[i]
+                        }).css('display', '').index()
+
+                        let idx = index + 1
+
+                        // Display <td> in the same column
+                        let td = tables.find('td:nth-child(' + idx + ')')
+                        td.css('display', '')
+                    }
+                }
+
+                if (tables.length){
+                    this.content_element.innerHTML += html_obj.html()
                     this.overlay.setPosition(coord);
                 }
             },
@@ -500,7 +708,7 @@
         filter: brightness(1.0);
         border: 2px white solid;
     }
-    .basemap-button:hover {
+    .basemap-button:hover,.optional-layers-button:hover{
         cursor: pointer;
         -moz-filter: brightness(0.9);
         -webkit-filter: brightness(0.9);
@@ -522,24 +730,19 @@
         left: 10px;
     }
     .optional-layers-button {
-        position: absolute;
+        position: relative;
         z-index: 400;
         background: white;
         border-radius: 2px;
-        /*
-        box-shadow: 3px 3px 3px #777;
-        -moz-filter: brightness(1.0);
-        -webkit-filter: brightness(1.0);
-        */
         border: 3px solid rgba(5, 5, 5, .1);
+        margin-bottom: 2px;
+        cursor: pointer;
     }
     .layer_options {
-        /*
         position: absolute;
-        */
         top: 0;
         left: 0;
-        z-index: 400;
+        z-index: 410;
         background: white;
         border-radius: 2px;
         cursor: pointer;
@@ -613,5 +816,8 @@
     }
     .popup-content {
         font-size: small;
+    }
+    .table_caption {
+        color: green;
     }
 </style>
