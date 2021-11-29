@@ -315,7 +315,7 @@
                 bufferedSites: null,
                 drawingLayerSource:  new VectorSource(),
                 drawingLayer: null,
-                drawTool: null,
+                drawForApiarySite: null,
                 bufferLayerSource: new VectorSource(),
                 bufferLayer: null,
                 vacantLayerSource: new VectorSource(),
@@ -435,6 +435,7 @@
                 segmentStyle: MeasureStyles.segmentStyle,
                 labelStyle: MeasureStyles.labelStyle,
                 segmentStyles: null,
+                measurementLayer: null,
             }
         },
         components: {
@@ -717,19 +718,18 @@
 
                 const styles = [vm.style]
                 const geometry = feature.getGeometry();
-                const type = geometry.getType();
                 vm.segmentStyles = [vm.segmentStyle]
 
-                let point, label, line
-                if (type === 'LineString'){
+                let point, label, line_string
+                if (geometry.getType() === 'LineString'){
                     point = new Point(geometry.getLastCoordinate());
                     label = formatLength(geometry);
-                    line = geometry;
+                    line_string = geometry;
                 }
 
-                if (line){
+                if (line_string){
                     let count = 0;
-                    line.forEachSegment(function (a, b) {
+                    line_string.forEachSegment(function (a, b) {
                         const segment = new LineString([a, b]);
                         const label = formatLength(segment);
 
@@ -756,12 +756,12 @@
                 this.mode = mode
                 if (mode === 'measure'){
                     this.drawForMeasure.setActive(true)
-                    this.drawTool.setActive(false)
+                    this.drawForApiarySite.setActive(false)
                 } else if (mode === 'layer'){
                     this.drawForMeasure.setActive(false)
-                    this.drawTool.setActive(false)
+                    this.drawForApiarySite.setActive(false)
                 } else if (mode === 'normal') {
-                    this.drawTool.setActive(true)
+                    this.drawForApiarySite.setActive(true)
                     this.drawForMeasure.setActive(false)
                 }
             },
@@ -1412,19 +1412,17 @@
                 // Draw and modify tools
                 if (!vm.readonly){
                     let modifyInProgressList = [];
-                    this.drawTool = new Draw({
+                    this.drawForApiarySite = new Draw({
                         source: vm.drawingLayerSource,
                         type: "Point",
                     });
-                    this.drawTool.on("drawstart", async function(attributes){
-                        if (vm.mode === 'measure'){
-                            this.drawTool.abortDrawing();
-                        } else if (vm.mode === 'normal'){
+                    this.drawForApiarySite.on("drawstart", async function(attributes){
+                        if (vm.mode === 'normal'){
                             let coords = attributes.feature.getGeometry().getCoordinates()
 
                             if (vm.vacant_site_being_selected){
                                 // Abort drawing, instead 'vacant' site is to be added
-                                this.drawTool.abortDrawing();
+                                this.drawForApiarySite.abortDrawing();
 
                                 vm.vacant_site_being_selected.set('vacant_selected', true)
 
@@ -1437,15 +1435,14 @@
                             } else {
                                 let coords = attributes.feature.getGeometry().getCoordinates()
                                 if (!vm.isNewPositionValid(coords)) {
-                                    this.drawTool.abortDrawing();
+                                    this.drawForApiarySite.abortDrawing();
                                 }
                             }
                         } else {
-                            this.drawTool.abortDrawing();
+                            this.drawForApiarySite.abortDrawing();
                         }
                     });
-                    //drawTool.on('drawend', function(attributes){
-                    this.drawTool.on('drawend', async function(attributes){
+                    this.drawForApiarySite.on('drawend', async function(attributes){
                         if (!this.readoly){
                             let feature = attributes.feature;
                             let draw_id = vm.uuidv4();
@@ -1464,7 +1461,7 @@
                             // Vue table is updated by the event 'addfeature' issued from the Source
                         }
                     });
-                    vm.map.addInteraction(this.drawTool);
+                    vm.map.addInteraction(this.drawForApiarySite);
 
                     let modifyTool = new Modify({
                         source: vm.drawingLayerSource,
@@ -1523,10 +1520,30 @@
                     source: draw_source,
                     type: 'LineString',
                     style: function(feature, resolution){
+                        console.log('styleFunction in draw')
                         return vm.styleFunction(feature, resolution)
                     },
                 })
+                let temp_source = new VectorSource({ wrapX: false })
+                let temp_draw = new Draw({
+                    source: temp_source,
+                    type: 'LineString',
+                    style: function(feature, resolution){
+                        console.log('styleFunction in layer')
+                        return vm.styleFunction(feature, resolution)
+                    },
+                })
+                vm.measurementLayer = new VectorLayer({
+                    title: 'Measurement Layer',
+                    source: temp_source,
+                    style: function(feature, resolution){
+                        console.log('styleFunction in layer')
+                        return vm.styleFunction(feature, resolution)
+                    },
+                });
                 vm.map.addInteraction(vm.drawForMeasure)
+                vm.map.addInteraction(temp_draw)
+                vm.map.addLayer(vm.measurementLayer)
 
                 let hoverInteraction = new Select({
                     condition: pointerMove,
