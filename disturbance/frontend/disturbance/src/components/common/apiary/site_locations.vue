@@ -63,49 +63,44 @@
         </div>
 
         <div id="map-wrapper" class="row col-sm-12">
-            <div id="map" class="map"></div>
-            <div id="basemap-button">
-                <img id="basemap_sat" src="../../../assets/satellite_icon.jpg" @click="setBaseLayer('sat')" />
-                <img id="basemap_osm" src="../../../assets/map_icon.png" @click="setBaseLayer('osm')" />
-            </div>
-            <div class="optional-layers-wrapper">
-                <transition v-if="optionalLayers.length">
-                    <div class="optional-layers-button" v-show="!hover">
-                        <img src="../../../assets/layer-switcher-icon.png" @mouseover="hover=true" />
-                    </div>
-                </transition>
-                <transition v-if="optionalLayers.length">
-                    <div div class="layer_options" v-show="hover" @mouseleave="hover=false" >
-                        <div v-for="layer in optionalLayers">
-                            <input
-                                type="checkbox"
-                                :id="layer.ol_uid"
-                                :checked="layer.values_.visible"
-                                @change="changeLayerVisibility(layer)"
-                            />
-                            <label :for="layer.ol_uid">{{ layer.get('title') }}</label>
-                        </div>
-                    </div>
-                </transition>
-                <div class="optional-layers-button" @click="toggle_mode(mode)" style="padding: 4px 0 0 4px;">
-                    <svg width="24" height="24" version="1.1" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <div id="map" class="map">
+                <div id="basemap-button">
+                    <img id="basemap_sat" src="../../../assets/satellite_icon.jpg" @click="setBaseLayer('sat')" />
+                    <img id="basemap_osm" src="../../../assets/map_icon.png" @click="setBaseLayer('osm')" />
+                </div>
+                <div class="optional-layers-wrapper" @mouseleave="hover=false">
+                    <div class="optional-layers-button">
                         <template v-if="mode === 'normal'">
-                             <circle cx="12" cy="12" r="5.8288" fill="#53c2cf" stop-color="#000000"/>
+                            <img src="../../../assets/normal.svg" @click="set_mode('layer')" />
                         </template>
                         <template v-else-if="mode === 'layer'">
-                            <g transform="translate(0 -.034985)" stroke-opacity=".46654" stroke-width="2.564">
-                            <rect transform="matrix(.83783 .54592 -.83783 .54592 0 0)" x="14.625" y=".30263" width="11.847" height="11.847" rx="1.0373" ry="1.0373" fill="#103438" fill-opacity=".50808" stop-color="#000000"/>
-                            <rect transform="matrix(.83783 .54592 -.83783 .54592 0 0)" x="12.261" y="-2.0621" width="11.847" height="11.847" rx="1.0373" ry="1.0373" fill="#fff" stop-color="#000000"/>
-                            <rect transform="matrix(.83783 .54592 -.83783 .54592 0 0)" x="9.8958" y="-4.4269" width="11.847" height="11.847" rx="1.0373" ry="1.0373" fill="#53c2cf" stop-color="#000000"/>
-                            </g>
+                            <img src="../../../assets/info-bubble.svg" @click="set_mode('measure')" />
                         </template>
                         <template v-else>
-                            <path 
-                                d="M18.342 0l-2.469 2.47 2.121 2.121-.707.707-2.121-2.121-1.414 1.414 1.414 1.414-.707.707-1.414-1.414-1.414 1.414 1.414 1.414-.707.707-1.414-1.414-1.414 1.414 2.121 2.122-.707.707-2.121-2.121-1.414 1.414 1.414 1.414-.708.707-1.414-1.414-1.414 1.414 1.414 1.414-.708.709-1.414-1.414-1.414 1.413 2.121 2.121-.706.706-2.122-2.121-2.438 2.439 5.656 5.657 18.344-18.343z" 
-                                :fill="ruler_colour"
-                            />
+                            <img src="../../../assets/ruler.svg" @click="set_mode('normal')" />
                         </template>
-                    </svg>
+                    </div>
+                    <div style="position:relative">
+                        <transition v-if="optionalLayers.length">
+                            <div class="optional-layers-button" @mouseover="hover=true">
+                                <img src="../../../assets/layers.svg" />
+                            </div>
+                        </transition>
+                        <transition v-if="optionalLayers.length">
+                            <div div class="layer_options" v-show="hover" @mouseleave="hover=false" >
+                                <div v-for="layer in optionalLayers">
+                                    <input
+                                        type="checkbox"
+                                        :id="layer.ol_uid"
+                                        :checked="layer.values_.visible"
+                                        @change="changeLayerVisibility(layer)"
+                                        class="layer_option"
+                                    />
+                                    <label :for="layer.ol_uid" class="layer_option">{{ layer.get('title') }}</label>
+                                </div>
+                            </div>
+                        </transition>
+                    </div>
                 </div>
             </div>
         </div>
@@ -320,6 +315,7 @@
                 bufferedSites: null,
                 drawingLayerSource:  new VectorSource(),
                 drawingLayer: null,
+                drawTool: null,
                 bufferLayerSource: new VectorSource(),
                 bufferLayer: null,
                 vacantLayerSource: new VectorSource(),
@@ -688,6 +684,11 @@
             }
         },
         methods:{
+            display_layers_option: function(mode){
+                if(mode === 'layer'){
+                    this.hover = true
+                }
+            },
             showPopupForLayersJson: function(geojson, coord, column_names, display_all_columns, target_layer){
                 let wrapper = $('<div>')  // Add wrapper element because html() used at the end exports only the contents of the jquery object
                 let caption = $('<div style="text-align:center; font-weight: bold;">').text(target_layer.get('title'))
@@ -751,26 +752,18 @@
 
                 return styles
             },
-            toggle_mode: function(mode){
-                if (mode === 'normal'){
-                    // normal --> measure
-                    this.mode = 'measure'
-                    this.addMeasurementTool()
-                } else if (mode === 'measure'){
-                    // measure --> layer
-                    this.mode = 'layer';
-                    this.removeMeasurementTool()
-                } else {
-                    // layer --> normal
-                    this.mode = 'normal'
+            set_mode: function(mode){
+                this.mode = mode
+                if (mode === 'measure'){
+                    this.drawForMeasure.setActive(true)
+                    this.drawTool.setActive(false)
+                } else if (mode === 'layer'){
+                    this.drawForMeasure.setActive(false)
+                    this.drawTool.setActive(false)
+                } else if (mode === 'normal') {
+                    this.drawTool.setActive(true)
+                    this.drawForMeasure.setActive(false)
                 }
-                console.log(this.mode)
-            },
-            addMeasurementTool: function(){
-                this.map.addInteraction(this.drawForMeasure)
-            },
-            removeMeasurementTool: function(){
-                this.map.removeInteraction(this.drawForMeasure)
             },
             console_layers: function(){
                 let layers = this.map.getLayers()
@@ -1325,7 +1318,9 @@
                                 )
 
                                 // Query 
-                                let p = fetch(url)
+                                let p = fetch(url, {
+                                    credentials: 'include'
+                                })
 
                                 //p.then(res => res.text()).then(function(data){
                                 p.then(res => res.json()).then(function(data){
@@ -1417,19 +1412,19 @@
                 // Draw and modify tools
                 if (!vm.readonly){
                     let modifyInProgressList = [];
-                    let drawTool = new Draw({
+                    this.drawTool = new Draw({
                         source: vm.drawingLayerSource,
                         type: "Point",
                     });
-                    drawTool.on("drawstart", async function(attributes){
+                    this.drawTool.on("drawstart", async function(attributes){
                         if (vm.mode === 'measure'){
-                            drawTool.abortDrawing();
+                            this.drawTool.abortDrawing();
                         } else if (vm.mode === 'normal'){
                             let coords = attributes.feature.getGeometry().getCoordinates()
 
                             if (vm.vacant_site_being_selected){
                                 // Abort drawing, instead 'vacant' site is to be added
-                                drawTool.abortDrawing();
+                                this.drawTool.abortDrawing();
 
                                 vm.vacant_site_being_selected.set('vacant_selected', true)
 
@@ -1442,15 +1437,15 @@
                             } else {
                                 let coords = attributes.feature.getGeometry().getCoordinates()
                                 if (!vm.isNewPositionValid(coords)) {
-                                    drawTool.abortDrawing();
+                                    this.drawTool.abortDrawing();
                                 }
                             }
                         } else {
-                            drawTool.abortDrawing();
+                            this.drawTool.abortDrawing();
                         }
                     });
                     //drawTool.on('drawend', function(attributes){
-                    drawTool.on('drawend', async function(attributes){
+                    this.drawTool.on('drawend', async function(attributes){
                         if (!this.readoly){
                             let feature = attributes.feature;
                             let draw_id = vm.uuidv4();
@@ -1469,7 +1464,7 @@
                             // Vue table is updated by the event 'addfeature' issued from the Source
                         }
                     });
-                    vm.map.addInteraction(drawTool);
+                    vm.map.addInteraction(this.drawTool);
 
                     let modifyTool = new Modify({
                         source: vm.drawingLayerSource,
@@ -1531,6 +1526,7 @@
                         return vm.styleFunction(feature, resolution)
                     },
                 })
+                vm.map.addInteraction(vm.drawForMeasure)
 
                 let hoverInteraction = new Select({
                     condition: pointerMove,
@@ -1727,6 +1723,7 @@
             let vm = this;
             this.$nextTick(() => {
                 vm.initMap();
+                vm.set_mode('normal')
                 vm.addEventListeners();
             });
         }
@@ -1809,13 +1806,15 @@
         left: 10px;
     }
     .optional-layers-button {
+        padding: 4px;
+        display: block;
         position: relative;
         z-index: 400;
         background: white;
         border-radius: 2px;
         border: 3px solid rgba(5, 5, 5, .1);
-        margin-bottom: 2px;
         cursor: pointer;
+        font-size: 0;
     }
     .layer_options {
         position: absolute;
@@ -1824,7 +1823,7 @@
         z-index: 410;
         background: white;
         border-radius: 2px;
-        cursor: pointer;
+        cursor: auto;
         /*
         box-shadow: 3px 3px 3px #777;
         -moz-filter: brightness(1.0);
