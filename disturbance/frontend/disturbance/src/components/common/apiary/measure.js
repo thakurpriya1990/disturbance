@@ -12,14 +12,24 @@ let MeasureStyles = {
             //lineDash: [10, 10],
             width: 1,
         }),
-        image: new CircleStyle({
-            radius: 5,
+        //image: new CircleStyle({
+        //    radius: 5,
+        //    stroke: new Stroke({
+        //        color: 'rgba(0, 0, 0, 0.7)',
+        //    }),
+        //    fill: new Fill({
+        //        color: 'rgba(255, 255, 255, 0.2)',
+        //    }),
+        //}),
+        image: new RegularShape({
             stroke: new Stroke({
-                color: 'rgba(0, 0, 0, 0.7)',
+                color: 'red',
+                width: 1,
             }),
-            fill: new Fill({
-                color: 'rgba(255, 255, 255, 0.2)',
-            }),
+            points: 4,
+            radius: 10,
+            radius2: 0,
+            angle: Math.PI / 4
         }),
     }),
     'segmentStyle': new Style({

@@ -1,45 +1,53 @@
 <template lang="html">
     <div>
         <div class="map-wrapper row col-sm-12">
-            <div :id="elem_id" class="map"></div>
-            <div class="basemap-button">
-                <img id="basemap_sat" src="../../../assets/satellite_icon.jpg" @click="setBaseLayer('sat')" />
-                <img id="basemap_osm" src="../../../assets/map_icon.png" @click="setBaseLayer('osm')" />
-            </div>
-            <div class="optional-layers-wrapper">
-                <transition v-if="optionalLayers.length">
-                    <div class="optional-layers-button" v-show="!hover">
-                        <img src="../../../assets/layer-switcher-icon.png" @mouseover="hover=true" />
+            <div :id="elem_id" class="map">
+                <div class="basemap-button">
+                    <img id="basemap_sat" src="../../../assets/satellite_icon.jpg" @click="setBaseLayer('sat')" />
+                    <img id="basemap_osm" src="../../../assets/map_icon.png" @click="setBaseLayer('osm')" />
+                </div>
+                <div class="optional-layers-wrapper">
+                    <div class="optional-layers-button">
+                        <template v-if="mode === 'layer'">
+                            <img src="../../../assets/info-bubble.svg" @click="set_mode('measure')" />
+                        </template>
+                        <template v-else>
+                            <img src="../../../assets/ruler.svg" @click="set_mode('layer')" />
+                        </template>
                     </div>
-                </transition>
-                <transition v-if="optionalLayers.length">
-                    <div div class="layer_options" v-show="hover" @mouseleave="hover=false" >
-                        <div v-for="layer in optionalLayers">
-                            <input
-                                type="checkbox"
-                                :id="layer.ol_uid"
-                                :checked="layer.values_.visible"
-                                @change="changeLayerVisibility(layer)"
-                                class="layer_option"
+                    <!--div class="optional-layers-button" @click="set_mode(mode)">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" >
+                            <path 
+                                d="M18.342 0l-2.469 2.47 2.121 2.121-.707.707-2.121-2.121-1.414 1.414 1.414 1.414-.707.707-1.414-1.414-1.414 1.414 1.414 1.414-.707.707-1.414-1.414-1.414 1.414 2.121 2.122-.707.707-2.121-2.121-1.414 1.414 1.414 1.414-.708.707-1.414-1.414-1.414 1.414 1.414 1.414-.708.709-1.414-1.414-1.414 1.413 2.121 2.121-.706.706-2.122-2.121-2.438 2.439 5.656 5.657 18.344-18.343z" 
+                                :fill="ruler_colour"
                             />
-                            <label :for="layer.ol_uid" class="layer_option">{{ layer.get('title') }}</label>
+                        </svg>
+                    </div-->
+                    <transition v-if="optionalLayers.length">
+                        <div class="optional-layers-button" @mouseover="hover=true">
+                            <img src="../../../assets/layers.svg" />
                         </div>
-                    </div>
-                </transition>
-                <div class="optional-layers-button" @click="toggle_mode(mode)" style="padding: 4px 0 0 4px;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" >
-                        <path 
-                            d="M18.342 0l-2.469 2.47 2.121 2.121-.707.707-2.121-2.121-1.414 1.414 1.414 1.414-.707.707-1.414-1.414-1.414 1.414 1.414 1.414-.707.707-1.414-1.414-1.414 1.414 2.121 2.122-.707.707-2.121-2.121-1.414 1.414 1.414 1.414-.708.707-1.414-1.414-1.414 1.414 1.414 1.414-.708.709-1.414-1.414-1.414 1.413 2.121 2.121-.706.706-2.122-2.121-2.438 2.439 5.656 5.657 18.344-18.343z" 
-                            :fill="ruler_colour"
-                        />
-                    </svg>
+                    </transition>
+                    <transition v-if="optionalLayers.length">
+                        <div div class="layer_options" v-show="hover" @mouseleave="hover=false" >
+                            <div v-for="layer in optionalLayers">
+                                <input
+                                    type="checkbox"
+                                    :id="layer.ol_uid"
+                                    :checked="layer.values_.visible"
+                                    @change="changeLayerVisibility(layer)"
+                                    class="layer_option"
+                                />
+                                <label :for="layer.ol_uid" class="layer_option">{{ layer.get('title') }}</label>
+                            </div>
+                        </div>
+                    </transition>
                 </div>
             </div>
         </div>
 
         <div :id="popup_id" class="ol-popup">
             <a href="#" :id="popup_closer_id" class="ol-popup-closer">
-            <!--
            <svg xmlns='http://www.w3.org/2000/svg' version='1.1' height='20' width='20' class="close-icon">
 
                <g transform='scale(3)'>
@@ -47,8 +55,6 @@
     <path d="M 1.5581546,0.94474048 2.6457566,2.0324189 3.7334348,0.94474048 4.3469265,1.5581547 3.2592475,2.6458334 4.3469265,3.7334353 3.7334348,4.3469261 2.6457566,3.2593243 1.5581546,4.3469261 0.9447402,3.7334353 2.0323422,2.6458334 0.9447402,1.5581547 Z" style="fill:#f46464;fill-opacity:1;stroke:none;stroke-width:0.0512157" id="path2740-3" />
   </g>
            </svg>
-
-            -->
             </a>
             <div :id="popup_content_id"></div>
         </div>
@@ -134,7 +140,7 @@
                 optionalLayers: [],
                 hover: false,
                 mode: 'normal',
-                draw: null,
+                drawForMeasure: null,
                 style: MeasureStyles.style,
                 segmentStyle: MeasureStyles.segmentStyle,
                 labelStyle: MeasureStyles.labelStyle,
@@ -151,11 +157,10 @@
             });
             vm.initMap()
             vm.setBaseLayer('osm')
+            vm.set_mode('layer')
             vm.addOptionalLayers()
             //vm.map.addLayer(vm.apiarySitesQueryLayer);
             vm.displayAllFeatures()
-            console.log('MeasureStyles')
-            console.log(MeasureStyles)
         },
         components: {
 
@@ -174,8 +179,11 @@
                 let vm = this
 
                 const styles = [vm.style]
+                //const styles = [vm.segmentStyle]
+                //const styles = []
                 const geometry = feature.getGeometry();
                 const type = geometry.getType();
+                console.log(type)
                 vm.segmentStyles = [vm.segmentStyle]
 
                 let point, label, line
@@ -208,22 +216,16 @@
                     styles.push(vm.labelStyle);
                 }
 
+                console.log(styles)
                 return styles
             },
-            toggle_mode: function(mode){
-                if (mode === 'normal'){
-                    this.mode = 'measure'
-                    this.addMeasurementTool()
-                } else {
-                    this.mode = 'normal';
-                    this.removeMeasurementTool()
+            set_mode: function(mode){
+                this.mode = mode
+                if (this.mode === 'layer'){
+                    this.drawForMeasure.setActive(false)
+                } else if (this.mode === 'measure') {
+                    this.drawForMeasure.setActive(true)
                 }
-            },
-            addMeasurementTool: function(){
-                this.map.addInteraction(this.draw)
-            },
-            removeMeasurementTool: function(){
-                this.map.removeInteraction(this.draw)
             },
             changeLayerVisibility: function(targetLayer){
                 targetLayer.setVisible(!targetLayer.getVisible())
@@ -345,7 +347,7 @@
 
                 // Measure tool
                 let draw_source = new VectorSource({ wrapX: false })
-                vm.draw = new Draw({
+                vm.drawForMeasure = new Draw({
                     source: draw_source,
                     type: 'LineString',
                     style: function(feature, resolution){
@@ -353,16 +355,11 @@
                     },
                 })
 
-                let measureLayer = new VectorLayer({
-                    source: draw_source,
-                })
-                vm.map.addLayer(measureLayer)
-                vm.draw.on('drawstart', function(evt){
-                    console.log('drawstart')
-                })
-                vm.draw.on('drawend', function(evt){
-                    console.log('drawend')
-                })
+                //let measureLayer = new VectorLayer({
+                //    source: draw_source,
+                //})
+                //vm.map.addLayer(measureLayer)
+                vm.map.addInteraction(vm.drawForMeasure)
 
                 // Show mouse coordinates
                 vm.map.addControl(new MousePositionControl({
@@ -398,7 +395,7 @@
                 vm.map.addOverlay(vm.overlay)
 
                 vm.map.on('singleclick', function(evt){
-                    if (vm.mode === 'normal'){
+                    if (vm.mode === 'layer'){
                         let feature = vm.map.forEachFeatureAtPixel(evt.pixel, function(feature, layer) {
                             return feature;
                         });
@@ -443,7 +440,9 @@
                                     )
 
                                     // Query 
-                                    let p = fetch(url)
+                                    let p = fetch(url, {
+                                        credentials: 'include'
+                                    })
 
                                     //p.then(res => res.text()).then(function(data){
                                     p.then(res => res.json()).then(function(data){
@@ -670,6 +669,7 @@
         border: 3px solid rgba(5, 5, 5, .1);
         margin-bottom: 2px;
         cursor: pointer;
+        display: block;
     }
     .layer_options {
         position: absolute;
