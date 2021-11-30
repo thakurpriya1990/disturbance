@@ -23,25 +23,27 @@
                             />
                         </svg>
                     </div-->
-                    <transition v-if="optionalLayers.length">
-                        <div class="optional-layers-button" @mouseover="hover=true">
-                            <img src="../../../assets/layers.svg" />
-                        </div>
-                    </transition>
-                    <transition v-if="optionalLayers.length">
-                        <div div class="layer_options" v-show="hover" @mouseleave="hover=false" >
-                            <div v-for="layer in optionalLayers">
-                                <input
-                                    type="checkbox"
-                                    :id="layer.ol_uid"
-                                    :checked="layer.values_.visible"
-                                    @change="changeLayerVisibility(layer)"
-                                    class="layer_option"
-                                />
-                                <label :for="layer.ol_uid" class="layer_option">{{ layer.get('title') }}</label>
+                    <div style="position:relative">
+                        <transition v-if="optionalLayers.length">
+                            <div class="optional-layers-button" @mouseover="hover=true">
+                                <img src="../../../assets/layers.svg" />
                             </div>
-                        </div>
-                    </transition>
+                        </transition>
+                        <transition v-if="optionalLayers.length">
+                            <div div class="layer_options" v-show="hover" @mouseleave="hover=false" >
+                                <div v-for="layer in optionalLayers">
+                                    <input
+                                        type="checkbox"
+                                        :id="layer.ol_uid"
+                                        :checked="layer.values_.visible"
+                                        @change="changeLayerVisibility(layer)"
+                                        class="layer_option"
+                                    />
+                                    <label :for="layer.ol_uid" class="layer_option">{{ layer.get('title') }}</label>
+                                </div>
+                            </div>
+                        </transition>
+                    </div>
                 </div>
             </div>
         </div>
