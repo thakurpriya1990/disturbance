@@ -779,6 +779,7 @@
 
                 const styles = []
                 styles.push(vm.style)  // This style is for the feature itself
+                styles.push(vm.segmentStyle)
 
                 ///////
                 // From here, adding labels and tiny circles at the end points of the linestring
