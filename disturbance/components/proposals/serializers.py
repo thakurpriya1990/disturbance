@@ -31,7 +31,6 @@ class ProposalTypeSerializer(serializers.ModelSerializer):
             'activities'
         )
 
-
     def get_activities(self,obj):
         return obj.activities.names()
 
@@ -310,6 +309,21 @@ class SaveProposalRegionSerializer(BaseProposalSerializer):
                 )
         #read_only_fields=('documents','requirements')
 
+
+class ReversionHistorySerializer(serializers.ModelSerializer):
+    reversion_history = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Proposal
+        fields = (
+            'reversion_history'
+        )
+
+    def get_reversion_history(self, obj):
+        from reversion.models import Version
+        return Version.objects.get_for_object(obj.id)
+
+
 class ApplicantSerializer(serializers.ModelSerializer):
     from disturbance.components.organisations.serializers import OrganisationAddressSerializer
     address = OrganisationAddressSerializer()
@@ -347,6 +361,8 @@ class InternalProposalSerializer(BaseProposalSerializer):
     #tenure = serializers.CharField(source='tenure.name', read_only=True)
     apiary_temporary_use = ProposalApiaryTemporaryUseSerializer(many=False, read_only=True)
     requirements_completed=serializers.SerializerMethodField()
+    #reversion_history= ReversionHistorySerializer(read_only=True)
+    reversion_history2 = serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
@@ -408,8 +424,20 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'fee_paid',
                 'apiary_temporary_use',
                 'requirements_completed',
+                'reversion_history2'
                 )
         read_only_fields=('documents','requirements')
+
+    def get_reversion_history2(self, obj):
+        from reversion.models import Version
+        reversion_dict = {}
+        for index, version in enumerate(Version.objects.get_for_object(obj)):
+            # add the index to the end of the lodgement number to show the revision.
+            revision = '{}-{}'.format(version.field_dict['lodgement_number'], index+1)
+            # if the date is None, it is draft so exclude
+            if version.field_dict['lodgement_date']:
+                reversion_dict[revision] = version.field_dict['lodgement_date']
+        return reversion_dict
 
     def get_approval_level_document(self,obj):
         if obj.approval_level_document is not None:
@@ -449,7 +477,6 @@ class InternalProposalSerializer(BaseProposalSerializer):
 
     def get_requirements_completed(self,obj):
         return True
-
 
 
 class ReferralProposalSerializer(InternalProposalSerializer):

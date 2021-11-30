@@ -33,34 +33,24 @@
                                         <th>Date</th>
                                         <th>Action</th>
                                     </tr>
+                                    <tr><td>{{ createLodgementRevisionTable[0]["id"] }}</td>
+                                        <td>{{ createLodgementRevisionTable[0]["date"] | formatDateNoTime }}</td>
+                                        <td>Viewing</td>
+                                    </tr>
+                                    <tr v-for="prop in createLodgementRevisionTable">
+                                        <td>{{ prop["id"] }}</td>
+                                        <td>{{ prop["date"] | formatDateNoTime }}</td>
+                                        <td><a style="padding: 0px;" v-on:click="getCompareProposal(prop['index'])">{{ prop["action"] }}</a></td>
+                                    </tr>
                                 </table>
+                                <div>
+                                    <a ref="showRevisions"  @click.prevent="" class="actionBtn top-buffer-s">Show Revisions</a>
+                                </div> 
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-
-
-            <!--
-            <div class="row" v-if="canSeeSubmission">
-                <div class="panel panel-default">
-                    <div class="panel-heading">
-                       History
-                    </div>
-                                    <table class="table small-table">
-                                        <tr>
-                                            <th>ID</th>
-                                            <th>Last Modified</th>
-                                        </tr>
-                                        <tr v-for="p in proposal.get_history">
-                                            <td>{{ p.id }}</td>
-                                            <td>{{ p.modified | formatDate}}</td>
-                                        </tr>
-                                    </table>
-                </div>
-            </div>
-            -->
-
             <div class="row">
                 <div class="panel panel-default">
                     <div class="panel-heading">
@@ -491,6 +481,9 @@ export default {
     filters: {
         formatDate: function(data){
             return data ? moment(data).format('DD/MM/YYYY HH:mm:ss'): '';
+        },
+        formatDateNoTime: function(data){
+            return data ? moment(data).format('DD/MM/YYYY'): '';
         }
     },
     props: {
@@ -551,8 +544,42 @@ export default {
         applicant_email:function(){
             return this.proposal && this.proposal.applicant.email ? this.proposal.applicant.email : '';
         },
+        createLodgementRevisionTable: function() {
+            need to be able to change index and action of items
+            don't want a version number for 0th list element
+            const limit = 5
+            let index = 1  // skip the first one
+            let lodgement_revisions = []
+            for (const prop in this.proposal.reversion_history2) {
+                if (index < 4) {
+                    let action = 'Compare'
+                    if (index == 0) {action = 'Veiwing'}
+                    lodgement_revisions.push({"index": index,
+                                              "id": prop,
+                                              "date": this.proposal.reversion_history2[prop],
+                                              "action": action})
+                    index += 1
+                }
+            }
+            // for (let i = 0; i < this.shoppingOrder.length && count < limit; i += 1) {
+            //     let order = this.shoppingOrder[i];
+            //     for (let j = 0; j < order.shoppingItem.length && count < limit; j += 1) {
+            //     let item = order.shoppingItem[j];
+            //     res.push(item);
+            //     count++;
+            //     }
+            // }
+            return lodgement_revisions
+
+        //             <tr v-for="(value, key) in proposal.reversion_history2">
+        //     <td>{{ key }}</td><td>{{ value | formatDateNoTime }}</td><td>Compare</td>
+        // </tr>
+        }
     },
     methods: {
+        getCompareProposal: function (revision) {
+            console.log(revision);
+        },
         locationUpdated: function(){
             console.log('in locationUpdated()');
         },
@@ -921,7 +948,6 @@ export default {
                 vm.department_users = response.body
                 vm.loading.splice('Loading Department Users',1);
             },(error) => {
-                console.log(error);
                 vm.loading.splice('Loading Department Users',1);
             })
         },
