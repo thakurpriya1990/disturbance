@@ -134,7 +134,7 @@
     import VectorLayer from 'ol/layer/Vector';
     import VectorSource from 'ol/source/Vector';
     import Cluster from 'ol/source/Cluster';
-    import {Circle as CircleStyle, Fill, Stroke, Style, Icon, Text} from 'ol/style';
+    import {Circle as CircleStyle, Fill, Stroke, Style, Icon, Text, RegularShape} from 'ol/style';
     import {FullScreen as FullScreenControl, MousePosition as MousePositionControl} from 'ol/control';
     import Vue from 'vue/dist/vue';
     import { Feature } from 'ol';
@@ -260,8 +260,11 @@
                 min_num_of_sites_for_renewal: 5,
                 min_num_of_sites_for_new: 5,
                 style_for_vacant_selected: new Style({
-                    image: new CircleStyle({
-                        radius: existingSiteRadius,
+                    //image: new CircleStyle({
+                    image: new RegularShape({
+                        //radius: existingSiteRadius,
+                        points: 6,
+                        radius: 6,
                         fill: new Fill({
                             color: SiteColours.vacant.fill
                         }),
@@ -272,8 +275,11 @@
                     })
                 }),
                 style_for_new_apiary_site: new Style({
-                    image: new CircleStyle({
-                        radius: existingSiteRadius,
+                    //image: new CircleStyle({
+                    image: new RegularShape({
+                        //radius: existingSiteRadius,
+                        points: 6,
+                        radius: 6,
                         fill: new Fill({
                             color: SiteColours.draft_external.fill
                         }),
@@ -431,7 +437,7 @@
                 // For Measurement tool
                 mode: 'normal',
                 drawForMeasure: null,
-                style: MeasureStyles.style,
+                style: MeasureStyles.defaultStyle,
                 segmentStyle: MeasureStyles.segmentStyle,
                 labelStyle: MeasureStyles.labelStyle,
                 segmentStyles: null,
@@ -714,40 +720,102 @@
                     this.overlay.setPosition(coord);
                 }
             },
-            styleFunction: function (feature, resolution){
+            styleFunctionForMouse: function(feature){
                 let vm = this
+                //return this.style_for_new_apiary_site
 
-                const styles = [vm.style]
-                const geometry = feature.getGeometry();
-                vm.segmentStyles = [vm.segmentStyle]
+                let styles = []
 
-                let point, label, line_string
-                if (geometry.getType() === 'LineString'){
-                    point = new Point(geometry.getLastCoordinate());
-                    label = formatLength(geometry);
-                    line_string = geometry;
+                //let geometry = feature.getGeometry()
+                //vm.labelStyle.setGeometry(geometry);
+                //vm.labelStyle.getText().setText('aho');
+                //styles.push(vm.labelStyle);
+
+                let myStyle = new Style({
+                    image: new RegularShape({
+                        fill: new Fill({
+                            color: SiteColours.draft_external.fill
+                        }),
+                        stroke: new Stroke({
+                            color: SiteColours.draft_external.stroke,
+                            width: 2
+                        }),
+                        points: 6,
+                        radius: 6,
+                        //radius2: 0,
+                        //angle: Math.PI / 4
+                    }),
+                })
+                styles.push(myStyle)
+                return styles
+            },
+            styleFunctionForNewSite: function(feature){
+                console.log('in styleFunctionForNewSite')
+                // This is used for the proposed apiary sites
+                let vacant_selected = feature.get('vacant_selected')
+                if (vacant_selected){
+                    return this.style_for_vacant_selected
+                } else {
+                    return this.style_for_new_apiary_site
                 }
+            },
+            addJoint: function(point, styles){
+                let s = new Style({
+                    image: new CircleStyle({
+                        radius: 2,
+                        fill: new Fill({
+                            color: '#3399cc'
+                        }),
+                    }),
+                })
+                s.setGeometry(point)
+                styles.push(s)
 
-                if (line_string){
-                    let count = 0;
-                    line_string.forEachSegment(function (a, b) {
+                return styles
+            },
+            styleFunctionForMeasurement: function (feature, resolution){
+                let vm = this
+                let for_layer = feature.get('for_layer', false)
+
+                const styles = []
+                styles.push(vm.style)  // This style is for the feature itself
+
+                ///////
+                // From here, adding labels and tiny circles at the end points of the linestring
+                ///////
+                const geometry = feature.getGeometry();
+                if (geometry.getType() === 'LineString'){
+                    let segment_count = 0;
+                    geometry.forEachSegment(function (a, b) {
                         const segment = new LineString([a, b]);
                         const label = formatLength(segment);
-
-                        if (vm.segmentStyles.length - 1 < count) {
-                            vm.segmentStyles.push(vm.segmentStyle.clone());
-                        }
                         const segmentPoint = new Point(segment.getCoordinateAt(0.5));
-                        vm.segmentStyles[count].setGeometry(segmentPoint);
-                        vm.segmentStyles[count].getText().setText(label);
-                        styles.push(vm.segmentStyles[count]);
-                        count++;
+
+                        // Add a style for this segment
+                        let segment_style = vm.segmentStyle.clone() // Because there could be multilpe segments, we should copy the style per segment
+                        segment_style.setGeometry(segmentPoint)
+                        segment_style.getText().setText(label)
+                        styles.push(segment_style)
+
+                        if (segment_count == 0){
+                            // Add a tiny circle to the very first coordinate of the linestring
+                            let p = new Point(a)
+                            vm.addJoint(p, styles)
+                        }
+                        // Add tiny circles to the end of the linestring
+                        let p = new Point(b)
+                        vm.addJoint(p, styles)
+
+                        segment_count++;
                     });
                 }
 
-                if (label){
+                if (!for_layer){
+                    // We don't need the last label when draw on the layer.
+                    let label_on_mouse = formatLength(geometry);  // Total length of the linestring
+                    let point = new Point(geometry.getLastCoordinate());
                     vm.labelStyle.setGeometry(point);
-                    vm.labelStyle.getText().setText(label);
+                    vm.labelStyle.getText().setText(label_on_mouse);
                     styles.push(vm.labelStyle);
                 }
 
@@ -997,21 +1065,6 @@
                 let buffer = this.bufferLayerSource.getFeatureById(site.getId() + "_buffer");
                 if (buffer){
                     this.bufferLayerSource.removeFeature(buffer);
-                }
-            },
-            apiaryStyleFunctionExisting: function(feature) {
-                // This is used for the existing apiary sites
-                //let status = this.get_status_for_colour(feature)
-                let status = getStatusForColour(feature)
-                return getApiaryFeatureStyle(status);
-            },
-            apiaryStyleFunctionProposed: function(feature){
-                // This is used for the proposed apiary sites
-                let vacant_selected = feature.get('vacant_selected')
-                if (vacant_selected){
-                    return this.style_for_vacant_selected
-                } else {
-                    return this.style_for_new_apiary_site
                 }
             },
             existingSiteAvailableClicked: function() {
@@ -1351,7 +1404,7 @@
                 vm.drawingLayer = new VectorLayer({
                     title: 'Drawing Layer',
                     source: vm.drawingLayerSource,
-                    style: vm.apiaryStyleFunctionProposed,
+                    style: vm.styleFunctionForNewSite,
                 });
 
                 let container = document.getElementById(vm.popup_id)
@@ -1420,6 +1473,7 @@
                     this.drawForApiarySite = new Draw({
                         source: vm.drawingLayerSource,
                         type: "Point",
+                        style: vm.styleFunctionForMouse,  // This style is for the style on the mouse
                     });
                     this.drawForApiarySite.on("drawstart", async function(attributes){
                         if (vm.mode === 'normal'){
@@ -1524,24 +1578,18 @@
                 vm.drawForMeasure = new Draw({
                     source: draw_source,
                     type: 'LineString',
-                    style: function(feature, resolution){
-                        console.log('styleFunction in draw')
-                        return vm.styleFunction(feature, resolution)
-                    },
+                    style: vm.styleFunctionForMeasurement,
                 })
 
                 // Set a custom listener
                 vm.drawForMeasure.set('escKey', '')
                 vm.drawForMeasure.on('change:escKey', function(evt){
-                    console.log('escKey pressed')
                     vm.drawForMeasure.finishDrawing()
                 })
                 vm.drawForMeasure.on('drawstart', function(evt){
-                    console.log('measuring start')
                     vm.measuring = true
                 })
                 vm.drawForMeasure.on('drawend', function(evt){
-                    console.log('measuring end')
                     vm.measuring = false
                 })
 
@@ -1549,8 +1597,8 @@
                     title: 'Measurement Layer',
                     source: draw_source,
                     style: function(feature, resolution){
-                        console.log('styleFunction in layer')
-                        return vm.styleFunction(feature, resolution)
+                        feature.set('for_layer', true)
+                        return vm.styleFunctionForMeasurement(feature, resolution)
                     },
                 });
                 vm.map.addInteraction(vm.drawForMeasure)

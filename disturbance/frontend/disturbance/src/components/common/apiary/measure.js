@@ -2,7 +2,7 @@ import { Circle as CircleStyle, Fill, Stroke, Style, Text, RegularShape } from '
 import { getArea, getLength } from 'ol/sphere'
 
 let MeasureStyles = {
-    'style': new Style({
+    'defaultStyle': new Style({
         fill: new Fill({
             color: 'rgba(255, 255, 255, 0.2)',
         }),

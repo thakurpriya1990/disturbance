@@ -143,7 +143,7 @@
                 hover: false,
                 mode: 'normal',
                 drawForMeasure: null,
-                style: MeasureStyles.style,
+                style: MeasureStyles.defaultStyle,
                 segmentStyle: MeasureStyles.segmentStyle,
                 labelStyle: MeasureStyles.labelStyle,
                 segmentStyles: null,
