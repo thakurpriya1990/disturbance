@@ -436,6 +436,7 @@
                 labelStyle: MeasureStyles.labelStyle,
                 segmentStyles: null,
                 measurementLayer: null,
+                measuring: false,
             }
         },
         components: {
@@ -758,12 +759,21 @@
                     this.drawForMeasure.setActive(true)
                     this.drawForApiarySite.setActive(false)
                 } else if (mode === 'layer'){
+                    this.clearMeasurementLayer()
                     this.drawForMeasure.setActive(false)
                     this.drawForApiarySite.setActive(false)
                 } else if (mode === 'normal') {
+                    this.clearMeasurementLayer()
                     this.drawForApiarySite.setActive(true)
                     this.drawForMeasure.setActive(false)
                 }
+            },
+            clearMeasurementLayer: function(){
+                let vm = this
+                let features = vm.measurementLayer.getSource().getFeatures()
+                features.forEach((feature) => {
+                    vm.measurementLayer.getSource().removeFeature(feature)
+                })
             },
             console_layers: function(){
                 let layers = this.map.getLayers()
@@ -1281,13 +1291,8 @@
                     });
                 });
                 vm.map.on('singleclick', function(evt){
-                    console.log('in singleclick')
-                    console.log('2')
-                    console.log(vm.mode)
                     if(vm.mode === 'layer'){
-                        console.log('3')
                         vm.closePopup()
-                        console.log('4')
                         let view = vm.map.getView()
                         let viewResolution = view.getResolution()
 
@@ -1524,25 +1529,31 @@
                         return vm.styleFunction(feature, resolution)
                     },
                 })
-                let temp_source = new VectorSource({ wrapX: false })
-                let temp_draw = new Draw({
-                    source: temp_source,
-                    type: 'LineString',
-                    style: function(feature, resolution){
-                        console.log('styleFunction in layer')
-                        return vm.styleFunction(feature, resolution)
-                    },
+
+                // Set a custom listener
+                vm.drawForMeasure.set('escKey', '')
+                vm.drawForMeasure.on('change:escKey', function(evt){
+                    console.log('escKey pressed')
+                    vm.drawForMeasure.finishDrawing()
                 })
+                vm.drawForMeasure.on('drawstart', function(evt){
+                    console.log('measuring start')
+                    vm.measuring = true
+                })
+                vm.drawForMeasure.on('drawend', function(evt){
+                    console.log('measuring end')
+                    vm.measuring = false
+                })
+
                 vm.measurementLayer = new VectorLayer({
                     title: 'Measurement Layer',
-                    source: temp_source,
+                    source: draw_source,
                     style: function(feature, resolution){
                         console.log('styleFunction in layer')
                         return vm.styleFunction(feature, resolution)
                     },
                 });
                 vm.map.addInteraction(vm.drawForMeasure)
-                vm.map.addInteraction(temp_draw)
                 vm.map.addLayer(vm.measurementLayer)
 
                 let hoverInteraction = new Select({
@@ -1595,7 +1606,18 @@
                 });
                 vm.setBaseLayer('osm')
                 vm.addOptionalLayers()
+
+                document.addEventListener('keydown', vm.keydown, false)
             },  // End: initMap()
+            keydown: function(evt){
+                let vm = this
+
+                let charCode = (evt.which) ? evt.which : evt.keyCode;
+                if (charCode === 27 && vm.measuring === true){ //esc key
+                    //dispatch event
+                    this.drawForMeasure.set('escKey', Math.random());
+                }
+            },
             //get_status_for_colour: function(feature){
             //    let status = feature.get("status");
             //    let is_vacant = feature.get('is_vacant')
