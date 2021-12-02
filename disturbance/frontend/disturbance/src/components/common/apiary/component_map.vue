@@ -732,6 +732,7 @@
         background: white;
         border-radius: 2px;
         cursor: auto;
+        min-width: max-content;
         /*
         box-shadow: 3px 3px 3px #777;
         -moz-filter: brightness(1.0);
