@@ -50,13 +50,12 @@
 
         <div :id="popup_id" class="ol-popup">
             <a href="#" :id="popup_closer_id" class="ol-popup-closer">
-           <svg xmlns='http://www.w3.org/2000/svg' version='1.1' height='20' width='20' class="close-icon">
-
-               <g transform='scale(3)'>
-    <path d="M 5.2916667,2.6458333 A 2.6458333,2.6458333 0 0 1 2.6458335,5.2916667 2.6458333,2.6458333 0 0 1 0,2.6458333 2.6458333,2.6458333 0 0 1 2.6458335,0 2.6458333,2.6458333 0 0 1 5.2916667,2.6458333 Z" style="fill:#ffffff;fill-opacity:1;stroke-width:0.182031" id="path846" />
-    <path d="M 1.5581546,0.94474048 2.6457566,2.0324189 3.7334348,0.94474048 4.3469265,1.5581547 3.2592475,2.6458334 4.3469265,3.7334353 3.7334348,4.3469261 2.6457566,3.2593243 1.5581546,4.3469261 0.9447402,3.7334353 2.0323422,2.6458334 0.9447402,1.5581547 Z" style="fill:#f46464;fill-opacity:1;stroke:none;stroke-width:0.0512157" id="path2740-3" />
-  </g>
-           </svg>
+                <svg xmlns='http://www.w3.org/2000/svg' version='1.1' height='20' width='20' class="close-icon">
+                    <g transform='scale(3)'>
+                        <path d     ="M 5.2916667,2.6458333 A 2.6458333,2.6458333 0 0 1 2.6458335,5.2916667 2.6458333,2.6458333 0 0 1 0,2.6458333 2.6458333,2.6458333 0 0 1 2.6458335,0 2.6458333,2.6458333 0 0 1 5.2916667,2.6458333 Z" style="fill:#ffffff;fill-opacity:1;stroke-width:0.182031" id="path846" />
+                        <path d     ="M 1.5581546,0.94474048 2.6457566,2.0324189 3.7334348,0.94474048 4.3469265,1.5581547 3.2592475,2.6458334 4.3469265,3.7334353 3.7334348,4.3469261 2.6457566,3.2593243 1.5581546,4.3469261 0.9447402,3.7334353 2.0323422,2.6458334 0.9447402,1.5581547 Z" style="fill:#f46464;fill-opacity:1;stroke:none;stroke-width:0.0512157" id="path2740-3" />
+                    </g>
+                </svg>
             </a>
             <div :id="popup_content_id"></div>
         </div>
@@ -177,7 +176,7 @@
             }
         },
         methods: {
-            styleFunction: function (feature, resolution){
+            styleFunctionForMeasurement: function (feature, resolution){
                 let vm = this
 
                 const styles = [vm.style]
@@ -352,16 +351,31 @@
                 vm.drawForMeasure = new Draw({
                     source: draw_source,
                     type: 'LineString',
-                    style: function(feature, resolution){
-                        return vm.styleFunction(feature, resolution)
-                    },
+                    style: vm.styleFunctionForMeasurement,
+                })
+                // Set a custom listener to the Measure tool
+                vm.drawForMeasure.set('escKey', '')
+                vm.drawForMeasure.on('change:escKey', function(evt){
+                    vm.drawForMeasure.finishDrawing()
+                })
+                vm.drawForMeasure.on('drawstart', function(evt){
+                    vm.measuring = true
+                })
+                vm.drawForMeasure.on('drawend', function(evt){
+                    vm.measuring = false
                 })
 
-                //let measureLayer = new VectorLayer({
-                //    source: draw_source,
-                //})
-                //vm.map.addLayer(measureLayer)
+                // Create a layer to retain the measurement
+                vm.measurementLayer = new VectorLayer({
+                    title: 'Measurement Layer',
+                    source: draw_source,
+                    style: function(feature, resolution){
+                        feature.set('for_layer', true)
+                        return vm.styleFunctionForMeasurement(feature, resolution)
+                    },
+                });
                 vm.map.addInteraction(vm.drawForMeasure)
+                vm.map.addLayer(vm.measurementLayer)
 
                 // Show mouse coordinates
                 vm.map.addControl(new MousePositionControl({
@@ -490,6 +504,16 @@
                         });
                     });
                     vm.map.addInteraction(modifyTool);
+                }
+                document.addEventListener('keydown', vm.keydown, false)
+            },
+            keydown: function(evt){
+                let vm = this
+
+                let charCode = (evt.which) ? evt.which : evt.keyCode;
+                if (charCode === 27 && vm.measuring === true){ //esc key
+                    //dispatch event
+                    this.drawForMeasure.set('escKey', Math.random());
                 }
             },
             showPopupById: function(apiary_site_id){
@@ -727,11 +751,6 @@
         position: absolute;
         top: 2px;
         right: 8px;
-    }
-    .ol-popup-closer:after {
-        /*
-        content: "✖";
-        */
     }
     .close-icon:hover {
         filter: brightness(80%);
