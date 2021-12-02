@@ -176,57 +176,84 @@
             }
         },
         methods: {
+            addJoint: function(point, styles){
+                let s = new Style({
+                    image: new CircleStyle({
+                        radius: 2,
+                        fill: new Fill({
+                            color: '#3399cc'
+                        }),
+                    }),
+                })
+                s.setGeometry(point)
+                styles.push(s)
+
+                return styles
+            },
             styleFunctionForMeasurement: function (feature, resolution){
                 let vm = this
+                let for_layer = feature.get('for_layer', false)
 
-                const styles = [vm.style]
-                //const styles = [vm.segmentStyle]
-                //const styles = []
+                const styles = []
+                styles.push(vm.style)  // This style is for the feature itself
+                styles.push(vm.segmentStyle)
+
+                ///////
+                // From here, adding labels and tiny circles at the end points of the linestring
+                ///////
                 const geometry = feature.getGeometry();
-                const type = geometry.getType();
-                console.log(type)
-                vm.segmentStyles = [vm.segmentStyle]
-
-                let point, label, line
-                if (type === 'LineString'){
-                    point = new Point(geometry.getLastCoordinate());
-                    label = formatLength(geometry);
-                    line = geometry;
-                }
-
-                if (line){
-                    let count = 0;
-                    line.forEachSegment(function (a, b) {
+                if (geometry.getType() === 'LineString'){
+                    let segment_count = 0;
+                    geometry.forEachSegment(function (a, b) {
                         const segment = new LineString([a, b]);
                         const label = formatLength(segment);
-
-                        if (vm.segmentStyles.length - 1 < count) {
-                            vm.segmentStyles.push(vm.segmentStyle.clone());
-                        }
                         const segmentPoint = new Point(segment.getCoordinateAt(0.5));
-                        vm.segmentStyles[count].setGeometry(segmentPoint);
-                        vm.segmentStyles[count].getText().setText(label);
-                        styles.push(vm.segmentStyles[count]);
-                        count++;
+
+                        // Add a style for this segment
+                        let segment_style = vm.segmentStyle.clone() // Because there could be multilpe segments, we should copy the style per segment
+                        segment_style.setGeometry(segmentPoint)
+                        segment_style.getText().setText(label)
+                        styles.push(segment_style)
+
+                        if (segment_count == 0){
+                            // Add a tiny circle to the very first coordinate of the linestring
+                            let p = new Point(a)
+                            vm.addJoint(p, styles)
+                        }
+                        // Add tiny circles to the end of the linestring
+                        let p = new Point(b)
+                        vm.addJoint(p, styles)
+
+                        segment_count++;
                     });
                 }
 
-                if (label){
+                if (!for_layer){
+                    // We don't need the last label when draw on the layer.
+                    let label_on_mouse = formatLength(geometry);  // Total length of the linestring
+                    let point = new Point(geometry.getLastCoordinate());
                     vm.labelStyle.setGeometry(point);
-                    vm.labelStyle.getText().setText(label);
+                    vm.labelStyle.getText().setText(label_on_mouse);
                     styles.push(vm.labelStyle);
                 }
 
-                console.log(styles)
                 return styles
             },
             set_mode: function(mode){
                 this.mode = mode
                 if (this.mode === 'layer'){
+                    this.clearMeasurementLayer()
                     this.drawForMeasure.setActive(false)
                 } else if (this.mode === 'measure') {
                     this.drawForMeasure.setActive(true)
                 }
+            },
+            clearMeasurementLayer: function(){
+                let vm = this
+                let features = vm.measurementLayer.getSource().getFeatures()
+                features.forEach((feature) => {
+                    vm.measurementLayer.getSource().removeFeature(feature)
+                })
             },
             changeLayerVisibility: function(targetLayer){
                 targetLayer.setVisible(!targetLayer.getVisible())
