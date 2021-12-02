@@ -63,34 +63,57 @@
         </div>
 
         <div id="map-wrapper" class="row col-sm-12">
-            <div id="map" class="map"></div>
-            <div id="basemap-button">
-                <img id="basemap_sat" src="../../../assets/satellite_icon.jpg" @click="setBaseLayer('sat')" />
-                <img id="basemap_osm" src="../../../assets/map_icon.png" @click="setBaseLayer('osm')" />
-            </div>
-            <div id="optional-layers-wrapper">
-                <transition v-if="optionalLayers.length">
-                    <div id="optional-layers-button" v-show="!hover">
-                        <img src="../../../assets/layer-switcher-icon.png" @mouseover="hover=true" />
+            <div id="map" class="map">
+                <div id="basemap-button">
+                    <img id="basemap_sat" src="../../../assets/satellite_icon.jpg" @click="setBaseLayer('sat')" />
+                    <img id="basemap_osm" src="../../../assets/map_icon.png" @click="setBaseLayer('osm')" />
+                </div>
+                <div class="optional-layers-wrapper" @mouseleave="hover=false">
+                    <div class="optional-layers-button">
+                        <template v-if="mode === 'normal'">
+                            <img src="../../../assets/normal.svg" @click="set_mode('layer')" />
+                        </template>
+                        <template v-else-if="mode === 'layer'">
+                            <img src="../../../assets/info-bubble.svg" @click="set_mode('measure')" />
+                        </template>
+                        <template v-else>
+                            <img src="../../../assets/ruler.svg" @click="set_mode('normal')" />
+                        </template>
                     </div>
-                </transition>
-                <transition v-if="optionalLayers.length">
-                    <div div id="layer_options" v-show="hover" @mouseleave="hover=false" >
-                        <div v-for="layer in optionalLayers">
-                            <input
-                                type="checkbox"
-                                :id="layer.ol_uid"
-                                :checked="layer.values_.visible"
-                                @change="changeLayerVisibility(layer)"
-                            />
-                            <label :for="layer.ol_uid">{{ layer.get('title') }}</label>
-                        </div>
+                    <div style="position:relative">
+                        <transition v-if="optionalLayers.length">
+                            <div class="optional-layers-button" @mouseover="hover=true">
+                                <img src="../../../assets/layers.svg" />
+                            </div>
+                        </transition>
+                        <transition v-if="optionalLayers.length">
+                            <div div class="layer_options" v-show="hover" @mouseleave="hover=false" >
+                                <div v-for="layer in optionalLayers">
+                                    <input
+                                        type="checkbox"
+                                        :id="layer.ol_uid"
+                                        :checked="layer.values_.visible"
+                                        @change="changeLayerVisibility(layer)"
+                                        class="layer_option"
+                                    />
+                                    <label :for="layer.ol_uid" class="layer_option">{{ layer.get('title') }}</label>
+                                </div>
+                            </div>
+                        </transition>
                     </div>
-                </transition>
+                </div>
             </div>
         </div>
 
         <div :id="popup_id" class="ol-popup">
+            <a href="#" :id="popup_closer_id" class="ol-popup-closer">
+                <svg xmlns='http://www.w3.org/2000/svg' version='1.1' height='20' width='20' class="close-icon">
+                    <g transform='scale(3)'>
+                        <path d     ="M 5.2916667,2.6458333 A 2.6458333,2.6458333 0 0 1 2.6458335,5.2916667 2.6458333,2.6458333 0 0 1 0,2.6458333 2.6458333,2.6458333 0 0 1 2.6458335,0 2.6458333,2.6458333 0 0 1 5.2916667,2.6458333 Z" style="fill:#ffffff;fill-opacity:1;stroke-width:0.182031" id="path846" />
+                        <path d     ="M 1.5581546,0.94474048 2.6457566,2.0324189 3.7334348,0.94474048 4.3469265,1.5581547 3.2592475,2.6458334 4.3469265,3.7334353 3.7334348,4.3469261 2.6457566,3.2593243 1.5581546,4.3469261 0.9447402,3.7334353 2.0323422,2.6458334 0.9447402,1.5581547 Z" style="fill:#f46464;fill-opacity:1;stroke:none;stroke-width:0.0512157" id="path2740-3" />
+                    </g>
+                </svg>
+            </a>
             <div :id="popup_content_id" class="text-center"></div>
         </div>
 
@@ -119,11 +142,11 @@
     import VectorLayer from 'ol/layer/Vector';
     import VectorSource from 'ol/source/Vector';
     import Cluster from 'ol/source/Cluster';
-    import {Circle as CircleStyle, Fill, Stroke, Style, Icon, Text} from 'ol/style';
+    import {Circle as CircleStyle, Fill, Stroke, Style, Icon, Text, RegularShape} from 'ol/style';
     import {FullScreen as FullScreenControl, MousePosition as MousePositionControl} from 'ol/control';
     import Vue from 'vue/dist/vue';
     import { Feature } from 'ol';
-    import { Point } from 'ol/geom';
+    import { Point, LineString } from 'ol/geom';
     import { getDistance } from 'ol/sphere';
     import { circular} from 'ol/geom/Polygon';
     import GeoJSON from 'ol/format/GeoJSON';
@@ -138,6 +161,8 @@
     import WMTSTileGrid from 'ol/tilegrid/WMTS';
     import {get as getProjection} from 'ol/proj';
     import {getTopLeft, getWidth} from 'ol/extent';
+    import MeasureStyles, { formatLength } from '@/components/common/apiary/measure.js'
+    import { getArea, getLength } from 'ol/sphere'
 
     // create the WMTS tile grid in the google projection
     const projection = getProjection('EPSG:4326');
@@ -243,8 +268,11 @@
                 min_num_of_sites_for_renewal: 5,
                 min_num_of_sites_for_new: 5,
                 style_for_vacant_selected: new Style({
-                    image: new CircleStyle({
-                        radius: existingSiteRadius,
+                    //image: new CircleStyle({
+                    image: new RegularShape({
+                        //radius: existingSiteRadius,
+                        points: 6,
+                        radius: 6,
                         fill: new Fill({
                             color: SiteColours.vacant.fill
                         }),
@@ -255,8 +283,11 @@
                     })
                 }),
                 style_for_new_apiary_site: new Style({
-                    image: new CircleStyle({
-                        radius: existingSiteRadius,
+                    //image: new CircleStyle({
+                    image: new RegularShape({
+                        //radius: existingSiteRadius,
+                        points: 6,
+                        radius: 6,
                         fill: new Fill({
                             color: SiteColours.draft_external.fill
                         }),
@@ -269,6 +300,7 @@
                 // Popup
                 popup_id: uuid(),
                 popup_content_id: uuid(),
+                popup_closer_id: uuid(),
                 content_element: null,
                 overlay: null,
 
@@ -298,6 +330,7 @@
                 bufferedSites: null,
                 drawingLayerSource:  new VectorSource(),
                 drawingLayer: null,
+                drawForApiarySite: null,
                 bufferLayerSource: new VectorSource(),
                 bufferLayer: null,
                 vacantLayerSource: new VectorSource(),
@@ -409,6 +442,16 @@
                 tileLayerSat: null,
                 optionalLayers: [],
                 hover: false,
+
+                // For Measurement tool
+                mode: 'normal',
+                drawForMeasure: null,
+                style: MeasureStyles.defaultStyle,
+                segmentStyle: MeasureStyles.segmentStyle,
+                labelStyle: MeasureStyles.labelStyle,
+                segmentStyles: null,
+                measurementLayer: null,
+                measuring: false,
             }
         },
         components: {
@@ -416,6 +459,15 @@
             datatable,
         },
         computed:{
+            ruler_colour: function(){
+                if (this.mode === 'normal'){
+                    return '#aaa';
+                } else if(this.mode === 'measure') {
+                    return '#53c2cf';
+                } else {
+                    return '#ff7f50';
+                }
+            },
             display_debug_info: function(){
                 if (location.host === 'localhost:8071'){
                     return true
@@ -649,6 +701,158 @@
             }
         },
         methods:{
+            display_layers_option: function(mode){
+                if(mode === 'layer'){
+                    this.hover = true
+                }
+            },
+            showPopupForLayersJson: function(geojson, coord, column_names, display_all_columns, target_layer){
+                let wrapper = $('<div>')  // Add wrapper element because html() used at the end exports only the contents of the jquery object
+                let caption = $('<div style="text-align:center; font-weight: bold;">').text(target_layer.get('title'))
+                let table = $('<table style="margin-bottom: 1em;">') //.addClass('table')
+                let tbody = $('<tbody>')
+                wrapper.append(caption)
+                wrapper.append(table.append(tbody))
+
+                for (let feature of geojson.features){
+                    for (let key in feature.properties){
+                        if (display_all_columns || column_names.includes(key)){
+                            let tr = $('<tr style="border-bottom:1px solid lightgray;">')
+                            let th = $('<th style="padding:0 0.5em;">').text(key)
+                            let td = $('<td>').addClass('text-nowrap').text(feature.properties[key])
+                            tr.append(th)
+                            tr.append(td)
+                            tbody.append(tr)
+                        }
+                    }
+                    this.content_element.innerHTML += wrapper.html()  // Export contents as HTML string
+                    this.overlay.setPosition(coord);
+                }
+            },
+            styleFunctionForMouse: function(feature){
+                let vm = this
+                //return this.style_for_new_apiary_site
+
+                let styles = []
+
+                //let geometry = feature.getGeometry()
+                //vm.labelStyle.setGeometry(geometry);
+                //vm.labelStyle.getText().setText('aho');
+                //styles.push(vm.labelStyle);
+
+                let myStyle = new Style({
+                    image: new RegularShape({
+                        fill: new Fill({
+                            color: SiteColours.draft_external.fill
+                        }),
+                        stroke: new Stroke({
+                            color: SiteColours.draft_external.stroke,
+                            width: 2
+                        }),
+                        points: 6,
+                        radius: 6,
+                        //radius2: 0,
+                        //angle: Math.PI / 4
+                    }),
+                })
+                styles.push(myStyle)
+                return styles
+            },
+            styleFunctionForNewSite: function(feature){
+                console.log('in styleFunctionForNewSite')
+                // This is used for the proposed apiary sites
+                let vacant_selected = feature.get('vacant_selected')
+                if (vacant_selected){
+                    return this.style_for_vacant_selected
+                } else {
+                    return this.style_for_new_apiary_site
+                }
+            },
+            addJoint: function(point, styles){
+                let s = new Style({
+                    image: new CircleStyle({
+                        radius: 2,
+                        fill: new Fill({
+                            color: '#3399cc'
+                        }),
+                    }),
+                })
+                s.setGeometry(point)
+                styles.push(s)
+
+                return styles
+            },
+            styleFunctionForMeasurement: function (feature, resolution){
+                let vm = this
+                let for_layer = feature.get('for_layer', false)
+
+                const styles = []
+                styles.push(vm.style)  // This style is for the feature itself
+                styles.push(vm.segmentStyle)
+
+                ///////
+                // From here, adding labels and tiny circles at the end points of the linestring
+                ///////
+                const geometry = feature.getGeometry();
+                if (geometry.getType() === 'LineString'){
+                    let segment_count = 0;
+                    geometry.forEachSegment(function (a, b) {
+                        const segment = new LineString([a, b]);
+                        const label = formatLength(segment);
+                        const segmentPoint = new Point(segment.getCoordinateAt(0.5));
+
+                        // Add a style for this segment
+                        let segment_style = vm.segmentStyle.clone() // Because there could be multilpe segments, we should copy the style per segment
+                        segment_style.setGeometry(segmentPoint)
+                        segment_style.getText().setText(label)
+                        styles.push(segment_style)
+
+                        if (segment_count == 0){
+                            // Add a tiny circle to the very first coordinate of the linestring
+                            let p = new Point(a)
+                            vm.addJoint(p, styles)
+                        }
+                        // Add tiny circles to the end of the linestring
+                        let p = new Point(b)
+                        vm.addJoint(p, styles)
+
+                        segment_count++;
+                    });
+                }
+
+                if (!for_layer){
+                    // We don't need the last label when draw on the layer.
+                    let label_on_mouse = formatLength(geometry);  // Total length of the linestring
+                    let point = new Point(geometry.getLastCoordinate());
+                    vm.labelStyle.setGeometry(point);
+                    vm.labelStyle.getText().setText(label_on_mouse);
+                    styles.push(vm.labelStyle);
+                }
+
+                return styles
+            },
+            set_mode: function(mode){
+                this.mode = mode
+                if (mode === 'measure'){
+                    this.drawForMeasure.setActive(true)
+                    this.drawForApiarySite.setActive(false)
+                } else if (mode === 'layer'){
+                    this.clearMeasurementLayer()
+                    this.drawForMeasure.setActive(false)
+                    this.drawForApiarySite.setActive(false)
+                } else if (mode === 'normal') {
+                    this.clearMeasurementLayer()
+                    this.drawForApiarySite.setActive(true)
+                    this.drawForMeasure.setActive(false)
+                }
+            },
+            clearMeasurementLayer: function(){
+                let vm = this
+                let features = vm.measurementLayer.getSource().getFeatures()
+                features.forEach((feature) => {
+                    vm.measurementLayer.getSource().removeFeature(feature)
+                })
+            },
             console_layers: function(){
                 let layers = this.map.getLayers()
                 for (var i = 0; i < layers.array_.length; i++){
@@ -753,9 +957,33 @@
                 this.content_element.innerHTML = content;
                 this.overlay.setPosition(coord);
             },
+            howPopupForLayersJson: function(geojson, coord, column_names, display_all_columns, target_layer){
+                let wrapper = $('<div>')  // Add wrapper element because html() used at the end exports only the contents of the jquery object
+                let caption = $('<div style="text-align:center; font-weight: bold;">').text(target_layer.get('title'))
+                let table = $('<table style="margin-bottom: 1em;">') //.addClass('table')
+                let tbody = $('<tbody>')
+                wrapper.append(caption)
+                wrapper.append(table.append(tbody))
+
+                for (let feature of geojson.features){
+                    for (let key in feature.properties){
+                        if (display_all_columns || column_names.includes(key)){
+                            let tr = $('<tr style="border-bottom:1px solid lightgray;">')
+                            let th = $('<th style="padding:0 0.5em;">').text(key)
+                            let td = $('<td>').addClass('text-nowrap').text(feature.properties[key])
+                            tr.append(th)
+                            tr.append(td)
+                            tbody.append(tr)
+                        }
+                    }
+                    this.content_element.innerHTML += wrapper.html()  // Export contents as HTML string
+                    this.overlay.setPosition(coord);
+                }
+            },
             closePopup: function(){
+                this.content_element.innerHTML = null
+                this.$emit('popupClosed')
                 this.overlay.setPosition(undefined)
-                //closer.blur()
                 return false
             },
             displayAllFeatures: function() {
@@ -847,21 +1075,6 @@
                 let buffer = this.bufferLayerSource.getFeatureById(site.getId() + "_buffer");
                 if (buffer){
                     this.bufferLayerSource.removeFeature(buffer);
-                }
-            },
-            apiaryStyleFunctionExisting: function(feature) {
-                // This is used for the existing apiary sites
-                //let status = this.get_status_for_colour(feature)
-                let status = getStatusForColour(feature)
-                return getApiaryFeatureStyle(status);
-            },
-            apiaryStyleFunctionProposed: function(feature){
-                // This is used for the proposed apiary sites
-                let vacant_selected = feature.get('vacant_selected')
-                if (vacant_selected){
-                    return this.style_for_vacant_selected
-                } else {
-                    return this.style_for_new_apiary_site
                 }
             },
             existingSiteAvailableClicked: function() {
@@ -1140,6 +1353,52 @@
                         }
                     });
                 });
+                vm.map.on('singleclick', function(evt){
+                    if(vm.mode === 'layer'){
+                        vm.closePopup()
+                        let view = vm.map.getView()
+                        let viewResolution = view.getResolution()
+
+                        // Retrieve active layers' sources
+                        for (let i=0; i < vm.optionalLayers.length; i++){
+                            let visibility = vm.optionalLayers[i].getVisible()
+                            if (visibility){
+                                // Retrieve column names to be displayed
+                                let column_names = vm.optionalLayers[i].get('columns')
+                                column_names = column_names.map(function(col){
+                                    // Convert array of dictionaries to simple array
+                                    if (vm.is_internal && col.option_for_internal){
+                                        return col.name
+                                    }
+                                    if (vm.is_external && col.option_for_external){
+                                        return col.name
+                                    }
+                                })
+                                // Retrieve the value of display_all_columns boolean flag
+                                let display_all_columns = vm.optionalLayers[i].get('display_all_columns')
+
+                                // Retrieve the URL to query the attributes
+                                let source = vm.optionalLayers[i].getSource()
+                                let url = source.getFeatureInfoUrl(
+                                    evt.coordinate, viewResolution, view.getProjection(),
+                                    //{'INFO_FORMAT': 'text/html'}
+                                    {'INFO_FORMAT': 'application/json'}
+                                )
+
+                                // Query 
+                                let p = fetch(url, {
+                                    credentials: 'include'
+                                })
+
+                                //p.then(res => res.text()).then(function(data){
+                                p.then(res => res.json()).then(function(data){
+                                    //vm.showPopupForLayersHTML(data, evt.coordinate, column_names, display_all_columns)
+                                    vm.showPopupForLayersJson(data, evt.coordinate, column_names, display_all_columns, vm.optionalLayers[i])
+                                })
+                            }
+                        }
+                    }
+                })
 
                 // In memory vector layer for digitization
                 //vm.drawingLayerSource = new VectorSource();
@@ -1155,17 +1414,22 @@
                 vm.drawingLayer = new VectorLayer({
                     title: 'Drawing Layer',
                     source: vm.drawingLayerSource,
-                    style: vm.apiaryStyleFunctionProposed,
+                    style: vm.styleFunctionForNewSite,
                 });
 
                 let container = document.getElementById(vm.popup_id)
                 vm.content_element = document.getElementById(vm.popup_content_id)
-                //let closer = document.getElementById(vm.popup_closer_id)
+                let closer = document.getElementById(vm.popup_closer_id)
                 vm.overlay = new Overlay({
                     element: container,
                     autoPan: false,
                     offest: [0, -10]
                 })
+                closer.onclick = function() {
+                    vm.closePopup()
+                    closer.blur()
+                    return false
+                }
                 vm.map.addOverlay(vm.overlay)
 
                 //vm.bufferLayerSource = new VectorSource();
@@ -1221,34 +1485,38 @@
                 // Draw and modify tools
                 if (!vm.readonly){
                     let modifyInProgressList = [];
-                    let drawTool = new Draw({
+                    this.drawForApiarySite = new Draw({
                         source: vm.drawingLayerSource,
                         type: "Point",
+                        style: vm.styleFunctionForMouse,  // This style is for the style on the mouse
                     });
-                    drawTool.on("drawstart", async function(attributes){
-                        let coords = attributes.feature.getGeometry().getCoordinates()
-
-                        if (vm.vacant_site_being_selected){
-                            // Abort drawing, instead 'vacant' site is to be added
-                            drawTool.abortDrawing();
-
-                            vm.vacant_site_being_selected.set('vacant_selected', true)
-
-                            vm.drawingLayerSource.addFeature(vm.vacant_site_being_selected);
-                            vm.vacant_site_being_selected.getGeometry().on("change", function() {
-                                if (modifyInProgressList.indexOf(vm.vacant_site_being_selected.getId()) == -1) {
-                                    modifyInProgressList.push(vm.vacant_site_being_selected.getId());
-                                }
-                            });
-                        } else {
+                    this.drawForApiarySite.on("drawstart", async function(attributes){
+                        if (vm.mode === 'normal'){
                             let coords = attributes.feature.getGeometry().getCoordinates()
-                            if (!vm.isNewPositionValid(coords)) {
-                                drawTool.abortDrawing();
+
+                            if (vm.vacant_site_being_selected){
+                                // Abort drawing, instead 'vacant' site is to be added
+                                this.drawForApiarySite.abortDrawing();
+
+                                vm.vacant_site_being_selected.set('vacant_selected', true)
+
+                                vm.drawingLayerSource.addFeature(vm.vacant_site_being_selected);
+                                vm.vacant_site_being_selected.getGeometry().on("change", function() {
+                                    if (modifyInProgressList.indexOf(vm.vacant_site_being_selected.getId()) == -1) {
+                                        modifyInProgressList.push(vm.vacant_site_being_selected.getId());
+                                    }
+                                });
+                            } else {
+                                let coords = attributes.feature.getGeometry().getCoordinates()
+                                if (!vm.isNewPositionValid(coords)) {
+                                    this.drawForApiarySite.abortDrawing();
+                                }
                             }
+                        } else {
+                            this.drawForApiarySite.abortDrawing();
                         }
                     });
-                    //drawTool.on('drawend', function(attributes){
-                    drawTool.on('drawend', async function(attributes){
+                    this.drawForApiarySite.on('drawend', async function(attributes){
                         if (!this.readoly){
                             let feature = attributes.feature;
                             let draw_id = vm.uuidv4();
@@ -1267,7 +1535,7 @@
                             // Vue table is updated by the event 'addfeature' issued from the Source
                         }
                     });
-                    vm.map.addInteraction(drawTool);
+                    vm.map.addInteraction(this.drawForApiarySite);
 
                     let modifyTool = new Modify({
                         source: vm.drawingLayerSource,
@@ -1320,6 +1588,37 @@
                     });
                     vm.map.addInteraction(modifyTool);
                 }
+                // Measure tool
+                let draw_source = new VectorSource({ wrapX: false })
+                vm.drawForMeasure = new Draw({
+                    source: draw_source,
+                    type: 'LineString',
+                    style: vm.styleFunctionForMeasurement,
+                })
+
+                // Set a custom listener to the Measure tool
+                vm.drawForMeasure.set('escKey', '')
+                vm.drawForMeasure.on('change:escKey', function(evt){
+                    vm.drawForMeasure.finishDrawing()
+                })
+                vm.drawForMeasure.on('drawstart', function(evt){
+                    vm.measuring = true
+                })
+                vm.drawForMeasure.on('drawend', function(evt){
+                    vm.measuring = false
+                })
+
+                // Create a layer to retain the measurement
+                vm.measurementLayer = new VectorLayer({
+                    title: 'Measurement Layer',
+                    source: draw_source,
+                    style: function(feature, resolution){
+                        feature.set('for_layer', true)
+                        return vm.styleFunctionForMeasurement(feature, resolution)
+                    },
+                });
+                vm.map.addInteraction(vm.drawForMeasure)
+                vm.map.addLayer(vm.measurementLayer)
 
                 let hoverInteraction = new Select({
                     condition: pointerMove,
@@ -1371,7 +1670,18 @@
                 });
                 vm.setBaseLayer('osm')
                 vm.addOptionalLayers()
+
+                document.addEventListener('keydown', vm.keydown, false)
             },  // End: initMap()
+            keydown: function(evt){
+                let vm = this
+
+                let charCode = (evt.which) ? evt.which : evt.keyCode;
+                if (charCode === 27 && vm.measuring === true){ //esc key
+                    //dispatch event
+                    this.drawForMeasure.set('escKey', Math.random());
+                }
+            },
             //get_status_for_colour: function(feature){
             //    let status = feature.get("status");
             //    let is_vacant = feature.get('is_vacant')
@@ -1516,6 +1826,7 @@
             let vm = this;
             this.$nextTick(() => {
                 vm.initMap();
+                vm.set_mode('normal')
                 vm.addEventListeners();
             });
         }
@@ -1576,7 +1887,7 @@
     #basemap_sat,#basemap_osm {
     /* border-radius: 5px; */
     }
-    #basemap-button:hover {
+    #basemap-button:hover,.optional-layers-button:hover {
         cursor: pointer;
         -moz-filter: brightness(0.9);
         -webkit-filter: brightness(0.9);
@@ -1592,33 +1903,30 @@
         -webkit-filter: brightness(0.8);
         filter: brightness(0.8);
     }
-    #optional-layers-wrapper {
+    .optional-layers-wrapper {
         position: absolute;
         top: 70px;
         left: 10px;
     }
-    #optional-layers-button {
-        position: absolute;
+    .optional-layers-button {
+        padding: 4px;
+        display: block;
+        position: relative;
         z-index: 400;
         background: white;
         border-radius: 2px;
-        /*
-        box-shadow: 3px 3px 3px #777;
-        -moz-filter: brightness(1.0);
-        -webkit-filter: brightness(1.0);
-        */
         border: 3px solid rgba(5, 5, 5, .1);
+        cursor: pointer;
+        font-size: 0;
     }
-    #layer_options {
-        /*
+    .layer_options {
         position: absolute;
-        */
         top: 0;
         left: 0;
-        z-index: 400;
+        z-index: 410;
         background: white;
         border-radius: 2px;
-        cursor: pointer;
+        cursor: auto;
         /*
         box-shadow: 3px 3px 3px #777;
         -moz-filter: brightness(1.0);
@@ -1678,17 +1986,12 @@
         left: 48px;
         margin-left: -11px;
     }
-    /*
     .ol-popup-closer {
         text-decoration: none;
         position: absolute;
         top: 2px;
         right: 8px;
     }
-    .ol-popup-closer:after {
-        content: "✖";
-    }
-    */
     .close-icon:hover {
         filter: brightness(80%);
     }

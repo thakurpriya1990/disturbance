@@ -1,51 +1,61 @@
 <template lang="html">
     <div>
         <div class="map-wrapper row col-sm-12">
-            <div :id="elem_id" class="map"></div>
-            <div class="basemap-button">
-                <img id="basemap_sat" src="../../../assets/satellite_icon.jpg" @click="setBaseLayer('sat')" />
-                <img id="basemap_osm" src="../../../assets/map_icon.png" @click="setBaseLayer('osm')" />
-            </div>
-            <div class="optional-layers-wrapper">
-                <transition v-if="optionalLayers.length">
-                    <div class="optional-layers-button" v-show="!hover">
-                        <img src="../../../assets/layer-switcher-icon.png" @mouseover="hover=true" />
+            <div :id="elem_id" class="map">
+                <div class="basemap-button">
+                    <img id="basemap_sat" src="../../../assets/satellite_icon.jpg" @click="setBaseLayer('sat')" />
+                    <img id="basemap_osm" src="../../../assets/map_icon.png" @click="setBaseLayer('osm')" />
+                </div>
+                <div class="optional-layers-wrapper">
+                    <div class="optional-layers-button">
+                        <template v-if="mode === 'layer'">
+                            <img src="../../../assets/info-bubble.svg" @click="set_mode('measure')" />
+                        </template>
+                        <template v-else>
+                            <img src="../../../assets/ruler.svg" @click="set_mode('layer')" />
+                        </template>
                     </div>
-                </transition>
-                <transition v-if="optionalLayers.length">
-                    <div div class="layer_options" v-show="hover" @mouseleave="hover=false" >
-                        <div v-for="layer in optionalLayers">
-                            <input
-                                type="checkbox"
-                                :id="layer.ol_uid"
-                                :checked="layer.values_.visible"
-                                @change="changeLayerVisibility(layer)"
+                    <!--div class="optional-layers-button" @click="set_mode(mode)">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" >
+                            <path 
+                                d="M18.342 0l-2.469 2.47 2.121 2.121-.707.707-2.121-2.121-1.414 1.414 1.414 1.414-.707.707-1.414-1.414-1.414 1.414 1.414 1.414-.707.707-1.414-1.414-1.414 1.414 2.121 2.122-.707.707-2.121-2.121-1.414 1.414 1.414 1.414-.708.707-1.414-1.414-1.414 1.414 1.414 1.414-.708.709-1.414-1.414-1.414 1.413 2.121 2.121-.706.706-2.122-2.121-2.438 2.439 5.656 5.657 18.344-18.343z" 
+                                :fill="ruler_colour"
                             />
-                            <label :for="layer.ol_uid">{{ layer.get('title') }}</label>
-                        </div>
+                        </svg>
+                    </div-->
+                    <div style="position:relative">
+                        <transition v-if="optionalLayers.length">
+                            <div class="optional-layers-button" @mouseover="hover=true">
+                                <img src="../../../assets/layers.svg" />
+                            </div>
+                        </transition>
+                        <transition v-if="optionalLayers.length">
+                            <div div class="layer_options" v-show="hover" @mouseleave="hover=false" >
+                                <div v-for="layer in optionalLayers">
+                                    <input
+                                        type="checkbox"
+                                        :id="layer.ol_uid"
+                                        :checked="layer.values_.visible"
+                                        @change="changeLayerVisibility(layer)"
+                                        class="layer_option"
+                                    />
+                                    <label :for="layer.ol_uid" class="layer_option">{{ layer.get('title') }}</label>
+                                </div>
+                            </div>
+                        </transition>
                     </div>
-                </transition>
-                <div class="optional-layers-button" @click="toggle_mode(mode)" style="padding: 4px 0 0 4px;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" >
-                        <path 
-                            d="M18.342 0l-2.469 2.47 2.121 2.121-.707.707-2.121-2.121-1.414 1.414 1.414 1.414-.707.707-1.414-1.414-1.414 1.414 1.414 1.414-.707.707-1.414-1.414-1.414 1.414 2.121 2.122-.707.707-2.121-2.121-1.414 1.414 1.414 1.414-.708.707-1.414-1.414-1.414 1.414 1.414 1.414-.708.709-1.414-1.414-1.414 1.413 2.121 2.121-.706.706-2.122-2.121-2.438 2.439 5.656 5.657 18.344-18.343z" 
-                            :fill="ruler_colour"
-                        />
-                    </svg>
                 </div>
             </div>
         </div>
 
         <div :id="popup_id" class="ol-popup">
             <a href="#" :id="popup_closer_id" class="ol-popup-closer">
-           <svg xmlns='http://www.w3.org/2000/svg' version='1.1' height='20' width='20' class="close-icon">
-
-               <g transform='scale(3)'>
-    <path d="M 5.2916667,2.6458333 A 2.6458333,2.6458333 0 0 1 2.6458335,5.2916667 2.6458333,2.6458333 0 0 1 0,2.6458333 2.6458333,2.6458333 0 0 1 2.6458335,0 2.6458333,2.6458333 0 0 1 5.2916667,2.6458333 Z" style="fill:#ffffff;fill-opacity:1;stroke-width:0.182031" id="path846" />
-    <path d="M 1.5581546,0.94474048 2.6457566,2.0324189 3.7334348,0.94474048 4.3469265,1.5581547 3.2592475,2.6458334 4.3469265,3.7334353 3.7334348,4.3469261 2.6457566,3.2593243 1.5581546,4.3469261 0.9447402,3.7334353 2.0323422,2.6458334 0.9447402,1.5581547 Z" style="fill:#f46464;fill-opacity:1;stroke:none;stroke-width:0.0512157" id="path2740-3" />
-  </g>
-           </svg>
-
+                <svg xmlns='http://www.w3.org/2000/svg' version='1.1' height='20' width='20' class="close-icon">
+                    <g transform='scale(3)'>
+                        <path d     ="M 5.2916667,2.6458333 A 2.6458333,2.6458333 0 0 1 2.6458335,5.2916667 2.6458333,2.6458333 0 0 1 0,2.6458333 2.6458333,2.6458333 0 0 1 2.6458335,0 2.6458333,2.6458333 0 0 1 5.2916667,2.6458333 Z" style="fill:#ffffff;fill-opacity:1;stroke-width:0.182031" id="path846" />
+                        <path d     ="M 1.5581546,0.94474048 2.6457566,2.0324189 3.7334348,0.94474048 4.3469265,1.5581547 3.2592475,2.6458334 4.3469265,3.7334353 3.7334348,4.3469261 2.6457566,3.2593243 1.5581546,4.3469261 0.9447402,3.7334353 2.0323422,2.6458334 0.9447402,1.5581547 Z" style="fill:#f46464;fill-opacity:1;stroke:none;stroke-width:0.0512157" id="path2740-3" />
+                    </g>
+                </svg>
             </a>
             <div :id="popup_content_id"></div>
         </div>
@@ -81,6 +91,7 @@
     import Overlay from 'ol/Overlay';
     import { getDisplayNameFromStatus, getDisplayNameOfCategory, getStatusForColour, getApiaryFeatureStyle } from '@/components/common/apiary/site_colours.js'
     import { getArea, getLength } from 'ol/sphere'
+    import MeasureStyles, { formatLength } from '@/components/common/apiary/measure.js'
 
     export default {
         props:{
@@ -130,72 +141,10 @@
                 optionalLayers: [],
                 hover: false,
                 mode: 'normal',
-                draw: null,
-                style: new Style({
-                    fill: new Fill({
-                        color: 'rgba(255, 255, 255, 0.2)',
-                    }),
-                    stroke: new Stroke({
-                        color: 'rgba(0, 0, 0, 0.5)',
-                        //lineDash: [10, 10],
-                        width: 1,
-                    }),
-                    image: new CircleStyle({
-                        radius: 5,
-                        stroke: new Stroke({
-                            color: 'rgba(0, 0, 0, 0.7)',
-                        }),
-                        fill: new Fill({
-                            color: 'rgba(255, 255, 255, 0.2)',
-                        }),
-                    }),
-                }),
-                segmentStyle: new Style({
-                    text: new Text({
-                        font: '12px Calibri,sans-serif',
-                        fill: new Fill({
-                            color: 'rgba(255, 255, 255, 1)',
-                        }),
-                        backgroundFill: new Fill({
-                            color: 'rgba(0, 0, 0, 0.4)',
-                        }),
-                        padding: [2, 2, 2, 2],
-                        textBaseline: 'bottom',
-                        offsetY: -12,
-                    }),
-                    image: new RegularShape({
-                        radius: 6,
-                        points: 3,
-                        angle: Math.PI,
-                        displacement: [0, 8],
-                        fill: new Fill({
-                            color: 'rgba(0, 0, 0, 0.4)',
-                        }),
-                    }),
-                }),
-                labelStyle: new Style({
-                    text: new Text({
-                        font: '14px Calibri,sans-serif',
-                        fill: new Fill({
-                            color: 'rgba(255, 255, 255, 1)',
-                        }),
-                        backgroundFill: new Fill({
-                            color: 'rgba(0, 0, 0, 0.7)',
-                        }),
-                        padding: [3, 3, 3, 3],
-                        textBaseline: 'bottom',
-                        offsetY: -15,
-                    }),
-                    image: new RegularShape({
-                        radius: 8,
-                        points: 3,
-                        angle: Math.PI,
-                        displacement: [0, 10],
-                        fill: new Fill({
-                            color: 'rgba(0, 0, 0, 0.7)',
-                        }),
-                    }),
-                }),
+                drawForMeasure: null,
+                style: MeasureStyles.defaultStyle,
+                segmentStyle: MeasureStyles.segmentStyle,
+                labelStyle: MeasureStyles.labelStyle,
                 segmentStyles: null,
             }
         },
@@ -209,6 +158,7 @@
             });
             vm.initMap()
             vm.setBaseLayer('osm')
+            vm.set_mode('layer')
             vm.addOptionalLayers()
             //vm.map.addLayer(vm.apiarySitesQueryLayer);
             vm.displayAllFeatures()
@@ -226,18 +176,21 @@
             }
         },
         methods: {
-            styleFunction: function (feature, resolution){
+            styleFunctionForMeasurement: function (feature, resolution){
                 let vm = this
 
                 const styles = [vm.style]
+                //const styles = [vm.segmentStyle]
+                //const styles = []
                 const geometry = feature.getGeometry();
                 const type = geometry.getType();
+                console.log(type)
                 vm.segmentStyles = [vm.segmentStyle]
 
                 let point, label, line
                 if (type === 'LineString'){
                     point = new Point(geometry.getLastCoordinate());
-                    label = vm.formatLength(geometry);
+                    label = formatLength(geometry);
                     line = geometry;
                 }
 
@@ -245,7 +198,7 @@
                     let count = 0;
                     line.forEachSegment(function (a, b) {
                         const segment = new LineString([a, b]);
-                        const label = vm.formatLength(segment);
+                        const label = formatLength(segment);
 
                         if (vm.segmentStyles.length - 1 < count) {
                             vm.segmentStyles.push(vm.segmentStyle.clone());
@@ -264,34 +217,16 @@
                     styles.push(vm.labelStyle);
                 }
 
+                console.log(styles)
                 return styles
             },
-            formatLength: function (line) {
-                let cloned_line = line.clone()
-                cloned_line.transform('EPSG:4326', 'EPSG:3857')
-                const length = getLength(cloned_line);
-                let output;
-                if (length > 100) {
-                    output = Math.round((length / 1000) * 100) / 100 + ' km';
-                } else {
-                    output = Math.round(length * 100) / 100 + ' m';
+            set_mode: function(mode){
+                this.mode = mode
+                if (this.mode === 'layer'){
+                    this.drawForMeasure.setActive(false)
+                } else if (this.mode === 'measure') {
+                    this.drawForMeasure.setActive(true)
                 }
-                return output;
-            },
-            toggle_mode: function(mode){
-                if (mode === 'normal'){
-                    this.mode = 'measure'
-                    this.addMeasurementTool()
-                } else {
-                    this.mode = 'normal';
-                    this.removeMeasurementTool()
-                }
-            },
-            addMeasurementTool: function(){
-                this.map.addInteraction(this.draw)
-            },
-            removeMeasurementTool: function(){
-                this.map.removeInteraction(this.draw)
             },
             changeLayerVisibility: function(targetLayer){
                 targetLayer.setVisible(!targetLayer.getVisible())
@@ -328,6 +263,7 @@
                 })
             },
             setBaseLayer: function(selected_layer_name){
+                console.log('in setBaseLayer')
                 let vm = this
                 if (selected_layer_name == 'sat') {
                     vm.tileLayerOsm.setVisible(false)
@@ -412,24 +348,34 @@
 
                 // Measure tool
                 let draw_source = new VectorSource({ wrapX: false })
-                vm.draw = new Draw({
+                vm.drawForMeasure = new Draw({
                     source: draw_source,
                     type: 'LineString',
-                    style: function(feature, resolution){
-                        return vm.styleFunction(feature, resolution)
-                    },
+                    style: vm.styleFunctionForMeasurement,
+                })
+                // Set a custom listener to the Measure tool
+                vm.drawForMeasure.set('escKey', '')
+                vm.drawForMeasure.on('change:escKey', function(evt){
+                    vm.drawForMeasure.finishDrawing()
+                })
+                vm.drawForMeasure.on('drawstart', function(evt){
+                    vm.measuring = true
+                })
+                vm.drawForMeasure.on('drawend', function(evt){
+                    vm.measuring = false
                 })
 
-                let measureLayer = new VectorLayer({
+                // Create a layer to retain the measurement
+                vm.measurementLayer = new VectorLayer({
+                    title: 'Measurement Layer',
                     source: draw_source,
-                })
-                vm.map.addLayer(measureLayer)
-                vm.draw.on('drawstart', function(evt){
-                    console.log('drawstart')
-                })
-                vm.draw.on('drawend', function(evt){
-                    console.log('drawend')
-                })
+                    style: function(feature, resolution){
+                        feature.set('for_layer', true)
+                        return vm.styleFunctionForMeasurement(feature, resolution)
+                    },
+                });
+                vm.map.addInteraction(vm.drawForMeasure)
+                vm.map.addLayer(vm.measurementLayer)
 
                 // Show mouse coordinates
                 vm.map.addControl(new MousePositionControl({
@@ -465,7 +411,7 @@
                 vm.map.addOverlay(vm.overlay)
 
                 vm.map.on('singleclick', function(evt){
-                    if (vm.mode === 'normal'){
+                    if (vm.mode === 'layer'){
                         let feature = vm.map.forEachFeatureAtPixel(evt.pixel, function(feature, layer) {
                             return feature;
                         });
@@ -510,7 +456,9 @@
                                     )
 
                                     // Query 
-                                    let p = fetch(url)
+                                    let p = fetch(url, {
+                                        credentials: 'include'
+                                    })
 
                                     //p.then(res => res.text()).then(function(data){
                                     p.then(res => res.json()).then(function(data){
@@ -521,7 +469,7 @@
                             }
                         }
                     } else if (vm.mode === 'measure'){
-
+                        // When in measure mode, the styleFunction() is responsible for the drawing
                     }
                 })
                 vm.map.on('pointermove', function(e) {
@@ -540,7 +488,7 @@
                         source: vm.apiarySitesQuerySource,
                     });
                     modifyTool.on("modifystart", function(attributes){
-                        attributes.features.forEach(function(feature){
+                            attributes.features.forEach(function(feature){
                         })
                     });
                     modifyTool.on("modifyend", function(attributes){
@@ -556,6 +504,16 @@
                         });
                     });
                     vm.map.addInteraction(modifyTool);
+                }
+                document.addEventListener('keydown', vm.keydown, false)
+            },
+            keydown: function(evt){
+                let vm = this
+
+                let charCode = (evt.which) ? evt.which : evt.keyCode;
+                if (charCode === 27 && vm.measuring === true){ //esc key
+                    //dispatch event
+                    this.drawForMeasure.set('escKey', Math.random());
                 }
             },
             showPopupById: function(apiary_site_id){
@@ -737,6 +695,7 @@
         border: 3px solid rgba(5, 5, 5, .1);
         margin-bottom: 2px;
         cursor: pointer;
+        display: block;
     }
     .layer_options {
         position: absolute;
@@ -745,7 +704,7 @@
         z-index: 410;
         background: white;
         border-radius: 2px;
-        cursor: pointer;
+        cursor: auto;
         /*
         box-shadow: 3px 3px 3px #777;
         -moz-filter: brightness(1.0);
@@ -793,11 +752,6 @@
         top: 2px;
         right: 8px;
     }
-    .ol-popup-closer:after {
-        /*
-        content: "✖";
-        */
-    }
     .close-icon:hover {
         filter: brightness(80%);
     }
@@ -819,5 +773,8 @@
     }
     .table_caption {
         color: green;
+    }
+    .layer_option:hover {
+        cursor: pointer;
     }
 </style>
