@@ -196,6 +196,7 @@ LOGGING['loggers']['disturbance'] = {
             'level': 'INFO'
         }
 
+DEV_APP_BUILD_URL = env('DEV_APP_BUILD_URL')  # URL of the Dev app.js served by webpack & express
 
 #APPLICATION_TYPES_SQL='''
 #        SELECT name, name FROM disturbance_applicationtypechoice

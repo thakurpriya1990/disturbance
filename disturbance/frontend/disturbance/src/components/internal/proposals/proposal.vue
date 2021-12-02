@@ -33,14 +33,12 @@
                                         <th>Date</th>
                                         <th>Action</th>
                                     </tr>
-                                    <tr><td>{{ createLodgementRevisionTable[0]["id"] }}</td>
-                                        <td>{{ createLodgementRevisionTable[0]["date"] | formatDateNoTime }}</td>
-                                        <td>Viewing</td>
-                                    </tr>
                                     <tr v-for="prop in createLodgementRevisionTable">
-                                        <td>{{ prop["id"] }}</td>
-                                        <td>{{ prop["date"] | formatDateNoTime }}</td>
-                                        <td><a style="padding: 0px;" v-on:click="getCompareProposal(prop['index'])">{{ prop["action"] }}</a></td>
+                                        <td>{{ prop.id }}</td>
+                                        <td>{{ prop.date | formatDateNoTime }}</td>
+                                        <td style="padding: 0px;" v-on:click="getCompareProposal(prop['index'])">
+                                            <span v-html=prop.action></span>
+                                        </td>
                                     </tr>
                                 </table>
                                 <div>
@@ -545,40 +543,35 @@ export default {
             return this.proposal && this.proposal.applicant.email ? this.proposal.applicant.email : '';
         },
         createLodgementRevisionTable: function() {
-            need to be able to change index and action of items
-            don't want a version number for 0th list element
+            // need to be able to change index and action of items
             const limit = 5
             let index = 1  // skip the first one
             let lodgement_revisions = []
-            for (const prop in this.proposal.reversion_history2) {
+            for (let prop in this.proposal.reversion_history) {
                 if (index < 4) {
-                    let action = 'Compare'
-                    if (index == 0) {action = 'Veiwing'}
+                    if (index == 1) {
+                    lodgement_revisions.push({"index": 0,
+                                              "id": prop.split('-')[0],
+                                              "date": this.proposal.reversion_history[prop]["date"],
+                                              "action": "Viewing"})
+                    }
                     lodgement_revisions.push({"index": index,
                                               "id": prop,
-                                              "date": this.proposal.reversion_history2[prop],
-                                              "action": action})
+                                              "date": this.proposal.reversion_history[prop]["date"],
+                                              "action": '<a style="cursor:pointer;">Compare</a>'})
+                    
                     index += 1
                 }
             }
-            // for (let i = 0; i < this.shoppingOrder.length && count < limit; i += 1) {
-            //     let order = this.shoppingOrder[i];
-            //     for (let j = 0; j < order.shoppingItem.length && count < limit; j += 1) {
-            //     let item = order.shoppingItem[j];
-            //     res.push(item);
-            //     count++;
-            //     }
-            // }
             return lodgement_revisions
-
-        //             <tr v-for="(value, key) in proposal.reversion_history2">
-        //     <td>{{ key }}</td><td>{{ value | formatDateNoTime }}</td><td>Compare</td>
-        // </tr>
         }
     },
     methods: {
         getCompareProposal: function (revision) {
-            console.log(revision);
+            if (revision > 0) {
+                console.log(this.proposal.id, revision);
+                this.proposal.reversion_version(revision)
+            }
         },
         locationUpdated: function(){
             console.log('in locationUpdated()');

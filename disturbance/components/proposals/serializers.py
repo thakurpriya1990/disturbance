@@ -310,20 +310,6 @@ class SaveProposalRegionSerializer(BaseProposalSerializer):
         #read_only_fields=('documents','requirements')
 
 
-class ReversionHistorySerializer(serializers.ModelSerializer):
-    reversion_history = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Proposal
-        fields = (
-            'reversion_history'
-        )
-
-    def get_reversion_history(self, obj):
-        from reversion.models import Version
-        return Version.objects.get_for_object(obj.id)
-
-
 class ApplicantSerializer(serializers.ModelSerializer):
     from disturbance.components.organisations.serializers import OrganisationAddressSerializer
     address = OrganisationAddressSerializer()
@@ -361,9 +347,8 @@ class InternalProposalSerializer(BaseProposalSerializer):
     #tenure = serializers.CharField(source='tenure.name', read_only=True)
     apiary_temporary_use = ProposalApiaryTemporaryUseSerializer(many=False, read_only=True)
     requirements_completed=serializers.SerializerMethodField()
-    #reversion_history= ReversionHistorySerializer(read_only=True)
-    reversion_history2 = serializers.SerializerMethodField()
-
+    reversion_history = serializers.SerializerMethodField()
+    
     class Meta:
         model = Proposal
         fields = (
@@ -424,19 +409,39 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'fee_paid',
                 'apiary_temporary_use',
                 'requirements_completed',
-                'reversion_history2'
+                'reversion_history',
                 )
         read_only_fields=('documents','requirements')
 
-    def get_reversion_history2(self, obj):
+    def get_revision_diff(allRevisions, old_version_number, new_version_number):
+        from deepdiff import DeepDiff
+        import diff_match_patch
+        print('ININININININININININININININININININININININININININININININININININININ')
+        old_data = allRevisions[old_version_number].field_dict["data"]
+        new_data = allRevisions[new_version_number].field_dict["data"]
+        diffs = DeepDiff(old_data, new_data, ignore_order=True)
+
+        for v in diffs.items():
+            if "values_changed" in v:
+                for k, v in v[1].items():
+                    diff_obj = diff_match_patch.diff_match_patch()
+                    d = diff_obj.diff_main(v['old_value'], v['new_value'])
+                    print('SECTION: {} ===== {}'.format(k, diff_obj.diff_prettyHtml(d)))
+
+    def get_reversion_history(self, obj):
         from reversion.models import Version
         reversion_dict = {}
-        for index, version in enumerate(Version.objects.get_for_object(obj)):
+        allRevisions = Version.objects.get_for_object(obj)
+        self.get_revision_diff(allRevisions, 0, 1)
+        
+        for index, version in enumerate(allRevisions):
             # add the index to the end of the lodgement number to show the revision.
             revision = '{}-{}'.format(version.field_dict['lodgement_number'], index+1)
             # if the date is None, it is draft so exclude
             if version.field_dict['lodgement_date']:
-                reversion_dict[revision] = version.field_dict['lodgement_date']
+                reversion_dict[revision] = {"date": version.field_dict['lodgement_date']}
+                # Get all the changes between this version and the original. Grab them as
+                # key, value pairs so they can be used directly in the proposal.vue form.
         return reversion_dict
 
     def get_approval_level_document(self,obj):
