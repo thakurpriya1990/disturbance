@@ -743,8 +743,29 @@ export default {
             */
         },
 
+        check_org_details_complete: function(org) {
+            //let org = this.$refs.proposal_apiary.$refs.mu_details.org
+            let blank_fields = []
+
+            // Org Details
+            if (org) {
+                if (!org.name) { blank_fields.push('org name') }
+                if (!org.abn) { blank_fields.push('org abn') }
+                if (!org.email) { blank_fields.push('org email') }
+
+                // Address Details
+                if (!org.address.line1) { blank_fields.push('street') }
+                if (!org.address.locality) { blank_fields.push('town/suburb') }
+                if (!org.address.state) { blank_fields.push('state') }
+                if (!org.address.postcode) { blank_fields.push('postcode') }
+                if (!org.address.country) { blank_fields.push('country') }
+            }
+
+            return blank_fields;
+        },
         can_submit: function() {
             let vm=this;
+            let org = vm.$refs.proposal_apiary.$refs.mu_details.org
             let blank_fields = []
 
             //console.log('can_submit checklistq check' +vm.$refs.proposal_apiary.getUnansweredChecklistQuestions());
@@ -761,6 +782,13 @@ export default {
                 }
                 if (!this.proposal.proposal_apiary.public_liability_insurance_expiry_date) {
                     blank_fields.push(' Public liability expiry date is missing')
+                }
+
+                //this.$refs.proposal_apiary.$refs.mu_details.updateDetails(false);
+                //this.$refs.proposal_apiary.$refs.mu_details.updateAddress(false);
+                let blank_org_fields = vm.check_org_details_complete(org)
+                if(blank_org_fields.length>0){
+                    blank_fields.push(' Organisation details missing: [' + blank_org_fields.join(", ") + ']')
                 }
              }
              if(vm.proposal.application_type == 'Site Transfer'){

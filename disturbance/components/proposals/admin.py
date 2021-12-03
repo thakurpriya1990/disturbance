@@ -163,7 +163,6 @@ class ApiaryReferralGroupAdmin(admin.ModelAdmin):
             kwargs["queryset"] = EmailUser.objects.filter(is_staff=True)
         return super(ApiaryReferralGroupAdmin, self).formfield_for_manytomany(db_field, request, **kwargs)
 
-
 @admin.register(models.ApiaryAssessorGroup)
 class ApiaryAssessorGroupAdmin(admin.ModelAdmin):
     filter_horizontal = ('members',)

@@ -4,7 +4,8 @@
             proposal.vue
         </template>
       <div class="row">
-        <h3>Proposal: {{ proposal.lodgement_number }}</h3>
+        <h3 v-if="proposal.migrated">Proposal: {{ proposal.lodgement_number }} (Migrated)</h3>
+        <h3 v-else>Proposal: {{ proposal.lodgement_number }}</h3>
         <h4>Proposal Type: {{proposal.proposal_type }}</h4>
         <div v-if="proposal.application_type!='Apiary'">
             <h4>Approval Level: {{proposal.approval_level }}</h4>

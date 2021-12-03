@@ -443,8 +443,7 @@ export default {
                     confirmButtonText: 'Accept'
 
                 }).then(async (result) => {
-
-                    if (result.value) {
+                    if (result) {
                         await self.$http.delete(helpers.add_endpoint_json(api_endpoints.schema_masterlist,(self.masterlist.id+'/delete_masterlist')))
                         .then((response) => {
                             self.$refs.schema_masterlist_table.vmDataTable.ajax.reload();

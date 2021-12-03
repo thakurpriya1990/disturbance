@@ -1,3 +1,4 @@
+from ledger.payments.models import Invoice
 from disturbance.components.proposals.models import (
                                     ProposalType,
                                     Proposal,
@@ -102,6 +103,8 @@ class ListProposalSerializer(BaseProposalSerializer):
     apiary_group_application_type = serializers.SerializerMethodField(read_only=True)
     template_group = serializers.SerializerMethodField(read_only=True)
 
+    fee_invoice_references = serializers.SerializerMethodField()
+
     class Meta:
         model = Proposal
         fields = (
@@ -169,6 +172,23 @@ class ListProposalSerializer(BaseProposalSerializer):
                 'apiary_group_application_type',
                 'template_group',
                 )
+
+    def get_fee_invoice_references(self, obj):
+        invoice_references = []
+        if obj.fee_invoice_references:
+            for inv_ref in obj.fee_invoice_references:
+                try:
+                    inv = Invoice.objects.get(reference=inv_ref)
+                    from disturbance.helpers import is_internal
+                    if is_internal(self.context['request']):
+                        invoice_references.append(inv_ref)
+                    else:
+                        # We don't want to show 0 doller invoices to external
+                        if inv.amount > 0:
+                            invoice_references.append(inv_ref)
+                except:
+                    pass
+        return invoice_references
 
     def get_relevant_applicant_name(self,obj):
         return obj.relevant_applicant_name
@@ -702,11 +722,27 @@ class QuestionOptionSerializer(serializers.ModelSerializer):
 class SectionQuestionSerializer(serializers.ModelSerializer):
     question_name=serializers.CharField(source='question.question')
     answer_type=serializers.CharField(source='question.answer_type')
-    question_options= QuestionOptionSerializer(many=True, read_only=True)
+    #question_options= QuestionOptionSerializer(many=True, read_only=True)
+    question_options= serializers.SerializerMethodField()
 
     class Meta:
         model = SectionQuestion
         fields = ('section', 'question_id', 'question_options', 'question_name', 'answer_type',)
+
+    def get_question_options(self, obj):
+        options = None
+        option_list = obj.question_options
+        if option_list:
+            options = [
+                    {
+                        'label': o.label,
+                        'value': o.value,
+                        #'conditions': obj.ANSWER_TYPE_CONDITIONS,
+
+                    } for o in option_list
+                ]
+
+        return options
 
 class ProposalTypeSectionSerializer(serializers.ModelSerializer):
     section_questions = SectionQuestionSerializer(many=True, read_only=True)
@@ -758,21 +794,54 @@ class SchemaMasterlistSerializer(serializers.ModelSerializer):
         model = MasterlistQuestion
         fields = '__all__'
 
+    # def get_options_orig(self, obj):
+    #     option_labels = []
+    #     try:
+    #         options = self.initial_data.get('options', None)
+    #         for o in options:
+    #             option_labels.append(o)
+    #             qo = QuestionOption.objects.filter(label=o['label'])
+    #             if qo.exists():
+    #                 o['value'] = qo[0].id
+    #                 continue
+    #             option_serializer = SchemaOptionSerializer(data=o)
+    #             option_serializer.is_valid(raise_exception=True)
+    #             option_serializer.save()
+    #             opt_id = option_serializer.data['id']
+    #             o['value'] = opt_id
+    #         obj.set_property_cache_options(option_labels)
+            
+    #     except Exception:
+    #         options = None
+    #         option_list = obj.get_options()
+    #         if option_list:
+    #             options = [
+    #                 {
+    #                     'label': o.label,
+    #                     'value': o.value,
+    #                     #'conditions': obj.ANSWER_TYPE_CONDITIONS,
+
+    #                 } for o in option_list
+    #             ]
+
+    #     return options
+
     def get_options(self, obj):
         option_labels = []
         try:
             options = self.initial_data.get('options', None)
             for o in options:
-                option_labels.append(o)
+                #option_labels.append(o)
                 qo = QuestionOption.objects.filter(label=o['label'])
                 if qo.exists():
                     o['value'] = qo[0].id
-                    continue
-                option_serializer = SchemaOptionSerializer(data=o)
-                option_serializer.is_valid(raise_exception=True)
-                option_serializer.save()
-                opt_id = option_serializer.data['id']
-                o['value'] = opt_id
+                else:
+                    option_serializer = SchemaOptionSerializer(data=o)
+                    option_serializer.is_valid(raise_exception=True)
+                    option_serializer.save()
+                    opt_id = option_serializer.data['id']
+                    o['value'] = opt_id
+                option_labels.append(o)
             obj.set_property_cache_options(option_labels)
             
         except Exception:

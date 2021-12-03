@@ -17,7 +17,10 @@ from ledger.accounts.models import EmailUser
 from datetime import datetime
 
 from django.http import HttpResponse#, JsonResponse, Http404
-from disturbance.components.approvals.email import send_contact_licence_holder_email
+from disturbance.components.approvals.email import (
+    send_contact_licence_holder_email,
+    send_on_site_notification_email,
+)
 from disturbance.components.approvals.serializers_apiary import (
     ApiarySiteOnApprovalGeometrySerializer,
     ApiarySiteOnApprovalMinimalGeometrySerializer,
@@ -550,6 +553,9 @@ class OnSiteInformationViewSet(viewsets.ModelViewSet):
             serializer = OnSiteInformationSerializer(instance, data=request_data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
+
+            sender = request.user
+            email_data = send_on_site_notification_email(request_data, sender, update=True)
             return Response(serializer.data)
 
     @basic_exception_handler
@@ -560,6 +566,9 @@ class OnSiteInformationViewSet(viewsets.ModelViewSet):
             serializer = OnSiteInformationSerializer(data=request_data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
+
+            sender = request.user
+            email_data = send_on_site_notification_email(request_data, sender)
             return Response(serializer.data)
 
 
@@ -798,7 +807,11 @@ class ProposalApiaryViewSet(viewsets.ModelViewSet):
     @renderer_classes((JSONRenderer,))
     @basic_exception_handler
     def process_public_liability_insurance_document(self, request, *args, **kwargs):
-        instance = self.get_object()
+        try:
+            instance = self.get_object()
+        except:
+            instance = ProposalApiaryTemporaryUse.objects.get(proposal__id=kwargs.get('pk'))
+
         returned_data = process_generic_document(request, instance, document_type=PublicLiabilityInsuranceDocument.DOC_TYPE_NAME)
         if returned_data:
             return Response(returned_data)
@@ -1039,9 +1052,12 @@ class ApiaryReferralViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             instance.complete(request)
-            data={}
-            data['type']=u'referral_complete'
-            data['fromm']=u'{}'.format(instance.referral_group.name)
+            data = {}
+            # data['type'] = u'referral_complete'
+            data['type'] = u'email'
+            # data['fromm'] = u'{}'.format(instance.referral_group.name)
+            data['fromm'] = u'{}'.format(request.user.get_full_name())
+            data['to'] = u'{}'.format(instance.referral_group.name)
             data['proposal'] = u'{}'.format(instance.referral.proposal.id)
             data['staff'] = u'{}'.format(request.user.id)
             data['text'] = u'{}'.format(instance.referral.referral_text)
@@ -2956,6 +2972,7 @@ class SchemaMasterlistViewSet(viewsets.ModelViewSet):
                 serializer = SchemaMasterlistSerializer(
                     instance, data=request.data
                 )
+                serializer.get_options(instance)
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
 
@@ -3474,7 +3491,7 @@ class SchemaProposalTypeViewSet(viewsets.ModelViewSet):
                 {
                     'label': s.name,
                     'value': s.id,
-                } for s in sections
+                } for s in sections if not s.apiary_group_proposal_type and s.latest
             ]
 
             return Response(
