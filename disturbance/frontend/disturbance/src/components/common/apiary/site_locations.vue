@@ -1920,6 +1920,7 @@
         font-size: 0;
     }
     .layer_options {
+        min-width: max-content;
         position: absolute;
         top: 0;
         left: 0;
