@@ -20,7 +20,8 @@
 
             <template v-if="assessorMode">
                 <template v-if="!showingComment">
-                    <a v-if="comment_value != null && comment_value != undefined && comment_value != ''" href="" @click.prevent="toggleComment"><i style="color:red" class="fa fa-comment-o">&nbsp;</i></a>
+                   <!--  <a v-if="comment_value != null && comment_value != undefined && comment_value != ''" href="" @click.prevent="toggleComment"><i style="color:red" class="fa fa-comment-o">&nbsp;</i></a> -->
+                   <a v-if="has_comment_value" href="" @click.prevent="toggleComment"><i style="color:red" class="fa fa-comment-o">&nbsp;</i></a>
                     <a v-else href="" @click.prevent="toggleComment"><i class="fa fa-comment-o">&nbsp;</i></a>
                 </template>
                 <a href="" v-else  @click.prevent="toggleComment"><i class="fa fa-ban">&nbsp;</i></a>
@@ -45,6 +46,7 @@ import CommentBox from './comment_box_referral.vue'
 import HelpText from './help_text.vue'
 import HelpTextUrl from './help_text_url.vue'
 export default {
+    name:"date",
     props: ['name', 'label', 'id', 'readonly', 'help_text', 'help_text_assessor', 'assessorMode', 'value', 'conditions', "handleChange","comment_value","assessor_readonly", "isRequired", 'help_text_url', 'help_text_assessor_url', 'comment_boxes',],
     data(){
         return {
@@ -59,7 +61,18 @@ export default {
         },
         options: function() {
         return JSON.stringify(this.conditions);
-        }
+        },
+        has_comment_value:function () {
+            let has_value=false;
+            for(var i=0; i<this.comment_boxes.length; i++){
+                if(this.comment_boxes[i].hasOwnProperty('value')){
+                    if(this.comment_boxes[i].value!=null && this.comment_boxes[i].value!=undefined && this.comment_boxes[i].value!= '' ){
+                        has_value=true;
+                    }
+                } 
+            }
+            return has_value;
+        },
     },
     methods:{
         toggleComment(){
