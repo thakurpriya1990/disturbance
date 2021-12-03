@@ -2030,6 +2030,16 @@ class ApiaryReferralGroup(models.Model):
     #site = models.OneToOneField(Site, default='1')
     name = models.CharField(max_length=30, unique=True)
     members = models.ManyToManyField(EmailUser)
+    region = models.ForeignKey(Region, blank=True, null=True, on_delete=models.PROTECT)
+    district = ChainedForeignKey(
+        District,
+        chained_field="region",
+        chained_model_field="region",
+        show_all=False,
+        auto_choose=True,
+        sort=True,
+        #on_delete=models.PROTECT
+    )
 
     def __str__(self):
         #return 'Referral Recipient Group'
@@ -3473,20 +3483,18 @@ class ProposalApiary(RevisionedMixin):
             unlink_r.apiary_approval = None
             unlink_r.save()
 
-    def generate_apiary_compliances(self,approval, request):
+    def generate_apiary_compliances(self, approval, request):
         today = timezone.now().date()
         timedelta = datetime.timedelta
         from disturbance.components.compliances.models import Compliance, ComplianceUserAction
 
-        proposal = self.proposal
         #For amendment type of Proposal, check for copied requirements from previous proposal
-        #if proposal.proposal_type == 'amendment':
         if self.proposal.previous_application:
             try:
-                for r in proposal.requirements.filter(apiary_approval=approval).filter(copied_from__isnull=False):
-                    cs=[]
+                for r in self.proposal.requirements.filter(apiary_approval=approval).filter(copied_from__isnull=False):
+                    cs = []
                     # Now discard all of the due compliances
-                    cs=Compliance.objects.filter(
+                    cs = Compliance.objects.filter(
                             requirement=r.copied_from,
                             approval=approval,
                             processing_status='due'
@@ -3494,21 +3502,15 @@ class ProposalApiary(RevisionedMixin):
                     if cs:
                         if r.is_deleted:
                             for c in cs:
-                                c.processing_status='discarded'
+                                c.processing_status = 'discarded'
                                 c.customer_status = 'discarded'
-                                c.reminder_sent=True
-                                c.post_reminder_sent=True
+                                c.reminder_sent = True
+                                c.post_reminder_sent = True
                                 c.save()
-                        #if r.is_deleted == False:
-                        #    for c in cs:
-                        #        #c.proposal= proposal
-                        #        c.approval=approval
-                        #        c.requirement=r
-                        #        c.save()
             except:
                 raise
         #requirement_set= self.requirements.filter(copied_from__isnull=True).exclude(is_deleted=True)
-        requirement_set= proposal.requirements.filter(apiary_approval=approval).exclude(is_deleted=True)
+        requirement_set= self.proposal.requirements.filter(apiary_approval=approval).exclude(is_deleted=True)
 
         #for req in self.requirements.all():
         for req in requirement_set:
@@ -3517,10 +3519,10 @@ class ProposalApiary(RevisionedMixin):
                     current_date = req.due_date
                     #create a first Compliance
                     try:
-                        compliance= Compliance.objects.get(requirement = req, due_date = current_date)
+                        compliance = Compliance.objects.get(requirement=req, due_date=current_date)
                     except Compliance.DoesNotExist:
                         compliance =Compliance.objects.create(
-                                    #proposal=proposal,
+                                    proposal=self.proposal,
                                     due_date=current_date,
                                     processing_status='future',
                                     approval=approval,
@@ -3544,17 +3546,17 @@ class ProposalApiary(RevisionedMixin):
                             # Create the compliance
                             if current_date <= approval.expiry_date:
                                 try:
-                                    compliance= Compliance.objects.get(requirement = req, due_date = current_date)
+                                    compliance = Compliance.objects.get(requirement = req, due_date = current_date)
                                 except Compliance.DoesNotExist:
-                                    compliance =Compliance.objects.create(
-                                                #proposal=self,
+                                    compliance = Compliance.objects.create(
+                                                proposal=self.proposal,
                                                 due_date=current_date,
                                                 processing_status='future',
                                                 approval=approval,
                                                 requirement=req,
                                                 apiary_compliance=True
                                     )
-                                    compliance.log_user_action(ComplianceUserAction.ACTION_CREATE.format(compliance.lodgement_number),request)
+                                    compliance.log_user_action(ComplianceUserAction.ACTION_CREATE.format(compliance.lodgement_number), request)
             except:
                 raise
 
@@ -3569,8 +3571,8 @@ class ProposalApiary(RevisionedMixin):
 
                 apiary_site_on_proposal.licensed_site = site['properties'].get('licensed_site')
                 apiary_site_on_proposal.batch_no = site['properties'].get('batch_no')
-                apiary_site_on_proposal.approval_cpc_date = datetime.datetime.strptime(site['properties'].get('approval_cpc_date'), '%d-%M-%Y') if site['properties'].get('approval_cpc_date') else None
-                apiary_site_on_proposal.approval_minister_date = datetime.datetime.strptime(site['properties'].get('approval_minister_date'), '%d-%M-%Y') if site['properties'].get('approval_minister_date') else None
+                apiary_site_on_proposal.approval_cpc_date = datetime.datetime.strptime(site['properties'].get('approval_cpc_date'), '%Y-%M-%d') if site['properties'].get('approval_cpc_date') else None
+                apiary_site_on_proposal.approval_minister_date = datetime.datetime.strptime(site['properties'].get('approval_minister_date'), '%Y-%M-%d') if site['properties'].get('approval_minister_date') else None
                 apiary_site_on_proposal.map_ref = site['properties'].get('map_ref')
                 apiary_site_on_proposal.forest_block = site['properties'].get('forest_block')
                 apiary_site_on_proposal.cog = site['properties'].get('cog')
@@ -3954,6 +3956,10 @@ class OnSiteInformation(models.Model):
     apiary_site_on_approval = models.ForeignKey('ApiarySiteOnApproval', blank=True, null=True)
     period_from = models.DateField(null=True, blank=True)
     period_to = models.DateField(null=True, blank=True)
+    hives_loc = models.TextField(blank=True)
+    hives_num = models.SmallIntegerField(blank=True, null=True)
+    people_names = models.TextField(blank=True)
+    flora = models.TextField(blank=True)
     comments = models.TextField(blank=True)
     datetime_deleted = models.DateTimeField(null=True, blank=True)
 
@@ -4110,6 +4116,20 @@ class PublicLiabilityInsuranceDocument(Document):
 
     class Meta:
         app_label = 'disturbance'
+
+
+class TemporaryUsePublicLiabilityInsuranceDocument(Document):
+    DOC_TYPE_NAME = 'public_liability_document'
+
+    proposal = models.ForeignKey(ProposalApiaryTemporaryUse, related_name='public_liability_insurance_documents', blank=True, null=True)
+    _file = models.FileField(max_length=255)
+    input_name = models.CharField(max_length=255, blank=True, null=True)
+    can_delete = models.BooleanField(default=True)
+    visible = models.BooleanField(default=True)
+
+    class Meta:
+        app_label = 'disturbance'
+
 
 
 class SupportingApplicationDocument(Document):
@@ -4928,7 +4948,8 @@ class SectionQuestion(models.Model):
 
     @property
     def question_options(self):
-        return self.question.option.all()
+        #return self.question.option.all()
+        return self.question.get_options()
 
     def get_options(self):
         '''

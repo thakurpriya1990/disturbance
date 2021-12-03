@@ -37,6 +37,46 @@
             </template>
         </FormSection>
 
+        <FormSection :formCollapse="false" label="Public Liability Insurance" Index="public_liability_insurance">
+            <div class="row">
+                <div class="col-sm-12">
+                    <label>
+                        <ol type="a" class="insurance-items">
+                        <li>Attach your policy for public liability insurance that covers the areas and operations allowed under the apiary authority, and in the name of the applicant to the extent of its rights and interests, for a sum of not less than AU$10 million per event.</li>
+                        <li>It is a requirement of all apiary authority holders to maintain appropriate public liability insurance.</li>
+                        </ol>
+                    </label>
+                </div>
+            </div>
+            <div class="my-container input-file-wrapper">
+                <div class="grow1">
+                    <label>Certificate of currency</label>
+                </div>
+                <div class="grow2">
+                    <FileField
+                        ref="public_liability_insurance_documents"
+                        name="public-liability-insurance-documents"
+                        :isRepeatable="false"
+                        :documentActionUrl="publicLiabilityInsuranceDocumentUrl"
+                        :readonly="readonly"
+                        :replace_button_by_text="true"
+                    />
+                </div>
+                <div class="grow1">
+                    <label>Expiry Date</label>
+                </div>
+                <div class="grow1">
+                    <div class="input-group date" ref="expiryDatePicker">
+                        <input type="text" class="form-control" placeholder="DD/MM/YYYY" id="expiry_date_input_element" :readonly="readonly"/>
+                        <span class="input-group-addon">
+                            <span class="glyphicon glyphicon-calendar"></span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </FormSection>
+
+
         <FormSection :formCollapse="false" label="Deed Poll" Index="deed_poll">
             <template v-if="proposal && proposal.apiary_temporary_use && documentActionUrl">
                 <DeedPoll
@@ -76,6 +116,7 @@
     import PeriodAndSites from "@/components/common/apiary/section_period_and_sites.vue"
     import TemporaryOccupier from "@/components/common/apiary/section_temporary_occupier.vue"
     import DeedPoll from "@/components/common/apiary/section_deed_poll.vue"
+    import FileField from '@/components/forms/filefield_immediate.vue'
 
     export default {
         name: 'SectionsProposalTemporaryUse',
@@ -111,6 +152,7 @@
         },
         components: {
             DeedPoll,
+            FileField,
             FormSection,
             datatable,
             PeriodAndSites,
@@ -128,6 +170,18 @@
                         this.proposal.id + '/process_deed_poll_document/'
                         )
                 }
+                return url;
+            },
+            publicLiabilityInsuranceDocumentUrl: function() {
+                let url = '';
+                console.log('0: ' + this.proposal.apiary_temporary_use.id);
+                if (this.proposal && this.proposal.apiary_temporary_use) {
+                    url = helpers.add_endpoint_join(
+                        '/api/proposal_apiary/',
+                        this.proposal.id + '/process_public_liability_insurance_document/'
+                    )
+                }
+                console.log('1: ' + url);
                 return url;
             },
             is_readonly: function() {
@@ -163,9 +217,46 @@
                     temporary_use_apiary_site.apiary_site = apiary_sites[i]
                 }
             },
-            addEventListeners: function() {
+            addEventListeners: function () {
+                let vm = this;
+                let el_fr = $(vm.$refs.expiryDatePicker);
+                let options = {
+                    format: "DD/MM/YYYY",
+                    showClear: true ,
+                    useCurrent: false,
+                };
 
+                el_fr.datetimepicker(options);
+
+                el_fr.on("dp.change", function(e) {
+                    if (e.date){
+                        // Date selected
+                        vm.expiry_date_local= e.date.format('DD/MM/YYYY')  // e.date is moment object
+                    } else {
+                        // Date not selected
+                        vm.expiry_date_local = null;
+                    }
+                    vm.$emit('expiry_date_changed', vm.expiry_date_local)
+                });
+
+                //***
+                // Set dates in case they are passed from the parent component
+                //***
+                let searchPattern = /^[0-9]{4}/
+
+                let expiry_date_passed = vm.proposal.proposal_apiary.public_liability_insurance_expiry_date;
+                console.log('passed')
+                console.log(expiry_date_passed)
+                if (expiry_date_passed) {
+                    // If date passed
+                    if (searchPattern.test(expiry_date_passed)) {
+                        // Convert YYYY-MM-DD to DD/MM/YYYY
+                        expiry_date_passed = moment(expiry_date_passed, 'YYYY-MM-DD').format('DD/MM/YYYY');
+                    }
+                    $('#expiry_date_input_element').val(expiry_date_passed);
+                }
             },
+
         },
         created: function() {
 
@@ -180,5 +271,21 @@
 </script>
 
 <style lang="css" scoped>
-
+    .insurance-items {
+        padding-inline-start: 1em;
+    }
+    .my-container {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+    }
+    .grow1 {
+        flex-grow: 1;
+    }
+    .grow2 {
+        flex-grow: 2;
+    }
+    .input-file-wrapper {
+        margin: 1.5em 0 0 0;
+    }
 </style>

@@ -63,34 +63,57 @@
         </div>
 
         <div id="map-wrapper" class="row col-sm-12">
-            <div id="map" class="map"></div>
-            <div id="basemap-button">
-                <img id="basemap_sat" src="../../../assets/satellite_icon.jpg" @click="setBaseLayer('sat')" />
-                <img id="basemap_osm" src="../../../assets/map_icon.png" @click="setBaseLayer('osm')" />
-            </div>
-            <div id="optional-layers-wrapper">
-                <transition v-if="optionalLayers.length">
-                    <div id="optional-layers-button" v-show="!hover">
-                        <img src="../../../assets/layer-switcher-icon.png" @mouseover="hover=true" />
+            <div id="map" class="map">
+                <div id="basemap-button">
+                    <img id="basemap_sat" src="../../../assets/satellite_icon.jpg" @click="setBaseLayer('sat')" />
+                    <img id="basemap_osm" src="../../../assets/map_icon.png" @click="setBaseLayer('osm')" />
+                </div>
+                <div class="optional-layers-wrapper" @mouseleave="hover=false">
+                    <div class="optional-layers-button">
+                        <template v-if="mode === 'normal'">
+                            <img src="../../../assets/normal.svg" @click="set_mode('layer')" />
+                        </template>
+                        <template v-else-if="mode === 'layer'">
+                            <img src="../../../assets/info-bubble.svg" @click="set_mode('measure')" />
+                        </template>
+                        <template v-else>
+                            <img src="../../../assets/ruler.svg" @click="set_mode('normal')" />
+                        </template>
                     </div>
-                </transition>
-                <transition v-if="optionalLayers.length">
-                    <div div id="layer_options" v-show="hover" @mouseleave="hover=false" >
-                        <div v-for="layer in optionalLayers">
-                            <input
-                                type="checkbox"
-                                :id="layer.ol_uid"
-                                :checked="layer.values_.visible"
-                                @change="changeLayerVisibility(layer)"
-                            />
-                            <label :for="layer.ol_uid">{{ layer.get('title') }}</label>
-                        </div>
+                    <div style="position:relative">
+                        <transition v-if="optionalLayers.length">
+                            <div class="optional-layers-button" @mouseover="hover=true">
+                                <img src="../../../assets/layers.svg" />
+                            </div>
+                        </transition>
+                        <transition v-if="optionalLayers.length">
+                            <div div class="layer_options" v-show="hover" @mouseleave="hover=false" >
+                                <div v-for="layer in optionalLayers">
+                                    <input
+                                        type="checkbox"
+                                        :id="layer.ol_uid"
+                                        :checked="layer.values_.visible"
+                                        @change="changeLayerVisibility(layer)"
+                                        class="layer_option"
+                                    />
+                                    <label :for="layer.ol_uid" class="layer_option">{{ layer.get('title') }}</label>
+                                </div>
+                            </div>
+                        </transition>
                     </div>
-                </transition>
+                </div>
             </div>
         </div>
 
         <div :id="popup_id" class="ol-popup">
+            <a href="#" :id="popup_closer_id" class="ol-popup-closer">
+                <svg xmlns='http://www.w3.org/2000/svg' version='1.1' height='20' width='20' class="close-icon">
+                    <g transform='scale(3)'>
+                        <path d     ="M 5.2916667,2.6458333 A 2.6458333,2.6458333 0 0 1 2.6458335,5.2916667 2.6458333,2.6458333 0 0 1 0,2.6458333 2.6458333,2.6458333 0 0 1 2.6458335,0 2.6458333,2.6458333 0 0 1 5.2916667,2.6458333 Z" style="fill:#ffffff;fill-opacity:1;stroke-width:0.182031" id="path846" />
+                        <path d     ="M 1.5581546,0.94474048 2.6457566,2.0324189 3.7334348,0.94474048 4.3469265,1.5581547 3.2592475,2.6458334 4.3469265,3.7334353 3.7334348,4.3469261 2.6457566,3.2593243 1.5581546,4.3469261 0.9447402,3.7334353 2.0323422,2.6458334 0.9447402,1.5581547 Z" style="fill:#f46464;fill-opacity:1;stroke:none;stroke-width:0.0512157" id="path2740-3" />
+                    </g>
+                </svg>
+            </a>
             <div :id="popup_content_id" class="text-center"></div>
         </div>
 
@@ -113,18 +136,17 @@
     import TileLayer from 'ol/layer/Tile';
     import OSM from 'ol/source/OSM';
     import TileWMS from 'ol/source/TileWMS';
-    import WMTS, {optionsFromCapabilities} from 'ol/source/WMTS';
     import Collection from 'ol/Collection';
     import {Draw, Modify, Snap, Select} from 'ol/interaction';
     import {pointerMove} from 'ol/events/condition';
     import VectorLayer from 'ol/layer/Vector';
     import VectorSource from 'ol/source/Vector';
     import Cluster from 'ol/source/Cluster';
-    import {Circle as CircleStyle, Fill, Stroke, Style, Icon, Text} from 'ol/style';
+    import {Circle as CircleStyle, Fill, Stroke, Style, Icon, Text, RegularShape} from 'ol/style';
     import {FullScreen as FullScreenControl, MousePosition as MousePositionControl} from 'ol/control';
     import Vue from 'vue/dist/vue';
     import { Feature } from 'ol';
-    import { Point } from 'ol/geom';
+    import { Point, LineString } from 'ol/geom';
     import { getDistance } from 'ol/sphere';
     import { circular} from 'ol/geom/Polygon';
     import GeoJSON from 'ol/format/GeoJSON';
@@ -134,6 +156,64 @@
     import { getStatusForColour, getApiaryFeatureStyle, drawingSiteRadius, existingSiteRadius, SiteColours } from '@/components/common/apiary/site_colours.js'
     import Overlay from 'ol/Overlay';
 
+    import WMTS, {optionsFromCapabilities} from 'ol/source/WMTS';
+    //import WMTSTileGrid from 'ol/source/WMTS';
+    import WMTSTileGrid from 'ol/tilegrid/WMTS';
+    import {get as getProjection} from 'ol/proj';
+    import {getTopLeft, getWidth} from 'ol/extent';
+    import MeasureStyles, { formatLength } from '@/components/common/apiary/measure.js'
+    import { getArea, getLength } from 'ol/sphere'
+
+    // create the WMTS tile grid in the google projection
+    const projection = getProjection('EPSG:4326');
+    const tileSizePixels = 1024;
+    const tileSizeMtrs = getWidth(projection.getExtent()) / tileSizePixels;
+    //const resolutions = [];
+    //for (let i = 0; i <= 17; ++i) {
+    //      resolutions[i] = tileSizeMtrs / Math.pow(2, i);
+    //}
+    const resolutions = [0.17578125, 0.087890625, 0.0439453125, 0.02197265625, 0.010986328125, 0.0054931640625, 0.00274658203125, 0.001373291015625, 0.0006866455078125, 0.0003433227539062, 0.0001716613769531, 858306884766e-16, 429153442383e-16, 214576721191e-16, 107288360596e-16, 53644180298e-16, 26822090149e-16, 13411045074e-16]
+    //const tileGrid = new WMTSTileGrid({
+    //      origin: getTopLeft(projection.getExtent()),
+    //      resolutions: resolutions,
+    //      matrixIds: matrixIds,
+    //});
+
+    let matrixSets = {
+        'EPSG:4326': {
+            '1024': {
+                'name': 'gda94',
+                'minLevel': 0,
+                'maxLevel': 17
+            }
+        }
+    }
+    $.each(matrixSets, function (projection, innerMatrixSets) {
+        $.each(innerMatrixSets, function (tileSize, matrixSet) {
+            var matrixIds = new Array(matrixSet.maxLevel - matrixSet.minLevel + 1)
+            for (var z = matrixSet.minLevel; z <= matrixSet.maxLevel; ++z) {
+                matrixIds[z] = matrixSet.name + ':' + z
+            }
+            matrixSet.matrixIds = matrixIds
+        })
+    })
+    let matrixSet = matrixSets['EPSG:4326']['1024']
+    const tileGrid = new WMTSTileGrid({
+        //origin: getTopLeft([-180, -90, 180, 90]),
+        origin: getTopLeft(projection.getExtent()),
+        resolutions: resolutions,
+        matrixIds: matrixSet.matrixIds,
+        tileSize: 1024,  // default: 256
+    })
+    // override getZForResolution on tile grid object;
+    // for weird zoom levels, the default is to round up or down to the
+    // nearest integer to determine which tiles to use.
+    // because we want the printing rasters to contain as much detail as
+    // possible, we rig it here to always round up.
+    tileGrid.origGetZForResolution = tileGrid.getZForResolution
+    tileGrid.getZForResolution = function (resolution, optDirection) {
+        return tileGrid.origGetZForResolution(resolution*1.4, -1)
+    }
     export default {
         props:{
             proposal:{
@@ -188,8 +268,11 @@
                 min_num_of_sites_for_renewal: 5,
                 min_num_of_sites_for_new: 5,
                 style_for_vacant_selected: new Style({
-                    image: new CircleStyle({
-                        radius: existingSiteRadius,
+                    //image: new CircleStyle({
+                    image: new RegularShape({
+                        //radius: existingSiteRadius,
+                        points: 6,
+                        radius: 6,
                         fill: new Fill({
                             color: SiteColours.vacant.fill
                         }),
@@ -200,8 +283,11 @@
                     })
                 }),
                 style_for_new_apiary_site: new Style({
-                    image: new CircleStyle({
-                        radius: existingSiteRadius,
+                    //image: new CircleStyle({
+                    image: new RegularShape({
+                        //radius: existingSiteRadius,
+                        points: 6,
+                        radius: 6,
                         fill: new Fill({
                             color: SiteColours.draft_external.fill
                         }),
@@ -214,6 +300,7 @@
                 // Popup
                 popup_id: uuid(),
                 popup_content_id: uuid(),
+                popup_closer_id: uuid(),
                 content_element: null,
                 overlay: null,
 
@@ -243,6 +330,7 @@
                 bufferedSites: null,
                 drawingLayerSource:  new VectorSource(),
                 drawingLayer: null,
+                drawForApiarySite: null,
                 bufferLayerSource: new VectorSource(),
                 bufferLayer: null,
                 vacantLayerSource: new VectorSource(),
@@ -354,6 +442,16 @@
                 tileLayerSat: null,
                 optionalLayers: [],
                 hover: false,
+
+                // For Measurement tool
+                mode: 'normal',
+                drawForMeasure: null,
+                style: MeasureStyles.defaultStyle,
+                segmentStyle: MeasureStyles.segmentStyle,
+                labelStyle: MeasureStyles.labelStyle,
+                segmentStyles: null,
+                measurementLayer: null,
+                measuring: false,
             }
         },
         components: {
@@ -361,6 +459,15 @@
             datatable,
         },
         computed:{
+            ruler_colour: function(){
+                if (this.mode === 'normal'){
+                    return '#aaa';
+                } else if(this.mode === 'measure') {
+                    return '#53c2cf';
+                } else {
+                    return '#ff7f50';
+                }
+            },
             display_debug_info: function(){
                 if (location.host === 'localhost:8071'){
                     return true
@@ -594,6 +701,158 @@
             }
         },
         methods:{
+            display_layers_option: function(mode){
+                if(mode === 'layer'){
+                    this.hover = true
+                }
+            },
+            showPopupForLayersJson: function(geojson, coord, column_names, display_all_columns, target_layer){
+                let wrapper = $('<div>')  // Add wrapper element because html() used at the end exports only the contents of the jquery object
+                let caption = $('<div style="text-align:center; font-weight: bold;">').text(target_layer.get('title'))
+                let table = $('<table style="margin-bottom: 1em;">') //.addClass('table')
+                let tbody = $('<tbody>')
+                wrapper.append(caption)
+                wrapper.append(table.append(tbody))
+
+                for (let feature of geojson.features){
+                    for (let key in feature.properties){
+                        if (display_all_columns || column_names.includes(key)){
+                            let tr = $('<tr style="border-bottom:1px solid lightgray;">')
+                            let th = $('<th style="padding:0 0.5em;">').text(key)
+                            let td = $('<td>').addClass('text-nowrap').text(feature.properties[key])
+                            tr.append(th)
+                            tr.append(td)
+                            tbody.append(tr)
+                        }
+                    }
+                    this.content_element.innerHTML += wrapper.html()  // Export contents as HTML string
+                    this.overlay.setPosition(coord);
+                }
+            },
+            styleFunctionForMouse: function(feature){
+                let vm = this
+                //return this.style_for_new_apiary_site
+
+                let styles = []
+
+                //let geometry = feature.getGeometry()
+                //vm.labelStyle.setGeometry(geometry);
+                //vm.labelStyle.getText().setText('aho');
+                //styles.push(vm.labelStyle);
+
+                let myStyle = new Style({
+                    image: new RegularShape({
+                        fill: new Fill({
+                            color: SiteColours.draft_external.fill
+                        }),
+                        stroke: new Stroke({
+                            color: SiteColours.draft_external.stroke,
+                            width: 2
+                        }),
+                        points: 6,
+                        radius: 6,
+                        //radius2: 0,
+                        //angle: Math.PI / 4
+                    }),
+                })
+                styles.push(myStyle)
+                return styles
+            },
+            styleFunctionForNewSite: function(feature){
+                console.log('in styleFunctionForNewSite')
+                // This is used for the proposed apiary sites
+                let vacant_selected = feature.get('vacant_selected')
+                if (vacant_selected){
+                    return this.style_for_vacant_selected
+                } else {
+                    return this.style_for_new_apiary_site
+                }
+            },
+            addJoint: function(point, styles){
+                let s = new Style({
+                    image: new CircleStyle({
+                        radius: 2,
+                        fill: new Fill({
+                            color: '#3399cc'
+                        }),
+                    }),
+                })
+                s.setGeometry(point)
+                styles.push(s)
+
+                return styles
+            },
+            styleFunctionForMeasurement: function (feature, resolution){
+                let vm = this
+                let for_layer = feature.get('for_layer', false)
+
+                const styles = []
+                styles.push(vm.style)  // This style is for the feature itself
+                styles.push(vm.segmentStyle)
+
+                ///////
+                // From here, adding labels and tiny circles at the end points of the linestring
+                ///////
+                const geometry = feature.getGeometry();
+                if (geometry.getType() === 'LineString'){
+                    let segment_count = 0;
+                    geometry.forEachSegment(function (a, b) {
+                        const segment = new LineString([a, b]);
+                        const label = formatLength(segment);
+                        const segmentPoint = new Point(segment.getCoordinateAt(0.5));
+
+                        // Add a style for this segment
+                        let segment_style = vm.segmentStyle.clone() // Because there could be multilpe segments, we should copy the style per segment
+                        segment_style.setGeometry(segmentPoint)
+                        segment_style.getText().setText(label)
+                        styles.push(segment_style)
+
+                        if (segment_count == 0){
+                            // Add a tiny circle to the very first coordinate of the linestring
+                            let p = new Point(a)
+                            vm.addJoint(p, styles)
+                        }
+                        // Add tiny circles to the end of the linestring
+                        let p = new Point(b)
+                        vm.addJoint(p, styles)
+
+                        segment_count++;
+                    });
+                }
+
+                if (!for_layer){
+                    // We don't need the last label when draw on the layer.
+                    let label_on_mouse = formatLength(geometry);  // Total length of the linestring
+                    let point = new Point(geometry.getLastCoordinate());
+                    vm.labelStyle.setGeometry(point);
+                    vm.labelStyle.getText().setText(label_on_mouse);
+                    styles.push(vm.labelStyle);
+                }
+
+                return styles
+            },
+            set_mode: function(mode){
+                this.mode = mode
+                if (mode === 'measure'){
+                    this.drawForMeasure.setActive(true)
+                    this.drawForApiarySite.setActive(false)
+                } else if (mode === 'layer'){
+                    this.clearMeasurementLayer()
+                    this.drawForMeasure.setActive(false)
+                    this.drawForApiarySite.setActive(false)
+                } else if (mode === 'normal') {
+                    this.clearMeasurementLayer()
+                    this.drawForApiarySite.setActive(true)
+                    this.drawForMeasure.setActive(false)
+                }
+            },
+            clearMeasurementLayer: function(){
+                let vm = this
+                let features = vm.measurementLayer.getSource().getFeatures()
+                features.forEach((feature) => {
+                    vm.measurementLayer.getSource().removeFeature(feature)
+                })
+            },
             console_layers: function(){
                 let layers = this.map.getLayers()
                 for (var i = 0; i < layers.array_.length; i++){
@@ -605,7 +864,11 @@
                 let layers = this.map.getLayers()
                 for (var i = 0; i < layers.array_.length; i++){
                     if (layers.array_[i].get('title') === 'Drawing Layer' || layers.array_[i].get('title') === 'Cluster Layer'){
-                        layers.array_[i].refresh()
+                        try{
+                            layers.array_[i].refresh()
+                        } catch (err){
+                            console.log('Error: ' + layers.array_[i].get('title'))
+                        }
                     }
                 }
             },
@@ -615,13 +878,14 @@
                     let layers = response.body
                     for (var i = 0; i < layers.length; i++){
                         let l = new TileWMS({
-                            url: 'https://kmi.dpaw.wa.gov.au/geoserver/public/wms',
+                            //url: 'https://kmi.dpaw.wa.gov.au/geoserver/' + layers[i].layer_group_name + '/wms',
+                            url: env['kmi_server_url'] + '/geoserver/' + layers[i].layer_group_name + '/wms',
                             params: {
                                 'FORMAT': 'image/png',
                                 'VERSION': '1.1.1',
                                 tiled: true,
                                 STYLES: '',
-                                LAYERS: layers[i].layer_name.trim()
+                                LAYERS: layers[i].layer_full_name,
                                 //LAYERS: 'public:mapbox-satellite'
                             }
                         });
@@ -631,6 +895,10 @@
                             visible: false,
                             source: l,
                         })
+
+                        // Set additional attributes to the layer
+                        tileLayer.set('columns', layers[i].columns)
+                        tileLayer.set('display_all_columns', layers[i].display_all_columns)
 
                         vm.optionalLayers.push(tileLayer)
                         vm.map.addLayer(tileLayer)
@@ -650,7 +918,6 @@
                     $('#basemap_osm').hide()
                     $('#basemap_sat').show()
                 }
-                vm.console_layers()
             },
             datatable_mounted: function(){
                 this.constructSiteLocationsTable();
@@ -690,9 +957,33 @@
                 this.content_element.innerHTML = content;
                 this.overlay.setPosition(coord);
             },
+            howPopupForLayersJson: function(geojson, coord, column_names, display_all_columns, target_layer){
+                let wrapper = $('<div>')  // Add wrapper element because html() used at the end exports only the contents of the jquery object
+                let caption = $('<div style="text-align:center; font-weight: bold;">').text(target_layer.get('title'))
+                let table = $('<table style="margin-bottom: 1em;">') //.addClass('table')
+                let tbody = $('<tbody>')
+                wrapper.append(caption)
+                wrapper.append(table.append(tbody))
+
+                for (let feature of geojson.features){
+                    for (let key in feature.properties){
+                        if (display_all_columns || column_names.includes(key)){
+                            let tr = $('<tr style="border-bottom:1px solid lightgray;">')
+                            let th = $('<th style="padding:0 0.5em;">').text(key)
+                            let td = $('<td>').addClass('text-nowrap').text(feature.properties[key])
+                            tr.append(th)
+                            tr.append(td)
+                            tbody.append(tr)
+                        }
+                    }
+                    this.content_element.innerHTML += wrapper.html()  // Export contents as HTML string
+                    this.overlay.setPosition(coord);
+                }
+            },
             closePopup: function(){
+                this.content_element.innerHTML = null
+                this.$emit('popupClosed')
                 this.overlay.setPosition(undefined)
-                //closer.blur()
                 return false
             },
             displayAllFeatures: function() {
@@ -786,21 +1077,6 @@
                     this.bufferLayerSource.removeFeature(buffer);
                 }
             },
-            apiaryStyleFunctionExisting: function(feature) {
-                // This is used for the existing apiary sites
-                //let status = this.get_status_for_colour(feature)
-                let status = getStatusForColour(feature)
-                return getApiaryFeatureStyle(status);
-            },
-            apiaryStyleFunctionProposed: function(feature){
-                // This is used for the proposed apiary sites
-                let vacant_selected = feature.get('vacant_selected')
-                if (vacant_selected){
-                    return this.style_for_vacant_selected
-                } else {
-                    return this.style_for_new_apiary_site
-                }
-            },
             existingSiteAvailableClicked: function() {
                 alert("TODO: open screen 45: External - Contact Holder of Available Site in a different tab page.");
             },
@@ -889,7 +1165,6 @@
 
                     // Insert data into the table
                     for(let i=0; i<features.length; i++){
-                        console.log(features[i])
                         this.$refs.site_locations_table.vmDataTable.row.add(features[i]).draw();
                     }
 
@@ -967,16 +1242,15 @@
             initMap: async function() {
                 let vm = this;
 
-                let satelliteTileWms = new TileWMS({
-                    url: 'https://kmi.dpaw.wa.gov.au/geoserver/public/wms',
-                    params: {
-                        'FORMAT': 'image/png',
-                        'VERSION': '1.1.1',
-                        tiled: true,
-                        STYLES: '',
-                        LAYERS: 'public:mapbox-satellite',
-                    }
-                });
+                let satelliteTileWmts = new WMTS({
+                    url: 'https://kmi.dbca.wa.gov.au/geoserver/gwc/service/wmts',
+                    layer: 'public:mapbox-satellite',
+                    format: 'image/png',
+                    matrixSet: 'gda94',
+                    projection: 'EPSG:4326',
+                    tileGrid: tileGrid,
+                    style: '',
+                })
 
                 vm.tileLayerOsm = new TileLayer({
                     title: 'OpenStreetMap',
@@ -989,7 +1263,7 @@
                     title: 'Satellite',
                     type: 'base',
                     visible: true,
-                    source: satelliteTileWms,
+                    source: satelliteTileWmts,
                 })
 
                 vm.map = new Map({
@@ -1079,6 +1353,52 @@
                         }
                     });
                 });
+                vm.map.on('singleclick', function(evt){
+                    if(vm.mode === 'layer'){
+                        vm.closePopup()
+                        let view = vm.map.getView()
+                        let viewResolution = view.getResolution()
+
+                        // Retrieve active layers' sources
+                        for (let i=0; i < vm.optionalLayers.length; i++){
+                            let visibility = vm.optionalLayers[i].getVisible()
+                            if (visibility){
+                                // Retrieve column names to be displayed
+                                let column_names = vm.optionalLayers[i].get('columns')
+                                column_names = column_names.map(function(col){
+                                    // Convert array of dictionaries to simple array
+                                    if (vm.is_internal && col.option_for_internal){
+                                        return col.name
+                                    }
+                                    if (vm.is_external && col.option_for_external){
+                                        return col.name
+                                    }
+                                })
+                                // Retrieve the value of display_all_columns boolean flag
+                                let display_all_columns = vm.optionalLayers[i].get('display_all_columns')
+
+                                // Retrieve the URL to query the attributes
+                                let source = vm.optionalLayers[i].getSource()
+                                let url = source.getFeatureInfoUrl(
+                                    evt.coordinate, viewResolution, view.getProjection(),
+                                    //{'INFO_FORMAT': 'text/html'}
+                                    {'INFO_FORMAT': 'application/json'}
+                                )
+
+                                // Query 
+                                let p = fetch(url, {
+                                    credentials: 'include'
+                                })
+
+                                //p.then(res => res.text()).then(function(data){
+                                p.then(res => res.json()).then(function(data){
+                                    //vm.showPopupForLayersHTML(data, evt.coordinate, column_names, display_all_columns)
+                                    vm.showPopupForLayersJson(data, evt.coordinate, column_names, display_all_columns, vm.optionalLayers[i])
+                                })
+                            }
+                        }
+                    }
+                })
 
                 // In memory vector layer for digitization
                 //vm.drawingLayerSource = new VectorSource();
@@ -1094,17 +1414,22 @@
                 vm.drawingLayer = new VectorLayer({
                     title: 'Drawing Layer',
                     source: vm.drawingLayerSource,
-                    style: vm.apiaryStyleFunctionProposed,
+                    style: vm.styleFunctionForNewSite,
                 });
 
                 let container = document.getElementById(vm.popup_id)
                 vm.content_element = document.getElementById(vm.popup_content_id)
-                //let closer = document.getElementById(vm.popup_closer_id)
+                let closer = document.getElementById(vm.popup_closer_id)
                 vm.overlay = new Overlay({
                     element: container,
                     autoPan: false,
                     offest: [0, -10]
                 })
+                closer.onclick = function() {
+                    vm.closePopup()
+                    closer.blur()
+                    return false
+                }
                 vm.map.addOverlay(vm.overlay)
 
                 //vm.bufferLayerSource = new VectorSource();
@@ -1160,34 +1485,38 @@
                 // Draw and modify tools
                 if (!vm.readonly){
                     let modifyInProgressList = [];
-                    let drawTool = new Draw({
+                    this.drawForApiarySite = new Draw({
                         source: vm.drawingLayerSource,
                         type: "Point",
+                        style: vm.styleFunctionForMouse,  // This style is for the style on the mouse
                     });
-                    drawTool.on("drawstart", async function(attributes){
-                        let coords = attributes.feature.getGeometry().getCoordinates()
-
-                        if (vm.vacant_site_being_selected){
-                            // Abort drawing, instead 'vacant' site is to be added
-                            drawTool.abortDrawing();
-
-                            vm.vacant_site_being_selected.set('vacant_selected', true)
-
-                            vm.drawingLayerSource.addFeature(vm.vacant_site_being_selected);
-                            vm.vacant_site_being_selected.getGeometry().on("change", function() {
-                                if (modifyInProgressList.indexOf(vm.vacant_site_being_selected.getId()) == -1) {
-                                    modifyInProgressList.push(vm.vacant_site_being_selected.getId());
-                                }
-                            });
-                        } else {
+                    this.drawForApiarySite.on("drawstart", async function(attributes){
+                        if (vm.mode === 'normal'){
                             let coords = attributes.feature.getGeometry().getCoordinates()
-                            if (!vm.isNewPositionValid(coords)) {
-                                drawTool.abortDrawing();
+
+                            if (vm.vacant_site_being_selected){
+                                // Abort drawing, instead 'vacant' site is to be added
+                                this.drawForApiarySite.abortDrawing();
+
+                                vm.vacant_site_being_selected.set('vacant_selected', true)
+
+                                vm.drawingLayerSource.addFeature(vm.vacant_site_being_selected);
+                                vm.vacant_site_being_selected.getGeometry().on("change", function() {
+                                    if (modifyInProgressList.indexOf(vm.vacant_site_being_selected.getId()) == -1) {
+                                        modifyInProgressList.push(vm.vacant_site_being_selected.getId());
+                                    }
+                                });
+                            } else {
+                                let coords = attributes.feature.getGeometry().getCoordinates()
+                                if (!vm.isNewPositionValid(coords)) {
+                                    this.drawForApiarySite.abortDrawing();
+                                }
                             }
+                        } else {
+                            this.drawForApiarySite.abortDrawing();
                         }
                     });
-                    //drawTool.on('drawend', function(attributes){
-                    drawTool.on('drawend', async function(attributes){
+                    this.drawForApiarySite.on('drawend', async function(attributes){
                         if (!this.readoly){
                             let feature = attributes.feature;
                             let draw_id = vm.uuidv4();
@@ -1206,7 +1535,7 @@
                             // Vue table is updated by the event 'addfeature' issued from the Source
                         }
                     });
-                    vm.map.addInteraction(drawTool);
+                    vm.map.addInteraction(this.drawForApiarySite);
 
                     let modifyTool = new Modify({
                         source: vm.drawingLayerSource,
@@ -1259,6 +1588,37 @@
                     });
                     vm.map.addInteraction(modifyTool);
                 }
+                // Measure tool
+                let draw_source = new VectorSource({ wrapX: false })
+                vm.drawForMeasure = new Draw({
+                    source: draw_source,
+                    type: 'LineString',
+                    style: vm.styleFunctionForMeasurement,
+                })
+
+                // Set a custom listener to the Measure tool
+                vm.drawForMeasure.set('escKey', '')
+                vm.drawForMeasure.on('change:escKey', function(evt){
+                    vm.drawForMeasure.finishDrawing()
+                })
+                vm.drawForMeasure.on('drawstart', function(evt){
+                    vm.measuring = true
+                })
+                vm.drawForMeasure.on('drawend', function(evt){
+                    vm.measuring = false
+                })
+
+                // Create a layer to retain the measurement
+                vm.measurementLayer = new VectorLayer({
+                    title: 'Measurement Layer',
+                    source: draw_source,
+                    style: function(feature, resolution){
+                        feature.set('for_layer', true)
+                        return vm.styleFunctionForMeasurement(feature, resolution)
+                    },
+                });
+                vm.map.addInteraction(vm.drawForMeasure)
+                vm.map.addLayer(vm.measurementLayer)
 
                 let hoverInteraction = new Select({
                     condition: pointerMove,
@@ -1310,8 +1670,18 @@
                 });
                 vm.setBaseLayer('osm')
                 vm.addOptionalLayers()
-                vm.console_layers()
+
+                document.addEventListener('keydown', vm.keydown, false)
             },  // End: initMap()
+            keydown: function(evt){
+                let vm = this
+
+                let charCode = (evt.which) ? evt.which : evt.keyCode;
+                if (charCode === 27 && vm.measuring === true){ //esc key
+                    //dispatch event
+                    this.drawForMeasure.set('escKey', Math.random());
+                }
+            },
             //get_status_for_colour: function(feature){
             //    let status = feature.get("status");
             //    let is_vacant = feature.get('is_vacant')
@@ -1456,6 +1826,7 @@
             let vm = this;
             this.$nextTick(() => {
                 vm.initMap();
+                vm.set_mode('normal')
                 vm.addEventListeners();
             });
         }
@@ -1502,7 +1873,7 @@
     }
     #basemap-button {
         position: absolute;
-        top: 10px;
+        bottom: 25px;
         right: 10px;
         z-index: 400;
         -moz-box-shadow: 3px 3px 3px #777;
@@ -1516,14 +1887,14 @@
     #basemap_sat,#basemap_osm {
     /* border-radius: 5px; */
     }
-    #basemap-button:hover {
+    #basemap-button:hover,.optional-layers-button:hover {
         cursor: pointer;
         -moz-filter: brightness(0.9);
         -webkit-filter: brightness(0.9);
         filter: brightness(0.9);
     }
     #basemap-button:active {
-        top: 11px;
+        bottom: 24px;
         right: 9px;
         -moz-box-shadow: 2px 2px 2px #555;
         -webkit-box-shadow: 2px 2px 2px #555;
@@ -1532,33 +1903,31 @@
         -webkit-filter: brightness(0.8);
         filter: brightness(0.8);
     }
-    #optional-layers-wrapper {
+    .optional-layers-wrapper {
         position: absolute;
         top: 70px;
         left: 10px;
     }
-    #optional-layers-button {
-        position: absolute;
+    .optional-layers-button {
+        padding: 4px;
+        display: block;
+        position: relative;
         z-index: 400;
         background: white;
         border-radius: 2px;
-        /*
-        box-shadow: 3px 3px 3px #777;
-        -moz-filter: brightness(1.0);
-        -webkit-filter: brightness(1.0);
-        */
         border: 3px solid rgba(5, 5, 5, .1);
+        cursor: pointer;
+        font-size: 0;
     }
-    #layer_options {
-        /*
+    .layer_options {
+        min-width: max-content;
         position: absolute;
-        */
         top: 0;
         left: 0;
-        z-index: 400;
+        z-index: 410;
         background: white;
         border-radius: 2px;
-        cursor: pointer;
+        cursor: auto;
         /*
         box-shadow: 3px 3px 3px #777;
         -moz-filter: brightness(1.0);
@@ -1618,17 +1987,12 @@
         left: 48px;
         margin-left: -11px;
     }
-    /*
     .ol-popup-closer {
         text-decoration: none;
         position: absolute;
         top: 2px;
         right: 8px;
     }
-    .ol-popup-closer:after {
-        content: "✖";
-    }
-    */
     .close-icon:hover {
         filter: brightness(80%);
     }

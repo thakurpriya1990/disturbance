@@ -139,7 +139,8 @@ ADMIN_GROUP = env('ADMIN_GROUP', 'Disturbance Admin')
 APIARY_ADMIN_GROUP = 'Apiary Admin'
 DAS_APIARY_ADMIN_GROUP = 'DAS-Apiary Admin'
 APIARY_PAYMENTS_OFFICERS_GROUP = 'Apiary Payments Officers'
-APPROVED_EXTERNAL_USERS_GROUP = env('APPROVED_EXTERNAL_USERS_GROUP', 'Disturbance Approved External Users')
+APPROVED_DAS_EXTERNAL_USERS_GROUP = env('APPROVED_DAS_EXTERNAL_USERS_GROUP', 'Disturbance Approved External Users')
+APPROVED_APIARY_EXTERNAL_USERS_GROUP = env('APPROVED_APIARY_EXTERNAL_USERS_GROUP', 'Apiary Approved External Users')
 CRON_EMAIL = env('CRON_EMAIL', 'cron@' + SITE_DOMAIN).lower()
 TENURE_SECTION = env('TENURE_SECTION', None)
 ASSESSMENT_REMINDER_DAYS = env('ASSESSMENT_REMINDER_DAYS', 15)
@@ -201,8 +202,20 @@ LOGGING['loggers']['disturbance'] = {
             'handlers': ['file'],
             'level': 'INFO'
         }
-
-
+# Add a handler
+LOGGING['handlers']['file_apiary'] = {
+    'level': 'INFO',
+    'class': 'logging.handlers.RotatingFileHandler',
+    'filename': os.path.join(BASE_DIR, 'logs', 'apiary.log'),
+    'formatter': 'verbose',
+    'maxBytes': 5242880
+}
+# define logger
+LOGGING['loggers']['apiary'] = {
+    'handlers': ['file_apiary'],
+    'level': 'INFO'
+}
+KMI_SERVER_URL = env('KMI_SERVER_URL', 'https://kmi.dbca.wa.gov.au')
 #APPLICATION_TYPES_SQL='''
 #        SELECT name, name FROM disturbance_applicationtypechoice
 #        WHERE archive_date IS NULL OR archive_date > now()

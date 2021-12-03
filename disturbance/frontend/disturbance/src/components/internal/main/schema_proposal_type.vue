@@ -315,7 +315,7 @@ export default {
 
                 }).then(async (result) => {
 
-                    if (result.value) {
+                    if (result) {
 
                         await self.$http.delete(helpers.add_endpoint_json(api_endpoints.schema_proposal_type,(self.sectionProposalType.id+'/delete_proposal_type')))
     
@@ -336,7 +336,7 @@ export default {
         },
         initSelects: async function() {
 
-            await this.$http.get(helpers.add_endpoint_join(api_endpoints.schema_proposal_type,'1/get_proposal_type_selects')).then(res=>{
+            await this.$http.get(helpers.add_endpoint_json(api_endpoints.schema_proposal_type,'1/get_proposal_type_selects')).then(res=>{
 
                     this.schemaProposalTypes = res.body.all_proposal_type;
 

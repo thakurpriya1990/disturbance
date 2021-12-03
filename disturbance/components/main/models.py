@@ -9,6 +9,7 @@ from django.utils.encoding import python_2_unicode_compatible
 from django.core.exceptions import ValidationError
 from ledger.accounts.models import EmailUser, Document, RevisionedMixin
 from django.contrib.postgres.fields.jsonb import JSONField
+from datetime import date
 
 
 class MapLayer(models.Model):
@@ -16,12 +17,35 @@ class MapLayer(models.Model):
     layer_name = models.CharField(max_length=200, blank=True, null=True)
     option_for_internal = models.BooleanField(default=True)
     option_for_external = models.BooleanField(default=True)
+    display_all_columns = models.BooleanField(default=False)
 
     class Meta:
         app_label = 'disturbance'
+        verbose_name = 'apiary map layer'
 
     def __str__(self):
         return '{0}, {1}'.format(self.display_name, self.layer_name)
+
+    @property
+    def column_names(self):
+        column_names = []
+        for column in self.columns.all():
+            column_names.append(column.name)
+        return ','.join(column_names)
+
+
+class MapColumn(models.Model):
+    map_layer = models.ForeignKey(MapLayer, null=True, blank=True, related_name='columns')
+    name = models.CharField(max_length=100, blank=True, null=True)
+    option_for_internal = models.BooleanField(default=True)
+    option_for_external = models.BooleanField(default=True)
+
+    class Meta:
+        app_label = 'disturbance'
+        verbose_name = 'apiary map column'
+
+    def __str__(self):
+        return '{0}, {1}'.format(self.map_layer, self.name)
 
 
 @python_2_unicode_compatible
@@ -37,12 +61,19 @@ class Region(models.Model):
         return self.name
 
 
+class ArchivedDistrictManager(models.Manager):
+    def get_queryset(self):
+        #return super().get_queryset().all()
+        return super().get_queryset().exclude(archive_date__lte=date.today())
+
 @python_2_unicode_compatible
 class District(models.Model):
     region = models.ForeignKey(Region, related_name='districts')
     name = models.CharField(max_length=200, unique=True)
     code = models.CharField(max_length=3)
     archive_date = models.DateField(null=True, blank=True)
+
+    objects = ArchivedDistrictManager()
 
     class Meta:
         ordering = ['name']
