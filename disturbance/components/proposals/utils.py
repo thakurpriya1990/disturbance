@@ -158,11 +158,12 @@ class AssessorDataSearch(object):
                         ref_parts = parts[1].split('Referral-')
                         if len(ref_parts) > 1:
                             # Referrals
-                            res['referrals'].append({
-                                'value':v,
-                                'email':ref_parts[1],
-                                'full_name': EmailUser.objects.get(email=ref_parts[1].lower()).get_full_name()
-                            })
+                            if ref_parts[0]=='': #To avoid saving the comment-field here
+                                res['referrals'].append({
+                                    'value':v,
+                                    'email':ref_parts[1],
+                                    'full_name': EmailUser.objects.get(email=ref_parts[1].lower()).get_full_name()
+                                })
                         elif k.split('-')[-1].lower() == 'assessor':
                             # Assessor
                             res['assessor'] = v
