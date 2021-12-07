@@ -369,13 +369,18 @@
                             // Previous Site Holder/Applicant
                             visible: vm.show_col_previous_site_holder,
                             mRender: function (data, type, apiary_site){
-                                return apiary_site.properties.previous_site_holder_or_applicant
+                                let status = apiary_site.properties.status.toLowerCase()
+                                if (['not_to_be_reissued', 'denied'].includes(status)){
+                                    return apiary_site.properties.previous_site_holder_or_applicant
+                                }
+                                return ''
                             }
                         },
                         {
                             // Action
                             mRender: function (data, type, apiary_site) {
                                 let action_list = []
+                                let status = apiary_site.properties.status.toLowerCase()
 
                                 // View on map
                                 let view_on_map_html = '<a href="#' + apiary_site.id + '" data-view-on-map="' + apiary_site.id + '">View on map</a>';
@@ -384,7 +389,7 @@
                                 if (vm.show_action_available_unavailable){
                                     // Mark as Available/Unavailable
                                     let display_text = ''
-                                    if (vm.is_external && ['current',].includes(apiary_site.properties.status.toLowerCase())){
+                                    if (vm.is_external && ['current',].includes(status)){
                                         if (apiary_site.properties.available){
                                             display_text = 'Mark as unavailable';
                                         } else {
@@ -393,7 +398,7 @@
                                         let ret = '<a data-toggle-availability="' + apiary_site.id + '" data-apiary-site-available="' + apiary_site.properties.available + '">' + display_text + '</a>';
                                         action_list.push(ret);
                                     //} else if (vm.is_internal && ['Current', 'current'].includes(apiary_site.status.id)){
-                                    } else if (vm.is_internal && ['current',].includes(apiary_site.properties.status.toLowerCase())){
+                                    } else if (vm.is_internal && ['current',].includes(status)){
                                         if (apiary_site.properties.available){
                                             display_text = 'Available';
                                         } else {
@@ -403,9 +408,11 @@
                                     }
                                 }
                                 if (vm.show_action_make_vacant){
-                                    let display_text = 'Make Vacant'
-                                    let ret = '<a data-make-vacant="' + apiary_site.id + '">' + display_text + '</a>';
-                                    action_list.push(ret);
+                                    if (['not_to_be_reissued', 'denied'].includes(status)){
+                                        let display_text = 'Make Vacant'
+                                        let ret = '<a data-make-vacant="' + apiary_site.id + '">' + display_text + '</a>';
+                                        action_list.push(ret);
+                                    }
                                 }
                                 if (vm.show_action_contact_licence_holder){
                                     let display_text = 'Contact licence holder'

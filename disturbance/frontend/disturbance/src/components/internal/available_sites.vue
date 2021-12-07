@@ -6,11 +6,12 @@
                 :is_internal="true"
                 :is_external="false"
                 :show_col_checkbox="false"
-                :show_col_status="false"
-                :show_col_previous_site_holder="false"
+                :show_col_status="true"
+                :show_col_previous_site_holder="true"
                 :key="component_site_selection_key"
                 :table_and_map_in_a_row="true"
                 :show_action_contact_licence_holder="false"
+                :show_action_make_vacant="true"
                 @apiary_sites_updated="apiarySitesUpdated"
                 @contact-licence-holder-clicked="contactLicenceHolderClicked"
             />
@@ -88,8 +89,8 @@
             loadSites: async function() {
                 let vm = this
 
-                Vue.http.get('/api/apiary_site/available_sites/').then(re => {
-                //Vue.http.get('/api/apiary_site/available_and_transitable_sites/').then(re => {
+                //Vue.http.get('/api/apiary_site/available_sites/').then(re => {
+                Vue.http.get('/api/apiary_site/available_and_transitable_sites/').then(re => {
                     vm.apiary_sites = re.body
                     this.component_site_selection_key = uuid()
                 });
