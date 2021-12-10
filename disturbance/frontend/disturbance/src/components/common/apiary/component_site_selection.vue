@@ -27,7 +27,7 @@
                 </div>
             </template>
         </div>
-
+        <div @click="filterBy">Button</div>
     </div>
 </template>
 
@@ -514,6 +514,15 @@
                         }
                     }
                 }
+            },
+            filterBy: function(statuses){
+
+                // TODO: implementing filter by the status names
+                this.$refs.table_apiary_site.vmDataTable.column(0).data().filter(function(value, index){
+                    console.log(value)
+                    return true
+                })
+
             },
             addApiarySiteToTable: function(apiary_site) {
                 this.$refs.table_apiary_site.vmDataTable.row.add(apiary_site).draw();

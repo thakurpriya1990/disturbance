@@ -92,6 +92,7 @@
                 //Vue.http.get('/api/apiary_site/available_sites/').then(re => {
                 Vue.http.get('/api/apiary_site/available_and_transitable_sites/').then(re => {
                     vm.apiary_sites = re.body
+                    console.log(vm.apiary_sites)
                     this.component_site_selection_key = uuid()
                 });
             },
