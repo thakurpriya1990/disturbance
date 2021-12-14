@@ -565,14 +565,26 @@ export default {
                     index += 1
                 }
             }
-        }
+        },
     },
     methods: {
+        documentActionUrl: function() {
+            console.log('documentActionUrl')
+            let url = '';
+            url = helpers.add_endpoint_join(
+                '/api/proposal/',
+                this.proposal.id + '/get_poo_poo/'
+                )
+            console.log(url)
+            return url;
+        },
         getCompareProposal: function (revision) {
             /* 
                 Handle the user clicks. Change the labels of entries and TODO: fetch the Proposal revision to be
                 used for comparison 
             */
+
+            this.documentActionUrl()
             let clicked_revision = this.lodgement_revisions[revision-1]
             for (let index = 0; index < this.lodgement_revisions.length; index++) {
                 if (revision > 1) {
@@ -581,6 +593,9 @@ export default {
                 }
                 this.lodgement_revisions[0].action = 'Viewing'
             }
+            console.log('s-------------')
+            console.log(this.proposal.documentActionUrl)
+            console.log('e-------------')
         },
         locationUpdated: function(){
             console.log('in locationUpdated()');

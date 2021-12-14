@@ -1779,6 +1779,10 @@ class Proposal(RevisionedMixin):
         else:
             return self.requirements.all()
 
+    def getPooPoo(poo1, poo2):
+        print("GETTING POOPOO")
+        print(poo1, poo2)
+
 
 class ProposalLogDocument(Document):
     log_entry = models.ForeignKey('ProposalLogEntry',related_name='documents')
