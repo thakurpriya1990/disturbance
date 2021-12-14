@@ -1,3 +1,4 @@
+import collections
 from disturbance.components.proposals.models import (
                                     ProposalType,
                                     Proposal,
@@ -416,7 +417,6 @@ class InternalProposalSerializer(BaseProposalSerializer):
     def get_revision_diff(allRevisions, old_version_number, new_version_number):
         from deepdiff import DeepDiff
         import diff_match_patch
-        print('ININININININININININININININININININININININININININININININININININININ')
         old_data = allRevisions[old_version_number].field_dict["data"]
         new_data = allRevisions[new_version_number].field_dict["data"]
         diffs = DeepDiff(old_data, new_data, ignore_order=True)
@@ -431,17 +431,20 @@ class InternalProposalSerializer(BaseProposalSerializer):
     def get_reversion_history(self, obj):
         from reversion.models import Version
         reversion_dict = {}
-        allRevisions = Version.objects.get_for_object(obj)
-        self.get_revision_diff(allRevisions, 0, 1)
-        
-        for index, version in enumerate(allRevisions):
-            # add the index to the end of the lodgement number to show the revision.
-            revision = '{}-{}'.format(version.field_dict['lodgement_number'], index+1)
-            # if the date is None, it is draft so exclude
-            if version.field_dict['lodgement_date']:
-                reversion_dict[revision] = {"date": version.field_dict['lodgement_date']}
-                # Get all the changes between this version and the original. Grab them as
-                # key, value pairs so they can be used directly in the proposal.vue form.
+
+        # Get all revisions that have been submitted (not just saved by user) including the original.
+        all_revisions = [v for v in Version.objects.get_for_object(obj)[0:] if not v.field_dict['customer_status'] == 'draft']
+        # Strip out duplicates (only take the most recent of a revision).
+        unique_revisions = collections.OrderedDict({v.field_dict['lodgement_date']:v for v in all_revisions})
+        number_of_revisions = len(unique_revisions)
+        latest_revision = list(unique_revisions.values())[0]
+
+        # Work backwards through the revisions so the most recent are at the top.
+        for index, revision in enumerate(unique_revisions.values()):
+            # Add the index to the end of the lodgement number to show the revision.            
+            this_revision_key = '{}-{}'.format(revision.field_dict['lodgement_number'], number_of_revisions-index)
+            reversion_dict[this_revision_key] = {'date': revision.field_dict['lodgement_date']}
+
         return reversion_dict
 
     def get_approval_level_document(self,obj):

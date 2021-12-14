@@ -33,11 +33,11 @@
                                         <th>Date</th>
                                         <th>Action</th>
                                     </tr>
-                                    <tr v-for="prop in createLodgementRevisionTable">
+                                    <tr v-for="prop in this.lodgement_revisions">
                                         <td>{{ prop.id }}</td>
                                         <td>{{ prop.date | formatDateNoTime }}</td>
                                         <td style="padding: 0px;" v-on:click="getCompareProposal(prop['index'])">
-                                            <span v-html=prop.action></span>
+                                            <span v-bind:id=prop.id v-html=prop.action></span>
                                         </td>
                                     </tr>
                                 </table>
@@ -460,6 +460,7 @@ export default {
             logs_url: helpers.add_endpoint_json(api_endpoints.proposals,vm.$route.params.proposal_id+'/action_log'),
             panelClickersInitialised: false,
             sendingReferral: false,
+            lodgement_revisions: [],
         }
     },
     components: {
@@ -543,34 +544,42 @@ export default {
             return this.proposal && this.proposal.applicant.email ? this.proposal.applicant.email : '';
         },
         createLodgementRevisionTable: function() {
-            // need to be able to change index and action of items
+            /*
+                This creates a table of versions for the current Proposal. Each entry has the Proposal ID along with the revision \
+                number and date of submission. An action is provided for each entry to allow comparison between versions.
+            */
             const limit = 5
-            let index = 1  // skip the first one
-            let lodgement_revisions = []
+            const revisions_length = this.proposal.reversion_history.length
+
+            let index = 1 // Start index at 1 so it's nicer for humans
             for (let prop in this.proposal.reversion_history) {
-                if (index < 4) {
+                let action_label = '<a style="cursor:pointer;">Compare</a>'
+                if (index < limit) {
                     if (index == 1) {
-                    lodgement_revisions.push({"index": 0,
-                                              "id": prop.split('-')[0],
-                                              "date": this.proposal.reversion_history[prop]["date"],
-                                              "action": "Viewing"})
+                        action_label = 'Viewing'
                     }
-                    lodgement_revisions.push({"index": index,
-                                              "id": prop,
-                                              "date": this.proposal.reversion_history[prop]["date"],
-                                              "action": '<a style="cursor:pointer;">Compare</a>'})
-                    
+                    this.lodgement_revisions.push({"index": index,
+                                                   "id": prop,
+                                                   "date": this.proposal.reversion_history[prop]["date"],
+                                                   "action": action_label})
                     index += 1
                 }
             }
-            return lodgement_revisions
         }
     },
     methods: {
         getCompareProposal: function (revision) {
-            if (revision > 0) {
-                console.log(this.proposal.id, revision);
-                this.proposal.reversion_version(revision)
+            /* 
+                Handle the user clicks. Change the labels of entries and TODO: fetch the Proposal revision to be
+                used for comparison 
+            */
+            let clicked_revision = this.lodgement_revisions[revision-1]
+            for (let index = 0; index < this.lodgement_revisions.length; index++) {
+                if (revision > 1) {
+                    this.lodgement_revisions[index].action = '<a style="cursor:pointer;">Compare</a>'
+                    clicked_revision.action = 'Comparing'        // should be non-clickable now
+                }
+                this.lodgement_revisions[0].action = 'Viewing'
             }
         },
         locationUpdated: function(){
@@ -1164,6 +1173,9 @@ export default {
             this.original_proposal = helpers.copyObject(res.body);
             this.proposal.applicant.address = this.proposal.applicant.address != null ? this.proposal.applicant.address : {};
             this.hasAmendmentRequest=this.proposal.hasAmendmentRequest;
+
+            // Populate the revision table
+            this.createLodgementRevisionTable
         },
         err => {
           console.log(err);
