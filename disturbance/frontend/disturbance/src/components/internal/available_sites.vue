@@ -2,6 +2,7 @@
     <div class="container">
         <FormSection :formCollapse="false" label="Available Sites" Index="available_sites">
             <ComponentSiteSelection
+                ref="component_site_selection"
                 :apiary_sites="apiary_sites"
                 :is_internal="true"
                 :is_external="false"
@@ -88,13 +89,24 @@
             },
             loadSites: async function() {
                 let vm = this
+                let apis = [
+                    'list_existing_proposal_vacant_draft',
+                    'list_existing_proposal_vacant_processed',
+                    'list_existing_approval_vacant',
+                    'list_existing_proposal_draft',
+                    'list_existing_proposal_processed',
+                    'list_existing_approval',
+                    'available_sites',   // some site may be retrieved by the queries above
+                    'transitable_sites', // some site may be retrieved by the queries above
+                ]
 
-                //Vue.http.get('/api/apiary_site/available_sites/').then(re => {
-                Vue.http.get('/api/apiary_site/available_and_transitable_sites/').then(re => {
-                    vm.apiary_sites = re.body
-                    console.log(vm.apiary_sites)
-                    this.component_site_selection_key = uuid()
-                });
+                for (let api of apis){
+                    Vue.http.get('/api/apiary_site/' + api + '/').then(re => {
+                        console.log('in ' + api)
+                        console.log(re.body.features.length + ' sites')
+                        vm.$refs.component_site_selection.addApiarySitesToMap(re.body.features)
+                    })
+                }
             },
         },
         created: function() {

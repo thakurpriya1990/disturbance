@@ -424,7 +424,7 @@
 
                 // Add apiary_sites passed as a props
                 for (let i=0; i<vm.apiary_site_geojson_array.length; i++){
-                    this.addApiarySite(vm.apiary_site_geojson_array[i])
+                    //this.addApiarySite(vm.apiary_site_geojson_array[i])
                 }
 
                 let container = document.getElementById(vm.popup_id)

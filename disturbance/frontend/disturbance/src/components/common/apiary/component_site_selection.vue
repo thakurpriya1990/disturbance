@@ -5,7 +5,7 @@
                 ref="component_map"
                 :is_internal="is_internal"
                 :is_external="is_external"
-                :apiary_site_geojson_array="apiary_site_geojson_array"
+                :apiary_site_geojson_array="apiary_sites_local"
                 :key="component_map_key"
                 @featuresDisplayed="updateTableByFeatures"
                 :can_modify="can_modify"
@@ -161,12 +161,15 @@
         data: function(){
             let vm = this;
             return{
-                apiary_sites_local: JSON.parse(JSON.stringify(this.apiary_sites)),  // Deep copy the array
+                //apiary_sites_local: JSON.parse(JSON.stringify(this.apiary_sites)),  // Deep copy the array
+                apiary_sites_local: [],
                 component_map_key: '',
                 table_id: uuid(),
-                apiary_site_geojson_array: [],  // This is passed to the ComponentMap as props
+                //apiary_site_geojson_array: [],
                 default_checkbox_checked: false,  // If checked property isn't set as a apiary_site's property, this default value is used
                 popup_opened_by_link: false,
+
+                apiary_sites2: [],
                 dtHeaders: [
                     'Id',
                     '',
@@ -371,7 +374,11 @@
                             mRender: function (data, type, apiary_site){
                                 let status = apiary_site.properties.status.toLowerCase()
                                 if (['not_to_be_reissued', 'denied'].includes(status)){
-                                    return apiary_site.properties.previous_site_holder_or_applicant
+                                    if (apiary_site.properties.previous_site_holder_or_applicant){
+                                        return apiary_site.properties.previous_site_holder_or_applicant
+                                    } else {
+                                        return 'property: previous_site_holder_or_applicant not found'
+                                    }
                                 }
                                 return ''
                             }
@@ -433,8 +440,8 @@
             let vm = this;
             this.$nextTick(() => {
                 vm.addEventListeners();
-                vm.constructApiarySitesTable(vm.apiary_sites);
-                vm.addApiarySitesToMap(vm.apiary_sites)
+                //vm.constructApiarySitesTable(vm.apiary_sites);
+                //vm.addApiarySitesToMap(vm.apiary_sites)
                 vm.ensureCheckedStatus();
             });
             this.$emit('apiary_sites_updated', this.apiary_sites_local)
@@ -445,6 +452,9 @@
         },
         computed: {
 
+
+        },
+        watch: {
 
         },
         methods: {
@@ -489,20 +499,28 @@
                 }
             },
             addApiarySitesToMap: function(apiary_sites) {
+                console.log('in addApiarySitesToMap')
+                console.log('adding ' + apiary_sites.length + ' sites')
+
                 for (let i=0; i<apiary_sites.length; i++){
                     if (apiary_sites[i].hasOwnProperty('checked')){
-                        //apiary_sites[i].as_geojson['properties']['checked'] = apiary_sites[i].checked
-                        //apiary_sites[i].as_geojson.properties.checked = apiary_sites[i].checked
                         apiary_sites[i].properties.checked = apiary_sites[i].checked
                     }
-                    //this.apiary_site_geojson_array.push(apiary_sites[i].as_geojson)
-                    this.apiary_site_geojson_array.push(apiary_sites[i])
+                    //this.apiary_site_geojson_array.push(apiary_sites[i])
+                    this.apiary_sites_local.push(apiary_sites[i])  // We may have to deep copy.
+                    this.$refs.component_map.addApiarySite(apiary_sites[i])
+
+                    this.addApiarySiteToTable(apiary_sites[i])
                 }
 
                 // Reload ComponentMap by assigning a new key value
-                this.component_map_key = uuid()
+                //console.log(this.apiary_site_geojson_array)
+                //this.component_map_key = uuid()
             },
             constructApiarySitesTable: function(apiary_sites) {
+                console.log('in constructApiarySitesTable')
+                console.log(apiary_sites)
+
                 if (this.$refs.table_apiary_site){
                     // Clear table
                     this.$refs.table_apiary_site.vmDataTable.clear().draw();
@@ -525,7 +543,12 @@
 
             },
             addApiarySiteToTable: function(apiary_site) {
-                this.$refs.table_apiary_site.vmDataTable.row.add(apiary_site).draw();
+                try {
+                    this.$refs.table_apiary_site.vmDataTable.row.add(apiary_site).draw();
+                } catch (err){
+                    console.log(err)
+                    console.log(apiary_site)
+                }
             },
             addEventListeners: function () {
                 $("#" + this.table_id).on("click", "a[data-view-on-map]", this.zoomOnApiarySite)
@@ -655,6 +678,7 @@
                 }
             },
             toggleAvailability: function(e) {
+                console.log('in toggleAvailability')
                 let vm = this;
                 let apiary_site_id = e.target.getAttribute("data-toggle-availability");
                 let current_availability = this.getApiarySiteAvailableFromEvent(e)
@@ -667,7 +691,8 @@
                         let site_updated = accept.body
                         vm.updateApiarySite(site_updated)
                        // vm.constructApiarySitesTable();
-                        vm.constructApiarySitesTable(vm.apiary_sites);
+                        //vm.constructApiarySitesTable(vm.apiary_sites);
+                        vm.constructApiarySitesTable(vm.apiary_sites_local);
                     },
                     reject=>{
                         swal(
