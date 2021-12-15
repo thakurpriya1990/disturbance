@@ -1,5 +1,12 @@
 <template>
     <div class="container">
+        <template v-for="status in filters">
+            <div>
+                <input type="checkbox" :id="status.id" :value="status.value" v-model="checkedNames">
+                <label :for="status.id">{{ status.display }}</label>
+            </div>
+        </template>
+        <input v-model="search_text">
         <FormSection :formCollapse="false" label="Available Sites" Index="available_sites">
             <ComponentSiteSelection
                 ref="component_site_selection"
@@ -16,6 +23,7 @@
                 @apiary_sites_updated="apiarySitesUpdated"
                 @contact-licence-holder-clicked="contactLicenceHolderClicked"
             />
+            <div @click="filterBy">Button</div>
         </FormSection>
 
         <ContactLicenceHolderModal
@@ -40,6 +48,55 @@
                 component_site_selection_key: uuid(),
                 apiary_sites: [],
                 modalBindId: uuid(),
+                filters: {
+                    // ApiarySite
+                    'vacant': {
+                        'id': 'vacant',
+                        'value': 'vacant',
+                        'display': 'Vacant',
+                    },
+
+                    // ApiarySiteOnProposal
+                    'draft': {
+                        'id': 'draft',
+                        'value': 'draft',
+                        'display': 'Draft',
+                    },
+                    'pending': {
+                        'id': 'pending',
+                        'value': 'pending',
+                        'display': 'Pending',
+                    },
+                    'denied': {
+                        'id': 'denied',
+                        'value': 'denied',
+                        'display': 'Denied',
+                    },
+
+                    // ApiarySiteOnApproval
+                    'current': {
+                        'id': 'current',
+                        'value': 'current',
+                        'display': 'Current',
+                    },
+                    'not_to_be_reissued': {
+                        'id': 'not_to_be_reissued',
+                        'value': 'not_to_be_reissued',
+                        'display': 'Not to be reissued',
+                    },
+                    'suspended': {
+                        'id': 'suspended',
+                        'value': 'suspended',
+                        'display': 'Suspended',
+                    },
+                    'discarded': {
+                        'id': 'discarded',
+                        'value': 'discarded',
+                        'display': 'Discarded',
+                    },
+                },
+                checkedNames: [],
+                search_text: '',
             }
         },
         components: {
@@ -51,12 +108,23 @@
 
         },
         watch: {
-
+            checkedNames: function(){
+                console.log('changed')
+                console.log(this.checkedNames)
+            },
+            search_text: function(){
+                console.log('changed')
+                console.log(this.search_text)
+            }
         },
         computed: {
 
         },
         methods: {
+            filterBy: function(statuses){
+                this.component_site_selection_key = uuid()
+                this.loadSites()
+            },
             contactLicenceHolderClicked: function(apiary_site_id){
                 this.openOnSiteInformationModal(apiary_site_id)
             },
@@ -93,11 +161,18 @@
                     'list_existing_proposal_vacant_draft',
                     'list_existing_proposal_vacant_processed',
                     'list_existing_approval_vacant',
-                    'list_existing_proposal_draft',
-                    'list_existing_proposal_processed',
-                    'list_existing_approval',
-                    'available_sites',   // some site may be retrieved by the queries above
-                    'transitable_sites', // some site may be retrieved by the queries above
+                    //'list_existing_proposal_draft',
+                    //'list_existing_proposal_processed',  // 'denied' included
+                    //'list_existing_approval',  // includes 'available_sites' and 'not_to_be_reissued'
+                    //'available_sites',   // All the available_sites are retrieved by the query above: list_existing_approval, too
+                                         // ApiarySiteOnApproval.site_status = 'current' 
+                                         //   AND
+                                         // ApiarySiteOnApproval.available = True
+
+                    //'transitable_sites', // Some site may be already retrieved by the query above: list_existing_proposal_processed/fil
+                                         // Not vacant and ApiarySiteOnApproval.site_status = 'not_to_be_reissued'
+                                         //   OR 
+                                         // Not vadant and ApiarySiteOnProposal.site_status = 'denied'
                 ]
 
                 for (let api of apis){

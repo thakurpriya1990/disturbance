@@ -27,7 +27,6 @@
                 </div>
             </template>
         </div>
-        <div @click="filterBy">Button</div>
     </div>
 </template>
 
@@ -465,6 +464,7 @@
                 this.$emit('featureGeometryUpdated', feature)
             },
             updateTableByFeatures: function(features) {
+                console.log('updateTableByFeatures')
 
                 // Generate a list of the feature ids displayed on the map
                 let ids = $.map(features, function(feature){
@@ -532,15 +532,6 @@
                         }
                     }
                 }
-            },
-            filterBy: function(statuses){
-
-                // TODO: implementing filter by the status names
-                this.$refs.table_apiary_site.vmDataTable.column(0).data().filter(function(value, index){
-                    console.log(value)
-                    return true
-                })
-
             },
             addApiarySiteToTable: function(apiary_site) {
                 try {
