@@ -414,30 +414,14 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 )
         read_only_fields=('documents','requirements')
 
-    def get_revision_diff(allRevisions, old_version_number, new_version_number):
-        from deepdiff import DeepDiff
-        import diff_match_patch
-        old_data = allRevisions[old_version_number].field_dict["data"]
-        new_data = allRevisions[new_version_number].field_dict["data"]
-        diffs = DeepDiff(old_data, new_data, ignore_order=True)
-
-        for v in diffs.items():
-            if "values_changed" in v:
-                for k, v in v[1].items():
-                    diff_obj = diff_match_patch.diff_match_patch()
-                    d = diff_obj.diff_main(v['old_value'], v['new_value'])
-                    print('SECTION: {} ===== {}'.format(k, diff_obj.diff_prettyHtml(d)))
-
     def get_reversion_history(self, obj):
         from reversion.models import Version
         reversion_dict = {}
-
         # Get all revisions that have been submitted (not just saved by user) including the original.
         all_revisions = [v for v in Version.objects.get_for_object(obj)[0:] if not v.field_dict['customer_status'] == 'draft']
         # Strip out duplicates (only take the most recent of a revision).
         unique_revisions = collections.OrderedDict({v.field_dict['lodgement_date']:v for v in all_revisions})
         number_of_revisions = len(unique_revisions)
-        latest_revision = list(unique_revisions.values())[0]
 
         # Work backwards through the revisions so the most recent are at the top.
         for index, revision in enumerate(unique_revisions.values()):

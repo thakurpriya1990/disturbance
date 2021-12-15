@@ -1285,35 +1285,23 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-
-
-
-    @detail_route(methods=['POST'])
-    def get_poo_poo(self, request, *args, **kwargs):
-        print('In POOPOOPOOPOO')
+    @detail_route(methods=['POST',])
+    def get_graeme(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
-            returned_data = process_generic_document(request, instance, document_type=DeedPollDocument.DOC_TYPE_NAME)
-            
-            return('Got some Poo Poo')
-            # if returned_data:
-            #     return Response(returned_data)
-            # else:
-            #     return Response()
+            version_number = request.data.get("version_number")
+            diffs = instance.get_revision_diff(version_number)
 
+            return Response(json.dumps(diffs))
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
         except ValidationError as e:
-            handle_validation_error(e)
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
-
-
-
-
-
 
     @detail_route(methods=['POST'])
     @renderer_classes((JSONRenderer,))

@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+import collections
 
 import json
 import datetime
@@ -596,8 +597,6 @@ class Proposal(RevisionedMixin):
         """
         return self.customer_status in self.CUSTOMER_VIEWABLE_STATE
 
-
-
     @property
     def is_discardable(self):
         """
@@ -676,6 +675,40 @@ class Proposal(RevisionedMixin):
                 ):
             apiary = True
         return apiary
+
+    def get_revision_diff(self, compare_version):
+        """
+        Gets all the revision differences between the most recent revision and the revision specified.
+        """
+        from reversion.models import Version
+        from deepdiff import DeepDiff
+
+        all_revisions_list = list(self.get_reversion_history().values())
+        all_revisions_length = len(all_revisions_list)
+
+        new_data = all_revisions_list[all_revisions_length-compare_version].field_dict["data"]
+        old_data = all_revisions_list[all_revisions_length-1].field_dict["data"]
+        diffs = DeepDiff(old_data, new_data, ignore_order=True)
+
+        diffs_list = []
+        for v in diffs.items():
+            if "values_changed" in v:
+                for k, v in v[1].items():
+                    diffs_list.append({k.split('\'')[-2]:v['new_value'],})
+        return diffs_list
+
+    def get_reversion_history(self):
+        """
+        Get all the revisions submitted for this Proposal.
+        """
+        from reversion.models import Version
+        revisions = []
+        # Get all revisions that have been submitted (not just saved by user) including the original.
+        all_revisions = [v for v in Version.objects.get_for_object(self)[0:] if not v.field_dict['customer_status'] == 'draft']
+        # Strip out duplicates (only take the most recent of a revision).
+        unique_revisions = collections.OrderedDict({v.field_dict['lodgement_date']:v for v in all_revisions})
+
+        return unique_revisions
 
     def __assessor_group(self):
         # Alternative logic for Apiary applications
@@ -1778,10 +1811,6 @@ class Proposal(RevisionedMixin):
             return self.requirements.filter(sitetransfer_approval=None)
         else:
             return self.requirements.all()
-
-    def getPooPoo(poo1, poo2):
-        print("GETTING POOPOO")
-        print(poo1, poo2)
 
 
 class ProposalLogDocument(Document):

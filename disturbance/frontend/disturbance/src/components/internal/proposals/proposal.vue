@@ -4,7 +4,7 @@
             proposal.vue
         </template>
       <div class="row">
-        <h3>Proposal: {{ proposal.lodgement_number }}</h3>
+        <h3 id='proposal_title'>Proposal: {{ proposal.lodgement_number }}</h3>
         <h4>Proposal Type: {{proposal.proposal_type }}</h4>
         <div v-if="proposal.application_type!='Apiary'">
             <h4>Approval Level: {{proposal.approval_level }}</h4>
@@ -543,6 +543,14 @@ export default {
         applicant_email:function(){
             return this.proposal && this.proposal.applicant.email ? this.proposal.applicant.email : '';
         },
+        
+        getGraemeUrl: function() {
+            let url = ''
+            url = helpers.add_endpoint_join('/api/proposal/',
+                                            this.proposal.id +
+                                            '/get_graeme/')
+            return url;
+        },
         createLodgementRevisionTable: function() {
             /*
                 This creates a table of versions for the current Proposal. Each entry has the Proposal ID along with the revision \
@@ -568,23 +576,11 @@ export default {
         },
     },
     methods: {
-        documentActionUrl: function() {
-            console.log('documentActionUrl')
-            let url = '';
-            url = helpers.add_endpoint_join(
-                '/api/proposal/',
-                this.proposal.id + '/get_poo_poo/'
-                )
-            console.log(url)
-            return url;
-        },
-        getCompareProposal: function (revision) {
+        getCompareProposal: async function (revision) {
             /* 
-                Handle the user clicks. Change the labels of entries and TODO: fetch the Proposal revision to be
-                used for comparison 
+                Handle the user clicks. Change the labels of entries and add all selected 
+                differences to the DOM.
             */
-
-            this.documentActionUrl()
             let clicked_revision = this.lodgement_revisions[revision-1]
             for (let index = 0; index < this.lodgement_revisions.length; index++) {
                 if (revision > 1) {
@@ -593,9 +589,22 @@ export default {
                 }
                 this.lodgement_revisions[0].action = 'Viewing'
             }
-            console.log('s-------------')
-            console.log(this.proposal.documentActionUrl)
-            console.log('e-------------')
+
+            // Now post to the API to get the differences between latest version and this one.
+            const diffs = await Vue.http.post(this.getGraemeUrl, {"version_number": revision})
+            const diffs_dict = diffs.data[0]
+
+            for (let entry in diffs.data) {
+                for (let k in diffs.data[entry]) {
+                    const original_text = $( "#id_" + k ).text()
+                    const revision_text = diffs.data[entry][k]
+                    const replacement_html = "<label>" + original_text + "</label></br><label style='color: red;'>" + revision_text + "</label>"
+                    $( "#id_" + k ).html(replacement_html)
+                }
+            }
+
+            // Update the Proposal Page title to show the revision.
+            $( "#proposal_title" ).text("Proposal: " + clicked_revision.id)
         },
         locationUpdated: function(){
             console.log('in locationUpdated()');
