@@ -54,10 +54,6 @@
                 type: Boolean,
                 default: false,
             },
-            table_and_map_in_a_row: {
-                type: Boolean,
-                default: true,
-            },
             show_col_id: {
                 type: Boolean,
                 default: false,

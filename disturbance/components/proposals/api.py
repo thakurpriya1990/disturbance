@@ -652,11 +652,10 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
     #@query_debugger
     def list_existing_proposal_draft(self, request):
         proposal_id = request.query_params.get('proposal_id', None)
-        if proposal_id:
-            proposal = Proposal.objects.get(id=proposal_id)
-            qs_on_proposal_draft = get_qs_proposal('draft', proposal)
-            serializer_proposal_draft = ApiarySiteOnProposalDraftMinimalGeometrySerializer(qs_on_proposal_draft, many=True)
-            return Response(serializer_proposal_draft.data)
+        proposal = Proposal.objects.get(id=proposal_id) if proposal_id else None
+        qs_on_proposal_draft = get_qs_proposal('draft', proposal)
+        serializer_proposal_draft = ApiarySiteOnProposalDraftMinimalGeometrySerializer(qs_on_proposal_draft, many=True)
+        return Response(serializer_proposal_draft.data)
 
     @list_route(methods=['GET',])
     @basic_exception_handler
@@ -664,11 +663,10 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
     #@query_debugger
     def list_existing_proposal_processed(self, request):
         proposal_id = request.query_params.get('proposal_id', None)
-        if proposal_id:
-            proposal = Proposal.objects.get(id=proposal_id)
-            qs_on_proposal_processed = get_qs_proposal('processed', proposal)
-            serializer_proposal_processed = ApiarySiteOnProposalProcessedMinimalGeometrySerializer(qs_on_proposal_processed, many=True)
-            return Response(serializer_proposal_processed.data)
+        proposal = Proposal.objects.get(id=proposal_id) if proposal_id else None
+        qs_on_proposal_processed = get_qs_proposal('processed', proposal)
+        serializer_proposal_processed = ApiarySiteOnProposalProcessedMinimalGeometrySerializer(qs_on_proposal_processed, many=True)
+        return Response(serializer_proposal_processed.data)
 
     @list_route(methods=['GET',])
     @basic_exception_handler

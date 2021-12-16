@@ -2,7 +2,16 @@
     <div class="container">
         <FormSection :formCollapse="false" label="Available Sites" Index="available_sites">
             <div class="map-wrapper row col-sm-12">
-                <div :id="elem_id" class="map">
+                <div class="filter_search_wrapper">
+                    <div class="filter_status" v-for="filter in filters">
+                        <input type="checkbox" :id="filter.id" :value="filter.value" :checked="filter.show" @change="filterSelectionChanged(filter)" :key="filter.id" />
+                        <label :for="filter.id">{{ filter.display_name }}</label>
+                    </div>
+                    <div class="text_search">
+                        <input v-model="search_text">
+                    </div>
+                </div>
+                <div :id="elem_id" class="map" style="position: relative;">
                     <div class="basemap-button">
                         <img id="basemap_sat" src="../../assets/satellite_icon.jpg" @click="setBaseLayer('sat')" />
                         <img id="basemap_osm" src="../../assets/map_icon.png" @click="setBaseLayer('osm')" />
@@ -39,6 +48,13 @@
                         </div>
                     </div>
                 </div>
+                <Datatable
+                    class="table_apiary_site"
+                    ref="table_apiary_site"
+                    :id="table_id"
+                    :dtOptions="dtOptions"
+                    :dtHeaders="dtHeaders"
+                />
             </div>
             <div :id="popup_id" class="ol-popup">
                 <a href="#" :id="popup_closer_id" class="ol-popup-closer">
@@ -92,14 +108,15 @@
     import { getDisplayNameFromStatus, getDisplayNameOfCategory, getStatusForColour, getApiaryFeatureStyle } from '@/components/common/apiary/site_colours.js'
     import { getArea, getLength } from 'ol/sphere'
     import MeasureStyles, { formatLength } from '@/components/common/apiary/measure.js'
+    import Datatable from '@vue-utils/datatable.vue'
 
     export default {
         name: 'AvailableSites',
         data: function(){
             return {
-                component_site_selection_key: uuid(),
                 apiary_sites: [],
                 modalBindId: uuid(),
+                table_id: uuid(),
 
                 map: null,
                 apiarySitesQuerySource: null,
@@ -121,12 +138,15 @@
                 segmentStyle: MeasureStyles.segmentStyle,
                 labelStyle: MeasureStyles.labelStyle,
                 segmentStyles: null,
+
+                search_text: '',
             }
         },
         components: {
             ComponentSiteSelection,
             FormSection,
-            ContactLicenceHolderModal
+            ContactLicenceHolderModal,
+            Datatable
         },
         props: {
             is_external:{
@@ -153,18 +173,251 @@
             }
         },
         watch: {
-
+            search_text: function(){
+                console.log('changed: search_text')
+                console.log(this.search_text)
+            }
         },
         computed: {
+            filters: function(){
+                return [
+                    // ApiarySite
+                    {
+                        'id': 'vacant',
+                        'value': 'vacant',
+                        'display_name': 'Vacant',
+                        'show': false,
+                        'loaded': false,
+                        'api': 'list_existing_vacant',  // TODO: implement backend
+                    },
+                    // ApiarySiteOnProposal
+                    {
+                        'id': 'draft',
+                        'value': 'draft',
+                        'display_name': 'Draft',
+                        'show': false,
+                        'loaded': false,
+                        'api': 'list_existing_proposal_draft',
+                    },
+                    {
+                        'id': 'pending',
+                        'value': 'pending',
+                        'display_name': 'Pending',
+                        'show': false,
+                        'loaded': false,
+                        'api': '',
+                    },
+                    {
+                        'id': 'denied',
+                        'value': 'denied',
+                        'display_name': 'Denied',
+                        'show': false,
+                        'loaded': false,
+                        'api': '',
+                    },
+                    // ApiarySiteOnApproval
+                    {
+                        'id': 'current',
+                        'value': 'current',
+                        'display_name': 'Current',
+                        'show': false,
+                        'loaded': false,
+                        'api': '',
+                    },
+                    {
+                        'id': 'not_to_be_reissued',
+                        'value': 'not_to_be_reissued',
+                        'display_name': 'Not to be reissued',
+                        'show': false,
+                        'loaded': false,
+                        'api': '',
+                    },
+                    {
+                        'id': 'suspended',
+                        'value': 'suspended',
+                        'display_name': 'Suspended',
+                        'show': false,
+                        'loaded': false,
+                        'api': '',
+                    },
+                    {
+                        'id': 'discarded',
+                        'value': 'discarded',
+                        'display_name': 'Discarded',
+                        'show': false,
+                        'loaded': false,
+                        'api': '',
+                    },
+                ]
+            },
             ruler_colour: function(){
                 if (this.mode === 'normal'){
                     return '#aaa';
                 } else {
                     return '#53c2cf';
                 }
-            }
+            },
+            dtHeaders: function(){
+                return [
+                    'Id',
+                    //'',
+                    'Site',
+                    //'Site',  // coloured by the status when submitted
+                    //'Longitude',
+                    //'Latitude',
+                    //'District',
+                    //'Licensed site',
+                    'Status',
+                    //'Status<br>(at time of submit)',
+                    'Vacant<br>(current status)',  // current status of the 'is_vacant'
+                    //'Vacant<br>(at time of submit)',  // status of the 'is_vacant' when the application submitted
+                    //'Decision',
+                    'Previous Site Holder<br>Applicant',
+                    'Action',
+                ]
+
+            },
+            dtOptions: function(){
+                let vm = this
+                return {
+                    serverSide: false,
+                    searching: false,
+                    searchDelay: 1000,
+                    lengthMenu: [ [10, 25, 50, 100, -1], [10, 25, 50, 100, "All"] ],
+                    order: [
+                        [1, 'desc'], [0, 'desc'],
+                    ],
+                    language: {
+                        processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
+                    },
+                    responsive: true,
+                    processing: true,
+                    createdRow: function(row, data, index){
+                        $(row).attr('data-apiary-site-id', data.id)
+                    },
+                    columns: [
+                        {
+                            // Id (database id)
+                            visible: vm.show_col_id,
+                            mRender: function (data, type, apiary_site) {
+                                return apiary_site.id;
+                            }
+                        },
+                        {
+                            // Site (current): general status. Marker
+                            visible: vm.show_col_site,
+                            mRender: function (data, type, apiary_site) {
+                                let status_for_colour = getStatusForColour(apiary_site, false)
+                                let fillColour = SiteColours[status_for_colour].fill
+                                let strokeColour = SiteColours[status_for_colour].stroke
+                                let sub_str = ''
+
+                                if (status_for_colour === 'denied'){
+                                    sub_str = '<svg height="20" width="20">' +
+                                        '<line x1="4" y1="4" x2="16" y2="16" stroke="' + strokeColour + '" + stroke-width="2" />' +
+                                        '<line x1="4" y1="16" x2="16" y2="4" stroke="' + strokeColour + '" + stroke-width="2" />' +
+                                           '</svg> site: ' + apiary_site.id
+                                } else {
+                                    sub_str = '<svg height="20" width="20">' +
+                                                '<circle cx="10" cy="10" r="6" stroke="' + strokeColour + '" stroke-width="2" fill="' + fillColour + '" />' +
+                                           '</svg> site: ' + apiary_site.id
+                                }
+                                return '<div data-site="' + apiary_site.id + '">' + sub_str + '</div>'
+                            }
+                        },
+                        {
+                            // Status (current): general status.  Text
+                            visible: vm.show_col_status,
+                            mRender: function (data, type, apiary_site){
+                                let dynamic_status = getStatusForColour(apiary_site, false)
+                                let display_name = getDisplayNameFromStatus(dynamic_status)
+                                return display_name
+                            }
+                        },
+                        {
+                            // Vacant (current): yes/no
+                            visible: vm.show_col_vacant,
+                            mRender: function (data, type, apiary_site) {
+                                let status = apiary_site.properties.status
+                                let is_vacant = apiary_site.properties.is_vacant
+                                if(status === 'vacant' || is_vacant === true){
+                                    return '<i class="fa fa-check" aria-hidden="true"></i>'
+                                }
+                                return ''
+                            }
+                        },
+                        {
+                            // Previous Site Holder/Applicant
+                            visible: vm.show_col_previous_site_holder,
+                            mRender: function (data, type, apiary_site){
+                                return apiary_site.properties.previous_site_holder_or_applicant
+                            }
+                        },
+                        {
+                            // Action
+                            mRender: function (data, type, apiary_site) {
+                                let action_list = []
+
+                                // View on map
+                                let view_on_map_html = '<a href="#' + apiary_site.id + '" data-view-on-map="' + apiary_site.id + '">View on map</a>';
+                                action_list.push(view_on_map_html);
+
+                                if (vm.show_action_available_unavailable){
+                                    // Mark as Available/Unavailable
+                                    let display_text = ''
+                                    if (vm.is_external && ['current',].includes(apiary_site.properties.status.toLowerCase())){
+                                        if (apiary_site.properties.available){
+                                            display_text = 'Mark as unavailable';
+                                        } else {
+                                            display_text = 'Mark as available';
+                                        }
+                                        let ret = '<a data-toggle-availability="' + apiary_site.id + '" data-apiary-site-available="' + apiary_site.properties.available + '">' + display_text + '</a>';
+                                        action_list.push(ret);
+                                    //} else if (vm.is_internal && ['Current', 'current'].includes(apiary_site.status.id)){
+                                    } else if (vm.is_internal && ['current',].includes(apiary_site.properties.status.toLowerCase())){
+                                        if (apiary_site.properties.available){
+                                            display_text = 'Available';
+                                        } else {
+                                            display_text = 'Unavailable';
+                                        }
+                                        action_list.push(display_text);
+                                    }
+                                }
+                                if (vm.show_action_make_vacant){
+                                    let display_text = 'Make Vacant'
+                                    let ret = '<a data-make-vacant="' + apiary_site.id + '">' + display_text + '</a>';
+                                    action_list.push(ret);
+                                }
+                                if (vm.show_action_contact_licence_holder){
+                                    let display_text = 'Contact licence holder'
+                                    let ret = '<a data-contact-licence-holder="' + apiary_site.id + '">' + display_text + '</a>';
+                                    action_list.push(ret);
+                                }
+                                return action_list.join('<br />');
+                            }
+                        },
+                    ],
+                }
+            },
         },
         methods: {
+            addApiarySite: function(apiary_site_geojson) {
+                let vm = this
+                let feature = (new GeoJSON()).readFeature(apiary_site_geojson)
+
+                feature.getGeometry().on("change", function() {
+                    let feature_id = feature.getId()
+                    if (vm.modifyInProgressList.indexOf(feature_id) == -1) {
+                        vm.modifyInProgressList.push(feature_id);
+                    }
+                })
+
+                this.apiarySitesQuerySource.addFeature(feature)
+            },
+            filterSelectionChanged: function(filter){
+                filter.show = !filter.show
+                this.loadSites()
+            },
             addEventListeners: function () {
 
             },
@@ -310,15 +563,15 @@
                 let vm = this;
 
                 let satelliteTileWms = new TileWMS({
-                            url: env['kmi_server_url'] + '/geoserver/public/wms',
-                            params: {
-                                'FORMAT': 'image/png',
-                                'VERSION': '1.1.1',
-                                tiled: true,
-                                STYLES: '',
-                                LAYERS: 'public:mapbox-satellite',
-                            }
-                        });
+                    url: env['kmi_server_url'] + '/geoserver/public/wms',
+                    params: {
+                        'FORMAT': 'image/png',
+                        'VERSION': '1.1.1',
+                        tiled: true,
+                        STYLES: '',
+                        LAYERS: 'public:mapbox-satellite',
+                    }
+                });
 
                 vm.tileLayerOsm = new TileLayer({
                     title: 'OpenStreetMap',
@@ -362,7 +615,14 @@
                 vm.apiarySitesQueryLayer.setZIndex(10)  
 
                 // Full screen toggle
-                vm.map.addControl(new FullScreenControl());
+                let fullScreenControl = new FullScreenControl()
+                fullScreenControl.on('enterfullscreen', function(){
+                    console.log('in enterfullscreen')
+                })
+                fullScreenControl.on('leavefullscreen', function(){
+                    console.log('in leavefullscreen')
+                })
+                vm.map.addControl(fullScreenControl)
 
                 // Measure tool
                 let draw_source = new VectorSource({ wrapX: false })
@@ -696,22 +956,42 @@
 
                 }
             },
-            apiarySitesUpdated: function(apiary_sites){
-                console.log(apiary_sites)
+            addApiarySites: function(apiary_sites){
+                let vm = this
+                for (let apiary_site in apiary_sites){
+                    vm.addApiarySite(apiary_site)
+                }
             },
             loadSites: async function() {
                 let vm = this
 
-                Vue.http.get('/api/apiary_site/available_sites/').then(re => {
-                    console.log(re.body)
+                //Vue.http.get('/api/apiary_site/available_sites/').then(re => {
+                //    //vm.apiary_sites = re.body
+                //});
 
-                    vm.apiary_sites = re.body
-                    this.component_site_selection_key = uuid()
-                });
+                let apis = []
+                for (let filter of this.filters){
+                    if (filter.show){
+                        if (!filter.loaded){
+                            // sites haven't been loaded yet
+                            Vue.http.get('/api/apiary_site/' + filter.api + '/').then(re => {
+                                console.log('in ' + filter.api)
+                                console.log(re.body.features.length + ' sites')
+
+                                //vm.$refs.component_site_selection.addApiarySitesToMap(re.body.features, filter.id)
+                                filter.loaded = true
+                            })
+                        } else {
+                            // TODO: show sites
+                        }
+                    } else {
+                        // TODO: hide sites
+                    }
+                }
             },
         },
         created: function() {
-            this.loadSites()
+            //this.loadSites()
         },
         mounted: function() {
             let vm = this;
@@ -858,5 +1138,13 @@
     }
     .layer_option:hover {
         cursor: pointer;
+    }
+    .filter_search_wrapper {
+        position: relative;
+        z-index: 10;
+    }
+    .table_apiary_site {
+        position: relative;
+        z-index: 10;
     }
 </style>
