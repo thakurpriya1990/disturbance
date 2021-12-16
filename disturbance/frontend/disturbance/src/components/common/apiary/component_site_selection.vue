@@ -498,7 +498,7 @@
                     this.$refs.component_map.displayAllFeatures()
                 }
             },
-            addApiarySitesToMap: function(apiary_sites) {
+            addApiarySitesToMap: function(apiary_sites, filter_id) {
                 console.log('in addApiarySitesToMap')
                 console.log('adding ' + apiary_sites.length + ' sites')
 
@@ -508,8 +508,11 @@
                     }
                     //this.apiary_site_geojson_array.push(apiary_sites[i])
                     this.apiary_sites_local.push(apiary_sites[i])  // We may have to deep copy.
+
+                    // Add an apiary site to the map
                     this.$refs.component_map.addApiarySite(apiary_sites[i])
 
+                    // Add an apiary site to the table
                     this.addApiarySiteToTable(apiary_sites[i])
                 }
 
