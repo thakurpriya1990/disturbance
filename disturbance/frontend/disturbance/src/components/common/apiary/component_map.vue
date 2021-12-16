@@ -462,6 +462,7 @@
                                 if (visibility){
                                     // Retrieve column names to be displayed
                                     let column_names = vm.optionalLayers[i].get('columns')
+                                    console.log(column_names)
                                     column_names = column_names.map(function(col){
                                         // Convert array of dictionaries to simple array
                                         if (vm.is_internal && col.option_for_internal){
@@ -568,6 +569,9 @@
                 }
             },
             showPopupForLayersJson: function(geojson, coord, column_names, display_all_columns, target_layer){
+                console.log(geojson)
+                console.log(column_names)
+
                 let wrapper = $('<div>')  // Add wrapper element because html() used at the end exports only the contents of the jquery object
                 let caption = $('<div style="text-align:center; font-weight: bold;">').text(target_layer.get('title'))
                 let table = $('<table style="margin-bottom: 1em;">') //.addClass('table')
@@ -584,6 +588,8 @@
                             tr.append(th)
                             tr.append(td)
                             tbody.append(tr)
+                        } else {
+
                         }
                     }
                     this.content_element.innerHTML += wrapper.html()  // Export contents as HTML string
