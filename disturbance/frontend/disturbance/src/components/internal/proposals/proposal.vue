@@ -544,11 +544,11 @@ export default {
             return this.proposal && this.proposal.applicant.email ? this.proposal.applicant.email : '';
         },
         
-        getGraemeUrl: function() {
+        getRevisionDiffsUrl: function() {
             let url = ''
             url = helpers.add_endpoint_join('/api/proposal/',
                                             this.proposal.id +
-                                            '/get_graeme/')
+                                            '/get_revision_diffs/')
             return url;
         },
         createLodgementRevisionTable: function() {
@@ -556,16 +556,14 @@ export default {
                 This creates a table of versions for the current Proposal. Each entry has the Proposal ID along with the revision \
                 number and date of submission. An action is provided for each entry to allow comparison between versions.
             */
-            const limit = 5
-            const revisions_length = this.proposal.reversion_history.length
-
-            let index = 1 // Start index at 1 so it's nicer for humans
+            const limit = 5 // only display this many versions
+            index += 1
+            let index = 0
             for (let prop in this.proposal.reversion_history) {
                 let action_label = '<a style="cursor:pointer;">Compare</a>'
                 if (index < limit) {
-                    if (index == 1) {
-                        action_label = 'Viewing'
-                    }
+                    if (index === 0) { index += 1; continue; } // The first entry is the latest version
+                    if (index === 1) { action_label = 'Viewing'}
                     this.lodgement_revisions.push({"index": index,
                                                    "id": prop,
                                                    "date": this.proposal.reversion_history[prop]["date"],
@@ -583,7 +581,7 @@ export default {
             */
             let clicked_revision = this.lodgement_revisions[revision-1]
             for (let index = 0; index < this.lodgement_revisions.length; index++) {
-                if (revision > 1) {
+                if (revision > 0) {
                     this.lodgement_revisions[index].action = '<a style="cursor:pointer;">Compare</a>'
                     clicked_revision.action = 'Comparing'        // should be non-clickable now
                 }
@@ -591,15 +589,42 @@ export default {
             }
 
             // Now post to the API to get the differences between latest version and this one.
-            const diffs = await Vue.http.post(this.getGraemeUrl, {"version_number": revision})
-            const diffs_dict = diffs.data[0]
+            const revisions_length = Object.keys(this.proposal.reversion_history).length
+            let revision_index = this.lodgement_revisions.length - revision + 2
+            const diffs = await Vue.http.post(this.getRevisionDiffsUrl, {"version_number": revision_index})
 
+            // Remove any previous revisions
+            $(".revision_note").remove()
+
+            // Find each section that has a revision and append it to that section title.
             for (let entry in diffs.data) {
                 for (let k in diffs.data[entry]) {
-                    const original_text = $( "#id_" + k ).text()
                     const revision_text = diffs.data[entry][k]
-                    const replacement_html = "<label>" + original_text + "</label></br><label style='color: red;'>" + revision_text + "</label>"
-                    $( "#id_" + k ).html(replacement_html)
+                    const replacement_html = "<div class='revision_note' style='color: red;'>" + revision_text + "</div>"
+                    // const replacement_html = 
+                    $( "#id_" + k ).parent().after(replacement_html)
+                    // console.log($( "#id_" + k ).closest(".form-group").children()[2].after('fart'))
+                    // $( "#id_" + k ).parent().contents().css("background-color", "red")
+                    // .append(replacement_html)
+                    // console.log($( "#id_" + k ).closest(".form-group").find('input').attr('type'))
+                    console.log('---1---' + $("#id_" + k ).parent().find('input').attr('type') + "      " + $("#id_" + k ).parent().find('input').val())
+                    console.log('---1.5---' + $("#id_" + k ).parent().find('text').attr('type') + "      " + $("#id_" + k ).parent().find('input').val())
+                    console.log('---2---' + $("#id_"+k).closest(".form-group").find().prop('nodeName'))
+                    console.log('---3---' + $("#id_" + k ).parent().contents().attr('type') + "\n---------------------------------------")
+
+                    // if ($("#id_"+k).closest(".form-group").find('input').attr('type') == "text") {
+                    //     console.log('TEXT')
+                    //     $( "#id_" + k ).parent().after('text')
+                    // }
+                    // if ($("#id_"+k).closest(".form-group").find('input:radio').prop('nodeName') == "INPUT") {
+                    //     console.log('RADIO')
+                    //     $( "#id_" + k ).parent().after('radio')
+                    // }
+                    // if ($("#id_"+k).closest(".form-group").find('input:radio').prop('nodeName') == "undefined") {
+                    //     console.log('UNDEF')
+                    //     $( "#id_" + k ).parent().after('undefined')
+                    // }
+                    
                 }
             }
 

@@ -414,7 +414,12 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 )
         read_only_fields=('documents','requirements')
 
+
     def get_reversion_history(self, obj):
+        """
+        This uses Reversion to get all the revisions made to this Proposal. The revisions are returned as a dict with the
+        Proposal id and version as key.
+        """
         from reversion.models import Version
         reversion_dict = {}
         # Get all revisions that have been submitted (not just saved by user) including the original.
@@ -425,7 +430,9 @@ class InternalProposalSerializer(BaseProposalSerializer):
 
         # Work backwards through the revisions so the most recent are at the top.
         for index, revision in enumerate(unique_revisions.values()):
-            # Add the index to the end of the lodgement number to show the revision.            
+            # Don't bother with 0 as it is the original version.
+            # if(index <= 1): continue
+            # Add the index to the end of the lodgement number to show the revision.        
             this_revision_key = '{}-{}'.format(revision.field_dict['lodgement_number'], number_of_revisions-index)
             reversion_dict[this_revision_key] = {'date': revision.field_dict['lodgement_date']}
 

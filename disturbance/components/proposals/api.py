@@ -1286,13 +1286,17 @@ class ProposalViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(str(e))
 
     @detail_route(methods=['POST',])
-    def get_graeme(self, request, *args, **kwargs):
+    def get_revision_diffs(self, request, *args, **kwargs):
+        """
+        Use the Proposal model method to get the differences between the lastest revision and
+        the revision specified.
+        """
         try:
             instance = self.get_object()
             version_number = request.data.get("version_number")
             diffs = instance.get_revision_diff(version_number)
 
-            return Response(json.dumps(diffs))
+            return Response(diffs)
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
