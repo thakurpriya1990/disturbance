@@ -291,7 +291,7 @@ def get_qs_approval():
     qs_vacant_site = get_vacant_apiary_site()
 
     # 2.1. Include
-    q_include_approval &= Q(id__in=(ApiarySite.objects.filter(latest_proposal_link__isnull=False).values_list('latest_approval_link__id', flat=True)))  # Include only the intermediate objects which are on the ApiarySite.latest_proposal_links
+    q_include_approval &= Q(id__in=(ApiarySite.objects.filter(latest_approval_link__isnull=False).values_list('latest_approval_link__id', flat=True)))  # Include only the intermediate objects which are on the ApiarySite.latest_proposal_links
 
     # 2.2. Exclude
     q_exclude_approval |= Q(apiary_site__in=qs_vacant_site)  # We don't want to pick up the vacant sites already retrieved above
