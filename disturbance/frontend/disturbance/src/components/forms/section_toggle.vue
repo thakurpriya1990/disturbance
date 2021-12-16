@@ -18,18 +18,35 @@ import uuid from 'uuid';
 
 export default {
     name:"FormSection",
-    props:[
-        "label", 
-        "subheading", 
-        "Index", 
-        "formCollapse", 
-        "hideHeader",
-        "treeHeight",
-    ],
+    props: {
+        "label": {
+            type: String,
+            default: '',
+        },
+        "subheading": {
+            type: String,
+            default: '',
+        },
+        "Index": {
+            type: String,
+            default: '',
+        },
+        "formCollapse": {
+            type: Boolean,
+            default: false,
+        },
+        "hideHeader": {
+            type: Boolean,
+            default: false,
+        },
+        "treeHeight": {
+            type: Boolean,
+            default: false,
+        },
+    },
     data:function () {
         return {
             title:"Section title",
-            subheading:"",
             panel_chevron_class: null,
             custom_id: uuid(),
         }
