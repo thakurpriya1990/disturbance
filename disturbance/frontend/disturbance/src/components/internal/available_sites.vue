@@ -7,7 +7,7 @@
                         <input type="checkbox" :id="filter.id" :value="filter.value" :checked="filter.show" @change="filterSelectionChanged(filter)" :key="filter.id" />
                         <label :for="filter.id">{{ filter.display_name }}</label>
                     </div>
-                    <div class="text_search">
+                    <div class="search_text">
                         <input v-model="search_text">
                     </div>
                 </div>
@@ -55,6 +55,9 @@
                     :dtOptions="dtOptions"
                     :dtHeaders="dtHeaders"
                 />
+                <div class="button_row">
+                    <span class="view_all_button" @click="displayAllFeatures">View All On Map</span>
+                </div>
             </div>
             <div :id="popup_id" class="ol-popup">
                 <a href="#" :id="popup_closer_id" class="ol-popup-closer">
@@ -72,7 +75,7 @@
         <ContactLicenceHolderModal
             ref="contact_licence_holder_modal"
             :key="modalBindId"
-            @contact_licence_holder="contactLicenceHolder"
+            @contact_licence_holder="contactLicenceHolderOK"
         />
     </div>
 </template>
@@ -105,9 +108,10 @@
     import { circular} from 'ol/geom/Polygon';
     import GeoJSON from 'ol/format/GeoJSON';
     import Overlay from 'ol/Overlay';
-    import { getDisplayNameFromStatus, getDisplayNameOfCategory, getStatusForColour, getApiaryFeatureStyle } from '@/components/common/apiary/site_colours.js'
+    import { getDisplayNameFromStatus, getDisplayNameOfCategory, getStatusForColour, getApiaryFeatureStyle, SiteColours } from '@/components/common/apiary/site_colours.js'
     import { getArea, getLength } from 'ol/sphere'
     import MeasureStyles, { formatLength } from '@/components/common/apiary/measure.js'
+
     import Datatable from '@vue-utils/datatable.vue'
 
     export default {
@@ -157,12 +161,12 @@
                 type: Boolean,
                 default: true
             },
-            apiary_site_geojson_array: {
-                type: Array,
-                default: function(){
-                    return []
-                }
-            },
+            //apiary_site_geojson_array: {
+            //    type: Array,
+            //    default: function(){
+            //        return []
+            //    }
+            //},
             can_modify: {
                 type: Boolean,
                 default: false
@@ -176,6 +180,12 @@
             search_text: function(){
                 console.log('changed: search_text')
                 console.log(this.search_text)
+
+                // Clear data storage in the filters
+                for (let filter of this.filters){
+                    filter.features = []
+                    filter.rows = []
+                }
             }
         },
         computed: {
@@ -187,8 +197,9 @@
                         'value': 'vacant',
                         'display_name': 'Vacant',
                         'show': false,
-                        'loaded': false,
                         'api': 'list_existing_vacant',  // TODO: implement backend
+                        'features': [],
+                        'rows': [],
                     },
                     // ApiarySiteOnProposal
                     {
@@ -196,24 +207,27 @@
                         'value': 'draft',
                         'display_name': 'Draft',
                         'show': false,
-                        'loaded': false,
                         'api': 'list_existing_proposal_draft',
+                        'features': [],
+                        'rows': [],
                     },
                     {
                         'id': 'pending',
                         'value': 'pending',
                         'display_name': 'Pending',
                         'show': false,
-                        'loaded': false,
                         'api': '',
+                        'features': [],
+                        'rows': [],
                     },
                     {
                         'id': 'denied',
                         'value': 'denied',
                         'display_name': 'Denied',
                         'show': false,
-                        'loaded': false,
                         'api': '',
+                        'features': [],
+                        'rows': [],
                     },
                     // ApiarySiteOnApproval
                     {
@@ -221,32 +235,36 @@
                         'value': 'current',
                         'display_name': 'Current',
                         'show': false,
-                        'loaded': false,
                         'api': '',
+                        'features': [],
+                        'rows': [],
                     },
                     {
                         'id': 'not_to_be_reissued',
                         'value': 'not_to_be_reissued',
                         'display_name': 'Not to be reissued',
                         'show': false,
-                        'loaded': false,
                         'api': '',
+                        'features': [],
+                        'rows': [],
                     },
                     {
                         'id': 'suspended',
                         'value': 'suspended',
                         'display_name': 'Suspended',
                         'show': false,
-                        'loaded': false,
                         'api': '',
+                        'features': [],
+                        'rows': [],
                     },
                     {
                         'id': 'discarded',
                         'value': 'discarded',
                         'display_name': 'Discarded',
                         'show': false,
-                        'loaded': false,
                         'api': '',
+                        'features': [],
+                        'rows': [],
                     },
                 ]
             },
@@ -260,18 +278,9 @@
             dtHeaders: function(){
                 return [
                     'Id',
-                    //'',
                     'Site',
-                    //'Site',  // coloured by the status when submitted
-                    //'Longitude',
-                    //'Latitude',
-                    //'District',
-                    //'Licensed site',
                     'Status',
-                    //'Status<br>(at time of submit)',
                     'Vacant<br>(current status)',  // current status of the 'is_vacant'
-                    //'Vacant<br>(at time of submit)',  // status of the 'is_vacant' when the application submitted
-                    //'Decision',
                     'Previous Site Holder<br>Applicant',
                     'Action',
                 ]
@@ -350,7 +359,11 @@
                             // Previous Site Holder/Applicant
                             visible: vm.show_col_previous_site_holder,
                             mRender: function (data, type, apiary_site){
-                                return apiary_site.properties.previous_site_holder_or_applicant
+                                if (apiary_site.properties.previous_site_holder_or_applicant){
+                                    return apiary_site.properties.previous_site_holder_or_applicant
+                                } else {
+                                    return 'previous_site_holder_or_applicant data not found'
+                                }
                             }
                         },
                         {
@@ -401,25 +414,51 @@
             },
         },
         methods: {
-            addApiarySite: function(apiary_site_geojson) {
+            addApiarySiteToMap: function(apiary_site_geojson) {
                 let vm = this
                 let feature = (new GeoJSON()).readFeature(apiary_site_geojson)
-
-                feature.getGeometry().on("change", function() {
-                    let feature_id = feature.getId()
-                    if (vm.modifyInProgressList.indexOf(feature_id) == -1) {
-                        vm.modifyInProgressList.push(feature_id);
-                    }
-                })
-
                 this.apiarySitesQuerySource.addFeature(feature)
+                return feature
+            },
+            addApiarySiteToTable: function(apiary_site_geojson){
+                let new_row = this.$refs.table_apiary_site.vmDataTable.row.add(apiary_site_geojson)
+                new_row.draw()
             },
             filterSelectionChanged: function(filter){
                 filter.show = !filter.show
                 this.loadSites()
             },
             addEventListeners: function () {
+                $("#" + this.table_id).on("click", "a[data-view-on-map]", this.zoomOnApiarySite)
+                //$("#" + this.table_id).on("click", "a[data-toggle-availability]", this.toggleAvailability)
+                //$("#" + this.table_id).on('click', 'a[data-make-vacant]', this.makeVacantClicked)
+                $("#" + this.table_id).on('click', 'a[data-contact-licence-holder]', this.contactLicenceHolder)
+                $("#" + this.table_id).on('mouseenter', "tr", this.mouseEnter)
+                $("#" + this.table_id).on('mouseleave', "tr", this.mouseLeave)
+            },
+            mouseEnter: function(e){
+                let vm = this;
+                if (!vm.not_close_popup_by_mouseleave){
+                    let apiary_site_id = e.currentTarget.getAttribute("data-apiary-site-id");
+                    if (apiary_site_id){
+                        //vm.$refs.component_map.showPopupById(apiary_site_id)
+                        vm.showPopupById(apiary_site_id)
+                    }
+                }
+            },
+            mouseLeave: function(e){
+                let vm = this;
+                if (!vm.not_close_popup_by_mouseleave){
+                    //vm.$refs.component_map.closePopup()
+                    vm.closePopup()
+                }
+            },
+            zoomOnApiarySite: function(e) {
+                this.not_close_popup_by_mouseleave = true
 
+                let apiary_site_id = e.target.getAttribute("data-view-on-map");
+                this.zoomToApiarySiteById(apiary_site_id)
+                e.stopPropagation()
             },
             setBaseLayer: function(selected_layer_name){
                 let vm = this
@@ -551,7 +590,8 @@
             closePopup: function(){
                 this.content_element.innerHTML = null
                 this.overlay.setPosition(undefined)
-                this.$emit('popupClosed')
+                this.not_close_popup_by_mouseleave = false
+                //this.$emit('popupClosed')
             },
             forceToRefreshMap: function() {
                 let vm = this
@@ -666,9 +706,9 @@
                 }));
 
                 // Add apiary_sites passed as a props
-                for (let i=0; i<vm.apiary_site_geojson_array.length; i++){
-                    this.addApiarySite(vm.apiary_site_geojson_array[i])
-                }
+                //for (let i=0; i<vm.apiary_site_geojson_array.length; i++){
+                //    //this.addApiarySite(vm.apiary_site_geojson_array[i])
+                //}
 
                 let container = document.getElementById(vm.popup_id)
                 vm.content_element = document.getElementById(vm.popup_content_id)
@@ -819,9 +859,6 @@
                 }
             },
             showPopupForLayersJson: function(geojson, coord, column_names, display_all_columns, target_layer){
-                console.log(geojson)
-                console.log(column_names)
-
                 let wrapper = $('<div>')  // Add wrapper element because html() used at the end exports only the contents of the jquery object
                 let caption = $('<div style="text-align:center; font-weight: bold;">').text(target_layer.get('title'))
                 let table = $('<table style="margin-bottom: 1em;">') //.addClass('table')
@@ -880,19 +917,6 @@
             getDegrees: function(coords){
                 return coords[0].toFixed(6) + ', ' + coords[1].toFixed(6);
             },
-            addApiarySite: function(apiary_site_geojson) {
-                let vm = this
-                let feature = (new GeoJSON()).readFeature(apiary_site_geojson)
-
-                feature.getGeometry().on("change", function() {
-                    let feature_id = feature.getId()
-                    if (vm.modifyInProgressList.indexOf(feature_id) == -1) {
-                        vm.modifyInProgressList.push(feature_id);
-                    }
-                })
-
-                this.apiarySitesQuerySource.addFeature(feature)
-            },
             removeApiarySiteById: function(apiary_site_id){
                 let feature = this.apiarySitesQuerySource.getFeatureById(apiary_site_id)
                 this.apiarySitesQuerySource.removeFeature(feature)
@@ -909,9 +933,6 @@
                 let feature = this.apiarySitesQuerySource.getFeatureById(apiary_site_id)
                 let style_applied = getApiaryFeatureStyle(getStatusForColour(feature, false, this.display_at_time_of_submitted), selected)
                 feature.setStyle(style_applied)
-            },
-            addEventListeners: function () {
-
             },
             displayAllFeatures: function() {
                 if (this.apiarySitesQuerySource.getFeatures().length>0){
@@ -931,8 +952,16 @@
                 console.log(apiary_site_id)
                 this.openOnSiteInformationModal(apiary_site_id)
             },
-            contactLicenceHolder: function(obj){
+            contactLicenceHolder: function(e){
                 console.log('contactLicenceHolder')
+                let vm = this;
+                //let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
+                let apiary_site_id = e.target.getAttribute("data-contact-licence-holder");
+
+                this.contactLicenceHolderClicked(apiary_site_id)
+                e.stopPropagation()
+            },
+            contactLicenceHolderOK: function(obj){
                 this.$http.post('/api/apiary_site/' + obj.apiary_site_id + '/contact_licence_holder/', obj).then(
                     res => {
                         this.$refs.contact_licence_holder_modal.close();
@@ -956,36 +985,73 @@
 
                 }
             },
-            addApiarySites: function(apiary_sites){
-                let vm = this
-                for (let apiary_site in apiary_sites){
-                    vm.addApiarySite(apiary_site)
+            constructApiarySitesTable: function() {
+                console.log('constructApiarySitesTable')
+                if (this.$refs.table_apiary_site){
+                    // Clear table
+                    this.$refs.table_apiary_site.vmDataTable.clear().draw();
+
+                    // Construct table
+                    for (let filter of this.filters){
+                        if (filter.show){
+                            console.log(filter.features)
+                            console.log(filter.features.length)
+                            for (let feature of filter.features){
+                                console.log('4')
+                                console.log(feature)
+                                this.addApiarySiteToTable(feature.as_geojson)
+                            }
+                        }
+                    }
+                    //if (apiary_sites.length > 0){
+                    //    for(let i=0; i<apiary_sites.length; i++){
+                    //        this.addApiarySiteToTable(apiary_sites[i]);
+                    //    }
+                    //}
                 }
             },
             loadSites: async function() {
                 let vm = this
 
-                //Vue.http.get('/api/apiary_site/available_sites/').then(re => {
-                //    //vm.apiary_sites = re.body
-                //});
+                // Clear table 
+                this.$refs.table_apiary_site.vmDataTable.clear().draw();
 
-                let apis = []
                 for (let filter of this.filters){
                     if (filter.show){
-                        if (!filter.loaded){
-                            // sites haven't been loaded yet
+                        if (filter.loaded){
+                            // Data have been already loaded
+                            // Add the features to the map from the data storage
+                            for (let feature of filter.features){
+                                vm.apiarySitesQuerySource.addFeature(feature)
+                            }
+                            // Add the features to the table from the data storage
+                            for (let apiary_site_geojson of filter.rows){
+                                vm.addApiarySiteToTable(apiary_site_geojson)
+                            }
+                        } else {
+                            // Data have not been loaded yet
+                            // Fetch data from the server
+                            // Add the features to the map
+                            // Add the features to the table
+                            // Store data in the data storage
                             Vue.http.get('/api/apiary_site/' + filter.api + '/').then(re => {
-                                console.log('in ' + filter.api)
-                                console.log(re.body.features.length + ' sites')
+                                for (let apiary_site_geojson of re.body.features){
+                                    // Add the apiary_site to the map
+                                    let feature = vm.addApiarySiteToMap(apiary_site_geojson)
+                                    filter.features.push(feature)
 
-                                //vm.$refs.component_site_selection.addApiarySitesToMap(re.body.features, filter.id)
+                                    // Add the apiary_site to the table
+                                    vm.addApiarySiteToTable(apiary_site_geojson)
+                                    filter.rows.push(apiary_site_geojson)
+                                }
                                 filter.loaded = true
                             })
-                        } else {
-                            // TODO: show sites
                         }
                     } else {
-                        // TODO: hide sites
+                        for (let feature of filter.features){
+                            // Remove the apiary_site from the map.  There are no functions to show/hide a feature unlike the layer.
+                            vm.apiarySitesQuerySource.removeFeature(feature)
+                        }
                     }
                 }
             },
@@ -1146,5 +1212,13 @@
     .table_apiary_site {
         position: relative;
         z-index: 10;
+    }
+    .button_row {
+        display: flex;
+        justify-content: flex-end;
+    }
+    .view_all_button {
+        color: #03a9f4;
+        cursor: pointer;
     }
 </style>
