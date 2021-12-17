@@ -178,14 +178,20 @@
         },
         watch: {
             search_text: function(){
-                console.log('changed: search_text')
-                console.log(this.search_text)
-
                 // Clear data storage in the filters
-                for (let filter of this.filters){
-                    filter.features = []
-                    filter.rows = []
+                let vm = this
+
+                for (let filter of vm.filters){
+                    if (filter.show){
+                        for (let apiary_site_geojson of filter.apiary_sites){
+                            // Remove the apiary_site from the map.  There are no functions to show/hide a feature unlike the layer.
+                            vm.apiarySitesQuerySource.removeFeature(apiary_site_geojson.feature)
+                        }
+                    }
+                    filter.apiary_sites = []
+                    filter.loaded = false
                 }
+                vm.loadSites()
             }
         },
         computed: {
@@ -198,8 +204,7 @@
                         'display_name': 'Vacant',
                         'show': false,
                         'api': 'list_existing_vacant',  // TODO: implement backend
-                        'features': [],
-                        'rows': [],
+                        'apiary_sites': [],
                     },
                     // ApiarySiteOnProposal
                     {
@@ -208,8 +213,7 @@
                         'display_name': 'Draft',
                         'show': false,
                         'api': 'list_existing_proposal_draft',
-                        'features': [],
-                        'rows': [],
+                        'apiary_sites': [],
                     },
                     {
                         'id': 'pending',
@@ -217,8 +221,7 @@
                         'display_name': 'Pending',
                         'show': false,
                         'api': '',
-                        'features': [],
-                        'rows': [],
+                        'apiary_sites': [],
                     },
                     {
                         'id': 'denied',
@@ -226,8 +229,7 @@
                         'display_name': 'Denied',
                         'show': false,
                         'api': '',
-                        'features': [],
-                        'rows': [],
+                        'apiary_sites': [],
                     },
                     // ApiarySiteOnApproval
                     {
@@ -236,8 +238,7 @@
                         'display_name': 'Current',
                         'show': false,
                         'api': '',
-                        'features': [],
-                        'rows': [],
+                        'apiary_sites': [],
                     },
                     {
                         'id': 'not_to_be_reissued',
@@ -245,8 +246,7 @@
                         'display_name': 'Not to be reissued',
                         'show': false,
                         'api': '',
-                        'features': [],
-                        'rows': [],
+                        'apiary_sites': [],
                     },
                     {
                         'id': 'suspended',
@@ -254,8 +254,7 @@
                         'display_name': 'Suspended',
                         'show': false,
                         'api': '',
-                        'features': [],
-                        'rows': [],
+                        'apiary_sites': [],
                     },
                     {
                         'id': 'discarded',
@@ -263,8 +262,7 @@
                         'display_name': 'Discarded',
                         'show': false,
                         'api': '',
-                        'features': [],
-                        'rows': [],
+                        'apiary_sites': [],
                     },
                 ]
             },
@@ -985,31 +983,6 @@
 
                 }
             },
-            constructApiarySitesTable: function() {
-                console.log('constructApiarySitesTable')
-                if (this.$refs.table_apiary_site){
-                    // Clear table
-                    this.$refs.table_apiary_site.vmDataTable.clear().draw();
-
-                    // Construct table
-                    for (let filter of this.filters){
-                        if (filter.show){
-                            console.log(filter.features)
-                            console.log(filter.features.length)
-                            for (let feature of filter.features){
-                                console.log('4')
-                                console.log(feature)
-                                this.addApiarySiteToTable(feature.as_geojson)
-                            }
-                        }
-                    }
-                    //if (apiary_sites.length > 0){
-                    //    for(let i=0; i<apiary_sites.length; i++){
-                    //        this.addApiarySiteToTable(apiary_sites[i]);
-                    //    }
-                    //}
-                }
-            },
             loadSites: async function() {
                 let vm = this
 
@@ -1021,11 +994,11 @@
                         if (filter.loaded){
                             // Data have been already loaded
                             // Add the features to the map from the data storage
-                            for (let feature of filter.features){
-                                vm.apiarySitesQuerySource.addFeature(feature)
+                            for (let apiary_site_geojson of filter.apiary_sites){
+                                vm.apiarySitesQuerySource.addFeature(apiary_site_geojson.feature)
                             }
                             // Add the features to the table from the data storage
-                            for (let apiary_site_geojson of filter.rows){
+                            for (let apiary_site_geojson of filter.apiary_sites){
                                 vm.addApiarySiteToTable(apiary_site_geojson)
                             }
                         } else {
@@ -1034,23 +1007,23 @@
                             // Add the features to the map
                             // Add the features to the table
                             // Store data in the data storage
-                            Vue.http.get('/api/apiary_site/' + filter.api + '/').then(re => {
+                            Vue.http.get('/api/apiary_site/' + filter.api + '/?search_text=' + vm.search_text).then(re => {
                                 for (let apiary_site_geojson of re.body.features){
                                     // Add the apiary_site to the map
                                     let feature = vm.addApiarySiteToMap(apiary_site_geojson)
-                                    filter.features.push(feature)
 
                                     // Add the apiary_site to the table
+                                    apiary_site_geojson.feature = feature
                                     vm.addApiarySiteToTable(apiary_site_geojson)
-                                    filter.rows.push(apiary_site_geojson)
+                                    filter.apiary_sites.push(apiary_site_geojson)
                                 }
                                 filter.loaded = true
                             })
                         }
                     } else {
-                        for (let feature of filter.features){
+                        for (let apiary_site_geojson of filter.apiary_sites){
                             // Remove the apiary_site from the map.  There are no functions to show/hide a feature unlike the layer.
-                            vm.apiarySitesQuerySource.removeFeature(feature)
+                            vm.apiarySitesQuerySource.removeFeature(apiary_site_geojson.feature)
                         }
                     }
                 }

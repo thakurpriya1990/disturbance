@@ -225,7 +225,7 @@ def get_qs_vacant_site():
     return qs_vacant_site_proposal, qs_vacant_site_approval
 
 
-def get_qs_proposal(draft_processed, proposal=None):
+def get_qs_proposal(draft_processed, proposal=None, search_text=''):
     from disturbance.components.proposals.models import ApiarySite, ApiarySiteOnProposal, Proposal
 
     # 1. ApiarySiteOnProposal
@@ -233,7 +233,11 @@ def get_qs_proposal(draft_processed, proposal=None):
     q_exclude_proposal = Q()
 
     # 1.1. Include
-    q_include_proposal &= Q(id__in=(ApiarySite.objects.filter(latest_proposal_link__isnull=False).values_list('latest_proposal_link__id', flat=True)))  # Include only the intermediate objects which are on the ApiarySite.latest_proposal_links
+    q_include_apiary_site = Q()
+    q_include_apiary_site &= Q(latest_proposal_link__isnull=False)
+    if search_text:
+        q_include_apiary_site &= Q(id__contains=search_text)
+    q_include_proposal &= Q(id__in=(ApiarySite.objects.filter(q_include_apiary_site).values_list('latest_proposal_link__id', flat=True)))  # Include only the intermediate objects which are on the ApiarySite.latest_proposal_links
 
     # 1.2. Exclude
     q_exclude_proposal |= Q(site_status__in=(SITE_STATUS_DRAFT,)) & Q(making_payment=False)  # Purely 'draft' site
