@@ -220,7 +220,7 @@
                         'value': 'pending',
                         'display_name': 'Pending',
                         'show': false,
-                        'api': '',
+                        'api': 'list_existing_denied',
                         'apiary_sites': [],
                     },
                     {

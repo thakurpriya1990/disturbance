@@ -1485,18 +1485,18 @@
                 // Draw and modify tools
                 if (!vm.readonly){
                     let modifyInProgressList = [];
-                    this.drawForApiarySite = new Draw({
+                    vm.drawForApiarySite = new Draw({
                         source: vm.drawingLayerSource,
                         type: "Point",
                         style: vm.styleFunctionForMouse,  // This style is for the style on the mouse
                     });
-                    this.drawForApiarySite.on("drawstart", async function(attributes){
+                    vm.drawForApiarySite.on("drawstart", async function(attributes){
                         if (vm.mode === 'normal'){
                             let coords = attributes.feature.getGeometry().getCoordinates()
 
                             if (vm.vacant_site_being_selected){
                                 // Abort drawing, instead 'vacant' site is to be added
-                                this.drawForApiarySite.abortDrawing();
+                                vm.drawForApiarySite.abortDrawing();
 
                                 vm.vacant_site_being_selected.set('vacant_selected', true)
 
@@ -1509,15 +1509,15 @@
                             } else {
                                 let coords = attributes.feature.getGeometry().getCoordinates()
                                 if (!vm.isNewPositionValid(coords)) {
-                                    this.drawForApiarySite.abortDrawing();
+                                    vm.drawForApiarySite.abortDrawing();
                                 }
                             }
                         } else {
-                            this.drawForApiarySite.abortDrawing();
+                            vm.drawForApiarySite.abortDrawing();
                         }
                     });
-                    this.drawForApiarySite.on('drawend', async function(attributes){
-                        if (!this.readoly){
+                    vm.drawForApiarySite.on('drawend', async function(attributes){
+                        if (!vm.readonly){
                             let feature = attributes.feature;
                             let draw_id = vm.uuidv4();
                             let draw_coords = feature.getGeometry().getCoordinates();
@@ -1535,7 +1535,7 @@
                             // Vue table is updated by the event 'addfeature' issued from the Source
                         }
                     });
-                    vm.map.addInteraction(this.drawForApiarySite);
+                    vm.map.addInteraction(vm.drawForApiarySite);
 
                     let modifyTool = new Modify({
                         source: vm.drawingLayerSource,
@@ -1679,7 +1679,7 @@
                 let charCode = (evt.which) ? evt.which : evt.keyCode;
                 if (charCode === 27 && vm.measuring === true){ //esc key
                     //dispatch event
-                    this.drawForMeasure.set('escKey', Math.random());
+                    vm.drawForMeasure.set('escKey', Math.random());
                 }
             },
             //get_status_for_colour: function(feature){

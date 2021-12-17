@@ -54,6 +54,10 @@
                 type: Boolean,
                 default: false,
             },
+            table_and_map_in_a_row: {
+                type: Boolean,
+                default: true,
+            },
             show_col_id: {
                 type: Boolean,
                 default: false,
@@ -449,15 +453,11 @@
                 let ids = $.map(features, function(feature){
                     return feature.id_
                 })
-                console.log('ids: ')
-                console.log(ids)
 
                 // Generate a list of apiary_sites whose ids are in the list generated above
                 let apiary_sites_filtered = this.apiary_sites_local.filter(function(apiary_site){
                     return ids.includes(apiary_site.id)
                 })
-                console.log('apiary_sites_filtered')
-                console.log(apiary_sites_filtered)
 
                 // Update the table
                 this.constructApiarySitesTable(apiary_sites_filtered)
