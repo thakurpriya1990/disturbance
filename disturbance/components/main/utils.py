@@ -173,17 +173,20 @@ def get_region_district(wkb_geometry):
         return ''
 
 
-def get_vacant_apiary_site():
+def get_vacant_apiary_site(search_text=''):
     from disturbance.components.proposals.models import ApiarySite
-    qs_vacant_site = ApiarySite.objects.filter(is_vacant=True).distinct()
+    queries = Q(is_vacant=True)
+    if search_text:
+        queries &= Q(id__icontains=search_text)
+    qs_vacant_site = ApiarySite.objects.filter(queries).distinct()
     return qs_vacant_site
 
 
-def get_qs_vacant_site():
+def get_qs_vacant_site(search_text=''):
     from disturbance.components.proposals.models import ApiarySiteOnProposal
     from disturbance.components.approvals.models import ApiarySiteOnApproval
 
-    qs_vacant_site = get_vacant_apiary_site()
+    qs_vacant_site = get_vacant_apiary_site(search_text)
 
     # apiary_site_proposal_ids = qs_vacant_site.all().values('proposal_link_for_vacant__id')
     apiary_site_proposal_ids = qs_vacant_site.all().values('latest_proposal_link__id')
@@ -236,7 +239,7 @@ def get_qs_proposal(draft_processed, proposal=None, search_text=''):
     q_include_apiary_site = Q()
     q_include_apiary_site &= Q(latest_proposal_link__isnull=False)
     if search_text:
-        q_include_apiary_site &= Q(id__contains=search_text)
+        q_include_apiary_site &= Q(id__icontains=search_text)
     q_include_proposal &= Q(id__in=(ApiarySite.objects.filter(q_include_apiary_site).values_list('latest_proposal_link__id', flat=True)))  # Include only the intermediate objects which are on the ApiarySite.latest_proposal_links
 
     # 1.2. Exclude

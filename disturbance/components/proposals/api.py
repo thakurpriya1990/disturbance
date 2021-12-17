@@ -619,7 +619,8 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
     @list_route(methods=['GET', ])
     @basic_exception_handler
     def list_existing_vacant(self, request):
-        qs_vacant_site_proposal, qs_vacant_site_approval = get_qs_vacant_site()
+        search_text = request.query_params.get('search_text', '')
+        qs_vacant_site_proposal, qs_vacant_site_approval = get_qs_vacant_site(search_text)
         serializer_vacant_proposal = ApiarySiteOnProposalVacantDraftMinimalGeometrySerializer(qs_vacant_site_proposal, many=True)
         serializer_vacant_approval = ApiarySiteOnApprovalMinGeometrySerializer(qs_vacant_site_approval, many=True)
         serializer_vacant_approval.data['features'].extend(serializer_vacant_proposal.data['features'])
