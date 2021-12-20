@@ -5,7 +5,9 @@
                 <div class="filter_search_wrapper">
                     <label class="control-label col-sm-1">Status</label>
                     <div class="col-sm-3 status_filter_dropdown_wrapper">
-                        <div class="status_filter_dropdown_button">Button</div>
+                        <!-- div class="dropdown_arrow">
+                        </div -->
+                            <input class="status_filter_dropdown_button form-control" type="text" :value="filter_selected_names" />
                         <div class="status_filter_dropdown" @mouseleave="mouse_leave_from_dropdown()">
                             <template v-for="filter in filters">
                                 <div class="search_text">
@@ -155,7 +157,7 @@
                 segmentStyles: null,
 
                 search_text: '',
-                filter_selected_names: '',
+                filter_selected_names: 'select status',
             }
         },
         components: {
@@ -438,6 +440,7 @@
                 new_row.draw()
             },
             filterSelectionChanged: function(filter){
+                console.log('filterSelectionChanged')
                 filter.show = !filter.show
 
                 this.filter_selected_names = ''
@@ -451,7 +454,9 @@
                         count += 1
                     }
                 }
-                console.log(this.filter_selected_names)
+                if (this.filter_selected_names === ''){
+                    this.filter_selected_names = 'select status'
+                }
                 this.loadSites()
             },
             addEventListeners: function () {
@@ -463,6 +468,8 @@
                 $("#" + this.table_id).on('mouseleave', "tr", this.mouseLeave)
 
                 $(".status_filter_dropdown_button").on('click', function(){
+                //$(".dropdown_arrow").on('click', function(){
+                    console.log('clicked')
                     $(".status_filter_dropdown").slideToggle("fast")
                 })
             },
@@ -1238,6 +1245,19 @@
     }
     .status_filter_dropdown_button {
         cursor: pointer;
+        width: 100%;
+        position: relative;
+    }
+    /*
+    .dropdown_arrow::after {
+        border-left: 4px solid transparent;
+        border-right: 4px solid transparent;
+        border-top: 4.5px solid gray;
+        content: "";
+        position: absolute;
+        right: 2em;
+        top: 1em;
+        width: 0;
     }
     .status_filter_dropdown {
         position: absolute;
@@ -1245,4 +1265,5 @@
         background: white;
         padding: 1em;
     }
+    */
 </style>
