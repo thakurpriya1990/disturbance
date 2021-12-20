@@ -3,12 +3,23 @@
         <FormSection :formCollapse="false" label="Available Sites" Index="available_sites">
             <div class="map-wrapper row col-sm-12">
                 <div class="filter_search_wrapper">
-                    <div class="filter_status" v-for="filter in filters">
-                        <input type="checkbox" :id="filter.id" :value="filter.value" :checked="filter.show" @change="filterSelectionChanged(filter)" :key="filter.id" />
-                        <label :for="filter.id">{{ filter.display_name }}</label>
+                    <label class="control-label col-sm-1">Status</label>
+                    <div class="col-sm-3 status_filter_dropdown_wrapper">
+                        <div class="status_filter_dropdown_button">Button</div>
+                        <div class="status_filter_dropdown">
+                            <template v-for="filter in filters">
+                                <div class="search_text">
+                                    <input type="checkbox" :id="filter.id" :value="filter.value" :checked="filter.show" @change="filterSelectionChanged(filter)" :key="filter.id" />
+                                    <label :for="filter.id">{{ filter.display_name }}</label>
+                                </div>
+                            </template>
+                        </div>
                     </div>
-                    <div class="search_text">
-                        <input v-model="search_text">
+                    <div class="col-sm-1">
+                        <label :for="search_text" class="control-label">Search</label>
+                    </div>
+                    <div class="col-sm-3">
+                        <input v-model="search_text" id="search_text" class="form-control" />
                     </div>
                 </div>
                 <div :id="elem_id" class="map" style="position: relative;">
@@ -245,7 +256,7 @@
                         'value': 'not_to_be_reissued',
                         'display_name': 'Not to be reissued',
                         'show': false,
-                        'api': 'list_apiary_sites_reissued',
+                        'api': 'list_apiary_sites_not_to_be_reissued',
                         'apiary_sites': [],
                     },
                     {
@@ -261,7 +272,7 @@
                         'value': 'discarded',
                         'display_name': 'Discarded',
                         'show': false,
-                        'api': 'list_apiary_sites_descarded',
+                        'api': 'list_apiary_sites_discarded',
                         'apiary_sites': [],
                     },
                 ]
@@ -433,6 +444,10 @@
                 $("#" + this.table_id).on('click', 'a[data-contact-licence-holder]', this.contactLicenceHolder)
                 $("#" + this.table_id).on('mouseenter', "tr", this.mouseEnter)
                 $("#" + this.table_id).on('mouseleave', "tr", this.mouseLeave)
+
+                $(".status_filter_dropdown_button").on('click', function(){
+                    $(".status_filter_dropdown").slideToggle("fast")
+                })
             },
             mouseEnter: function(e){
                 let vm = this;
@@ -1023,8 +1038,13 @@
                     } else {
                         for (let apiary_site_geojson of filter.apiary_sites){
                             // Remove the apiary_site from the map.  There are no functions to show/hide a feature unlike the layer.
-                            if (vm.apiarySitesQuerySource.hasFeature(apiary_site_geojson.feature)){
-                                vm.apiarySitesQuerySource.removeFeature(apiary_site_geojson.feature)
+                            if (apiary_site_geojson && vm.apiarySitesQuerySource.hasFeature(apiary_site_geojson.feature)){
+                                try{
+                                    vm.apiarySitesQuerySource.removeFeature(apiary_site_geojson.feature)
+                                } catch (err){
+                                    console.log(err)
+                                    console.log(apiary_site_geojson)
+                                }
                             }
                         }
                     }
@@ -1195,5 +1215,17 @@
     .view_all_button {
         color: #03a9f4;
         cursor: pointer;
+    }
+    .status_filter_dropdown_wrapper {
+        position: relative;
+    }
+    .status_filter_dropdown_button {
+        cursor: pointer;
+    }
+    .status_filter_dropdown {
+        position: absolute;
+        display: none;
+        background: white;
+        padding: 1em;
     }
 </style>

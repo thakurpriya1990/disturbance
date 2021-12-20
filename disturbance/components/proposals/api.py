@@ -45,7 +45,8 @@ from disturbance.components.main.utils import (
     get_qs_vacant_site,
     get_qs_proposal,
     get_qs_approval,
-    handle_validation_error, get_qs_pending_site,
+    handle_validation_error, get_qs_pending_site, get_qs_denied_site, get_qs_current_site,
+    get_qs_not_to_be_reissued_site, get_qs_suspended_site, get_qs_discarded_site,
 )
 
 from django.urls import reverse
@@ -641,6 +642,46 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
     def list_apiary_sites_pending(self, request):
         search_text = request.query_params.get('search_text', '')
         qs_sites = get_qs_pending_site(search_text)
+        serializer = ApiarySiteOnProposalProcessedMinimalGeometrySerializer(qs_sites, many=True)
+        return Response(serializer.data)
+
+    @list_route(methods=['GET', ])
+    @basic_exception_handler
+    def list_apiary_sites_denied(self, request):
+        search_text = request.query_params.get('search_text', '')
+        qs_sites = get_qs_denied_site(search_text)
+        serializer = ApiarySiteOnProposalProcessedMinimalGeometrySerializer(qs_sites, many=True)
+        return Response(serializer.data)
+
+    @list_route(methods=['GET', ])
+    @basic_exception_handler
+    def list_apiary_sites_current(self, request):
+        search_text = request.query_params.get('search_text', '')
+        qs_sites = get_qs_current_site(search_text)
+        serializer = ApiarySiteOnApprovalMinimalGeometrySerializer(qs_sites, many=True)
+        return Response(serializer.data)
+
+    @list_route(methods=['GET', ])
+    @basic_exception_handler
+    def list_apiary_sites_suspended(self, request):
+        search_text = request.query_params.get('search_text', '')
+        qs_sites = get_qs_suspended_site(search_text)
+        serializer = ApiarySiteOnApprovalMinimalGeometrySerializer(qs_sites, many=True)
+        return Response(serializer.data)
+
+    @list_route(methods=['GET', ])
+    @basic_exception_handler
+    def list_apiary_sites_not_to_be_reissued(self, request):
+        search_text = request.query_params.get('search_text', '')
+        qs_sites = get_qs_not_to_be_reissued_site(search_text)
+        serializer = ApiarySiteOnApprovalMinimalGeometrySerializer(qs_sites, many=True)
+        return Response(serializer.data)
+
+    @list_route(methods=['GET', ])
+    @basic_exception_handler
+    def list_apiary_sites_discarded(self, request):
+        search_text = request.query_params.get('search_text', '')
+        qs_sites = get_qs_discarded_site(search_text)
         serializer = ApiarySiteOnProposalProcessedMinimalGeometrySerializer(qs_sites, many=True)
         return Response(serializer.data)
 
