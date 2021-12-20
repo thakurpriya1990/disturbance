@@ -191,7 +191,7 @@ export default {
                 //let res = await Vue.http.post(this.documentActionUrl, formData)
                 this.documents = res.body.filedata;
                 this.commsLogId = res.body.comms_instance_id;
-                //console.log(vm.documents);
+                //console.log(this.documents);
             }
             this.show_spinner = false;
 

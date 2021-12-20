@@ -4,7 +4,8 @@
             proposal.vue
         </template>
       <div class="row">
-        <h3>Proposal: {{ proposal.lodgement_number }}</h3>
+        <h3 v-if="proposal.migrated">Proposal: {{ proposal.lodgement_number }} (Migrated)</h3>
+        <h3 v-else>Proposal: {{ proposal.lodgement_number }}</h3>
         <h4>Proposal Type: {{proposal.proposal_type }}</h4>
         <div v-if="proposal.application_type!='Apiary'">
             <h4>Approval Level: {{proposal.approval_level }}</h4>
@@ -401,7 +402,6 @@ import CommsLogs from '@common-utils/comms_logs.vue'
 import MoreReferrals from '@common-utils/more_referrals.vue'
 import ResponsiveDatatablesHelper from "@/utils/responsive_datatable_helper.js"
 import { api_endpoints, helpers } from '@/utils/hooks'
-import MapLocations from '@common-utils/map_locations.vue'
 export default {
     name: 'InternalProposal',
     data: function() {
@@ -486,7 +486,6 @@ export default {
         CommsLogs,
         MoreReferrals,
         NewApply,
-        MapLocations,
     },
     filters: {
         formatDate: function(data){
@@ -1093,8 +1092,19 @@ export default {
         },
         recallReferral:function(r){
             let vm = this;
+            swal({
+                    title: "Loading...",
+                    //text: "Loading...",
+                    allowOutsideClick: false,
+                    allowEscapeKey:false,
+                    onOpen: () =>{
+                        swal.showLoading()
+                    }
+            })
 
             vm.$http.get(helpers.add_endpoint_json(api_endpoints.referrals,r.id+'/recall')).then(response => {
+                swal.hideLoading();
+                swal.close();
                 vm.original_proposal = helpers.copyObject(response.body);
                 vm.proposal = response.body;
                 vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};

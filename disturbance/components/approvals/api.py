@@ -71,7 +71,6 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
                     return i[0]
             return None
 
-        #import ipdb; ipdb.set_trace()
         # on the internal dashboard, the Region filter is multi-select - have to use the custom filter below
         region = request.GET.get('region')
         if region and not region.lower() == 'all':
@@ -90,17 +89,14 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
 
 
         # on the internal dashboard, the Referral 'Status' filter - have to use the custom filter below
-        #import ipdb; ipdb.set_trace()
 #        processing_status = request.GET.get('processing_status')
 #        processing_status = get_choice(processing_status, Proposal.PROCESSING_STATUS_CHOICES)
 #        if processing_status:
 #            if queryset.model is Referral:
 #                #processing_status_id = [i for i in Proposal.PROCESSING_STATUS_CHOICES if i[1]==processing_status][0][0]
 #                queryset = queryset.filter(processing_status=processing_status)
-        #import ipdb; ipdb.set_trace()
         date_from = request.GET.get('date_from')
         date_to = request.GET.get('date_to')
-        #import ipdb; ipdb.set_trace()
         if date_from:
             queryset = queryset.filter(start_date__gte=date_from)
         if date_to:
@@ -108,7 +104,6 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
 
         getter = request.query_params.get
         fields = self.get_fields(getter)
-        #import ipdb; ipdb.set_trace()
         ordering = self.get_ordering(getter, fields)
         queryset = queryset.order_by(*ordering)
         if len(ordering):
@@ -129,7 +124,6 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
 
 class ApprovalRenderer(DatatablesRenderer):
     def render(self, data, accepted_media_type=None, renderer_context=None):
-        #import ipdb; ipdb.set_trace()
         if 'view' in renderer_context and hasattr(renderer_context['view'], '_datatables_total_count'):
             data['recordsTotal'] = renderer_context['view']._datatables_total_count
             #data.pop('recordsTotal')
@@ -147,10 +141,10 @@ class ApprovalPaginatedViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         if is_internal(self.request):
-            return Approval.objects.all()
+            return Approval.objects.all().exclude(status='hidden')
         elif is_customer(self.request):
             user_orgs = [org.id for org in self.request.user.disturbance_organisations.all()]
-            queryset =  Approval.objects.filter(Q(applicant_id__in = user_orgs)|Q(proxy_applicant_id=self.request.user.id))
+            queryset =  Approval.objects.filter(Q(applicant_id__in = user_orgs)|Q(proxy_applicant_id=self.request.user.id)).exclude(status='hidden')
             #queryset =  Approval.objects.filter(applicant_id__in = user_orgs)
             return queryset
         return Approval.objects.none()
@@ -171,7 +165,6 @@ class ApprovalPaginatedViewSet(viewsets.ModelViewSet):
     #        http://localhost:8000/api/approval_paginated/approvals_external/?format=datatables&draw=1&length=2
     #    """
 
-    #    import ipdb; ipdb.set_trace()
     #    #qs = self.queryset().order_by('lodgement_number', '-issue_date').distinct('lodgement_number')
     #    #qs = ProposalFilterBackend().filter_queryset(self.request, qs, self)
 
@@ -243,7 +236,6 @@ class ApprovalPaginatedViewSet(viewsets.ModelViewSet):
 
         self.paginator.page_size = qs.count()
         result_page = self.paginator.paginate_queryset(qs, request)
-        #import ipdb; ipdb.set_trace()
         serializer = DTApprovalSerializer(result_page, context={
             'request':request,
             'template_group': template_group
@@ -279,7 +271,6 @@ class ApprovalViewSet(viewsets.ModelViewSet):
     @list_route(methods=['GET',])
     def filter_list(self, request, *args, **kwargs):
         """ Used by the external dashboard filters """
-        #import ipdb; ipdb.set_trace()
         region_qs =  self.get_queryset().filter(current_proposal__region__isnull=False).values_list('current_proposal__region__name', flat=True).distinct()
         activity_qs =  self.get_queryset().filter(current_proposal__activity__isnull=False).values_list('current_proposal__activity', flat=True).distinct()
         data = dict(
@@ -300,7 +291,6 @@ class ApprovalViewSet(viewsets.ModelViewSet):
 #        	http://localhost:8000/api/approvals/approvals_paginated/?format=datatables&draw=1&length=2
 #        """
 #
-#        #import ipdb; ipdb.set_trace()
 #        qs = self.get_queryset().order_by('lodgement_number', '-issue_date')
 #        qs = ProposalFilterBackend().filter_queryset(self.request, qs, self)
 #        #qs = qs.order_by('lodgement_number', '-issue_date').distinct('lodgement_number')
@@ -535,7 +525,6 @@ class ApprovalViewSet(viewsets.ModelViewSet):
                 serializer.is_valid(raise_exception=True)
                 comms = serializer.save()
                 # Save the files
-                # import ipdb; ipdb.set_trace()
                 for f in request.FILES:
                     document = comms.documents.create()
                     document.name = str(request.FILES[f])
@@ -557,7 +546,6 @@ class ApprovalViewSet(viewsets.ModelViewSet):
     @list_route(methods=['GET',])
     def sti_search(self, request, *args, **kwargs):
         """ Used by the internal users to filter for sti name in ptoposal titlei (for use by external systems) """
-        #import ipdb; ipdb.set_trace()
         name = request.GET.get('name')
         data = Approval.objects.filter(current_proposal__title__icontains=name).values_list('licence_document___file', flat=True)
         return Response(list(data))

@@ -16,6 +16,7 @@ import Approval from '../approvals/approval_wrapper.vue'
 import SiteTransitions from '../site_transitions/site_transitions.vue'
 import AvailableSites from '../available_sites.vue'
 import Reports from '@/components/reports/reports.vue'
+import SchemaManager from '../main/schema_manager.vue'
 
 export default
 {
@@ -139,6 +140,11 @@ export default
                 },
 
             ]
+        },
+        {
+            path: 'schema',
+            component: SchemaManager,
+            name:"schema-manager"
         },
         /*{
             path: 'proposal',

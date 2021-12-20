@@ -4,34 +4,26 @@ from django.http import HttpResponseRedirect
 from django.core.urlresolvers import reverse
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.db import transaction
 
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta
 
 from django.http.response import HttpResponse
-from django.utils import timezone
-from dateutil.relativedelta import relativedelta
-from ledger.accounts.models import EmailUser
 from ledger.settings_base import TIME_ZONE
 
-from disturbance.components.main.models import ApplicationType, GlobalSettings, ApiaryGlobalSettings
+from disturbance.components.main.models import ApplicationType, ApiaryGlobalSettings
 from disturbance.components.proposals.models import SiteCategory, ApiarySiteFeeType, \
-    ApiarySiteFeeRemainder, ApiaryAnnualRentalFee, ApiarySite, ApiarySiteOnProposal
-from disturbance.components.organisations.models import Organisation
-from disturbance.components.das_payments.models import ApplicationFee, AnnualRentalFee
+    ApiarySiteFeeRemainder, ApiaryAnnualRentalFee, ApiarySite
+from disturbance.components.das_payments.models import ApplicationFee, AnnualRentalFee, ApplicationFeeInvoice
 from ledger.checkout.utils import create_basket_session, create_checkout_session, calculate_excl_gst, \
     use_existing_basket_from_invoice
 from ledger.payments.models import Invoice
 from ledger.payments.utils import oracle_parser
-import json
-import ast
-from decimal import Decimal
 
 import logging
 
-from disturbance.settings import PAYMENT_SYSTEM_ID, DEBUG, PRODUCTION_EMAIL, ANNUAL_RENTAL_FEE_GST_EXEMPT
+from disturbance.settings import DEBUG, PRODUCTION_EMAIL, ANNUAL_RENTAL_FEE_GST_EXEMPT
 
-logger = logging.getLogger('payment_checkout')
+logger = logging.getLogger('apiary')
 
 
 def get_session_application_invoice(session):
@@ -59,6 +51,33 @@ def delete_session_annual_rental_fee(session):
     """ Application Fee session ID """
     if 'annual_rental_fee' in session:
         del session['annual_rental_fee']
+        session.modified = True
+
+
+def set_session_invoice(session, invoice):
+    session['invoice_reference'] = invoice.reference
+    session.modified = True
+
+
+class InvoiceReferenceNotInSettionException(Exception):
+    pass
+
+
+def get_session_invoice(session):
+    if 'invoice_reference' in session:
+        invoice_reference = session['invoice_reference']
+    else:
+        raise InvoiceReferenceNotInSettionException('AnnualRentalFee not in Session')
+
+    try:
+        return Invoice.objects.get(reference=invoice_reference)
+    except Invoice.DoesNotExist:
+        raise Exception('Invoice not found for the reference {}'.format(invoice_reference))
+
+
+def delete_session_invoice(session):
+    if 'invoice_reference' in session:
+        del session['invoice_reference']
         session.modified = True
 
 
@@ -188,7 +207,7 @@ def _get_site_fee_remainders(site_category, apiary_site_fee_type_name, applicant
     return site_fee_remainders
 
 
-def _sum_apiary_sites_per_category2(proposal_apiary):
+def _sum_apiary_sites_per_category(proposal_apiary):
     site_ids = []
     vacant_site_ids = []
     site_per_category_per_feetype = {
@@ -216,47 +235,6 @@ def _sum_apiary_sites_per_category2(proposal_apiary):
             site_ids.append(relation.apiary_site.id)
 
     return site_ids, vacant_site_ids, site_per_category_per_feetype
-
-
-# def _sum_apiary_sites_per_category(apiary_sites, vacant_apiary_sites):
-#     num_of_sites_per_category = {}
-#     db_process_after_success = []
-#     site_per_category_per_feetype = {
-#             SiteCategory.CATEGORY_SOUTH_WEST: {
-#                 ApiarySiteFeeType.FEE_TYPE_APPLICATION: [],
-#                 ApiarySiteFeeType.FEE_TYPE_RENEWAL: [],
-#             },
-#             SiteCategory.CATEGORY_REMOTE: {
-#                 ApiarySiteFeeType.FEE_TYPE_APPLICATION: [],
-#                 ApiarySiteFeeType.FEE_TYPE_RENEWAL: [],
-#             },
-#         }
-#
-#     for apiary_site in apiary_sites:
-#         if apiary_site.site_category.id in num_of_sites_per_category:
-#             num_of_sites_per_category[apiary_site.site_category.id] += 1
-#         else:
-#             num_of_sites_per_category[apiary_site.site_category.id] = 1
-#         db_process_after_success.append({'id': apiary_site.id})
-#
-#         if apiary_site.status in ApiarySite.RENEWABLE_STATUS:
-#             site_per_category_per_feetype[apiary_site.site_category.name][ApiarySiteFeeType.FEE_TYPE_RENEWAL].append(apiary_site)
-#         else:
-#             site_per_category_per_feetype[apiary_site.site_category.name][ApiarySiteFeeType.FEE_TYPE_APPLICATION].append(apiary_site)
-#
-#     for apiary_site in vacant_apiary_sites:
-#         if apiary_site.site_category.id in num_of_sites_per_category:
-#             num_of_sites_per_category[apiary_site.site_category.id] += 1
-#         else:
-#             num_of_sites_per_category[apiary_site.site_category.id] = 1
-#        # db_process_after_success.append({'id': apiary_site.id})
-#
-#         if apiary_site.status in ApiarySite.RENEWABLE_STATUS:
-#             site_per_category_per_feetype[apiary_site.site_category.name][ApiarySiteFeeType.FEE_TYPE_RENEWAL].append(apiary_site)
-#         else:
-#             site_per_category_per_feetype[apiary_site.site_category.name][ApiarySiteFeeType.FEE_TYPE_APPLICATION].append(apiary_site)
-#
-#     return num_of_sites_per_category, db_process_after_success, site_per_category_per_feetype
 
 
 def _get_remainders_obj(number_of_sites_to_add_as_remainder, site_category_id, proposal, apiary_site_fee_type_name):
@@ -292,7 +270,7 @@ def create_fee_lines_apiary(proposal):
 
     # Calculate total number of sites applied per category
     # summary, db_process_after_success['apiary_sites'], temp = _sum_apiary_sites_per_category(proposal.proposal_apiary.apiary_sites.all(), proposal.proposal_apiary.vacant_apiary_sites.all())
-    db_process_after_success['apiary_site_ids'], db_process_after_success['vacant_apiary_site_ids'], temp = _sum_apiary_sites_per_category2(proposal.proposal_apiary)
+    db_process_after_success['apiary_site_ids'], db_process_after_success['vacant_apiary_site_ids'], temp = _sum_apiary_sites_per_category(proposal.proposal_apiary)
     # db_process_after_success['vacant_apiary_site_ids'] = [site.id for site in proposal.proposal_apiary.vacant_apiary_sites.all()]
     db_process_after_success['proposal_apiary_id'] = proposal.proposal_apiary.id
 
@@ -395,6 +373,8 @@ def checkout(request, proposal, lines, return_url_ns='public_payment_success', r
         'vouchers': vouchers,
         'system': settings.PAYMENT_SYSTEM_ID,
         'custom_basket': True,
+        'booking_reference': proposal.lodgement_number,
+        # 'booking_reference_linked': OLD booking number
     }
 
     basket, basket_hash = create_basket_session(request, basket_params)
@@ -666,9 +646,7 @@ def generate_line_items_for_annual_rental_fee(approval, today_now, period, apiar
 #    return line_items, apiary_sites_charged
 
 
-def checkout_existing_invoice(request, invoice, lines, return_url_ns='public_booking_success',
-                              return_preload_url_ns='public_booking_success', invoice_text=None, vouchers=[],
-                              proxy=False):
+def checkout_existing_invoice(request, invoice, return_url_ns='public_booking_success'):
     #basket_params = {
     #    # 'products': invoice.order.basket.lines.all(),
     #    'products': lines,
@@ -687,6 +665,18 @@ def checkout_existing_invoice(request, invoice, lines, return_url_ns='public_boo
         'invoice_text': invoice.text,
     }
 
+    if request.user.is_anonymous():
+        # We need to determine the basket owner and set it to the checkout_params to proceed the payment
+        annual_rental_fee = AnnualRentalFee.objects.filter(invoice_reference=invoice.reference)
+        application_fee_invoice = ApplicationFeeInvoice.objects.filter(invoice_reference=invoice.reference)
+        if annual_rental_fee:
+            annual_rental_fee = annual_rental_fee[0]
+            checkout_params['basket_owner'] = annual_rental_fee.approval.relevant_applicant_email_user.id
+        else:
+            # Should not reach here
+            # At the moment, there should be only the 'annual rental fee' invoices for anonymous user
+            pass
+
     create_checkout_session(request, checkout_params)
 
     # response = HttpResponseRedirect(reverse('checkout:index'))
@@ -702,5 +692,4 @@ def checkout_existing_invoice(request, invoice, lines, return_url_ns='public_boo
         max_age=settings.OSCAR_BASKET_COOKIE_LIFETIME,
         secure=settings.OSCAR_BASKET_COOKIE_SECURE, httponly=True
     )
-
     return response

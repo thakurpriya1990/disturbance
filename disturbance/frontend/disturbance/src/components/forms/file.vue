@@ -19,9 +19,10 @@
             </template> 
 
 
-            <template v-if="assessorMode && !assessor_readonly">
+            <template v-if="assessorMode">
                 <template v-if="!showingComment">
-                    <a v-if="comment_value != null && comment_value != undefined && comment_value != ''" href="" @click.prevent="toggleComment"><i style="color:red" class="fa fa-comment-o">&nbsp;</i></a>
+                    <!-- <a v-if="comment_value != null && comment_value != undefined && comment_value != ''" href="" @click.prevent="toggleComment"><i style="color:red" class="fa fa-comment-o">&nbsp;</i></a> -->
+                    <a v-if="has_comment_value" href="" @click.prevent="toggleComment"><i style="color:red" class="fa fa-comment-o">&nbsp;</i></a>
                     <a v-else href="" @click.prevent="toggleComment"><i class="fa fa-comment-o">&nbsp;</i></a>
                 </template>
                 <a href="" v-else  @click.prevent="toggleComment"><i class="fa fa-ban">&nbsp;</i></a>
@@ -54,7 +55,8 @@
             </div>
 
         </div>
-        <Comment :question="label" :readonly="assessor_readonly" :name="name+'-comment-field'" v-show="showingComment && assessorMode" :value="comment_value" :required="isRequired"/> 
+        <!-- <Comment :question="label" :readonly="assessor_readonly" :name="name+'-comment-field'" v-show="showingComment && assessorMode" :value="comment_value" :required="isRequired"/>  -->
+        <CommentBox :comment_boxes="comment_boxes" v-show="showingComment && assessorMode"/> 
     </div>
 </template>
 
@@ -65,6 +67,7 @@ import {
 }
 from '@/utils/hooks'
 import Comment from './comment.vue'
+import CommentBox from './comment_box_referral.vue'
 import HelpText from './help_text.vue'
 import HelpTextUrl from './help_text_url.vue'
 export default {
@@ -83,7 +86,7 @@ export default {
         assessorMode:{
             default:function(){
                 return false;
-            }
+            },
         },
         value:{
             default:function () {
@@ -106,8 +109,9 @@ export default {
         isRepeatable:Boolean,
         readonly:Boolean,
         docsUrl: String,
+        comment_boxes: Array,
     },
-    components: {Comment, HelpText, HelpTextUrl},
+    components: {Comment, HelpText, HelpTextUrl, CommentBox},
     data:function(){
         return {
             repeat:1,
@@ -133,7 +137,18 @@ export default {
         },
         proposal_document_action: function() {
           return (this.proposal_id) ? `/api/proposal/${this.proposal_id}/process_document/` : '';
-        }
+        },
+        has_comment_value:function () {
+            let has_value=false;
+            for(var i=0; i<this.comment_boxes.length; i++){
+                if(this.comment_boxes[i].hasOwnProperty('value')){
+                    if(this.comment_boxes[i].value!=null && this.comment_boxes[i].value!=undefined && this.comment_boxes[i].value!= '' ){
+                        has_value=true;
+                    }
+                } 
+            }
+            return has_value;
+        },
     },
 
     methods:{
