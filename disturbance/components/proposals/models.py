@@ -680,15 +680,14 @@ class Proposal(RevisionedMixin):
         """
         Gets all the revision differences between the most recent revision and the revision specified.
         """
-        from reversion.models import Version
         from deepdiff import DeepDiff
 
         all_revisions_list = list(self.get_reversion_history().values())
         all_revisions_length = len(all_revisions_list)
 
-        new_data = all_revisions_list[all_revisions_length-compare_version].field_dict["data"]
-        old_data = all_revisions_list[all_revisions_length-1].field_dict["data"]
-        diffs = DeepDiff(old_data, new_data, ignore_order=True)
+        most_recent_data = all_revisions_list[0].field_dict["data"]
+        compare_data = all_revisions_list[all_revisions_length-compare_version].field_dict["data"]
+        diffs = DeepDiff(most_recent_data, compare_data, ignore_order=True)
 
         diffs_list = []
         for v in diffs.items():

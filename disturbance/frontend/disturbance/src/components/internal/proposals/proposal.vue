@@ -26,29 +26,11 @@
                                 <strong>Lodged on</strong><br/>
                                 {{ proposal.lodgement_date | formatDate}}
                             </div>
-                            <div class="col-sm-12 top-buffer-s">
-                                <table class="table small-table">
-                                    <tr>
-                                        <th>Lodgement</th>
-                                        <th>Date</th>
-                                        <th>Action</th>
-                                    </tr>
-                                    <tr v-for="prop in this.lodgement_revisions">
-                                        <td>{{ prop.id }}</td>
-                                        <td>{{ prop.date | formatDateNoTime }}</td>
-                                        <td style="padding: 0px;" v-on:click="getCompareProposal(prop['index'])">
-                                            <span v-bind:id=prop.id v-html=prop.action></span>
-                                        </td>
-                                    </tr>
-                                </table>
-                                <div>
-                                    <a ref="showRevisions"  @click.prevent="" class="actionBtn top-buffer-s">Show Revisions</a>
-                                </div> 
-                            </div>
                         </div>
                     </div>
                 </div>
             </div>
+            <RevisionHistory :revision_history_url=" revision_history_url" :proposal="proposal"/>
             <div class="row">
                 <div class="panel panel-default">
                     <div class="panel-heading">
@@ -386,6 +368,7 @@ import Requirements from './proposal_requirements.vue'
 import ProposedApproval from './proposed_issuance.vue'
 import ApprovalScreen from './proposal_approval.vue'
 import CommsLogs from '@common-utils/comms_logs.vue'
+import RevisionHistory from '@common-utils/revision_history.vue'
 import MoreReferrals from '@common-utils/more_referrals.vue'
 import ResponsiveDatatablesHelper from "@/utils/responsive_datatable_helper.js"
 import { api_endpoints, helpers } from '@/utils/hooks'
@@ -458,9 +441,9 @@ export default {
             comms_url: helpers.add_endpoint_json(api_endpoints.proposals,vm.$route.params.proposal_id+'/comms_log'),
             comms_add_url: helpers.add_endpoint_json(api_endpoints.proposals,vm.$route.params.proposal_id+'/add_comms_log'),
             logs_url: helpers.add_endpoint_json(api_endpoints.proposals,vm.$route.params.proposal_id+'/action_log'),
+            revision_history_url: helpers.add_endpoint_json(api_endpoints.proposals,vm.$route.params.proposal_id+'/revision_history'),
             panelClickersInitialised: false,
             sendingReferral: false,
-            lodgement_revisions: [],
         }
     },
     components: {
@@ -473,6 +456,7 @@ export default {
         ProposedApproval,
         ApprovalScreen,
         CommsLogs,
+        RevisionHistory,
         MoreReferrals,
         NewApply,
         MapLocations,
@@ -481,9 +465,6 @@ export default {
         formatDate: function(data){
             return data ? moment(data).format('DD/MM/YYYY HH:mm:ss'): '';
         },
-        formatDateNoTime: function(data){
-            return data ? moment(data).format('DD/MM/YYYY'): '';
-        }
     },
     props: {
         proposalId: {
@@ -543,94 +524,8 @@ export default {
         applicant_email:function(){
             return this.proposal && this.proposal.applicant.email ? this.proposal.applicant.email : '';
         },
-        
-        getRevisionDiffsUrl: function() {
-            let url = ''
-            url = helpers.add_endpoint_join('/api/proposal/',
-                                            this.proposal.id +
-                                            '/get_revision_diffs/')
-            return url;
-        },
-        createLodgementRevisionTable: function() {
-            /*
-                This creates a table of versions for the current Proposal. Each entry has the Proposal ID along with the revision \
-                number and date of submission. An action is provided for each entry to allow comparison between versions.
-            */
-            const limit = 5 // only display this many versions
-            index += 1
-            let index = 0
-            for (let prop in this.proposal.reversion_history) {
-                let action_label = '<a style="cursor:pointer;">Compare</a>'
-                if (index < limit) {
-                    if (index === 0) { index += 1; continue; } // The first entry is the latest version
-                    if (index === 1) { action_label = 'Viewing'}
-                    this.lodgement_revisions.push({"index": index,
-                                                   "id": prop,
-                                                   "date": this.proposal.reversion_history[prop]["date"],
-                                                   "action": action_label})
-                    index += 1
-                }
-            }
-        },
     },
     methods: {
-        getCompareProposal: async function (revision) {
-            /* 
-                Handle the user clicks. Change the labels of entries and add all selected 
-                differences to the DOM.
-            */
-            let clicked_revision = this.lodgement_revisions[revision-1]
-            for (let index = 0; index < this.lodgement_revisions.length; index++) {
-                if (revision > 0) {
-                    this.lodgement_revisions[index].action = '<a style="cursor:pointer;">Compare</a>'
-                    clicked_revision.action = 'Comparing'        // should be non-clickable now
-                }
-                this.lodgement_revisions[0].action = 'Viewing'
-            }
-
-            // Now post to the API to get the differences between latest version and this one.
-            const revisions_length = Object.keys(this.proposal.reversion_history).length
-            let revision_index = this.lodgement_revisions.length - revision + 2
-            const diffs = await Vue.http.post(this.getRevisionDiffsUrl, {"version_number": revision_index})
-
-            // Remove any previous revisions
-            $(".revision_note").remove()
-
-            // Find each section that has a revision and append it to that section title.
-            for (let entry in diffs.data) {
-                for (let k in diffs.data[entry]) {
-                    const revision_text = diffs.data[entry][k]
-                    const replacement_html = "<div class='revision_note' style='color: red;'>" + revision_text + "</div>"
-                    // const replacement_html = 
-                    $( "#id_" + k ).parent().after(replacement_html)
-                    // console.log($( "#id_" + k ).closest(".form-group").children()[2].after('fart'))
-                    // $( "#id_" + k ).parent().contents().css("background-color", "red")
-                    // .append(replacement_html)
-                    // console.log($( "#id_" + k ).closest(".form-group").find('input').attr('type'))
-                    console.log('---1---' + $("#id_" + k ).parent().find('input').attr('type') + "      " + $("#id_" + k ).parent().find('input').val())
-                    console.log('---1.5---' + $("#id_" + k ).parent().find('text').attr('type') + "      " + $("#id_" + k ).parent().find('input').val())
-                    console.log('---2---' + $("#id_"+k).closest(".form-group").find().prop('nodeName'))
-                    console.log('---3---' + $("#id_" + k ).parent().contents().attr('type') + "\n---------------------------------------")
-
-                    // if ($("#id_"+k).closest(".form-group").find('input').attr('type') == "text") {
-                    //     console.log('TEXT')
-                    //     $( "#id_" + k ).parent().after('text')
-                    // }
-                    // if ($("#id_"+k).closest(".form-group").find('input:radio').prop('nodeName') == "INPUT") {
-                    //     console.log('RADIO')
-                    //     $( "#id_" + k ).parent().after('radio')
-                    // }
-                    // if ($("#id_"+k).closest(".form-group").find('input:radio').prop('nodeName') == "undefined") {
-                    //     console.log('UNDEF')
-                    //     $( "#id_" + k ).parent().after('undefined')
-                    // }
-                    
-                }
-            }
-
-            // Update the Proposal Page title to show the revision.
-            $( "#proposal_title" ).text("Proposal: " + clicked_revision.id)
-        },
         locationUpdated: function(){
             console.log('in locationUpdated()');
         },
