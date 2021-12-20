@@ -45,7 +45,7 @@ from disturbance.components.main.utils import (
     get_qs_vacant_site,
     get_qs_proposal,
     get_qs_approval,
-    handle_validation_error,
+    handle_validation_error, get_qs_pending_site,
 )
 
 from django.urls import reverse
@@ -618,13 +618,31 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
 
     @list_route(methods=['GET', ])
     @basic_exception_handler
-    def list_existing_vacant(self, request):
+    def list_apiary_sites_draft(self, request):
+        proposal_id = request.query_params.get('proposal_id', None)
+        search_text = request.query_params.get('search_text', '')
+        proposal = Proposal.objects.get(id=proposal_id) if proposal_id else None
+        qs_on_proposal_draft = get_qs_proposal('draft', proposal, search_text, True)
+        serializer_proposal_draft = ApiarySiteOnProposalDraftMinimalGeometrySerializer(qs_on_proposal_draft, many=True)
+        return Response(serializer_proposal_draft.data)
+
+    @list_route(methods=['GET', ])
+    @basic_exception_handler
+    def list_apiary_sites_vacant(self, request):
         search_text = request.query_params.get('search_text', '')
         qs_vacant_site_proposal, qs_vacant_site_approval = get_qs_vacant_site(search_text)
         serializer_vacant_proposal = ApiarySiteOnProposalVacantDraftMinimalGeometrySerializer(qs_vacant_site_proposal, many=True)
         serializer_vacant_approval = ApiarySiteOnApprovalMinGeometrySerializer(qs_vacant_site_approval, many=True)
         serializer_vacant_approval.data['features'].extend(serializer_vacant_proposal.data['features'])
         return Response(serializer_vacant_approval.data)
+
+    @list_route(methods=['GET', ])
+    @basic_exception_handler
+    def list_apiary_sites_pending(self, request):
+        search_text = request.query_params.get('search_text', '')
+        qs_sites = get_qs_pending_site(search_text)
+        serializer = ApiarySiteOnProposalProcessedMinimalGeometrySerializer(qs_sites, many=True)
+        return Response(serializer.data)
 
     @list_route(methods=['GET',])
     @basic_exception_handler

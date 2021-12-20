@@ -203,7 +203,7 @@
                         'value': 'vacant',
                         'display_name': 'Vacant',
                         'show': false,
-                        'api': 'list_existing_vacant',  // TODO: implement backend
+                        'api': 'list_apiary_sites_vacant',
                         'apiary_sites': [],
                     },
                     // ApiarySiteOnProposal
@@ -212,7 +212,7 @@
                         'value': 'draft',
                         'display_name': 'Draft',
                         'show': false,
-                        'api': 'list_existing_proposal_draft',
+                        'api': 'list_apiary_sites_draft',
                         'apiary_sites': [],
                     },
                     {
@@ -220,7 +220,7 @@
                         'value': 'pending',
                         'display_name': 'Pending',
                         'show': false,
-                        'api': 'list_existing_denied',
+                        'api': 'list_apiary_sites_pending',
                         'apiary_sites': [],
                     },
                     {
@@ -228,7 +228,7 @@
                         'value': 'denied',
                         'display_name': 'Denied',
                         'show': false,
-                        'api': '',
+                        'api': 'list_apiary_sites_denied',
                         'apiary_sites': [],
                     },
                     // ApiarySiteOnApproval
@@ -237,7 +237,7 @@
                         'value': 'current',
                         'display_name': 'Current',
                         'show': false,
-                        'api': '',
+                        'api': 'list_apiary_sites_current',
                         'apiary_sites': [],
                     },
                     {
@@ -245,7 +245,7 @@
                         'value': 'not_to_be_reissued',
                         'display_name': 'Not to be reissued',
                         'show': false,
-                        'api': '',
+                        'api': 'list_apiary_sites_reissued',
                         'apiary_sites': [],
                     },
                     {
@@ -253,7 +253,7 @@
                         'value': 'suspended',
                         'display_name': 'Suspended',
                         'show': false,
-                        'api': '',
+                        'api': 'list_apiary_sites_suspended',
                         'apiary_sites': [],
                     },
                     {
@@ -261,7 +261,7 @@
                         'value': 'discarded',
                         'display_name': 'Discarded',
                         'show': false,
-                        'api': '',
+                        'api': 'list_apiary_sites_descarded',
                         'apiary_sites': [],
                     },
                 ]
@@ -1023,7 +1023,9 @@
                     } else {
                         for (let apiary_site_geojson of filter.apiary_sites){
                             // Remove the apiary_site from the map.  There are no functions to show/hide a feature unlike the layer.
-                            vm.apiarySitesQuerySource.removeFeature(apiary_site_geojson.feature)
+                            if (vm.apiarySitesQuerySource.hasFeature(apiary_site_geojson.feature)){
+                                vm.apiarySitesQuerySource.removeFeature(apiary_site_geojson.feature)
+                            }
                         }
                     }
                 }
