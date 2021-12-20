@@ -6,7 +6,7 @@
                     <label class="control-label col-sm-1">Status</label>
                     <div class="col-sm-3 status_filter_dropdown_wrapper">
                         <div class="status_filter_dropdown_button">Button</div>
-                        <div class="status_filter_dropdown">
+                        <div class="status_filter_dropdown" @mouseleave="mouse_leave_from_dropdown()">
                             <template v-for="filter in filters">
                                 <div class="search_text">
                                     <input type="checkbox" :id="filter.id" :value="filter.value" :checked="filter.show" @change="filterSelectionChanged(filter)" :key="filter.id" />
@@ -155,6 +155,7 @@
                 segmentStyles: null,
 
                 search_text: '',
+                filter_selected_names: '',
             }
         },
         components: {
@@ -423,6 +424,9 @@
             },
         },
         methods: {
+            mouse_leave_from_dropdown: function(){
+                $('.status_filter_dropdown').slideUp("fast")
+            },
             addApiarySiteToMap: function(apiary_site_geojson) {
                 let vm = this
                 let feature = (new GeoJSON()).readFeature(apiary_site_geojson)
@@ -435,6 +439,19 @@
             },
             filterSelectionChanged: function(filter){
                 filter.show = !filter.show
+
+                this.filter_selected_names = ''
+                let count = 0
+                for (let filter of this.filters){
+                    if (filter.show){
+                        if (count != 0){
+                            this.filter_selected_names += ', '
+                        } 
+                        this.filter_selected_names += filter.display_name
+                        count += 1
+                    }
+                }
+                console.log(this.filter_selected_names)
                 this.loadSites()
             },
             addEventListeners: function () {
