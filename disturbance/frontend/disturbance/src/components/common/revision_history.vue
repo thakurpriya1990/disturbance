@@ -1,27 +1,40 @@
-<template id="comms_logs">
+<template id="revision_history">
     <div class="row">
         <div class="panel panel-default">
             <div class="panel-heading">
                 Revision History
             </div>
             <div class="panel-body panel-collapse">
-                <div class="row">
-                    <div class="col-sm-12 top-buffer-s">
+                <div style="white-space: nowrap;">
+                    <div style="float: left; width: 80%;">
+                            <table class="table small-table">
+                                <tr>
+                                    <th>Lodgement</th>
+                                    <th>Date</th>
+                                    <th>Action</th>
+                                </tr>
+                                <tr v-for="prop in this.lodgement_revisions" :key="prop.id">
+                                    <td>{{ prop.id }}</td>
+                                    <td>{{ prop.date | formatDateNoTime }}</td>
+                                    <td style="padding: 0px;" v-on:click="getCompareProposal(prop['index'])">
+                                        <span v-bind:id=prop.id v-html=prop.action></span>
+                                    </td>
+                                </tr>
+                            </table>
+
+                    </div>
+                    <div style="float: right; width: 20%;">
                         <table class="table small-table">
                             <tr>
-                                <th>Lodgement</th>
-                                <th>Date</th>
                                 <th>Action</th>
                             </tr>
-                            <tr v-for="prop in this.lodgement_revisions" :key="prop.id">
-                                <td>{{ prop.id }}</td>
-                                <td>{{ prop.date | formatDateNoTime }}</td>
-                                <td style="padding: 0px;" v-on:click="getCompareProposal(prop['index'])">
-                                    <span v-bind:id=prop.id v-html=prop.action></span>
+                            <tr v-for="prop in this.lodgement_revisions" :key="'v_'+prop.id">
+                                <td style="padding: 0px;" v-on:click="getViewProposal(prop['index'])">
+                                    <span :key="prop.id" v-bind:id=prop.id v-html=prop.action></span>
                                 </td>
                             </tr>
                         </table>
-                        <a tabindex="2" ref="showActionBtn" class="actionBtn">Show More</a>
+
                     </div>
                 </div>
             </div>
@@ -80,7 +93,7 @@ export default {
     },
     filters: {
         formatDateNoTime: function(data){
-            return data ? moment(data).format('DD/MM/YYYY'): '';
+            return data ? moment(data).format('DD/MM/YY'): '';
         },
     },
     watch:{
@@ -98,20 +111,17 @@ export default {
                 This creates a table of versions for the current Proposal. Each entry has the Proposal ID along with the revision \
                 number and date of submission. An action is provided for each entry to allow comparison between versions.
             */
-            const limit = 10 // only display this many versions
             index += 1
             let index = 0
             for (let prop in this.proposal.reversion_history) {
                 let action_label = '<a style="cursor:pointer;">Compare</a>'
-                if (index < limit) {
-                    if (index === 0) { index += 1; continue; } // The first entry is the latest version
-                    if (index === 1) { action_label = 'Viewing'}
-                    this.lodgement_revisions.push({"index": index,
-                                                   "id": prop,
-                                                   "date": this.proposal.reversion_history[prop]["date"],
-                                                   "action": action_label})
-                    index += 1
-                }
+                if (index === 0) { index += 1; continue; } // The first entry is the latest version
+                if (index === 1) { action_label = 'Viewing'}
+                this.lodgement_revisions.push({"index": index,
+                                                "id": prop,
+                                                "date": this.proposal.reversion_history[prop]["date"],
+                                                "action": action_label})
+                index += 1
             }
         },
     },
@@ -182,6 +192,30 @@ export default {
             // Update the Proposal Page title to show the revision.
             $( "#proposal_title" ).text("Proposal: " + clicked_revision.id)
         },
+        getViewProposal: async function (revision) {
+            /* 
+                Handle the user clicks. Change the labels of entries and add all selected 
+                differences to the DOM.
+            */
+           console.log('--------------getViewProposal-----------------')
+            let clicked_revision = this.lodgement_revisions[revision-1]
+            for (let index = 0; index < this.lodgement_revisions.length; index++) {
+                if (revision > 0) {
+                    this.lodgement_revisions[index].action = '<a style="cursor:pointer;">View</a>'
+                    clicked_revision.action = 'Viewing'        // should be non-clickable now
+
+                    // // If we are comparing, allow the original to be View(ed).
+                    // this.lodgement_revisions[0].action = '<a style="cursor:pointer;">View</a>'
+                }
+            }
+            
+            // If we click View, show that we are now viewing.
+            if (revision == 1) {
+                if (this.lodgement_revisions[0].action = 'View') {
+                    clicked_revision.action = 'Viewing'
+                }
+            }
+        },
         initialiseRevisionHistory: function(vm_uid, ref, datatable_options, table, data){
             let vm = this;
             let actionLogId = 'actions-log-table'+vm_uid;
@@ -208,7 +242,6 @@ export default {
                 trigger: "click",
                 template: `<div class="popover ${popover_name}" role="tooltip"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content"></div></div>`,
             }).on('inserted.bs.popover', function () {
-                console.log(datatable_options)
                 datatable_options.data = data
                 table = $('#'+actionLogId).DataTable(datatable_options);
             });
