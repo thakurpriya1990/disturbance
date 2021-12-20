@@ -166,8 +166,18 @@ export default {
         },
         recallReferral:function(_id,user){
             let vm = this;
-            
+            swal({
+                    title: "Loading...",
+                    //text: "Loading...",
+                    allowOutsideClick: false,
+                    allowEscapeKey:false,
+                    onOpen: () =>{
+                        swal.showLoading()
+                    }
+            })
             vm.$http.get(helpers.add_endpoint_json(api_endpoints.referrals,_id+'/recall')).then(response => {
+                swal.hideLoading();
+                swal.close();
                 vm.$emit('refreshFromResponse',response);
                 vm.table.ajax.reload();
                 swal(

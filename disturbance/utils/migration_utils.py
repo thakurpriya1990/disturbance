@@ -1,21 +1,25 @@
 from ledger.accounts.models import Organisation as ledger_organisation
 from ledger.accounts.models import OrganisationAddress
 from ledger.accounts.models import EmailUser
+from ledger.payments.models import Invoice
+from django.conf import settings
 from disturbance.components.organisations.models import Organisation, OrganisationContact, UserDelegation
 from disturbance.components.main.models import ApplicationType
 from disturbance.components.main.utils import get_category
-from disturbance.components.proposals.models import Proposal, ProposalType, ApiarySite, ApiarySiteOnProposal#, ProposalOtherDetails, ProposalPark
+from disturbance.components.proposals.models import Proposal, ProposalType, ApiarySite, ApiarySiteOnProposal, ProposalApiary #, ProposalOtherDetails, ProposalPark
 from disturbance.components.approvals.models import Approval, MigratedApiaryLicence, ApiarySiteOnApproval
 #from commercialoperator.components.bookings.models import ApplicationFee, ParkBooking, Booking
 from django.core.exceptions import MultipleObjectsReturned
 from django.db import IntegrityError, transaction
-from ledger.address.models import Country
 from django.contrib.gis.geos import GEOSGeometry
+from django.utils import timezone
+from ledger.address.models import Country
 import csv
 import os
 import datetime
 import string
 from dateutil.relativedelta import relativedelta
+from decimal import Decimal
 
 import logging
 logger = logging.getLogger(__name__)
@@ -26,6 +30,11 @@ class ImportException(Exception):
 
 
 class ApiaryLicenceReader():
+    '''
+    from disturbance.utils.migration_utils import ApiaryLicenceReader
+    reader=ApiaryLicenceReader('disturbance/utils/csv/apiary_migration_file_01Sep20211-TEST.csv')
+    reader.run_migration()
+    '''
     def __init__(self, filename):
         self.filename = filename
         self.not_found = []
@@ -38,47 +47,76 @@ class ApiaryLicenceReader():
             for row in self.apiary_licence_lines:
                 #print(row)
                 #import ipdb;ipdb.set_trace()
-                if row.get('permit_number') and row.get('licencee_type'):
+                #if row.get('permit_number') and row.get('licencee_type'):
+                defaults = {
+                    'permit_number': row['permit_number'],
+                    'start_date': row['start_date'],
+                    'expiry_date': row['expiry_date'],
+                    'issue_date': row['issue_date'],
+                    'status': row['status'].lower(),
+                    'latitude': row['latitude'],
+                    'longitude': row['longitude'],
+                    'trading_name': row['trading_name'],
+                    'licencee': row['licencee'],
+                    'abn': row['abn'],
+                    'first_name': row['first_name'],
+                    'last_name': row['last_name'],
+                    'address_line1': row['address_line1'],
+                    'address_line2': row['address_line2'],
+                    'address_line3': row['address_line3'],
+                    'suburb': row['suburb'],
+                    'state': row['state'],
+                    'country': row['country'],
+                    'postcode': row['postcode'],
+                    'phone_number1': row['phone_number1'],
+                    'phone_number2': row['phone_number2'],
+                    'mobile_number': row['mobile_number'],
+                    'email': row['email'],
+                    'licencee_type': row['licencee_type'],
+                }
+
+                if row.get('licencee_type'):
                         #and (
                         #(row.get('licencee') and row.get('abn')) or 
                         #not row.get('licencee')
                         #):
-                    licence, created = MigratedApiaryLicence.objects.get_or_create(
-                        #**row_values
-                        permit_number = row['permit_number'],
-                        defaults = {
-                            'start_date': row['start_date'],
-                            'expiry_date': row['expiry_date'],
-                            'issue_date': row['issue_date'],
-                            'status': row['status'],
-                            'latitude': row['latitude'],
-                            'longitude': row['longitude'],
-                            'trading_name': row['trading_name'],
-                            'licencee': row['licencee'],
-                            'abn': row['abn'],
-                            'first_name': row['first_name'],
-                            'last_name': row['last_name'],
-                            #data.update({'other_contact': row[12].strip()})
-                            'address_line1': row['address_line1'],
-                            'address_line2': row['address_line2'],
-                            'address_line3': row['address_line3'],
-                            #locality = models.CharField('Suburb / Town', max_length=255)
-                            'suburb': row['suburb'],
-                            'state': row['state'],
-                            'country': row['country'],
-                            'postcode': row['postcode'],
-                            'phone_number1': row['phone_number1'],
-                            'phone_number2': row['phone_number2'],
-                            'mobile_number': row['mobile_number'],
-                            'email': row['email'],
-                            'licencee_type': row['licencee_type']
-                            }
-                        )
-                    if not created:
-                        row.update({'previously_migrated': True})
-                        logger.warning('Record already exists, so not imported')
-                        logger.warning('Main {}'.format(row))
-                        #print('Main {}'.format(data))
+                    licence = MigratedApiaryLicence.objects.create(**defaults)
+
+#                    licence, created = MigratedApiaryLicence.objects.get_or_create(
+#                        #**row_values
+#                        #permit_number = row['permit_number'],
+#                        defaults = {
+#                            'permit_number': row['permit_number'],
+#                            'start_date': row['start_date'],
+#                            'expiry_date': row['expiry_date'],
+#                            'issue_date': row['issue_date'],
+#                            'status': row['status'].lower(),
+#                            'latitude': row['latitude'],
+#                            'longitude': row['longitude'],
+#                            'trading_name': row['trading_name'],
+#                            'licencee': row['licencee'],
+#                            'abn': row['abn'],
+#                            'first_name': row['first_name'],
+#                            'last_name': row['last_name'],
+#                            'address_line1': row['address_line1'],
+#                            'address_line2': row['address_line2'],
+#                            'address_line3': row['address_line3'],
+#                            'suburb': row['suburb'],
+#                            'state': row['state'],
+#                            'country': row['country'],
+#                            'postcode': row['postcode'],
+#                            'phone_number1': row['phone_number1'],
+#                            'phone_number2': row['phone_number2'],
+#                            'mobile_number': row['mobile_number'],
+#                            'email': row['email'],
+#                            'licencee_type': row['licencee_type'],
+#                            }
+#                        )
+#                    if not created:
+#                        row.update({'previously_migrated': True})
+#                        logger.warning('Record already exists, so not imported')
+#                        logger.warning('Main {}'.format(row))
+#                        #print('Main {}'.format(data))
 
                 else:
                     #print(row)
@@ -91,9 +129,14 @@ class ApiaryLicenceReader():
 
     def run_migration(self):
         with transaction.atomic():
-            self._write_to_migrated_apiary_licence_model()
-            self._create_licences()
-            #import denied sites
+            try:
+                #import ipdb; ipdb.set_trace()
+                self._write_to_migrated_apiary_licence_model()
+                self._create_licences()
+                #import denied sites
+            except:
+                import ipdb; ipdb.set_trace()
+                raise Exception
 
     def _read_organisation_data(self, verify=False):
         lines=[]
@@ -114,84 +157,147 @@ class ApiaryLicenceReader():
                 header = next(reader) # skip header
                 #import ipdb; ipdb.set_trace()
                 for row in reader:
-                    data={}
-                    data.update({'permit_number': row[0].strip()})
-                    start_date_raw = row[1].strip()
-                    if start_date_raw:
-                        start_date = datetime.datetime.strptime(start_date_raw, '%d/%m/%Y').date()
-                        data.update({'start_date': start_date})
-                    expiry_date_raw = row[2].strip()
-                    if expiry_date_raw:
-                        expiry_date = datetime.datetime.strptime(row[2].strip(), '%d/%m/%Y').date()
-                        data.update({'expiry_date': expiry_date})
-                    issue_date_raw = row[3].strip()
-                    if issue_date_raw:
-                        issue_date = datetime.datetime.strptime(row[3].strip(), '%d/%m/%Y').date()
-                        data.update({'issue_date': issue_date})
-                    # set issue_date to start_date
-                    else:
-                        data.update({'issue_date': start_date})
-                    data.update({'status': row[4].strip().capitalize()})
-                    data.update({'latitude': row[5].translate(None, string.whitespace)})
-                    data.update({'longitude': row[6].translate(None, string.whitespace)})
-                    #data.update({'file_no': row[0].translate(None, string.whitespace)})
-                    #data.update({'licence_no': row[1].translate(None, string.whitespace)})
-                    #data.update({'expiry_date': row[2].strip()})
-                    #data.update({'term': row[3].strip()})
+                    #import ipdb; ipdb.set_trace()
+                    if not row[0].startswith('#'):
+                        data={}
+                        data.update({'permit_number': row[0].strip() if row[0].strip()!='' else None})
+                        start_date_raw = row[1].strip()
+                        if start_date_raw:
+                            start_date = datetime.datetime.strptime(start_date_raw, '%d/%m/%Y').date()
+                            data.update({'start_date': start_date})
+                        else:
+                            continue
+                        expiry_date_raw = row[2].strip()
+                        if expiry_date_raw:
+                            expiry_date = datetime.datetime.strptime(row[2].strip(), '%d/%m/%Y').date()
+                            data.update({'expiry_date': expiry_date})
+#                        issue_date_raw = row[3].strip()
+#                        if issue_date_raw:
+#                            issue_date = datetime.datetime.strptime(row[3].strip(), '%d/%m/%Y').date()
+#                            data.update({'issue_date': issue_date})
+#                        # set issue_date to start_date
+#                        else:
+#                            data.update({'issue_date': start_date})
+                        try:
+                            issue_date = datetime.datetime.strptime(row[3].strip(), '%d/%m/%Y').date()
+                            data.update({'issue_date': issue_date})
+                        # set issue_date to start_date
+                        except:
+                            data.update({'issue_date': start_date})
+
+                        data.update({'status': row[4].strip().capitalize()})
+                        # JM switched round the below for the csv file provided by Ashlee dated 01Sep2021
+                        data.update({'latitude': row[6].translate(string.whitespace)})
+                        data.update({'longitude': row[5].translate(string.whitespace)})
+                        #data.update({'file_no': row[0].translate(None, string.whitespace)})
+                        #data.update({'licence_no': row[1].translate(None, string.whitespace)})
+                        #data.update({'expiry_date': row[2].strip()})
+                        #data.update({'term': row[3].strip()})
 
 
-                    data.update({'trading_name': row[7].strip()})
-                    data.update({'licencee': row[8].strip()})
-                    data.update({'abn': row[9].translate(None, string.whitespace)})
-                    #data.update({'title': row[10].strip()})
-                    first_name_raw = row[10].strip()
-                    if first_name_raw:
-                        first_name_split = first_name_raw.split('&')
-                        data.update({'first_name': first_name_split[0].strip().capitalize()})
-                    #data.update({'first_name': row[10].strip().capitalize()})
-                    last_name_raw = row[11].strip()
-                    if last_name_raw:
-                        last_name_split = last_name_raw.split('&')
-                        data.update({'last_name': last_name_raw.strip().capitalize()})
-                    #data.update({'other_contact': row[12].strip()})
-                    data.update({'address_line1': row[13].strip()})
-                    data.update({'address_line2': row[14].strip()})
-                    data.update({'address_line3': row[15].strip()})
-                    data.update({'suburb': row[16].strip().capitalize()})
-                    data.update({'state': row[17].strip()})
+                        data.update({'abn': row[9].translate(string.whitespace).replace(' ','')})
+                        data.update({'trading_name': row[7].strip()})
+                        if row[8].strip() != '':
+                            data.update({'licencee': row[8].strip()})
+                        else:
+                            # set same as Trading Name
+                            #data.update({'licencee': row[7].strip()})
+                            data.update({'licencee': row[7].strip() + '(' + data['abn'] + ')'})
 
-                    country_raw = ' '.join([i.lower().capitalize() for i in row[18].strip().split()])
-                    #if country == 'A':
-                        #country = 'Australia'
-                    country_str = 'Australia' if country_raw.lower().startswith('a') else country_raw
-                    country=Country.objects.get(printable_name__icontains=country_str)
-                    data.update({'country': country.iso_3166_1_a2}) # 2 char 'AU'
-                    data.update({'postcode': row[19].translate(None, string.whitespace)})
-                    data.update({'phone_number1': row[20].translate(None, b' -()')})
-                    data.update({'phone_number2': row[21].translate(None, b' -()')})
-                    data.update({'mobile_number': row[22].translate(None, b' -()')})
+                        #data.update({'title': row[10].strip()})
+                        first_name_raw = row[10].strip()
+                        if first_name_raw:
+                            first_name_split = first_name_raw.split('&')
+                            data.update({'first_name': first_name_split[0].strip().capitalize()})
+                        #data.update({'first_name': row[10].strip().capitalize()})
+                        last_name_raw = row[11].strip()
+                        if last_name_raw:
+                            last_name_split = last_name_raw.split('&')
+                            data.update({'last_name': last_name_raw.strip().capitalize()})
+                        #data.update({'other_contact': row[12].strip()})
+                        #import ipdb; ipdb.set_trace()
+                        data.update({'address_line1': row[13].strip()})
+                        data.update({'address_line2': row[14].strip()})
+                        data.update({'address_line3': row[15].strip()})
+                        data.update({'suburb': row[16].strip().capitalize()})
+                        data.update({'state': row[17].strip()})
 
-                    emails = row[23].translate(None, b' -()').replace(';', ',').split(',')
-                    #for num, email in enumerate(emails, 1):
-                     #   data.update({'email{}'.format(num): email.lower()})
-                    if emails:
-                        data.update({'email': emails[0].lower()})
-                    # Org or individual record
-                    if data.get('licencee') and data.get('abn'):
-                        data.update({'licencee_type': 'organisation'})
-                    elif not data.get('licencee'):
-                        data.update({'licencee_type': 'individual'})
-                    else:
-                        raise ImportException("Entry is not a valid organisation or individual licence record")
+                        country_raw = ' '.join([i.lower().capitalize() for i in row[18].strip().split()])
+                        #if country == 'A':
+                            #country = 'Australia'
+                        country_str = 'Australia' if country_raw.lower().startswith('a') else country_raw
+                        country=Country.objects.get(printable_name__icontains=country_str)
+                        data.update({'country': country.iso_3166_1_a2}) # 2 char 'AU'
+                        if row[19].translate(string.whitespace) != '':
+                            data.update({'postcode': row[19].translate(string.whitespace)})
+                        else:
+                            data.update({'postcode': '6000'})
+                        data.update({'phone_number1': row[20].translate(b' -()')})
+                        data.update({'phone_number2': row[21].translate(b' -()')})
+                        data.update({'mobile_number': row[22].translate(b' -()')})
 
-                    #if data['abn'] != '':
-                    lines.append(data) # must be an org
-                    ##else:
-                    ##   print data['first_name'], data['last_name'], data['email1'], data['abn']
-                    ##   print
+                        emails = row[23].translate(b' -()').replace(';', ',').split(',')
+                        #import ipdb; ipdb.set_trace()
+                        if row[24].translate(b' -()').capitalize() == '':
+                            # This is a Permit
+                            data.update({'licensed_site': False})
+                        else:
+                            data.update({'licensed_site': True})
+#                        try:
+#                            data.update({'licensed_site': eval(row[24].translate(b' -()').capitalize())})
+#                        except:
+#                            data.update({'licensed_site': False})
+
+                        # batch_no:approval_cpc_date:approval_minister_date:map_ref:forest_block:cog:roadtrack:zone:catchment:dra_permit
+                        data.update({'batch_no': row[25].strip()})
+                        approval_cpc_date_raw = row[26].strip()
+                        if approval_cpc_date_raw:
+                            approval_cpc_date = datetime.datetime.strptime(approval_cpc_date_raw, '%d/%m/%Y').date()
+                            data.update({'approval_cpc_date': approval_cpc_date})
+                        else:
+                            data.update({'approval_cpc_date': None})
+                        approval_minister_date_raw = row[27].strip()
+                        if approval_minister_date_raw:
+                            approval_minister_date = datetime.datetime.strptime(approval_minister_date_raw, '%d/%m/%Y').date()
+                            data.update({'approval_minister_date': approval_minister_date})
+                        else:
+                            data.update({'approval_minister_date': None})
+                        data.update({'map_ref': row[28].strip()})
+                        data.update({'forest_block': row[29].strip()})
+                        data.update({'cog': row[30].strip()})
+                        data.update({'roadtrack': row[31].strip()})
+                        data.update({'zone': row[32].strip()})
+                        data.update({'catchment': row[33].strip()})
+                        data.update({'dra_permit': row[34].strip() if row[34].strip() else False})
+                        data.update({'site_status': settings.SITE_STATUS_SUSPENDED if row[35].strip() else settings.SITE_STATUS_CURRENT})
+
+                        #pli_expiry_date_raw = row[25].strip()
+                        #if pli_expiry_date_raw:
+                        #    pli_expiry_date = datetime.datetime.strptime(pli_expiry_date_raw, '%d/%m/%Y').date()
+                        #    data.update({'pli_expiry_date': pli_expiry_date})
+
+                        #for num, email in enumerate(emails, 1):
+                         #   data.update({'email{}'.format(num): email.lower()})
+                        if emails:
+                            data.update({'email': emails[0].strip().lower()})
+                        # Org or individual record
+                        if data.get('licencee')!='' and data.get('abn')!='':
+                            data.update({'licencee_type': 'organisation'})
+                        #elif not data.get('licencee'):
+                        elif data.get('abn')=='':
+                            data.update({'licencee_type': 'individual'})
+                        else:
+                            #import ipdb; ipdb.set_trace()
+                            raise ImportException("Entry is not a valid organisation or individual licence record")
+
+                        #if data['abn'] != '':
+                        lines.append(data) # must be an org
+                        ##else:
+                        ##   print data['first_name'], data['last_name'], data['email1'], data['abn']
+                        ##   print
 
         except Exception as e:
-            #import ipdb; ipdb.set_trace()
+            import ipdb; ipdb.set_trace()
             #logger.info('{}'.format(e))
             if data:
                 logger.error('{}'.format(e))
@@ -331,15 +437,29 @@ class ApiaryLicenceReader():
             #import ipdb; ipdb.set_trace()
             data['licencee'] = data['licencee'] + ' ' if ledger_organisation.objects.filter(name=data['licencee']) else data['licencee']
 
-            lo, created = ledger_organisation.objects.get_or_create(
-                abn=data['abn'],
-                defaults={
-                    'name': data['licencee'],
-                    'postal_address': oa,
-                    'billing_address': oa,
-                    'trading_name': data['trading_name']
-                }
-            )
+            try:
+                lo = ledger_organisation.objects.get(abn=data['abn'])
+            except:
+                lo, created = ledger_organisation.objects.get_or_create(
+                    abn=data['abn'],
+                    defaults={
+                        'name': data['licencee'],
+                        'postal_address': oa,
+                        'billing_address': oa,
+                        'trading_name': data['trading_name']
+                    }
+                )
+
+
+#            lo, created = ledger_organisation.objects.get_or_create(
+#                abn=data['abn'],
+#                defaults={
+#                    'name': data['licencee'],
+#                    'postal_address': oa,
+#                    'billing_address': oa,
+#                    'trading_name': data['trading_name']
+#                }
+#            )
 
         except Exception as e:
             print('Error creating Organisation: {} - {}'.format(data['licencee'], data['abn']))
@@ -446,6 +566,7 @@ class ApiaryLicenceReader():
         #elif proxy_applicant:
         #    approval = Approval.objects.filter(proxy_applicant=proxy_applicant, status=Approval.STATUS_CURRENT, apiary_approval=True).first()
 
+        #import ipdb; ipdb.set_trace()
         application_type=ApplicationType.objects.get(name=ApplicationType.APIARY)
         qs_proposal_type = ProposalType.objects.all().order_by('name', '-version').distinct('name')
         proposal_type = qs_proposal_type.get(name=application_type.name)
@@ -458,9 +579,11 @@ class ApiaryLicenceReader():
 
             #application_name = 'T Class'
             # Get most recent versions of the Proposal Types
+            #import ipdb; ipdb.set_trace()
             if applicant:
-                proposal= Proposal.objects.create(
+                proposal, p_created = Proposal.objects.get_or_create(
                                 application_type=application_type,
+                                activity='Apiary',
                                 submitter=submitter,
                                 applicant=applicant,
                                 schema=proposal_type.schema,
@@ -478,30 +601,45 @@ class ApiaryLicenceReader():
                                     }
                             )
             else:
-                proposal= Proposal.objects.create(
-                                application_type=application_type,
-                                submitter=submitter,
-                                applicant=applicant,
-                                schema=proposal_type.schema,
-                            )
-                approval, approval_created = Approval.objects.update_or_create(
-                                proxy_applicant=proxy_applicant,
-                                status=Approval.STATUS_CURRENT,
-                                apiary_approval=True,
-                                defaults = {
-                                    'issue_date':data['issue_date'],
-                                    'expiry_date':data['expiry_date'],
-                                    'start_date':data['start_date'],
-                                    #'submitter':submitter,
-                                    'current_proposal':proposal,
-                                    }
-                            )
-            proposal.lodgement_number = proposal.lodgement_number.replace('P', 'PM') # Application Migrated
+                import ipdb; ipdb.set_trace()
+#                proposal= Proposal.objects.create(
+#                                application_type=application_type,
+#                                submitter=submitter,
+#                                applicant=applicant,
+#                                schema=proposal_type.schema,
+#                            )
+#                approval, approval_created = Approval.objects.update_or_create(
+#                                proxy_applicant=proxy_applicant,
+#                                status=Approval.STATUS_CURRENT,
+#                                apiary_approval=True,
+#                                defaults = {
+#                                    'issue_date':data['issue_date'],
+#                                    'expiry_date':data['expiry_date'],
+#                                    'start_date':data['start_date'],
+#                                    #'submitter':submitter,
+#                                    'current_proposal':proposal,
+#                                    }
+#                            )
+            if 'PM' not in proposal.lodgement_number:
+                proposal.lodgement_number = proposal.lodgement_number.replace('P', 'PM') # Application Migrated
             proposal.approval= approval
             proposal.processing_status='approved'
             proposal.customer_status='approved'
             proposal.migrated=True
+            proposal.proposed_issuance_approval = {
+                    'start_date': data['start_date'].strftime('%d-%m-%Y'),
+                    'expiry_date': data['expiry_date'].strftime('%d-%m-%Y'),
+                    'details': 'Migrated',
+                    'cc_email': 'Migrated',
+            }
+
             approval.migrated=True
+
+            # create invoice for payment of zero dollars
+            order = create_invoice(proposal)
+            invoice = Invoice.objects.get(order_number=order.number) 
+            proposal.fee_invoice_references = [invoice.reference]
+
             proposal.save()
             approval.save()
             # create apiary sites and intermediate table entries
@@ -512,19 +650,52 @@ class ApiaryLicenceReader():
                                             apiary_site=apiary_site,
                                             approval=approval,
                                             wkb_geometry=geometry,
-                                            site_category = site_category
+                                            site_category = site_category,
+                                            licensed_site=data['licensed_site'],
+                                            batch_no=data['batch_no'],
+                                            approval_cpc_date=data['approval_cpc_date'],
+                                            approval_minister_date=data['approval_minister_date'],
+                                            map_ref=data['map_ref'],
+                                            forest_block=data['forest_block'],
+                                            cog=data['cog'],
+                                            roadtrack=data['roadtrack'],
+                                            zone=data['zone'],
+                                            catchment=data['catchment'],
+                                            dra_permit=data['dra_permit'],
+                                            site_status=data['site_status'],
                                             )
+            #import ipdb; ipdb.set_trace()
+            pa, pa_created = ProposalApiary.objects.get_or_create(proposal=proposal)
+            #if pa_created:
+            #    # since this is an application level field
+            #    pa.public_liability_insurance_expiry_date = data['pli_expiry_date'].strftime('%d-%m-%Y') 
+
             intermediary_proposal_site = ApiarySiteOnProposal.objects.create(
                                             apiary_site=apiary_site,
                                             #approval=approval,
-                                            proposal=proposal,
-                                            wkb_geometry=geometry,
-                                            site_category = site_category
+                                            proposal_apiary=pa,
+                                            wkb_geometry_draft=geometry,
+                                            site_category_draft = site_category,
+                                            wkb_geometry_processed=geometry,
+                                            site_category_processed = site_category,
+                                            licensed_site=data['licensed_site'],
+                                            batch_no=data['batch_no'],
+                                            approval_cpc_date=data['approval_cpc_date'],
+                                            approval_minister_date=data['approval_minister_date'],
+                                            map_ref=data['map_ref'],
+                                            forest_block=data['forest_block'],
+                                            cog=data['cog'],
+                                            roadtrack=data['roadtrack'],
+                                            zone=data['zone'],
+                                            catchment=data['catchment'],
+                                            dra_permit=data['dra_permit'],
                                             )
 
             apiary_site.latest_approval_link=intermediary_approval_site
             apiary_site.latest_proposal_link=intermediary_proposal_site
             apiary_site.save()
+
+            approval.generate_doc(submitter)
 
         except Exception as e:
             logger.error('{}'.format(e))
@@ -573,4 +744,31 @@ class ApiaryLicenceReader():
     #    print 'Approvals: {}, Approval_Errors: {}'.format(len(approval_new), len(approval_error))
 
     #def import denied sites with no licencee data
+
+def create_invoice(proposal, payment_method='other'):
+        """
+        This will create and invoice and order from a basket bypassing the session
+        and payment bpoint code constraints.
+        """
+        from ledger.checkout.utils import createCustomBasket
+        from ledger.payments.invoice.utils import CreateInvoiceBasket
+        from ledger.accounts.models import EmailUser
+
+        now = timezone.now().date()
+        line_items = [
+            {'ledger_description': 'Migration Licence Charge Waiver - {} - {}'.format(now, proposal.lodgement_number),
+             'oracle_code': 'N/A', #proposal.application_type.oracle_code_application,
+             'price_incl_tax':  Decimal(0.0),
+             'price_excl_tax':  Decimal(0.0),
+             'quantity': 1,
+            }
+        ]
+
+        user = EmailUser.objects.get(email__icontains='das@dbca.wa.gov.au')
+        invoice_text = 'Migration Invoice'
+
+        basket  = createCustomBasket(line_items, user, settings.PAYMENT_SYSTEM_ID)
+        order = CreateInvoiceBasket(payment_method=payment_method, system=settings.PAYMENT_SYSTEM_PREFIX).create_invoice_and_order(basket, 0, None, None, user=user, invoice_text=invoice_text)
+
+        return order
 

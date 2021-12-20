@@ -131,6 +131,136 @@
                                     </div>
                                 </div>
                             </div>
+
+<!--
+                            <pre>{{ issuance_details }}</pre>
+                                    <pre>{{ site.properties }}</pre>
+                                    <pre>{{ site.properties.licensed_site }}</pre>
+-->
+                            <div v-for="(site, index) in apiary_sites_updated_ordered">
+                                <div v-if="!site.properties.licensed_site">
+				    <div class="col-md-12">
+					<div class="row">
+					    <div class="panel panel-default">
+						<div class="panel-heading">
+						    <h2 class="panel-title">Permit details for site {{ site.id }}
+							<a class="panelClicker" :href="'#details-info-'+site.id" data-toggle="collapse"  :data-parent="'#userInfo-'+site.id" expanded="false" :aria-controls="'details-info-'+site.id">
+							    <span class="glyphicon glyphicon-chevron-down pull-right "></span>
+							</a>
+						    </h2>
+						</div>
+
+						<div class="panel-body panel-collapse collapse" :id="'details-info-'+site.id">
+						    <div class="row">
+						        <div class="col-sm-12">
+							    <div class="form-group">
+								<div class="col-sm-4">
+								    <label class="control-label pull-left"  for="name">Batch Number</label><br>
+								    <input type="text" class="form-control" name="site_batch_no" style="width:100%;" ref="batch_no"
+                                                                        v-model="site.properties.batch_no"
+                                                                    >
+								</div>
+<!--
+                                                                        v-model="issuance_details[index].batch_no"
+                                                                        v-model="site.properties.issuance_details.batch_no"
+                                    <pre>{{ site.properties.issuance_details }}</pre>
+								<div class="col-sm-4">
+								    <label class="control-label pull-left"  for="name">Batch Number</label><br>
+								    <input type="text" class="form-control" name="approval_batch_no" style="width:100%;" ref="batch_no"
+                                                                        v-model="issuance_details.batch_no"
+                                                                    >
+								</div>
+-->
+
+<!--
+								<div class="col-sm-4">
+								  <label class="control-label pull-left" style="text-align:left" for="name">Conservation and Parks Commission</label>
+								  <div class="input-group date" ref="site_cpc_date" style="width: 70%;">
+								    <input type="text" class="form-control" name="site_cpc_date" placeholder="DD/MM/YYYY" v-model="site.properties.approval_cpc_date">
+								    <span class="input-group-addon">
+									<span class="glyphicon glyphicon-calendar"></span>
+								    </span>
+								  </div>
+								</div>
+-->
+
+								<div class="col-sm-4">
+								    <label class="control-label pull-left" style="text-align:left" for="name">Conservation and Parks Commission</label>
+								    <input type="text" class="form-control" name="site_cpc_date" placeholder="YYYY-MM-DD" style="width:100%;" ref="cpc_date" 
+                                                                        v-model="site.properties.approval_cpc_date"
+                                                                    >
+								</div>
+								<div class="col-sm-4">
+								    <label class="control-label pull-left" style="text-align:left" for="name">Minister for Environment or Delegate</label>
+								    <input type="text" class="form-control" name="site_minister_date" placeholder="YYYY-MM-DD" style="width:100%;" ref="minister_date" 
+                                                                        v-model="site.properties.approval_minister_date"
+                                                                    >
+								</div>
+							    </div>
+
+<!--
+-->
+							    <div class="form-group">
+								<div class="col-sm-4">
+								    <label class="control-label pull-left"  for="name">Map Reference</label><br>
+								    <input type="text" class="form-control" name="site_map_ref" style="width:100%;" ref="map_ref" v-model="site.properties.map_ref">
+								</div>
+								<div class="col-sm-4">
+								    <label class="control-label pull-left" style="text-align:left" for="name">Forest Block</label>
+								    <input type="text" class="form-control" name="site_forest_block" style="width:100%;" ref="forest_block" v-model="site.properties.forest_block">
+								</div>
+								<div class="col-sm-4">
+								    <label class="control-label pull-left" style="text-align:left" for="name">COG</label>
+								    <input type="text" class="form-control" name="site_cog" style="width:100%;" ref="cog" v-model="site.properties.cog">
+								</div>
+							    </div>
+
+							    <div class="form-group">
+								<div class="col-sm-4">
+								    <label class="control-label pull-left"  for="name">Apiary Zone</label><br>
+								    <input type="text" class="form-control" name="site_zone" style="width:100%;" ref="zone" v-model="site.properties.zone">
+								</div>
+								<div class="col-sm-4">
+								    <label class="control-label pull-left" style="text-align:left" for="name">Water Catchment Area</label>
+								    <input type="text" class="form-control" name="site_catchment" style="width:100%;" ref="catchment" v-model="site.properties.catchment">
+								</div>
+								<div class="col-sm-4">
+								    <label class="control-label pull-left" style="text-align:left" for="name">Nearest Road/Track</label>
+								    <input type="text" class="form-control" name="site_roadtrack" style="width:100%;" ref="roadtrack" v-model="site.properties.roadtrack">
+								</div>
+							    </div>
+
+							    <div class="form-group">
+								<div class="col-sm-3">
+								    <label class="control-label pull-left"  for="Name">DRA Permit Required</label>
+								</div>
+								<div class="col-sm-1">
+								    <input type="checkbox" class="form-control" name="site_dra_permit" style="width:50%;" ref="dra_permit" v-model="site.properties.dra_permit">
+								</div>
+							    </div>
+
+						        </div>
+					            </div>
+				  	        </div>
+
+					    </div>
+
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+
+<!--
+                            <pre>{{ apiary_sites_updated }}</pre>
+                <div v-for="site in apiary_sites_updated">
+                    <div v-if="site.properties.licensed_site" style="border">
+                        {{ site.id }}: {{ site.properties.licensed_site}}
+                    </div>
+                </div>
+-->
+
+
                             <div class="form-group">
                                 <div class="row">
                                     <div class="col-sm-12">
@@ -159,7 +289,9 @@
                         :show_col_site_when_submitted="true"
                         :show_col_checkbox="true"
                         :show_col_status_when_submitted="true"
-                        :show_col_decision="true"
+                        :show_col_decision="false"
+                        :show_col_licensed_site="true"
+                        :show_col_licensed_site_checkbox="true"
                         :key="component_site_selection_key"
                         :can_modify="true"
                         ref="component_site_selection"
@@ -182,6 +314,17 @@
                     Click <a href="#" @click.prevent="preview">here</a> to preview the licence letter.
                 </div>
             </div>
+
+<!--
+            <div>
+                <div v-for="site in apiary_sites_updated">
+                    <div v-if="site.properties.licensed_site">
+                        {{ site }}
+                    </div>
+                </div>
+            </div>
+-->
+
             <div slot="footer">
                 <button type="button" v-if="issuingApproval" disabled class="btn btn-default" @click="ok"><i class="fa fa-spinner fa-spin"></i> Processing</button>
                 <span v-else-if="ok_button_disabled" class="d-inline-block" tabindex="0" data-toggle="tooltip" title="Please select at least one site to issue">
@@ -246,6 +389,7 @@ export default {
     data:function () {
         let vm = this;
         return {
+            //furtherInfo: "further-info-"+vm._uid,
             isModalOpen:false,
             form:null,
             approval: {},
@@ -261,6 +405,7 @@ export default {
             successString: '',
             success:false,
             apiary_sites_updated: null,
+            apiary_licensed_sites_updated: null,
             datepickerOptions:{
                 format: 'DD/MM/YYYY',
                 showClear:true,
@@ -272,6 +417,11 @@ export default {
             component_site_selection_key: '',
             num_of_sites_selected: 0,
             is_local: helpers.is_local(),
+            issuance_details: [
+		{
+                    batch_no: null,
+                }
+	    ],
         }
     },
     computed: {
@@ -409,11 +559,22 @@ export default {
                 return  this.proposal.applicant.email;
             }
         },
+        apiary_sites_updated_ordered: function () {
+            // adding ordering here on client-side, because iserver-side serializer is ordered for 'apiary_site_id'
+            // to allow for PDF ordered output of permits and licences (ApprovalSerializerForLicenceDoc)
+            return _.orderBy(this.apiary_sites_updated, 'id')
+        },
+
     },
     watch: {
 
     },
     methods:{
+
+        //detailsInfo: function(site){
+        //    return 'details-info-' + site.id
+        //},
+
         featureGeometryUpdated: function(feature){
             console.log('issuance')
             console.log(feature)
@@ -434,6 +595,9 @@ export default {
             // Update this.num_of_sites_selected
             let temp = 0
             for (let i=0; i<apiary_sites.length; i++){
+                if (apiary_sites[i].checked){
+                    temp += 1
+                }
                 if (apiary_sites[i].checked){
                     temp += 1
                 }
@@ -789,6 +953,11 @@ export default {
        eventListeners:function () {
             let vm = this;
             // Initialise Date Picker
+            $(vm.$refs.site_cpc_date).datetimepicker(vm.datepickerOptions);
+            $(vm.$refs.site_cpc_date).on('dp.change', function(e){
+                console.log('e: ' + e)
+            });
+
             $(vm.$refs.due_date).datetimepicker(vm.datepickerOptions);
             $(vm.$refs.due_date).on('dp.change', function(e){
                 if ($(vm.$refs.due_date).data('DateTimePicker').date()) {
@@ -863,4 +1032,118 @@ export default {
 </script>
 
 <style lang="css">
+.boxed {
+  border: 1px solid black ;
+}
 </style>
+
+<!--
+						<div class="col-sm-12">
+						    <div class="form-group">
+							<div class="row">
+							    <div class="col-sm-4">
+								<label class="control-label pull-left"  for="Name">Batch Number</label>
+							    </div>
+							    <div class="col-sm-8">
+								    <input type="text" class="form-control" name="approval_batch_no" style="width:70%;" ref="batch_no" v-model="approval.batch_no">
+							    </div>
+							</div>
+						    </div>
+
+						    <div class="form-group">
+							<div class="row">
+							    <div class="col-sm-4">
+								<label class="control-label pull-left" style="text-align:left" for="Name">Conservation and Parks Commission</label>
+							    </div>
+							    <div class="col-sm-8">
+								    <input type="text" class="form-control" name="approval_cpc_date" style="width:70%;" ref="cpc_date" v-model="approval.cpc_date">
+							    </div>
+							</div>
+						    </div>
+
+						    <div class="form-group">
+							<div class="row">
+							    <div class="col-sm-4">
+								<label class="control-label pull-left" style="text-align:left" for="Name">Minister for Environment or Delegate</label>
+							    </div>
+							    <div class="col-sm-8">
+								    <input type="text" class="form-control" name="approval_minister_date" style="width:70%;" ref="minister_date" v-model="approval.minister_date">
+							    </div>
+							</div>
+						    </div>
+
+
+						    <div class="form-group">
+							<div class="row">
+							    <div class="col-sm-4">
+								<label class="control-label pull-left"  for="Name">Map Reference</label>
+							    </div>
+							    <div class="col-sm-8">
+								    <input type="text" class="form-control" name="approval_map_ref" style="width:70%;" ref="map_ref" v-model="approval.map_ref">
+							    </div>
+							</div>
+						    </div>
+
+						    <div class="form-group">
+							<div class="row">
+							    <div class="col-sm-4">
+								<label class="control-label pull-left"  for="Name">Forest Block</label>
+							    </div>
+							    <div class="col-sm-8">
+								    <input type="text" class="form-control" name="approval_forest_block" style="width:70%;" ref="forest_block" v-model="approval.forest_block">
+							    </div>
+							</div>
+						    </div>
+
+						    <div class="form-group">
+							<div class="row">
+							    <div class="col-sm-4">
+								<label class="control-label pull-left"  for="Name">COG Map Reference</label>
+							    </div>
+							    <div class="col-sm-8">
+								    <input type="text" class="form-control" name="approval_cog" style="width:70%;" ref="cog" v-model="approval.cog">
+							    </div>
+							</div>
+						    </div>
+						    <div class="form-group">
+							<div class="row">
+							    <div class="col-sm-4">
+								<label class="control-label pull-left"  for="Name">Nearest Road/Track</label>
+							    </div>
+							    <div class="col-sm-8">
+								    <input type="text" class="form-control" name="approval_roadtrack" style="width:70%;" ref="roadtrack" v-model="approval.roadtrack">
+							    </div>
+							</div>
+						    </div>
+						    <div class="form-group">
+							<div class="row">
+							    <div class="col-sm-4">
+								<label class="control-label pull-left"  for="Name">Apiary Zone</label>
+							    </div>
+							    <div class="col-sm-8">
+								    <input type="text" class="form-control" name="approval_zone" style="width:70%;" ref="zone" v-model="approval.zone">
+							    </div>
+							</div>
+						    </div>
+						    <div class="form-group">
+							<div class="row">
+							    <div class="col-sm-4">
+								<label class="control-label pull-left"  for="Name">Water Catchment Area</label>
+							    </div>
+							    <div class="col-sm-8">
+								    <input type="text" class="form-control" name="approval_catchment" style="width:70%;" ref="catchment" v-model="approval.catchment">
+							    </div>
+							</div>
+						    </div>
+						    <div class="form-group">
+							<div class="row">
+							    <div class="col-sm-4">
+								<label class="control-label pull-left"  for="Name">DRA Permit Required</label>
+							    </div>
+							    <div class="col-sm-1">
+								    <input type="checkbox" class="form-control" name="approval_dra_permit" style="width:70%;" ref="dra_permit" v-model="approval.dra_permit">
+							    </div>
+							</div>
+						    </div>
+-->
+

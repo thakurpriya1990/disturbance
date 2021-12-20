@@ -23,6 +23,7 @@ from ledger.urls import urlpatterns as ledger_patterns
 # API patterns
 from disturbance.management.default_data_manager import DefaultDataManager
 from disturbance.utils import are_migrations_running
+from disturbance.views import LedgerPayView
 
 router = routers.DefaultRouter()
 router.register(r'organisations',org_api.OrganisationViewSet)
@@ -52,7 +53,25 @@ router.register(r'apiary_referral_groups', proposal_api.ApiaryReferralGroupViewS
 router.register(r'apiary_referrals',proposal_api.ApiaryReferralViewSet)
 router.register(r'apiary_site_fees',proposal_api.ApiarySiteFeeViewSet)
 #router.register(r'payment',payment_api.PaymentViewSet)
+router.register(r'proposal_type_sections', proposal_api.ProposalTypeSectionViewSet)
 
+router.register(
+    r'schema_question_paginated', proposal_api.SchemaQuestionPaginatedViewSet)
+
+router.register(
+    r'schema_question', proposal_api.SchemaQuestionViewSet)
+
+router.register(
+    r'schema_masterlist',
+    proposal_api.SchemaMasterlistViewSet
+)
+router.register(
+    r'schema_masterlist_paginated', proposal_api.SchemaMasterlistPaginatedViewSet)
+router.register(
+    r'schema_proposal_type', proposal_api.SchemaProposalTypeViewSet)
+router.register(
+    r'schema_proposal_type_paginated', proposal_api.SchemaProposalTypePaginatedViewSet)
+router.register(r'map_layers', main_api.MapLayerViewSet)
 
 api_patterns = [
     url(r'^api/profile$', users_api.GetProfile.as_view(), name='get-profile'),
@@ -67,6 +86,7 @@ api_patterns = [
     url(r'^api/compliance_amendment_reason_choices',compliances_api.ComplianceAmendmentReasonChoicesView.as_view(),name='amendment_request_reason_choices'),
     url(r'^api/search_keywords',proposal_api.SearchKeywordsView.as_view(),name='search_keywords'),
     url(r'^api/search_reference',proposal_api.SearchReferenceView.as_view(),name='search_reference'),
+    url(r'^api/search_sections',proposal_api.SearchSectionsView.as_view(),name='search_sections'),
     #url(r'^api/reports/payment_settlements$', main_api.PaymentSettlementReportView.as_view(),name='payment-settlements-report'),
     url(r'^api/deed_poll_url', deed_poll_url, name='deed_poll_url')
 ]
@@ -88,6 +108,8 @@ urlpatterns = [
     url(r'^external/', views.ExternalView.as_view(), name='external'),
     url(r'^firsttime/$', views.first_time, name='first_time'),
     url(r'^gisdata/$', views.gisdata, name='gisdata'),
+    # url(r'^ledgerpay/$', views.ledgerpay, name='ledgerpay'),
+    # url(r'^ledgerpay/$', LedgerPayView.as_view(), name='ledgerpay'),
     url(r'^account/$', views.ExternalView.as_view(), name='manage-account'),
     url(r'^help/(?P<application_type>[^/]+)/(?P<help_type>[^/]+)/$', views.HelpView.as_view(), name='help'),
     url(r'^mgt-commands/$', views.ManagementCommandsView.as_view(), name='mgt-commands'),
@@ -95,16 +117,19 @@ urlpatterns = [
     #following url is used to include url path when sending Proposal amendment request to user.
     url(r'^proposal/$', proposal_views.ProposalView.as_view(), name='proposal'),
     url(r'^preview/licence-pdf/(?P<proposal_pk>\d+)',proposal_views.PreviewLicencePDFView.as_view(), name='preview_licence_pdf'),
+    url(r'^ledgerpay/(?P<payment_item>.+)', views.LedgerPayView.as_view(), name='ledgerpay-view'),
+    url(r'^validate_invoice_details/$', views.validate_invoice_details, name='validate-invoice-details'),
+    url(r'^invoice_payment/(?P<invoice_reference>\d+)/$', payment_views.InvoicePaymentView.as_view(), name='invoice_payment'),
 
     url(r'^application_fee/(?P<proposal_pk>\d+)/$', payment_views.ApplicationFeeView.as_view(), name='application_fee'),
     url(r'^annual_rental_fee/(?P<annual_rental_fee_id>\d+)/$', payment_views.AnnualRentalFeeView.as_view(), name='annual_rental_fee'),
     url(r'^success/fee/$', payment_views.ApplicationFeeSuccessView.as_view(), name='fee_success'),
     url(r'^success/site_transfer_fee/$', payment_views.SiteTransferApplicationFeeSuccessView.as_view(), name='site_transfer_fee_success'),
     url(r'^success/annual_rental_fee/$', payment_views.AnnualRentalFeeSuccessView.as_view(), name='annual_rental_fee_success'),
+    url(r'^success/invoice_payment/$', payment_views.InvoicePaymentSuccessView.as_view(), name='invoice_payment_success'),
     url(r'payments/invoice-pdf/(?P<reference>\d+)', payment_views.InvoicePDFView.as_view(), name='invoice-pdf'),
     url(r'payments/awaiting-payment-pdf/(?P<annual_rental_fee_id>\d+)', payment_views.AwaitingPaymentPDFView.as_view(), name='awaiting-payment-pdf'),
     url(r'payments/confirmation-pdf/(?P<reference>\d+)', payment_views.ConfirmationPDFView.as_view(), name='confirmation-pdf'),
-
 
     # following url is defined so that to include url path when sending Proposal amendment request to user.
     url(r'^external/proposal/(?P<proposal_pk>\d+)/$', views.ExternalProposalView.as_view(), name='external-proposal-detail'),

@@ -3,6 +3,8 @@
         <div class="row col-sm-12">
             <ComponentMap
                 ref="component_map"
+                :is_internal="is_internal"
+                :is_external="is_external"
                 :apiary_site_geojson_array="apiary_site_geojson_array"
                 :key="component_map_key"
                 @featuresDisplayed="updateTableByFeatures"
@@ -116,6 +118,25 @@
                 type: Boolean,
                 default: false,
             },
+            apiary_licensed_sites: {
+                type: Array,
+                default: function(){
+                    return [];
+                }
+            },
+            show_col_licensed_site:{
+                type: Boolean,
+                default: false,
+            },
+            show_col_licensed_site_checkbox: {
+                type: Boolean,
+                default: false,
+            },
+            enable_col_licensed_site_checkbox: {
+                type: Boolean,
+                default: true,
+            },
+
             show_view_all_features_button: {
                 type: Boolean,
                 default: true,
@@ -154,6 +175,7 @@
                     'Longitude',
                     'Latitude',
                     'District',
+                    'Licensed site',
                     'Status',
                     'Status<br>(at time of submit)',
                     'Vacant<br>(current status)',  // current status of the 'is_vacant'
@@ -224,6 +246,8 @@
                                 return '<div data-site="' + apiary_site.id + '">' + sub_str + '</div>'
                             }
                         },
+
+
                         {
                             // Site (at time of submit): pending/vacant
                             visible: vm.show_col_site_when_submitted,
@@ -261,6 +285,24 @@
                                 return 'dist'
                             }
                         },
+                        {
+                            // Licenced Site Checkbox - show column, default unchecked
+                            visible: vm.show_col_licensed_site, 
+                            className: 'dt-body-center',
+                            mRender: function (data, type, apiary_site) {
+                                let disabled_str = ''
+                                if (!vm.enable_col_licensed_site_checkbox){
+                                    disabled_str = ' disabled '
+                                }
+                                if (apiary_site.properties.licensed_site){
+                                    return '<input type="checkbox" class="licensed_site_checkbox" data-apiary-licensed-site-id="' + apiary_site.id + '"' + disabled_str + ' checked/>'
+                                } else {
+                                    return '<input type="checkbox" class="licensed_site_checkbox" data-apiary-licensed-site-id="' + apiary_site.id + '"' + disabled_str + '/>'
+                                }
+                            }
+                        },
+
+
                         {
                             // Status (current): general status.  Text
                             visible: vm.show_col_status,
@@ -472,7 +514,9 @@
             addEventListeners: function () {
                 $("#" + this.table_id).on("click", "a[data-view-on-map]", this.zoomOnApiarySite)
                 $("#" + this.table_id).on("click", "a[data-toggle-availability]", this.toggleAvailability)
-                $("#" + this.table_id).on('click', 'input[type="checkbox"]', this.checkboxClicked)
+                //$("#" + this.table_id).on('click', 'input[type="checkbox"]', this.checkboxClicked)
+                $("#" + this.table_id).on('click', 'input[class="site_checkbox"]', this.checkboxClicked)
+                $("#" + this.table_id).on('click', 'input[class="licensed_site_checkbox"]', this.checkboxLicensedSiteClicked)
                 $("#" + this.table_id).on('click', 'a[data-make-vacant]', this.makeVacantClicked)
                 $("#" + this.table_id).on('click', 'a[data-contact-licence-holder]', this.contactLicenceHolder)
 
@@ -515,6 +559,23 @@
                 this.$refs.component_map.setApiarySiteSelectedStatus(apiary_site_id, checked_status)
                 e.stopPropagation()
             },
+            checkboxLicensedSiteClicked: function(e) {
+                let vm = this;
+                //let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
+                let apiary_site_id = this.getApiaryLicensedSiteIdFromEvent(e)
+                let checked_status = e.target.checked
+                for (let i=0; i<this.apiary_sites_local.length; i++){
+                    if (this.apiary_sites_local[i].id == apiary_site_id){
+                        //this.apiary_sites_local[i].licensed_site_checked = checked_status
+                        this.apiary_sites_local[i].properties.licensed_site = checked_status
+                    }
+                }
+                this.$emit('apiary_sites_updated', this.apiary_sites_local)
+                this.$refs.component_map.setApiarySiteSelectedStatus(apiary_site_id, checked_status)
+                e.stopPropagation()
+            },
+
+
             contactLicenceHolder: function(e){
                 let vm = this;
                 //let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
@@ -615,6 +676,13 @@
                 }
                 return apiary_site_id
             },
+            getApiaryLicensedSiteIdFromEvent(e){
+                let apiary_site_id = e.target.getAttribute("data-apiary-licensed-site-id");
+                if (!(apiary_site_id)){
+                    apiary_site_id = e.target.getElementsByTagName('span')[0].getAttribute('data-apiary-licensed-site-id')
+                }
+                return apiary_site_id
+            },
             getApiarySiteAvailableFromEvent(e){
                 let apiary_site_available = e.target.getAttribute("data-apiary-site-available");
 
@@ -641,6 +709,9 @@
     cursor: pointer;
 }
 .site_checkbox {
+    text-align: center;
+}
+.licensed_site_checkbox {
     text-align: center;
 }
 </style>
