@@ -7,7 +7,7 @@
                     <div class="col-sm-3 status_filter_dropdown_wrapper">
                         <!-- div class="dropdown_arrow">
                         </div -->
-                            <input class="status_filter_dropdown_button form-control" type="text" :value="filter_selected_names" />
+                        <input class="status_filter_dropdown_button form-control" type="text" :value="filter_selected_names" />
                         <div class="status_filter_dropdown" @mouseleave="mouse_leave_from_dropdown()">
                             <template v-for="filter in filters">
                                 <div class="search_text">
@@ -1248,6 +1248,12 @@
         cursor: pointer;
         width: 100%;
         position: relative;
+    }
+    .status_filter_dropdown {
+        position: absolute;
+        background: white;
+        padding: 1em;
+        display: none;
     }
     /*
     .dropdown_arrow::after {
