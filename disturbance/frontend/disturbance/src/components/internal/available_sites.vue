@@ -1378,8 +1378,8 @@
         width: 7px;
         height: 7px;
         border: 0px;
-        border-bottom: solid 2px #a4a3a3;
-        border-right: solid 2px #a4a3a3;
+        border-bottom: solid 2px #909090;
+        border-right: solid 2px #909090;
         -ms-transform: rotate(45deg);
         -webkit-transform: rotate(45deg);
         transform: rotate(45deg);
