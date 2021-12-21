@@ -1374,14 +1374,19 @@
         margin-left: 1em;
     }
     .dropdown_arrow::after {
-        border-left: 4px solid transparent;
-        border-right: 4px solid transparent;
-        border-top: 4.5px solid gray;
         content: "";
+        width: 7px;
+        height: 7px;
+        border: 0px;
+        border-bottom: solid 2px #a4a3a3;
+        border-right: solid 2px #a4a3a3;
+        -ms-transform: rotate(45deg);
+        -webkit-transform: rotate(45deg);
+        transform: rotate(45deg);
         position: absolute;
-        right: 2em;
-        top: 1em;
-        width: 0;
+        top: 50%;
+        right: 21px;
+        margin-top: -4px;
     }
     /*
     .status_filter_dropdown {
