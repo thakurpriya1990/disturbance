@@ -231,8 +231,13 @@
                 for (let filter of vm.filters){
                     if (filter.show){
                         for (let apiary_site_geojson of filter.apiary_sites){
-                            // Remove the apiary_site from the map.  There are no functions to show/hide a feature unlike the layer.
-                            vm.apiarySitesQuerySource.removeFeature(apiary_site_geojson.feature)
+                            try {
+                                // Remove the apiary_site from the map.  There are no functions to show/hide a feature unlike the layer.
+                                vm.apiarySitesQuerySource.removeFeature(apiary_site_geojson.feature)
+                            } catch(err){
+                                //console.log(err)
+                                console.log(apiary_site_geojson)
+                            }
                         }
                     }
                     filter.apiary_sites = []
