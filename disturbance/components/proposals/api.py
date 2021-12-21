@@ -655,6 +655,22 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
 
     @list_route(methods=['GET', ])
     @basic_exception_handler
+    def list_apiary_sites_current_available(self, request):
+        search_text = request.query_params.get('search_text', '')
+        qs_sites = get_qs_current_site(search_text, available=True)
+        serializer = ApiarySiteOnApprovalMinimalGeometrySerializer(qs_sites, many=True)
+        return Response(serializer.data)
+
+    @list_route(methods=['GET', ])
+    @basic_exception_handler
+    def list_apiary_sites_current_unavailable(self, request):
+        search_text = request.query_params.get('search_text', '')
+        qs_sites = get_qs_current_site(search_text, available=False)
+        serializer = ApiarySiteOnApprovalMinimalGeometrySerializer(qs_sites, many=True)
+        return Response(serializer.data)
+
+    @list_route(methods=['GET', ])
+    @basic_exception_handler
     def list_apiary_sites_current(self, request):
         search_text = request.query_params.get('search_text', '')
         qs_sites = get_qs_current_site(search_text)

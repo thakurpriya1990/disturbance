@@ -347,7 +347,7 @@ def get_qs_suspended_site(search_text=''):
     return qs_on_approval
 
 
-def get_qs_current_site(search_text=''):
+def get_qs_current_site(search_text='', available=None):
     from disturbance.components.proposals.models import ApiarySite
     from disturbance.components.approvals.models import ApiarySiteOnApproval
 
@@ -364,6 +364,12 @@ def get_qs_current_site(search_text=''):
     # 2.1. Include
     q_include_approval &= Q(id__in=(qs_apiary_sites.values_list('latest_approval_link__id', flat=True)))  # Include only the intermediate objects which are on the ApiarySite.latest_proposal_links
     q_include_approval &= Q(site_status__in=(SITE_STATUS_CURRENT,))
+    if available is None:
+        pass  # Include both available and unavailable
+    elif available:
+        q_include_approval &= Q(available=True)
+    else:
+        q_include_approval &= Q(available=False)
 
     # 2.2. Exclude
     qs_vacant_site = _get_vacant_apiary_site()

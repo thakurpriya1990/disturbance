@@ -11,10 +11,10 @@
                             </div>
                             <div class="status_filter_dropdown" @mouseleave="mouse_leave_from_dropdown()">
                                 <div v-for="filter in filters">
-                                    <input type="checkbox" :id="filter.id" :value="filter.value" :checked="filter.show" @change="filterSelectionChanged(filter)" :key="filter.id" />
+                                    <input :disabled="!filter.checkbox" type="checkbox" :id="filter.id" :value="filter.value" :checked="filter.show" @change="filterSelectionChanged(filter)" :key="filter.id" />
                                     <label :for="filter.id">{{ filter.display_name }}</label>
                                     <div class="sub_option" v-for="option in filter.options">
-                                        <input type="checkbox" :id="option.id" :value="option.value" :checked="option.show" @change="filterOptionChanged(filter)" :key="option.id" />
+                                        <input type="checkbox" :id="option.id" :value="option.value" :checked="option.show" @change="filterOptionChanged(filter, option)" :key="option.id" />
                                         <label :for="option.id">{{ option.display_name }}</label>
                                     </div>
                                 </div>
@@ -30,6 +30,7 @@
                 </div>
                 <div :id="elem_id" class="map" style="position: relative;">
                     <div v-if="fullscreen" class="filter_search_on_map">
+                                    <!--
                         <div class="filter_search_wrapper row" style="margin-bottom: 5px;">
                             <label class="control-label col-sm-1">Status</label>
                             <div class="col-sm-3 status_filter_dropdown_wrapper">
@@ -41,7 +42,7 @@
                                         <input type="checkbox" :id="filter.id" :value="filter.value" :checked="filter.show" @change="filterSelectionChanged(filter)" :key="filter.id" />
                                         <label :for="filter.id">{{ filter.display_name }}</label>
                                         <div class="sub_option" v-for="option in filter.options">
-                                            <input type="checkbox" :id="option.id" :value="option.value" :checked="option.show" @change="filterOptionChanged(filter)" :key="option.id" />
+                                            <input type="checkbox" :id="option.id" :value="option.value" :checked="option.show" @change="filterOptionChanged(filter, option)" :key="option.id" />
                                             <label :for="option.id">{{ option.display_name }}</label>
                                         </div>
                                     </div>
@@ -54,6 +55,7 @@
                                 <input v-model="search_text" id="search_text" class="form-control" />
                             </div>
                         </div>
+                                    -->
                     </div>
                     <div class="basemap-button">
                         <img id="basemap_sat" src="../../assets/satellite_icon.jpg" @click="setBaseLayer('sat')" />
@@ -254,7 +256,9 @@
                         'id': 'vacant',
                         'value': 'vacant',
                         'display_name': 'Vacant',
+                        'checkbox': true,
                         'show': false,
+                        'loaded': false,
                         'api': 'list_apiary_sites_vacant',
                         'apiary_sites': [],
                     },
@@ -263,7 +267,9 @@
                         'id': 'draft',
                         'value': 'draft',
                         'display_name': 'Draft',
+                        'checkbox': true,
                         'show': false,
+                        'loaded': false,
                         'api': 'list_apiary_sites_draft',
                         'apiary_sites': [],
                     },
@@ -271,7 +277,9 @@
                         'id': 'pending',
                         'value': 'pending',
                         'display_name': 'Pending',
+                        'checkbox': true,
                         'show': false,
+                        'loaded': false,
                         'api': 'list_apiary_sites_pending',
                         'apiary_sites': [],
                     },
@@ -279,7 +287,9 @@
                         'id': 'denied',
                         'value': 'denied',
                         'display_name': 'Denied',
+                        'checkbox': true,
                         'show': false,
+                        'loaded': false,
                         'api': 'list_apiary_sites_denied',
                         'apiary_sites': [],
                     },
@@ -288,7 +298,9 @@
                         'id': 'current',
                         'value': 'current',
                         'display_name': 'Current',
+                        'checkbox': false,
                         'show': false,
+                        'loaded': false,
                         'api': 'list_apiary_sites_current',
                         'apiary_sites': [],
                         'options': [
@@ -297,12 +309,18 @@
                                 'value': 'available',
                                 'display_name': 'Available',
                                 'show': false,
+                                'loaded': false,
+                                'api': 'list_apiary_sites_current_available',
+                                'apiary_sites': [],
                             },
                             {
                                 'id': 'unavailable',
                                 'value': 'unavailable',
                                 'display_name': 'Unavailable',
                                 'show': false,
+                                'loaded': false,
+                                'api': 'list_apiary_sites_current_unavailable',
+                                'apiary_sites': [],
                             }
                         ]
                     },
@@ -310,7 +328,9 @@
                         'id': 'not_to_be_reissued',
                         'value': 'not_to_be_reissued',
                         'display_name': 'Not to be reissued',
+                        'checkbox': true,
                         'show': false,
+                        'loaded': false,
                         'api': 'list_apiary_sites_not_to_be_reissued',
                         'apiary_sites': [],
                     },
@@ -318,7 +338,9 @@
                         'id': 'suspended',
                         'value': 'suspended',
                         'display_name': 'Suspended',
+                        'checkbox': true,
                         'show': false,
+                        'loaded': false,
                         'api': 'list_apiary_sites_suspended',
                         'apiary_sites': [],
                     },
@@ -326,7 +348,9 @@
                         'id': 'discarded',
                         'value': 'discarded',
                         'display_name': 'Discarded',
+                        'checkbox': true,
                         'show': false,
+                        'loaded': false,
                         'api': 'list_apiary_sites_discarded',
                         'apiary_sites': [],
                     },
@@ -491,14 +515,25 @@
                 let new_row = this.$refs.table_apiary_site.vmDataTable.row.add(apiary_site_geojson)
                 new_row.draw()
             },
-            filterOptionChanged: function(filter){
+            filterOptionChanged: function(filter, option){
                 console.log('filterOptionChanged')
-                console.log(filter)
-            },
-            filterSelectionChanged: function(filter){
-                console.log('filterSelectionChanged')
-                filter.show = !filter.show
+                option.show = !option.show
 
+                // Update filter show status
+                let option_statuses_same = true
+                for (let opt of filter.options){
+                    if (option.show != opt.show){
+                        option_statuses_same = false
+                    }
+                }
+
+                if (option_statuses_same){
+                    filter.show = option.show
+                    this.updateFilterSelectedNames()
+                }
+                this.loadSites()
+            },
+            updateFilterSelectedNames: function(){
                 this.filter_selected_names = ''
                 let count = 0
                 for (let filter of this.filters){
@@ -513,6 +548,18 @@
                 if (this.filter_selected_names === ''){
                     this.filter_selected_names = 'select status'
                 }
+            },
+            filterSelectionChanged: function(filter){
+                console.log('filterSelectionChanged')
+                console.log(filter)
+                filter.show = !filter.show
+                if (filter.options){
+                    for (let option of filter.options){
+                        option.show = filter.show
+                    }
+                }
+
+                this.updateFilterSelectedNames()
                 this.loadSites()
             },
             addEventListeners: function () {
@@ -1141,45 +1188,92 @@
                 this.$refs.table_apiary_site.vmDataTable.clear().draw();
 
                 for (let filter of this.filters){
-                    if (filter.show){
-                        if (filter.loaded){
-                            // Data have been already loaded
-                            // Add the features to the map from the data storage
-                            for (let apiary_site_geojson of filter.apiary_sites){
-                                vm.apiarySitesQuerySource.addFeature(apiary_site_geojson.feature)
-                            }
-                            // Add the features to the table from the data storage
-                            for (let apiary_site_geojson of filter.apiary_sites){
-                                vm.addApiarySiteToTable(apiary_site_geojson)
-                            }
-                        } else {
-                            // Data have not been loaded yet
-                            // Fetch data from the server
-                            // Add the features to the map
-                            // Add the features to the table
-                            // Store data in the data storage
-                            Vue.http.get('/api/apiary_site/' + filter.api + '/?search_text=' + vm.search_text).then(re => {
-                                for (let apiary_site_geojson of re.body.features){
-                                    // Add the apiary_site to the map
-                                    let feature = vm.addApiarySiteToMap(apiary_site_geojson)
+                    if (filter.options){
+                        for (let option of filter.options){
+                            if (option.show){
+                                if (option.loaded){
+                                    // Data have been already loaded
+                                    for (let apiary_site_geojson of option.apiary_sites){
+                                        // Add the features to the map from the data storage
+                                        vm.apiarySitesQuerySource.addFeature(apiary_site_geojson.feature)
+                                        // Add the features to the table from the data storage
+                                        vm.addApiarySiteToTable(apiary_site_geojson)
+                                    }
+                                } else {
+                                    Vue.http.get('/api/apiary_site/' + option.api + '/?search_text=' + vm.search_text).then(re => {
+                                        for (let apiary_site_geojson of re.body.features){
+                                            // Add the apiary_site to the map
+                                            let feature = vm.addApiarySiteToMap(apiary_site_geojson)
 
-                                    // Add the apiary_site to the table
-                                    apiary_site_geojson.feature = feature
-                                    vm.addApiarySiteToTable(apiary_site_geojson)
-                                    filter.apiary_sites.push(apiary_site_geojson)
+                                            // Add this feature to the geojson data as a property
+                                            apiary_site_geojson.feature = feature
+
+                                            // Add the apiary_site to the table
+                                            vm.addApiarySiteToTable(apiary_site_geojson)
+
+                                            // Cache it
+                                            option.apiary_sites.push(apiary_site_geojson)
+                                        }
+                                        option.loaded = true
+                                    })
                                 }
-                                filter.loaded = true
-                            })
+                            } else {
+                                for (let apiary_site_geojson of option.apiary_sites){
+                                    // Remove the apiary_site from the map.  There are no functions to show/hide a feature unlike the layer.
+                                    if (apiary_site_geojson && vm.apiarySitesQuerySource.hasFeature(apiary_site_geojson.feature)){
+                                        try{
+                                            vm.apiarySitesQuerySource.removeFeature(apiary_site_geojson.feature)
+                                        } catch (err){
+                                            console.log(err)
+                                            console.log(apiary_site_geojson)
+                                        }
+                                    }
+                                }
+                            }
                         }
                     } else {
-                        for (let apiary_site_geojson of filter.apiary_sites){
-                            // Remove the apiary_site from the map.  There are no functions to show/hide a feature unlike the layer.
-                            if (apiary_site_geojson && vm.apiarySitesQuerySource.hasFeature(apiary_site_geojson.feature)){
-                                try{
-                                    vm.apiarySitesQuerySource.removeFeature(apiary_site_geojson.feature)
-                                } catch (err){
-                                    console.log(err)
-                                    console.log(apiary_site_geojson)
+                        if (filter.show){
+                            if (filter.loaded){
+                                // Data have been already loaded
+                                for (let apiary_site_geojson of filter.apiary_sites){
+                                    // Add the features to the map from the data storage
+                                    vm.apiarySitesQuerySource.addFeature(apiary_site_geojson.feature)
+                                    // Add the features to the table from the data storage
+                                    vm.addApiarySiteToTable(apiary_site_geojson)
+                                }
+                            } else {
+                                // Data have not been loaded yet
+                                // Fetch data from the server
+                                // Add the features to the map
+                                // Add the features to the table
+                                // Store data in the data storage
+                                Vue.http.get('/api/apiary_site/' + filter.api + '/?search_text=' + vm.search_text).then(re => {
+                                    for (let apiary_site_geojson of re.body.features){
+                                        // Add the apiary_site to the map
+                                        let feature = vm.addApiarySiteToMap(apiary_site_geojson)
+
+                                        // Add this feature to the geojson data as a property
+                                        apiary_site_geojson.feature = feature
+
+                                        // Add the apiary_site to the table
+                                        vm.addApiarySiteToTable(apiary_site_geojson)
+
+                                        // Cache it
+                                        filter.apiary_sites.push(apiary_site_geojson)
+                                    }
+                                    filter.loaded = true
+                                })
+                            }
+                        } else {
+                            for (let apiary_site_geojson of filter.apiary_sites){
+                                // Remove the apiary_site from the map.  There are no functions to show/hide a feature unlike the layer.
+                                if (apiary_site_geojson && vm.apiarySitesQuerySource.hasFeature(apiary_site_geojson.feature)){
+                                    try{
+                                        vm.apiarySitesQuerySource.removeFeature(apiary_site_geojson.feature)
+                                    } catch (err){
+                                        console.log(err)
+                                        console.log(apiary_site_geojson)
+                                    }
                                 }
                             }
                         }
