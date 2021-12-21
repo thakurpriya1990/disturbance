@@ -1764,7 +1764,7 @@
                     },
                     err => {}
                 )
-                this.$http.get('/api/apiary_site/list_existing_vacant_approval/?proposal_id=' + this.proposal.id).then(
+                this.$http.get('/api/apiary_site/list_existing_approval_vacant/?proposal_id=' + this.proposal.id).then(
                     res => {
                         let num_sites = 0
                         if(res.body.features){

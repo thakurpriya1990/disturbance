@@ -18,30 +18,30 @@ import uuid from 'uuid';
 
 export default {
     name:"FormSection",
-    props: {
+    props:{
         "label": {
             type: String,
-            default: '',
+            default: ''
         },
-        "subheading": {
+        "subheading":{
             type: String,
-            default: '',
+            default: ''
         },
-        "Index": {
+        "Index":{
             type: String,
-            default: '',
+            default: ''
         },
-        "formCollapse": {
+        "formCollapse":{
             type: Boolean,
-            default: false,
+            default: false
         },
         "hideHeader": {
             type: Boolean,
-            default: false,
+            default: false
         },
         "treeHeight": {
             type: Boolean,
-            default: false,
+            default: false
         },
     },
     data:function () {

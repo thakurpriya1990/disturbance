@@ -158,6 +158,76 @@
 
                 search_text: '',
                 filter_selected_names: 'select status',
+                filters: [
+                    // ApiarySite
+                    {
+                        'id': 'vacant',
+                        'value': 'vacant',
+                        'display_name': 'Vacant',
+                        'show': true,
+                        'loaded': false,
+                        'api': 'list_existing_vacant',  // TODO: implement backend
+                    },
+                    // ApiarySiteOnProposal
+                    {
+                        'id': 'draft',
+                        'value': 'draft',
+                        'display_name': 'Draft',
+                        'show': false,
+                        'loaded': false,
+                        'api': 'list_existing_proposal_draft',
+                    },
+                    {
+                        'id': 'pending',
+                        'value': 'pending',
+                        'display_name': 'Pending',
+                        'show': false,
+                        'loaded': false,
+                        'api': '',
+                    },
+                    {
+                        'id': 'denied',
+                        'value': 'denied',
+                        'display_name': 'Denied',
+                        'show': false,
+                        'loaded': false,
+                        'api': '',
+                    },
+                    // ApiarySiteOnApproval
+                    {
+                        'id': 'current',
+                        'value': 'current',
+                        'display_name': 'Current',
+                        'show': false,
+                        'loaded': false,
+                        'api': '',
+                    },
+                    {
+                        'id': 'not_to_be_reissued',
+                        'value': 'not_to_be_reissued',
+                        'display_name': 'Not to be reissued',
+                        'show': false,
+                        'loaded': false,
+                        'api': '',
+                    },
+                    {
+                        'id': 'suspended',
+                        'value': 'suspended',
+                        'display_name': 'Suspended',
+                        'show': false,
+                        'loaded': false,
+                        'api': '',
+                    },
+                    {
+                        'id': 'discarded',
+                        'value': 'discarded',
+                        'display_name': 'Discarded',
+                        'show': false,
+                        'loaded': false,
+                        'api': '',
+                    },
+                ],
+                search_text: '',
             }
         },
         components: {
@@ -986,7 +1056,6 @@
 
             // Existed methods before merging
             contactLicenceHolderClicked: function(apiary_site_id){
-                console.log(apiary_site_id)
                 this.openOnSiteInformationModal(apiary_site_id)
             },
             contactLicenceHolder: function(e){
@@ -1024,6 +1093,7 @@
             },
             loadSites: async function() {
                 let vm = this
+                let apis = []
 
                 // Clear table 
                 this.$refs.table_apiary_site.vmDataTable.clear().draw();

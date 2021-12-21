@@ -25,6 +25,7 @@ def retrieve_department_users():
     except:
         raise
 
+
 def get_department_user(email):
     try:
         res = requests.get('{}/api/users?email={}'.format(settings.CMS_URL,email), auth=(settings.LEDGER_USER,settings.LEDGER_PASS), verify=False)
@@ -37,9 +38,11 @@ def get_department_user(email):
     except:
         raise
 
+
 def to_local_tz(_date):
     local_tz = pytz.timezone(settings.TIME_ZONE)
     return _date.astimezone(local_tz)
+
 
 def check_db_connection():
     """  check connection to DB exists, connect if no connection exists """
@@ -538,7 +541,7 @@ def get_qs_approval():
     qs_vacant_site = get_vacant_apiary_site()
 
     # 2.1. Include
-    q_include_approval &= Q(id__in=(ApiarySite.objects.filter(latest_proposal_link__isnull=False).values_list('latest_approval_link__id', flat=True)))  # Include only the intermediate objects which are on the ApiarySite.latest_proposal_links
+    q_include_approval &= Q(id__in=(ApiarySite.objects.filter(latest_approval_link__isnull=False).values_list('latest_approval_link__id', flat=True)))  # Include only the intermediate objects which are on the ApiarySite.latest_proposal_links
 
     # 2.2. Exclude
     q_exclude_approval |= Q(apiary_site__in=qs_vacant_site)  # We don't want to pick up the vacant sites already retrieved above

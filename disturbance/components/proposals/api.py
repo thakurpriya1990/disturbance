@@ -700,14 +700,15 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
     #@query_debugger
     def list_existing_proposal_vacant_processed(self, request):
         qs_vacant_site_proposal, qs_vacant_site_approval = get_qs_vacant_site()
-        serializer_vacant_proposal = ApiarySiteOnProposalVacantProcessedMinimalGeometrySerializer(qs_vacant_site_proposal.filter(wkb_geometry_processed__isnull=False), many=True )
+        # serializer_vacant_proposal = ApiarySiteOnProposalVacantProcessedGeometrySerializer(qs_vacant_site_proposal.filter(wkb_geometry_processed__isnull=False), many=True)
+        serializer_vacant_proposal = ApiarySiteOnProposalVacantProcessedMinimalGeometrySerializer(qs_vacant_site_proposal.filter(wkb_geometry_processed__isnull=False), many=True)
         return Response(serializer_vacant_proposal.data)
 
     @list_route(methods=['GET',])
     @basic_exception_handler
     @timeit
     #@query_debugger
-    def list_existing_vacant_approval(self, request):
+    def list_existing_approval_vacant(self, request):
         qs_vacant_site_proposal, qs_vacant_site_approval = get_qs_vacant_site()
         serializer_vacant_approval = ApiarySiteOnApprovalMinGeometrySerializer(qs_vacant_site_approval, many=True)
         return Response(serializer_vacant_approval.data)
@@ -718,11 +719,24 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
     #@query_debugger
     def list_existing_proposal_draft(self, request):
         proposal_id = request.query_params.get('proposal_id', None)
+<<<<<<< HEAD
         search_text = request.query_params.get('search_text', '')
         proposal = Proposal.objects.get(id=proposal_id) if proposal_id else None
         qs_on_proposal_draft = get_qs_proposal('draft', proposal, search_text)
         serializer_proposal_draft = ApiarySiteOnProposalDraftMinimalGeometrySerializer(qs_on_proposal_draft, many=True)
         return Response(serializer_proposal_draft.data)
+||||||| 88fbce619
+        if proposal_id:
+            proposal = Proposal.objects.get(id=proposal_id)
+            qs_on_proposal_draft = get_qs_proposal('draft', proposal)
+            serializer_proposal_draft = ApiarySiteOnProposalDraftMinimalGeometrySerializer(qs_on_proposal_draft, many=True)
+            return Response(serializer_proposal_draft.data)
+=======
+        proposal = Proposal.objects.get(id=proposal_id) if proposal_id else None
+        qs_on_proposal_draft = get_qs_proposal('draft', proposal)
+        serializer_proposal_draft = ApiarySiteOnProposalDraftMinimalGeometrySerializer(qs_on_proposal_draft, many=True)
+        return Response(serializer_proposal_draft.data)
+>>>>>>> working-merging-available-and-transitable
 
     @list_route(methods=['GET',])
     @basic_exception_handler
@@ -745,31 +759,44 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
         serializer_approval = ApiarySiteOnApprovalMinimalGeometrySerializer(qs_on_approval, many=True)
         return Response(serializer_approval.data)
 
-    @list_route(methods=['GET',])
-    @basic_exception_handler
-    def available_sites(self, request):
-        # Construct conditions
+    def _available_sites_qs(self):
         q_include = Q(id__in=(ApiarySite.objects.all().values('latest_approval_link__id')))
         q_include &= Q(site_status=SITE_STATUS_CURRENT)
         q_include &= Q(available=True)
-
         qs_on_approval = ApiarySiteOnApproval.objects.filter(q_include).distinct('apiary_site')
+        return qs_on_approval
+
+    def _not_to_be_reissued_sites_qs(self):
+        q_include_approval = Q(
+            id__in=(ApiarySite.objects.all().exclude(is_vacant=True).values('latest_approval_link__id'))
+        )
+        q_include_approval &= Q(site_status=SITE_STATUS_NOT_TO_BE_REISSUED)
+        qs_on_approval = ApiarySiteOnApproval.objects.filter(q_include_approval).distinct('apiary_site')
+        return qs_on_approval
+
+    def _denied_sites_qs(self):
+        q_include_proposal = Q(
+            id__in=(ApiarySite.objects.all().exclude(is_vacant=True).values('latest_proposal_link__id'))
+        )
+        q_include_proposal &= Q(site_status=SITE_STATUS_DENIED)
+        qs_on_proposal = ApiarySiteOnProposal.objects.filter(q_include_proposal).distinct('apiary_site')
+        return qs_on_proposal
+
+    @list_route(methods=['GET',])
+    @basic_exception_handler
+    def available_sites(self, request):
+        qs_on_approval = self._available_sites_qs()
         serializer = ApiarySiteOnApprovalGeometrySerializer(qs_on_approval, many=True)
-        return Response(serializer.data['features'])
+
+        return Response(serializer.data)
 
     @list_route(methods=['GET',])
     @basic_exception_handler
     def transitable_sites(self, request):
-        # For 'denied' sites
-        q_include_proposal = Q(id__in=(ApiarySite.objects.all().exclude(is_vacant=True).values('latest_proposal_link__id')))
-        q_include_proposal &= Q(site_status=SITE_STATUS_DENIED)
-        qs_on_proposal = ApiarySiteOnProposal.objects.filter(q_include_proposal).distinct('apiary_site')
+        qs_on_proposal = self._denied_sites_qs()
         serializer_proposal = ApiarySiteOnProposalProcessedGeometrySerializer(qs_on_proposal, many=True)
 
-        # For 'not_to_be_reissued' sites
-        q_include_approval = Q(id__in=(ApiarySite.objects.all().exclude(is_vacant=True).values('latest_approval_link__id')))
-        q_include_approval &= Q(site_status=SITE_STATUS_NOT_TO_BE_REISSUED)
-        qs_on_approval = ApiarySiteOnApproval.objects.filter(q_include_approval).distinct('apiary_site')
+        qs_on_approval = self._not_to_be_reissued_sites_qs()
         serializer_approval = ApiarySiteOnApprovalGeometrySerializer(qs_on_approval, many=True)
 
         serializer_proposal.data['features'].extend(serializer_approval.data['features'])

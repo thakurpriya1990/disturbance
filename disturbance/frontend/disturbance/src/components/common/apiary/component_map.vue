@@ -1,6 +1,6 @@
 <template lang="html">
     <div>
-        <div class="map-wrapper row col-sm-12">
+        <div class="map-wrapper row col-sm-12" @mouseover="mouseOverOnMap" @mouseout="mouseOutOfMap">
             <div :id="elem_id" class="map">
                 <div class="basemap-button">
                     <img id="basemap_sat" src="../../../assets/satellite_icon.jpg" @click="setBaseLayer('sat')" />
@@ -45,6 +45,7 @@
                         </transition>
                     </div>
                 </div>
+                <div id="custom_mouse_position" v-show="mouseOverMap"></div>
             </div>
         </div>
 
@@ -121,7 +122,7 @@
         watch: {
             display_at_time_of_submitted: function(){
 
-            }
+            },
         },
         data: function(){
             let vm = this
@@ -146,6 +147,7 @@
                 segmentStyle: MeasureStyles.segmentStyle,
                 labelStyle: MeasureStyles.labelStyle,
                 segmentStyles: null,
+                mouseOverMap: false,
             }
         },
         created: function(){
@@ -176,6 +178,12 @@
             }
         },
         methods: {
+            mouseOverOnMap: function(){
+                this.mouseOverMap = true
+            },
+            mouseOutOfMap: function(){
+                this.mouseOverMap = false
+            },
             addJoint: function(point, styles){
                 let s = new Style({
                     image: new CircleStyle({
@@ -410,13 +418,13 @@
                         let message = vm.getDegrees(coords) + "\n";
                         return  message;
                     },
-                    target: document.getElementById('mouse-position'),
-                    className: 'custom-mouse-position',
+                    target: document.getElementById('custom_mouse_position'),
+                    className: 'custom_mouse_position',
                 }));
 
                 // Add apiary_sites passed as a props
                 for (let i=0; i<vm.apiary_site_geojson_array.length; i++){
-                    this.addApiarySite(vm.apiary_site_geojson_array[i])
+                    //this.addApiarySite(vm.apiary_site_geojson_array[i])
                 }
 
                 let container = document.getElementById(vm.popup_id)
@@ -631,7 +639,6 @@
                 return coords[0].toFixed(6) + ', ' + coords[1].toFixed(6);
             },
             addApiarySite: function(apiary_site_geojson) {
-                
                 let vm = this
                 let feature = (new GeoJSON()).readFeature(apiary_site_geojson)
 
@@ -810,5 +817,21 @@
     }
     .layer_option:hover {
         cursor: pointer;
+    }
+    #custom_mouse_position {
+        position: absolute;
+        bottom: 5px;
+        left: 5px;
+        z-index: 500;
+        background: white;
+        border-radius: 2px;
+        border: 3px solid rgba(255, 255, 255, .8);
+        padding: 2px 4px;
+        margin-bottom: 2px;
+        cursor: pointer;
+        display: block;
+        color: white;
+        background-color: #003c8877;
+        font-size: 0.8em;
     }
 </style>
