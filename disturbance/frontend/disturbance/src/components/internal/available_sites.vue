@@ -154,8 +154,8 @@
     import { getDisplayNameFromStatus, getDisplayNameOfCategory, getStatusForColour, getApiaryFeatureStyle, SiteColours } from '@/components/common/apiary/site_colours.js'
     import { getArea, getLength } from 'ol/sphere'
     import MeasureStyles, { formatLength } from '@/components/common/apiary/measure.js'
-
     import Datatable from '@vue-utils/datatable.vue'
+    import Cluster from 'ol/source/Cluster';
 
     export default {
         name: 'AvailableSites',
@@ -167,7 +167,8 @@
 
                 map: null,
                 apiarySitesQuerySource: null,
-                apiarySitesQueryLayer: null,
+                //apiarySitesQueryLayer: null,
+                apiarySitesClusterLayer: null,
                 elem_id: uuid(),
                 popup_id: uuid(),
                 popup_closer_id: uuid(),
@@ -732,17 +733,70 @@
                 });
 
                 vm.apiarySitesQuerySource = new VectorSource({ });
-                vm.apiarySitesQueryLayer = new VectorLayer({
+                //vm.apiarySitesQueryLayer = new VectorLayer({
+                //    source: vm.apiarySitesQuerySource,
+                //    style: function(feature, resolution){
+                //        let status = getStatusForColour(feature, false, vm.display_at_time_of_submitted)
+                //        return getApiaryFeatureStyle(status, feature.get('checked'))
+                //    },
+                //});
+                //vm.map.addLayer(vm.apiarySitesQueryLayer);
+
+                let clusterSource = new Cluster({
+                    distance: 50,
                     source: vm.apiarySitesQuerySource,
-                    style: function(feature, resolution){
-                        let status = getStatusForColour(feature, false, vm.display_at_time_of_submitted)
-                        return getApiaryFeatureStyle(status, feature.get('checked'))
+                })
+
+                let styleCache = {}
+                vm.apiarySitesClusterLayer = new VectorLayer({
+                    title: 'Cluster Layer',
+                    source: clusterSource,
+                    style: function (clusteredFeature){
+                        let featuresInClusteredFeature = clusteredFeature.get('features')
+                        let size = featuresInClusteredFeature.length
+                        let style = styleCache[size]
+                        if(size == 1){
+                            // When size is 1, which means the cluster feature has only one site
+                            // we want to display it as dedicated style
+                            let status = getStatusForColour(featuresInClusteredFeature[0])
+                            return getApiaryFeatureStyle(status);
+                        }
+                        let radius_in_pixel = 16
+                        if(size < 10){
+                            radius_in_pixel = 10
+                        } else if (size < 100){
+                            radius_in_pixel = 12
+                        } else if (size < 1000){
+                            radius_in_pixel = 14
+                        }
+                        if(!style){
+                            style = new Style({
+                                image: new CircleStyle({
+                                    radius: radius_in_pixel,
+                                    stroke: new Stroke({
+                                        color: '#fff',
+                                    }),
+                                    fill: new Fill({
+                                        color: '#3399cc'
+                                    }),
+                                }),
+                                text: new Text({
+                                    text: size.toString(),
+                                    fill: new Fill({
+                                        color: '#fff',
+                                    })
+                                })
+                            })
+                            styleCache[size] = style
+                        }
+                        return style
                     },
                 });
-                vm.map.addLayer(vm.apiarySitesQueryLayer);
+                vm.map.addLayer(vm.apiarySitesClusterLayer);
+                vm.apiarySitesClusterLayer.setZIndex(10)  
 
                 // Set zIndex to some layers to be rendered over the other layers
-                vm.apiarySitesQueryLayer.setZIndex(10)  
+                //vm.apiarySitesQueryLayer.setZIndex(10)  
 
                 // Full screen toggle
                 let fullScreenControl = new FullScreenControl()
