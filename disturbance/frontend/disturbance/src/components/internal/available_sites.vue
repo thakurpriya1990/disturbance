@@ -1,8 +1,8 @@
 <template>
     <div class="container">
         <FormSection :formCollapse="false" label="Available Sites" Index="available_sites">
-            <div class="map-wrapper row col-sm-12">
-                <div class="filter_search_wrapper">
+            <div class="map-wrapper">
+                <div class="filter_search_wrapper row" style="margin-bottom: 5px;">
                     <label class="control-label col-sm-1">Status</label>
                     <div class="col-sm-3 status_filter_dropdown_wrapper">
                         <div class="dropdown_arrow" @click="toggleStatusFilterDropdown()">
@@ -1275,8 +1275,11 @@
     .status_filter_dropdown {
         position: absolute;
         background: white;
-        padding: 1em;
         display: none;
+        border-radius: 2px;
+        min-width: max-content;
+        padding: 0.5em;
+        border: 3px solid rgba(5, 5, 5, .1);
     }
     .sub_option {
         margin-left: 1em;
