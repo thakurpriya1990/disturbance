@@ -2,31 +2,59 @@
     <div class="container">
         <FormSection :formCollapse="false" label="Available Sites" Index="available_sites">
             <div class="map-wrapper">
-                <div class="filter_search_wrapper row" style="margin-bottom: 5px;">
-                    <label class="control-label col-sm-1">Status</label>
-                    <div class="col-sm-3 status_filter_dropdown_wrapper">
-                        <div class="dropdown_arrow" @click="toggleStatusFilterDropdown()">
-                            <input class="status_filter_dropdown_button form-control" type="text" :value="filter_selected_names" />
-                        </div>
-                        <div class="status_filter_dropdown" @mouseleave="mouse_leave_from_dropdown()">
-                            <div v-for="filter in filters">
-                                <input type="checkbox" :id="filter.id" :value="filter.value" :checked="filter.show" @change="filterSelectionChanged(filter)" :key="filter.id" />
-                                <label :for="filter.id">{{ filter.display_name }}</label>
-                                <div class="sub_option" v-for="option in filter.options">
-                                    <input type="checkbox" :id="option.id" :value="option.value" :checked="option.show" @change="filterOptionChanged(filter)" :key="option.id" />
-                                    <label :for="option.id">{{ option.display_name }}</label>
+                <div v-if="!fullscreen">
+                    <div class="filter_search_wrapper row" style="margin-bottom: 5px;">
+                        <label class="control-label col-sm-1">Status</label>
+                        <div class="col-sm-3 status_filter_dropdown_wrapper">
+                            <div class="dropdown_arrow" @click="toggleStatusFilterDropdown()">
+                                <input class="status_filter_dropdown_button form-control" type="text" :value="filter_selected_names" />
+                            </div>
+                            <div class="status_filter_dropdown" @mouseleave="mouse_leave_from_dropdown()">
+                                <div v-for="filter in filters">
+                                    <input type="checkbox" :id="filter.id" :value="filter.value" :checked="filter.show" @change="filterSelectionChanged(filter)" :key="filter.id" />
+                                    <label :for="filter.id">{{ filter.display_name }}</label>
+                                    <div class="sub_option" v-for="option in filter.options">
+                                        <input type="checkbox" :id="option.id" :value="option.value" :checked="option.show" @change="filterOptionChanged(filter)" :key="option.id" />
+                                        <label :for="option.id">{{ option.display_name }}</label>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="col-sm-1">
-                        <label :for="search_text" class="control-label">Search</label>
-                    </div>
-                    <div class="col-sm-3">
-                        <input v-model="search_text" id="search_text" class="form-control" />
+                        <div class="col-sm-1">
+                            <label :for="search_text" class="control-label">Search</label>
+                        </div>
+                        <div class="col-sm-3">
+                            <input v-model="search_text" id="search_text" class="form-control" />
+                        </div>
                     </div>
                 </div>
                 <div :id="elem_id" class="map" style="position: relative;">
+                    <div v-if="fullscreen" class="filter_search_on_map">
+                        <div class="filter_search_wrapper row" style="margin-bottom: 5px;">
+                            <label class="control-label col-sm-1">Status</label>
+                            <div class="col-sm-3 status_filter_dropdown_wrapper">
+                                <div class="dropdown_arrow" @click="toggleStatusFilterDropdown()">
+                                    <input class="status_filter_dropdown_button form-control" type="text" :value="filter_selected_names" />
+                                </div>
+                                <div class="status_filter_dropdown" @mouseleave="mouse_leave_from_dropdown()">
+                                    <div v-for="filter in filters">
+                                        <input type="checkbox" :id="filter.id" :value="filter.value" :checked="filter.show" @change="filterSelectionChanged(filter)" :key="filter.id" />
+                                        <label :for="filter.id">{{ filter.display_name }}</label>
+                                        <div class="sub_option" v-for="option in filter.options">
+                                            <input type="checkbox" :id="option.id" :value="option.value" :checked="option.show" @change="filterOptionChanged(filter)" :key="option.id" />
+                                            <label :for="option.id">{{ option.display_name }}</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-1">
+                                <label :for="search_text" class="control-label">Search</label>
+                            </div>
+                            <div class="col-sm-3">
+                                <input v-model="search_text" id="search_text" class="form-control" />
+                            </div>
+                        </div>
+                    </div>
                     <div class="basemap-button">
                         <img id="basemap_sat" src="../../assets/satellite_icon.jpg" @click="setBaseLayer('sat')" />
                         <img id="basemap_osm" src="../../assets/map_icon.png" @click="setBaseLayer('osm')" />
@@ -161,6 +189,7 @@
                 search_text: '',
                 filter_selected_names: 'select status',
                 search_text: '',
+                fullscreen: false,
             }
         },
         components: {
@@ -718,10 +747,10 @@
                 // Full screen toggle
                 let fullScreenControl = new FullScreenControl()
                 fullScreenControl.on('enterfullscreen', function(){
-                    console.log('in enterfullscreen')
+                    vm.fullscreen = true
                 })
                 fullScreenControl.on('leavefullscreen', function(){
-                    console.log('in leavefullscreen')
+                    vm.fullscreen = false
                 })
                 vm.map.addControl(fullScreenControl)
 
@@ -1122,6 +1151,12 @@
         position: relative;
         padding: 0;
         margin: 0;
+    }
+    .filter_search_on_map {
+        position: absolute;
+        top: 10px;
+        left: 60px;
+        z-index: 500;
     }
     .basemap-button {
         position: absolute;
