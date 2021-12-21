@@ -1,6 +1,6 @@
 <template lang="html">
     <div>
-        <div class="map-wrapper row col-sm-12">
+        <div class="map-wrapper row col-sm-12" @mouseover="mouseOverOnMap" @mouseout="mouseOutOfMap">
             <div :id="elem_id" class="map">
                 <div class="basemap-button">
                     <img id="basemap_sat" src="../../../assets/satellite_icon.jpg" @click="setBaseLayer('sat')" />
@@ -17,8 +17,8 @@
                     </div>
                     <!--div class="optional-layers-button" @click="set_mode(mode)">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" >
-                            <path
-                                d="M18.342 0l-2.469 2.47 2.121 2.121-.707.707-2.121-2.121-1.414 1.414 1.414 1.414-.707.707-1.414-1.414-1.414 1.414 1.414 1.414-.707.707-1.414-1.414-1.414 1.414 2.121 2.122-.707.707-2.121-2.121-1.414 1.414 1.414 1.414-.708.707-1.414-1.414-1.414 1.414 1.414 1.414-.708.709-1.414-1.414-1.414 1.413 2.121 2.121-.706.706-2.122-2.121-2.438 2.439 5.656 5.657 18.344-18.343z"
+                            <path 
+                                d="M18.342 0l-2.469 2.47 2.121 2.121-.707.707-2.121-2.121-1.414 1.414 1.414 1.414-.707.707-1.414-1.414-1.414 1.414 1.414 1.414-.707.707-1.414-1.414-1.414 1.414 2.121 2.122-.707.707-2.121-2.121-1.414 1.414 1.414 1.414-.708.707-1.414-1.414-1.414 1.414 1.414 1.414-.708.709-1.414-1.414-1.414 1.413 2.121 2.121-.706.706-2.122-2.121-2.438 2.439 5.656 5.657 18.344-18.343z" 
                                 :fill="ruler_colour"
                             />
                         </svg>
@@ -45,6 +45,7 @@
                         </transition>
                     </div>
                 </div>
+                <div id="custom_mouse_position" v-show="mouseOverMap"></div>
             </div>
         </div>
 
@@ -121,7 +122,7 @@
         watch: {
             display_at_time_of_submitted: function(){
 
-            }
+            },
         },
         data: function(){
             let vm = this
@@ -146,6 +147,7 @@
                 segmentStyle: MeasureStyles.segmentStyle,
                 labelStyle: MeasureStyles.labelStyle,
                 segmentStyles: null,
+                mouseOverMap: false,
             }
         },
         created: function(){
@@ -176,6 +178,12 @@
             }
         },
         methods: {
+            mouseOverOnMap: function(){
+                this.mouseOverMap = true
+            },
+            mouseOutOfMap: function(){
+                this.mouseOverMap = false
+            },
             addJoint: function(point, styles){
                 let s = new Style({
                     image: new CircleStyle({
@@ -345,7 +353,7 @@
 
                 vm.map = new Map({
                     layers: [
-                        vm.tileLayerOsm,
+                        vm.tileLayerOsm, 
                         vm.tileLayerSat,
                     ],
                     //target: 'map',
@@ -368,7 +376,7 @@
                 vm.map.addLayer(vm.apiarySitesQueryLayer);
 
                 // Set zIndex to some layers to be rendered over the other layers
-                vm.apiarySitesQueryLayer.setZIndex(10)
+                vm.apiarySitesQueryLayer.setZIndex(10)  
 
                 // Full screen toggle
                 vm.map.addControl(new FullScreenControl());
@@ -410,13 +418,13 @@
                         let message = vm.getDegrees(coords) + "\n";
                         return  message;
                     },
-                    target: document.getElementById('mouse-position'),
-                    className: 'custom-mouse-position',
+                    target: document.getElementById('custom_mouse_position'),
+                    className: 'custom_mouse_position',
                 }));
 
                 // Add apiary_sites passed as a props
                 for (let i=0; i<vm.apiary_site_geojson_array.length; i++){
-                    this.addApiarySite(vm.apiary_site_geojson_array[i])
+                    //this.addApiarySite(vm.apiary_site_geojson_array[i])
                 }
 
                 let container = document.getElementById(vm.popup_id)
@@ -462,6 +470,7 @@
                                 if (visibility){
                                     // Retrieve column names to be displayed
                                     let column_names = vm.optionalLayers[i].get('columns')
+                                    console.log(column_names)
                                     column_names = column_names.map(function(col){
                                         // Convert array of dictionaries to simple array
                                         if (vm.is_internal && col.option_for_internal){
@@ -482,7 +491,7 @@
                                         {'INFO_FORMAT': 'application/json'}
                                     )
 
-                                    // Query
+                                    // Query 
                                     let p = fetch(url, {
                                         credentials: 'include'
                                     })
@@ -568,6 +577,9 @@
                 }
             },
             showPopupForLayersJson: function(geojson, coord, column_names, display_all_columns, target_layer){
+                console.log(geojson)
+                console.log(column_names)
+
                 let wrapper = $('<div>')  // Add wrapper element because html() used at the end exports only the contents of the jquery object
                 let caption = $('<div style="text-align:center; font-weight: bold;">').text(target_layer.get('title'))
                 let table = $('<table style="margin-bottom: 1em;">') //.addClass('table')
@@ -584,6 +596,8 @@
                             tr.append(th)
                             tr.append(td)
                             tbody.append(tr)
+                        } else {
+
                         }
                     }
                     this.content_element.innerHTML += wrapper.html()  // Export contents as HTML string
@@ -625,7 +639,6 @@
                 return coords[0].toFixed(6) + ', ' + coords[1].toFixed(6);
             },
             addApiarySite: function(apiary_site_geojson) {
-
                 let vm = this
                 let feature = (new GeoJSON()).readFeature(apiary_site_geojson)
 
@@ -804,5 +817,21 @@
     }
     .layer_option:hover {
         cursor: pointer;
+    }
+    #custom_mouse_position {
+        position: absolute;
+        bottom: 5px;
+        left: 5px;
+        z-index: 500;
+        background: white;
+        border-radius: 2px;
+        border: 3px solid rgba(255, 255, 255, .8);
+        padding: 2px 4px;
+        margin-bottom: 2px;
+        cursor: pointer;
+        display: block;
+        color: white;
+        background-color: #003c8877;
+        font-size: 0.8em;
     }
 </style>
