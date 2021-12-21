@@ -719,24 +719,11 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
     #@query_debugger
     def list_existing_proposal_draft(self, request):
         proposal_id = request.query_params.get('proposal_id', None)
-<<<<<<< HEAD
         search_text = request.query_params.get('search_text', '')
         proposal = Proposal.objects.get(id=proposal_id) if proposal_id else None
         qs_on_proposal_draft = get_qs_proposal('draft', proposal, search_text)
         serializer_proposal_draft = ApiarySiteOnProposalDraftMinimalGeometrySerializer(qs_on_proposal_draft, many=True)
         return Response(serializer_proposal_draft.data)
-||||||| 88fbce619
-        if proposal_id:
-            proposal = Proposal.objects.get(id=proposal_id)
-            qs_on_proposal_draft = get_qs_proposal('draft', proposal)
-            serializer_proposal_draft = ApiarySiteOnProposalDraftMinimalGeometrySerializer(qs_on_proposal_draft, many=True)
-            return Response(serializer_proposal_draft.data)
-=======
-        proposal = Proposal.objects.get(id=proposal_id) if proposal_id else None
-        qs_on_proposal_draft = get_qs_proposal('draft', proposal)
-        serializer_proposal_draft = ApiarySiteOnProposalDraftMinimalGeometrySerializer(qs_on_proposal_draft, many=True)
-        return Response(serializer_proposal_draft.data)
->>>>>>> working-merging-available-and-transitable
 
     @list_route(methods=['GET',])
     @basic_exception_handler
