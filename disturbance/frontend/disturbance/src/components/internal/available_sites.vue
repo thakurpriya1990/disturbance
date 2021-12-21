@@ -5,16 +5,18 @@
                 <div class="filter_search_wrapper">
                     <label class="control-label col-sm-1">Status</label>
                     <div class="col-sm-3 status_filter_dropdown_wrapper">
-                        <!-- div class="dropdown_arrow">
-                        </div -->
-                        <input class="status_filter_dropdown_button form-control" type="text" :value="filter_selected_names" />
+                        <div class="dropdown_arrow" @click="toggleStatusFilterDropdown()">
+                            <input class="status_filter_dropdown_button form-control" type="text" :value="filter_selected_names" />
+                        </div>
                         <div class="status_filter_dropdown" @mouseleave="mouse_leave_from_dropdown()">
-                            <template v-for="filter in filters">
-                                <div class="search_text">
-                                    <input type="checkbox" :id="filter.id" :value="filter.value" :checked="filter.show" @change="filterSelectionChanged(filter)" :key="filter.id" />
-                                    <label :for="filter.id">{{ filter.display_name }}</label>
+                            <div v-for="filter in filters">
+                                <input type="checkbox" :id="filter.id" :value="filter.value" :checked="filter.show" @change="filterSelectionChanged(filter)" :key="filter.id" />
+                                <label :for="filter.id">{{ filter.display_name }}</label>
+                                <div class="sub_option" v-for="option in filter.options">
+                                    <input type="checkbox" :id="option.id" :value="option.value" :checked="option.show" @change="filterOptionChanged(filter)" :key="option.id" />
+                                    <label :for="option.id">{{ option.display_name }}</label>
                                 </div>
-                            </template>
+                            </div>
                         </div>
                     </div>
                     <div class="col-sm-1">
@@ -254,6 +256,20 @@
                         'show': false,
                         'api': 'list_apiary_sites_current',
                         'apiary_sites': [],
+                        'options': [
+                            {
+                                'id': 'available',
+                                'value': 'available',
+                                'display_name': 'Available',
+                                'show': false,
+                            },
+                            {
+                                'id': 'unavailable',
+                                'value': 'unavailable',
+                                'display_name': 'Unavailable',
+                                'show': false,
+                            }
+                        ]
                     },
                     {
                         'id': 'not_to_be_reissued',
@@ -440,6 +456,10 @@
                 let new_row = this.$refs.table_apiary_site.vmDataTable.row.add(apiary_site_geojson)
                 new_row.draw()
             },
+            filterOptionChanged: function(filter){
+                console.log('filterOptionChanged')
+                console.log(filter)
+            },
             filterSelectionChanged: function(filter){
                 console.log('filterSelectionChanged')
                 filter.show = !filter.show
@@ -468,11 +488,14 @@
                 $("#" + this.table_id).on('mouseenter', "tr", this.mouseEnter)
                 $("#" + this.table_id).on('mouseleave', "tr", this.mouseLeave)
 
-                $(".status_filter_dropdown_button").on('click', function(){
+                //$(".status_filter_dropdown_button").on('click', function(){
                 //$(".dropdown_arrow").on('click', function(){
-                    console.log('clicked')
-                    $(".status_filter_dropdown").slideToggle("fast")
-                })
+                //    console.log('clicked')
+                //    $(".status_filter_dropdown").slideToggle("fast")
+                //})
+            },
+            toggleStatusFilterDropdown: function(){
+                $(".status_filter_dropdown").slideToggle("fast")
             },
             mouseEnter: function(e){
                 let vm = this;
@@ -1255,7 +1278,9 @@
         padding: 1em;
         display: none;
     }
-    /*
+    .sub_option {
+        margin-left: 1em;
+    }
     .dropdown_arrow::after {
         border-left: 4px solid transparent;
         border-right: 4px solid transparent;
@@ -1266,6 +1291,7 @@
         top: 1em;
         width: 0;
     }
+    /*
     .status_filter_dropdown {
         position: absolute;
         display: none;
