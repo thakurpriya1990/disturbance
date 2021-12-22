@@ -613,10 +613,20 @@
             },
             syncFilterAvailabilityOptions: function(){
                 // Sync select2 selections with availability array
+
                 let vm = this
+                let selected_available_ids = $(vm.$refs.filterAvailability).select2('data').map(x => x.id)
+                let current_status_item = vm.filter_status_options.filter(x => {
+                    return x.id === 'current'
+                })[0]
 
-                let selected_availabilities = $(vm.$refs.filterAvailability).select2('data')
-
+                for (let option of current_status_item.options){
+                    if (selected_available_ids.includes(option.id)){
+                        option.show = true
+                    } else {
+                        option.show = false
+                    }
+                }
             },
             toggleFilterSearchRow: function(action){
                 // Attach/Detach filter-search elements to/from the map
