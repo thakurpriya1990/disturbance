@@ -1439,11 +1439,10 @@
                 // Clear table 
                 this.$refs.table_apiary_site.vmDataTable.clear().draw();
 
-                console.log(vm.filter_status_options)
                 for (let filter of vm.filter_status_options){
                     if (filter.options){
                         for (let option of filter.options){
-                            if (option.show){
+                            if (filter.show && option.show){
                                 if (option.loaded){
                                     // Data have been already loaded
                                     for (let apiary_site_geojson of option.apiary_sites){
