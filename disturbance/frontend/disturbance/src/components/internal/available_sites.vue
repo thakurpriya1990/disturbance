@@ -158,14 +158,26 @@
     import MeasureStyles, { formatLength } from '@/components/common/apiary/measure.js'
     import Datatable from '@vue-utils/datatable.vue'
     import Cluster from 'ol/source/Cluster';
+    import 'select2/dist/css/select2.min.css'
+    import 'select2-bootstrap-theme/dist/select2-bootstrap.min.css'
 
     export default {
         name: 'AvailableSites',
         data: function(){
             return {
+                debug: true,
                 apiary_sites: [],
                 modalBindId: uuid(),
                 table_id: uuid(),
+
+                show_col_id: false,
+                show_col_site: true,
+                show_col_status: true,
+                show_col_vacant: true,
+                show_col_previous_site_holder: true,
+                show_action_available_unavailable: true,
+                show_action_make_vacant: true,
+                show_action_contact_licence_holder: true,
 
                 map: null,
                 apiarySitesQuerySource: null,
@@ -256,7 +268,7 @@
                         'id': 'vacant',
                         'value': 'vacant',
                         'display_name': 'Vacant',
-                        'checkbox': true,
+                        'checkbox': true,  // Display checkbox
                         'show': false,
                         'loaded': false,
                         'api': 'list_apiary_sites_vacant',
@@ -466,7 +478,7 @@
                                 if (vm.show_action_available_unavailable){
                                     // Mark as Available/Unavailable
                                     let display_text = ''
-                                    if (vm.is_external && ['current',].includes(apiary_site.properties.status.toLowerCase())){
+                                    if ((vm.debug || vm.is_external) && ['current',].includes(apiary_site.properties.status.toLowerCase())){
                                         if (apiary_site.properties.available){
                                             display_text = 'Mark as unavailable';
                                         } else {
@@ -564,17 +576,98 @@
             },
             addEventListeners: function () {
                 $("#" + this.table_id).on("click", "a[data-view-on-map]", this.zoomOnApiarySite)
-                //$("#" + this.table_id).on("click", "a[data-toggle-availability]", this.toggleAvailability)
-                //$("#" + this.table_id).on('click', 'a[data-make-vacant]', this.makeVacantClicked)
+                $("#" + this.table_id).on("click", "a[data-toggle-availability]", this.toggleAvailability)
+                $("#" + this.table_id).on('click', 'a[data-make-vacant]', this.makeVacantClicked)
                 $("#" + this.table_id).on('click', 'a[data-contact-licence-holder]', this.contactLicenceHolder)
                 $("#" + this.table_id).on('mouseenter', "tr", this.mouseEnter)
                 $("#" + this.table_id).on('mouseleave', "tr", this.mouseLeave)
+            },
+            getApiarySiteAvailableFromEvent(e){
+                let apiary_site_available = e.target.getAttribute("data-apiary-site-available");
 
-                //$(".status_filter_dropdown_button").on('click', function(){
-                //$(".dropdown_arrow").on('click', function(){
-                //    console.log('clicked')
-                //    $(".status_filter_dropdown").slideToggle("fast")
-                //})
+                if (!(apiary_site_available)){
+                    apiary_site_available = e.target.getElementsByTagName('span')[0].getAttribute('data-apiary-site-available')
+                }
+
+                return apiary_site_available
+            },
+            toggleAvailability: function(e){
+                console.log('in toggleAvailability')
+                let vm = this;
+                let apiary_site_id = e.target.getAttribute("data-toggle-availability");
+                let current_availability = this.getApiarySiteAvailableFromEvent(e)
+                let requested_availability = current_availability === 'true' ? false : true
+                e.stopPropagation()
+
+                vm.$http.patch('/api/apiary_site/' + apiary_site_id + '/', { 'available': requested_availability }).then(
+                    async function(accept){
+                        // Update the site in the table
+                        let site_updated = accept.body
+                        vm.updateApiarySite(site_updated)
+                       // vm.constructApiarySitesTable();
+                        vm.constructApiarySitesTable(site_updated);
+                    },
+                    reject=>{
+                        swal(
+                            'Submit Error',
+                            helpers.apiVueResourceError(err),
+                            'error'
+                        )
+                    }
+                );
+            },
+            updateApiarySite: function(site_updated){
+                // TODO: Update internal apiary_site data ==> Update map...?
+                console.log('in updateApiarySite')
+                console.log(site_updated)
+            },
+            constructApiarySitesTable: function(site_updated){
+                // TODO: Update table
+                console.log('in constructApiarySitesTable')
+                console.log(site_updated)
+            },
+            makeVacantClicked: function(e){
+                let vm = this;
+                //let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
+                let apiary_site_id = e.target.getAttribute("data-make-vacant");
+                e.stopPropagation()
+
+                console.log('in makeVacantClicked')
+                console.log('apiary_site_id: ' + apiary_site_id)
+
+                swal({
+                    title: "Make Vacant",
+                    text: "Are you sure you want to make this apiary site: " + apiary_site_id + " vacant?",
+                    type: "question",
+                    showCancelButton: true,
+                    confirmButtonText: 'Yes, make vacant'
+                }).then(
+                    () => {
+                        vm.$http.patch('/api/apiary_site/' + apiary_site_id + '/', { 'status': 'vacant' }).then(
+                            async function(accept){
+                                // Remove the row from the table
+                                // TODO: Update table
+                                $(e.target).closest('tr').fadeOut('slow', function(){
+                                    // Remove the site table which the table is based on
+                                    vm.removeApiarySiteById(apiary_site_id)
+                                })
+
+                                // TODO: Update map
+                                // Remove the site from the map
+                                this.$refs.component_map.removeApiarySiteById(apiary_site_id)
+                            },
+                            reject=>{
+                                swal(
+                                    'Submit Error',
+                                    helpers.apiVueResourceError(err),
+                                    'error'
+                                )
+                            }
+                        );
+                    },
+                    err => {
+                    }
+                );
             },
             toggleStatusFilterDropdown: function(){
                 $(".status_filter_dropdown").slideToggle("fast")

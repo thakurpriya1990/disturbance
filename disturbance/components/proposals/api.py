@@ -759,8 +759,8 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
     def list_existing_approval(self, request):
         # ApiarySiteOnApproval
         qs_on_approval = get_qs_approval()
-        serializer_approval = ApiarySiteOnApprovalMinimalGeometrySerializer(qs_on_approval, many=True)
-        return Response(serializer_approval.data)
+        serializer = ApiarySiteOnApprovalMinimalGeometrySerializer(qs_on_approval, many=True)
+        return Response(serializer.data)
 
     def _available_sites_qs(self):
         q_include = Q(id__in=(ApiarySite.objects.all().values('latest_approval_link__id')))

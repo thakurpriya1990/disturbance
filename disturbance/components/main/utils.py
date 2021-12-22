@@ -343,6 +343,7 @@ def get_qs_suspended_site(search_text=''):
         'site_status',
         'site_category__name',
         'apiary_site__is_vacant',
+        'available',
     )
     return qs_on_approval
 
@@ -389,6 +390,7 @@ def get_qs_current_site(search_text='', available=None):
         'site_status',
         'site_category__name',
         'apiary_site__is_vacant',
+        'available',
     )
     return qs_on_approval
 
@@ -471,6 +473,7 @@ def get_qs_not_to_be_reissued_site(search_text=''):
         'site_status',
         'site_category__name',
         'apiary_site__is_vacant',
+        'available',
     )
     return qs_on_approval
 
@@ -565,6 +568,7 @@ def get_qs_approval():
                                                         'site_status',
                                                         'site_category__name',
                                                         'apiary_site__is_vacant',
+                                                        'available',
                                                         )
     return qs_on_approval
 
