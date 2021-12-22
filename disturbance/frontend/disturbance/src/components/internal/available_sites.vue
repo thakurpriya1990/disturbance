@@ -3,59 +3,62 @@
         <FormSection :formCollapse="false" label="Available Sites" Index="available_sites">
             <div class="map-wrapper">
                 <div v-if="!fullscreen">
-                    <div class="filter_search_wrapper row" style="margin-bottom: 5px;">
-                        <label class="control-label col-sm-1">Status</label>
-                        <div class="col-sm-3 status_filter_dropdown_wrapper">
-                            <div class="dropdown_arrow" @click="toggleStatusFilterDropdown()">
-                                <input class="status_filter_dropdown_button form-control" type="text" :value="filter_selected_names" />
-                            </div>
-                            <div class="status_filter_dropdown" @mouseleave="mouse_leave_from_dropdown()">
-                                <div v-for="filter in filters">
-                                    <input :disabled="!filter.checkbox" type="checkbox" :id="filter.id" :value="filter.value" :checked="filter.show" @change="filterSelectionChanged(filter)" :key="filter.id" />
-                                    <label :for="filter.id">{{ filter.display_name }}</label>
-                                    <div class="sub_option" v-for="option in filter.options">
-                                        <input type="checkbox" :id="option.id" :value="option.value" :checked="option.show" @change="filterOptionChanged(filter, option)" :key="option.id" />
-                                        <label :for="option.id">{{ option.display_name }}</label>
-                                    </div>
+                    <div class="filter_search_wrapper" style="margin-bottom: 5px;">
+                        <template v-show="select2Applied">
+                            <div class="row">
+                                <div class="col-sm-1">
+                                    <label class="control-label">Status</label>
+                                </div>
+                                <div class="col-sm-3">
+                                    <select class="form-control" ref="filterStatus" ></select>
+                                </div>
+                                <div class="col-sm-1">
+                                    <label class="control-label">Availability</label>
+                                </div>
+                                <div class="col-sm-3">
+                                    <select class="form-control" ref="filterAvailability" ></select>
+                                </div>
+                                <div class="col-sm-1">
+                                    <label :for="search_text" class="control-label">Search</label>
+                                </div>
+                                <div class="col-sm-3">
+                                    <input v-model="search_text" id="search_text" class="form-control" />
                                 </div>
                             </div>
-                        </div>
-                        <div class="col-sm-1">
-                            <label :for="search_text" class="control-label">Search</label>
-                        </div>
-                        <div class="col-sm-3">
-                            <input v-model="search_text" id="search_text" class="form-control" />
-                        </div>
+                        </template>
+                        <!-- template v-else>
+                            <div class="row">
+                                <label class="control-label col-sm-1">Status</label>
+                                <div class="col-sm-3 status_filter_dropdown_wrapper">
+                                    <div class="dropdown_arrow" @click="toggleStatusFilterDropdown()">
+                                        <input class="status_filter_dropdown_button form-control" type="text" :value="filter_selected_names" />
+                                    </div>
+                                    <div class="status_filter_dropdown" @mouseleave="mouse_leave_from_dropdown()">
+                                        <div v-for="filter in filter_status_options">
+                                            <input :disabled="!filter.checkbox" type="checkbox" :id="filter.id" :value="filter.value" :checked="filter.show" @change="filterSelectionChanged(filter)" :key="filter.id" />
+                                            <label :for="filter.id">{{ filter.display_name }}</label>
+                                            <div class="sub_option" v-for="option in filter.options">
+                                                <input type="checkbox" :id="option.id" :value="option.value" :checked="option.show" @change="filterOptionChanged(filter, option)" :key="option.id" />
+                                                <label :for="option.id">{{ option.display_name }}</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-1">
+                                    <label :for="search_text" class="control-label">Search</label>
+                                </div>
+                                <div class="col-sm-3">
+                                    <input v-model="search_text" id="search_text" class="form-control" />
+                                </div>
+                            </div>
+                        </template -->
                     </div>
                 </div>
                 <div :id="elem_id" class="map" style="position: relative;">
                     <div v-if="fullscreen" class="filter_search_on_map">
-                                    <!--
-                        <div class="filter_search_wrapper row" style="margin-bottom: 5px;">
-                            <label class="control-label col-sm-1">Status</label>
-                            <div class="col-sm-3 status_filter_dropdown_wrapper">
-                                <div class="dropdown_arrow" @click="toggleStatusFilterDropdown()">
-                                    <input class="status_filter_dropdown_button form-control" type="text" :value="filter_selected_names" />
-                                </div>
-                                <div class="status_filter_dropdown" @mouseleave="mouse_leave_from_dropdown()">
-                                    <div v-for="filter in filters">
-                                        <input type="checkbox" :id="filter.id" :value="filter.value" :checked="filter.show" @change="filterSelectionChanged(filter)" :key="filter.id" />
-                                        <label :for="filter.id">{{ filter.display_name }}</label>
-                                        <div class="sub_option" v-for="option in filter.options">
-                                            <input type="checkbox" :id="option.id" :value="option.value" :checked="option.show" @change="filterOptionChanged(filter, option)" :key="option.id" />
-                                            <label :for="option.id">{{ option.display_name }}</label>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-sm-1">
-                                <label :for="search_text" class="control-label">Search</label>
-                            </div>
-                            <div class="col-sm-3">
-                                <input v-model="search_text" id="search_text" class="form-control" />
-                            </div>
-                        </div>
-                                    -->
+
+                        <!-- TODO: filters and search component on the map here -->
+
                     </div>
                     <div class="basemap-button">
                         <img id="basemap_sat" src="../../assets/satellite_icon.jpg" @click="setBaseLayer('sat')" />
@@ -205,6 +208,11 @@
                 filter_selected_names: 'select status',
                 search_text: '',
                 fullscreen: false,
+
+                useSelect2: true,
+                select2Applied: false,
+                filterStatuses: [],
+                select2Obj: null,
             }
         },
         components: {
@@ -242,7 +250,7 @@
                 // Clear data storage in the filters
                 let vm = this
 
-                for (let filter of vm.filters){
+                for (let filter of vm.filter_status_options){
                     if (filter.show){
                         for (let apiary_site_geojson of filter.apiary_sites){
                             try {
@@ -261,13 +269,25 @@
             }
         },
         computed: {
-            filters: function(){
+            filter_availability_options: function(){
+                return [
+                    {
+                        'id': 'available',
+                        'text': 'Available',
+                    },
+                    {
+                        'id': 'unavailable',
+                        'text': 'Unavailable',
+                    },
+                ]
+            },
+            filter_status_options: function(){
                 return [
                     // ApiarySite
                     {
                         'id': 'vacant',
                         'value': 'vacant',
-                        'display_name': 'Vacant',
+                        'text': 'Vacant',
                         'checkbox': true,  // Display checkbox
                         'show': false,
                         'loaded': false,
@@ -276,19 +296,9 @@
                     },
                     // ApiarySiteOnProposal
                     {
-                        'id': 'draft',
-                        'value': 'draft',
-                        'display_name': 'Draft',
-                        'checkbox': true,
-                        'show': false,
-                        'loaded': false,
-                        'api': 'list_apiary_sites_draft',
-                        'apiary_sites': [],
-                    },
-                    {
                         'id': 'pending',
                         'value': 'pending',
-                        'display_name': 'Pending',
+                        'text': 'Pending',
                         'checkbox': true,
                         'show': false,
                         'loaded': false,
@@ -298,7 +308,7 @@
                     {
                         'id': 'denied',
                         'value': 'denied',
-                        'display_name': 'Denied',
+                        'text': 'Denied',
                         'checkbox': true,
                         'show': false,
                         'loaded': false,
@@ -309,7 +319,7 @@
                     {
                         'id': 'current',
                         'value': 'current',
-                        'display_name': 'Current',
+                        'text': 'Current',
                         'checkbox': false,
                         'show': false,
                         'loaded': false,
@@ -319,7 +329,7 @@
                             {
                                 'id': 'available',
                                 'value': 'available',
-                                'display_name': 'Available',
+                                'text': 'Available',
                                 'show': false,
                                 'loaded': false,
                                 'api': 'list_apiary_sites_current_available',
@@ -328,7 +338,7 @@
                             {
                                 'id': 'unavailable',
                                 'value': 'unavailable',
-                                'display_name': 'Unavailable',
+                                'text': 'Unavailable',
                                 'show': false,
                                 'loaded': false,
                                 'api': 'list_apiary_sites_current_unavailable',
@@ -339,7 +349,7 @@
                     {
                         'id': 'not_to_be_reissued',
                         'value': 'not_to_be_reissued',
-                        'display_name': 'Not to be reissued',
+                        'text': 'Not to be reissued',
                         'checkbox': true,
                         'show': false,
                         'loaded': false,
@@ -349,21 +359,11 @@
                     {
                         'id': 'suspended',
                         'value': 'suspended',
-                        'display_name': 'Suspended',
+                        'text': 'Suspended',
                         'checkbox': true,
                         'show': false,
                         'loaded': false,
                         'api': 'list_apiary_sites_suspended',
-                        'apiary_sites': [],
-                    },
-                    {
-                        'id': 'discarded',
-                        'value': 'discarded',
-                        'display_name': 'Discarded',
-                        'checkbox': true,
-                        'show': false,
-                        'loaded': false,
-                        'api': 'list_apiary_sites_discarded',
                         'apiary_sites': [],
                     },
                 ]
@@ -514,6 +514,44 @@
             },
         },
         methods: {
+            selectionStatusChanged: function(){
+                let vm = this
+                let selected = $(vm.$refs.filterStatus).select2('data')
+                console.log(selected)
+            },
+            selectionAvailabilityChanged: function(){
+                let vm = this
+                let selected = $(vm.$refs.filterAvailability).select2('data')
+                console.log(selected)
+            },
+            applySelect2: function(){
+                let vm = this
+
+                if (!vm.select2Applied){
+                    $(vm.$refs.filterStatus).select2({
+                        "theme": "bootstrap",
+                        allowClear: true,
+                        placeholder:"Select Status",
+                        multiple:true,
+                        data: vm.filter_status_options,
+                    }).
+                    on("change",function (e) {
+                        vm.selectionStatusChanged()
+                    })
+
+                    $(vm.$refs.filterAvailability).select2({
+                        "theme": "bootstrap",
+                        allowClear: true,
+                        placeholder:"Select Status",
+                        multiple:true,
+                        data: vm.filter_availability_options,
+                    }).
+                    on("change",function (e) {
+                        vm.selectionAvailabilityChanged()
+                    })
+                    vm.select2Applied = true
+                }
+            },
             mouse_leave_from_dropdown: function(){
                 $('.status_filter_dropdown').slideUp("fast")
             },
@@ -548,7 +586,7 @@
             updateFilterSelectedNames: function(){
                 this.filter_selected_names = ''
                 let count = 0
-                for (let filter of this.filters){
+                for (let filter of this.filter_status_options){
                     if (filter.show){
                         if (count != 0){
                             this.filter_selected_names += ', '
@@ -1280,7 +1318,7 @@
                 // Clear table 
                 this.$refs.table_apiary_site.vmDataTable.clear().draw();
 
-                for (let filter of this.filters){
+                for (let filter of this.filter_status_options){
                     if (filter.options){
                         for (let option of filter.options){
                             if (option.show){
@@ -1388,6 +1426,7 @@
             vm.addOptionalLayers()
             //vm.map.addLayer(vm.apiarySitesQueryLayer);
             vm.displayAllFeatures()
+            this.applySelect2()
         },
     }
 </script>
