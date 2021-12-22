@@ -26,37 +26,13 @@
                                 </div>
                             </div>
                         </template>
-                        <!-- template v-else>
-                            <div class="row">
-                                <label class="control-label col-sm-1">Status</label>
-                                <div class="col-sm-3 status_filter_dropdown_wrapper">
-                                    <div class="dropdown_arrow" @click="toggleStatusFilterDropdown()">
-                                        <input class="status_filter_dropdown_button form-control" type="text" :value="filter_selected_names" />
-                                    </div>
-                                    <div class="status_filter_dropdown" @mouseleave="mouse_leave_from_dropdown()">
-                                        <div v-for="filter in filter_status_options">
-                                            <input :disabled="!filter.checkbox" type="checkbox" :id="filter.id" :value="filter.value" :checked="filter.show" @change="filterSelectionChanged(filter)" :key="filter.id" />
-                                            <label :for="filter.id">{{ filter.display_name }}</label>
-                                            <div class="sub_option" v-for="option in filter.options">
-                                                <input type="checkbox" :id="option.id" :value="option.value" :checked="option.show" @change="filterOptionChanged(filter, option)" :key="option.id" />
-                                                <label :for="option.id">{{ option.display_name }}</label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-sm-1">
-                                    <label :for="search_text" class="control-label">Search</label>
-                                </div>
-                                <div class="col-sm-3">
-                                    <input v-model="search_text" id="search_text" class="form-control" />
-                                </div>
-                            </div>
-                        </template -->
                     </div>
                 </div>
                 <div :id="elem_id" class="map" style="position: relative;">
-                    <div id="filter_search_on_map">
-                        <!-- TODO: filters and search component on the map here -->
+                    <div v-show="fullscreen" id="filter_search_on_map">
+
+                        <!-- filters on map here -->
+
                     </div>
                     <div class="basemap-button">
                         <img id="basemap_sat" src="../../assets/satellite_icon.jpg" @click="setBaseLayer('sat')" />
@@ -650,6 +626,7 @@
                         allowClear: true,
                         placeholder:"Select Status",
                         multiple:true,
+                        //minimumResultsForSearch: -1,
                         data: vm.filter_status_options,
                     }).
                     on("change",function (e) {
@@ -658,11 +635,26 @@
                         vm.loadSites()
                     })
 
+                    //$(vm.$refs.filterStatusOnMap).select2({
+                    //    "theme": "bootstrap",
+                    //    allowClear: true,
+                    //    placeholder:"Select Status",
+                    //    multiple:true,
+                    //    //minimumResultsForSearch: -1,
+                    //    data: vm.filter_status_options,
+                    //}).
+                    //on("change",function (e) {
+                    //    console.log(e)
+                    //    vm.syncFilterStatusOptions()
+                    //    vm.loadSites()
+                    //})
+
                     $(vm.$refs.filterAvailability).select2({
                         "theme": "bootstrap",
                         allowClear: true,
-                        placeholder:"Select Status",
+                        placeholder:"Select Availabilities",
                         multiple:true,
+                        //minimumResultsForSearch: -1,
                         data: vm.filter_availability_options,
                     }).
                     on("change",function (e) {
@@ -1104,9 +1096,11 @@
                 // Full screen toggle
                 let fullScreenControl = new FullScreenControl()
                 fullScreenControl.on('enterfullscreen', function(){
+                    vm.fullscreen = true
                     vm.toggleFilterSearchRow('enter')
                 })
                 fullScreenControl.on('leavefullscreen', function(){
+                    vm.fullscreen = false
                     vm.toggleFilterSearchRow('leave')
                 })
                 vm.map.addControl(fullScreenControl)
@@ -1434,7 +1428,6 @@
             loadSites: async function() {
                 console.log('in loadSites()')
                 let vm = this
-                let apis = []
 
                 // Clear table 
                 this.$refs.table_apiary_site.vmDataTable.clear().draw();
@@ -1443,6 +1436,7 @@
                     if (filter.options){
                         for (let option of filter.options){
                             if (filter.show && option.show){
+                                // Show the apiary sites only when both 'current' and 'available'/'unavailable' are true
                                 if (option.loaded){
                                     // Data have been already loaded
                                     for (let apiary_site_geojson of option.apiary_sites){
@@ -1562,7 +1556,7 @@
         position: absolute;
         top: 10px;
         left: 60px;
-        z-index: 999999;
+        z-index: 99999;
     }
     .basemap-button {
         position: absolute;
