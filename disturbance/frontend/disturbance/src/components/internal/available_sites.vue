@@ -2,8 +2,8 @@
     <div class="container">
         <FormSection :formCollapse="false" label="Available Sites" Index="available_sites">
             <div class="map-wrapper">
-                <div v-if="!fullscreen">
-                    <div class="filter_search_wrapper" style="margin-bottom: 5px;">
+                <div v-show="!fullscreen" id="filter_search_row_wrapper">
+                    <div class="filter_search_wrapper" style="margin-bottom: 5px;" id="filter_search_row">
                         <template v-show="select2Applied">
                             <div class="row">
                                 <div class="col-sm-1">
@@ -55,10 +55,8 @@
                     </div>
                 </div>
                 <div :id="elem_id" class="map" style="position: relative;">
-                    <div v-if="fullscreen" class="filter_search_on_map">
-
+                    <div id="filter_search_on_map">
                         <!-- TODO: filters and search component on the map here -->
-
                     </div>
                     <div class="basemap-button">
                         <img id="basemap_sat" src="../../assets/satellite_icon.jpg" @click="setBaseLayer('sat')" />
@@ -213,6 +211,91 @@
                 select2Applied: false,
                 filterStatuses: [],
                 select2Obj: null,
+                filter_status_options: [
+                        // ApiarySite
+                        {
+                            'id': 'vacant',
+                            'value': 'vacant',
+                            'text': 'Vacant',
+                            'checkbox': true,  // Display checkbox
+                            'show': false,
+                            'loaded': false,
+                            'api': 'list_apiary_sites_vacant',
+                            'apiary_sites': [],
+                        },
+                        // ApiarySiteOnProposal
+                        {
+                            'id': 'pending',
+                            'value': 'pending',
+                            'text': 'Pending',
+                            'checkbox': true,
+                            'show': false,
+                            'loaded': false,
+                            'api': 'list_apiary_sites_pending',
+                            'apiary_sites': [],
+                        },
+                        {
+                            'id': 'denied',
+                            'value': 'denied',
+                            'text': 'Denied',
+                            'checkbox': true,
+                            'show': false,
+                            'loaded': false,
+                            'api': 'list_apiary_sites_denied',
+                            'apiary_sites': [],
+                        },
+                        // ApiarySiteOnApproval
+                        {
+                            'id': 'current',
+                            'value': 'current',
+                            'text': 'Current',
+                            'checkbox': false,
+                            'show': false,
+                            'loaded': false,
+                            'api': 'list_apiary_sites_current',
+                            'apiary_sites': [],
+                            'options': [
+                                {
+                                    'id': 'available',
+                                    'value': 'available',
+                                    'text': 'Available',
+                                    'show': false,
+                                    'loaded': false,
+                                    'api': 'list_apiary_sites_current_available',
+                                    'apiary_sites': [],
+                                },
+                                {
+                                    'id': 'unavailable',
+                                    'value': 'unavailable',
+                                    'text': 'Unavailable',
+                                    'show': false,
+                                    'loaded': false,
+                                    'api': 'list_apiary_sites_current_unavailable',
+                                    'apiary_sites': [],
+                                }
+                            ]
+                        },
+                        {
+                            'id': 'not_to_be_reissued',
+                            'value': 'not_to_be_reissued',
+                            'text': 'Not to be reissued',
+                            'checkbox': true,
+                            'show': false,
+                            'loaded': false,
+                            'api': 'list_apiary_sites_not_to_be_reissued',
+                            'apiary_sites': [],
+                        },
+                        {
+                            'id': 'suspended',
+                            'value': 'suspended',
+                            'text': 'Suspended',
+                            'checkbox': true,
+                            'show': false,
+                            'loaded': false,
+                            'api': 'list_apiary_sites_suspended',
+                            'apiary_sites': [],
+                        },
+                    ],
             }
         },
         components: {
@@ -281,93 +364,93 @@
                     },
                 ]
             },
-            filter_status_options: function(){
-                return [
-                    // ApiarySite
-                    {
-                        'id': 'vacant',
-                        'value': 'vacant',
-                        'text': 'Vacant',
-                        'checkbox': true,  // Display checkbox
-                        'show': false,
-                        'loaded': false,
-                        'api': 'list_apiary_sites_vacant',
-                        'apiary_sites': [],
-                    },
-                    // ApiarySiteOnProposal
-                    {
-                        'id': 'pending',
-                        'value': 'pending',
-                        'text': 'Pending',
-                        'checkbox': true,
-                        'show': false,
-                        'loaded': false,
-                        'api': 'list_apiary_sites_pending',
-                        'apiary_sites': [],
-                    },
-                    {
-                        'id': 'denied',
-                        'value': 'denied',
-                        'text': 'Denied',
-                        'checkbox': true,
-                        'show': false,
-                        'loaded': false,
-                        'api': 'list_apiary_sites_denied',
-                        'apiary_sites': [],
-                    },
-                    // ApiarySiteOnApproval
-                    {
-                        'id': 'current',
-                        'value': 'current',
-                        'text': 'Current',
-                        'checkbox': false,
-                        'show': false,
-                        'loaded': false,
-                        'api': 'list_apiary_sites_current',
-                        'apiary_sites': [],
-                        'options': [
-                            {
-                                'id': 'available',
-                                'value': 'available',
-                                'text': 'Available',
-                                'show': false,
-                                'loaded': false,
-                                'api': 'list_apiary_sites_current_available',
-                                'apiary_sites': [],
-                            },
-                            {
-                                'id': 'unavailable',
-                                'value': 'unavailable',
-                                'text': 'Unavailable',
-                                'show': false,
-                                'loaded': false,
-                                'api': 'list_apiary_sites_current_unavailable',
-                                'apiary_sites': [],
-                            }
-                        ]
-                    },
-                    {
-                        'id': 'not_to_be_reissued',
-                        'value': 'not_to_be_reissued',
-                        'text': 'Not to be reissued',
-                        'checkbox': true,
-                        'show': false,
-                        'loaded': false,
-                        'api': 'list_apiary_sites_not_to_be_reissued',
-                        'apiary_sites': [],
-                    },
-                    {
-                        'id': 'suspended',
-                        'value': 'suspended',
-                        'text': 'Suspended',
-                        'checkbox': true,
-                        'show': false,
-                        'loaded': false,
-                        'api': 'list_apiary_sites_suspended',
-                        'apiary_sites': [],
-                    },
-                ]
-            },
+            //filter_status_options: function(){
+            //    return [
+            //        // ApiarySite
+            //        {
+            //            'id': 'vacant',
+            //            'value': 'vacant',
+            //            'text': 'Vacant',
+            //            'checkbox': true,  // Display checkbox
+            //            'show': false,
+            //            'loaded': false,
+            //            'api': 'list_apiary_sites_vacant',
+            //            'apiary_sites': [],
+            //        },
+            //        // ApiarySiteOnProposal
+            //        {
+            //            'id': 'pending',
+            //            'value': 'pending',
+            //            'text': 'Pending',
+            //            'checkbox': true,
+            //            'show': false,
+            //            'loaded': false,
+            //            'api': 'list_apiary_sites_pending',
+            //            'apiary_sites': [],
+            //        },
+            //        {
+            //            'id': 'denied',
+            //            'value': 'denied',
+            //            'text': 'Denied',
+            //            'checkbox': true,
+            //            'show': false,
+            //            'loaded': false,
+            //            'api': 'list_apiary_sites_denied',
+            //            'apiary_sites': [],
+            //        },
+            //        // ApiarySiteOnApproval
+            //        {
+            //            'id': 'current',
+            //            'value': 'current',
+            //            'text': 'Current',
+            //            'checkbox': false,
+            //            'show': false,
+            //            'loaded': false,
+            //            'api': 'list_apiary_sites_current',
+            //            'apiary_sites': [],
+            //            'options': [
+            //                {
+            //                    'id': 'available',
+            //                    'value': 'available',
+            //                    'text': 'Available',
+            //                    'show': false,
+            //                    'loaded': false,
+            //                    'api': 'list_apiary_sites_current_available',
+            //                    'apiary_sites': [],
+            //                },
+            //                {
+            //                    'id': 'unavailable',
+            //                    'value': 'unavailable',
+            //                    'text': 'Unavailable',
+            //                    'show': false,
+            //                    'loaded': false,
+            //                    'api': 'list_apiary_sites_current_unavailable',
+            //                    'apiary_sites': [],
+            //                }
+            //            ]
+            //        },
+            //        {
+            //            'id': 'not_to_be_reissued',
+            //            'value': 'not_to_be_reissued',
+            //            'text': 'Not to be reissued',
+            //            'checkbox': true,
+            //            'show': false,
+            //            'loaded': false,
+            //            'api': 'list_apiary_sites_not_to_be_reissued',
+            //            'apiary_sites': [],
+            //        },
+            //        {
+            //            'id': 'suspended',
+            //            'value': 'suspended',
+            //            'text': 'Suspended',
+            //            'checkbox': true,
+            //            'show': false,
+            //            'loaded': false,
+            //            'api': 'list_apiary_sites_suspended',
+            //            'apiary_sites': [],
+            //        },
+            //    ]
+            //},
             ruler_colour: function(){
                 if (this.mode === 'normal'){
                     return '#aaa';
@@ -514,15 +597,39 @@
             },
         },
         methods: {
-            selectionStatusChanged: function(){
+            syncFilterStatusOptions: function(){
+                // Sync select2 selections with statuses array
+
                 let vm = this
-                let selected = $(vm.$refs.filterStatus).select2('data')
-                console.log(selected)
+                let selected_status_ids = $(vm.$refs.filterStatus).select2('data').map(x => x.id)
+                for (let status_filter_item of vm.filter_status_options){
+                    // Update show attribute
+                    if (selected_status_ids.includes(status_filter_item.id)){
+                        status_filter_item.show = true
+                    } else {
+                        status_filter_item.show = false
+                    }
+                }
             },
-            selectionAvailabilityChanged: function(){
+            syncFilterAvailabilityOptions: function(){
+                // Sync select2 selections with availability array
                 let vm = this
-                let selected = $(vm.$refs.filterAvailability).select2('data')
-                console.log(selected)
+
+                let selected_availabilities = $(vm.$refs.filterAvailability).select2('data')
+
+            },
+            toggleFilterSearchRow: function(action){
+                // Attach/Detach filter-search elements to/from the map
+                let vm = this
+                let filter_search_elements = $('#filter_search_row')
+                let filter_search_row_wrapper = $('#filter_search_row_wrapper')
+                let wrapper_in_map = $('#filter_search_on_map')
+
+                if (action === 'enter'){
+                    filter_search_elements.prependTo(wrapper_in_map)
+                } else if (action === 'leave'){
+                    filter_search_elements.prependTo(filter_search_row_wrapper)
+                }
             },
             applySelect2: function(){
                 let vm = this
@@ -536,7 +643,9 @@
                         data: vm.filter_status_options,
                     }).
                     on("change",function (e) {
-                        vm.selectionStatusChanged()
+                        console.log(e)
+                        vm.syncFilterStatusOptions()
+                        vm.loadSites()
                     })
 
                     $(vm.$refs.filterAvailability).select2({
@@ -547,7 +656,8 @@
                         data: vm.filter_availability_options,
                     }).
                     on("change",function (e) {
-                        vm.selectionAvailabilityChanged()
+                        vm.syncFilterAvailabilityOptions()
+                        vm.loadSites()
                     })
                     vm.select2Applied = true
                 }
@@ -984,10 +1094,10 @@
                 // Full screen toggle
                 let fullScreenControl = new FullScreenControl()
                 fullScreenControl.on('enterfullscreen', function(){
-                    vm.fullscreen = true
+                    vm.toggleFilterSearchRow('enter')
                 })
                 fullScreenControl.on('leavefullscreen', function(){
-                    vm.fullscreen = false
+                    vm.toggleFilterSearchRow('leave')
                 })
                 vm.map.addControl(fullScreenControl)
 
@@ -1312,13 +1422,15 @@
                 }
             },
             loadSites: async function() {
+                console.log('in loadSites()')
                 let vm = this
                 let apis = []
 
                 // Clear table 
                 this.$refs.table_apiary_site.vmDataTable.clear().draw();
 
-                for (let filter of this.filter_status_options){
+                console.log(vm.filter_status_options)
+                for (let filter of vm.filter_status_options){
                     if (filter.options){
                         for (let option of filter.options){
                             if (option.show){
@@ -1437,11 +1549,11 @@
         padding: 0;
         margin: 0;
     }
-    .filter_search_on_map {
+    #filter_search_on_map {
         position: absolute;
         top: 10px;
         left: 60px;
-        z-index: 500;
+        z-index: 999999;
     }
     .basemap-button {
         position: absolute;
@@ -1627,4 +1739,10 @@
         padding: 1em;
     }
     */
+    .select2-container {
+        z-index: 100000;
+    }
+    .select2-options {
+        z-index: 100000;
+    }
 </style>
