@@ -383,7 +383,7 @@
                 // Set a custom listener to the Measure tool
                 vm.drawForMeasure.set('escKey', '')
                 vm.drawForMeasure.on('change:escKey', function(evt){
-                    vm.drawForMeasure.finishDrawing()
+                    //vm.drawForMeasure.finishDrawing()
                 })
                 vm.drawForMeasure.on('drawstart', function(evt){
                     vm.measuring = true
