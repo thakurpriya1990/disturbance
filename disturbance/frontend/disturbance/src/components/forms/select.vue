@@ -20,7 +20,8 @@
 
             <template v-if="assessorMode">
                 <template v-if="!showingComment">
-                    <a v-if="comment_value != null && comment_value != undefined && comment_value != ''" href="" @click.prevent="toggleComment"><i style="color:red" class="fa fa-comment-o">&nbsp;</i></a>
+                    <!-- <a v-if="comment_value != null && comment_value != undefined && comment_value != '' && comment_value['assessor']!=null && comment_value['assessor']!=undefined && comment_value['assessor']!= '' " href="" @click.prevent="toggleComment"><i style="color:red" class="fa fa-comment-o">&nbsp;</i></a> -->
+                    <a v-if="has_comment_value" href="" @click.prevent="toggleComment"><i style="color:red" class="fa fa-comment-o">&nbsp;</i></a>
                     <a v-else href="" @click.prevent="toggleComment"><i class="fa fa-comment-o">&nbsp;</i></a>
                 </template>
                 <a href="" v-else  @click.prevent="toggleComment"><i class="fa fa-ban">&nbsp;</i></a>
@@ -71,6 +72,7 @@ import CommentBox from './comment_box_referral.vue'
 import HelpText from './help_text.vue'
 import HelpTextUrl from './help_text_url.vue'
 export default {
+    name:"select",
     props:{
         'name':String,
         'label':String,
@@ -112,6 +114,17 @@ export default {
     computed:{
         cons:function () {
             return JSON.stringify(this.conditions);
+        },
+        has_comment_value:function () {
+            let has_value=false;
+            for(var i=0; i<this.comment_boxes.length; i++){
+                if(this.comment_boxes[i].hasOwnProperty('value')){
+                    if(this.comment_boxes[i].value!=null && this.comment_boxes[i].value!=undefined && this.comment_boxes[i].value!= '' ){
+                        has_value=true;
+                    }
+                } 
+            }
+            return has_value;
         },
     },
     components: { Comment, HelpText, HelpTextUrl, CommentBox},
