@@ -187,91 +187,121 @@
                 select2Applied: false,
                 filterStatuses: [],
                 select2Obj: null,
+                show_hide_instructions: [ // This array is used as instructions when showing/hiding the apiary sites on the map
+                    // ApiarySite
+                    {
+                        'id': 'vacant',
+                        'text': 'Vacant',
+                        'show': false,
+                        'loaded': false,
+                        'map_updated': false,
+                        'api': 'list_apiary_sites_vacant',
+                        'apiary_sites': [],
+                    },
+                    // ApiarySiteOnProposal
+                    {
+                        'id': 'pending',
+                        'text': 'Pending',
+                        'show': false,
+                        'loaded': false,
+                        'map_updated': false,
+                        'api': 'list_apiary_sites_pending',
+                        'apiary_sites': [],
+                    },
+                    {
+                        'id': 'denied',
+                        'text': 'Denied',
+                        'show': false,
+                        'loaded': false,
+                        'map_updated': false,
+                        'api': 'list_apiary_sites_denied',
+                        'apiary_sites': [],
+                    },
+                    // ApiarySiteOnApproval
+                    {
+                        'id': 'current',
+                        'text': 'Current',
+                        'show': false,
+                        'loaded': false,
+                        'map_updated': false,
+                        'api': 'list_apiary_sites_current',
+                        'apiary_sites': [],
+                        'options': [
+                            {
+                                'id': 'available',
+                                'text': 'Available',
+                                'show': false,
+                                'loaded': false,
+                                'map_updated': false,
+                                'api': 'list_apiary_sites_current_available',
+                                'apiary_sites': [],
+                            },
+                            {
+                                'id': 'unavailable',
+                                'text': 'Unavailable',
+                                'show': false,
+                                'loaded': false,
+                                'map_updated': false,
+                                'api': 'list_apiary_sites_current_unavailable',
+                                'apiary_sites': [],
+                            }
+                        ]
+                    },
+                    {
+                        'id': 'not_to_be_reissued',
+                        'text': 'Not to be reissued',
+                        'show': false,
+                        'loaded': false,
+                        'map_updated': false,
+                        'api': 'list_apiary_sites_not_to_be_reissued',
+                        'apiary_sites': [],
+                    },
+                    {
+                        'id': 'suspended',
+                        'text': 'Suspended',
+                        'show': false,
+                        'loaded': false,
+                        'map_updated': false,
+                        'api': 'list_apiary_sites_suspended',
+                        'apiary_sites': [],
+                    },
+                ],
                 filter_status_options: [
-                        // ApiarySite
-                        {
-                            'id': 'vacant',
-                            'value': 'vacant',
-                            'text': 'Vacant',
-                            'checkbox': true,  // Display checkbox
-                            'show': false,
-                            'loaded': false,
-                            'api': 'list_apiary_sites_vacant',
-                            'apiary_sites': [],
-                        },
-                        // ApiarySiteOnProposal
-                        {
-                            'id': 'pending',
-                            'value': 'pending',
-                            'text': 'Pending',
-                            'checkbox': true,
-                            'show': false,
-                            'loaded': false,
-                            'api': 'list_apiary_sites_pending',
-                            'apiary_sites': [],
-                        },
-                        {
-                            'id': 'denied',
-                            'value': 'denied',
-                            'text': 'Denied',
-                            'checkbox': true,
-                            'show': false,
-                            'loaded': false,
-                            'api': 'list_apiary_sites_denied',
-                            'apiary_sites': [],
-                        },
-                        // ApiarySiteOnApproval
-                        {
-                            'id': 'current',
-                            'value': 'current',
-                            'text': 'Current',
-                            'checkbox': false,
-                            'show': false,
-                            'loaded': false,
-                            'api': 'list_apiary_sites_current',
-                            'apiary_sites': [],
-                            'options': [
-                                {
-                                    'id': 'available',
-                                    'value': 'available',
-                                    'text': 'Available',
-                                    'show': false,
-                                    'loaded': false,
-                                    'api': 'list_apiary_sites_current_available',
-                                    'apiary_sites': [],
-                                },
-                                {
-                                    'id': 'unavailable',
-                                    'value': 'unavailable',
-                                    'text': 'Unavailable',
-                                    'show': false,
-                                    'loaded': false,
-                                    'api': 'list_apiary_sites_current_unavailable',
-                                    'apiary_sites': [],
-                                }
-                            ]
-                        },
-                        {
-                            'id': 'not_to_be_reissued',
-                            'value': 'not_to_be_reissued',
-                            'text': 'Not to be reissued',
-                            'checkbox': true,
-                            'show': false,
-                            'loaded': false,
-                            'api': 'list_apiary_sites_not_to_be_reissued',
-                            'apiary_sites': [],
-                        },
-                        {
-                            'id': 'suspended',
-                            'value': 'suspended',
-                            'text': 'Suspended',
-                            'checkbox': true,
-                            'show': false,
-                            'loaded': false,
-                            'api': 'list_apiary_sites_suspended',
-                            'apiary_sites': [],
-                        },
-                    ],
+                    {
+                        'id': 'vacant',
+                        'text': 'Vacant',
+                    },
+                    {
+                        'id': 'pending',
+                        'text': 'Pending',
+                    },
+                    {
+                        'id': 'denied',
+                        'text': 'Denied',
+                    },
+                    {
+                        'id': 'current',
+                        'text': 'Current',
+                    },
+                    {
+                        'id': 'not_to_be_reissued',
+                        'text': 'Not to be reissued',
+                    },
+                    {
+                        'id': 'suspended',
+                        'text': 'Suspended',
+                    },
+                ],
+                filter_availability_options: [
+                    {
+                        'id': 'available',
+                        'text': 'Available',
+                    },
+                    {
+                        'id': 'unavailable',
+                        'text': 'Unavailable',
+                    },
+                ]
             }
         },
         components: {
@@ -309,124 +339,26 @@
                 // Clear data storage in the filters
                 let vm = this
 
-                for (let filter of vm.filter_status_options){
-                    if (filter.show){
-                        for (let apiary_site_geojson of filter.apiary_sites){
+                for (let site_status of vm.show_hide_instructions){
+                    if (site_status.show){
+                        for (let apiary_site_geojson of site_status.apiary_sites){
                             try {
                                 // Remove the apiary_site from the map.  There are no functions to show/hide a feature unlike the layer.
                                 vm.apiarySitesQuerySource.removeFeature(apiary_site_geojson.feature)
+                                vm.consoleLogRemovingFeature(apiary_site_geojson.feature)
                             } catch(err){
                                 //console.log(err)
                                 console.log(apiary_site_geojson)
                             }
                         }
                     }
-                    filter.apiary_sites = []
-                    filter.loaded = false
+                    site_status.apiary_sites = []
+                    site_status.loaded = false
                 }
-                vm.loadSites()
+                vm.showHideApiarySites()
             }
         },
         computed: {
-            filter_availability_options: function(){
-                return [
-                    {
-                        'id': 'available',
-                        'text': 'Available',
-                    },
-                    {
-                        'id': 'unavailable',
-                        'text': 'Unavailable',
-                    },
-                ]
-            },
-            //filter_status_options: function(){
-            //    return [
-            //        // ApiarySite
-            //        {
-            //            'id': 'vacant',
-            //            'value': 'vacant',
-            //            'text': 'Vacant',
-            //            'checkbox': true,  // Display checkbox
-            //            'show': false,
-            //            'loaded': false,
-            //            'api': 'list_apiary_sites_vacant',
-            //            'apiary_sites': [],
-            //        },
-            //        // ApiarySiteOnProposal
-            //        {
-            //            'id': 'pending',
-            //            'value': 'pending',
-            //            'text': 'Pending',
-            //            'checkbox': true,
-            //            'show': false,
-            //            'loaded': false,
-            //            'api': 'list_apiary_sites_pending',
-            //            'apiary_sites': [],
-            //        },
-            //        {
-            //            'id': 'denied',
-            //            'value': 'denied',
-            //            'text': 'Denied',
-            //            'checkbox': true,
-            //            'show': false,
-            //            'loaded': false,
-            //            'api': 'list_apiary_sites_denied',
-            //            'apiary_sites': [],
-            //        },
-            //        // ApiarySiteOnApproval
-            //        {
-            //            'id': 'current',
-            //            'value': 'current',
-            //            'text': 'Current',
-            //            'checkbox': false,
-            //            'show': false,
-            //            'loaded': false,
-            //            'api': 'list_apiary_sites_current',
-            //            'apiary_sites': [],
-            //            'options': [
-            //                {
-            //                    'id': 'available',
-            //                    'value': 'available',
-            //                    'text': 'Available',
-            //                    'show': false,
-            //                    'loaded': false,
-            //                    'api': 'list_apiary_sites_current_available',
-            //                    'apiary_sites': [],
-            //                },
-            //                {
-            //                    'id': 'unavailable',
-            //                    'value': 'unavailable',
-            //                    'text': 'Unavailable',
-            //                    'show': false,
-            //                    'loaded': false,
-            //                    'api': 'list_apiary_sites_current_unavailable',
-            //                    'apiary_sites': [],
-            //                }
-            //            ]
-            //        },
-            //        {
-            //            'id': 'not_to_be_reissued',
-            //            'value': 'not_to_be_reissued',
-            //            'text': 'Not to be reissued',
-            //            'checkbox': true,
-            //            'show': false,
-            //            'loaded': false,
-            //            'api': 'list_apiary_sites_not_to_be_reissued',
-            //            'apiary_sites': [],
-            //        },
-            //        {
-            //            'id': 'suspended',
-            //            'value': 'suspended',
-            //            'text': 'Suspended',
-            //            'checkbox': true,
-            //            'show': false,
-            //            'loaded': false,
-            //            'api': 'list_apiary_sites_suspended',
-            //            'apiary_sites': [],
-            //        },
-            //    ]
-            //},
             ruler_colour: function(){
                 if (this.mode === 'normal'){
                     return '#aaa';
@@ -443,7 +375,6 @@
                     'Previous Site Holder<br>Applicant',
                     'Action',
                 ]
-
             },
             dtOptions: function(){
                 let vm = this
@@ -521,7 +452,7 @@
                                 if (apiary_site.properties.previous_site_holder_or_applicant){
                                     return apiary_site.properties.previous_site_holder_or_applicant
                                 } else {
-                                    return 'previous_site_holder_or_applicant data not found'
+                                    return ''
                                 }
                             }
                         },
@@ -573,36 +504,20 @@
             },
         },
         methods: {
-            syncFilterStatusOptions: function(){
+            updateStatusShowHideInstructions: function(status_option_changed){
                 // Sync select2 selections with statuses array
-
                 let vm = this
-                let selected_status_ids = $(vm.$refs.filterStatus).select2('data').map(x => x.id)
-                for (let status_filter_item of vm.filter_status_options){
-                    // Update show attribute
-                    if (selected_status_ids.includes(status_filter_item.id)){
-                        status_filter_item.show = true
-                    } else {
-                        status_filter_item.show = false
-                    }
-                }
+                let item_to_be_changed = vm.show_hide_instructions.filter(x => { return x.id === status_option_changed.id })[0]
+                item_to_be_changed.map_updated = false
+                item_to_be_changed.show = status_option_changed.selected
             },
-            syncFilterAvailabilityOptions: function(){
+            updateAvailabilityShowHideInstructions: function(availability_option_changed){
                 // Sync select2 selections with availability array
-
                 let vm = this
-                let selected_available_ids = $(vm.$refs.filterAvailability).select2('data').map(x => x.id)
-                let current_status_item = vm.filter_status_options.filter(x => {
-                    return x.id === 'current'
-                })[0]
-
-                for (let option of current_status_item.options){
-                    if (selected_available_ids.includes(option.id)){
-                        option.show = true
-                    } else {
-                        option.show = false
-                    }
-                }
+                let current_status_item = vm.show_hide_instructions.filter(x => { return x.id === 'current' })[0]  // We just interested in the 'current' status
+                let item_to_be_changed = current_status_item.options.filter(x => { return x.id === availability_option_changed.id })[0]
+                item_to_be_changed.map_updated = false
+                item_to_be_changed.show = availability_option_changed.selected
             },
             toggleFilterSearchRow: function(action){
                 // Attach/Detach filter-search elements to/from the map
@@ -626,103 +541,53 @@
                         allowClear: true,
                         placeholder:"Select Status",
                         multiple:true,
-                        //minimumResultsForSearch: -1,
                         data: vm.filter_status_options,
                     }).
-                    on("change",function (e) {
-                        console.log(e)
-                        vm.syncFilterStatusOptions()
-                        vm.loadSites()
+                    on('select2:select', function(e){
+                        vm.updateStatusShowHideInstructions(e.params.data)
+                        vm.showHideApiarySites()
+                    }).
+                    on('select2:unselect', function(e){
+                        vm.updateStatusShowHideInstructions(e.params.data)
+                        vm.showHideApiarySites()
                     })
-
-                    //$(vm.$refs.filterStatusOnMap).select2({
-                    //    "theme": "bootstrap",
-                    //    allowClear: true,
-                    //    placeholder:"Select Status",
-                    //    multiple:true,
-                    //    //minimumResultsForSearch: -1,
-                    //    data: vm.filter_status_options,
-                    //}).
-                    //on("change",function (e) {
-                    //    console.log(e)
-                    //    vm.syncFilterStatusOptions()
-                    //    vm.loadSites()
-                    //})
 
                     $(vm.$refs.filterAvailability).select2({
                         "theme": "bootstrap",
                         allowClear: true,
                         placeholder:"Select Availabilities",
                         multiple:true,
-                        //minimumResultsForSearch: -1,
                         data: vm.filter_availability_options,
                     }).
-                    on("change",function (e) {
-                        vm.syncFilterAvailabilityOptions()
-                        vm.loadSites()
+                    on("select2:select",function (e) {
+                        vm.updateAvailabilityShowHideInstructions(e.params.data)
+                        vm.showHideApiarySites()
+                    }).
+                    on("select2:unselect",function (e) {
+                        vm.updateAvailabilityShowHideInstructions(e.params.data)
+                        vm.showHideApiarySites()
                     })
                     vm.select2Applied = true
                 }
             },
-            mouse_leave_from_dropdown: function(){
-                $('.status_filter_dropdown').slideUp("fast")
+            consoleLogAddingFeature: function(feature){
+                console.log('adding feature: ')
+                console.log(feature)
+            },
+            consoleLogRemovingFeature: function(feature){
+                console.log('removing feature: ')
+                console.log(feature)
             },
             addApiarySiteToMap: function(apiary_site_geojson) {
                 let vm = this
                 let feature = (new GeoJSON()).readFeature(apiary_site_geojson)
                 this.apiarySitesQuerySource.addFeature(feature)
+                this.consoleLogAddingFeature(feature)
                 return feature
             },
             addApiarySiteToTable: function(apiary_site_geojson){
                 let new_row = this.$refs.table_apiary_site.vmDataTable.row.add(apiary_site_geojson)
                 new_row.draw()
-            },
-            filterOptionChanged: function(filter, option){
-                console.log('filterOptionChanged')
-                option.show = !option.show
-
-                // Update filter show status
-                let option_statuses_same = true
-                for (let opt of filter.options){
-                    if (option.show != opt.show){
-                        option_statuses_same = false
-                    }
-                }
-
-                if (option_statuses_same){
-                    filter.show = option.show
-                    this.updateFilterSelectedNames()
-                }
-                this.loadSites()
-            },
-            updateFilterSelectedNames: function(){
-                this.filter_selected_names = ''
-                let count = 0
-                for (let filter of this.filter_status_options){
-                    if (filter.show){
-                        if (count != 0){
-                            this.filter_selected_names += ', '
-                        } 
-                        this.filter_selected_names += filter.display_name
-                        count += 1
-                    }
-                }
-                if (this.filter_selected_names === ''){
-                    this.filter_selected_names = 'select status'
-                }
-            },
-            filterSelectionChanged: function(filter){
-                console.log('filterSelectionChanged')
-                console.log(filter)
-                filter.show = !filter.show
-                if (filter.options){
-                    for (let option of filter.options){
-                        option.show = filter.show
-                    }
-                }
-
-                this.updateFilterSelectedNames()
-                this.loadSites()
             },
             addEventListeners: function () {
                 $("#" + this.table_id).on("click", "a[data-view-on-map]", this.zoomOnApiarySite)
@@ -754,7 +619,6 @@
                         // Update the site in the table
                         let site_updated = accept.body
                         vm.updateApiarySite(site_updated)
-                       // vm.constructApiarySitesTable();
                         vm.constructApiarySitesTable(site_updated);
                     },
                     reject=>{
@@ -770,11 +634,12 @@
                 // TODO: Update internal apiary_site data ==> Update map...?
                 console.log('in updateApiarySite')
                 console.log(site_updated)
+                console.log(this.show_hide_instructions)
             },
             constructApiarySitesTable: function(site_updated){
                 // TODO: Update table
                 console.log('in constructApiarySitesTable')
-                console.log(site_updated)
+                //console.log(site_updated)
             },
             makeVacantClicked: function(e){
                 let vm = this;
@@ -1361,6 +1226,7 @@
             removeApiarySiteById: function(apiary_site_id){
                 let feature = this.apiarySitesQuerySource.getFeatureById(apiary_site_id)
                 this.apiarySitesQuerySource.removeFeature(feature)
+                this.consoleLogRemovingFeature(feature)
             },
             zoomToApiarySiteById: function(apiary_site_id){
                 let feature = this.apiarySitesQuerySource.getFeatureById(apiary_site_id)
@@ -1425,23 +1291,29 @@
 
                 }
             },
-            loadSites: async function() {
-                console.log('in loadSites()')
+            showHideApiarySites: async function() {
+                console.log('in showHideApiarySites')
+                /////
+                // This function shows/hides the apiary sites according to the show_hide_instructions object.
+                /////
                 let vm = this
 
                 // Clear table 
                 this.$refs.table_apiary_site.vmDataTable.clear().draw();
 
-                for (let filter of vm.filter_status_options){
-                    if (filter.options){
-                        for (let option of filter.options){
-                            if (filter.show && option.show){
+                for (let site_status of vm.show_hide_instructions){
+                    if (site_status.options){
+                        for (let option of site_status.options){
+                            if (option.map_updated)
+                                continue  // All the apiary sites in this option have been already updated on the map.  Go to the next option
+                            if (site_status.show && option.show){
                                 // Show the apiary sites only when both 'current' and 'available'/'unavailable' are true
                                 if (option.loaded){
                                     // Data have been already loaded
                                     for (let apiary_site_geojson of option.apiary_sites){
                                         // Add the features to the map from the data storage
                                         vm.apiarySitesQuerySource.addFeature(apiary_site_geojson.feature)
+                                        vm.consoleLogAddingFeature(apiary_site_geojson.feature)
                                         // Add the features to the table from the data storage
                                         vm.addApiarySiteToTable(apiary_site_geojson)
                                     }
@@ -1469,6 +1341,7 @@
                                     if (apiary_site_geojson && vm.apiarySitesQuerySource.hasFeature(apiary_site_geojson.feature)){
                                         try{
                                             vm.apiarySitesQuerySource.removeFeature(apiary_site_geojson.feature)
+                                            vm.consoleLogRemovingFeature(apiary_site_geojson.feature)
                                         } catch (err){
                                             console.log(err)
                                             console.log(apiary_site_geojson)
@@ -1476,14 +1349,18 @@
                                     }
                                 }
                             }
+                            option.map_updated = true
                         }
                     } else {
-                        if (filter.show){
-                            if (filter.loaded){
+                        if (site_status.map_updated)
+                            continue  // All the apiary sites in this site_status have been already updated on the map.  Go to the next status
+                        if (site_status.show){
+                            if (site_status.loaded){
                                 // Data have been already loaded
-                                for (let apiary_site_geojson of filter.apiary_sites){
+                                for (let apiary_site_geojson of site_status.apiary_sites){
                                     // Add the features to the map from the data storage
                                     vm.apiarySitesQuerySource.addFeature(apiary_site_geojson.feature)
+                                    vm.consoleLogAddingFeature(apiary_site_geojson.feature)
                                     // Add the features to the table from the data storage
                                     vm.addApiarySiteToTable(apiary_site_geojson)
                                 }
@@ -1493,7 +1370,7 @@
                                 // Add the features to the map
                                 // Add the features to the table
                                 // Store data in the data storage
-                                Vue.http.get('/api/apiary_site/' + filter.api + '/?search_text=' + vm.search_text).then(re => {
+                                Vue.http.get('/api/apiary_site/' + site_status.api + '/?search_text=' + vm.search_text).then(re => {
                                     for (let apiary_site_geojson of re.body.features){
                                         // Add the apiary_site to the map
                                         let feature = vm.addApiarySiteToMap(apiary_site_geojson)
@@ -1505,17 +1382,18 @@
                                         vm.addApiarySiteToTable(apiary_site_geojson)
 
                                         // Cache it
-                                        filter.apiary_sites.push(apiary_site_geojson)
+                                        site_status.apiary_sites.push(apiary_site_geojson)
                                     }
-                                    filter.loaded = true
+                                    site_status.loaded = true
                                 })
                             }
                         } else {
-                            for (let apiary_site_geojson of filter.apiary_sites){
+                            for (let apiary_site_geojson of site_status.apiary_sites){
                                 // Remove the apiary_site from the map.  There are no functions to show/hide a feature unlike the layer.
                                 if (apiary_site_geojson && vm.apiarySitesQuerySource.hasFeature(apiary_site_geojson.feature)){
                                     try{
                                         vm.apiarySitesQuerySource.removeFeature(apiary_site_geojson.feature)
+                                        vm.consoleLogRemovingFeature(apiary_site_geojson.feature)
                                     } catch (err){
                                         console.log(err)
                                         console.log(apiary_site_geojson)
@@ -1523,12 +1401,13 @@
                                 }
                             }
                         }
+                        site_status.map_updated = true
                     }
                 }
-            },
+            }, // END: showHideApiarySites()
         },
         created: function() {
-            //this.loadSites()
+
         },
         mounted: function() {
             let vm = this;
@@ -1542,6 +1421,9 @@
             //vm.map.addLayer(vm.apiarySitesQueryLayer);
             vm.displayAllFeatures()
             this.applySelect2()
+            //vm.updateStatusShowHideInstructions()
+            //vm.updateAvailabilityShowHideInstructions()
+            vm.showHideApiarySites()
         },
     }
 </script>
