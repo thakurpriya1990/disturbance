@@ -7,36 +7,35 @@
             <div class="panel-body panel-collapse">
                 <div style="white-space: nowrap;">
                     <div style="float: left; width: 80%;">
-                            <table class="table small-table">
-                                <tr>
-                                    <th>Lodgement</th>
-                                    <th>Date</th>
-                                    <th>Action</th>
-                                </tr>
-                                <tr v-for="prop in this.lodgement_revisions" :key="prop.id">
-                                    <td>{{ prop.id }}</td>
-                                    <td>{{ prop.date | formatDateNoTime }}</td>
-                                    <td style="padding: 0px;" v-on:click="getCompareProposal(prop['index'])">
-                                        <span v-bind:id=prop.id v-html=prop.action></span>
-                                    </td>
-                                </tr>
-                            </table>
-
+                        <table class="table small-table">
+                            <tr>
+                                <th>Lodgement</th>
+                                <th style="padding-left: 10px;">Date</th>
+                                <th style="padding-left: 10px;">Action</th>
+                            </tr>
+                            <tr v-for="prop in this.lodgement_revisions_actions" :key="prop.id">
+                                <td>{{ prop.id }}</td>
+                                <td style="padding-left: 10px;">{{ prop.date | formatDateNoTime }}</td>
+                                <td style="padding-left: 10px;" v-on:click="getCompareProposal(prop['index'])">
+                                    <span v-bind:id=prop.id v-html=prop.action></span>
+                                </td>
+                            </tr>
+                        </table>
                     </div>
                     <div style="float: right; width: 20%;">
                         <table class="table small-table">
                             <tr>
-                                <th>Action</th>
+                                <th style="visibility: hidden;">Version</th>
                             </tr>
-                            <tr v-for="prop in this.lodgement_revisions" :key="'v_'+prop.id">
-                                <td style="padding: 0px;" v-on:click="getViewProposal(prop['index'])">
-                                    <span :key="prop.id" v-bind:id=prop.id v-html=prop.action></span>
+                            <tr v-for="prop in this.lodgement_revisions_view_actions" :key="prop.id">
+                                <td  style="padding-left: 15px;" v-on:click="getViewProposal(prop['index'])">
+                                    <span v-bind:id=prop.view_id v-html=prop.view_action></span>
                                 </td>
                             </tr>
                         </table>
-
                     </div>
                 </div>
+                <a tabindex="2" ref="showActionBtn" class="actionBtn">Show All</a>
             </div>
         </div>
     </div>
@@ -50,10 +49,6 @@ import Vue from 'vue'
 export default {
     name: 'RevisionHistorySection',
     props: {
-        logs_url:{
-            type: String,
-            required: true
-        },
         proposal: {
             type: Object,
             required: true
@@ -63,7 +58,8 @@ export default {
         return {
             revisionsTable: null,
             dateFormat: 'DD/MM/YYYY HH:mm:ss',
-            lodgement_revisions: [],
+            lodgement_revisions_actions: [],
+            lodgement_revisions_view_actions: [],
             allRevisionsTableRows: '',
             popoversInitialised: false,
             actionsDtOptions: {
@@ -79,7 +75,8 @@ export default {
                     "<'row'<'col-sm-12'tr>>" +
                     "<'row'<'col-sm-5'i><'col-sm-7'p>>",
                 processing: true,
-                data: this.lodgement_revisions,
+                data: this.lodgement_revisions_actions,
+                data: this.lodgement_revisions_view_actions,
                 columns: [
                     { data: 'id' },
                     { data: 'date' },
@@ -115,15 +112,26 @@ export default {
             let index = 0
             for (let prop in this.proposal.reversion_history) {
                 let action_label = '<a style="cursor:pointer;">Compare</a>'
+                let view_action_label = '<a style="cursor:pointer;">View</a>'
                 if (index === 0) { index += 1; continue; } // The first entry is the latest version
-                if (index === 1) { action_label = 'Viewing'}
-                this.lodgement_revisions.push({"index": index,
-                                                "id": prop,
-                                                "date": this.proposal.reversion_history[prop]["date"],
-                                                "action": action_label})
+                if (index === 1) { 
+                    view_action_label = '<div style="pointer-events: none;">Viewing</div>'
+                    action_label = '<div style="visibility: hidden; pointer-events: none;">View</div>'
+                }
+                this.lodgement_revisions_actions.push({"index": index,
+                                                       "id": prop,
+                                                       "action": action_label,
+                                                       "date": this.proposal.reversion_history[prop]["date"],})
+                this.lodgement_revisions_view_actions.push({"index": index,
+                                                            "view_id": "v_"+prop,
+                                                            "view_action": view_action_label})
                 index += 1
             }
         },
+    },
+    viewRevision: function(revision_number) {
+            this.proposal = this.proposal.reversion_history[revision_number]
+            // this.forceUpdate();
     },
     methods:{
         getCompareProposal: async function (revision) {
@@ -131,27 +139,20 @@ export default {
                 Handle the user clicks. Change the labels of entries and add all selected 
                 differences to the DOM.
             */
-            let clicked_revision = this.lodgement_revisions[revision-1]
-            for (let index = 0; index < this.lodgement_revisions.length; index++) {
+            let clicked_revision = this.lodgement_revisions_actions[revision-1]
+            for (let index = 0; index < this.lodgement_revisions_actions.length; index++) {
                 if (revision > 0) {
-                    this.lodgement_revisions[index].action = '<a style="cursor:pointer;">Compare</a>'
-                    clicked_revision.action = 'Comparing'        // should be non-clickable now
-
-                    // If we are comparing, allow the original to be View(ed).
-                    this.lodgement_revisions[0].action = '<a style="cursor:pointer;">View</a>'
+                    this.lodgement_revisions_actions[index].action = '<a style="cursor:pointer;">Compare</a>'
+                    clicked_revision.action = '<div>Comparing</div>'        // should be non-clickable now
                 }
-            }
-            
-            // If we click View, show that we are now viewing.
-            if (revision == 1) {
-                if (this.lodgement_revisions[0].action = 'View') {
-                    clicked_revision.action = 'Viewing'
-                }
+                this.lodgement_revisions_actions[0].action = '<div style="visibility: hidden;">Viewing</div>'
+                this.lodgement_revisions_view_actions[0].view_action = '<div style="">Viewing</div>'
+                this.lodgement_revisions_view_actions[index].view_action = '<a style="cursor:pointer;">View</a>'
             }
 
             // Now post to the API to get the differences between latest version and this one.
             const revisions_length = Object.keys(this.proposal.reversion_history).length
-            let revision_index = this.lodgement_revisions.length - revision + 2
+            let revision_index = this.lodgement_revisions_actions.length - revision + 2
             const diffs = await Vue.http.post(this.getRevisionDiffsUrl, {"version_number": revision_index})
 
             // Remove any previous revisions
@@ -161,18 +162,18 @@ export default {
             for (let entry in diffs.data) {
                 for (let k in diffs.data[entry]) {
                     const revision_text = diffs.data[entry][k]
+                    console.log(revision_text)
                     if (revision_text == '') {continue;}
-
                     const replacement = $("#id_" + k ).parent().find('input')
 
                     if (replacement.attr('type') == "text") {
-                        const replacement_html = "<input class='revision_note' style='width: 100%; margin-top: 3px; color: red; border: 1px solid red;' value='" + 
+                        const replacement_html = "<input disabled class='revision_note' style='width: 100%; margin-top: 3px; color: red; border: 1px solid red;' value='" + 
                                                  revision_text + 
                                                  "'><br class='revision_note'>"
                         replacement.after(replacement_html)
                     }
                     else if (replacement.attr('type') == "radio") {
-                        const replacement_html = "<input class='revision_note' type='radio' id='radio' checked>" + 
+                        const replacement_html = "<input disabled class='revision_note' type='radio' id='radio' checked>" + 
                                                  "<label class='revision_note' for='radio'" +
                                                  "style='margin-top: -200px; text-transform: capitalize; color: red; padding-left: 10px; padding-bottom: 20px;'>" + 
                                                  revision_text +
@@ -180,7 +181,7 @@ export default {
                         $("#id_" + k ).parent().after(replacement_html)
                     }
                     else {
-                        const replacement_html = "<input class='revision_note' style='width: 100%; margin-top: 3px; padding-top: 0px; color: red; border: 1px solid red;' value='" + 
+                        const replacement_html = "<input disabled class='revision_note' style='width: 100%; margin-top: 3px; padding-top: 0px; color: red; border: 1px solid red;' value='" + 
                                                  revision_text + 
                                                  "'>"
 
@@ -188,33 +189,32 @@ export default {
                     }
                 }
             }
-
-            // Update the Proposal Page title to show the revision.
-            $( "#proposal_title" ).text("Proposal: " + clicked_revision.id)
         },
         getViewProposal: async function (revision) {
             /* 
-                Handle the user clicks. Change the labels of entries and add all selected 
+                Handle the user clicks. Change the labels of entries and add all selected
                 differences to the DOM.
             */
-           console.log('--------------getViewProposal-----------------')
-            let clicked_revision = this.lodgement_revisions[revision-1]
-            for (let index = 0; index < this.lodgement_revisions.length; index++) {
-                if (revision > 0) {
-                    this.lodgement_revisions[index].action = '<a style="cursor:pointer;">View</a>'
-                    clicked_revision.action = 'Viewing'        // should be non-clickable now
-
-                    // // If we are comparing, allow the original to be View(ed).
-                    // this.lodgement_revisions[0].action = '<a style="cursor:pointer;">View</a>'
-                }
-            }
             
-            // If we click View, show that we are now viewing.
-            if (revision == 1) {
-                if (this.lodgement_revisions[0].action = 'View') {
-                    clicked_revision.action = 'Viewing'
+            let clicked_revision = this.lodgement_revisions_view_actions[revision-1]
+            // Set initial values for the View table.
+            for (let index = 0; index < this.lodgement_revisions_view_actions.length; index++) {
+                if (revision > 0) {
+                    this.lodgement_revisions_view_actions[index].view_action = '<a style="visibility: visible; cursor:pointer;">View</a>'
+                    clicked_revision.view_action = '<div style="">Viewing</div>'
+                    this.lodgement_revisions_actions[0].action = '<div style="visibility: hidden;">Viewing</div>'
+                    this.lodgement_revisions_actions[index].action = '<a style="cursor:pointer;">Compare</a>'
                 }
             }
+            // Update the Proposal Page title to show the revision.
+            if (clicked_revision.view_id.split('-')[1] == this.lodgement_revisions_view_actions.length) {                
+                $( "#proposal_title" ).text("Proposal: " + clicked_revision.view_id.split('-')[0].replace('v_', ''))
+            }
+            else {
+                $( "#proposal_title" ).text("Proposal: " + clicked_revision.view_id.replace('v_', ''))
+            }
+
+            this.$emit("reversion_proposal", revision)
         },
         initialiseRevisionHistory: function(vm_uid, ref, datatable_options, table, data){
             let vm = this;
@@ -229,6 +229,7 @@ export default {
                                 <th>Lodgement</th>
                                 <th>Date</th>
                                 <th>Action</th>
+                                <th>View</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -244,29 +245,29 @@ export default {
             }).on('inserted.bs.popover', function () {
                 datatable_options.data = data
                 table = $('#'+actionLogId).DataTable(datatable_options);
-            });
-            // }).on('shown.bs.popover', function () {
-            //     var el = ref;
-            //     var popoverheight = parseInt($('.'+popover_name).height());
-
-            //     var popover_bounding_top = parseInt($('.'+popover_name)[0].getBoundingClientRect().top);
-            //     var popover_bounding_bottom = parseInt($('.'+popover_name)[0].getBoundingClientRect().bottom);
-
-            //     var el_bounding_top = parseInt($(el)[0].getBoundingClientRect().top);
-            //     var el_bounding_bottom = parseInt($(el)[0].getBoundingClientRect().top);
-                
-            //     var diff = el_bounding_top - popover_bounding_top;
-
-            //     var position = parseInt($('.'+popover_name).position().top);
-            //     var pos2 = parseInt($(el).position().top) - 5;
-
-            //     var x = diff + 5;
-            //     $('.'+popover_name).children('.arrow').css('top', x + 'px');
             // });
+            }).on('shown.bs.popover', function () {
+                var el = ref;
+                var popoverheight = parseInt($('.'+popover_name).height());
+
+                var popover_bounding_top = parseInt($('.'+popover_name)[0].getBoundingClientRect().top);
+                var popover_bounding_bottom = parseInt($('.'+popover_name)[0].getBoundingClientRect().bottom);
+
+                var el_bounding_top = parseInt($(el)[0].getBoundingClientRect().top);
+                var el_bounding_bottom = parseInt($(el)[0].getBoundingClientRect().top);
+                
+                var diff = el_bounding_top - popover_bounding_top;
+
+                var position = parseInt($('.'+popover_name).position().top);
+                var pos2 = parseInt($(el).position().top) - 5;
+
+                var x = diff + 5;
+                $('.'+popover_name).children('.arrow').css('top', x + 'px');
+            });
         },
         initialisePopovers: function(){ 
             if (!this.popoversInitialised){
-                this.initialiseRevisionHistory(this._uid, this.$refs.showActionBtn, this.actionsDtOptions, this.revisionsTable, this.lodgement_revisions);
+                this.initialiseRevisionHistory(this._uid, this.$refs.showActionBtn, this.actionsDtOptions, this.revisionsTable, this.lodgement_revisions_actions);
                 this.popoversInitialised = true;
             }
         },

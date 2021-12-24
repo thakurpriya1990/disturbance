@@ -273,7 +273,6 @@ class ProposalDocument(Document):
 def fee_invoice_references_default():
     return []
 
-
 class Proposal(RevisionedMixin):
     CUSTOMER_STATUS_TEMP = 'temp'
     CUSTOMER_STATUS_DRAFT = 'draft'
@@ -676,6 +675,52 @@ class Proposal(RevisionedMixin):
             apiary = True
         return apiary
 
+    def get_revision(self, version_number):
+        """
+        Gets a full Proposal version to show when the View button is clicked.
+        """
+        all_revisions_list = list(self.get_reversion_history().values())
+        version = all_revisions_list[version_number].field_dict["data"][0]
+        dic = self.flatten_json(version)
+
+        out = {}
+        for k, v in dic.items():
+            out[k.split('_0_')[1]] = v
+        return out
+
+    def flatten_json(self, dictionary):
+        """Flatten a nested json file"""
+        from itertools import chain, starmap
+
+        def unpack(parent_key, parent_value):
+            """Unpack one level of nesting in json file"""
+            # Unpack one level only!!!
+            
+            if isinstance(parent_value, dict):
+                for key, value in parent_value.items():
+                    temp1 = parent_key + '_' + key
+                    yield temp1, value
+            elif isinstance(parent_value, list):
+                i = 0 
+                for value in parent_value:
+                    temp2 = parent_key + '_'+str(i) 
+                    i += 1
+                    yield temp2, value
+            else:
+                yield parent_key, parent_value    
+
+                
+        # Keep iterating until the termination condition is satisfied
+        while True:
+            # Keep unpacking the json file until all values are atomic elements (not dictionary or list)
+            dictionary = dict(chain.from_iterable(starmap(unpack, dictionary.items())))
+            # Terminate condition: not any value in the json file is dictionary or list
+            if not any(isinstance(value, dict) for value in dictionary.values()) and \
+            not any(isinstance(value, list) for value in dictionary.values()):
+                break
+
+        return dictionary
+
     def get_revision_diff(self, compare_version):
         """
         Gets all the revision differences between the most recent revision and the revision specified.
@@ -701,7 +746,6 @@ class Proposal(RevisionedMixin):
         Get all the revisions submitted for this Proposal.
         """
         from reversion.models import Version
-        revisions = []
         # Get all revisions that have been submitted (not just saved by user) including the original.
         all_revisions = [v for v in Version.objects.get_for_object(self)[0:] if not v.field_dict['customer_status'] == 'draft']
         # Strip out duplicates (only take the most recent of a revision).

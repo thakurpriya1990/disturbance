@@ -30,7 +30,7 @@
                     </div>
                 </div>
             </div>
-            <RevisionHistory :revision_history_url=" revision_history_url" :proposal="proposal"/>
+            <RevisionHistory :revision_history_url=" revision_history_url" :proposal="proposal" @reversion_proposal="updateProposalRevision"/>
             <div class="row">
                 <div class="panel panel-default">
                     <div class="panel-heading">
@@ -475,6 +475,13 @@ export default {
 
     },
     computed: {
+        getRevisionUrl: function() {
+            let url = ''
+            url = helpers.add_endpoint_join('/api/proposal/',
+                                            this.proposal.id +
+                                            '/get_revision/')
+            return url;
+        },
         contactsURL: function(){
             return this.proposal!= null ? helpers.add_endpoint_json(api_endpoints.organisations,this.proposal.applicant.id+'/contacts') : '';
         },
@@ -526,6 +533,51 @@ export default {
         },
     },
     methods: {
+        updateProposalRevision: async function(proposal_revision) {
+            // Remove any previous revisions
+            $(".revision_note").remove()
+            let prop_data = await Vue.http.post(this.getRevisionUrl, {"version_number": proposal_revision})
+            for (const [k, v] of Object.entries(prop_data)) {
+                if (v === '') {console.log('pass'); continue}
+                if (k === 'bodyText') {
+                    const obj = JSON.parse(v);
+                    for (const key in obj) {
+
+
+
+
+                        const replacement = $("#id_" + key ).parent().find('input')
+
+                        if (replacement.attr('type') == "text") {
+                            replacement.val(obj[key])
+                        }
+                        else if (replacement.attr('type') == "radio") {
+                            $("#id_" + k ).parent().css("background-color", "red");
+                        }
+                        else {
+                            $("#id_" + k ).parent().css("background-color", "pink");
+                        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                        // $('#id_'+key).parent().find('input').css("background-color", "yellow");
+                    }
+                    
+                }
+            }
+        },
         locationUpdated: function(){
             console.log('in locationUpdated()');
         },
@@ -1117,9 +1169,6 @@ export default {
             this.original_proposal = helpers.copyObject(res.body);
             this.proposal.applicant.address = this.proposal.applicant.address != null ? this.proposal.applicant.address : {};
             this.hasAmendmentRequest=this.proposal.hasAmendmentRequest;
-
-            // Populate the revision table
-            this.createLodgementRevisionTable
         },
         err => {
           console.log(err);
