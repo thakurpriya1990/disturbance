@@ -333,10 +333,10 @@
 
                 for (let site_status of vm.show_hide_instructions){
                     if (site_status.show){
-                        for (let far of site_status.features_and_rows){
+                        for (let feature_and_row of site_status.features_and_rows){
                             try {
                                 // Remove the apiary_site from the map
-                                vm.apiarySitesQuerySource.removeFeature(far.feature)
+                                vm.apiarySitesQuerySource.removeFeature(feature_and_row.feature)
                             } catch(err){
                                 console.log(err)
                             }
@@ -391,9 +391,7 @@
                     responsive: true,
                     processing: true,
                     createdRow: function(row, data, index){
-                        console.log('row in createdRow')
-                        console.log(row)
-                        // Cache datatable row obj
+                        // Cache the row as jquery object, which is used for removing the row
                         if (data.feature_and_row){
                             data.feature_and_row.row_jquery = $(row).attr('data-apiary-site-id', data.id)
                         }
@@ -509,8 +507,6 @@
         },
         methods: {
             updateStatusShowHideInstructions: function(status_option_changed){
-                console.log('updateStatusShowHideInstructions')
-
                 // Sync select2 selections with statuses array
                 let vm = this
                 let item_to_be_changed = vm.show_hide_instructions.filter(x => { return x.id === status_option_changed.id })[0]
@@ -592,9 +588,6 @@
                 this.apiarySitesQuerySource.addFeature(feature)
                 return feature
             },
-            //addApiarySiteAsJqueryObjToTable: function(row_geojson){
-            //    this.$refs.table_apiary_site.vmDataTable.row.add(row_geojson).draw()
-            //},
             addApiarySiteAsGeojsonToTable: function(apiary_site_geojson, feature_and_row=null){
                 // Attach the feature_and_row obj in order to cache the table row obj in the 'createdRow' in the feature_and_row obj
                 apiary_site_geojson.feature_and_row = feature_and_row
@@ -1315,7 +1308,7 @@
 
                 for (let site_status of vm.show_hide_instructions){
                     if (site_status.options){
-                        // Options (sub categories) exist
+                        // Options (sub categories) exist, which means this site_status is 'current' (for current implementation)
                         for (let option of site_status.options){
                             if (option.map_updated)
                                 continue  // All the apiary sites in this option have been already updated on the map.  Go to the next option
@@ -1323,11 +1316,12 @@
                                 // Show the apiary sites only when both 'current' and 'available'/'unavailable' are true
                                 if (option.loaded){
                                     // Data have been already loaded
-                                    for (let far of option.features_and_rows){
+                                    for (let feature_and_row of option.features_and_rows){
                                         // Add the features to the map from the data storage
-                                        vm.apiarySitesQuerySource.addFeature(far.feature)
-                                        // Add the features to the table from the data storage
-                                        //vm.addApiarySiteAsGeojsonToTable(apiary_site_geojson)
+                                        vm.apiarySitesQuerySource.addFeature(feature_and_row.feature)
+
+                                        // Add the apiary_site to the table from the cache
+                                        vm.addApiarySiteAsGeojsonToTable(feature_and_row.row_geojson)
                                     }
                                 } else {
                                     Vue.http.get('/api/apiary_site/' + option.api + '/?search_text=' + vm.search_text).then(re => {
@@ -1335,27 +1329,31 @@
                                             // Add the apiary_site to the map
                                             let feature = vm.addApiarySiteToMap(apiary_site_geojson)
 
-                                            // Add this feature to the geojson data as a property
-                                            //apiary_site_geojson.feature = feature
-
                                             // Add the apiary_site to the table
-                                            let feature_and_row = { 'feature': feature }
-                                            option.features_and_rows.push(feature_and_row)
-                                            apiary_site_geojson.feature_and_row = feature_and_row
-                                            vm.addApiarySiteAsGeojsonToTable(apiary_site_geojson)
+                                            let feature_and_row = {
+                                                'feature': feature,
+                                                'row_geojson': apiary_site_geojson,
+                                            }
+
+                                            vm.addApiarySiteAsGeojsonToTable(apiary_site_geojson, feature_and_row)
 
                                             // Cache it
-                                            //option.apiary_sites.push(apiary_site_geojson)
+                                            option.features_and_rows.push(feature_and_row)
                                         }
                                         option.loaded = true
                                     })
                                 }
                             } else {
+                                // Hide all the apiary_site
                                 for (let feature_and_row of option.features_and_rows){
                                     // Remove the apiary_site from the map.  There are no functions to show/hide a feature unlike the layer.
                                     if (feature_and_row && vm.apiarySitesQuerySource.hasFeature(feature_and_row.feature)){
                                         try{
+                                            // Remove the apiary site from the map by using the cache
                                             vm.apiarySitesQuerySource.removeFeature(feature_and_row.feature)
+
+                                            // Remove the apiary site from the table by using the cache
+                                            vm.removeApiarySiteFromTable(feature_and_row.row_jquery)
                                         } catch (err){
                                             console.log(err)
                                         }
@@ -1412,10 +1410,10 @@
                                 // Remove the apiary_site from the map.  There are no functions to show/hide a feature unlike the layer.
                                 if (feature_and_row && vm.apiarySitesQuerySource.hasFeature(feature_and_row.feature)){
                                     try{
-                                        // Remove the apiary site to the map from the cache
+                                        // Remove the apiary site from the map by using the cache
                                         vm.apiarySitesQuerySource.removeFeature(feature_and_row.feature)
 
-                                        // Remove the apiary site to the table from the cache
+                                        // Remove the apiary site from the table by using the cache
                                         vm.removeApiarySiteFromTable(feature_and_row.row_jquery)
                                     } catch (err){
                                         console.log(err)
