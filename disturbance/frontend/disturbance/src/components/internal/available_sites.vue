@@ -392,8 +392,10 @@
                     responsive: true,
                     processing: true,
                     createdRow: function(row, data, index){
-                        console.log(data)
-                        data.feature_and_row.row = $(row).attr('data-apiary-site-id', data.id)
+                        console.log('row in createdRow')
+                        console.log(row)
+                        // Cache datatable row obj
+                        data.feature_and_row.row_jquery = $(row).attr('data-apiary-site-id', data.id)
                     },
                     columns: [
                         {
@@ -598,9 +600,19 @@
                 //this.consoleLogAddingFeature(feature)
                 return feature
             },
-            addApiarySiteToTable: function(apiary_site_geojson){
-                console.log(apiary_site_geojson)
+            addApiarySiteAsJqueryObjToTable: function(row_geojson){
+                console.log('addApiarySiteAsJqueryObjToTable')
+                this.$refs.table_apiary_site.vmDataTable.row.add(row_geojson).draw()
+            },
+            addApiarySiteToTable: function(apiary_site_geojson, feature_and_row){
+                console.log('addApiarySiteToTable')
+
+                // Attach the feature_and_row obj in order to cache the table row obj at the 'createdRow' in the feature_and_row obj
+                apiary_site_geojson.feature_and_row = feature_and_row
                 this.$refs.table_apiary_site.vmDataTable.row.add(apiary_site_geojson).draw()
+            },
+            removeApiarySiteFromTable: function(row_jquery){
+                this.$refs.table_apiary_site.vmDataTable.row(row_jquery).remove().draw()
             },
             addEventListeners: function () {
                 $("#" + this.table_id).on("click", "a[data-view-on-map]", this.zoomOnApiarySite)
@@ -1310,8 +1322,8 @@
                 /////
                 let vm = this
 
-                // Clear table 
-                this.$refs.table_apiary_site.vmDataTable.clear().draw();
+                // Clear table (this is not efficient)
+                //this.$refs.table_apiary_site.vmDataTable.clear().draw();
 
                 for (let site_status of vm.show_hide_instructions){
                     if (site_status.options){
@@ -1371,6 +1383,7 @@
                         if (site_status.map_updated)
                             continue  // All the apiary sites in this site_status have been already updated on the map.  Go to the next status
                         if (site_status.show){
+                            // Show the apiary sites of this site_status
                             if (site_status.loaded){
                                 // Data have been already loaded
                                 for (let feature_and_row of site_status.features_and_rows){
@@ -1380,6 +1393,7 @@
                                     //vm.consoleLogAddingFeature(apiary_site_geojson.feature)
                                     // Add the features to the table from the data storage
                                     //vm.addApiarySiteToTable(apiary_site_geojson)
+                                    vm.addApiarySiteAsJqueryObjToTable(feature_and_row.row_geojson)
                                 }
                             } else {
                                 // Data have not been loaded yet
@@ -1393,30 +1407,30 @@
                                         // Add the apiary_site to the map
                                         let feature = vm.addApiarySiteToMap(apiary_site_geojson)
 
+                                        // Cache the feature obj for the map
                                         let feature_and_row = { 'feature': feature }
+
+                                        // Cache the row_geojson for adding this row
+                                        feature_and_row.row_geojson = apiary_site_geojson
+
+                                        // Add this feature_and_row obj to the main storage
                                         site_status.features_and_rows.push(feature_and_row)
-                                        apiary_site_geojson.feature_and_row = feature_and_row
-                                        vm.addApiarySiteToTable(apiary_site_geojson)
 
-                                        // Add this feature to the geojson data as a property
-                                        //apiary_site_geojson.feature = feature
-
-                                        // Add the apiary_site to the table
-                                        //vm.addApiarySiteToTable(apiary_site_geojson)
-
-                                        // Cache it
-                                        //site_status.apiary_sites.push(apiary_site_geojson)
+                                        // Add the row to the table
+                                        vm.addApiarySiteToTable(apiary_site_geojson, feature_and_row)
                                     }
                                     site_status.loaded = true
                                 })
                             }
                         } else {
+                            // Hide the apiary_sites of this site_status
                             for (let feature_and_row of site_status.features_and_rows){
                                 // Remove the apiary_site from the map.  There are no functions to show/hide a feature unlike the layer.
                                 if (feature_and_row && vm.apiarySitesQuerySource.hasFeature(feature_and_row.feature)){
                                     try{
                                         vm.apiarySitesQuerySource.removeFeature(feature_and_row.feature)
                                         //vm.consoleLogRemovingFeature(apiary_site_geojson.feature)
+                                        vm.removeApiarySiteFromTable(feature_and_row.row_jquery)
                                     } catch (err){
                                         console.log(err)
                                     }
