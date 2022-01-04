@@ -337,6 +337,9 @@
                             try {
                                 // Remove the apiary_site from the map
                                 vm.apiarySitesQuerySource.removeFeature(feature_and_row.feature)
+
+                                // Remove the apiary site from the table by using the cache
+                                vm.removeApiarySiteFromTable(feature_and_row.row_jquery)
                             } catch(err){
                                 console.log(err)
                             }
