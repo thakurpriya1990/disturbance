@@ -1,6 +1,6 @@
 <template>
     <div class="container">
-        <FormSection :formCollapse="false" label="Apiary Sites" Index="available_sites">
+        <FormSection :formCollapse="false" label="Available Sites" Index="available_sites">
             <div class="map-wrapper">
                 <div v-show="!fullscreen" id="filter_search_row_wrapper">
                     <div class="filter_search_wrapper" style="margin-bottom: 5px;" id="filter_search_row">
@@ -890,7 +890,7 @@
 
                 vm.map = new Map({
                     layers: [
-                        vm.tileLayerOsm,
+                        vm.tileLayerOsm, 
                         vm.tileLayerSat,
                     ],
                     //target: 'map',
@@ -963,10 +963,10 @@
                     },
                 });
                 vm.map.addLayer(vm.apiarySitesClusterLayer);
-                vm.apiarySitesClusterLayer.setZIndex(10)
+                vm.apiarySitesClusterLayer.setZIndex(10)  
 
                 // Set zIndex to some layers to be rendered over the other layers
-                //vm.apiarySitesQueryLayer.setZIndex(10)
+                //vm.apiarySitesQueryLayer.setZIndex(10)  
 
                 // Full screen toggle
                 let fullScreenControl = new FullScreenControl()
@@ -1089,7 +1089,7 @@
                                         {'INFO_FORMAT': 'application/json'}
                                     )
 
-                                    // Query
+                                    // Query 
                                     let p = fetch(url, {
                                         credentials: 'include'
                                     })
@@ -1324,7 +1324,7 @@
                                         vm.apiarySitesQuerySource.addFeature(feature_and_row.feature)
 
                                         // Add the apiary_site to the table from the cache
-                                        vm.addApiarySiteAsGeojsonToTable(feature_and_row.row_geojson)
+                                        vm.addApiarySiteAsGeojsonToTable(feature_and_row.row_geojson, feature_and_row)
                                     }
                                 } else {
                                     Vue.http.get('/api/apiary_site/' + option.api + '/?search_text=' + vm.search_text).then(re => {
@@ -1378,7 +1378,7 @@
                                     vm.apiarySitesQuerySource.addFeature(feature_and_row.feature)
 
                                     // Add the apiary_site to the table from the cache
-                                    vm.addApiarySiteAsGeojsonToTable(feature_and_row.row_geojson)
+                                    vm.addApiarySiteAsGeojsonToTable(feature_and_row.row_geojson, feature_and_row)
                                 }
                             } else {
                                 // Data have not been loaded yet
@@ -1393,7 +1393,7 @@
                                         let feature = vm.addApiarySiteToMap(apiary_site_geojson)
 
                                         // Cache the feature obj and geojson object
-                                        let feature_and_row = {
+                                        let feature_and_row = { 
                                             'feature': feature,
                                             'row_geojson': apiary_site_geojson,
                                         }
