@@ -595,7 +595,7 @@ def _log_proposal_referral_email(email_message, referral, sender=None):
     else:
         text = smart_text(email_message)
         subject = ''
-        to = proposal.applicant.email if proposal.applicant.email else ''
+        to = referral.proposal.applicant.email if referral.proposal.applicant.email else ''
         fromm = smart_text(sender) if sender else SYSTEM_NAME
         all_ccs = ''
 

@@ -472,6 +472,7 @@ module.exports = {
                         "readonly": assessor_visibility,
                         "question": c.label,
                         "referral_box": false,
+                        "box_class": "form-control deficiency"
                     }
 
                     //<AssessorText box_view={box_visibility} type="text" name={assessor_name} value={assessor_val} label={'Assessor'} help_text={c.help_text} readonly={assessor_visibility}/>
@@ -493,6 +494,7 @@ module.exports = {
                                 "readonly": readonly,
                                 "question": c.label,
                                 "referral_box": true,
+                                "box_class": "form-control"
                             }
                             //<AssessorText box_view={box_visibility} type="text" name={referral_name} value={v.value} label={v.full_name} help_text={c.help_text} readonly={readonly}/>
                         )
@@ -512,6 +514,7 @@ module.exports = {
                                 "readonly": referral_visibility,
                                 "question": c.label,
                                 "referral_box": true,
+                                "box_class": "form-control",
                             }
                             // <AssessorText box_view={box_visibility} type="text" name={referral_name} value={assessor_val} label={referral_label} readonly={referral_visibility}/>
                             //<AssessorText box_view={box_visibility} type="text" name={referral_name} label={referral_label} readonly={referral_visibility}/>
@@ -534,6 +537,7 @@ module.exports = {
                                 "value": '',
                                 "question": c.label,
                                 "referral_box": false,
+                                "box_class": "form-control deficiency",
                         }
                         //<AssessorText box_view={box_visibility} type="text" name={name} value={val} label={'Assessor'} help_text={c.help_text} readonly={assessor_visibility}/>
                     )
@@ -553,6 +557,7 @@ module.exports = {
                                 "value": '',
                                 "question": c.label,
                                 "referral_box": false,
+                                "box_class": "form-control deficiency",
                         }
                         //<AssessorText box_view={box_visibility} type="text" name={name} value={val} label={'Assessor'} help_text={c.help_text} readonly={assessor_visibility}/>
                     )
@@ -570,6 +575,7 @@ module.exports = {
                                 "value": '',
                                 "question": c.label,
                                 "referral_box": true,
+                                "box_class": "form-control",
                         }
                         //<AssessorText box_view={box_visibility} type="text" name={referral_name} value={val} label={referral_label} readonly={referral_visibility}/>
                     )
