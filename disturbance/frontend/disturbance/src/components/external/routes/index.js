@@ -8,7 +8,8 @@ import Compliance from '../compliances/access.vue'
 import ComplianceSubmit from '../compliances/submit.vue'
 //import Approval from '../approvals/approval.vue'
 import Approval from '../approvals/approval_wrapper.vue'
-import AvailableSites from '../available_sites.vue'
+//import AvailableSites from '../available_sites.vue'
+import AvailableSites from '@/components/common/apiary/available_sites.vue'
 
 export default
 {
@@ -42,7 +43,8 @@ export default
         {
             path: 'available_sites',
             component: AvailableSites,
-            name: 'available_sites'
+            name: 'available_sites',
+            props: { is_external: true }
         },
         {
             path: 'approval/:approval_id',
