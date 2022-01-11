@@ -3759,7 +3759,8 @@ class ApiaryAnnualRentalFee(RevisionedMixin):
     """
     This amount is applied from the date_from
     """
-    amount = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+    amount_south_west = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+    amount_remote = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     date_from = models.DateField(blank=True, null=True)
 
     class Meta:
