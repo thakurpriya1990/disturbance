@@ -35,22 +35,22 @@
 
                     </div>
                     <div class="basemap-button">
-                        <img id="basemap_sat" src="@/assets/satellite_icon.jpg" @click="setBaseLayer('sat')" />
-                        <img id="basemap_osm" src="@/assets/map_icon.png" @click="setBaseLayer('osm')" />
+                        <img id="basemap_sat" src="../../../assets/satellite_icon.jpg" @click="setBaseLayer('sat')" />
+                        <img id="basemap_osm" src="../../../assets/map_icon.png" @click="setBaseLayer('osm')" />
                     </div>
                     <div class="optional-layers-wrapper">
                         <div class="optional-layers-button">
                             <template v-if="mode === 'layer'">
-                                <img src="@/assets/info-bubble.svg" @click="set_mode('measure')" />
+                                <img src="../../../assets/info-bubble.svg" @click="set_mode('measure')" />
                             </template>
                             <template v-else>
-                                <img src="@/assets/ruler.svg" @click="set_mode('layer')" />
+                                <img src="../../../assets/ruler.svg" @click="set_mode('layer')" />
                             </template>
                         </div>
                         <div style="position:relative">
                             <transition v-if="optionalLayers.length">
                                 <div class="optional-layers-button" @mouseover="hover=true">
-                                    <img src="@/assets/layers.svg" />
+                                    <img src="../../../assets/layers.svg" />
                                 </div>
                             </transition>
                             <transition v-if="optionalLayers.length">
@@ -479,33 +479,41 @@
                         if (vm.show_action_available_unavailable){
                             // Mark as Available/Unavailable
                             let display_text = ''
-                            if ((vm.debug || vm.is_external) && ['current',].includes(apiary_site.properties.status.toLowerCase())){
-                                if (apiary_site.properties.available){
-                                    display_text = 'Mark as unavailable';
-                                } else {
-                                    display_text = 'Mark as available';
+                            if (['current',].includes(apiary_site.properties.status.toLowerCase())){
+                                //if (vm.is_external){
+                                //    if (apiary_site.properties.available){
+                                //        display_text = 'Mark as unavailable';
+                                //    } else {
+                                //        display_text = 'Mark as available';
+                                //    }
+                                //    let ret = '<a data-toggle-availability="' + apiary_site.id + '" data-apiary-site-available="' + apiary_site.properties.available + '">' + display_text + '</a>';
+                                //    action_list.push(ret);
+                                //} 
+                                if (vm.is_internal){
+                                    if (apiary_site.properties.available){
+                                        display_text = 'Available';
+                                    } else {
+                                        display_text = 'Unavailable';
+                                    }
+                                    action_list.push(display_text);
                                 }
-                                let ret = '<a data-toggle-availability="' + apiary_site.id + '" data-apiary-site-available="' + apiary_site.properties.available + '">' + display_text + '</a>';
-                                action_list.push(ret);
-                            //} else if (vm.is_internal && ['Current', 'current'].includes(apiary_site.status.id)){
-                            } else if (vm.is_internal && ['current',].includes(apiary_site.properties.status.toLowerCase())){
-                                if (apiary_site.properties.available){
-                                    display_text = 'Available';
-                                } else {
-                                    display_text = 'Unavailable';
-                                }
-                                action_list.push(display_text);
                             }
                         }
                         if (vm.is_internal && vm.show_action_make_vacant){
-                            let display_text = 'Make Vacant'
-                            let ret = '<a data-make-vacant="' + apiary_site.id + '">' + display_text + '</a>';
-                            action_list.push(ret);
+                            if (['denied', 'not_to_be_reissued',].includes(apiary_site.properties.status.toLowerCase())){
+                                let display_text = 'Make Vacant'
+                                let ret = '<a data-make-vacant="' + apiary_site.id + '">' + display_text + '</a>';
+                                action_list.push(ret);
+                            }
                         }
                         if (vm.is_external && vm.show_action_contact_licence_holder){
-                            let display_text = 'Contact licence holder'
-                            let ret = '<a data-contact-licence-holder="' + apiary_site.id + '">' + display_text + '</a>';
-                            action_list.push(ret);
+                            if (['current',].includes(apiary_site.properties.status.toLowerCase())){
+                                if (apiary_site.properties.available){
+                                    let display_text = 'Contact licence holder'
+                                    let ret = '<a data-contact-licence-holder="' + apiary_site.id + '">' + display_text + '</a>';
+                                    action_list.push(ret);
+                                }
+                            }
                         }
                         return action_list.join('<br />');
                     }
