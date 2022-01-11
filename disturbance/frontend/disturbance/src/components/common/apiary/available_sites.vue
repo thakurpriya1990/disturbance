@@ -180,6 +180,8 @@
                 filter_selected_names: 'select status',
                 search_text: '',
                 fullscreen: false,
+                num_of_status_selection: 0,  // Store the number of selection at the UI (not cache)
+                num_of_availability_selection: 0,  // Store the number of selection at the UI (not cache)
 
                 useSelect2: true,
                 select2Applied: false,
@@ -190,7 +192,7 @@
                     {
                         'id': 'vacant',
                         'text': 'Vacant',
-                        'show': false,
+                        'show': true,
                         'loaded': false,
                         'map_updated': false,
                         'api': 'list_apiary_sites_vacant',
@@ -200,7 +202,7 @@
                     {
                         'id': 'pending',
                         'text': 'Pending',
-                        'show': false,
+                        'show': true,
                         'loaded': false,
                         'map_updated': false,
                         'api': 'list_apiary_sites_pending',
@@ -209,7 +211,7 @@
                     {
                         'id': 'denied',
                         'text': 'Denied',
-                        'show': false,
+                        'show': true,
                         'loaded': false,
                         'map_updated': false,
                         'api': 'list_apiary_sites_denied',
@@ -219,7 +221,7 @@
                     {
                         'id': 'current',
                         'text': 'Current',
-                        'show': false,
+                        'show': true,
                         'loaded': false,
                         'map_updated': false,
                         'api': 'list_apiary_sites_current',
@@ -228,7 +230,7 @@
                             {
                                 'id': 'available',
                                 'text': 'Available',
-                                'show': false,
+                                'show': true,
                                 'loaded': false,
                                 'map_updated': false,
                                 'api': 'list_apiary_sites_current_available',
@@ -237,7 +239,7 @@
                             {
                                 'id': 'unavailable',
                                 'text': 'Unavailable',
-                                'show': false,
+                                'show': true,
                                 'loaded': false,
                                 'map_updated': false,
                                 'api': 'list_apiary_sites_current_unavailable',
@@ -248,7 +250,7 @@
                     {
                         'id': 'not_to_be_reissued',
                         'text': 'Not to be reissued',
-                        'show': false,
+                        'show': true,
                         'loaded': false,
                         'map_updated': false,
                         'api': 'list_apiary_sites_not_to_be_reissued',
@@ -257,7 +259,7 @@
                     {
                         'id': 'suspended',
                         'text': 'Suspended',
-                        'show': false,
+                        'show': true,
                         'loaded': false,
                         'map_updated': false,
                         'api': 'list_apiary_sites_suspended',
@@ -358,9 +360,53 @@
                     }
                 }
                 vm.showHideApiarySites()
-            }
+            },
+            //status_selected: function(){
+            //    console.log('status_selected in watch')
+            //    if(this.status_selected){
+            //        for (let site_status of this.show_hide_instructions){
+            //            site_status.map_updated = false
+            //        }
+            //        this.showHideApiarySites()
+            //    }
+            //},
+            //availability_selected: function(){
+            //    console.log('availability_selected in watch')
+            //    if(this.availability_selected){
+            //        for (let site_status of this.show_hide_instructions){
+            //            if (site_status.options){
+            //                for (let option of site_status.options){
+            //                    option.map_updated = false
+            //                }
+            //            }
+            //        }
+            //        this.showHideApiarySites()
+            //    }
+            //}
         },
         computed: {
+            status_selected: function(){
+                return true
+                for (let site_status of this.show_hide_instructions){
+                    if (site_status.show){
+                        return true
+                    }
+                }
+                return false
+            },
+            availability_selected: function(){
+                return true
+                for (let site_status of this.show_hide_instructions){
+                    if (site_status.options){
+                        for (let option of site_status.options){
+                            if (option.show){
+                                return true
+                            }
+                        }
+                    }
+                }
+                return false
+            },
             ruler_colour: function(){
                 if (this.mode === 'normal'){
                     return '#aaa';
@@ -568,28 +614,98 @@
         methods: {
             updateStatusShowHideInstructions: function(status_option_changed){
                 // Sync select2 selections with statuses array
+                console.log('in updateStatusShowHideInstructions: ' + status_option_changed.id)
                 let vm = this
-                let item_to_be_changed = vm.show_hide_instructions.filter(x => { return x.id === status_option_changed.id })[0]
-                item_to_be_changed.map_updated = false
-                item_to_be_changed.show = status_option_changed.selected
+                let statuses_selected = $(vm.$refs.filterStatus).find(':selected')
 
-                if (item_to_be_changed.id === 'current'){
-                    let options_to_be_changed = item_to_be_changed.options.filter(x => { return x.show })
-                    for (let x of options_to_be_changed){
-                        x.map_updated = false
-                        console.log(x)
+                //if (item_to_be_changed.id === 'current'){
+                //    let options_to_be_changed = item_to_be_changed.options.filter(x => { return x.show })
+                //    for (let option of options_to_be_changed){
+                //        option.map_updated = false
+                //    }
+                //}
+
+                if (statuses_selected.length === 1 && vm.num_of_status_selection === 0){
+                    console.log('0 ---> 1')
+                    // 0 selection ---> 1 selection
+                    // Hide all except the one selected
+                    for (let site_status of vm.show_hide_instructions){
+                        if (site_status.id === status_option_changed.id){
+                            // Do nothing because this site_status is already shown
+                        } else {
+                            console.log('Hide: ' + site_status.id)
+                            site_status.show = false
+                            site_status.map_updated = false
+                        }
                     }
+                } else if (statuses_selected.length === 0){
+                    console.log('1 ---> 0')
+                    // 1 selection ---> 0 selection
+                    // show all
+                    for (let site_status of vm.show_hide_instructions){
+                        if (site_status.id === status_option_changed.id){
+                            // Do nothing because this site_status is already shown
+                        } else {
+                            console.log('Show: ' + site_status.id)
+                            site_status.show = true
+                            site_status.map_updated = false
+                        }
+                    }
+                } else {
+                    console.log('more than 1')
+                    let item_to_be_changed = vm.show_hide_instructions.filter(x => { return x.id === status_option_changed.id })[0]
+                    item_to_be_changed.map_updated = false
+                    item_to_be_changed.show = status_option_changed.selected
+
+                    let text = (item_to_be_changed.show)?'Show: ':'Hide: '
+                    console.log(text + item_to_be_changed.id)
                 }
+                // Store the number of selection at UI
+                vm.num_of_status_selection = statuses_selected.length
             },
             updateAvailabilityShowHideInstructions: function(availability_option_changed){
-                console.log('in updateAvailabilityShowHideInstructions')
+                console.log('in updateAvailabilityShowHideInstructions()')
 
                 // Sync select2 selections with availability array
                 let vm = this
                 let current_status_item = vm.show_hide_instructions.filter(x => { return x.id === 'current' })[0]  // We just interested in the 'current' status
-                let item_to_be_changed = current_status_item.options.filter(x => { return x.id === availability_option_changed.id })[0]
-                item_to_be_changed.map_updated = false
-                item_to_be_changed.show = availability_option_changed.selected
+                let availabilities_selected = $(vm.$refs.filterAvailability).find(':selected')
+                let availabilities_selected_cached = current_status_item.options.filter(x => { return x.show })
+
+                if (availabilities_selected.length === 1 && vm.num_of_availability_selection === 0){
+                    console.log('0 ---> 1')
+                    // 0 selection ---> 1 selection
+                    // Hide all except the one selected
+                    for (let option of current_status_item.options){
+                        if (option.id === availability_option_changed.id){
+                            // Do nothing because this site_status is already shown
+                        } else {
+                            console.log('Hide: ' + option.id)
+                            option.show = false
+                            option.map_updated = false
+                        }
+                    }
+                } else if (availabilities_selected.length === 0){
+                    console.log('1 ---> 0')
+                    // 1 selection ---> 0 selection
+                    // show all
+                    for (let option of current_status_item.options){
+                        if (option.id === availability_option_changed.id){
+                            // Do nothing because this site_status is already shown
+                        } else {
+                            console.log('Show: ' + option.id)
+                            option.show = true
+                            option.map_updated = false
+                        }
+                    }
+                } else {
+                    console.log('more than 1')
+                    let item_to_be_changed = current_status_item.options.filter(x => { return x.id === availability_option_changed.id })[0]
+                    item_to_be_changed.map_updated = false
+                    item_to_be_changed.show = availability_option_changed.selected
+                }
+                // Store the number of selection at UI
+                vm.num_of_availability_selection = availabilities_selected.length
             },
             toggleFilterSearchRow: function(action){
                 // Attach/Detach filter-search elements to/from the map
@@ -610,7 +726,7 @@
                 if (!vm.select2Applied){
                     $(vm.$refs.filterStatus).select2({
                         "theme": "bootstrap",
-                        allowClear: true,
+                        allowClear: false,
                         placeholder:"Select Status",
                         multiple:true,
                         data: vm.filter_status_options,
@@ -620,13 +736,14 @@
                         vm.showHideApiarySites()
                     }).
                     on('select2:unselect', function(e){
+                        console.log('unselect')
                         vm.updateStatusShowHideInstructions(e.params.data)
                         vm.showHideApiarySites()
                     })
 
                     $(vm.$refs.filterAvailability).select2({
                         "theme": "bootstrap",
-                        allowClear: true,
+                        allowClear: false,
                         placeholder:"Select Availabilities",
                         multiple:true,
                         data: vm.filter_availability_options,
@@ -1358,6 +1475,7 @@
                 }
             },
             showHideApiarySites: async function() {
+                console.log('showHideApiarySites()')
                 /////
                 // This function shows/hides the apiary sites according to the show_hide_instructions object.
                 /////
@@ -1370,9 +1488,14 @@
                     if (site_status.options){
                         // Options (sub categories) exist, which means this site_status is 'current' (for current implementation)
                         for (let option of site_status.options){
-                            if (option.map_updated)
+                            //if (option.map_updated){
+                            if (site_status.map_updated && option.map_updated){
+                                console.log('continue: ' + site_status.id)
                                 continue  // All the apiary sites in this option have been already updated on the map.  Go to the next option
+                            }
+                            //////if ((site_status.show && option.show) || (!vm.status_selected && !vm.availability_selected)){
                             if (site_status.show && option.show){
+                                console.log('Show2: ' + option.id)
                                 // Show the apiary sites only when both 'current' and 'available'/'unavailable' are true
                                 if (option.loaded){
                                     // Data have been already loaded
@@ -1405,6 +1528,7 @@
                                 }
                             } else {
                                 // Hide all the apiary_site
+                                console.log('Hide2: ' + option.id)
                                 for (let feature_and_row of option.features_and_rows){
                                     // Remove the apiary_site from the map.  There are no functions to show/hide a feature unlike the layer.
                                     if (feature_and_row && vm.apiarySitesQuerySource.hasFeature(feature_and_row.feature)){
@@ -1422,12 +1546,16 @@
                             }
                             option.map_updated = true
                         }
+                        site_status.map_updated = true
                     } else {
                         // No sub options
-                        if (site_status.map_updated)
+                        if (site_status.map_updated){
                             continue  // All the apiary sites in this site_status have been already updated on the map.  Go to the next status
+                        }
+                        ///////if (site_status.show || !vm.status_selected){
                         if (site_status.show){
                             // Show all the apiary sites in this site_status
+                            console.log('Show2: ' + site_status.id)
                             if (site_status.loaded){
                                 // Data have been already loaded
                                 for (let feature_and_row of site_status.features_and_rows){
@@ -1466,6 +1594,7 @@
                             }
                         } else {
                             // Hide all the apiary_sites in this site_status
+                            console.log('Hide2: ' + site_status.id)
                             for (let feature_and_row of site_status.features_and_rows){
                                 // Remove the apiary_site from the map.  There are no functions to show/hide a feature unlike the layer.
                                 if (feature_and_row && vm.apiarySitesQuerySource.hasFeature(feature_and_row.feature)){
