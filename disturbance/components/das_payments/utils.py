@@ -577,7 +577,7 @@ def generate_line_items_for_annual_rental_fee(approval, today_now, period, apiar
             if not len(apiary_sites):
                 continue
 
-            fee_applied = ApiaryAnnualRentalFee.get_fee_at_target_date(charge_period[0])  # TODO fee might be changed during the period
+            # fee_applied = ApiaryAnnualRentalFee.get_fee_at_target_date(charge_period[0])  # TODO fee might be changed during the period
             fees_applied = ApiaryAnnualRentalFee.get_fees_by_period(charge_period[0], charge_period[1])
 
             # num_of_days_charged = charge_period[1] - (charge_period[0] - timedelta(days=1))

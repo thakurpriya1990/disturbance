@@ -3767,14 +3767,13 @@ class ApiaryAnnualRentalFee(RevisionedMixin):
         ordering = ('date_from', )  # oldest record first, latest record last
         verbose_name = 'Annual Site Fee'
 
-
     def __str__(self):
         return 'Amount: ${}: From: {}'.format(self.amount, self.date_from)
 
-    @staticmethod
-    def get_fee_at_target_date(target_date):
-        fee_applied = ApiaryAnnualRentalFee.objects.filter(date_from__lte=target_date).order_by('-date_from').first()
-        return fee_applied
+    # @staticmethod
+    # def get_fee_at_target_date(target_date):
+    #     fee_applied = ApiaryAnnualRentalFee.objects.filter(date_from__lte=target_date).order_by('-date_from').first()
+    #     return fee_applied
 
     @staticmethod
     def get_fees_by_period(start_date, end_date):
