@@ -1490,7 +1490,7 @@
                         for (let option of site_status.options){
                             //if (option.map_updated){
                             if (site_status.map_updated && option.map_updated){
-                                console.log('continue: ' + site_status.id)
+                                console.log('continue: ' + option.id)
                                 continue  // All the apiary sites in this option have been already updated on the map.  Go to the next option
                             }
                             //////if ((site_status.show && option.show) || (!vm.status_selected && !vm.availability_selected)){
@@ -1550,6 +1550,7 @@
                     } else {
                         // No sub options
                         if (site_status.map_updated){
+                            console.log('continue: ' + site_status.id)
                             continue  // All the apiary sites in this site_status have been already updated on the map.  Go to the next status
                         }
                         ///////if (site_status.show || !vm.status_selected){
