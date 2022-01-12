@@ -3769,7 +3769,7 @@ class ApiaryAnnualRentalFee(RevisionedMixin):
         verbose_name = 'Annual Site Fee'
 
     def __str__(self):
-        return 'Amount: ${}: From: {}'.format(self.amount, self.date_from)
+        return 'Amount(SW): ${}, Amount(Remote): ${}, From: {}'.format(self.amount_south_west, self.amount_remote, self.date_from)
 
     # @staticmethod
     # def get_fee_at_target_date(target_date):
@@ -3787,7 +3787,8 @@ class ApiaryAnnualRentalFee(RevisionedMixin):
 
         temp_end_date = end_date if not fees_rest else fees_rest[0].date_from - datetime.timedelta(days=1)
         fees = [{
-            'amount_per_year': fee_first.amount,
+            'amount_south_west_per_year': fee_first.amount_south_west,
+            'amount_remote_per_year': fee_first.amount_remote,
             'date_start': start_date,
             'date_end': temp_end_date,
             'num_of_days': temp_end_date - (start_date - datetime.timedelta(days=1))
@@ -3795,7 +3796,8 @@ class ApiaryAnnualRentalFee(RevisionedMixin):
         for idx, annual_rental_fee in enumerate(fees_rest):
             temp_end_date = end_date if idx == len(fees_rest) - 1 else fees_rest[idx + 1].date_from - datetime.timedelta( days=1)
             fee = {
-                'amount_per_year': annual_rental_fee.amount,
+                'amount_south_west_per_year': annual_rental_fee.amount_south_west,
+                'amount_remote_per_year': annual_rental_fee.amount_remote,
                 'date_start': annual_rental_fee.date_from,
                 'date_end': temp_end_date,
                 'num_of_days': temp_end_date - (annual_rental_fee.date_from - datetime.timedelta(days=1))
