@@ -108,13 +108,11 @@ export default {
                 This creates a table of versions for the current Proposal. Each entry has the Proposal ID along with the revision \
                 number and date of submission. An action is provided for each entry to allow comparison between versions.
             */
-            index += 1
             let index = 0
             for (let prop in this.proposal.reversion_history) {
                 let action_label = '<a style="cursor:pointer;">Compare</a>'
                 let view_action_label = '<a style="cursor:pointer;">View</a>'
-                if (index === 0) { index += 1; continue; } // The first entry is the latest version
-                if (index === 1) { 
+                if (index === 0) { 
                     view_action_label = '<div style="pointer-events: none;">Viewing</div>'
                     action_label = '<div style="visibility: hidden; pointer-events: none;">View</div>'
                 }
@@ -139,12 +137,11 @@ export default {
                 Handle the user clicks. Change the labels of entries and add all selected 
                 differences to the DOM.
             */
-            let clicked_revision = this.lodgement_revisions_actions[revision-1]
+            let clicked_revision = this.lodgement_revisions_actions[revision]
+
             for (let index = 0; index < this.lodgement_revisions_actions.length; index++) {
-                if (revision > 0) {
-                    this.lodgement_revisions_actions[index].action = '<a style="cursor:pointer;">Compare</a>'
-                    clicked_revision.action = '<div>Comparing</div>'        // should be non-clickable now
-                }
+                this.lodgement_revisions_actions[index].action = '<a style="cursor:pointer;">Compare</a>'
+                clicked_revision.action = '<div>Comparing</div>'        // should be non-clickable now
                 this.lodgement_revisions_actions[0].action = '<div style="visibility: hidden;">Viewing</div>'
                 this.lodgement_revisions_view_actions[0].view_action = '<div style="">Viewing</div>'
                 this.lodgement_revisions_view_actions[index].view_action = '<a style="cursor:pointer;">View</a>'
@@ -152,7 +149,7 @@ export default {
 
             // Now post to the API to get the differences between latest version and this one.
             const revisions_length = Object.keys(this.proposal.reversion_history).length
-            let revision_index = this.lodgement_revisions_actions.length - revision + 2
+            let revision_index = this.lodgement_revisions_actions.length - revision
             const diffs = await Vue.http.post(this.getRevisionDiffsUrl, {"version_number": revision_index})
 
             // Remove any previous revisions
@@ -192,19 +189,17 @@ export default {
         },
         getViewProposal: async function (revision) {
             /* 
-                Handle the user clicks. Change the labels of entries and add all selected
-                differences to the DOM.
+                Handle the user clicks. Change the labels of entries and ask the page to be redrawn with 
+                the selected revision.
             */
             
-            let clicked_revision = this.lodgement_revisions_view_actions[revision-1]
+            let clicked_revision = this.lodgement_revisions_view_actions[revision]
             // Set initial values for the View table.
             for (let index = 0; index < this.lodgement_revisions_view_actions.length; index++) {
-                if (revision > 0) {
-                    this.lodgement_revisions_view_actions[index].view_action = '<a style="visibility: visible; cursor:pointer;">View</a>'
-                    clicked_revision.view_action = '<div style="">Viewing</div>'
-                    this.lodgement_revisions_actions[0].action = '<div style="visibility: hidden;">Viewing</div>'
-                    this.lodgement_revisions_actions[index].action = '<a style="cursor:pointer;">Compare</a>'
-                }
+                this.lodgement_revisions_view_actions[index].view_action = '<a style="visibility: visible; cursor:pointer;">View</a>'
+                clicked_revision.view_action = '<div style="">Viewing</div>'
+                this.lodgement_revisions_actions[0].action = '<div style="visibility: hidden;">Viewing</div>'
+                this.lodgement_revisions_actions[index].action = '<a style="cursor:pointer;">Compare</a>'
             }
             // Update the Proposal Page title to show the revision.
             if (clicked_revision.view_id.split('-')[1] == this.lodgement_revisions_view_actions.length) {                
@@ -214,7 +209,8 @@ export default {
                 $( "#proposal_title" ).text("Proposal: " + clicked_revision.view_id.replace('v_', ''))
             }
 
-            this.$emit("reversion_proposal", revision)
+            await this.$emit("reversion_proposal", revision)
+            console.log("getViewProposal")
         },
         initialiseRevisionHistory: function(vm_uid, ref, datatable_options, table, data){
             let vm = this;

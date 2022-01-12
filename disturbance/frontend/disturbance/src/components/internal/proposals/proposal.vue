@@ -322,7 +322,13 @@
                                     <ProposalApiary v-if="proposal" :proposal="proposal" id="proposalStart" :showSections="sectionShow" ref="proposal_apiary" :is_external="false" :is_internal="true" :hasAssessorMode="hasAssessorMode"></ProposalApiary>
                                 </div>
                                 <div v-else>
-                                    <ProposalDisturbance form_width="inherit" :withSectionsSelector="false" v-if="proposal" :proposal="proposal"> </ProposalDisturbance>
+                                    <ProposalDisturbance 
+                                    ref="proposal_disturbance" 
+                                    form_width="inherit" 
+                                    :withSectionsSelector="false" 
+                                    v-if="proposal" 
+                                    :proposal="proposal"
+                                    />
                                     <NewApply v-if="proposal" :proposal="proposal"></NewApply>
                                 </div>
 
@@ -479,7 +485,7 @@ export default {
             let url = ''
             url = helpers.add_endpoint_join('/api/proposal/',
                                             this.proposal.id +
-                                            '/get_revision/')
+                                            '/get_revision_flat/')
             return url;
         },
         contactsURL: function(){
@@ -534,49 +540,21 @@ export default {
     },
     methods: {
         updateProposalRevision: async function(proposal_revision) {
+            /*
+              This method is called when a Submission Revision Compare button is clicked (response a signal).
+              It updates the background model (Proposal) and updates the Vue values so the DOM is updated.
+             */
+
             // Remove any previous revisions
             $(".revision_note").remove()
-            let prop_data = await Vue.http.post(this.getRevisionUrl, {"version_number": proposal_revision})
-            for (const [k, v] of Object.entries(prop_data)) {
-                if (v === '') {console.log('pass'); continue}
-                if (k === 'bodyText') {
-                    const obj = JSON.parse(v);
-                    for (const key in obj) {
 
-
-
-
-                        const replacement = $("#id_" + key ).parent().find('input')
-
-                        if (replacement.attr('type') == "text") {
-                            replacement.val(obj[key])
-                        }
-                        else if (replacement.attr('type') == "radio") {
-                            $("#id_" + k ).parent().css("background-color", "red");
-                        }
-                        else {
-                            $("#id_" + k ).parent().css("background-color", "pink");
-                        }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                        // $('#id_'+key).parent().find('input').css("background-color", "yellow");
-                    }
-                    
-                }
-            }
+            let url = `/api/proposal/${this.proposalId}/internal_revision_proposal.json?revision_number=${proposal_revision}`
+            // Get the required Proposal data
+            const res = await Vue.http.get(url);
+            // Set the model data to the correct data
+            this.proposal.data = res.body;
+            // Update the DOM values to the correct data.
+            this.$refs.proposal_disturbance.values = Object.assign({}, res.body[0]);
         },
         locationUpdated: function(){
             console.log('in locationUpdated()');

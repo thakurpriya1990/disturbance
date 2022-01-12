@@ -31,6 +31,7 @@ module.exports = {
     // used in internal and external dashboards
     proposals_paginated_external:   "/api/proposal_paginated/proposals_external/?format=datatables",
     approvals_paginated_external:   "/api/approval_paginated/approvals_external/?format=datatables",
+    // internal_revision_proposal:     "/api/proposal/internal_revision_proposal.json/?revision_number",
     compliances_paginated_external: "/api/compliance_paginated/compliances_external/?format=datatables",
     proposals_paginated_internal:   "/api/proposal_paginated/proposals_internal/?format=datatables",
     referrals_paginated_internal:   "/api/proposal_paginated/referrals_internal/?format=datatables",
@@ -59,4 +60,8 @@ module.exports = {
     proposal_apiary:"/api/proposal_apiary.json",
     apiary_referrals:"/api/apiary_referrals.json",
     apiary_site_transfer_fees:"/api/apiary_site_fees/get_site_transfer_fees.json",
+
+    // get_proposal_revision: function(proposal_id, revision_number) {
+    //   return `/api/proposal/${proposal_id}/${revision_number}/internal_revision_proposal.json`
+    // },
 }

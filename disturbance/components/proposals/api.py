@@ -1293,7 +1293,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             version_number = request.data.get("version_number")
-            revision = instance.get_revision(version_number)
+            revision = instance.get_revision_flat(version_number)
             
             return Response(revision)
         except serializers.ValidationError:
@@ -1656,6 +1656,15 @@ class ProposalViewSet(viewsets.ModelViewSet):
         serializer_class = self.internal_serializer_class()
         serializer = serializer_class(instance,context={'request':request})
         return Response(serializer.data)
+
+    @detail_route(methods=['GET',])
+    def internal_revision_proposal(self, request, *args, **kwargs):
+
+        instance = self.get_object()
+        version_number = int(request.query_params.get("revision_number"))
+        revision = instance.get_revision(version_number)
+
+        return Response(revision)
 
     @detail_route(methods=['GET',])
     def internal_proposal_wrapper(self, request, *args, **kwargs):

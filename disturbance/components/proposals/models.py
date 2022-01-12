@@ -679,7 +679,25 @@ class Proposal(RevisionedMixin):
         """
         Gets a full Proposal version to show when the View button is clicked.
         """
+
         all_revisions_list = list(self.get_reversion_history().values())
+        print(all_revisions_list[version_number].field_dict["data"][0].keys())
+        version1 = all_revisions_list[version_number].field_dict["data"]
+        version = all_revisions_list[version_number].field_dict["data"][0]
+        dic = self.flatten_json(version)
+
+        out = {}
+        for k, v in dic.items():
+            out[k.split('_0_')[1]] = v
+        return version1
+
+    def get_revision_flat(self, version_number):
+        """
+        Gets a full Proposal version to show when the View button is clicked.
+        """
+
+        all_revisions_list = list(self.get_reversion_history().values())
+        version1 = all_revisions_list[version_number].field_dict
         version = all_revisions_list[version_number].field_dict["data"][0]
         dic = self.flatten_json(version)
 
