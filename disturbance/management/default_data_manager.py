@@ -198,7 +198,7 @@ class DefaultDataManager(object):
         arfs = ApiaryAnnualRentalFee.objects.filter(date_from__lte=today_local)
         if arfs.count() <= 0:
             try:
-                obj, created = ApiaryAnnualRentalFee.objects.get_or_create(amount=25.00, date_from=(today_local - datetime.timedelta(days=1000)))
+                obj, created = ApiaryAnnualRentalFee.objects.get_or_create(amount_south_west=25.00, amount_remote=20, date_from=(today_local - datetime.timedelta(days=1000)))
                 if created:
                     logger.info("Created an apiary_annual_rental_fee: %s" % obj)
             except Exception as e:

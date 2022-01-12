@@ -180,12 +180,12 @@ if env('CONSOLE_EMAIL_BACKEND', False):
 
 SITE_STATUS_DRAFT = 'draft'
 SITE_STATUS_PENDING = 'pending'
-SITE_STATUS_APPROVED = 'approved'
+SITE_STATUS_APPROVED = 'approved'  # This status 'approved' is assigned to the ApiarySiteOnProposal object once it's approved.  'current' is assigned to the ApiarySiteOnApproval object after that.
 SITE_STATUS_DENIED = 'denied'
 SITE_STATUS_CURRENT = 'current'
 SITE_STATUS_NOT_TO_BE_REISSUED = 'not_to_be_reissued'
 SITE_STATUS_SUSPENDED = 'suspended'
-SITE_STATUS_TRANSFERRED = 'transferred'
+SITE_STATUS_TRANSFERRED = 'transferred'  # This status 'transferred' is assigned to the old relationship (ApiarySiteOnApproval object)
 SITE_STATUS_VACANT = 'vacant'
 SITE_STATUS_DISCARDED = 'discarded'
 BASE_EMAIL_TEXT = ''

@@ -287,7 +287,7 @@
                         },
                         {
                             // Licenced Site Checkbox - show column, default unchecked
-                            visible: vm.show_col_licensed_site, 
+                            visible: vm.show_col_licensed_site,
                             className: 'dt-body-center',
                             mRender: function (data, type, apiary_site) {
                                 let disabled_str = ''
