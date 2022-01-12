@@ -14,11 +14,11 @@ export const SiteColours = {
         'stroke': '#000000',
     },
     'current': {
-        'fill': '#00ff00', 
+        'fill': '#00ff00',
         'stroke': '#000000',
     },
     'approved': {
-        'fill': '#0070ff', 
+        'fill': '#0070ff',
         'stroke': '#000000',
     },
     'suspended': {
@@ -353,7 +353,8 @@ export function getDisplayNameFromStatus(status_name){
             break
         default:
             if (status_name.toLowerCase().includes('vacant') && status_name.toLowerCase().includes('pending')){
-                return 'Pending (vacant)'
+                //return 'Pending (vacant)'
+                return 'Pending'
             }
             return status_name
             break
