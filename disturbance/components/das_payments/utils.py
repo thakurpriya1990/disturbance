@@ -600,6 +600,8 @@ def generate_line_items_for_annual_rental_fee(approval, today_now, period, apiar
                     apiary_sites_by_category[SiteCategory.CATEGORY_REMOTE].append(a_site)
 
             for category, apiary_sites in apiary_sites_by_category.items():
+                if not len(apiary_sites):
+                    continue
                 amount_per_site = amount_south_west_per_site if category == SiteCategory.CATEGORY_SOUTH_WEST else amount_remote_per_site
                 category_display = 'South West' if category == SiteCategory.CATEGORY_SOUTH_WEST else 'Remote'
 
