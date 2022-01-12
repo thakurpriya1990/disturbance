@@ -25,6 +25,7 @@ class ApiarySiteOnApprovalMinimalGeometrySerializer(GeoFeatureModelSerializer):
             'site_category',
             'status',
             'site_guid',
+            'available',
             # 'licensed_site',
             # 'batch_no',
             # 'approval_cpc_date',
