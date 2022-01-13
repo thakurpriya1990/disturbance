@@ -151,6 +151,7 @@ export default {
             for (let entry in diffs.data) {
                 for (let k in diffs.data[entry]) {
                     const revision_text = diffs.data[entry][k]
+
                     if (revision_text == '') {continue;}
                     const replacement = $("#id_" + k ).parent().find('input')
 
@@ -199,6 +200,7 @@ export default {
             }
 
             await this.$emit("reversion_proposal", revision)
+
         },
         initialiseRevisionHistoryPopover: function(vm_uid, ref, datatable_options, actions, view_actions){
             let vm = this;
