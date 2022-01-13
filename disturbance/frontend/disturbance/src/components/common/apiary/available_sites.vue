@@ -420,8 +420,8 @@
                         'Id',
                         'Site',
                         'Status',
-                        'Vacant<br>(current status)',  // current status of the 'is_vacant'
-                        'Previous Site Holder<br>Applicant',
+                        //'Vacant<br>(current status)',  // current status of the 'is_vacant'
+                        //'Previous Site Holder<br>Applicant',
                         'Action',
                     ]
                 } else if (this.is_external){
@@ -429,7 +429,7 @@
                         'Id',
                         'Site',
                         'Status',
-                        'Vacant<br>(current status)',  // current status of the 'is_vacant'
+                        //'Vacant<br>(current status)',  // current status of the 'is_vacant'
                         //'Previous Site Holder<br>Applicant',
                         'Action',
                     ]
@@ -522,29 +522,29 @@
                         let view_on_map_html = '<a href="#' + apiary_site.id + '" data-view-on-map="' + apiary_site.id + '">View on map</a>';
                         action_list.push(view_on_map_html);
 
-                        if (vm.show_action_available_unavailable){
-                            // Mark as Available/Unavailable
-                            let display_text = ''
-                            if (['current',].includes(apiary_site.properties.status.toLowerCase())){
-                                //if (vm.is_external){
-                                //    if (apiary_site.properties.available){
-                                //        display_text = 'Mark as unavailable';
-                                //    } else {
-                                //        display_text = 'Mark as available';
-                                //    }
-                                //    let ret = '<a data-toggle-availability="' + apiary_site.id + '" data-apiary-site-available="' + apiary_site.properties.available + '">' + display_text + '</a>';
-                                //    action_list.push(ret);
-                                //} 
-                                if (vm.is_internal){
-                                    if (apiary_site.properties.available){
-                                        display_text = 'Available';
-                                    } else {
-                                        display_text = 'Unavailable';
-                                    }
-                                    action_list.push(display_text);
-                                }
-                            }
-                        }
+                        //if (vm.show_action_available_unavailable){
+                        //    // Mark as Available/Unavailable
+                        //    let display_text = ''
+                        //    if (['current',].includes(apiary_site.properties.status.toLowerCase())){
+                        //        //if (vm.is_external){
+                        //        //    if (apiary_site.properties.available){
+                        //        //        display_text = 'Mark as unavailable';
+                        //        //    } else {
+                        //        //        display_text = 'Mark as available';
+                        //        //    }
+                        //        //    let ret = '<a data-toggle-availability="' + apiary_site.id + '" data-apiary-site-available="' + apiary_site.properties.available + '">' + display_text + '</a>';
+                        //        //    action_list.push(ret);
+                        //        //} 
+                        //        if (vm.is_internal){
+                        //            if (apiary_site.properties.available){
+                        //                display_text = 'Available';
+                        //            } else {
+                        //                display_text = 'Unavailable';
+                        //            }
+                        //            action_list.push(display_text);
+                        //        }
+                        //    }
+                        //}
                         if (vm.is_internal && vm.show_action_make_vacant){
                             if (['denied', 'not_to_be_reissued',].includes(apiary_site.properties.status.toLowerCase())){
                                 let display_text = 'Make Vacant'
@@ -572,8 +572,8 @@
                         vm.column_id,
                         vm.column_site,
                         vm.column_status,
-                        vm.column_vacant,
-                        vm.column_previous_site_holder,
+                        //vm.column_vacant,
+                        //vm.column_previous_site_holder,
                         vm.column_action,
                     ]
                 } else if(vm.is_external){
@@ -581,7 +581,7 @@
                         vm.column_id,
                         vm.column_site,
                         vm.column_status,
-                        vm.column_vacant,
+                        //vm.column_vacant,
                         vm.column_action,
                     ]
                 }
