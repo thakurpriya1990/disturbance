@@ -335,17 +335,20 @@
 
                 for (let site_status of vm.show_hide_instructions){
                     if (site_status.show){
+                        let rows_jquery = []
                         for (let feature_and_row of site_status.features_and_rows){
                             try {
                                 // Remove the apiary_site from the map
                                 vm.apiarySitesQuerySource.removeFeature(feature_and_row.feature)
 
                                 // Remove the apiary site from the table by using the cache
-                                vm.removeApiarySiteFromTable(feature_and_row.row_jquery)
+                                //vm.removeApiarySiteFromTable(feature_and_row.row_jquery)
+                                rows_jquery.push(feature_and_row.row_jquery)
                             } catch(err){
                                 console.log(err)
                             }
                         }
+                        vm.removeApiarySitesFromTable(rows_jquery)
                     }
                     site_status.features_and_rows = []
                     site_status.loaded = false
@@ -608,6 +611,12 @@
                         }
                     },
                     columns: vm.columns,
+
+                    paging: false,
+                    deferRender: true,
+                    scrollY: 400,
+                    scrollCollapse: true,
+                    scroller: true,
                 }
             },
         },
@@ -765,14 +774,24 @@
                 this.apiarySitesQuerySource.addFeature(feature)
                 return feature
             },
-            addApiarySiteAsGeojsonToTable: function(apiary_site_geojson, feature_and_row=null){
-                // Attach the feature_and_row obj in order to cache the table row obj in the 'createdRow' in the feature_and_row obj
-                apiary_site_geojson.feature_and_row = feature_and_row
-                this.$refs.table_apiary_site.vmDataTable.row.add(apiary_site_geojson).draw()
+            addApiarySitesAsGeojsonToTable: function(apiary_sites_geojson){
+                console.log('in addApiarySitesAsGeojsonToTable')
+                console.log('length: ' + apiary_sites_geojson.length)
+                this.$refs.table_apiary_site.vmDataTable.rows.add(apiary_sites_geojson).draw()
             },
-            removeApiarySiteFromTable: function(row_jquery){
-                this.$refs.table_apiary_site.vmDataTable.row(row_jquery).remove().draw()
+            //addApiarySiteAsGeojsonToTable: function(apiary_site_geojson, feature_and_row=null){
+            //    // Attach the feature_and_row obj in order to cache the table row obj in the 'createdRow' in the feature_and_row obj
+            //    apiary_site_geojson.feature_and_row = feature_and_row
+            //    this.$refs.table_apiary_site.vmDataTable.row.add(apiary_site_geojson).draw()
+            //},
+            removeApiarySitesFromTable: function(rows_jquery){
+                console.log('removeApiarySitesFromTable')
+                console.log('length: ' + rows_jquery.length)
+                this.$refs.table_apiary_site.vmDataTable.rows(rows_jquery).remove().draw()
             },
+            //removeApiarySiteFromTable: function(row_jquery){
+            //    this.$refs.table_apiary_site.vmDataTable.row(row_jquery).remove().draw()
+            //},
             addEventListeners: function () {
                 $("#" + this.table_id).on("click", "a[data-view-on-map]", this.zoomOnApiarySite)
                 $("#" + this.table_id).on("click", "a[data-toggle-availability]", this.toggleAvailability)
@@ -1499,15 +1518,20 @@
                                 // Show the apiary sites only when both 'current' and 'available'/'unavailable' are true
                                 if (option.loaded){
                                     // Data have been already loaded
+                                    let apiary_sites_geojson = []
                                     for (let feature_and_row of option.features_and_rows){
                                         // Add the features to the map from the data storage
                                         vm.apiarySitesQuerySource.addFeature(feature_and_row.feature)
 
                                         // Add the apiary_site to the table from the cache
-                                        vm.addApiarySiteAsGeojsonToTable(feature_and_row.row_geojson, feature_and_row)
+                                        //vm.addApiarySiteAsGeojsonToTable(feature_and_row.row_geojson, feature_and_row)
+                                        feature_and_row.row_geojson.feature_and_row = feature_and_row
+                                        apiary_sites_geojson.push(feature_and_row.row_geojson)
                                     }
+                                    vm.addApiarySitesAsGeojsonToTable(apiary_sites_geojson)
                                 } else {
                                     Vue.http.get('/api/apiary_site/' + option.api + '/?search_text=' + vm.search_text).then(re => {
+                                        let apiary_sites_geojson = []
                                         for (let apiary_site_geojson of re.body.features){
                                             // Add the apiary_site to the map
                                             let feature = vm.addApiarySiteToMap(apiary_site_geojson)
@@ -1518,17 +1542,21 @@
                                                 'row_geojson': apiary_site_geojson,
                                             }
 
-                                            vm.addApiarySiteAsGeojsonToTable(apiary_site_geojson, feature_and_row)
+                                            //vm.addApiarySiteAsGeojsonToTable(apiary_site_geojson, feature_and_row)
+                                            apiary_site_geojson.feature_and_row = feature_and_row
+                                            apiary_sites_geojson.push(apiary_site_geojson)
 
                                             // Cache it
                                             option.features_and_rows.push(feature_and_row)
                                         }
                                         option.loaded = true
+                                        vm.addApiarySitesAsGeojsonToTable(apiary_sites_geojson)
                                     })
                                 }
                             } else {
                                 // Hide all the apiary_site
                                 console.log('Hide2: ' + option.id)
+                                let rows_jquery = []
                                 for (let feature_and_row of option.features_and_rows){
                                     // Remove the apiary_site from the map.  There are no functions to show/hide a feature unlike the layer.
                                     if (feature_and_row && vm.apiarySitesQuerySource.hasFeature(feature_and_row.feature)){
@@ -1537,12 +1565,14 @@
                                             vm.apiarySitesQuerySource.removeFeature(feature_and_row.feature)
 
                                             // Remove the apiary site from the table by using the cache
-                                            vm.removeApiarySiteFromTable(feature_and_row.row_jquery)
+                                            //vm.removeApiarySiteFromTable(feature_and_row.row_jquery)
+                                            rows_jquery.push(feature_and_row.row_jquery)
                                         } catch (err){
                                             console.log(err)
                                         }
                                     }
                                 }
+                                vm.removeApiarySitesFromTable(rows_jquery)
                             }
                             option.map_updated = true
                         }
@@ -1559,13 +1589,17 @@
                             console.log('Show2: ' + site_status.id)
                             if (site_status.loaded){
                                 // Data have been already loaded
+                                let apiary_sites_geojson = []
                                 for (let feature_and_row of site_status.features_and_rows){
                                     // Add the apiary_site to the map from the cache
                                     vm.apiarySitesQuerySource.addFeature(feature_and_row.feature)
 
                                     // Add the apiary_site to the table from the cache
-                                    vm.addApiarySiteAsGeojsonToTable(feature_and_row.row_geojson, feature_and_row)
+                                    //vm.addApiarySiteAsGeojsonToTable(feature_and_row.row_geojson, feature_and_row)
+                                    feature_and_row.row_geojson.feature_and_row = feature_and_row
+                                    apiary_sites_geojson.push(feature_and_row.row_geojson)
                                 }
+                                vm.addApiarySitesAsGeojsonToTable(apiary_sites_geojson)
                             } else {
                                 // Data have not been loaded yet
                                 // Fetch data from the server
@@ -1573,6 +1607,7 @@
                                 // Add the features to the table
                                 // Store data in the data storage
                                 Vue.http.get('/api/apiary_site/' + site_status.api + '/?search_text=' + vm.search_text).then(re => {
+                                    let apiary_sites_geojson = []
                                     for (let apiary_site_geojson of re.body.features){
                                         //apiary_site_geojson.rows = site_status.rows
                                         // Add the apiary_site to the map
@@ -1585,17 +1620,21 @@
                                         }
 
                                         // Add the row to the table
-                                        vm.addApiarySiteAsGeojsonToTable(apiary_site_geojson, feature_and_row)
+                                        //vm.addApiarySiteAsGeojsonToTable(apiary_site_geojson, feature_and_row)
+                                        apiary_site_geojson.feature_and_row = feature_and_row
+                                        apiary_sites_geojson.push(apiary_site_geojson)
 
                                         // Add this feature_and_row obj to the main storage
                                         site_status.features_and_rows.push(feature_and_row)
                                     }
+                                    vm.addApiarySitesAsGeojsonToTable(apiary_sites_geojson)
                                     site_status.loaded = true
                                 })
                             }
                         } else {
                             // Hide all the apiary_sites in this site_status
                             console.log('Hide2: ' + site_status.id)
+                            let rows_jquery = []
                             for (let feature_and_row of site_status.features_and_rows){
                                 // Remove the apiary_site from the map.  There are no functions to show/hide a feature unlike the layer.
                                 if (feature_and_row && vm.apiarySitesQuerySource.hasFeature(feature_and_row.feature)){
@@ -1604,12 +1643,14 @@
                                         vm.apiarySitesQuerySource.removeFeature(feature_and_row.feature)
 
                                         // Remove the apiary site from the table by using the cache
-                                        vm.removeApiarySiteFromTable(feature_and_row.row_jquery)
+                                        //vm.removeApiarySiteFromTable(feature_and_row.row_jquery)
+                                        rows_jquery.push(feature_and_row.row_jquery)
                                     } catch (err){
                                         console.log(err)
                                     }
                                 }
                             }
+                            vm.removeApiarySitesFromTable(rows_jquery)
                         }
                         site_status.map_updated = true
                     }
