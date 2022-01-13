@@ -15,6 +15,7 @@ require( '../node_modules/font-awesome/css/font-awesome.min.css' )
 Vue.config.devtools = true;
 Vue.config.productionTip = false
 Vue.use( resource );
+Vue.prototype.$log = console.log
 
 // Add CSRF Token to every request
 Vue.http.interceptors.push( function ( request, next ) {

@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+import collections
 
 import json
 import datetime
@@ -271,7 +272,6 @@ class ProposalDocument(Document):
 
 def fee_invoice_references_default():
     return []
-
 
 class Proposal(RevisionedMixin):
     CUSTOMER_STATUS_TEMP = 'temp'
@@ -596,8 +596,6 @@ class Proposal(RevisionedMixin):
         """
         return self.customer_status in self.CUSTOMER_VIEWABLE_STATE
 
-
-
     @property
     def is_discardable(self):
         """
@@ -676,6 +674,103 @@ class Proposal(RevisionedMixin):
                 ):
             apiary = True
         return apiary
+
+    def get_revision(self, version_number):
+        """
+        Gets a full Proposal version to show when the View button is clicked.
+        """
+
+        all_revisions_list = list(self.get_reversion_history().values())
+        print(all_revisions_list[version_number].field_dict["data"][0].keys())
+        version1 = all_revisions_list[version_number].field_dict["data"]
+        version = all_revisions_list[version_number].field_dict["data"][0]
+        dic = self.flatten_json(version)
+
+        out = {}
+        for k, v in dic.items():
+            out[k.split('_0_')[1]] = v
+        return version1
+
+    def get_revision_flat(self, version_number):
+        """
+        Gets all the differences in Proposal version to show when the Compare link is clicked.
+        """
+
+        all_revisions_list = list(self.get_reversion_history().values())
+        version = all_revisions_list[version_number].field_dict["data"][0]
+        dic = self.flatten_json(version)
+
+        out = {}
+        for k, v in dic.items():
+            out[k.split('_0_')[1]] = v
+        return out
+
+    def flatten_json(self, dictionary):
+        """ 
+        Flatten a nested json string.
+        """
+        from itertools import chain, starmap
+
+        def unpack(parent_key, parent_value):
+            # Unpack one level of nesting in json file.
+            # Unpack one level only!!!
+            
+            if isinstance(parent_value, dict):
+                for key, value in parent_value.items():
+                    temp1 = parent_key + '_' + key
+                    yield temp1, value
+            elif isinstance(parent_value, list):
+                i = 0 
+                for value in parent_value:
+                    temp2 = parent_key + '_'+str(i) 
+                    i += 1
+                    yield temp2, value
+            else:
+                yield parent_key, parent_value    
+
+                
+        # Keep iterating until the termination condition is satisfied
+        while True:
+            # Keep unpacking the json file until all values are atomic elements (not dictionary or list)
+            dictionary = dict(chain.from_iterable(starmap(unpack, dictionary.items())))
+            # Terminate condition: not any value in the json file is dictionary or list
+            if not any(isinstance(value, dict) for value in dictionary.values()) and \
+            not any(isinstance(value, list) for value in dictionary.values()):
+                break
+
+        return dictionary
+
+    def get_revision_diff(self, compare_version):
+        """
+        Gets all the revision differences between the most recent revision and the revision specified.
+        """
+        from deepdiff import DeepDiff
+
+        all_revisions_list = list(self.get_reversion_history().values())
+        all_revisions_length = len(all_revisions_list)
+
+        most_recent_data = all_revisions_list[0].field_dict["data"]
+        compare_data = all_revisions_list[all_revisions_length-compare_version].field_dict["data"]
+        diffs = DeepDiff(most_recent_data, compare_data, ignore_order=True)
+
+        diffs_list = []
+        for v in diffs.items():
+            if "values_changed" in v:
+                for k, v in v[1].items():
+                    diffs_list.append({k.split('\'')[-2]:v['new_value'],})
+        return diffs_list
+
+    def get_reversion_history(self):
+        """
+        Get all the revisions submitted for this Proposal.
+        """
+        from reversion.models import Version
+        # Get all revisions that have been submitted (not just saved by user) including the original.
+        all_revisions = [v for v in Version.objects.get_for_object(self)[0:] if not v.field_dict['customer_status'] == 'draft']
+        # Strip out duplicates (only take the most recent of a revision).
+        unique_revisions = collections.OrderedDict({v.field_dict['lodgement_date']:v for v in all_revisions})
+
+        return unique_revisions
 
     def __assessor_group(self):
         # Alternative logic for Apiary applications
