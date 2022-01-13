@@ -430,8 +430,6 @@ class InternalProposalSerializer(BaseProposalSerializer):
 
         # Work backwards through the revisions so the most recent are at the top.
         for index, revision in enumerate(unique_revisions.values()):
-            # Don't bother with 0 as it is the original version.
-            # if(index <= 1): continue
             # Add the index to the end of the lodgement number to show the revision.        
             this_revision_key = '{}-{}'.format(revision.field_dict['lodgement_number'], number_of_revisions-index)
             reversion_dict[this_revision_key] = {'date': revision.field_dict['lodgement_date']}

@@ -693,11 +693,10 @@ class Proposal(RevisionedMixin):
 
     def get_revision_flat(self, version_number):
         """
-        Gets a full Proposal version to show when the View button is clicked.
+        Gets all the differences in Proposal version to show when the Compare link is clicked.
         """
 
         all_revisions_list = list(self.get_reversion_history().values())
-        version1 = all_revisions_list[version_number].field_dict
         version = all_revisions_list[version_number].field_dict["data"][0]
         dic = self.flatten_json(version)
 
@@ -707,11 +706,13 @@ class Proposal(RevisionedMixin):
         return out
 
     def flatten_json(self, dictionary):
-        """Flatten a nested json file"""
+        """ 
+        Flatten a nested json string.
+        """
         from itertools import chain, starmap
 
         def unpack(parent_key, parent_value):
-            """Unpack one level of nesting in json file"""
+            # Unpack one level of nesting in json file.
             # Unpack one level only!!!
             
             if isinstance(parent_value, dict):

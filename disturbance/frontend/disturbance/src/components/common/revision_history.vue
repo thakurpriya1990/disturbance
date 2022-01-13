@@ -1,42 +1,37 @@
 <template id="revision_history">
     <div class="row">
-        <div class="panel panel-default">
-            <div class="panel-heading">
-                Revision History
-            </div>
-            <div class="panel-body panel-collapse">
-                <div style="white-space: nowrap;">
-                    <div style="float: left; width: 80%;">
-                        <table class="table small-table">
-                            <tr>
-                                <th>Lodgement</th>
-                                <th style="padding-left: 10px;">Date</th>
-                                <th style="padding-left: 10px;">Action</th>
-                            </tr>
-                            <tr v-for="prop in this.lodgement_revisions_actions" :key="prop.id">
-                                <td>{{ prop.id }}</td>
-                                <td style="padding-left: 10px;">{{ prop.date | formatDateNoTime }}</td>
-                                <td style="padding-left: 10px;" v-on:click="getCompareProposal(prop['index'])">
-                                    <span v-bind:id=prop.id v-html=prop.action></span>
-                                </td>
-                            </tr>
-                        </table>
-                    </div>
-                    <div style="float: right; width: 20%;">
-                        <table class="table small-table">
-                            <tr>
-                                <th style="visibility: hidden;">Version</th>
-                            </tr>
-                            <tr v-for="prop in this.lodgement_revisions_view_actions" :key="prop.id">
-                                <td  style="padding-left: 15px;" v-on:click="getViewProposal(prop['index'])">
-                                    <span v-bind:id=prop.view_id v-html=prop.view_action></span>
-                                </td>
-                            </tr>
-                        </table>
-                    </div>
+        <div class="panel-body panel-collapse">
+            <div style="white-space: nowrap;">
+                <div style="float: left; width: 80%;">
+                    <table class="table small-table">
+                        <tr>
+                            <th>Lodgement</th>
+                            <th style="padding-left: 10px;">Date</th>
+                            <th style="padding-left: 10px;">Action</th>
+                        </tr>
+                        <tr v-for="prop in this.lodgement_revisions_actions" :key="prop.id">
+                            <td>{{ prop.id }}</td>
+                            <td style="padding-left: 10px;">{{ prop.date | formatDateNoTime }}</td>
+                            <td style="padding-left: 10px;" v-on:click="getCompareProposal(prop['index'])">
+                                <span v-bind:id=prop.id v-html=prop.action></span>
+                            </td>
+                        </tr>
+                    </table>
                 </div>
-                <a tabindex="2" ref="showActionBtn" class="actionBtn">Show All</a>
+                <div style="float: right; width: 20%;">
+                    <table class="table small-table">
+                        <tr>
+                            <th style="visibility: hidden;">Version</th>
+                        </tr>
+                        <tr v-for="prop in this.lodgement_revisions_view_actions" :key="prop.id">
+                            <td  style="padding-left: 15px;" v-on:click="getViewProposal(prop['index'])">
+                                <span v-bind:id=prop.view_id v-html=prop.view_action></span>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
             </div>
+            <a tabindex="2" ref="showActionBtn" class="actionBtn">Show All</a>
         </div>
     </div>
 </template>
@@ -44,7 +39,7 @@
 import {
     api_endpoints,
     helpers
-}from '@/utils/hooks'
+} from '@/utils/hooks'
 import Vue from 'vue'
 export default {
     name: 'RevisionHistorySection',
@@ -69,7 +64,6 @@ export default {
                 responsive: true,
                 deferRender: true, 
                 autowidth: true,
-                order: [[3, 'desc']], // order the non-formatted date as a hidden column
                 dom:
                     "<'row'<'col-sm-5'l><'col-sm-6'f>>" +
                     "<'row'<'col-sm-12'tr>>" +
@@ -81,6 +75,7 @@ export default {
                     { data: 'id' },
                     { data: 'date' },
                     { data: 'action' },
+                    { data: 'view_action' },
                 ],
                 order: [],
             },
@@ -104,16 +99,15 @@ export default {
             return url;
         },
         createLodgementRevisionTable: function() {
-            /*
-                This creates a table of versions for the current Proposal. Each entry has the Proposal ID along with the revision \
-                number and date of submission. An action is provided for each entry to allow comparison between versions.
-            */
+            /* This creates a table of versions for the current Proposal. Each entry has the Proposal ID along with the revision
+                number and date of submission. An action is provided for each entry to allow comparison between versions. 
+                &#x1f441; is eyeball. Viewing doesn't fit very well. */
             let index = 0
             for (let prop in this.proposal.reversion_history) {
                 let action_label = '<a style="cursor:pointer;">Compare</a>'
                 let view_action_label = '<a style="cursor:pointer;">View</a>'
                 if (index === 0) { 
-                    view_action_label = '<div style="pointer-events: none;">Viewing</div>'
+                    view_action_label = '<div style="pointer-events: none;">&#x1f441;</div>'
                     action_label = '<div style="visibility: hidden; pointer-events: none;">View</div>'
                 }
                 this.lodgement_revisions_actions.push({"index": index,
@@ -127,23 +121,21 @@ export default {
             }
         },
     },
-    viewRevision: function(revision_number) {
-            this.proposal = this.proposal.reversion_history[revision_number]
-            // this.forceUpdate();
-    },
     methods:{
         getCompareProposal: async function (revision) {
-            /* 
-                Handle the user clicks. Change the labels of entries and add all selected 
-                differences to the DOM.
-            */
+            /* This handles the user clicks. Change the labels of entries and add all selected 
+               revision differences to the DOM. */
+
+                // Always Compare against the most recent version. 
+               this.getViewProposal(0)
+
             let clicked_revision = this.lodgement_revisions_actions[revision]
 
             for (let index = 0; index < this.lodgement_revisions_actions.length; index++) {
                 this.lodgement_revisions_actions[index].action = '<a style="cursor:pointer;">Compare</a>'
                 clicked_revision.action = '<div>Comparing</div>'        // should be non-clickable now
-                this.lodgement_revisions_actions[0].action = '<div style="visibility: hidden;">Viewing</div>'
-                this.lodgement_revisions_view_actions[0].view_action = '<div style="">Viewing</div>'
+                this.lodgement_revisions_actions[0].action = '<div style="visibility: hidden;">&#x1f441;</div>'
+                this.lodgement_revisions_view_actions[0].view_action = '<div style="">&#x1f441;</div>'
                 this.lodgement_revisions_view_actions[index].view_action = '<a style="cursor:pointer;">View</a>'
             }
 
@@ -188,17 +180,15 @@ export default {
             }
         },
         getViewProposal: async function (revision) {
-            /* 
-                Handle the user clicks. Change the labels of entries and ask the page to be redrawn with 
-                the selected revision.
-            */
+            /* Handle the user clicks. Change the labels of entries and ask the page to be redrawn with 
+               the selected revision. */
             
             let clicked_revision = this.lodgement_revisions_view_actions[revision]
             // Set initial values for the View table.
             for (let index = 0; index < this.lodgement_revisions_view_actions.length; index++) {
                 this.lodgement_revisions_view_actions[index].view_action = '<a style="visibility: visible; cursor:pointer;">View</a>'
-                clicked_revision.view_action = '<div style="">Viewing</div>'
-                this.lodgement_revisions_actions[0].action = '<div style="visibility: hidden;">Viewing</div>'
+                clicked_revision.view_action = '<div style="">&#x1f441;</div>'
+                this.lodgement_revisions_actions[0].action = '<div style="visibility: hidden;">&#x1f441;</div>'
                 this.lodgement_revisions_actions[index].action = '<a style="cursor:pointer;">Compare</a>'
             }
             // Update the Proposal Page title to show the revision.
@@ -212,7 +202,7 @@ export default {
             await this.$emit("reversion_proposal", revision)
             console.log("getViewProposal")
         },
-        initialiseRevisionHistory: function(vm_uid, ref, datatable_options, table, data){
+        initialiseRevisionHistoryPopover: function(vm_uid, ref, datatable_options, actions, view_actions){
             let vm = this;
             let actionLogId = 'actions-log-table'+vm_uid;
             let popover_name = 'popover-'+ vm._uid+'-logs';
@@ -233,15 +223,29 @@ export default {
                     </table>`
                 },
                 html: true,
-                title: 'Action Log',
+                title: 'Revision Log',
                 container: 'body',
                 placement: 'right',
                 trigger: "click",
-                template: `<div class="popover ${popover_name}" role="tooltip"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content"></div></div>`,
+                template: `<div class="popover ${popover_name}" role="tooltip">
+                                <div class="arrow"></div>
+                                    <h3 class="popover-title"></h3>
+                                        <div class="popover-content">
+                                </div>
+                          </div>`,
             }).on('inserted.bs.popover', function () {
-                datatable_options.data = data
-                table = $('#'+actionLogId).DataTable(datatable_options);
-            // });
+                let data_for_table = []
+                // Get the required combination of values from action and view action arrays.
+                for (let row_count in actions) {
+                    const formatted_date = moment(actions[row_count]['date']).format('DD/MM/YY HH:mm:ss');
+                    data_for_table.push({"index": row_count,
+                                         "id": actions[row_count]['id'],
+                                         "action": actions[row_count]['action'],
+                                         "view_action": view_actions[row_count]['view_action'],
+                                         "date": formatted_date,})
+                }
+                datatable_options.data = data_for_table
+                let table = $('#'+actionLogId).DataTable(datatable_options);
             }).on('shown.bs.popover', function () {
                 var el = ref;
                 var popoverheight = parseInt($('.'+popover_name).height());
@@ -263,7 +267,11 @@ export default {
         },
         initialisePopovers: function(){ 
             if (!this.popoversInitialised){
-                this.initialiseRevisionHistory(this._uid, this.$refs.showActionBtn, this.actionsDtOptions, this.revisionsTable, this.lodgement_revisions_actions);
+                this.initialiseRevisionHistoryPopover(this._uid, 
+                                                      this.$refs.showActionBtn, 
+                                                      this.actionsDtOptions, 
+                                                      this.lodgement_revisions_actions,
+                                                      this.lodgement_revisions_view_actions);
                 this.popoversInitialised = true;
             }
         },
@@ -271,7 +279,6 @@ export default {
     created: function() {
         // Populate the revision table
         this.createLodgementRevisionTable
-
     },
     mounted: function(){
         let vm = this;

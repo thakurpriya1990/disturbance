@@ -60,8 +60,4 @@ module.exports = {
     proposal_apiary:"/api/proposal_apiary.json",
     apiary_referrals:"/api/apiary_referrals.json",
     apiary_site_transfer_fees:"/api/apiary_site_fees/get_site_transfer_fees.json",
-
-    // get_proposal_revision: function(proposal_id, revision_number) {
-    //   return `/api/proposal/${proposal_id}/${revision_number}/internal_revision_proposal.json`
-    // },
 }

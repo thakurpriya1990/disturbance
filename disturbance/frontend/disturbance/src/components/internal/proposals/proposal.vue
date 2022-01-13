@@ -27,10 +27,10 @@
                                 {{ proposal.lodgement_date | formatDate}}
                             </div>
                         </div>
+                            <RevisionHistory :revision_history_url=" revision_history_url" :proposal="proposal" @reversion_proposal="updateProposalRevision"/>
                     </div>
                 </div>
             </div>
-            <RevisionHistory :revision_history_url=" revision_history_url" :proposal="proposal" @reversion_proposal="updateProposalRevision"/>
             <div class="row">
                 <div class="panel panel-default">
                     <div class="panel-heading">
@@ -481,13 +481,6 @@ export default {
 
     },
     computed: {
-        getRevisionUrl: function() {
-            let url = ''
-            url = helpers.add_endpoint_join('/api/proposal/',
-                                            this.proposal.id +
-                                            '/get_revision_flat/')
-            return url;
-        },
         contactsURL: function(){
             return this.proposal!= null ? helpers.add_endpoint_json(api_endpoints.organisations,this.proposal.applicant.id+'/contacts') : '';
         },
@@ -540,13 +533,10 @@ export default {
     },
     methods: {
         updateProposalRevision: async function(proposal_revision) {
-            /*
-              This method is called when a Submission Revision Compare button is clicked (response a signal).
-              It updates the background model (Proposal) and updates the Vue values so the DOM is updated.
-             */
+            /* This method is called when a Submission Revision Compare button is clicked (response to a signal).
+              It updates the background model (this.proposal) and updates the Vue values so the DOM is updated. */
 
-            // Remove any previous revisions
-            $(".revision_note").remove()
+            $(".revision_note").remove()  // Remove any previous revisions
 
             let url = `/api/proposal/${this.proposalId}/internal_revision_proposal.json?revision_number=${proposal_revision}`
             // Get the required Proposal data
