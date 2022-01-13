@@ -202,6 +202,7 @@ LOGGING['loggers']['disturbance'] = {
             'handlers': ['file'],
             'level': 'INFO'
         }
+
 # Add a handler
 LOGGING['handlers']['file_apiary'] = {
     'level': 'INFO',
@@ -216,6 +217,9 @@ LOGGING['loggers']['apiary'] = {
     'level': 'INFO'
 }
 KMI_SERVER_URL = env('KMI_SERVER_URL', 'https://kmi.dbca.wa.gov.au')
+
+DEV_APP_BUILD_URL = env('DEV_APP_BUILD_URL')  # URL of the Dev app.js served by webpack & express
+
 #APPLICATION_TYPES_SQL='''
 #        SELECT name, name FROM disturbance_applicationtypechoice
 #        WHERE archive_date IS NULL OR archive_date > now()
