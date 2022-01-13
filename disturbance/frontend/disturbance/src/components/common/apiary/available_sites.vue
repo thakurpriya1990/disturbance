@@ -420,8 +420,8 @@
                         'Id',
                         'Site',
                         'Status',
-                        'Vacant<br>(current status)',  // current status of the 'is_vacant'
-                        'Previous Site Holder<br>Applicant',
+                        //'Vacant<br>(current status)',  // current status of the 'is_vacant'
+                        //'Previous Site Holder<br>Applicant',
                         'Action',
                     ]
                 } else if (this.is_external){
@@ -429,7 +429,7 @@
                         'Id',
                         'Site',
                         'Status',
-                        'Vacant<br>(current status)',  // current status of the 'is_vacant'
+                        //'Vacant<br>(current status)',  // current status of the 'is_vacant'
                         //'Previous Site Holder<br>Applicant',
                         'Action',
                     ]
@@ -572,8 +572,8 @@
                         vm.column_id,
                         vm.column_site,
                         vm.column_status,
-                        vm.column_vacant,
-                        vm.column_previous_site_holder,
+                        //vm.column_vacant,
+                        //vm.column_previous_site_holder,
                         vm.column_action,
                     ]
                 } else if(vm.is_external){
@@ -581,7 +581,7 @@
                         vm.column_id,
                         vm.column_site,
                         vm.column_status,
-                        vm.column_vacant,
+                        //vm.column_vacant,
                         vm.column_action,
                     ]
                 }
