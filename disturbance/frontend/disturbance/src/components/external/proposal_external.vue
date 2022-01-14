@@ -765,12 +765,12 @@ export default {
         },
         can_submit: function() {
             let vm=this;
-            let org = vm.$refs.proposal_apiary.$refs.mu_details.org
             let blank_fields = []
 
             //console.log('can_submit checklistq check' +vm.$refs.proposal_apiary.getUnansweredChecklistQuestions());
 
              if(vm.proposal.application_type == 'Apiary'){
+                let org = vm.$refs.proposal_apiary.$refs.mu_details.org
                 if( vm.$refs.proposal_apiary.getUnansweredChecklistQuestions ){
                     blank_fields.push(' You have unanswered checklist questions');
                 }
