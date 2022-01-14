@@ -22,7 +22,7 @@
                                     <label :for="search_text" class="control-label">Search</label>
                                 </div>
                                 <div class="col-sm-3">
-                                    <input v-model="search_text" id="search_text" class="form-control" />
+                                    <input v-model="search_text" pattern="[0-9]*" id="search_text" required class="form-control" />
                                 </div>
                             </div>
                         </template>
@@ -453,6 +453,7 @@
                 return {
                     // Site (current): general status. Marker
                     visible: vm.show_col_site,
+                    searchable: false,
                     mRender: function (data, type, apiary_site) {
                         let status_for_colour = getStatusForColour(apiary_site, false)
                         let fillColour = SiteColours[status_for_colour].fill
@@ -478,6 +479,7 @@
                 return {
                     // Status (current): general status.  Text
                     visible: vm.show_col_status,
+                    searchable: false,
                     mRender: function (data, type, apiary_site){
                         let dynamic_status = getStatusForColour(apiary_site, false)
                         let display_name = getDisplayNameFromStatus(dynamic_status)
@@ -490,6 +492,7 @@
                 return {
                     // Vacant (current): yes/no
                     visible: vm.show_col_vacant,
+                    searchable: false,
                     mRender: function (data, type, apiary_site) {
                         let status = apiary_site.properties.status
                         let is_vacant = apiary_site.properties.is_vacant
@@ -505,6 +508,7 @@
                 return {
                     // Previous Site Holder/Applicant
                     visible: vm.show_col_previous_site_holder && vm.is_internal,
+                    searchable: false,
                     mRender: function (data, type, apiary_site){
                         if (apiary_site.properties.previous_site_holder_or_applicant){
                             return apiary_site.properties.previous_site_holder_or_applicant
@@ -518,6 +522,7 @@
                 let vm = this
                 return {
                     // Action
+                    searchable: false,
                     mRender: function (data, type, apiary_site) {
                         let action_list = []
 
