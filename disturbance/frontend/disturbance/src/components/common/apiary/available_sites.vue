@@ -361,15 +361,10 @@
                     if (site_status.options){
                         for (let option of site_status.options){
                             if (option.show){
-                                //let rows_jquery = []
                                 for (let feature_and_row of option.features_and_rows){
                                     try {
                                         // Remove the apiary_site from the map
                                         vm.apiarySitesQuerySource.removeFeature(feature_and_row.feature)
-
-                                        // Remove the apiary site from the table by using the cache
-                                        //vm.removeApiarySiteFromTable(feature_and_row.row_jquery)
-                                        //rows_jquery.push(feature_and_row.row_jquery)
                                     } catch(err){
                                         console.log(err)
                                     }
@@ -383,10 +378,6 @@
                                 try {
                                     // Remove the apiary_site from the map
                                     vm.apiarySitesQuerySource.removeFeature(feature_and_row.feature)
-
-                                    // Remove the apiary site from the table by using the cache
-                                    //vm.removeApiarySiteFromTable(feature_and_row.row_jquery)
-                                    //rows_jquery.push(feature_and_row.row_jquery)
                                 } catch(err){
                                     console.log(err)
                                 }
@@ -398,7 +389,6 @@
                     site_status.map_updated = false
                     if (site_status.options){
                         for (let option of site_status.options){
-                            console.log('updating map_updated')
                             option.features_and_rows = []
                             option.loaded = false
                             option.map_updated = false
@@ -422,7 +412,7 @@
                         'Id',
                         'Site',
                         'Status',
-                        'Vacant<br>(current status)',  // current status of the 'is_vacant'
+                        //'Vacant<br>(current status)',  // current status of the 'is_vacant'
                         //'Previous Site Holder<br>Applicant',
                         'Action',
                     ]
@@ -580,7 +570,7 @@
                         vm.column_id,
                         vm.column_site,
                         vm.column_status,
-                        vm.column_vacant,
+                        //vm.column_vacant,
                         //vm.column_previous_site_holder,
                         vm.column_action,
                     ]
@@ -1678,7 +1668,7 @@
                         }
                         site_status.map_updated = true
                     }
-                }
+                } // END: loop for show_hide_instructions
             }, // END: showHideApiarySites()
         },
         created: function() {
