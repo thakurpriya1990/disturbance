@@ -22,7 +22,7 @@
                                     <label :for="search_text" class="control-label">Search</label>
                                 </div>
                                 <div class="col-sm-3">
-                                    <input v-model="search_text" id="search_text" class="form-control" />
+                                    <input v-model="search_text" pattern="[0-9]*" id="search_text" required class="form-control" />
                                 </div>
                             </div>
                         </template>
@@ -361,15 +361,10 @@
                     if (site_status.options){
                         for (let option of site_status.options){
                             if (option.show){
-                                //let rows_jquery = []
                                 for (let feature_and_row of option.features_and_rows){
                                     try {
                                         // Remove the apiary_site from the map
                                         vm.apiarySitesQuerySource.removeFeature(feature_and_row.feature)
-
-                                        // Remove the apiary site from the table by using the cache
-                                        //vm.removeApiarySiteFromTable(feature_and_row.row_jquery)
-                                        //rows_jquery.push(feature_and_row.row_jquery)
                                     } catch(err){
                                         console.log(err)
                                     }
@@ -383,10 +378,6 @@
                                 try {
                                     // Remove the apiary_site from the map
                                     vm.apiarySitesQuerySource.removeFeature(feature_and_row.feature)
-
-                                    // Remove the apiary site from the table by using the cache
-                                    //vm.removeApiarySiteFromTable(feature_and_row.row_jquery)
-                                    //rows_jquery.push(feature_and_row.row_jquery)
                                 } catch(err){
                                     console.log(err)
                                 }
@@ -398,7 +389,6 @@
                     site_status.map_updated = false
                     if (site_status.options){
                         for (let option of site_status.options){
-                            console.log('updating map_updated')
                             option.features_and_rows = []
                             option.loaded = false
                             option.map_updated = false
@@ -422,7 +412,7 @@
                         'Id',
                         'Site',
                         'Status',
-                        'Vacant<br>(current status)',  // current status of the 'is_vacant'
+                        //'Vacant<br>(current status)',  // current status of the 'is_vacant'
                         //'Previous Site Holder<br>Applicant',
                         'Action',
                     ]
@@ -453,6 +443,7 @@
                 return {
                     // Site (current): general status. Marker
                     visible: vm.show_col_site,
+                    searchable: false,
                     mRender: function (data, type, apiary_site) {
                         let status_for_colour = getStatusForColour(apiary_site, false)
                         let fillColour = SiteColours[status_for_colour].fill
@@ -478,6 +469,7 @@
                 return {
                     // Status (current): general status.  Text
                     visible: vm.show_col_status,
+                    searchable: false,
                     mRender: function (data, type, apiary_site){
                         let dynamic_status = getStatusForColour(apiary_site, false)
                         let display_name = getDisplayNameFromStatus(dynamic_status)
@@ -490,6 +482,7 @@
                 return {
                     // Vacant (current): yes/no
                     visible: vm.show_col_vacant,
+                    searchable: false,
                     mRender: function (data, type, apiary_site) {
                         let status = apiary_site.properties.status
                         let is_vacant = apiary_site.properties.is_vacant
@@ -505,6 +498,7 @@
                 return {
                     // Previous Site Holder/Applicant
                     visible: vm.show_col_previous_site_holder && vm.is_internal,
+                    searchable: false,
                     mRender: function (data, type, apiary_site){
                         if (apiary_site.properties.previous_site_holder_or_applicant){
                             return apiary_site.properties.previous_site_holder_or_applicant
@@ -518,6 +512,7 @@
                 let vm = this
                 return {
                     // Action
+                    searchable: false,
                     mRender: function (data, type, apiary_site) {
                         let action_list = []
 
@@ -575,7 +570,7 @@
                         vm.column_id,
                         vm.column_site,
                         vm.column_status,
-                        vm.column_vacant,
+                        //vm.column_vacant,
                         //vm.column_previous_site_holder,
                         vm.column_action,
                     ]
@@ -1673,7 +1668,7 @@
                         }
                         site_status.map_updated = true
                     }
-                }
+                } // END: loop for show_hide_instructions
             }, // END: showHideApiarySites()
         },
         created: function() {
