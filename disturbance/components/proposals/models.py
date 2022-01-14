@@ -66,6 +66,9 @@ logger = logging.getLogger(__name__)
 def update_proposal_doc_filename(instance, filename):
     return 'proposals/{}/documents/{}'.format(instance.proposal.id,filename)
 
+def update_proposal_map_doc_filename(instance, filename):
+    return 'proposals/{}/documents/map_docs/{}'.format(instance.proposal.id,filename)
+
 def update_proposal_comms_log_filename(instance, filename):
     return 'proposals/{}/communications/{}/{}'.format(instance.log_entry.proposal.id,instance.id,filename)
 
@@ -252,6 +255,21 @@ class DefaultDocument(Document):
             return super(DefaultDocument, self).delete()
         logger.info('Cannot delete existing document object after Application has been submitted (including document submitted before Application pushback to status Draft): {}'.format(self.name))
 
+class ProposalMapDocument(Document):
+    proposal = models.ForeignKey('Proposal',related_name='map_documents')
+    _file = models.FileField(upload_to=update_proposal_map_doc_filename, max_length=500)
+    input_name = models.CharField(max_length=255,null=True,blank=True)
+    can_delete = models.BooleanField(default=True) # after initial submit prevent document from being deleted
+    can_hide= models.BooleanField(default=False) # after initial submit, document cannot be deleted but can be hidden
+    hidden=models.BooleanField(default=False) # after initial submit prevent document from being deleted
+
+    def delete(self):
+        if self.can_delete:
+            return super(ProposalMapDocument, self).delete()
+        logger.info('Cannot delete existing document object after Proposal has been submitted (including document submitted before Proposal pushback to status Draft): {}'.format(self.name))
+
+    class Meta:
+        app_label = 'disturbance'
 
 class ProposalDocument(Document):
     proposal = models.ForeignKey('Proposal',related_name='documents')

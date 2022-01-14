@@ -96,7 +96,7 @@ export default {
             return helpers.getCookie('csrftoken')
         },
         proposal_document_action: function() {
-          return (this.proposal_id) ? `/api/proposal/${this.proposal_id}/process_document/` : '';
+          return (this.proposal_id) ? `/api/proposal/${this.proposal_id}/process_map_document/` : '';
         },  
     },
 
