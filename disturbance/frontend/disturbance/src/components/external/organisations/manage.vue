@@ -500,7 +500,7 @@ export default {
 
         eventListeners: function(){
             let vm = this;
-            vm.$refs.contacts_datatable.vmDataTable.on('click','.remove-contact',(e) => {
+            vm.$refs.contacts_datatable_user.vmDataTable.on('click','.remove-contact',(e) => {
                 e.preventDefault();
 
                 let name = $(e.target).data('name');
@@ -518,7 +518,7 @@ export default {
                 });
             });
 
-            vm.$refs.contacts_datatable.vmDataTable.on('click','.edit-contact',(e) => {
+            vm.$refs.contacts_datatable_user.vmDataTable.on('click','.edit-contact',(e) => {
                 e.preventDefault();
                 //var id = $(this).attr('data-id');
                 //vm.editRequirement(id);

@@ -9,7 +9,7 @@
         <a href="" v-else  @click.prevent="toggleComment"><i class="fa fa-ban">&nbsp;</i></a>
         </template>
         <!-- <Comment :question="label" :readonly="assessor_readonly" :name="name+'-comment-field'" v-show="showingComment && assessorMode" :value="comment_value"/>  -->
-        <CommentBox :comment_boxes="comment_boxes" v-show="showingComment && assessorMode"/> 
+        <CommentBox :comment_boxes="JSON.parse(comment_boxes)" v-show="showingComment && assessorMode"/> 
     </div>
 </template>
 <script>

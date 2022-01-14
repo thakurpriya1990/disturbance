@@ -57,7 +57,7 @@
 
         
         <!-- <Comment :question="label" :readonly="assessor_readonly" :name="name+'-comment-field'" v-show="showingComment && assessorMode" :value="comment_value"/>  -->
-        <CommentBox :comment_boxes="comment_boxes" v-show="showingComment && assessorMode"/> 
+        <CommentBox :comment_boxes="JSON.parse(comment_boxes)" v-show="showingComment && assessorMode"/> 
 
 
     </div>

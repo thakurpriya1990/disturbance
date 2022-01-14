@@ -111,4 +111,5 @@ disturbance/static/disturbance_vue/static/*
 # add this file to here
 apiary.txt
 
+disturbance/frontend/disturbance/tests_output*
 disturbance/static/disturbance_vue/static/js*
