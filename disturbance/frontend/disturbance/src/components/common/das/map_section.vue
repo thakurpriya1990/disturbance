@@ -4,9 +4,18 @@
         </div>
         <div :class="das_sections_classname">
             <FormSection :formCollapse="false" label="Map" Index="1">
-                <div>ABC
+                <div class="row col-sm-12">
+                    <ComponentMap
+                        ref="component_map"
+                        :is_internal="is_internal"
+                        :is_external="is_external"
+                        :can_modify="true"
+                        :display_at_time_of_submitted="true"
+                        
+                    />
                 </div>
-                <div>                    
+                <div>  
+                     <File :name="map_doc_name" label="Upload Shapefile" :id="map_doc_name"  :isRepeatable="false" :readonly="proposal.readonly"   :proposal_id="proposal.id" :isRequired="true"></File>
                 </div>
             </FormSection>  
         </div>
@@ -14,13 +23,14 @@
 </template>
 
 <script>
-    
+    import File from '@/components/forms/map_file.vue'
     import FileField from '@/components/forms/filefield_immediate.vue'
     import FormSection from "@/components/forms/section_toggle.vue"
+    import ComponentMap from '@/components/common/das/das_component_map.vue'
     import uuid from 'uuid'
     import { api_endpoints, helpers }from '@/utils/hooks'
     export default {
-        name: 'ApiaryForm',
+        name: 'DASMapSection',
         props:{
             proposal:{
                 type: Object,
@@ -70,6 +80,8 @@
         components: {
             FileField,
             FormSection,
+            ComponentMap,
+            File,
         },
         computed:{
             das_sections_classname: function() {
@@ -81,6 +93,12 @@
                 } else {
                     return 'col-md-9'
                 }
+            },
+            map_doc_name: function(){
+                if(this.proposal){
+                    return "proposal_"+this.proposal.id+"_map_doc";
+                }
+                return "proposal_map_doc"
             },
         },
         methods:{
