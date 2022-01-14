@@ -604,6 +604,7 @@
                         //if (data.feature_and_row){
                         //    data.feature_and_row.row_jquery = $(row).attr('data-apiary-site-id', data.id)
                         //}
+                        $(row).attr('data-apiary-site-id', data.id)  // Used for the Popup
                     },
                     columns: vm.columns,
 
