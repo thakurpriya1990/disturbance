@@ -27,41 +27,11 @@
                                 <strong>Lodged on</strong><br/>
                                 {{ proposal.lodgement_date | formatDate}}
                             </div>
-                            <div class="col-sm-12 top-buffer-s">
-                                <table class="table small-table">
-                                    <tr>
-                                        <th>Lodgement</th>
-                                        <th>Date</th>
-                                        <th>Action</th>
-                                    </tr>
-                                </table>
-                            </div>
                         </div>
+                            <RevisionHistory :revision_history_url=" revision_history_url" :proposal="proposal" @reversion_proposal="updateProposalRevision"/>
                     </div>
                 </div>
             </div>
-
-
-            <!--
-            <div class="row" v-if="canSeeSubmission">
-                <div class="panel panel-default">
-                    <div class="panel-heading">
-                       History
-                    </div>
-                                    <table class="table small-table">
-                                        <tr>
-                                            <th>ID</th>
-                                            <th>Last Modified</th>
-                                        </tr>
-                                        <tr v-for="p in proposal.get_history">
-                                            <td>{{ p.id }}</td>
-                                            <td>{{ p.modified | formatDate}}</td>
-                                        </tr>
-                                    </table>
-                </div>
-            </div>
-            -->
-
             <div class="row">
                 <div class="panel panel-default">
                     <div class="panel-heading">
@@ -353,7 +323,13 @@
                                     <ProposalApiary v-if="proposal" :proposal="proposal" id="proposalStart" :showSections="sectionShow" ref="proposal_apiary" :is_external="false" :is_internal="true" :hasAssessorMode="hasAssessorMode"></ProposalApiary>
                                 </div>
                                 <div v-else>
-                                    <ProposalDisturbance form_width="inherit" :withSectionsSelector="false" v-if="proposal" :proposal="proposal"> </ProposalDisturbance>
+                                    <ProposalDisturbance 
+                                    ref="proposal_disturbance" 
+                                    form_width="inherit" 
+                                    :withSectionsSelector="false" 
+                                    v-if="proposal" 
+                                    :proposal="proposal"
+                                    />
                                     <NewApply v-if="proposal" :proposal="proposal"></NewApply>
                                 </div>
 
@@ -399,6 +375,7 @@ import Requirements from './proposal_requirements.vue'
 import ProposedApproval from './proposed_issuance.vue'
 import ApprovalScreen from './proposal_approval.vue'
 import CommsLogs from '@common-utils/comms_logs.vue'
+import RevisionHistory from '@common-utils/revision_history.vue'
 import MoreReferrals from '@common-utils/more_referrals.vue'
 import ResponsiveDatatablesHelper from "@/utils/responsive_datatable_helper.js"
 import { api_endpoints, helpers } from '@/utils/hooks'
@@ -470,6 +447,7 @@ export default {
             comms_url: helpers.add_endpoint_json(api_endpoints.proposals,vm.$route.params.proposal_id+'/comms_log'),
             comms_add_url: helpers.add_endpoint_json(api_endpoints.proposals,vm.$route.params.proposal_id+'/add_comms_log'),
             logs_url: helpers.add_endpoint_json(api_endpoints.proposals,vm.$route.params.proposal_id+'/action_log'),
+            revision_history_url: helpers.add_endpoint_json(api_endpoints.proposals,vm.$route.params.proposal_id+'/revision_history'),
             panelClickersInitialised: false,
             sendingReferral: false,
         }
@@ -484,13 +462,14 @@ export default {
         ProposedApproval,
         ApprovalScreen,
         CommsLogs,
+        RevisionHistory,
         MoreReferrals,
         NewApply,
     },
     filters: {
         formatDate: function(data){
             return data ? moment(data).format('DD/MM/YYYY HH:mm:ss'): '';
-        }
+        },
     },
     props: {
         proposalId: {
@@ -552,6 +531,20 @@ export default {
         },
     },
     methods: {
+        updateProposalRevision: async function(proposal_revision) {
+            /* This method is called when a Submission Revision Compare button is clicked (response to a signal).
+              It updates the background model (this.proposal) and updates the Vue values so the DOM is updated. */
+
+            $(".revision_note").remove()  // Remove any previous revisions
+
+            let url = `/api/proposal/${this.proposalId}/internal_revision_proposal.json?revision_number=${proposal_revision}`
+            // Get the required Proposal data
+            const res = await Vue.http.get(url);
+            // Set the model data to the correct data
+            this.proposal.data = res.body;
+            // Update the DOM values to the correct data.
+            this.$refs.proposal_disturbance.values = Object.assign({}, res.body[0]);
+        },
         locationUpdated: function(){
             console.log('in locationUpdated()');
         },
@@ -920,7 +913,6 @@ export default {
                 vm.department_users = response.body
                 vm.loading.splice('Loading Department Users',1);
             },(error) => {
-                console.log(error);
                 vm.loading.splice('Loading Department Users',1);
             })
         },
