@@ -193,10 +193,11 @@ def get_qs_vacant_site(search_text=''):
     qs_vacant_site = _get_vacant_apiary_site(search_text)
 
     # apiary_site_proposal_ids = qs_vacant_site.all().values('proposal_link_for_vacant__id')
-    apiary_site_proposal_ids = qs_vacant_site.all().values('latest_proposal_link__id')
+    # apiary_site_proposal_ids = qs_vacant_site.all().values('latest_proposal_link__id')
     # When the 'vacant' site is selected, saved, deselected and then saved again, the latest_proposal_link gets None
     # That's why we need following line too to pick up all the vacant sites
-    apiary_site_proposal_ids2 = qs_vacant_site.filter(latest_proposal_link__isnull=True).values('proposal_link_for_vacant__id')
+    # apiary_site_proposal_ids2 = qs_vacant_site.filter(latest_proposal_link__isnull=True).values('proposal_link_for_vacant__id')
+    apiary_site_proposal_ids = qs_vacant_site.all().values('proposal_link_for_vacant__id')
     qs_vacant_site_proposal = ApiarySiteOnProposal.objects.select_related(
             'apiary_site', 
             'proposal_apiary', 
@@ -210,8 +211,8 @@ def get_qs_vacant_site(search_text=''):
             'site_category_processed', 
             'apiary_site__latest_proposal_link', 
             'apiary_site__proposal_link_for_vacant',
-            ).filter(Q(id__in=apiary_site_proposal_ids) | Q(id__in=apiary_site_proposal_ids2))
-
+            # ).filter(Q(id__in=apiary_site_proposal_ids) | Q(id__in=apiary_site_proposal_ids2))
+            ).filter(Q(id__in=apiary_site_proposal_ids))
 
     # At any moment, either approval_link_for_vacant or proposal_link_for_vacant is True at most.  Never both are True.  (See make_vacant() method of the ApiarySite model)
     # Therefore qs_vacant_site_proposal and qs_vacant_site_approval shouldn't overlap each other
