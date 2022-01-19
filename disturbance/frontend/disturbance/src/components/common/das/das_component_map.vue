@@ -146,6 +146,17 @@
                 segmentStyle: MeasureStyles.segmentStyle,
                 labelStyle: MeasureStyles.labelStyle,
                 segmentStyles: null,
+                sample_json: {'type': 'FeatureCollection',
+                     'crs': {'type': 'name', 'properties': {'name': 'EPSG:4326'}},
+                     'features': [{'type': 'Feature',
+                       'geometry': {'type': 'Polygon',
+                        'coordinates': [[[115.7636260986328, -32.04358676118635],
+                          [115.76774597167967, -32.05173483867969],
+                          [115.83709716796875, -32.04475081666863],
+                          [115.83641052246094, -32.02146689475617],
+                          [115.7636260986328, -32.04358676118635]]]},
+                       'properties': {'name': 'shapefile_0_feature_0'}}]}
+
             }
         },
         created: function(){
@@ -356,6 +367,14 @@
                         projection: 'EPSG:4326'
                     })
                 });
+
+                let shapeVectorSource = new VectorSource({
+                    features: new GeoJSON().readFeatures(vm.sample_json),
+                });
+                let newVectorLayer= new VectorLayer({
+                    source: shapeVectorSource,
+                })
+                vm.map.addLayer(newVectorLayer);
 
                 vm.apiarySitesQuerySource = new VectorSource({ });
                 vm.apiarySitesQueryLayer = new VectorLayer({
