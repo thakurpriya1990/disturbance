@@ -3561,8 +3561,6 @@ class ProposalApiary(RevisionedMixin):
                 raise
 
     def _update_apiary_sites(self, approval, sites_approved, request):
-
-
         for site in request.data.get('apiary_sites'):
             # During final approval - Approver may have updated these values
             if not site['properties'].get('licensed_site'):
