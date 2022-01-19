@@ -1322,8 +1322,11 @@
             },
             showPopup: function(feature){
                 if (feature){
+                    console.log(feature)
                     let geometry = feature.getGeometry();
                     let coord = geometry.getCoordinates();
+                    let approval_link = (feature.get('approval_id') && this.is_internal) ? 
+                        '<div><a href="/internal/approval/' + feature.get('approval_id') + '">' + feature.get('lodgement_number') + '</a></div>' : '' 
                     let svg_hexa = "<svg xmlns='http://www.w3.org/2000/svg' version='1.1' height='20' width='15'>" +
                     '<g transform="translate(0, 4) scale(0.9)"><path d="M 14.3395,12.64426 7.5609998,16.557828 0.78249996,12.64426 0.7825,4.8171222 7.5609999,0.90355349 14.3395,4.8171223 Z" id="path837" style="fill:none;stroke:#ffffff;stroke-width:1.565;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" /></g></svg>'
                     //let status_str = feature.get('is_vacant') ? getDisplayNameFromStatus(feature.get('status')) + ' (vacant)' : getDisplayNameFromStatus(feature.get('status'))
@@ -1334,6 +1337,7 @@
                                           '<div>' + status_str + '</div>' +
                                           '<div>' + getDisplayNameOfCategory(feature.get('site_category')) + '</div>' +
                                           '<div>' + feature['values_']['geometry']['flatCoordinates'] + '</div>' +
+                                          approval_link +
                                       '</div>' +
                                   '</div>'
                     this.content_element.innerHTML = content;
@@ -1665,24 +1669,50 @@
             vm.applySelect2()
             vm.showHideApiarySites()
             if($.fn.dataTable.ext.search.length === 0){
+                // Adding custom search function.  This is called per row
                 $.fn.dataTable.ext.search.push(function(settings, searchData, index, rowData, counter){
-                    if (rowData.properties.status === 'current'){
-                        if (vm.show_statuses_for_table.includes('current')){
-                            if(vm.show_availabilities_for_table.includes('available') && rowData.properties.available){
-                                return true
-                            } else if(vm.show_availabilities_for_table.includes('unavailable') && !rowData.properties.available){
-                                return true
+                    if (rowData.properties.is_vacant){
+                        return vm.show_statuses_for_table.includes('vacant')
+                    } else {
+                        if (rowData.properties.status === 'current'){
+                            // When apiary_site is current
+                            if (vm.show_statuses_for_table.includes('current')){
+                                // 'current' is selected in the filter
+                                if(vm.show_availabilities_for_table.includes('available') && rowData.properties.available){
+                                    return true
+                                } else if(vm.show_availabilities_for_table.includes('unavailable') && !rowData.properties.available){
+                                    return true
+                                } else {
+                                    return false
+                                }
                             } else {
                                 return false
                             }
                         } else {
-                            return false
+                            return vm.show_statuses_for_table.includes(rowData.properties.status)
                         }
-                    } else if (rowData.properties.is_vacant){
-                        return vm.show_statuses_for_table.includes('vacant')
-                    } else {
-                        return vm.show_statuses_for_table.includes(rowData.properties.status)
                     }
+
+                    // Per row (per apiary_site)
+                    //if (rowData.properties.status === 'current'){
+                    //    // When apiary_site is current
+                    //    if (vm.show_statuses_for_table.includes('current')){
+                    //        // 'current' is selected in the filter
+                    //        if(vm.show_availabilities_for_table.includes('available') && rowData.properties.available){
+                    //            return true
+                    //        } else if(vm.show_availabilities_for_table.includes('unavailable') && !rowData.properties.available){
+                    //            return true
+                    //        } else {
+                    //            return false
+                    //        }
+                    //    } else {
+                    //        return false
+                    //    }
+                    //} else if (rowData.properties.is_vacant){
+                    //    return vm.show_statuses_for_table.includes('vacant')
+                    //} else {
+                    //    return vm.show_statuses_for_table.includes(rowData.properties.status)
+                    //}
                 })
             }
         },

@@ -227,6 +227,7 @@ def get_qs_vacant_site(search_text=''):
             'approval__applicant',
             'approval__applicant__organisation',
             'approval__proxy_applicant',
+            # 'approval__lodgement_number',
             ).filter(id__in=apiary_site_approval_ids)
 
     return qs_vacant_site_proposal, qs_vacant_site_approval
@@ -333,11 +334,15 @@ def get_qs_suspended_site(search_text=''):
 
     # 2.3. Issue query
     qs_on_approval = ApiarySiteOnApproval.objects.select_related(
+        'approval__lodgement_number',
+        'approval__id',
         'apiary_site__id',
         'apiary_site__site_guid',
         'apiary_site__is_vacant',
         'site_category__name',
     ).filter(q_include_approval).exclude(q_exclude_approval).values(
+        'approval__lodgement_number',
+        'approval__id',
         'wkb_geometry',
         'apiary_site__id',
         'apiary_site__site_guid',
@@ -380,11 +385,15 @@ def get_qs_current_site(search_text='', available=None):
 
     # 2.3. Issue query
     qs_on_approval = ApiarySiteOnApproval.objects.select_related(
+        'approval__lodgement_number',
+        'approval__id',
         'apiary_site__id',
         'apiary_site__site_guid',
         'apiary_site__is_vacant',
         'site_category__name',
     ).filter(q_include_approval).exclude(q_exclude_approval).values(
+        'approval__lodgement_number',
+        'approval__id',
         'wkb_geometry',
         'apiary_site__id',
         'apiary_site__site_guid',
@@ -463,11 +472,15 @@ def get_qs_not_to_be_reissued_site(search_text=''):
 
     # 2.3. Issue query
     qs_on_approval = ApiarySiteOnApproval.objects.select_related(
+        'approval__lodgement_number',
+        'approval__id',
         'apiary_site__id',
         'apiary_site__site_guid',
         'apiary_site__is_vacant',
         'site_category__name',
     ).filter(q_include_approval).exclude(q_exclude_approval).values(
+        'approval__lodgement_number',
+        'approval__id',
         'wkb_geometry',
         'apiary_site__id',
         'apiary_site__site_guid',
@@ -558,19 +571,23 @@ def get_qs_approval():
 
     # 2.3. Issue query
     qs_on_approval = ApiarySiteOnApproval.objects.select_related(
+            'approval__lodgement_number',
+            'approval__id',
             'apiary_site__id',
             'apiary_site__site_guid',
             'apiary_site__is_vacant',
             'site_category__name',
             ).filter(q_include_approval).exclude(q_exclude_approval).values(
-                                                        'wkb_geometry',
-                                                        'apiary_site__id',
-                                                        'apiary_site__site_guid',
-                                                        'site_status',
-                                                        'site_category__name',
-                                                        'apiary_site__is_vacant',
-                                                        'available',
-                                                        )
+                    'approval__lodgement_number',
+                    'approval__id',
+                    'wkb_geometry',
+                    'apiary_site__id',
+                    'apiary_site__site_guid',
+                    'site_status',
+                    'site_category__name',
+                    'apiary_site__is_vacant',
+                    'available',
+                    )
     return qs_on_approval
 
 
