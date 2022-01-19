@@ -42,6 +42,7 @@ import {
   helpers
 }
 from '@/utils/hooks'
+import alert from '@vue-utils/alert.vue'
 export default {
     name: 'MapFile',
     props:{
@@ -72,7 +73,9 @@ export default {
         readonly:Boolean,
         docsUrl: String,
     },
-    components: { },
+    components: {
+        alert,
+     },
     data:function(){
         return {
             repeat:1,

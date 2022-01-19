@@ -17,6 +17,19 @@
                 <div>  
                      <File :name="map_doc_name" label="Upload Shapefile" :id="map_doc_name"  :isRepeatable="false" :readonly="proposal.readonly"   :proposal_id="proposal.id" :isRequired="true"></File>
                 </div>
+                <!-- <div>
+                    <div class="row">
+                        <div class="col-sm-2 pull-right">
+                            <input
+                                :disabled="valid_button_disabled"
+                                @click="validate_map_docs"
+                                type="button"
+                                value="Validate"
+                                class="btn btn-primary w-100"
+                            />
+                        </div>
+                    </div>
+                </div> -->
             </FormSection>  
         </div>
     </div>
@@ -100,9 +113,14 @@
                 }
                 return "proposal_map_doc"
             },
+            valid_button_disabled: function(){
+                return false;
+            }
         },
         methods:{
-            
+            validate_map_docs: function(){
+                console.log('here');
+            }
             
         },
         created: function() {

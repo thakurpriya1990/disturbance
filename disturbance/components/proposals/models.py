@@ -884,6 +884,14 @@ class Proposal(RevisionedMixin):
     def log_user_action(self, action, request):
         return ProposalUserAction.log_action(self, action, request.user)
 
+    def validate_map_files(self):
+        import geopandas as gpd
+        shp_file=self.map_documents.last()
+        shp= gpd.read_file(shp_file)
+        shp_transform=shp.to_crs(crs=4326)
+        shp_json=shp_transform.to_json() 
+
+
     def submit(self,request,viewset):
         from disturbance.components.proposals.utils import save_proponent_data
         with transaction.atomic():
