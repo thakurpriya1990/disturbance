@@ -17,7 +17,7 @@
                 <div>  
                      <File :name="map_doc_name" label="Upload Shapefile" :id="map_doc_id"  :isRepeatable="true" :readonly="proposal.readonly"   :proposal_id="proposal.id" :isRequired="true"></File>
                 </div>
-                <!-- <div>
+                <div>
                     <div class="row">
                         <div class="col-sm-2 pull-right">
                             <input
@@ -29,7 +29,7 @@
                             />
                         </div>
                     </div>
-                </div> -->
+                </div>
             </FormSection>  
         </div>
     </div>
