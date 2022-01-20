@@ -184,6 +184,7 @@
                 </div>
             </template>
             <template v-else>
+                <MapSection v-if="proposal" :proposal="proposal"/>
                 <ProposalDisturbance v-if="proposal" :proposal="proposal" id="proposalStart" :showSections="sectionShow">
                 <NewApply v-if="proposal" :proposal="proposal"></NewApply>
                 <div>
@@ -246,6 +247,7 @@ import ProposalDisturbance from '../form.vue'
 import ProposalApiary from '../form_apiary.vue'
 import ApiarySiteTransfer from '../form_apiary_site_transfer.vue'
 import NewApply from './proposal_apply_new.vue'
+import MapSection from '@/components/common/das/map_section.vue'
 import Vue from 'vue'
 import {
   api_endpoints,
@@ -304,6 +306,7 @@ export default {
         ProposalApiary,
         NewApply,
         ApiarySiteTransfer,
+        MapSection,
     },
     computed: {
         amendmentRequestText: function() {

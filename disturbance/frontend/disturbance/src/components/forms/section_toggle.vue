@@ -47,6 +47,7 @@ export default {
     data:function () {
         return {
             title:"Section title",
+            //subheading:"",
             panel_chevron_class: null,
             custom_id: uuid(),
         }
