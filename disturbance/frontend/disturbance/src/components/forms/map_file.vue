@@ -50,7 +50,7 @@ export default {
         name:String,
         label:String,
         id:String,
-        isRequired:String,
+        isRequired:Boolean,
         assessor_readonly: Boolean,
         assessorMode:{
             default:function(){

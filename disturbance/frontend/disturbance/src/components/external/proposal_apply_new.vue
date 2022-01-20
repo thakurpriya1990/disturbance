@@ -124,12 +124,13 @@ export default {
     props:{
             proposal:{
                 type:Object,
+                default: null,
             },
     },
   data: function() {
     let vm = this;
     return {
-        "proposal": null,
+        //"proposal": null,
         agent: {},
         behalf_of: '',
         profile: {

@@ -70,6 +70,7 @@ import Comment from './comment.vue'
 import CommentBox from './comment_box_referral.vue'
 import HelpText from './help_text.vue'
 import HelpTextUrl from './help_text_url.vue'
+import alert from '@vue-utils/alert.vue'
 export default {
     props:{
         proposal_id: null,
@@ -111,7 +112,7 @@ export default {
         docsUrl: String,
         comment_boxes: Array,
     },
-    components: {Comment, HelpText, HelpTextUrl, CommentBox},
+    components: {Comment, HelpText, HelpTextUrl, CommentBox, alert },
     data:function(){
         return {
             repeat:1,

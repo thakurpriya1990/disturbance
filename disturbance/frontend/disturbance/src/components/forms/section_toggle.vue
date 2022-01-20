@@ -29,7 +29,7 @@ export default {
     data:function () {
         return {
             title:"Section title",
-            subheading:"",
+            //subheading:"",
             panel_chevron_class: null,
             custom_id: uuid(),
         }
