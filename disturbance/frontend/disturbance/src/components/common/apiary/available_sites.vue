@@ -594,14 +594,32 @@
             },
         },
         methods: {
+            updateShowStatusesForTable: function(){
+                let vm = this
+                vm.show_statuses_for_table = []
+                for (let site_status of vm.show_hide_instructions){
+                    if (site_status.show){
+                        vm.show_statuses_for_table.push(site_status.id)
+                    }
+                }
+            },
+            updateShowAvailabilitiesForTable: function(current_status_item){
+                let vm = this
+                vm.show_availabilities_for_table = []
+                for (let option of current_status_item.options){
+                    if (option.show){
+                        vm.show_availabilities_for_table.push(option.id)
+                    }
+                }
+            },
             updateStatusShowHideInstructions: function(status_option_changed){
                 // Sync select2 selections with statuses array
                 console.log('in updateStatusShowHideInstructions: ' + status_option_changed.id)
                 let vm = this
-                let statuses_selected = $(vm.$refs.filterStatus).find(':selected')
-                console.log(statuses_selected)
+                let statuses_currently_selected = $(vm.$refs.filterStatus).find(':selected')
+                console.log(statuses_currently_selected)
 
-                if (statuses_selected.length === 1 && vm.num_of_status_selection === 0){
+                if (statuses_currently_selected.length === 1 && vm.num_of_status_selection === 0){
                     console.log('0 ---> 1')
                     // 0 selection ---> 1 selection
                     // Hide all except the one selected
@@ -614,7 +632,7 @@
                             site_status.map_updated = false
                         }
                     }
-                } else if (statuses_selected.length === 0){
+                } else if (statuses_currently_selected.length === 0){
                     console.log('1 ---> 0')
                     // 1 selection ---> 0 selection
                     // show all
@@ -637,19 +655,16 @@
                     console.log(text + item_to_be_changed.id)
                 }
                 // Store the number of selection at UI
-                vm.num_of_status_selection = statuses_selected.length
+                vm.num_of_status_selection = statuses_currently_selected.length
 
                 // Update show_statuses_for_table
-                console.log('update show_statuses_for_table')
-                console.log(vm.show_hide_instructions)
-                vm.show_statuses_for_table = []
-                for (let site_status of vm.show_hide_instructions){
-                    if (site_status.show){
-                        console.log(site_status.id)
-                        vm.show_statuses_for_table.push(site_status.id)
-                    }
-                }
-                console.log(vm.show_statuses_for_table)
+                vm.updateShowStatusesForTable()
+                //vm.show_statuses_for_table = []
+                //for (let site_status of vm.show_hide_instructions){
+                //    if (site_status.show){
+                //        vm.show_statuses_for_table.push(site_status.id)
+                //    }
+                //}
             },
             updateAvailabilityShowHideInstructions: function(availability_option_changed){
                 console.log('in updateAvailabilityShowHideInstructions()')
@@ -657,10 +672,9 @@
                 // Sync select2 selections with availability array
                 let vm = this
                 let current_status_item = vm.show_hide_instructions.filter(x => { return x.id === 'current' })[0]  // We just interested in the 'current' status
-                let availabilities_selected = $(vm.$refs.filterAvailability).find(':selected')
-                let availabilities_selected_cached = current_status_item.options.filter(x => { return x.show })
+                let availabilities_currently_selected = $(vm.$refs.filterAvailability).find(':selected')
 
-                if (availabilities_selected.length === 1 && vm.num_of_availability_selection === 0){
+                if (availabilities_currently_selected.length === 1 && vm.num_of_availability_selection === 0){
                     console.log('0 ---> 1')
                     // 0 selection ---> 1 selection
                     // Hide all except the one selected
@@ -673,7 +687,7 @@
                             option.map_updated = false
                         }
                     }
-                } else if (availabilities_selected.length === 0){
+                } else if (availabilities_currently_selected.length === 0){
                     console.log('1 ---> 0')
                     // 1 selection ---> 0 selection
                     // show all
@@ -693,15 +707,16 @@
                     item_to_be_changed.show = availability_option_changed.selected
                 }
                 // Store the number of selection at UI
-                vm.num_of_availability_selection = availabilities_selected.length
+                vm.num_of_availability_selection = availabilities_currently_selected.length
 
                 // Update show_availabilities_for_table
-                vm.show_availabilities_for_table = []
-                for (let option of current_status_item.options){
-                    if (option.show){
-                        vm.show_availabilities_for_table.push(option.id)
-                    }
-                }
+                vm.updateShowAvailabilitiesForTable(current_status_item)
+                //vm.show_availabilities_for_table = []
+                //for (let option of current_status_item.options){
+                //    if (option.show){
+                //        vm.show_availabilities_for_table.push(option.id)
+                //    }
+                //}
             },
             toggleFilterSearchRow: function(action){
                 // Attach/Detach filter-search elements to/from the map
