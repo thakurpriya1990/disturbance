@@ -15,7 +15,7 @@
                     />
                 </div>
                 <div>  
-                     <File :name="map_doc_name" label="Upload Shapefile" :id="map_doc_name"  :isRepeatable="false" :readonly="proposal.readonly"   :proposal_id="proposal.id" :isRequired="true"></File>
+                     <File :name="map_doc_name" label="Upload Shapefile" :id="map_doc_id"  :isRepeatable="true" :readonly="proposal.readonly"   :proposal_id="proposal.id" :isRequired="true"></File>
                 </div>
                 <!-- <div>
                     <div class="row">
@@ -110,6 +110,12 @@
             map_doc_name: function(){
                 if(this.proposal){
                     return "proposal_"+this.proposal.id+"_map_doc";
+                }
+                return "proposal_map_doc"
+            },
+            map_doc_id: function(){
+                if(this.proposal){
+                    return "proposal_"+this.proposal.id+"_map_doc_id";
                 }
                 return "proposal_map_doc"
             },
