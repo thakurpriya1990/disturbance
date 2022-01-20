@@ -4,29 +4,6 @@
 
             <!-- using num_files to determine if files have been uploaded for this question/label (used in disturbance/frontend/disturbance/src/components/external/proposal.vue) -->
             <label :id="id" :num_files="num_documents()">{{label}}</label>
-            <template v-if="help_text">
-                <HelpText :help_text="help_text" />
-            </template>
-            <template v-if="help_text_assessor && assessorMode">
-                <HelpText :help_text="help_text_assessor" assessorMode={assessorMode} isForAssessor={true} />
-            </template> 
-
-            <template v-if="help_text_url">
-                <HelpTextUrl :help_text_url="help_text_url" />
-            </template>
-            <template v-if="help_text_assessor_url && assessorMode">
-                <HelpTextUrl :help_text_url="help_text_assessor_url" assessorMode={assessorMode} isForAssessor={true} />
-            </template> 
-
-
-            <template v-if="assessorMode">
-                <template v-if="!showingComment">
-                    <!-- <a v-if="comment_value != null && comment_value != undefined && comment_value != ''" href="" @click.prevent="toggleComment"><i style="color:red" class="fa fa-comment-o">&nbsp;</i></a> -->
-                    <a v-if="has_comment_value" href="" @click.prevent="toggleComment"><i style="color:red" class="fa fa-comment-o">&nbsp;</i></a>
-                    <a v-else href="" @click.prevent="toggleComment"><i class="fa fa-comment-o">&nbsp;</i></a>
-                </template>
-                <a href="" v-else  @click.prevent="toggleComment"><i class="fa fa-ban">&nbsp;</i></a>
-            </template>
             <span v-if="show_spinner"><i class='fa fa-2x fa-spinner fa-spin'></i></span>
             <!-- <i id="file-spinner" class=""></i> -->
             <div v-if="files">
@@ -55,8 +32,7 @@
             </div>
 
         </div>
-        <!-- <Comment :question="label" :readonly="assessor_readonly" :name="name+'-comment-field'" v-show="showingComment && assessorMode" :value="comment_value" :required="isRequired"/>  -->
-        <CommentBox :comment_boxes="JSON.parse(comment_boxes)" v-show="showingComment && assessorMode"/> 
+         
     </div>
 </template>
 
@@ -66,24 +42,16 @@ import {
   helpers
 }
 from '@/utils/hooks'
-import Comment from './comment.vue'
-import CommentBox from './comment_box_referral.vue'
-import HelpText from './help_text.vue'
-import HelpTextUrl from './help_text_url.vue'
 import alert from '@vue-utils/alert.vue'
 export default {
+    name: 'MapFile',
     props:{
         proposal_id: null,
         name:String,
         label:String,
         id:String,
-        isRequired:String,
-        comment_value: String,
+        isRequired:Boolean,
         assessor_readonly: Boolean,
-        help_text:String,
-        help_text_assessor:String,
-        help_text_url:String,
-        help_text_assessor_url:String,
         assessorMode:{
             default:function(){
                 return false;
@@ -96,28 +64,22 @@ export default {
         },
         fileTypes:{
             default:function () {
-                var file_types = 
-                    "image/*," + 
-                    "video/*," +
-                    "audio/*," +
-                    "application/pdf,text/csv,application/msword,application/vnd.ms-excel,application/x-msaccess," +
-                    "application/x-7z-compressed,application/x-bzip,application/x-bzip2,application/zip," + 
-                    ".dbf,.gdb,.gpx,.prj,.shp,.shx," + 
-                    ".json,.kml,.gpx";
+                var file_types =  
+                    ".shp" ;
                 return file_types;
             }
         },
         isRepeatable:Boolean,
         readonly:Boolean,
         docsUrl: String,
-        comment_boxes: Array,
     },
-    components: {Comment, HelpText, HelpTextUrl, CommentBox, alert },
+    components: {
+        alert,
+     },
     data:function(){
         return {
             repeat:1,
             files:[],
-            showingComment: false,
             show_spinner: false,
             documents:[],
             filename:null,
@@ -137,26 +99,12 @@ export default {
             return helpers.getCookie('csrftoken')
         },
         proposal_document_action: function() {
-          return (this.proposal_id) ? `/api/proposal/${this.proposal_id}/process_document/` : '';
-        },
-        has_comment_value:function () {
-            let has_value=false;
-            for(var i=0; i<this.comment_boxes.length; i++){
-                if(this.comment_boxes[i].hasOwnProperty('value')){
-                    if(this.comment_boxes[i].value!=null && this.comment_boxes[i].value!=undefined && this.comment_boxes[i].value!= '' ){
-                        has_value=true;
-                    }
-                } 
-            }
-            return has_value;
-        },
+          return (this.proposal_id) ? `/api/proposal/${this.proposal_id}/process_map_document/` : '';
+        },  
     },
 
     methods:{
 
-        toggleComment(){
-            this.showingComment = ! this.showingComment;
-        },
         handleChange:function (e) {
             let vm = this;
             vm.showError=false;
