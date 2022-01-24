@@ -3272,7 +3272,7 @@ class SchemaQuestionViewSet(viewsets.ModelViewSet):
             qs = ProposalType.objects.filter().exclude(sections=None)
             proposal_types = [
                 {
-                    'label': p.name,
+                    'label': p.name_with_version,
                     'value': p.id
                 } for p in qs
             ]
@@ -3493,7 +3493,7 @@ class SchemaProposalTypeViewSet(viewsets.ModelViewSet):
             sections = ProposalType.objects.all()
             proposal_types = [
                 {
-                    'label': s.name,
+                    'label': s.name_with_version,
                     'value': s.id,
                 } for s in sections if not s.apiary_group_proposal_type and s.latest
             ]
