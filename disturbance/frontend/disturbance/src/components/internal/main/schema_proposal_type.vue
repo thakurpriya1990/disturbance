@@ -130,7 +130,7 @@ export default {
             filterTableProposalType: 'All',
             filterProposalTypeSection: 'All',
             // masterlist table
-            dtHeadersSchemaProposalType: ["ID", "Licence ProposalType", "Section Label", "Index", "Action"],
+            dtHeadersSchemaProposalType: ["ID", "Licence Proposal Type", "Section Label", "Index", "Action"],
             dtOptionsSchemaProposalType:{
                 language: {
                     processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
