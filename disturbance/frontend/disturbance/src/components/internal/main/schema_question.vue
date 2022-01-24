@@ -290,6 +290,7 @@ export default {
                     { 
                         data: "proposal_type",
                         searchable: false,
+                        name:'section__proposal_type_id'
                     },
                     { 
                         data: "section",
