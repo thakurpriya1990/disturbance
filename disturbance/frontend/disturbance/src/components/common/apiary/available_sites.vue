@@ -1708,7 +1708,7 @@
     }
 </script>
 
-<style lang="css" >
+<style lang="css" scoped>
     .map-wrapper {
         position: relative;
         padding: 0;
@@ -1911,6 +1911,6 @@
         z-index: 100000;
     }
     .dataTables_filter {
-        display: none;
+        display: none !important;
     }
 </style>
