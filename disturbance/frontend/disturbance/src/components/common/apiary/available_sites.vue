@@ -593,6 +593,7 @@
                     },
                     columns: vm.columns,
 
+                    dom: 'tip',
                     paging: false,
                     deferRender: true,
                     scrollY: 400,
