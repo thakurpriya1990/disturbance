@@ -110,7 +110,7 @@ export default {
         isRepeatable:Boolean,
         readonly:Boolean,
         docsUrl: String,
-        comment_boxes: Array,
+        comment_boxes: "",
     },
     components: {Comment, HelpText, HelpTextUrl, CommentBox, alert },
     data:function(){
