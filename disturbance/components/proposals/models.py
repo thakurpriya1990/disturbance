@@ -445,6 +445,7 @@ class Proposal(RevisionedMixin):
     # fee_invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
     fee_invoice_references = ArrayField(models.CharField(max_length=50, null=True, blank=True, default=''), null=True, default=fee_invoice_references_default)
     migrated = models.BooleanField(default=False)
+    shapefile_json = JSONField(blank=True, null=True)
 
     class Meta:
         app_label = 'disturbance'
@@ -979,12 +980,32 @@ class Proposal(RevisionedMixin):
     def log_user_action(self, action, request):
         return ProposalUserAction.log_action(self, action, request.user)
 
-    def validate_map_files(self):
+    def validate_map_files(self, request):
         import geopandas as gpd
-        shp_file=self.map_documents.last()
-        shp= gpd.read_file(shp_file)
-        shp_transform=shp.to_crs(crs=4326)
-        shp_json=shp_transform.to_json() 
+        try:
+            shp_file_qs=self.map_documents.filter(name__endswith='.shp')
+            #TODO : validate shapefile and all the other related filese are present
+            if shp_file_qs:
+                shp_file_obj= shp_file_qs[0]
+                #shp_file=shp_file_obj._file
+                shp= gpd.read_file(shp_file_obj.path)
+                #if shp.is_valid():
+                shp_transform=shp.to_crs(crs=4326)
+                shp_json=shp_transform.to_json()
+                #print(shp_json)
+                import json
+                if type(shp_json)==str:
+                    self.shapefile_json=json.loads(shp_json)
+                else:
+                    self.shapefile_json=shp_json
+                self.save(version_comment='New Shapefile JSON saved.')
+                # else:
+                #     raise ValidationError('Please upload a valid shapefile')
+            else:
+                raise ValidationError('Please upload a valid shapefile') 
+        except:
+            raise ValidationError('Please upload a valid shapefile')
+        
 
 
     def submit(self,request,viewset):

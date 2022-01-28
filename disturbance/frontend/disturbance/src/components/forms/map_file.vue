@@ -65,7 +65,7 @@ export default {
         fileTypes:{
             default:function () {
                 var file_types =  
-                    ".shp" ;
+                    ".dbf,.gdb,.gpx,.prj,.shp,.shx," ;
                 return file_types;
             }
         },

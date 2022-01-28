@@ -1861,6 +1861,28 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
+    @detail_route(methods=['post'])
+    @renderer_classes((JSONRenderer,))
+    def validate_map_files(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            if instance.apiary_group_application_type:
+                pass
+            else:
+                instance.validate_map_files(request)
+            instance.save()
+            serializer = self.get_serializer(instance)
+            return Response(serializer.data)
+            #return redirect(reverse('external'))
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            handle_validation_error(e)
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
     @detail_route(methods=['GET',])
     def assign_request_user(self, request, *args, **kwargs):
         try:

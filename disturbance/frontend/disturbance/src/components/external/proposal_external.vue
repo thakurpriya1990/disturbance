@@ -184,7 +184,7 @@
                 </div>
             </template>
             <template v-else>
-                <MapSection v-if="proposal" :proposal="proposal"/>
+                <MapSection v-if="proposal" :proposal="proposal" @refreshFromResponse="refreshFromResponse" ref="mapSection" />
                 <ProposalDisturbance v-if="proposal" :proposal="proposal" id="proposalStart" :showSections="sectionShow">
                 <NewApply v-if="proposal" :proposal="proposal"></NewApply>
                 <div>
@@ -259,6 +259,7 @@ export default {
         return {
             "proposal": null,
             "loading": [],
+            original_proposal: null,
             form: null,
             amendment_request: [],
             //isDataSaved: false,
@@ -1019,6 +1020,14 @@ export default {
             var formElement = $(postFormStr);
             $('body').append(formElement);
             $(formElement).submit();
+        },
+        refreshFromResponse:function(response){
+            let vm = this;
+            vm.original_proposal = helpers.copyObject(response.body);
+            vm.proposal = helpers.copyObject(response.body);
+            vm.$refs.mapSection.incrementComponentMapKey();
+            // vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
+            
         },
     },
     mounted: function() {

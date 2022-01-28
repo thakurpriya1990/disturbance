@@ -255,6 +255,7 @@ class ProposalSerializer(BaseProposalSerializer):
             'proposal_apiary',
             'apiary_temporary_use',
             'apiary_group_application_type',
+            'shapefile_json',
             # 'apiary_temporary_use_set',
         )
 

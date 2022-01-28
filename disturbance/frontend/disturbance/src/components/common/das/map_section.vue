@@ -11,6 +11,8 @@
                         :is_external="is_external"
                         :can_modify="true"
                         :display_at_time_of_submitted="true"
+                        :shapefile_json="shapefile_json"
+                        :key="componentMapKey"
                         
                     />
                 </div>
@@ -87,7 +89,7 @@
             return{
                 values:null,
                 pBody: 'pBody'+vm._uid,
-                
+                componentMapKey: 0,
             }
         },
         components: {
@@ -121,12 +123,36 @@
             },
             valid_button_disabled: function(){
                 return false;
+            },
+            shapefile_json: function(){
+                return (this.proposal && this.proposal.shapefile_json) ? this.proposal.shapefile_json : {};
+            },
+            proposal_id: function(){
+                return (this.proposal && this.proposal.id) ? this.proposal.id : null;
             }
         },
         methods:{
+             incrementComponentMapKey: function() {
+                this.componentMapKey++;
+            },
             validate_map_docs: function(){
-                console.log('here');
-            }
+                let vm = this;
+                vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/validate_map_files')).then(res=>{
+                    //vm.proposal = res.body;
+                    //vm.refreshFromResponse(res);
+                    vm.$emit('refreshFromResponse',res);
+                    },err=>{
+                    console.log(err);
+                    });
+                vm.$refs.component_map.updateShape();
+            },
+            refreshFromResponse:function(response){
+                let vm = this;
+                vm.original_proposal = helpers.copyObject(response.body);
+                vm.proposal = helpers.copyObject(response.body);
+                // vm.$refs.component_map.shapefile_json=helpers.copyObject(vm.proposal.shapefile_json);
+                //vm.$refs.component_map.updateShape();
+            },
             
         },
         created: function() {
