@@ -16,7 +16,7 @@
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label for="">Licence ProposalType</label>
+                                <label for="">Licence Proposal Type</label>
                                 <select class="form-control" v-model="filterTableProposalType" >
                                     <option value="All">All</option>
                                     <option v-for="(p, pid) in schemaProposalTypes" :value="p.value" v-bind:key="`purpose_${pid}`">{{p.label}}</option>
@@ -130,7 +130,7 @@ export default {
             filterTableProposalType: 'All',
             filterProposalTypeSection: 'All',
             // masterlist table
-            dtHeadersSchemaProposalType: ["ID", "Licence ProposalType", "Section Label", "Index", "Action"],
+            dtHeadersSchemaProposalType: ["ID", "Licence Proposal Type", "Section Label", "Index", "Action"],
             dtOptionsSchemaProposalType:{
                 language: {
                     processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
@@ -161,7 +161,7 @@ export default {
                         width: "20%",
                         searchable: false,
                         mRender:function (data,type,full) {
-                            return data.name
+                            return data.name_with_version
                         }
                     },
                     { 
@@ -256,7 +256,7 @@ export default {
 
             } else {
 
-                await self.$http.post(helpers.add_endpoint_json(api_endpoints.schema_proposal_type,data.id+'/save_purpose'),JSON.stringify(data),{
+                await self.$http.post(helpers.add_endpoint_json(api_endpoints.schema_proposal_type,data.id+'/save_proposal_type'),JSON.stringify(data),{
                         emulateJSON:true,
 
                 }).then((response)=>{
