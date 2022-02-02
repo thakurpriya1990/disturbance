@@ -110,6 +110,10 @@ class ProposalType(models.Model):
         return False
 
     @property
+    def name_with_version(self):
+        return '{} - v{}'.format(self.name, self.version)
+
+    @property
     def apiary_group_proposal_type(self):
         apiary = False
         if self.name and self.name in (
