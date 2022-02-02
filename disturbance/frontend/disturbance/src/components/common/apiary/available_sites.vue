@@ -176,6 +176,7 @@
                 hover: false,
                 mode: 'normal',
                 drawForMeasure: null,
+                measurementLayer: null,
                 style: MeasureStyles.defaultStyle,
                 segmentStyle: MeasureStyles.segmentStyle,
                 labelStyle: MeasureStyles.labelStyle,
