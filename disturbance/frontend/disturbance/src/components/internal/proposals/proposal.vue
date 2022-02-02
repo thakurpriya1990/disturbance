@@ -323,7 +323,7 @@
                                     <ProposalApiary v-if="proposal" :proposal="proposal" id="proposalStart" :showSections="sectionShow" ref="proposal_apiary" :is_external="false" :is_internal="true" :hasAssessorMode="hasAssessorMode"></ProposalApiary>
                                 </div>
                                 <div v-else>
-                                    <MapSection v-if="proposal" :proposal="proposal" @refreshFromResponse="refreshFromResponse" ref="mapSection" />
+                                    <MapSection v-if="proposal" :proposal="proposal" @refreshFromResponse="refreshFromResponse" ref="mapSection" :is_internal="true"/>
                                     <ProposalDisturbance 
                                     ref="proposal_disturbance" 
                                     form_width="inherit" 

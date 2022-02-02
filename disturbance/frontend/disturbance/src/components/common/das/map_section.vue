@@ -127,7 +127,10 @@
                 return "proposal_map_doc"
             },
             valid_button_disabled: function(){
-                return false;
+                if(this.is_external && this.proposal && !this.proposal.readonly){
+                    return false;
+                }
+                return true;
             },
             shapefile_json: function(){
                 return (this.proposal && this.proposal.shapefile_json) ? this.proposal.shapefile_json : {};

@@ -78,7 +78,7 @@ export default {
         label:String,
         id:String,
         isRequired:String,
-        comment_value: String,
+        //comment_value: String,
         assessor_readonly: Boolean,
         help_text:String,
         help_text_assessor:String,

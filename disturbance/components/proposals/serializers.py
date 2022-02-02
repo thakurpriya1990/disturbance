@@ -436,6 +436,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'apiary_temporary_use',
                 'requirements_completed',
                 'reversion_history',
+                'shapefile_json'
                 )
         read_only_fields=('documents','requirements')
 
