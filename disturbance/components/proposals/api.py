@@ -1587,13 +1587,19 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 if not _file:
                     _file = request.FILES.get('_file')
 
-                document = instance.map_documents.get_or_create(input_name=section, name=filename)[0]
-                path = default_storage.save('proposals/{}/documents/map_docs/{}'.format(proposal_id, filename), ContentFile(_file.read()))
+                #Check if the file with same extension already exists so not to allow multiple shapefiles with same extension.
+                fname, fext=os.path.splitext(filename)
+                doc_qs=instance.map_documents.filter(name__endswith=fext, hidden=False)
+                if doc_qs:
+                    raise serializers.ValidationError('Document with extension {} already exists.'.format(fext))
+                else:
+                    document = instance.map_documents.get_or_create(input_name=section, name=filename)[0]
+                    path = default_storage.save('proposals/{}/documents/map_docs/{}'.format(proposal_id, filename), ContentFile(_file.read()))
 
-                document._file = path
-                document.save()
-                instance.save(version_comment='File Added: {}'.format(filename)) # to allow revision to be added to reversion history
-                #instance.current_proposal.save(version_comment='File Added: {}'.format(filename)) # to allow revision to be added to reversion history
+                    document._file = path
+                    document.save()
+                    instance.save(version_comment='File Added: {}'.format(filename)) # to allow revision to be added to reversion history
+                    #instance.current_proposal.save(version_comment='File Added: {}'.format(filename)) # to allow revision to be added to reversion history
 
             return  Response( [dict(input_name=d.input_name, name=d.name,file=d._file.url, id=d.id, can_delete=d.can_delete, can_hide=d.can_hide) for d in instance.map_documents.filter(input_name=section, hidden=False) if d._file] )
 

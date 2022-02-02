@@ -19,6 +19,7 @@
                 <div>  
                      <File :name="map_doc_name" label="Upload Shapefile" :id="map_doc_id"  :isRepeatable="true" :readonly="proposal.readonly"   :proposal_id="proposal.id" :isRequired="true"></File>
                 </div>
+                <alert :show.sync="showError" type="danger" style="color: red"><strong>{{errorString}}</strong></alert>
                 <div>
                     <div class="row">
                         <div class="col-sm-2 pull-right">
@@ -44,6 +45,7 @@
     import ComponentMap from '@/components/common/das/das_component_map.vue'
     import uuid from 'uuid'
     import { api_endpoints, helpers }from '@/utils/hooks'
+    import alert from '@vue-utils/alert.vue'
     export default {
         name: 'DASMapSection',
         props:{
@@ -90,6 +92,8 @@
                 values:null,
                 pBody: 'pBody'+vm._uid,
                 componentMapKey: 0,
+                showError:false,
+                errorString:'',
             }
         },
         components: {
@@ -97,6 +101,7 @@
             FormSection,
             ComponentMap,
             File,
+            alert,
         },
         computed:{
             das_sections_classname: function() {
@@ -137,12 +142,17 @@
             },
             validate_map_docs: function(){
                 let vm = this;
+                vm.showError=false;
+                vm.errorString='';
+                
                 vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/validate_map_files')).then(res=>{
                     //vm.proposal = res.body;
                     //vm.refreshFromResponse(res);
                     vm.$emit('refreshFromResponse',res);
                     },err=>{
                     console.log(err);
+                    vm.showError=true;
+                    vm.errorString=helpers.apiVueResourceError(err);
                     });
                 vm.$refs.component_map.updateShape();
             },
