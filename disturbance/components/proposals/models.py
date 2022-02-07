@@ -5148,6 +5148,60 @@ class SectionQuestion(models.Model):
 # Generate JSON schema models start
 # --------------------------------------------------------------------------------------
 
+class SpatialQueryQuestion(models.Model):
+    OVERLAPPING = 'Overlapping'
+    OUTSIDE = 'Outside'
+    HOW_CHOICES=(
+        (OVERLAPPING, 'Overlapping'),
+        (OUTSIDE, 'Outside'),
+    )
+                         
+    ALL = 'All'
+    REGION_CHOICES=(
+        (ALL, 'All'),
+    )
+
+    EQUALS = 'Equals'
+    GREATERTHAN = 'GreaterThan'
+    LESSTHAN = 'LessThan'
+    ISNULL = 'IsNull'
+    ISNOTNULL = 'IsNotNull'
+    OPERATOR_CHOICES=(
+        (EQUALS, 'Equals'),
+        (GREATERTHAN, 'Greather than'),
+        (LESSTHAN, 'Less than'),
+        (ISNULL, 'Is null'),
+        (ISNOTNULL, 'Is not null'),
+    )
+                         
+    question = models.ForeignKey(MasterlistQuestion, related_name='questions', on_delete=models.PROTECT)
+    answer_mlq = models.CharField('Answer (Masterlist Question)', max_length=100)
+    layer_name = models.CharField(max_length=100)
+    layer_url = models.CharField(max_length=512, blank=True, null=True)
+    expiry = models.DateField('Expiry Date', blank=True, null=True)
+    visible_to_proponent = models.BooleanField(default=False)
+    buffer = models.PositiveIntegerField(blank=True, null=True)
+    how = models.CharField('Overlapping/Outside', max_length=40, choices=HOW_CHOICES, default=HOW_CHOICES[0][0])
+    column_name = models.CharField('Name of layer attribute/field', max_length=100)
+    operator = models.CharField('Operator', max_length=40, choices=OPERATOR_CHOICES, default=OPERATOR_CHOICES[0][0])
+    value = models.CharField(max_length=100)
+
+    prefix_answer = models.TextField(blank=True, null=True)
+    no_polygons_proponent = models.IntegerField('No. of polygons to process (Proponent)', default=-1)
+    answer = models.TextField(blank=True, null=True)
+    prefix_info = models.CharField(max_length=100, blank=True, null=True)
+    no_polygons_assessor = models.IntegerField('No. of polygons to process (Assessor)', default=-1)
+    assessor_info = models.TextField(blank=True, null=True)
+
+    regions = models.CharField('Regions', max_length=40, choices=REGION_CHOICES, default=REGION_CHOICES[0][0])
+                                        
+    class Meta:
+        app_label = 'disturbance'
+
+    def __str__(self):
+        return '{} - {}'.format(self.question.id, self.layer_name)
+
+
 import reversion
 #reversion.register(Proposal, follow=['requirements', 'documents', 'compliances', 'referrals', 'approvals', 'proposal_apiary'])
 reversion.register(Proposal, follow=['proposal_apiary'])
