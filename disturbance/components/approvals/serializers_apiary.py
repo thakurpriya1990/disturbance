@@ -14,6 +14,8 @@ class ApiarySiteOnApprovalMinimalGeometrySerializer(GeoFeatureModelSerializer):
     is_vacant = serializers.BooleanField(source='apiary_site__is_vacant')
     site_guid = serializers.CharField(source='apiary_site__site_guid')
     #licensed_site = serializers.BooleanField(source='apiary_site__licensed_site')
+    lodgement_number = serializers.CharField(source='approval__lodgement_number')
+    approval_id = serializers.IntegerField(source='approval__id')
 
     class Meta:
         model = ApiarySiteOnApproval
@@ -26,6 +28,8 @@ class ApiarySiteOnApprovalMinimalGeometrySerializer(GeoFeatureModelSerializer):
             'status',
             'site_guid',
             'available',
+            'lodgement_number',
+            'approval_id',
             # 'licensed_site',
             # 'batch_no',
             # 'approval_cpc_date',
@@ -51,6 +55,7 @@ class ApiarySiteOnApprovalMinGeometrySerializer(GeoFeatureModelSerializer):
     previous_site_holder_or_applicant = serializers.SerializerMethodField()
     is_vacant = serializers.BooleanField(source='apiary_site.is_vacant')
     stable_coords = serializers.SerializerMethodField()
+    approval_lodgement_number = serializers.CharField(source='approval.lodgement_number')
 
     class Meta:
         model = ApiarySiteOnApproval
@@ -65,6 +70,7 @@ class ApiarySiteOnApprovalMinGeometrySerializer(GeoFeatureModelSerializer):
             'is_vacant',
             'stable_coords',
             'previous_site_holder_or_applicant',
+            'approval_lodgement_number',
         )
 
     def get_stable_coords(self, obj):

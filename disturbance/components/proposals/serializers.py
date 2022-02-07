@@ -1132,7 +1132,7 @@ class DTSchemaQuestionSerializer(SchemaQuestionSerializer):
         return obj.question_id
 
     def get_proposal_type(self, obj):
-        return obj.section.proposal_type.name
+        return obj.section.proposal_type.name_with_version
 
     def get_options(self, obj):
         options = obj.get_options()
@@ -1152,6 +1152,18 @@ class ProposalTypeSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProposalType
         fields = '__all__'
+
+class ProposalTypeSchemaSerializer(serializers.ModelSerializer):
+    '''
+    Serializer for Licence ProposalType.
+    '''
+    class Meta:
+        model = ProposalType
+        fields = (
+            'id',
+            'name',
+            'name_with_version'
+        )
 
 
 class SchemaProposalTypeSerializer(serializers.ModelSerializer):
@@ -1188,4 +1200,4 @@ class DTSchemaProposalTypeSerializer(SchemaProposalTypeSerializer):
         datatables_always_serialize = fields
 
     def get_proposal_type(self, obj):
-        return ProposalTypeSerializer(obj.proposal_type).data
+        return ProposalTypeSchemaSerializer(obj.proposal_type).data

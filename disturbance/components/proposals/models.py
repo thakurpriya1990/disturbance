@@ -114,6 +114,10 @@ class ProposalType(models.Model):
         return False
 
     @property
+    def name_with_version(self):
+        return '{} - v{}'.format(self.name, self.version)
+
+    @property
     def apiary_group_proposal_type(self):
         apiary = False
         if self.name and self.name in (
@@ -3682,8 +3686,6 @@ class ProposalApiary(RevisionedMixin):
                 raise
 
     def _update_apiary_sites(self, approval, sites_approved, request):
-
-
         for site in request.data.get('apiary_sites'):
             # During final approval - Approver may have updated these values
             if not site['properties'].get('licensed_site'):

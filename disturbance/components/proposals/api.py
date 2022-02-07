@@ -629,6 +629,7 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
 
     @list_route(methods=['GET', ])
     @basic_exception_handler
+    @query_debugger
     def list_apiary_sites_vacant(self, request):
         search_text = request.query_params.get('search_text', '')
         qs_vacant_site_proposal, qs_vacant_site_approval = get_qs_vacant_site(search_text)
@@ -3214,7 +3215,7 @@ class SchemaQuestionFilterBackend(DatatablesFilterBackend):
         # ).filter_queryset(request, queryset, view).distinct()
 
         search_text = request.GET.get('search[value]')
-        purpose = request.GET.get('licence_purpose_id')
+        proposal_type = request.GET.get('proposal_type_id')
         section = request.GET.get('section_id')
         group = request.GET.get('group_id')
 
@@ -3232,14 +3233,14 @@ class SchemaQuestionFilterBackend(DatatablesFilterBackend):
                     id__in=search_text_question_ids
                 ).distinct()
 
-            purpose = purpose.lower() if purpose else 'all'
-            if purpose != 'all':
-                purpose_ids = SectionQuestion.objects.values(
+            proposal_type = proposal_type.lower() if proposal_type else 'all'
+            if proposal_type != 'all':
+                proposal_type_ids = SectionQuestion.objects.values(
                     'id'
                 ).filter(
-                    section__licence_purpose_id=int(purpose)
+                    section__proposal_type_id=int(proposal_type)
                 )
-                queryset = queryset.filter(id__in=purpose_ids)
+                queryset = queryset.filter(id__in=proposal_type_ids)
 
             section = section.lower() if section else 'all'
             if section != 'all':
@@ -3474,7 +3475,7 @@ class SchemaQuestionViewSet(viewsets.ModelViewSet):
             qs = ProposalType.objects.filter().exclude(sections=None)
             proposal_types = [
                 {
-                    'label': p.name,
+                    'label': p.name_with_version,
                     'value': p.id
                 } for p in qs
             ]
@@ -3695,7 +3696,7 @@ class SchemaProposalTypeViewSet(viewsets.ModelViewSet):
             sections = ProposalType.objects.all()
             proposal_types = [
                 {
-                    'label': s.name,
+                    'label': s.name_with_version,
                     'value': s.id,
                 } for s in sections if not s.apiary_group_proposal_type and s.latest
             ]
