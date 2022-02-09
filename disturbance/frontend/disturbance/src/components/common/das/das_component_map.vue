@@ -363,7 +363,7 @@
                     })
                 });
 
-                if(vm.shapefile_json){
+                if(vm.shapefile_json && Object.keys(vm.shapefile_json).length>0){
                     vm.shapeVectorSource = new VectorSource({
                         features: new GeoJSON().readFeatures(vm.shapefile_json),
                     });
@@ -691,7 +691,7 @@
                 let vm = this
                 vm.shapeVectorSource=null;
                 vm.shapeVectorLayer=null;
-                if(vm.shapefile_json){
+                if(vm.shapefile_json && Object.keys(vm.shapefile_json).lenght>0){
                     console.log(vm.shapefile_json);
                     vm.shapeVectorSource = new VectorSource({
                         features: new GeoJSON().readFeatures(vm.shapefile_json),

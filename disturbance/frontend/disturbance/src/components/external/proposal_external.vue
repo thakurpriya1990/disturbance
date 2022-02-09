@@ -184,7 +184,7 @@
                 </div>
             </template>
             <template v-else>
-                <MapSection v-if="proposal" :proposal="proposal" @refreshFromResponse="refreshFromResponse" ref="mapSection" />
+                <MapSection v-if="proposal" :proposal="proposal" @refreshFromResponse="refreshFromResponse" ref="mapSection" :is_external="true" />
                 <ProposalDisturbance v-if="proposal" :proposal="proposal" id="proposalStart" :showSections="sectionShow">
                 <NewApply v-if="proposal" :proposal="proposal"></NewApply>
                 <div>
