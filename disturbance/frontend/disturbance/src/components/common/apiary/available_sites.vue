@@ -176,6 +176,7 @@
                 hover: false,
                 mode: 'normal',
                 drawForMeasure: null,
+                measurementLayer: null,
                 style: MeasureStyles.defaultStyle,
                 segmentStyle: MeasureStyles.segmentStyle,
                 labelStyle: MeasureStyles.labelStyle,
@@ -200,9 +201,10 @@
                         'id': 'vacant',
                         'text': 'Vacant',
                         'show': default_show_statuses.includes('vacant'),
+                        'shown': false,
                         'loaded': false,
                         'loaded_for_table': false,  // Once all the data loaded into the table, what we do is to show/hide, never needs to load data again.
-                        'map_updated': false,
+                        //'map_updated': false,
                         'api': 'list_apiary_sites_vacant',
                         'features_and_rows': [],
                         'ajax_obj': null,
@@ -212,9 +214,10 @@
                         'id': 'pending',
                         'text': 'Pending',
                         'show': default_show_statuses.includes('pending'),
+                        'shown': false,
                         'loaded': false,
                         'loaded_for_table': false,
-                        'map_updated': false,
+                        //'map_updated': false,
                         'api': 'list_apiary_sites_pending',
                         'features_and_rows': [],
                         'ajax_obj': null,
@@ -223,9 +226,10 @@
                         'id': 'denied',
                         'text': 'Denied',
                         'show': default_show_statuses.includes('denied'),
+                        'shown': false,
                         'loaded': false,
                         'loaded_for_table': false,
-                        'map_updated': false,
+                        //'map_updated': false,
                         'api': 'list_apiary_sites_denied',
                         'features_and_rows': [],
                         'ajax_obj': null,
@@ -235,9 +239,10 @@
                         'id': 'current',
                         'text': 'Current',
                         'show': default_show_statuses.includes('current'),
+                        'shown': false,
                         'loaded': false,
                         'loaded_for_table': false,
-                        'map_updated': false,
+                        //'map_updated': false,
                         'api': 'list_apiary_sites_current',
                         'features_and_rows': [],
                         'ajax_obj': null,
@@ -246,9 +251,10 @@
                                 'id': 'available',
                                 'text': 'Available',
                                 'show': default_show_availabilities.includes('available'),
+                                'shown': false,
                                 'loaded': false,
                                 'loaded_for_table': false,
-                                'map_updated': false,
+                                //'map_updated': false,
                                 'api': 'list_apiary_sites_current_available',
                                 'features_and_rows': [],
                                 'ajax_obj': null,
@@ -257,9 +263,10 @@
                                 'id': 'unavailable',
                                 'text': 'Unavailable',
                                 'show': default_show_availabilities.includes('unavailable'),
+                                'shown': false,
                                 'loaded': false,
                                 'loaded_for_table': false,
-                                'map_updated': false,
+                                //'map_updated': false,
                                 'api': 'list_apiary_sites_current_unavailable',
                                 'features_and_rows': [],
                                 'ajax_obj': null,
@@ -270,9 +277,10 @@
                         'id': 'not_to_be_reissued',
                         'text': 'Not to be reissued',
                         'show': default_show_statuses.includes('not_to_be_reissued'),
+                        'shown': false,
                         'loaded': false,
                         'loaded_for_table': false,
-                        'map_updated': false,
+                        //'map_updated': false,
                         'api': 'list_apiary_sites_not_to_be_reissued',
                         'features_and_rows': [],
                         'ajax_obj': null,
@@ -281,9 +289,10 @@
                         'id': 'suspended',
                         'text': 'Suspended',
                         'show': default_show_statuses.includes('suspended'),
+                        'shown': false,
                         'loaded': false,
                         'loaded_for_table': false,
-                        'map_updated': false,
+                        //'map_updated': false,
                         'api': 'list_apiary_sites_suspended',
                         'features_and_rows': [],
                         'ajax_obj': null,
@@ -386,12 +395,12 @@
                     }
                     site_status.features_and_rows = []
                     site_status.loaded = false
-                    site_status.map_updated = false
+                    //site_status.map_updated = false
                     if (site_status.options){
                         for (let option of site_status.options){
                             option.features_and_rows = []
                             option.loaded = false
-                            option.map_updated = false
+                            //option.map_updated = false
                         }
                     }
                 }
@@ -585,6 +594,7 @@
                     },
                     columns: vm.columns,
 
+                    dom: 'tip',
                     paging: false,
                     deferRender: true,
                     scrollY: 400,
@@ -594,114 +604,90 @@
             },
         },
         methods: {
-            updateStatusShowHideInstructions: function(status_option_changed){
-                // Sync select2 selections with statuses array
-                console.log('in updateStatusShowHideInstructions: ' + status_option_changed.id)
+            updateShowStatusesForTable: function(){
                 let vm = this
-                let statuses_selected = $(vm.$refs.filterStatus).find(':selected')
-                console.log(statuses_selected)
-
-                if (statuses_selected.length === 1 && vm.num_of_status_selection === 0){
-                    console.log('0 ---> 1')
-                    // 0 selection ---> 1 selection
-                    // Hide all except the one selected
-                    for (let site_status of vm.show_hide_instructions){
-                        if (site_status.id === status_option_changed.id){
-                            // Do nothing because this site_status is already shown
-                        } else {
-                            console.log('Hide: ' + site_status.id)
-                            site_status.show = false
-                            site_status.map_updated = false
-                        }
-                    }
-                } else if (statuses_selected.length === 0){
-                    console.log('1 ---> 0')
-                    // 1 selection ---> 0 selection
-                    // show all
-                    for (let site_status of vm.show_hide_instructions){
-                        if (site_status.id === status_option_changed.id){
-                            // Do nothing because this site_status is already shown
-                        } else {
-                            console.log('Show: ' + site_status.id)
-                            site_status.show = true
-                            site_status.map_updated = false
-                        }
-                    }
-                } else {
-                    console.log('more than 1')
-                    let item_to_be_changed = vm.show_hide_instructions.filter(x => { return x.id === status_option_changed.id })[0]
-                    item_to_be_changed.map_updated = false
-                    item_to_be_changed.show = status_option_changed.selected
-
-                    let text = (item_to_be_changed.show)?'Show: ':'Hide: '
-                    console.log(text + item_to_be_changed.id)
-                }
-                // Store the number of selection at UI
-                vm.num_of_status_selection = statuses_selected.length
-
-                // Update show_statuses_for_table
-                console.log('update show_statuses_for_table')
-                console.log(vm.show_hide_instructions)
                 vm.show_statuses_for_table = []
                 for (let site_status of vm.show_hide_instructions){
                     if (site_status.show){
-                        console.log(site_status.id)
                         vm.show_statuses_for_table.push(site_status.id)
                     }
                 }
-                console.log(vm.show_statuses_for_table)
             },
-            updateAvailabilityShowHideInstructions: function(availability_option_changed){
-                console.log('in updateAvailabilityShowHideInstructions()')
-
-                // Sync select2 selections with availability array
+            updateShowAvailabilitiesForTable: function(current_status_item){
                 let vm = this
-                let current_status_item = vm.show_hide_instructions.filter(x => { return x.id === 'current' })[0]  // We just interested in the 'current' status
-                let availabilities_selected = $(vm.$refs.filterAvailability).find(':selected')
-                let availabilities_selected_cached = current_status_item.options.filter(x => { return x.show })
-
-                if (availabilities_selected.length === 1 && vm.num_of_availability_selection === 0){
-                    console.log('0 ---> 1')
-                    // 0 selection ---> 1 selection
-                    // Hide all except the one selected
-                    for (let option of current_status_item.options){
-                        if (option.id === availability_option_changed.id){
-                            // Do nothing because this site_status is already shown
-                        } else {
-                            console.log('Hide: ' + option.id)
-                            option.show = false
-                            option.map_updated = false
-                        }
-                    }
-                } else if (availabilities_selected.length === 0){
-                    console.log('1 ---> 0')
-                    // 1 selection ---> 0 selection
-                    // show all
-                    for (let option of current_status_item.options){
-                        if (option.id === availability_option_changed.id){
-                            // Do nothing because this site_status is already shown
-                        } else {
-                            console.log('Show: ' + option.id)
-                            option.show = true
-                            option.map_updated = false
-                        }
-                    }
-                } else {
-                    console.log('more than 1')
-                    let item_to_be_changed = current_status_item.options.filter(x => { return x.id === availability_option_changed.id })[0]
-                    item_to_be_changed.map_updated = false
-                    item_to_be_changed.show = availability_option_changed.selected
-                }
-                // Store the number of selection at UI
-                vm.num_of_availability_selection = availabilities_selected.length
-
-                // Update show_availabilities_for_table
                 vm.show_availabilities_for_table = []
                 for (let option of current_status_item.options){
                     if (option.show){
                         vm.show_availabilities_for_table.push(option.id)
                     }
                 }
+            },
+            updateAvailabilityInstructions: function(availabilities_currently_selected, options){
+                let vm = this
+                if (availabilities_currently_selected.length === 0){
+                    for (let option of options){
+                        option.show = true
+                    }
+                } else {
+                    for (let option of options){
+                        if (availabilities_currently_selected.includes(option.id)){
+                            console.log('Show: ' + option.id)
+                            option.show = true
+                        } else {
+                            console.log('Hide: ' + option.id)
+                            option.show = false
+                        }
+                    }
+                }
+            },
+            updateInstructions: function(){
+                let vm = this
+                let statuses_currently_selected = $(vm.$refs.filterStatus).select2('data').map(x => { return x.id })
+                let availabilities_currently_selected = $(vm.$refs.filterAvailability).select2('data').map(x => { return x.id })
+                let current_status_item = vm.show_hide_instructions.filter(x => { return x.id === 'current' })[0]  // We just interested in the 'current' status
+
+                if (availabilities_currently_selected.length === 0){
+                    // No availabilities selected
+                    if (statuses_currently_selected.length === 0){
+                        for (let site_status of vm.show_hide_instructions){
+                            console.log('Show: ' + site_status.id)
+                            site_status.show = true
+                        }
+                    } else {
+                        for (let site_status of vm.show_hide_instructions){
+                            if (statuses_currently_selected.includes(site_status.id)){
+                                console.log('Show: ' + site_status.id)
+                                site_status.show = true
+                            } else {
+                                console.log('Hide: ' + site_status.id)
+                                site_status.show = false
+                            }
+                        }
+                    }
+                } else {
+                    // Availability selected
+                    for (let site_status of vm.show_hide_instructions){
+                        if (site_status.id === 'current'){
+                            if (statuses_currently_selected.includes(site_status.id)){
+                                console.log('Show: ' + site_status.id)
+                                site_status.show = true
+                            } else {
+                                console.log('Hide: ' + site_status.id)
+                                site_status.show = false
+                            }
+                        } else {
+                            console.log('Hide: ' + site_status.id)
+                            site_status.show = false
+                        }
+                    }
+                }
+                vm.updateAvailabilityInstructions(availabilities_currently_selected, current_status_item.options)
+
+                // For table
+                vm.updateShowStatusesForTable()
+                vm.updateShowAvailabilitiesForTable(current_status_item)
+
+                console.log(vm.show_hide_instructions)
             },
             toggleFilterSearchRow: function(action){
                 // Attach/Detach filter-search elements to/from the map
@@ -728,12 +714,12 @@
                         data: vm.filter_status_options,
                     }).
                     on('select2:select', function(e){
-                        vm.updateStatusShowHideInstructions(e.params.data)
+                        vm.updateInstructions()
                         vm.showHideApiarySites()
                     }).
                     on('select2:unselect', function(e){
                         console.log('unselect')
-                        vm.updateStatusShowHideInstructions(e.params.data)
+                        vm.updateInstructions()
                         vm.showHideApiarySites()
                     })
 
@@ -745,11 +731,11 @@
                         data: vm.filter_availability_options,
                     }).
                     on("select2:select",function (e) {
-                        vm.updateAvailabilityShowHideInstructions(e.params.data)
+                        vm.updateInstructions()
                         vm.showHideApiarySites()
                     }).
                     on("select2:unselect",function (e) {
-                        vm.updateAvailabilityShowHideInstructions(e.params.data)
+                        vm.updateInstructions()
                         vm.showHideApiarySites()
                     })
                     vm.select2Applied = true
@@ -1322,8 +1308,11 @@
             },
             showPopup: function(feature){
                 if (feature){
+                    console.log(feature)
                     let geometry = feature.getGeometry();
                     let coord = geometry.getCoordinates();
+                    let approval_link = (feature.get('approval_id') && this.is_internal) ? 
+                        '<div><a href="/internal/approval/' + feature.get('approval_id') + '">' + feature.get('lodgement_number') + '</a></div>' : '' 
                     let svg_hexa = "<svg xmlns='http://www.w3.org/2000/svg' version='1.1' height='20' width='15'>" +
                     '<g transform="translate(0, 4) scale(0.9)"><path d="M 14.3395,12.64426 7.5609998,16.557828 0.78249996,12.64426 0.7825,4.8171222 7.5609999,0.90355349 14.3395,4.8171223 Z" id="path837" style="fill:none;stroke:#ffffff;stroke-width:1.565;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" /></g></svg>'
                     //let status_str = feature.get('is_vacant') ? getDisplayNameFromStatus(feature.get('status')) + ' (vacant)' : getDisplayNameFromStatus(feature.get('status'))
@@ -1334,6 +1323,7 @@
                                           '<div>' + status_str + '</div>' +
                                           '<div>' + getDisplayNameOfCategory(feature.get('site_category')) + '</div>' +
                                           '<div>' + feature['values_']['geometry']['flatCoordinates'] + '</div>' +
+                                          approval_link +
                                       '</div>' +
                                   '</div>'
                     this.content_element.innerHTML = content;
@@ -1480,7 +1470,8 @@
                         // Options (sub categories) exist, which means this site_status is 'current' (for current implementation)
                         for (let option of site_status.options){
                             //if (option.map_updated){
-                            if (site_status.map_updated && option.map_updated){
+                            //if (site_status.map_updated && option.map_updated){
+                            if (site_status.show === site_status.shown && option.show === option.shown){
                                 console.log('continue: ' + option.id)
                                 continue  // All the apiary sites in this option have been already updated on the map.  Go to the next option
                             }
@@ -1555,12 +1546,15 @@
                                     }
                                 }
                             }
-                            option.map_updated = true
+                            //option.map_updated = true
+                            option.shown = option.show
                         }
-                        site_status.map_updated = true
+                        //site_status.map_updated = true
+                        site_status.shown = site_status.show
                     } else {
                         // No sub options
-                        if (site_status.map_updated){
+                        //if (site_status.map_updated){
+                        if (site_status.show == site_status.shown){
                             console.log('continue: ' + site_status.id)
                             continue  // All the apiary sites in this site_status have been already updated on the map.  Go to the next status
                         }
@@ -1644,7 +1638,8 @@
                                 }
                             }
                         }
-                        site_status.map_updated = true
+                        //site_status.map_updated = true
+                        site_status.shown = site_status.show
                     }
                 } // END: loop for show_hide_instructions
             }, // END: showHideApiarySites()
@@ -1665,31 +1660,57 @@
             vm.applySelect2()
             vm.showHideApiarySites()
             if($.fn.dataTable.ext.search.length === 0){
+                // Adding custom search function.  This is called per row
                 $.fn.dataTable.ext.search.push(function(settings, searchData, index, rowData, counter){
-                    if (rowData.properties.status === 'current'){
-                        if (vm.show_statuses_for_table.includes('current')){
-                            if(vm.show_availabilities_for_table.includes('available') && rowData.properties.available){
-                                return true
-                            } else if(vm.show_availabilities_for_table.includes('unavailable') && !rowData.properties.available){
-                                return true
+                    if (rowData.properties.is_vacant){
+                        return vm.show_statuses_for_table.includes('vacant')
+                    } else {
+                        if (rowData.properties.status === 'current'){
+                            // When apiary_site is current
+                            if (vm.show_statuses_for_table.includes('current')){
+                                // 'current' is selected in the filter
+                                if(vm.show_availabilities_for_table.includes('available') && rowData.properties.available){
+                                    return true
+                                } else if(vm.show_availabilities_for_table.includes('unavailable') && !rowData.properties.available){
+                                    return true
+                                } else {
+                                    return false
+                                }
                             } else {
                                 return false
                             }
                         } else {
-                            return false
+                            return vm.show_statuses_for_table.includes(rowData.properties.status)
                         }
-                    } else if (rowData.properties.is_vacant){
-                        return vm.show_statuses_for_table.includes('vacant')
-                    } else {
-                        return vm.show_statuses_for_table.includes(rowData.properties.status)
                     }
+
+                    // Per row (per apiary_site)
+                    //if (rowData.properties.status === 'current'){
+                    //    // When apiary_site is current
+                    //    if (vm.show_statuses_for_table.includes('current')){
+                    //        // 'current' is selected in the filter
+                    //        if(vm.show_availabilities_for_table.includes('available') && rowData.properties.available){
+                    //            return true
+                    //        } else if(vm.show_availabilities_for_table.includes('unavailable') && !rowData.properties.available){
+                    //            return true
+                    //        } else {
+                    //            return false
+                    //        }
+                    //    } else {
+                    //        return false
+                    //    }
+                    //} else if (rowData.properties.is_vacant){
+                    //    return vm.show_statuses_for_table.includes('vacant')
+                    //} else {
+                    //    return vm.show_statuses_for_table.includes(rowData.properties.status)
+                    //}
                 })
             }
         },
     }
 </script>
 
-<style lang="css" >
+<style lang="css" scoped>
     .map-wrapper {
         position: relative;
         padding: 0;
@@ -1892,6 +1913,6 @@
         z-index: 100000;
     }
     .dataTables_filter {
-        display: none;
+        display: none !important;
     }
 </style>
