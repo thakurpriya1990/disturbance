@@ -5176,8 +5176,23 @@ class SpatialQueryQuestion(models.Model):
         (ISNOTNULL, 'Is not null'),
     )
                          
-    question = models.ForeignKey(MasterlistQuestion, related_name='questions', on_delete=models.PROTECT)
-    answer_mlq = models.CharField('Answer (Masterlist Question)', max_length=100)
+    question_option = models.ForeignKey(QuestionOption, related_name='options', on_delete=models.PROTECT)
+    question = ChainedManyToManyField(
+        MasterlistQuestion,
+        chained_field="question_option",
+        chained_model_field="option",
+    )
+
+#    question = models.ForeignKey(MasterlistQuestion, related_name='questions', on_delete=models.PROTECT)
+#    answer_option = ChainedManyToManyField(
+#        #MasterlistQuestion,
+#        QuestionOption,
+#        #horizontal=True,
+#        #verbose_name='writer',
+#        chained_field="question",
+#        chained_model_field="option",
+#    )
+    #answer_mlq = models.CharField('Answer (Masterlist Question)', max_length=100)
     layer_name = models.CharField(max_length=100)
     layer_url = models.CharField(max_length=512, blank=True, null=True)
     expiry = models.DateField('Expiry Date', blank=True, null=True)

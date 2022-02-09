@@ -396,4 +396,12 @@ class SectionQuestionAdmin(admin.ModelAdmin):
     #list_display = ['section', 'question','parent_question',]
     form = forms.SectionQuestionAdminForm
 
-    
+@admin.register(models.SpatialQueryQuestion)
+class SpatialQueryQuestionAdmin(admin.ModelAdmin):
+    list_display = ['question', 'layer_name','how', 'column_name','operator', 'value']
+    #list_display = ['question','answer_mlq', 'layer_name','how', 'column_name','operator', 'value']
+    #list_display = ['section', 'question','parent_question',]
+    #form = forms.SectionQuestionAdminForm
+    #filter_horizontal = ('answer_mlq',)
+
+   
