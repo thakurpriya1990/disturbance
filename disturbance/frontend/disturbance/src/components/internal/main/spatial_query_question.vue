@@ -1,21 +1,21 @@
 <template lang="html">
-  <div id="schemaMasterlist">
+  <div id="spatialQueryQuestion">
 
     <div class="row">
         <div class="col-sm-12">
             <div class="panel panel-default">
                 <div class="panel-heading">
-                    <h3 class="panel-title">Schema Masterlist Questions
-                        <a :href="'#'+pMasterListBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="pMasterListBody">
+                    <h3 class="panel-title">Spatial Query Questions
+                        <a :href="'#'+pSpatialQueryQuestionBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="pSpatialQueryQuestionBody">
                             <span class="glyphicon glyphicon-chevron-up pull-right "></span>
                         </a>
                     </h3>
                 </div>
-                <div class="panel-body collapse in" :id="pMasterListBody">
+                <div class="panel-body collapse in" :id="pSpatialQueryQuestionBody">
 
                     <div class="row">
                         <div class="col-md-12">
-                            <button class="btn btn-primary pull-right" @click.prevent="addTableEntry()" name="add-masterlist">New Question</button>
+                            <button class="btn btn-primary pull-right" @click.prevent="addTableEntry()" name="add-spatialquery">New Question</button>
                         </div>
                     </div>
                     <div class="row"><br/></div> 
@@ -23,10 +23,10 @@
                         <div class="col-md-12">
                             <div class="form-group">
 
-                                <datatable ref="schema_masterlist_table"
-                                    :id="schema_masterlist_id" 
-                                    :dtOptions="dtOptionsSchemaMasterlist"
-                                    :dtHeaders="dtHeadersSchemaMasterlist" 
+                                <datatable ref="spatial_query_question_table"
+                                    :id="spatial_query_question_id" 
+                                    :dtOptions="dtOptionsSpatialQueryQuestion"
+                                    :dtHeaders="dtHeadersSpatialQueryQuestion" 
                                 />
 
                             </div>
@@ -48,65 +48,183 @@
                 </ul>
             </div>
             <div>
-                <form class="form-horizontal" name="schema_masterlist">
+                <form class="form-horizontal" name="spatial_query_question">
 
                     <div class="row">
                         <div class="col-md-3">
                             <label class="control-label pull-left" >Question</label>
                         </div>
                         <div class="col-md-9">
-                            <textarea class="form-control" name="question" v-model="masterlist.question"></textarea>
+                            <input class="form-control" name="question" v-model="spatialquery.question"></input>
                         </div>
                     </div>
+
                     <div class="row"><div class="col-md-12" >&nbsp;</div></div>
                     <div class="row">
                         <div class="col-md-3">
-                            <label class="control-label pull-left" >Answer Type</label>
+                            <label class="control-label pull-left" >Answer</label>
                         </div>
-                        <div class="col-md-6">
-                            <select class="form-control" ref="select_answer_type" name="select-answer-type" v-model="masterlist.answer_type">
-                                <option v-for="a in answerTypes" :value="a.value" >{{a.label}}</option>
+                        <div class="col-md-9">
+                            <input class="form-control" name="answer_mlq" v-model="spatialquery.answer_mlq"></input>
+                        </div>
+                    </div>
+
+                    <div class="row"><div class="col-md-12" >&nbsp;</div></div>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label class="control-label pull-left" >Layer name</label>
+                        </div>
+                        <div class="col-md-9">
+                            <input class="form-control" name="layer_name" v-model="spatialquery.layer_name"></input>
+                        </div>
+                    </div>
+
+                    <div class="row"><div class="col-md-12" >&nbsp;</div></div>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label class="control-label pull-left" >Layer url</label>
+                        </div>
+                        <div class="col-md-9">
+                            <input class="form-control" name="layer_url" v-model="spatialquery.layer_url"></input>
+                        </div>
+                    </div>
+
+                    <div class="row"><div class="col-md-12" >&nbsp;</div></div>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label class="control-label pull-left" >Expiry</label>
+                        </div>
+                        <div class="col-md-3">
+                            <input type="date" class="form-control" name="expiry" v-model="spatialquery.expiry"></input>
+                        </div>
+                        <div class="col-md-6"></div>
+                    </div>
+
+                    <div class="row"><div class="col-md-12" >&nbsp;</div></div>
+                    <div>
+                        <div class="row">
+                            <div class="col-md-3"></div>
+                            <div class="col-md-3">
+                                <label class="control-label pull-left" >Visible to proponent</label>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="control-label pull-left" >Buffer (metres)</label>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-3"></div>
+                            <div class="col-md-3">
+                                <input type="radio" id="visible_to_proponent_yes" name="visible_to_proponent" value="true">
+                                <label for="visible_to_proponent_yes">Yes</label>&nbsp;&nbsp;&nbsp;
+                                <input type="radio" id="visible_to_proponent_no" name="visible_to_proponent" value="false">
+                                <label for="visible_to_proponent_no">No</label>
+                            </div>
+                            <div class="col-md-3">
+                                <input type="number" min="0" class="form-control" name="buffer" v-model="spatialquery.buffer"></input>
+                            </div>
+                        </div>
+                    </div>
+
+
+                    <div class="row"><div class="col-md-12" >&nbsp;</div></div>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label class="control-label pull-left" >Intersection operator</label>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-control" ref="select_how" name="select-how" v-model="spatialquery.how">
+                                <option v-for="operator in how_operators" :value="operator.value" >{{operator.label}}</option>
                             </select>     
                         </div>
                     </div>
+
                     <div class="row"><div class="col-md-12" >&nbsp;</div></div>
-
-                    <div class="row" v-if="showOptions">
-
-                        <SchemaOption  ref="schema_option" :addedOptions="addedOptions" :canAddMore="true" />
-
-                    </div>
-                    <div class="row" v-else-if="showTables">
-
-                        <!-- <SchemaHeader :addedHeaders="addedHeaders" :answerTypes="answerTypes" :canAddMore="true" />
-                        <SchemaExpander :addedExpanders="addedExpanders" :answerTypes="answerTypes" :canAddMore="true" /> -->
-
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <input type="checkbox" :value="true" v-model="masterlist.help_text_url" >&nbsp;&nbsp;&nbsp;<label>Help Text url?</label></input>
+                    <div>
+                        <div class="row">
+                            <div class="col-md-3"></div>
+                            <div class="col-md-3">
+                                <label class="control-label pull-left" >Column name</label>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="control-label pull-left" >Operator</label>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="control-label pull-left" >Value</label>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-3"></div>
+                            <div class="col-md-3">
+                                <input type="text" class="form-control" name="column_name" v-model="spatialquery.column_name" style="width:100%;"></input>
+                            </div>
+                            <div class="col-md-3">
+                                <select class="form-control" ref="select_operator" name="select-operator" v-model="spatialquery.operator">
+                                    <option v-for="operator in column_operators" :value="operator.value" >{{operator.label}}</option>
+                                </select>     
+                            </div>
+                            <div class="col-md-3">
+                                <input type="text" class="form-control" name="value" v-model="spatialquery.value" style="width:100%;"></input>
+                            </div>
                         </div>
                     </div>
-                    <div class="row" v-if="isHelptextUrl">
+
+                    <div class="row"><div class="col-md-12" >&nbsp;</div></div>
+                    <div class="row">
                         <div class="col-md-3">
-                            <label class="control-label pull-left" >Help Text</label>
+                            <label class="control-label pull-left" >Prefix answer</label>
                         </div>
                         <div class="col-md-9">
-                            <textarea class="form-control" name="question" v-model="masterlist.help_text"></textarea>
+                            <input type="text" class="form-control" name="prefix_answer" v-model="spatialquery.prefix_answer"></input>
                         </div>
                     </div>
 
+                    <div class="row"><div class="col-md-12" >&nbsp;</div></div>
                     <div class="row">
-                        <div class="col-md-6">
-                            <input type="checkbox" :value="true" v-model="masterlist.help_text_assessor_url" >&nbsp;&nbsp;&nbsp;<label>Help Text Assessor url?</label></input>
+                        <div class="col-md-3">
+                            <label class="control-label pull-left" style="text-align: left;">Number of polygons to process (Proponent)</label>
+                        </div>
+                        <div class="col-md-3">
+                            <input type="number" min="-1" value="-1" class="form-control" name="no_polygons_proponent" v-model="spatialquery.no_polygons_proponent"></input>
                         </div>
                     </div>
-                    <div class="row" v-if="isHelptextAssessorUrl">
+
+                    <div class="row"><div class="col-md-12" >&nbsp;</div></div>
+                    <div class="row">
                         <div class="col-md-3">
-                            <label class="control-label pull-left" >Help Text assessor</label>
+                            <label class="control-label pull-left" >Answer</label>
                         </div>
                         <div class="col-md-9">
-                            <textarea class="form-control" name="question" v-model="masterlist.help_text_assessor"></textarea>
+                            <input type="text" class="form-control" name="answer" v-model="spatialquery.answer"></input>
+                        </div>
+                    </div>
+
+                    <div class="row"><div class="col-md-12" >&nbsp;</div></div>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label class="control-label pull-left" >Prefix info</label>
+                        </div>
+                        <div class="col-md-9">
+                            <input type="text" class="form-control" name="prefix_info" v-model="spatialquery.prefix_info"></input>
+                        </div>
+                    </div>
+
+                    <div class="row"><div class="col-md-12" >&nbsp;</div></div>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label class="control-label pull-left" style="text-align: left;">Number of polygons to process (Assessor)</label>
+                        </div>
+                        <div class="col-md-3">
+                            <input type="number" min="-1" :value="-1" class="form-control" name="no_polygons_assessor" v-model="spatialquery.no_polygons_assessor"></input>
+                        </div>
+                    </div>
+
+                    <div class="row"><div class="col-md-12" >&nbsp;</div></div>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label class="control-label pull-left" >Info for assessor</label>
+                        </div>
+                        <div class="col-md-9">
+                            <input type="text" class="form-control" name="assessor_info" v-model="spatialquery.assessor_info"></input>
                         </div>
                     </div>
 
@@ -114,7 +232,7 @@
             </div>
         </div>
         <div slot="footer">
-            <button type="button" class="btn btn-primary" @click="saveMasterlist()">Save</button>
+            <button type="button" class="btn btn-primary" @click="saveSpatialquery()">Save</button>
         </div>
     </modal>
 
@@ -126,15 +244,13 @@ import datatable from '@/utils/vue/datatable.vue'
 import modal from '@vue-utils/bootstrap-modal.vue'
 import alert from '@vue-utils/alert.vue'
 import SchemaOption from './schema_add_option.vue'
-// import SchemaHeader from './schema_add_header.vue'
-// import SchemaExpander from './schema_add_expander.vue'
 import {
   api_endpoints,
   helpers
 }
 from '@/utils/hooks'
 export default {
-    name:'schemaMasterlistModal',
+    name:'spatialQueryQuestionModal',
     components: {
         modal,
         alert,
@@ -147,21 +263,22 @@ export default {
     },
     data:function () {
         let vm = this;
-        //vm.schema_masterlist_url = helpers.add_endpoint_join(api_endpoints.schema_masterlist_paginated, 'schema_masterlist_datatable_list/?format=datatables');
-        vm.schema_masterlist_url = helpers.add_endpoint_join(api_endpoints.spatial_query_paginated, 'spatial_query_question_datatable_list/?format=datatables');
+        //vm.spatial_query_question_url = helpers.add_endpoint_join(api_endpoints.spatial_query_question_paginated, 'spatial_query_question_datatable_list/?format=datatables');
+        vm.spatial_query_question_url = helpers.add_endpoint_join(api_endpoints.spatial_query_paginated, 'spatial_query_question_datatable_list/?format=datatables');
         return {
-            schema_masterlist_id: 'schema-materlist-datatable-'+vm._uid,
-            pMasterListBody: 'pMasterListBody' + vm._uid,
+            spatial_query_question_id: 'spatial-query-question-datatable-'+vm._uid,
+            pSpatialQueryQuestionBody: 'pSpatialQueryQuestionBody' + vm._uid,
             pOptionBody: 'pOptionBody' + vm._uid,
             pHeaderBody: 'pHeaderBody' + vm._uid,
             pExpanderBody: 'pOptionBody' + vm._uid,
             filterOptions: '',
             isModalOpen:false,
             missing_fields: [],
-            // masterlist table
-            //dtHeadersSchemaMasterlist: ["ID", "QuestionOP", "QuestionHD", "QuestionEX", "Question", "Answer Type", "Action"],
-            dtHeadersSchemaMasterlist: ["ID", "QuestionEX", "aa", "Question", "Answer Type", "Action"],
-            dtOptionsSchemaMasterlist:{
+            // spatial query questions table
+            //dtHeadersSpatialQueryQuestion: ["ID", "QuestionOP", "QuestionHD", "QuestionEX", "Question", "Answer Type", "Action"],
+            //dtHeadersSpatialQueryQuestion: ["ID", "QuestionEX", "aa", "Question", "Answer Type", "Action"],
+            dtHeadersSpatialQueryQuestion: ["ID", "Question", "Answer Option", "Visible to proponent", "Buffer (m)", "Layer name", "Overlapping/Outside", "Column", "Operator", "Value", "Layer URL", "Expiry", "Prefix Answer", "Number of polygons (Proponent)", "Answer", "Prefix Info", "Number of polygons (Assessor)", "Assessor Info", "Regions", "Action"],
+            dtOptionsSpatialQueryQuestion:{
                 language: {
                     processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
                 },
@@ -170,7 +287,7 @@ export default {
                 autowidth: false,
                 processing: true,
                 ajax: {
-                    "url": vm.schema_masterlist_url, 
+                    "url": vm.spatial_query_question_url, 
                 },
                 columnDefs: [
                     //{ visible: false, targets: [ 3, 5, 6] } 
@@ -179,12 +296,7 @@ export default {
                 columns: [
                     { 
                         data: "id",
-                    },
-                    { 
-                        data: "layer_name",
-                    },
-                    { 
-                        data: "how",
+                        visible: false,
                     },
                     { 
                         data: "question",
@@ -217,8 +329,67 @@ export default {
                     },
                     { 
                         data: "answer_mlq",
-                        width: "10%",
                     },
+                                        { 
+                        data: "visible_to_proponent",
+                    },
+                    { 
+                        data: "buffer",
+                    },
+
+                    { 
+                        data: "layer_name",
+                    },
+                    { 
+                        data: "how",
+                    },
+                    { 
+                        data: "column_name",
+                    },
+                    { 
+                        data: "operator",
+                    },
+                    { 
+                        data: "value",
+                    },
+
+                    { 
+                        data: "layer_url",
+                        visible: false,
+                    },
+                    { 
+                        data: "expiry",
+                        visible: false,
+                    },
+                    { 
+                        data: "prefix_answer",
+                        visible: false,
+                    },
+                    { 
+                        data: "no_polygons_proponent",
+                        visible: false,
+                    },
+                    { 
+                        data: "answer",
+                        visible: false,
+                    },
+                    { 
+                        data: "prefix_info",
+                        visible: false,
+                    },
+                    { 
+                        data: "no_polygons_assessor",
+                        visible: false,
+                    },
+                    { 
+                        data: "assessor_info",
+                        visible: false,
+                    },
+                    { 
+                        data: "regions",
+                        visible: false,
+                    },
+
                     { 
                         data: "id",
                         width: "10%",
@@ -237,12 +408,12 @@ export default {
                     $searchInput.unbind('keyup search input');
                     $searchInput.bind('keypress', (vm.delay(function(e) {
                         if (e.which == 13) {
-                            vm.$refs.schema_masterlist_table.vmDataTable.search( this.value ).draw();
+                            vm.$refs.spatial_query_question_table.vmDataTable.search( this.value ).draw();
                         }
                     }, 0)));
                 }
             },
-            masterlist: {
+            spatialquery: {
                 id: '',
                 name: '',
                 question: '',
@@ -256,6 +427,17 @@ export default {
                 help_text_assessor_url: false,
             },
             answerTypes: [],
+            how_operators: [
+                {value:1, label:"Overlapping"},
+                {value:2, label:"Outside"}
+            ],
+            column_operators: [
+                {value:1, label:"Equals"},
+                {value:2, label:"Greater Than"},
+                {value:3, label:"Less Than"},
+                {value:4, label:"Is Null"},
+                {value:5, label:"Is Not Null"}
+            ],
             addedHeaders: [],
             addedHeader: {
                 label: '',
@@ -282,10 +464,10 @@ export default {
     },
     computed: {
         isHelptextUrl: function () {
-            return this.masterlist? this.masterlist.help_text_url: false;
+            return this.spatialquery? this.spatialquery.help_text_url: false;
         },
         isHelptextAssessorUrl: function () {
-            return this.masterlist? this.masterlist.help_text_assessor_url : false;
+            return this.spatialquery? this.spatialquery.help_text_assessor_url : false;
         },
     },
     methods: {
@@ -348,9 +530,9 @@ export default {
                 self.isModalOpen = false;
             }
         },
-        saveMasterlist: async function() {
+        saveSpatialquery: async function() {
             const self = this;
-            const data = self.masterlist;
+            const data = self.spatialquery;
             //data.options = this.addedOptions;
             data.options = helpers.copyObject(this.addedOptions);
             // data.headers = this.addedHeaders;
@@ -359,10 +541,10 @@ export default {
             if (data.id === '') {
                 console.log(data);
 
-                await self.$http.post(api_endpoints.schema_masterlist, JSON.stringify(data),{
+                await self.$http.post(api_endpoints.spatial_query_question, JSON.stringify(data),{
                     emulateJSON:true
                 }).then((response) => {
-                    self.$refs.schema_masterlist_table.vmDataTable.ajax.reload();
+                    self.$refs.spatial_query_question_table.vmDataTable.ajax.reload();
                     self.close();
                 }, (error) => {
                     swal(
@@ -374,10 +556,10 @@ export default {
 
             } else {
 
-                await self.$http.post(helpers.add_endpoint_json(api_endpoints.schema_masterlist,data.id+'/save_masterlist'),JSON.stringify(data),{
+                await self.$http.post(helpers.add_endpoint_json(api_endpoints.spatial_query_question,data.id+'/save_spatialquery'),JSON.stringify(data),{
                         emulateJSON:true,
                 }).then((response)=>{
-                    self.$refs.schema_masterlist_table.vmDataTable.ajax.reload();
+                    self.$refs.spatial_query_question_table.vmDataTable.ajax.reload();
                     self.close();
                 },(error)=>{
                     swal(
@@ -392,16 +574,32 @@ export default {
         },
         addTableEntry: function() {
             this.isNewEntry = true;
-            this.masterlist.answer_type = '';
-            this.masterlist.question = '';
-            this.masterlist.id = '';
+            this.spatialquery.answer_type = '';
+            this.spatialquery.question = '';
+            this.spatialquery.answer_mlq = '';
+            this.spatialquery.layer_name = '';
+            this.spatialquery.expiry = '';
+            this.spatialquery.visible_to_proponent = '';
+            this.spatialquery.buffer = '';
+            this.spatialquery.how = '';
+            this.spatialquery.column_name = '';
+            this.spatialquery.operator = '';
+            this.spatialquery.value = '';
+            this.spatialquery.prefix_answer = '';
+            this.spatialquery.no_polygons_proponent = '';
+            this.spatialquery.answer = '';
+            this.spatialquery.prefix_info = '';
+            this.spatialquery.no_polygons_assessor = '';
+            this.spatialquery.assessor_info = '';
+            this.spatialquery.regions = '';
+            this.spatialquery.id = '';
             this.addedOptions = [];
             this.addedHeaders = [];
             this.addedExpanders = [];
-            this.masterlist.help_text='';
-            this.masterlist.help_text_assessor='';
-            this.masterlist.help_text_url=false;
-            this.masterlist.help_text_assessor_url=false;
+            this.spatialquery.help_text='';
+            this.spatialquery.help_text_assessor='';
+            this.spatialquery.help_text_url=false;
+            this.spatialquery.help_text_assessor_url=false;
 
             this.showOptions = false;
             this.isModalOpen = true;
@@ -409,34 +607,51 @@ export default {
         initEventListeners: function(){
             const self = this;
 
-            self.$refs.schema_masterlist_table.vmDataTable.on('click','.edit-row', function(e) {
+            self.$refs.spatial_query_question_table.vmDataTable.on('click','.edit-row', function(e) {
                 e.preventDefault();
                 self.isNewEntry = false;
-                self.$refs.schema_masterlist_table.row_of_data = self.$refs.schema_masterlist_table.vmDataTable.row('#'+$(this).attr('data-rowid'));
+                self.$refs.spatial_query_question_table.row_of_data = self.$refs.spatial_query_question_table.vmDataTable.row('#'+$(this).attr('data-rowid'));
 
-                self.masterlist.id = self.$refs.schema_masterlist_table.row_of_data.data().id;
-                self.masterlist.answer_type = self.$refs.schema_masterlist_table.row_of_data.data().answer_type;
-                self.masterlist.question = self.$refs.schema_masterlist_table.row_of_data.data().question;
-                self.addedOptions = self.$refs.schema_masterlist_table.row_of_data.data().options;
-                self.addedHeaders = self.$refs.schema_masterlist_table.row_of_data.data().headers;       
-                self.addedExpanders = self.$refs.schema_masterlist_table.row_of_data.data().expanders;
-                self.masterlist.help_text_url = self.$refs.schema_masterlist_table.row_of_data.data().help_text_url;
-                self.masterlist.help_text_assessor_url = self.$refs.schema_masterlist_table.row_of_data.data().help_text_assessor_url;
-                self.masterlist.help_text = self.$refs.schema_masterlist_table.row_of_data.data().help_text;
-                self.masterlist.help_text_assessor = self.$refs.schema_masterlist_table.row_of_data.data().help_text_assessor;
+                self.spatialquery.id = self.$refs.spatial_query_question_table.row_of_data.data().id;
+                self.spatialquery.answer_type = self.$refs.spatial_query_question_table.row_of_data.data().answer_type;
+                self.spatialquery.question = self.$refs.spatial_query_question_table.row_of_data.data().question;
+                self.spatialquery.answer_mlq = self.$refs.spatial_query_question_table.row_of_data.data().answer_mlq;
+                self.spatialquery.layer_name = self.$refs.spatial_query_question_table.row_of_data.data().layer_name;
+                self.spatialquery.expiry = self.$refs.spatial_query_question_table.row_of_data.data().expiry;
+                self.spatialquery.visible_to_proponent = self.$refs.spatial_query_question_table.row_of_data.data().visible_to_proponent;
+                self.spatialquery.buffer = self.$refs.spatial_query_question_table.row_of_data.data().buffer;
+                self.spatialquery.how = self.$refs.spatial_query_question_table.row_of_data.data().how;
+                self.spatialquery.column_name = self.$refs.spatial_query_question_table.row_of_data.data().column_name;
+                self.spatialquery.operator = self.$refs.spatial_query_question_table.row_of_data.data().operator;
+                self.spatialquery.value = self.$refs.spatial_query_question_table.row_of_data.data().value;
+                self.spatialquery.prefix_answer = self.$refs.spatial_query_question_table.row_of_data.data().prefix_answer;
+                self.spatialquery.no_polygons_proponent = self.$refs.spatial_query_question_table.row_of_data.data().no_polygons_proponent;
+                self.spatialquery.answer = self.$refs.spatial_query_question_table.row_of_data.data().answer;
+                self.spatialquery.prefix_info = self.$refs.spatial_query_question_table.row_of_data.data().prefix_info;
+                self.spatialquery.no_polygons_assessor = self.$refs.spatial_query_question_table.row_of_data.data().no_polygons_assessor;
+                self.spatialquery.assessor_info = self.$refs.spatial_query_question_table.row_of_data.data().assessor_info;
+                self.spatialquery.regions = self.$refs.spatial_query_question_table.row_of_data.data().regions;
 
-                $(self.$refs.select_answer_type).val(self.masterlist.answer_type).trigger('change');
-                self.setShowAdditional(self.masterlist.answer_type)
+                self.addedOptions = self.$refs.spatial_query_question_table.row_of_data.data().options;
+                self.addedHeaders = self.$refs.spatial_query_question_table.row_of_data.data().headers;       
+                self.addedExpanders = self.$refs.spatial_query_question_table.row_of_data.data().expanders;
+                self.spatialquery.help_text_url = self.$refs.spatial_query_question_table.row_of_data.data().help_text_url;
+                self.spatialquery.help_text_assessor_url = self.$refs.spatial_query_question_table.row_of_data.data().help_text_assessor_url;
+                self.spatialquery.help_text = self.$refs.spatial_query_question_table.row_of_data.data().help_text;
+                self.spatialquery.help_text_assessor = self.$refs.spatial_query_question_table.row_of_data.data().help_text_assessor;
+
+                $(self.$refs.select_answer_type).val(self.spatialquery.answer_type).trigger('change');
+                self.setShowAdditional(self.spatialquery.answer_type)
                 self.isModalOpen = true;
             });
 
-            self.$refs.schema_masterlist_table.vmDataTable.on('click','.delete-row', function(e) {
+            self.$refs.spatial_query_question_table.vmDataTable.on('click','.delete-row', function(e) {
                 e.preventDefault();
-                self.$refs.schema_masterlist_table.row_of_data = self.$refs.schema_masterlist_table.vmDataTable.row('#'+$(this).attr('data-rowid'));
-                self.masterlist.id = self.$refs.schema_masterlist_table.row_of_data.data().id;
+                self.$refs.spatial_query_question_table.row_of_data = self.$refs.spatial_query_question_table.vmDataTable.row('#'+$(this).attr('data-rowid'));
+                self.spatialquery.id = self.$refs.spatial_query_question_table.row_of_data.data().id;
 
                 swal({
-                    title: "Delete Masterlist",
+                    title: "Delete Spatialquery",
                     text: "Are you sure you want to delete?",
                     type: "question",
                     showCancelButton: true,
@@ -444,9 +659,9 @@ export default {
 
                 }).then(async (result) => {
                     if (result) {
-                        await self.$http.delete(helpers.add_endpoint_json(api_endpoints.schema_masterlist,(self.masterlist.id+'/delete_masterlist')))
+                        await self.$http.delete(helpers.add_endpoint_json(api_endpoints.spatial_query_question,(self.spatialquery.id+'/delete_spatialquery')))
                         .then((response) => {
-                            self.$refs.schema_masterlist_table.vmDataTable.ajax.reload();
+                            self.$refs.spatial_query_question_table.vmDataTable.ajax.reload();
                         }, (error) => {
                             swal(
                                 'Delete Error',
@@ -472,12 +687,12 @@ export default {
             }).
             on("select2:select",function (e) {
                 let selected = $(e.currentTarget);
-                self.masterlist.answer_type = selected.val()
+                self.spatialquery.answer_type = selected.val()
                 self.setShowAdditional(selected.val())
             }).
             on("select2:unselect",function (e) {
                 let selected = $(e.currentTarget);
-                self.masterlist.answer_type = selected.val()
+                self.spatialquery.answer_type = selected.val()
             });
         },
         initHeaderAnswerTypeSelector: function (index) {
@@ -492,17 +707,17 @@ export default {
             }).
             on("select2:select",function (e) {
                 let selected = $(e.currentTarget);
-                // self.masterlist.answer_type = selected.val()
+                // self.spatialquery.answer_type = selected.val()
                 // self.setShowAdditional(selected.val())
             }).
             on("select2:unselect",function (e) {
                 let selected = $(e.currentTarget);
-                self.masterlist.answer_type = selected.val()
+                self.spatialquery.answer_type = selected.val()
             });
         },
         initSelects: async function() {
 
-            await this.$http.get(helpers.add_endpoint_json(api_endpoints.schema_masterlist,'1/get_masterlist_selects')).then(res=>{
+            await this.$http.get(helpers.add_endpoint_json(api_endpoints.spatial_query_question,'1/get_spatialquery_selects')).then(res=>{
 
                     this.answerTypes = res.body.all_answer_types
 
@@ -517,11 +732,17 @@ export default {
         },        
     },
     mounted: function() {
-        this.form = document.forms.schema_masterlist;
+        this.form = document.forms.spatial_query_question;
         this.$nextTick(() => {
             this.initEventListeners();
-            this.initSelects();
+            //this.initSelects();
         });
     }
 }
 </script>
+
+<style lang="css" scoped>
+.control-label label > div {
+    text-align: left;
+}
+</style>
