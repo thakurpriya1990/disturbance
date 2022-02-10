@@ -10,6 +10,7 @@ from disturbance.components.proposals.models import (
         QuestionOption,
         SectionQuestion,
         QuestionOption,
+        SpatialQueryQuestion,
         )
 from disturbance.components.main.models import SystemMaintenance
 from ckeditor.widgets import CKEditorWidget
@@ -200,3 +201,23 @@ class GenerateSchemaForm(ProposalTypeActionForm):
     )
     def form_action(self, proposal_type):
         return proposal_type
+
+
+class SpatialQueryQuestionAdminForm(forms.ModelForm):
+    # help_text = forms.CharField(widget=CKEditorWidget())
+    # help_text_assessor = forms.CharField(widget=CKEditorWidget())
+
+    class Meta:
+        model = SpatialQueryQuestion
+        #fields = '__all__'
+        #fields= ('question', 'option', 'answer_type', 'help_text_url', 'help_text_assessor_url','help_text', 'help_text_assessor')
+        fields= ('question', 'answer_mlq')
+        #fields= ('question')
+
+    def __init__(self, *args, **kwargs):
+        super(SpatialQueryQuestionAdminForm, self).__init__(*args, **kwargs)
+        import ipdb; ipdb.set_trace()
+        if self.instance:
+            self.fields['answer_mlq'].queryset = QuestionOption.objects.all()
+            #self.fields['answer_mlq'] = QuestionOption.objects.all()
+

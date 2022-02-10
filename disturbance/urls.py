@@ -73,6 +73,13 @@ router.register(
     r'schema_proposal_type_paginated', proposal_api.SchemaProposalTypePaginatedViewSet)
 router.register(r'map_layers', main_api.MapLayerViewSet)
 
+router.register(
+    r'spatial_query_paginated', proposal_api.SpatialQueryQuestionPaginatedViewSet)
+router.register(
+    r'spatial_query',
+    proposal_api.SpatialQueryQuestionViewSet
+)
+
 api_patterns = [
     url(r'^api/profile$', users_api.GetProfile.as_view(), name='get-profile'),
     url(r'^api/countries$', users_api.GetCountries.as_view(), name='get-countries'),
