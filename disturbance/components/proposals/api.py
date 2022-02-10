@@ -69,6 +69,7 @@ from disturbance.components.proposals.models import (
     ProposalTypeSection,
     SectionQuestion,
     MasterlistQuestion,
+    SpatialQueryQuestion,
 )
 from disturbance.components.proposals.serializers import (
     SendReferralSerializer,
@@ -101,6 +102,8 @@ from disturbance.components.proposals.serializers import (
     SelectSchemaMasterlistSerializer,
     DTSchemaProposalTypeSerializer,
     SchemaProposalTypeSerializer,
+    DTSpatialQueryQuestionSerializer,
+    SpatialQueryQuestionSerializer,
 )
 from disturbance.components.proposals.serializers_apiary import (
     ProposalApiaryTypeSerializer,
@@ -3821,3 +3824,66 @@ class SchemaProposalTypeViewSet(viewsets.ModelViewSet):
         except Exception as e:
             logger.exception()
             raise serializers.ValidationError(str(e))
+
+class SpatialQueryQuestionFilterBackend(DatatablesFilterBackend):
+    """
+    Custom filters
+    """
+    def filter_queryset(self, request, queryset, view):
+        # Get built-in DRF datatables queryset first to join with search text,
+        # then apply additional filters.
+
+        total_count = queryset.count()
+
+        setattr(view, '_datatables_total_count', total_count)
+        return queryset
+
+class SpatialQueryQuestionRenderer(DatatablesRenderer):
+    def render(self, data, accepted_media_type=None, renderer_context=None):
+        if 'view' in renderer_context and \
+                hasattr(renderer_context['view'], '_datatables_total_count'):
+            data['recordsTotal'] = \
+                renderer_context['view']._datatables_total_count
+        return super(SpatialQueryQuestionRenderer, self).render(
+            data, accepted_media_type, renderer_context)
+
+
+class SpatialQueryQuestionPaginatedViewSet(viewsets.ModelViewSet):
+    filter_backends = (SpatialQueryQuestionFilterBackend,)
+    pagination_class = DatatablesPageNumberPagination
+    renderer_classes = (SpatialQueryQuestionRenderer,)
+    queryset = SpatialQueryQuestion.objects.none()
+    serializer_class = DTSpatialQueryQuestionSerializer
+    page_size = 10
+
+    def get_queryset(self):
+        # user = self.request.user
+        return SpatialQueryQuestion.objects.all()
+
+    @list_route(methods=['GET', ])
+    def spatial_query_question_datatable_list(self, request, *args, **kwargs):
+        """ http://localhost:8003/api/spatial_query_paginated/spatial_query_question_datatable_list/?format=datatables&draw=1&length=10 """
+        self.serializer_class = DTSpatialQueryQuestionSerializer
+        queryset = self.get_queryset()
+
+        queryset = self.filter_queryset(queryset)
+        self.paginator.page_size = queryset.count()
+        # self.paginator.page_size = 0
+        result_page = self.paginator.paginate_queryset(queryset, request)
+        serializer = DTSpatialQueryQuestionSerializer(
+            result_page, context={'request': request}, many=True
+        )
+        response = self.paginator.get_paginated_response(serializer.data)
+
+        return response
+
+
+class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
+    """ http://localhost:8003/api/spatial_query/1.json """
+    queryset = SpatialQueryQuestion.objects.all()
+    serializer_class = DTSpatialQueryQuestionSerializer
+
+    def get_queryset(self):
+        return self.queryset
+
+

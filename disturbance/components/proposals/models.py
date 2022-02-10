@@ -54,7 +54,7 @@ from disturbance.ordered_model import OrderedModel
 import copy
 import subprocess
 from multiselectfield import MultiSelectField
-from smart_selects.db_fields import ChainedForeignKey, ChainedManyToManyField
+from smart_selects.db_fields import ChainedForeignKey, ChainedManyToManyField, GroupedForeignKey
 
 import logging
 
@@ -5176,14 +5176,16 @@ class SpatialQueryQuestion(models.Model):
         (ISNOTNULL, 'Is not null'),
     )
                          
-    question_option = models.ForeignKey(QuestionOption, related_name='options', on_delete=models.PROTECT)
-    question = ChainedManyToManyField(
-        MasterlistQuestion,
-        chained_field="question_option",
-        chained_model_field="option",
-    )
+    question = models.ForeignKey(MasterlistQuestion, related_name='questions', on_delete=models.PROTECT)
+    #answer_mlq = models.CharField('Answer (Masterlist Question)', max_length=100)
+    answer_mlq = models.ForeignKey(QuestionOption, related_name='question_options', on_delete=models.PROTECT)
 
-#    question = models.ForeignKey(MasterlistQuestion, related_name='questions', on_delete=models.PROTECT)
+#    question_option = ChainedManyToManyField(
+#         'disturbance.QuestionOption',
+#         chained_field='options',
+#         chained_model_field='question_option',
+#    )
+
 #    answer_option = ChainedManyToManyField(
 #        #MasterlistQuestion,
 #        QuestionOption,
@@ -5192,7 +5194,6 @@ class SpatialQueryQuestion(models.Model):
 #        chained_field="question",
 #        chained_model_field="option",
 #    )
-    #answer_mlq = models.CharField('Answer (Masterlist Question)', max_length=100)
     layer_name = models.CharField(max_length=100)
     layer_url = models.CharField(max_length=512, blank=True, null=True)
     expiry = models.DateField('Expiry Date', blank=True, null=True)
@@ -5218,6 +5219,8 @@ class SpatialQueryQuestion(models.Model):
     def __str__(self):
         return '{} - {}'.format(self.question.id, self.layer_name)
 
+    def get_options(self):
+        return "\n".join([q.label for q in self.question.option.all()])
 
 import reversion
 #reversion.register(Proposal, follow=['requirements', 'documents', 'compliances', 'referrals', 'approvals', 'proposal_apiary'])

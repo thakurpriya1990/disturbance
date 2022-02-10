@@ -7,6 +7,7 @@
         <template slot="tab-panel-question"><SchemaQuestion /></template>
         <template slot="tab-panel-masterlist"><SchemaMasterlist /></template>
         <template slot="tab-panel-proposal-type"><SchemaProposalType /></template>
+        <template slot="tab-panel-spatial-query-question"><SpatialQueryQuestion /></template>
         <!-- <template slot="tab-panel-group"><SchemaGroup /></template> -->
 
     </SchemaTabs>
@@ -19,6 +20,7 @@ import SchemaTabs from '@/components/forms/tab.vue'
 import SchemaQuestion from '@/components/internal/main/schema_question.vue'
 import SchemaMasterlist from '@/components/internal/main/schema_masterlist.vue'
 import SchemaProposalType from '@/components/internal/main/schema_proposal_type.vue'
+import SpatialQueryQuestion from '@/components/internal/main/spatial_query_question.vue'
 // import SchemaGroup from '@/components/internal/main/schema_group.vue'
 
 export default {
@@ -28,6 +30,7 @@ export default {
         SchemaQuestion,
         SchemaMasterlist,
         SchemaProposalType,
+        SpatialQueryQuestion,
         // SchemaGroup,
     },
     data() {
@@ -38,6 +41,7 @@ export default {
                 {'proposal-type': 'Proposal Type Sections'},
                 // {'group': 'Section Groups'},
                 {'question': 'Section Questions'},
+                {'spatial-query-question': 'Spatial Query Questions'},
             ],
         }
     },

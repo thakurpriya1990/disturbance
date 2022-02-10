@@ -14,6 +14,7 @@ from disturbance.components.proposals.models import (
                                     SectionQuestion,
                                     ProposalTypeSection,
                                     MasterlistQuestion,
+                                    SpatialQueryQuestion,
                                 )
 from disturbance.components.organisations.models import (
                                 Organisation
@@ -987,7 +988,6 @@ class SelectSchemaMasterlistSerializer(serializers.ModelSerializer):
 
     
 
-
 class DTSchemaMasterlistSerializer(SchemaMasterlistSerializer):
     '''
     Serializer for Schema Masterlist Datatables.
@@ -1201,3 +1201,33 @@ class DTSchemaProposalTypeSerializer(SchemaProposalTypeSerializer):
 
     def get_proposal_type(self, obj):
         return ProposalTypeSchemaSerializer(obj.proposal_type).data
+
+
+class SpatialQueryQuestionSerializer(serializers.ModelSerializer):
+    '''
+    Serializer for Schema builder using Masterlist questions.
+    '''
+    options = serializers.SerializerMethodField()
+    #name = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = SpatialQueryQuestion
+        fields = '__all__'
+        #fields = ('id', 'question', 'options')
+
+
+    def get_options(self, obj):
+        #import ipdb; ipdb.set_trace()
+        #return obj.question.option.values_list('id','label','value')
+        return obj.question.option.values()
+
+
+class DTSpatialQueryQuestionSerializer(serializers.ModelSerializer):
+    '''
+    Serializer for Datatable SpatialQueryQuestion.
+    '''
+
+    class Meta:
+        model = SpatialQueryQuestion
+        fields = '__all__'
+
