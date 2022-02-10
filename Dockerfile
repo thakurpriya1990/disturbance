@@ -65,7 +65,8 @@ vim \
 ssh \
 python3-gevent \
 software-properties-common \
-imagemagick
+imagemagick \
+libspatialindex-dev
 
 RUN add-apt-repository ppa:deadsnakes/ppa && \
 apt-get update && \
