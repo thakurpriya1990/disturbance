@@ -156,7 +156,7 @@ class ApiaryLicenceReader():
                 reader = csv.reader(csvfile, delimiter=str(':'))
                 header = next(reader) # skip header
                 #import ipdb; ipdb.set_trace()
-                for row in reader:
+                for idx, row in enumerate(reader):
                     #import ipdb; ipdb.set_trace()
                     if not row[0].startswith('#'):
                         data={}
@@ -251,12 +251,17 @@ class ApiaryLicenceReader():
                         # batch_no:approval_cpc_date:approval_minister_date:map_ref:forest_block:cog:roadtrack:zone:catchment:dra_permit
                         data.update({'batch_no': row[25].strip()})
                         approval_cpc_date_raw = row[26].strip()
-                        if approval_cpc_date_raw:
-                            approval_cpc_date = datetime.datetime.strptime(approval_cpc_date_raw, '%d/%m/%Y').date()
-                            data.update({'approval_cpc_date': approval_cpc_date})
-                        else:
-                            data.update({'approval_cpc_date': None})
-                        approval_minister_date_raw = row[27].strip()
+                        try:
+                            if approval_cpc_date_raw:
+                                approval_cpc_date = datetime.datetime.strptime(approval_cpc_date_raw, '%d/%m/%Y').date()
+                                data.update({'approval_cpc_date': approval_cpc_date})
+                            else:
+                                data.update({'approval_cpc_date': None})
+                            approval_minister_date_raw = row[27].strip()
+                        except Exception as e:
+                            print(e)
+                            import ipdb; ipdb.set_trace()
+
                         if approval_minister_date_raw:
                             approval_minister_date = datetime.datetime.strptime(approval_minister_date_raw, '%d/%m/%Y').date()
                             data.update({'approval_minister_date': approval_minister_date})
