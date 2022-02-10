@@ -323,6 +323,7 @@
                                     <ProposalApiary v-if="proposal" :proposal="proposal" id="proposalStart" :showSections="sectionShow" ref="proposal_apiary" :is_external="false" :is_internal="true" :hasAssessorMode="hasAssessorMode"></ProposalApiary>
                                 </div>
                                 <div v-else>
+                                    <MapSection v-if="proposal" :proposal="proposal" @refreshFromResponse="refreshFromResponse" ref="mapSection" :is_internal="true"/>
                                     <ProposalDisturbance 
                                     ref="proposal_disturbance" 
                                     form_width="inherit" 
@@ -367,6 +368,7 @@
 import ProposalDisturbance from '../../form.vue'
 import ProposalApiary from '@/components/form_apiary.vue'
 import NewApply from '../../external/proposal_apply_new.vue'
+import MapSection from '@/components/common/das/map_section.vue'
 import Vue from 'vue'
 import ProposedDecline from './proposal_proposed_decline.vue'
 import AmendmentRequest from './amendment_request.vue'
@@ -465,6 +467,7 @@ export default {
         RevisionHistory,
         MoreReferrals,
         NewApply,
+        MapSection,
     },
     filters: {
         formatDate: function(data){

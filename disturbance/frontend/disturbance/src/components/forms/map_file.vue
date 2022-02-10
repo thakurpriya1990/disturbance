@@ -27,9 +27,10 @@
             <div v-if="!readonly" v-for="n in repeat">
                 <div v-if="isRepeatable || (!isRepeatable && num_documents()==0)">
                     <input :name="name" type="file" class="form-control" :data-que="n" :accept="fileTypes" @change="handleChange" :required="isRequired"/>
-                    <alert :show.sync="showError" type="danger" style="color: red"><strong>{{errorString}}</strong></alert>
+                    <!-- <alert :show.sync="showError" type="danger" style="color: red"><strong>{{errorString}}</strong></alert> -->
                 </div>
-            </div>
+            </div><br>
+            <alert :show.sync="showError" type="danger" style="color: red"><strong>{{errorString}}</strong></alert>
 
         </div>
          
@@ -65,7 +66,7 @@ export default {
         fileTypes:{
             default:function () {
                 var file_types =  
-                    ".shp" ;
+                    ".dbf,.gdb,.gpx,.prj,.shp,.shx," ;
                 return file_types;
             }
         },
@@ -163,6 +164,8 @@ export default {
 
         delete_document: function(file) {
             let vm = this;
+            vm.showError=false;
+            vm.errorString='';
 
             vm.show_spinner = true;
             var formData = new FormData();
@@ -181,7 +184,8 @@ export default {
 
         hide_document: function(file) {
             let vm = this;
-
+            vm.showError=false;
+            vm.errorString='';
             vm.show_spinner = true;
             var formData = new FormData();
             formData.append('action', 'hide');
@@ -239,6 +243,9 @@ export default {
                     //$spinner.toggleClass("fa fa-cog fa-spin");
                     vm.show_spinner = false;
                 },err=>{
+                    vm.show_spinner = false;
+                    vm.showError=true;
+                    vm.errorString=helpers.apiVueResourceError(err);
                 });
             }
         },

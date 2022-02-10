@@ -11,12 +11,15 @@
                         :is_external="is_external"
                         :can_modify="true"
                         :display_at_time_of_submitted="true"
+                        :shapefile_json="shapefile_json"
+                        :key="componentMapKey"
                         
                     />
                 </div>
                 <div>  
                      <File :name="map_doc_name" label="Upload Shapefile" :id="map_doc_id"  :isRepeatable="true" :readonly="proposal.readonly"   :proposal_id="proposal.id" :isRequired="true"></File>
                 </div>
+                <alert :show.sync="showError" type="danger" style="color: red"><strong>{{errorString}}</strong></alert>
                 <div>
                     <div class="row">
                         <div class="col-sm-2 pull-right">
@@ -42,6 +45,7 @@
     import ComponentMap from '@/components/common/das/das_component_map.vue'
     import uuid from 'uuid'
     import { api_endpoints, helpers }from '@/utils/hooks'
+    import alert from '@vue-utils/alert.vue'
     export default {
         name: 'DASMapSection',
         props:{
@@ -87,7 +91,9 @@
             return{
                 values:null,
                 pBody: 'pBody'+vm._uid,
-                
+                componentMapKey: 0,
+                showError:false,
+                errorString:'',
             }
         },
         components: {
@@ -95,6 +101,7 @@
             FormSection,
             ComponentMap,
             File,
+            alert,
         },
         computed:{
             das_sections_classname: function() {
@@ -120,13 +127,45 @@
                 return "proposal_map_doc"
             },
             valid_button_disabled: function(){
-                return false;
+                if(this.is_external && this.proposal && !this.proposal.readonly){
+                    return false;
+                }
+                return true;
+            },
+            shapefile_json: function(){
+                return (this.proposal && this.proposal.shapefile_json) ? this.proposal.shapefile_json : {};
+            },
+            proposal_id: function(){
+                return (this.proposal && this.proposal.id) ? this.proposal.id : null;
             }
         },
         methods:{
+             incrementComponentMapKey: function() {
+                this.componentMapKey++;
+            },
             validate_map_docs: function(){
-                console.log('here');
-            }
+                let vm = this;
+                vm.showError=false;
+                vm.errorString='';
+                
+                vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/validate_map_files')).then(res=>{
+                    //vm.proposal = res.body;
+                    //vm.refreshFromResponse(res);
+                    vm.$emit('refreshFromResponse',res);
+                    },err=>{
+                    console.log(err);
+                    vm.showError=true;
+                    vm.errorString=helpers.apiVueResourceError(err);
+                    });
+                vm.$refs.component_map.updateShape();
+            },
+            refreshFromResponse:function(response){
+                let vm = this;
+                vm.original_proposal = helpers.copyObject(response.body);
+                vm.proposal = helpers.copyObject(response.body);
+                // vm.$refs.component_map.shapefile_json=helpers.copyObject(vm.proposal.shapefile_json);
+                //vm.$refs.component_map.updateShape();
+            },
             
         },
         created: function() {

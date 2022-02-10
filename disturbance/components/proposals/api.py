@@ -130,7 +130,7 @@ from disturbance.components.approvals.models import Approval, ApiarySiteOnApprov
 from disturbance.components.approvals.serializers import ApprovalLogEntrySerializer
 from disturbance.components.compliances.models import Compliance
 
-from disturbance.helpers import is_authorised_to_modify, is_customer, is_internal, is_das_apiary_admin
+from disturbance.helpers import is_authorised_to_modify, is_customer, is_internal, is_das_apiary_admin, is_authorised_to_modify_draft
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from rest_framework.pagination import PageNumberPagination
@@ -1588,13 +1588,19 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 if not _file:
                     _file = request.FILES.get('_file')
 
-                document = instance.map_documents.get_or_create(input_name=section, name=filename)[0]
-                path = default_storage.save('proposals/{}/documents/map_docs/{}'.format(proposal_id, filename), ContentFile(_file.read()))
+                #Check if the file with same extension already exists so not to allow multiple shapefiles with same extension.
+                fname, fext=os.path.splitext(filename)
+                doc_qs=instance.map_documents.filter(name__endswith=fext, hidden=False)
+                if doc_qs:
+                    raise serializers.ValidationError('Document with extension {} already exists.'.format(fext))
+                else:
+                    document = instance.map_documents.get_or_create(input_name=section, name=filename)[0]
+                    path = default_storage.save('proposals/{}/documents/map_docs/{}'.format(proposal_id, filename), ContentFile(_file.read()))
 
-                document._file = path
-                document.save()
-                instance.save(version_comment='File Added: {}'.format(filename)) # to allow revision to be added to reversion history
-                #instance.current_proposal.save(version_comment='File Added: {}'.format(filename)) # to allow revision to be added to reversion history
+                    document._file = path
+                    document.save()
+                    instance.save(version_comment='File Added: {}'.format(filename)) # to allow revision to be added to reversion history
+                    #instance.current_proposal.save(version_comment='File Added: {}'.format(filename)) # to allow revision to be added to reversion history
 
             return  Response( [dict(input_name=d.input_name, name=d.name,file=d._file.url, id=d.id, can_delete=d.can_delete, can_hide=d.can_hide) for d in instance.map_documents.filter(input_name=section, hidden=False) if d._file] )
 
@@ -1849,6 +1855,28 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 instance.submit(request, self)
                 instance.tenure = search_tenure(instance)
 
+            instance.save()
+            serializer = self.get_serializer(instance)
+            return Response(serializer.data)
+            #return redirect(reverse('external'))
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            handle_validation_error(e)
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['post'])
+    @renderer_classes((JSONRenderer,))
+    def validate_map_files(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            if instance.apiary_group_application_type:
+                pass
+            else:
+                instance.validate_map_files(request)
             instance.save()
             serializer = self.get_serializer(instance)
             return Response(serializer.data)
@@ -2182,9 +2210,9 @@ class ProposalViewSet(viewsets.ModelViewSet):
     def draft(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
-
+            print('in draft')
             # Ensure the current user is a member of the organisation that created the draft application.
-            is_authorised_to_modify(request, instance)
+            is_authorised_to_modify_draft(request, instance)
 
             save_proponent_data(instance, request, self)
             return redirect(reverse('external'))
@@ -2195,7 +2223,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(repr(e.error_dict))
         except Exception as e:
             print(traceback.print_exc())
-        raise serializers.ValidationError(str(e))
+            raise serializers.ValidationError(str(e))
 
     @detail_route(methods=['post'])
     @renderer_classes((JSONRenderer,))
