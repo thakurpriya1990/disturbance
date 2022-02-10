@@ -72,7 +72,7 @@ import CommentBox from './comment_box_referral.vue'
 import HelpText from './help_text.vue'
 import HelpTextUrl from './help_text_url.vue'
 export default {
-    name:"select",
+    name:"selectComp",
     props:{
         'name':String,
         'label':String,
@@ -83,7 +83,7 @@ export default {
         'help_text_url':String,
         'help_text_assessor_url':String,
         "value":[String,Array],
-        "comment_value": String,
+        //"comment_value": String,
         "assessor_readonly": Boolean,
         "options":Array,
         "conditions":Object,
@@ -99,7 +99,7 @@ export default {
             }
         },
         'readonly': Boolean,
-        "comment_boxes":Array,
+        "comment_boxes":"",
     },
     data:function () {
         let vm =this;
