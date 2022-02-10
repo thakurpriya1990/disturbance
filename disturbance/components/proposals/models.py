@@ -5201,20 +5201,6 @@ class SpatialQueryQuestion(models.Model):
     #answer_mlq = models.CharField('Answer (Masterlist Question)', max_length=100)
     answer_mlq = models.ForeignKey(QuestionOption, related_name='question_options', on_delete=models.PROTECT)
 
-#    question_option = ChainedManyToManyField(
-#         'disturbance.QuestionOption',
-#         chained_field='options',
-#         chained_model_field='question_option',
-#    )
-
-#    answer_option = ChainedManyToManyField(
-#        #MasterlistQuestion,
-#        QuestionOption,
-#        #horizontal=True,
-#        #verbose_name='writer',
-#        chained_field="question",
-#        chained_model_field="option",
-#    )
     layer_name = models.CharField(max_length=100)
     layer_url = models.CharField(max_length=512, blank=True, null=True)
     expiry = models.DateField('Expiry Date', blank=True, null=True)

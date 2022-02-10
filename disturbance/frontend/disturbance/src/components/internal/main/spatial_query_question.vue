@@ -288,10 +288,26 @@ export default {
                 processing: true,
                 ajax: {
                     "url": vm.spatial_query_question_url, 
+                    data: function (data) {
+                      // needed because the datatbles url lenth was too long - brwoser returned an error - jm
+                      // eg. http://localhost:8000/api/spatial_query_paginated/spatial_query_question_datatable_list/?format=datatables&draw=1&length=1
+		      for (var i = 10, len = data.columns.length; i < len; i++) {
+			//if (! data.columns[i].search.value) delete data.columns[i].search;
+			//if (data.columns[i].searchable === true) delete data.columns[i].searchable;
+			//if (data.columns[i].orderable === true) delete data.columns[i].orderable;
+			//if (data.columns[i].data === data.columns[i].name) delete data.columns[i].name;
+			delete data.columns[i].search;
+			delete data.columns[i].searchable;
+			delete data.columns[i].orderable;
+			delete data.columns[i].name;
+		      }
+		      //delete data.search.regex;
+		    }
                 },
                 columnDefs: [
                     //{ visible: false, targets: [ 3, 5, 6] } 
                     //{ visible: false, targets: [ 3, 6] } 
+                    //{ orderable: false, targets: [ 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19] } 
                 ],
                 columns: [
                     { 
@@ -613,7 +629,6 @@ export default {
                 self.$refs.spatial_query_question_table.row_of_data = self.$refs.spatial_query_question_table.vmDataTable.row('#'+$(this).attr('data-rowid'));
 
                 self.spatialquery.id = self.$refs.spatial_query_question_table.row_of_data.data().id;
-                self.spatialquery.answer_type = self.$refs.spatial_query_question_table.row_of_data.data().answer_type;
                 self.spatialquery.question = self.$refs.spatial_query_question_table.row_of_data.data().question;
                 self.spatialquery.answer_mlq = self.$refs.spatial_query_question_table.row_of_data.data().answer_mlq;
                 self.spatialquery.layer_name = self.$refs.spatial_query_question_table.row_of_data.data().layer_name;
@@ -635,13 +650,7 @@ export default {
                 self.addedOptions = self.$refs.spatial_query_question_table.row_of_data.data().options;
                 self.addedHeaders = self.$refs.spatial_query_question_table.row_of_data.data().headers;       
                 self.addedExpanders = self.$refs.spatial_query_question_table.row_of_data.data().expanders;
-                self.spatialquery.help_text_url = self.$refs.spatial_query_question_table.row_of_data.data().help_text_url;
-                self.spatialquery.help_text_assessor_url = self.$refs.spatial_query_question_table.row_of_data.data().help_text_assessor_url;
-                self.spatialquery.help_text = self.$refs.spatial_query_question_table.row_of_data.data().help_text;
-                self.spatialquery.help_text_assessor = self.$refs.spatial_query_question_table.row_of_data.data().help_text_assessor;
 
-                $(self.$refs.select_answer_type).val(self.spatialquery.answer_type).trigger('change');
-                self.setShowAdditional(self.spatialquery.answer_type)
                 self.isModalOpen = true;
             });
 
