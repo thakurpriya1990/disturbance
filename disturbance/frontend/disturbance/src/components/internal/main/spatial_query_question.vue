@@ -55,7 +55,9 @@
                             <label class="control-label pull-left" >Question</label>
                         </div>
                         <div class="col-md-9">
-                            <input class="form-control" name="question" v-model="spatialquery.question"></input>
+                            <select class="form-control" ref="select_question" name="select-question" v-model="spatialquery.question">
+                                <option v-for="item in spatialquery_selects.all_masterlist" :value="item.id" >{{item.question}}</option>
+                            </select>     
                         </div>
                     </div>
 
@@ -64,8 +66,10 @@
                         <div class="col-md-3">
                             <label class="control-label pull-left" >Answer</label>
                         </div>
-                        <div class="col-md-9">
-                            <input class="form-control" name="answer_mlq" v-model="spatialquery.answer_mlq"></input>
+                        <div class="col-md-9" v-if="spatialquery.question">
+                            <select class="form-control" ref="select_option" name="select-option" v-model="spatialquery.answer_mlq" :disabled="!has_options(spatialquery.question)">
+                                <option v-for="item in selected_question(spatialquery.question).option" :value="item.id" >{{item.label}}</option>
+                            </select>     
                         </div>
                     </div>
 
@@ -133,7 +137,7 @@
                         </div>
                         <div class="col-md-3">
                             <select class="form-control" ref="select_how" name="select-how" v-model="spatialquery.how">
-                                <option v-for="operator in how_operators" :value="operator.value" >{{operator.label}}</option>
+                                <option v-for="operator in spatialquery_selects.how" :value="operator.value" >{{operator.label}}</option>
                             </select>     
                         </div>
                     </div>
@@ -159,7 +163,7 @@
                             </div>
                             <div class="col-md-3">
                                 <select class="form-control" ref="select_operator" name="select-operator" v-model="spatialquery.operator">
-                                    <option v-for="operator in column_operators" :value="operator.value" >{{operator.label}}</option>
+                                    <option v-for="operator in spatialquery_selects.operators" :value="operator.value" >{{operator.label}}</option>
                                 </select>     
                             </div>
                             <div class="col-md-3">
@@ -273,6 +277,7 @@ export default {
             pExpanderBody: 'pOptionBody' + vm._uid,
             filterOptions: '',
             isModalOpen:false,
+            spatialquery_selects: [],
             missing_fields: [],
             // spatial query questions table
             //dtHeadersSpatialQueryQuestion: ["ID", "QuestionOP", "QuestionHD", "QuestionEX", "Question", "Answer Type", "Action"],
@@ -289,7 +294,7 @@ export default {
                 ajax: {
                     "url": vm.spatial_query_question_url, 
                     data: function (data) {
-                      // needed because the datatbles url lenth was too long - brwoser returned an error - jm
+                      // needed because the datatables url GET length was too long - browser returned an error - jm
                       // eg. http://localhost:8000/api/spatial_query_paginated/spatial_query_question_datatable_list/?format=datatables&draw=1&length=1
 		      for (var i = 10, len = data.columns.length; i < len; i++) {
 			//if (! data.columns[i].search.value) delete data.columns[i].search;
@@ -443,17 +448,6 @@ export default {
                 help_text_assessor_url: false,
             },
             answerTypes: [],
-            how_operators: [
-                {value:1, label:"Overlapping"},
-                {value:2, label:"Outside"}
-            ],
-            column_operators: [
-                {value:1, label:"Equals"},
-                {value:2, label:"Greater Than"},
-                {value:3, label:"Less Than"},
-                {value:4, label:"Is Null"},
-                {value:5, label:"Is Not Null"}
-            ],
             addedHeaders: [],
             addedHeader: {
                 label: '',
@@ -487,6 +481,12 @@ export default {
         },
     },
     methods: {
+        selected_question: function(selected_id) {
+            return this.spatialquery_selects.all_masterlist.find( t => t.id === selected_id );
+        },
+        has_options: function(selected_id) {
+            return this.selected_question(selected_id).option.length > 0;
+        },
         delay(callback, ms) {
             var timer = 0;
             return function () {
@@ -594,6 +594,7 @@ export default {
             this.spatialquery.question = '';
             this.spatialquery.answer_mlq = '';
             this.spatialquery.layer_name = '';
+            this.spatialquery.layer_url = '';
             this.spatialquery.expiry = '';
             this.spatialquery.visible_to_proponent = '';
             this.spatialquery.buffer = '';
@@ -632,6 +633,7 @@ export default {
                 self.spatialquery.question = self.$refs.spatial_query_question_table.row_of_data.data().question;
                 self.spatialquery.answer_mlq = self.$refs.spatial_query_question_table.row_of_data.data().answer_mlq;
                 self.spatialquery.layer_name = self.$refs.spatial_query_question_table.row_of_data.data().layer_name;
+                self.spatialquery.layer_url = self.$refs.spatial_query_question_table.row_of_data.data().layer_url;
                 self.spatialquery.expiry = self.$refs.spatial_query_question_table.row_of_data.data().expiry;
                 self.spatialquery.visible_to_proponent = self.$refs.spatial_query_question_table.row_of_data.data().visible_to_proponent;
                 self.spatialquery.buffer = self.$refs.spatial_query_question_table.row_of_data.data().buffer;
@@ -726,9 +728,10 @@ export default {
         },
         initSelects: async function() {
 
-            await this.$http.get(helpers.add_endpoint_json(api_endpoints.spatial_query_question,'1/get_spatialquery_selects')).then(res=>{
+            //console.log(helpers.add_endpoint_json(api_endpoints.spatial_query,'get_spatialquery_selects'))
+            await this.$http.get(helpers.add_endpoint_json(api_endpoints.spatial_query,'get_spatialquery_selects')).then(res=>{
 
-                    this.answerTypes = res.body.all_answer_types
+                    this.spatialquery_selects = res.body
 
             },err=>{
                 swal(
@@ -744,7 +747,7 @@ export default {
         this.form = document.forms.spatial_query_question;
         this.$nextTick(() => {
             this.initEventListeners();
-            //this.initSelects();
+            this.initSelects();
         });
     }
 }

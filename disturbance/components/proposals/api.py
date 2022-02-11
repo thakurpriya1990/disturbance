@@ -104,6 +104,7 @@ from disturbance.components.proposals.serializers import (
     SchemaProposalTypeSerializer,
     DTSpatialQueryQuestionSerializer,
     SpatialQueryQuestionSerializer,
+    SchemaMasterlistOptionSerializer,
 )
 from disturbance.components.proposals.serializers_apiary import (
     ProposalApiaryTypeSerializer,
@@ -166,9 +167,9 @@ class GetEmptyList(views.APIView):
 
 #class DatatablesFilterBackend(BaseFilterBackend):
 #
-#	def filter_queryset(self, request, queryset, view):
-#		queryset = super(DatatablesFilterBackend, self).filter_queryset(request, queryset, view)
-#		return queryset
+#       def filter_queryset(self, request, queryset, view):
+#               queryset = super(DatatablesFilterBackend, self).filter_queryset(request, queryset, view)
+#               return queryset
 
 class ProposalFilterBackend(DatatablesFilterBackend):
     """
@@ -3907,11 +3908,62 @@ class SpatialQueryQuestionPaginatedViewSet(viewsets.ModelViewSet):
 
 
 class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
-    """ http://localhost:8003/api/spatial_query/1.json """
+    """ http://localhost:8000/api/spatial_query/1.json """
     queryset = SpatialQueryQuestion.objects.all()
-    serializer_class = DTSpatialQueryQuestionSerializer
+    serializer_class = SpatialQueryQuestionSerializer
 
     def get_queryset(self):
         return self.queryset
 
+    @list_route(methods=['GET', ])
+    def get_spatialquery_selects(self, request, *args, **kwargs):
+        '''
+        Get independant Select lists associated with SpatialQuery Questions.
+        eg. http://localhost:8000/api/spatial_query/get_spatialquery_selects.json
+        '''
+        try:
+
+            excl_operator_choices = []
+            excl_how_choices = []
+
+            operators = [
+                {
+                    'value': a[0], 'label': a[1]
+                } for a in SpatialQueryQuestion.OPERATOR_CHOICES
+                if a[0] not in excl_operator_choices
+            ]
+
+            how = [
+                {
+                    'value': a[0], 'label': a[1]
+                } for a in SpatialQueryQuestion.HOW_CHOICES
+                if a[0] not in excl_how_choices
+            ]
+
+            qs = MasterlistQuestion.objects.all()
+            masterlist = SchemaMasterlistOptionSerializer(qs, many=True).data
+
+            return Response(
+                {
+                    'operators': operators,
+                    'how': how,
+                    'all_masterlist': masterlist,
+                },
+                status=status.HTTP_200_OK
+            )
+
+        except serializers.ValidationError as ve:
+            log = '{0} {1}'.format('get_spatialquery_selects()', ve)
+            logger.exception(log)
+            raise
+
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0]))
+
+        except Exception as e:
+            logger.exception()
+            raise serializers.ValidationError(str(e))
 

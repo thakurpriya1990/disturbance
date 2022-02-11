@@ -929,6 +929,20 @@ class SchemaMasterlistSerializer(serializers.ModelSerializer):
         return expanders
 
 
+class SchemaMasterlistOptionSerializer(serializers.ModelSerializer):
+    '''
+    Serializer for Schema builder using Masterlist questions.
+    '''
+    option = serializers.SerializerMethodField()
+
+    class Meta:
+        model = MasterlistQuestion
+        fields = ('id', 'question', 'answer_type', 'option')
+
+    def get_option(self, obj):
+        return obj.option.values()
+
+
 class SelectSchemaMasterlistSerializer(serializers.ModelSerializer):
     '''
     Serializer for Schema builder using Masterlist questions.
@@ -1232,4 +1246,6 @@ class DTSpatialQueryQuestionSerializer(serializers.ModelSerializer):
     class Meta:
         model = SpatialQueryQuestion
         fields = '__all__'
+
+
 
