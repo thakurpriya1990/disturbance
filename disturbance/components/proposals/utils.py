@@ -1607,3 +1607,66 @@ def generate_schema(proposal_type, request):
     if request.method=='POST':
         create_helppage_object(proposal_type)
     return new_Schema_return            
+
+
+# Populate data in Proposal using the CDDP configuration
+def prefill_data_from_shape(schema ):
+    data = {}
+    
+    try:
+        for item in schema:
+            data.update(_populate_data_from_item(item, 0, ''))
+           
+    except:
+        traceback.print_exc()
+    return [data]
+
+def _populate_data_from_item(item, repetition, suffix):
+    item_data = {}
+
+    if 'name' in item:
+        extended_item_name = item['name']
+    else:
+        raise Exception('Missing name in item %s' % item['label'])
+
+    if 'children' not in item:
+        if item['type'] in ['checkbox' 'declaration']:
+            print('checkbox item', item)
+        elif item['type'] == 'file':
+            print('file item', item)
+        else:
+                if item['type'] == 'multi-select':
+                    print('multi-select item', item)
+                else:
+                    #item_data[item['name']] = post_data.get(extended_item_name)
+                    #This is where we can add API call to SQS to get the answer.
+                    item_data[item['name']]= item['options'][0]['value']
+                    #print(item)
+                    print('radiobuttons/ textarea/ text/ date etc item', item)
+    else:
+        if 'repetition' in item:
+            item_data = generate_item_data_shape(extended_item_name,item,item_data,1,suffix)
+        else:
+            item_data = generate_item_data_shape(extended_item_name, item, item_data,1,suffix)
+
+
+    if 'conditions' in item:
+        for condition in list(item['conditions'].keys()):
+            if condition==item_data[item['name']]:
+                for child in item['conditions'][condition]:
+                    item_data.update(_populate_data_from_item(child,  repetition, suffix))
+
+    return item_data
+
+def generate_item_data_shape(item_name,item,item_data,repetition,suffix):
+    item_data_list = []
+    for rep in range(0, repetition):
+        child_data = {}
+        for child_item in item.get('children'):
+            child_data.update(_populate_data_from_item(child_item, 0,
+                                                     '{}-{}'.format(suffix, rep)))
+            #print('child item in generate item data', child_item)
+        item_data_list.append(child_data)
+
+        item_data[item['name']] = item_data_list
+    return item_data
