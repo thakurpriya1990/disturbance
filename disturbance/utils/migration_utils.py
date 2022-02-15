@@ -17,6 +17,7 @@ from ledger.address.models import Country
 import csv
 import os
 import datetime
+import time
 import string
 from dateutil.relativedelta import relativedelta
 from decimal import Decimal
@@ -41,6 +42,9 @@ class ApiaryLicenceReader():
         #self.parks_not_found = []
         #self.org_lines = self._read_organisation_data()
         self.apiary_licence_lines = self._read_organisation_data()
+
+        self.application_type = ApplicationType.objects.get(name=ApplicationType.APIARY)
+        self.proposal_type = ProposalType.objects.all().order_by('name', '-version').distinct('name').get(name=self.application_type.name)
 
     def _write_to_migrated_apiary_licence_model(self):
         try:
@@ -133,10 +137,63 @@ class ApiaryLicenceReader():
                 #import ipdb; ipdb.set_trace()
                 self._write_to_migrated_apiary_licence_model()
                 self._create_licences()
+                self._create_licence_pdf()
                 #import denied sites
             except:
                 import ipdb; ipdb.set_trace()
                 raise Exception
+
+    def _verify_data(self, verify=False):
+        lines=[]
+        with open(self.filename) as csvfile:
+            reader = csv.reader(csvfile, delimiter=str(':'))
+            header = next(reader) # skip header
+            #import ipdb; ipdb.set_trace()
+            error_lines=[]
+            for idx, row in enumerate(reader):
+                #import ipdb; ipdb.set_trace()
+                try:
+                    #if not row[0].startswith('#') and row[4].strip().lower() == 'current':
+                    if not row[0].startswith('#'):
+                        data={}
+                        start_date_raw = row[1].strip()
+                        expiry_date_raw = row[2].strip()
+                        issue_date_raw = row[3].strip()
+                        approval_cpc_date_raw = row[26].strip()
+                        approval_minister_date_raw = row[27].strip()
+
+                        if start_date_raw:
+                            start_date = datetime.datetime.strptime(start_date_raw, '%d/%m/%Y').date()
+                            data.update({'start_date': start_date})
+
+                        if expiry_date_raw:
+                            expiry_date = datetime.datetime.strptime(expiry_date_raw, '%d/%m/%Y').date()
+                            data.update({'expiry_date': expiry_date})
+
+                        if issue_date_raw:
+                            issue_date = datetime.datetime.strptime(issue_date_raw.strip(), '%d/%m/%Y').date()
+                            data.update({'issue_date': issue_date})
+                        else:
+                            data.update({'issue_date': start_date})
+
+                        if approval_cpc_date_raw:
+                            approval_cpc_date = datetime.datetime.strptime(approval_cpc_date_raw, '%d/%m/%Y').date()
+                            data.update({'approval_cpc_date': approval_cpc_date})
+                        else:
+                            data.update({'approval_cpc_date': None})
+
+                        if approval_minister_date_raw:
+                            approval_minister_date = datetime.datetime.strptime(approval_minister_date_raw, '%d/%m/%Y').date()
+                            data.update({'approval_minister_date': approval_minister_date})
+                        else:
+                            data.update({'approval_minister_date': None})
+
+                except Exception as e:
+                    error_lines.append(row)
+                    import ipdb; ipdb.set_trace()
+
+        print(len(error_lines))
+        return lines
 
     def _read_organisation_data(self, verify=False):
         lines=[]
@@ -156,150 +213,156 @@ class ApiaryLicenceReader():
                 reader = csv.reader(csvfile, delimiter=str(':'))
                 header = next(reader) # skip header
                 #import ipdb; ipdb.set_trace()
+                error_lines=[]
                 for idx, row in enumerate(reader):
                     #import ipdb; ipdb.set_trace()
-                    if not row[0].startswith('#'):
-                        data={}
-                        data.update({'permit_number': row[0].strip() if row[0].strip()!='' else None})
-                        start_date_raw = row[1].strip()
-                        if start_date_raw:
-                            start_date = datetime.datetime.strptime(start_date_raw, '%d/%m/%Y').date()
-                            data.update({'start_date': start_date})
-                        else:
-                            continue
-                        expiry_date_raw = row[2].strip()
-                        if expiry_date_raw:
-                            expiry_date = datetime.datetime.strptime(row[2].strip(), '%d/%m/%Y').date()
-                            data.update({'expiry_date': expiry_date})
-#                        issue_date_raw = row[3].strip()
-#                        if issue_date_raw:
-#                            issue_date = datetime.datetime.strptime(row[3].strip(), '%d/%m/%Y').date()
-#                            data.update({'issue_date': issue_date})
-#                        # set issue_date to start_date
-#                        else:
-#                            data.update({'issue_date': start_date})
-                        try:
-                            issue_date = datetime.datetime.strptime(row[3].strip(), '%d/%m/%Y').date()
-                            data.update({'issue_date': issue_date})
-                        # set issue_date to start_date
-                        except:
-                            data.update({'issue_date': start_date})
-
-                        data.update({'status': row[4].strip().capitalize()})
-                        # JM switched round the below for the csv file provided by Ashlee dated 01Sep2021
-                        data.update({'latitude': row[6].translate(string.whitespace)})
-                        data.update({'longitude': row[5].translate(string.whitespace)})
-                        #data.update({'file_no': row[0].translate(None, string.whitespace)})
-                        #data.update({'licence_no': row[1].translate(None, string.whitespace)})
-                        #data.update({'expiry_date': row[2].strip()})
-                        #data.update({'term': row[3].strip()})
-
-
-                        data.update({'abn': row[9].translate(string.whitespace).replace(' ','')})
-                        data.update({'trading_name': row[7].strip()})
-                        if row[8].strip() != '':
-                            data.update({'licencee': row[8].strip()})
-                        else:
-                            # set same as Trading Name
-                            #data.update({'licencee': row[7].strip()})
-                            data.update({'licencee': row[7].strip() + '(' + data['abn'] + ')'})
-
-                        #data.update({'title': row[10].strip()})
-                        first_name_raw = row[10].strip()
-                        if first_name_raw:
-                            first_name_split = first_name_raw.split('&')
-                            data.update({'first_name': first_name_split[0].strip().capitalize()})
-                        #data.update({'first_name': row[10].strip().capitalize()})
-                        last_name_raw = row[11].strip()
-                        if last_name_raw:
-                            last_name_split = last_name_raw.split('&')
-                            data.update({'last_name': last_name_raw.strip().capitalize()})
-                        #data.update({'other_contact': row[12].strip()})
-                        #import ipdb; ipdb.set_trace()
-                        data.update({'address_line1': row[13].strip()})
-                        data.update({'address_line2': row[14].strip()})
-                        data.update({'address_line3': row[15].strip()})
-                        data.update({'suburb': row[16].strip().capitalize()})
-                        data.update({'state': row[17].strip()})
-
-                        country_raw = ' '.join([i.lower().capitalize() for i in row[18].strip().split()])
-                        #if country == 'A':
-                            #country = 'Australia'
-                        country_str = 'Australia' if country_raw.lower().startswith('a') else country_raw
-                        country=Country.objects.get(printable_name__icontains=country_str)
-                        data.update({'country': country.iso_3166_1_a2}) # 2 char 'AU'
-                        if row[19].translate(string.whitespace) != '':
-                            data.update({'postcode': row[19].translate(string.whitespace)})
-                        else:
-                            data.update({'postcode': '6000'})
-                        data.update({'phone_number1': row[20].translate(b' -()')})
-                        data.update({'phone_number2': row[21].translate(b' -()')})
-                        data.update({'mobile_number': row[22].translate(b' -()')})
-
-                        emails = row[23].translate(b' -()').replace(';', ',').split(',')
-                        #import ipdb; ipdb.set_trace()
-                        if row[24].translate(b' -()').capitalize() == '':
-                            # This is a Permit
-                            data.update({'licensed_site': False})
-                        else:
-                            data.update({'licensed_site': True})
-#                        try:
-#                            data.update({'licensed_site': eval(row[24].translate(b' -()').capitalize())})
-#                        except:
-#                            data.update({'licensed_site': False})
-
-                        # batch_no:approval_cpc_date:approval_minister_date:map_ref:forest_block:cog:roadtrack:zone:catchment:dra_permit
-                        data.update({'batch_no': row[25].strip()})
-                        approval_cpc_date_raw = row[26].strip()
-                        try:
-                            if approval_cpc_date_raw:
-                                approval_cpc_date = datetime.datetime.strptime(approval_cpc_date_raw, '%d/%m/%Y').date()
-                                data.update({'approval_cpc_date': approval_cpc_date})
+                    try:
+                        #if not row[0].startswith('#') and row[4].strip().lower() == 'current':
+                        if not row[0].startswith('#') and not row[7].strip() == 'AJ & DE Dowsett':
+                            data={}
+                            data.update({'permit_number': row[0].strip() if row[0].strip()!='' else None})
+                            start_date_raw = row[1].strip()
+                            if start_date_raw:
+                                start_date = datetime.datetime.strptime(start_date_raw, '%d/%m/%Y').date()
+                                data.update({'start_date': start_date})
                             else:
-                                data.update({'approval_cpc_date': None})
-                            approval_minister_date_raw = row[27].strip()
-                        except Exception as e:
-                            print(e)
-                            import ipdb; ipdb.set_trace()
+                                continue
+                            expiry_date_raw = row[2].strip()
+                            if expiry_date_raw:
+                                expiry_date = datetime.datetime.strptime(row[2].strip(), '%d/%m/%Y').date()
+                                data.update({'expiry_date': expiry_date})
+                            else:
+                                data.update({'expiry_date': datetime.date.today()})
 
-                        if approval_minister_date_raw:
-                            approval_minister_date = datetime.datetime.strptime(approval_minister_date_raw, '%d/%m/%Y').date()
-                            data.update({'approval_minister_date': approval_minister_date})
-                        else:
-                            data.update({'approval_minister_date': None})
-                        data.update({'map_ref': row[28].strip()})
-                        data.update({'forest_block': row[29].strip()})
-                        data.update({'cog': row[30].strip()})
-                        data.update({'roadtrack': row[31].strip()})
-                        data.update({'zone': row[32].strip()})
-                        data.update({'catchment': row[33].strip()})
-                        data.update({'dra_permit': row[34].strip() if row[34].strip() else False})
-                        data.update({'site_status': settings.SITE_STATUS_SUSPENDED if row[35].strip() else settings.SITE_STATUS_CURRENT})
+                            try:
+                                issue_date = datetime.datetime.strptime(row[3].strip(), '%d/%m/%Y').date()
+                                data.update({'issue_date': issue_date})
+                            # set issue_date to start_date
+                            except:
+                                data.update({'issue_date': start_date})
 
-                        #pli_expiry_date_raw = row[25].strip()
-                        #if pli_expiry_date_raw:
-                        #    pli_expiry_date = datetime.datetime.strptime(pli_expiry_date_raw, '%d/%m/%Y').date()
-                        #    data.update({'pli_expiry_date': pli_expiry_date})
+                            try:
+                                tmp = data['expiry_date']
+                            except Exception as e:
+                                import ipdb; ipdb.set_trace()
 
-                        #for num, email in enumerate(emails, 1):
-                         #   data.update({'email{}'.format(num): email.lower()})
-                        if emails:
-                            data.update({'email': emails[0].strip().lower()})
-                        # Org or individual record
-                        if data.get('licencee')!='' and data.get('abn')!='':
-                            data.update({'licencee_type': 'organisation'})
-                        #elif not data.get('licencee'):
-                        elif data.get('abn')=='':
-                            data.update({'licencee_type': 'individual'})
-                        else:
+                            data.update({'status': row[4].strip().capitalize()})
+                            # JM switched round the below for the csv file provided by Ashlee dated 01Sep2021
+                            data.update({'latitude': row[6].translate(string.whitespace)})
+                            data.update({'longitude': row[5].translate(string.whitespace)})
+                            #data.update({'file_no': row[0].translate(None, string.whitespace)})
+                            #data.update({'licence_no': row[1].translate(None, string.whitespace)})
+                            #data.update({'expiry_date': row[2].strip()})
+                            #data.update({'term': row[3].strip()})
+
+
+                            data.update({'abn': row[9].translate(string.whitespace).replace(' ','')})
+                            data.update({'trading_name': row[7].strip()})
+                            if row[8].strip() != '':
+                                data.update({'licencee': row[8].strip()})
+                            else:
+                                # set same as Trading Name
+                                #data.update({'licencee': row[7].strip()})
+                                data.update({'licencee': row[7].strip() + '(' + data['abn'] + ')'})
+
+                            #data.update({'title': row[10].strip()})
+                            first_name_raw = row[10].strip()
+                            if first_name_raw:
+                                first_name_split = first_name_raw.split('&')
+                                data.update({'first_name': first_name_split[0].strip().capitalize()})
+                            #data.update({'first_name': row[10].strip().capitalize()})
+                            last_name_raw = row[11].strip()
+                            if last_name_raw:
+                                last_name_split = last_name_raw.split('&')
+                                data.update({'last_name': last_name_raw.strip().capitalize()})
+                            #data.update({'other_contact': row[12].strip()})
                             #import ipdb; ipdb.set_trace()
-                            raise ImportException("Entry is not a valid organisation or individual licence record")
+                            data.update({'address_line1': row[13].strip()})
+                            data.update({'address_line2': row[14].strip()})
+                            data.update({'address_line3': row[15].strip()})
+                            data.update({'suburb': row[16].strip().capitalize()})
+                            data.update({'state': row[17].strip()})
 
-                        #if data['abn'] != '':
-                        lines.append(data) # must be an org
-                        ##else:
-                        ##   print data['first_name'], data['last_name'], data['email1'], data['abn']
-                        ##   print
+                            country_raw = ' '.join([i.lower().capitalize() for i in row[18].strip().split()])
+                            #if country == 'A':
+                                #country = 'Australia'
+                            country_str = 'Australia' if country_raw.lower().startswith('a') else country_raw
+                            country=Country.objects.get(printable_name__icontains=country_str)
+                            data.update({'country': country.iso_3166_1_a2}) # 2 char 'AU'
+                            if row[19].translate(string.whitespace) != '':
+                                data.update({'postcode': row[19].translate(string.whitespace)})
+                            else:
+                                data.update({'postcode': '6000'})
+                            data.update({'phone_number1': row[20].translate(b' -()')})
+                            data.update({'phone_number2': row[21].translate(b' -()')})
+                            data.update({'mobile_number': row[22].translate(b' -()')})
+
+                            emails = row[23].translate(b' -()').replace(';', ',').split(',')
+                            #import ipdb; ipdb.set_trace()
+                            if row[24].translate(b' -()').capitalize() == '':
+                                # This is a Permit
+                                data.update({'licensed_site': False})
+                            else:
+                                data.update({'licensed_site': True})
+
+                            # batch_no:approval_cpc_date:approval_minister_date:map_ref:forest_block:cog:roadtrack:zone:catchment:dra_permit
+                            data.update({'batch_no': row[25].strip()})
+                            approval_cpc_date_raw = row[26].strip()
+                            try:
+                                if approval_cpc_date_raw:
+                                    approval_cpc_date = datetime.datetime.strptime(approval_cpc_date_raw, '%d/%m/%Y').date()
+                                    data.update({'approval_cpc_date': approval_cpc_date})
+                                else:
+                                    data.update({'approval_cpc_date': None})
+                                approval_minister_date_raw = row[27].strip()
+                            except Exception as e:
+                                print(e)
+                                import ipdb; ipdb.set_trace()
+
+                            if approval_minister_date_raw:
+                                approval_minister_date = datetime.datetime.strptime(approval_minister_date_raw, '%d/%m/%Y').date()
+                                data.update({'approval_minister_date': approval_minister_date})
+                            else:
+                                data.update({'approval_minister_date': None})
+                            data.update({'map_ref': row[28].strip()})
+                            data.update({'forest_block': row[29].strip()})
+                            data.update({'cog': row[30].strip()})
+                            data.update({'roadtrack': row[31].strip()})
+                            data.update({'zone': row[32].strip()})
+                            data.update({'catchment': row[33].strip()})
+                            data.update({'dra_permit': row[34].strip() if row[34].strip() else False})
+                            data.update({'site_status': settings.SITE_STATUS_SUSPENDED if row[35].strip() else settings.SITE_STATUS_CURRENT})
+
+                            #pli_expiry_date_raw = row[25].strip()
+                            #if pli_expiry_date_raw:
+                            #    pli_expiry_date = datetime.datetime.strptime(pli_expiry_date_raw, '%d/%m/%Y').date()
+                            #    data.update({'pli_expiry_date': pli_expiry_date})
+
+                            #for num, email in enumerate(emails, 1):
+                             #   data.update({'email{}'.format(num): email.lower()})
+                            if emails:
+                                data.update({'email': emails[0].strip().lower()})
+                            # Org or individual record
+                            if data.get('licencee')!='' and data.get('abn')!='':
+                                data.update({'licencee_type': 'organisation'})
+                            #elif not data.get('licencee'):
+                            elif data.get('abn')=='':
+                                data.update({'licencee_type': 'individual'})
+                            else:
+                                #import ipdb; ipdb.set_trace()
+                                raise ImportException("Entry is not a valid organisation or individual licence record")
+
+                            #if data['abn'] != '':
+                            lines.append(data) # must be an org
+                            ##else:
+                            ##   print data['first_name'], data['last_name'], data['email1'], data['abn']
+                            ##   print
+                    except Exception as e:
+                        print(idx)
+                        print(e)
+                        print(row)
+                        error_lines.append(row)
+                        print
 
         except Exception as e:
             import ipdb; ipdb.set_trace()
@@ -312,6 +375,7 @@ class ApiaryLicenceReader():
                 print(e)
             raise
 
+        print(len(error_lines))
         return lines
 
     def _create_individual(self, data, count, debug=False):
@@ -329,6 +393,7 @@ class ApiaryLicenceReader():
             logger.error('user: {}   *********** 1 *********** FAILED'.format(data['email']))
 
     def _create_organisation(self, data, count, debug=False):
+        #import ipdb; ipdb.set_trace()
         if debug:
             import ipdb; ipdb.set_trace()
         try:
@@ -395,7 +460,7 @@ class ApiaryLicenceReader():
 
             for org in lo.organisation_set.all():
                 for contact in org.contacts.all():
-                    if 'ledger.dpaw.wa.gov.au' in contact.email:
+                    if 'ledger.dpaw.wa.gov.au' in contact.email and data['email'] and org.contacts.filter(email=data['email']).count()==0:
                         contact.email = data['email']
                         contact.save()
 
@@ -526,72 +591,21 @@ class ApiaryLicenceReader():
 
     def _migrate_approval(self, data, submitter, applicant=None, proxy_applicant=None):
         from disturbance.components.approvals.models import Approval
-        #applicant = None
-        #proxy_applicant = None
-        #submitter=None
-
-        #try:
-            #if data['email']:
-            #    #try:
-            #    #    submitter = EmailUser.objects.get(email__icontains=data['email1'])
-            #    #except:
-            #    #    submitter = EmailUser.objects.create(email=data['email1'], password = '')
-            #    try:
-            #        #submitter = EmailUser.objects.get(email__icontains=data['email1'])
-            #        submitter = EmailUser.objects.get(email=data['email'])
-            #    except:
-            #        submitter = EmailUser.objects.create(
-            #            email=data['email'],
-            #            first_name=data['first_name'],
-            #            last_name=data['last_name'],
-            #            phone_number=data['phone_number1'],
-            #            mobile_number=data['mobile_number'],
-            #        )
-
-            #    if data['abn']:
-            #        #org_applicant = Organisation.objects.get(organisation__name=data['org_applicant'])
-            #        applicant = Organisation.objects.get(organisation__abn=data['abn'])
-            #else:
-            #    #ValidationError('Licence holder is required')
-            #    logger.error('Licence holder is required: submitter {}, abn {}'.format(data['submitter'], data['abn']))
-            #    self.not_found.append({'submitter': data['submitter'], 'abn': data['abn']})
-            #    return None
-        #except Exception, e:
-        #    #raise ValidationError('Licence holder is required: \n{}'.format(e))
-        #    logger.error('Licence holder is required: submitter {}, abn {}'.format(data['submitter'], data['abn']))
-        #    self.not_found.append({'submitter': data['submitter'], 'abn': data['abn']})
-        #    return None
-
-        #application_type=ApplicationType.objects.get(name=data['application_type'])
-
-        # Retrieve existing licence for applicant/proxy_applicant
-        #approval = None
-        #if applicant:
-        #    approval = Approval.objects.filter(applicant=applicant, status=Approval.STATUS_CURRENT, apiary_approval=True).first()
-        #elif proxy_applicant:
-        #    approval = Approval.objects.filter(proxy_applicant=proxy_applicant, status=Approval.STATUS_CURRENT, apiary_approval=True).first()
-
         #import ipdb; ipdb.set_trace()
-        application_type=ApplicationType.objects.get(name=ApplicationType.APIARY)
-        qs_proposal_type = ProposalType.objects.all().order_by('name', '-version').distinct('name')
-        proposal_type = qs_proposal_type.get(name=application_type.name)
-        #application_name = application_type.name
+        #application_type=ApplicationType.objects.get(name=ApplicationType.APIARY)
+        #qs_proposal_type = ProposalType.objects.all().order_by('name', '-version').distinct('name')
+        #proposal_type = qs_proposal_type.get(name=application_type.name)
         try:
-            #if data['licence_class'].startswith('T'):
-            #    application_type=ApplicationType.objects.get(name='T Class')
-            #elif data['licence_class'].startswith('E'):
-            #    application_type=ApplicationType.objects.get(name='E Class')
+            t = time.process_time()
+            print('******************************************************** 1: {}'.format(time.process_time() - t)); t = time.process_time()
 
-            #application_name = 'T Class'
-            # Get most recent versions of the Proposal Types
-            #import ipdb; ipdb.set_trace()
             if applicant:
                 proposal, p_created = Proposal.objects.get_or_create(
-                                application_type=application_type,
+                                application_type=self.application_type,
                                 activity='Apiary',
                                 submitter=submitter,
                                 applicant=applicant,
-                                schema=proposal_type.schema,
+                                schema=self.proposal_type.schema,
                             )
                 approval, approval_created = Approval.objects.update_or_create(
                                 applicant=applicant,
@@ -607,24 +621,7 @@ class ApiaryLicenceReader():
                             )
             else:
                 import ipdb; ipdb.set_trace()
-#                proposal= Proposal.objects.create(
-#                                application_type=application_type,
-#                                submitter=submitter,
-#                                applicant=applicant,
-#                                schema=proposal_type.schema,
-#                            )
-#                approval, approval_created = Approval.objects.update_or_create(
-#                                proxy_applicant=proxy_applicant,
-#                                status=Approval.STATUS_CURRENT,
-#                                apiary_approval=True,
-#                                defaults = {
-#                                    'issue_date':data['issue_date'],
-#                                    'expiry_date':data['expiry_date'],
-#                                    'start_date':data['start_date'],
-#                                    #'submitter':submitter,
-#                                    'current_proposal':proposal,
-#                                    }
-#                            )
+
             if 'PM' not in proposal.lodgement_number:
                 proposal.lodgement_number = proposal.lodgement_number.replace('P', 'PM') # Application Migrated
             proposal.approval= approval
@@ -647,6 +644,7 @@ class ApiaryLicenceReader():
 
             proposal.save()
             approval.save()
+
             # create apiary sites and intermediate table entries
             geometry = GEOSGeometry('POINT(' + str(data['latitude']) + ' ' + str(data['longitude']) + ')', srid=4326)
             apiary_site = ApiarySite.objects.create()
@@ -700,7 +698,12 @@ class ApiaryLicenceReader():
             apiary_site.latest_proposal_link=intermediary_proposal_site
             apiary_site.save()
 
-            approval.generate_doc(submitter)
+            #print('******************************************************** 5: {}'.format(time.process_time() - t))
+            #t = time.process_time()
+
+            #approval.generate_doc(submitter)
+
+            print('******************************************************** 6: {}'.format(time.process_time() - t)); t = time.process_time()
 
         except Exception as e:
             logger.error('{}'.format(e))
@@ -712,43 +715,38 @@ class ApiaryLicenceReader():
     def _create_licences(self):
         count = 1
         for data in self.apiary_licence_lines:
+        #for data in self.apiary_licence_lines[1301:1306]:
+        #for data in self.apiary_licence_lines[1304:]:
             #result_qs = MigratedApiaryLicence.objects.filter(permit_number=data['permit_number'])
             #import ipdb; ipdb.set_trace()
             # do not run if row has already been processed in a previous migration
             if not data.get('previously_migrated'):
                 if data.get('licencee_type') == 'organisation':
-                    #new, existing = self._create_organisation(data, count)
-                    #org, submitter = self._create_organisation(data, count, debug=True)
                     org, submitter = self._create_organisation(data, count)
                     self._migrate_approval(data=data, submitter=submitter, applicant=org, proxy_applicant=None)
                     print("Permit number {} migrated".format(data.get('permit_number')))
+                    print
+                    print
+
                 elif data.get('licencee_type') == 'individual':
                     user = self._create_individual(data, count)
                     self._migrate_approval(data=data, submitter=user, applicant=None, proxy_applicant=user)
                     print("Permit number {} migrated".format(data.get('permit_number')))
+
                 else:
                     # declined and not to be reissued
                     status = data['status']
             count += 1
 
-    #def create_licences(self):
-    #    approval_error = []
-    #    approval_new = []
-    #    for data in self.apiary_licence_lines:
-    #        try:
-    #            approval = self._migrate_approval(data)
-    #            approval_new.append(approval) if approval else approval_error(data)
-    #            print 'Added: {}'.format(approval)
-    #        except Exception, e:
-    #            print 'Exception {}'.format(e)
-    #            print 'Data: {}'.format(data)
-    #            approval_error.append([e, data])
 
-    #    print 'Approvals: {}'.format(approval_new)
-    #    print 'Approval Errors: {}'.format(approval_error)
-    #    print 'Approvals: {}, Approval_Errors: {}'.format(len(approval_new), len(approval_error))
+    def _create_licence_pdf(self):
+        approvals_migrated = Approval.objects.filter(current_proposal__application_type__name=ApplicationType.APIARY, migrated=True)
+        print('Total Approvals: {}'.format(approvals_migrated))
+        for idx, a in enumerate(approvals_migrated):
+            a.generate_doc(a.current_proposal.submitter)
+            print('{}, Created PDF for Approval {}'.format(idx, a))
 
-    #def import denied sites with no licencee data
+
 
 def create_invoice(proposal, payment_method='other'):
         """
@@ -776,4 +774,78 @@ def create_invoice(proposal, payment_method='other'):
         order = CreateInvoiceBasket(payment_method=payment_method, system=settings.PAYMENT_SYSTEM_PREFIX).create_invoice_and_order(basket, 0, None, None, user=user, invoice_text=invoice_text)
 
         return order
+    
+
+class ApiaryLicenceCsvVerifier():
+    '''
+    from disturbance.utils.migration_utils import ApiaryLicenceCsvVerifier
+    reader=ApiaryLicenceCsvVerifier('disturbance/utils/csv/apiary_migration_file_01Sep20211-TEST.csv')
+    '''
+    def __init__(self, filename):
+        self.filename = filename
+        self.not_found = []
+        self.apiary_licence_lines = self._verify_data()
+
+    def _verify_data(self, verify=False):
+        lines=[]
+        unique_abn_list=[]
+        with open(self.filename) as csvfile:
+            reader = csv.reader(csvfile, delimiter=str(':'))
+            header = next(reader) # skip header
+            error_lines=[]
+            for idx, row in enumerate(reader):
+                #import ipdb; ipdb.set_trace()
+                try:
+                    #if not row[0].startswith('#') and row[4].strip().lower() == 'current':
+                    if not row[0].startswith('#') and not row[7].strip() == 'AJ & DE Dowsett':
+                        data={}
+                        start_date_raw = row[1].strip()
+                        expiry_date_raw = row[2].strip()
+                        issue_date_raw = row[3].strip()
+                        approval_cpc_date_raw = row[26].strip()
+                        approval_minister_date_raw = row[27].strip()
+
+                        if start_date_raw:
+                            start_date = datetime.datetime.strptime(start_date_raw, '%d/%m/%Y').date()
+                            data.update({'start_date': start_date})
+
+                        if expiry_date_raw:
+                            expiry_date = datetime.datetime.strptime(expiry_date_raw, '%d/%m/%Y').date()
+                            data.update({'expiry_date': expiry_date})
+
+                        if issue_date_raw:
+                            issue_date = datetime.datetime.strptime(issue_date_raw.strip(), '%d/%m/%Y').date()
+                            data.update({'issue_date': issue_date})
+                        else:
+                            data.update({'issue_date': start_date})
+
+                        if approval_cpc_date_raw:
+                            approval_cpc_date = datetime.datetime.strptime(approval_cpc_date_raw, '%d/%m/%Y').date()
+                            data.update({'approval_cpc_date': approval_cpc_date})
+                        else:
+                            data.update({'approval_cpc_date': None})
+
+                        if approval_minister_date_raw:
+                            approval_minister_date = datetime.datetime.strptime(approval_minister_date_raw, '%d/%m/%Y').date()
+                            data.update({'approval_minister_date': approval_minister_date})
+                        else:
+                            data.update({'approval_minister_date': None})
+
+                        data.update({'abn': row[9].translate(string.whitespace).replace(' ','')})
+                        if data['abn'] not in unique_abn_list:
+                            unique_abn_list.append(data['abn'])
+
+                        lines.append(data) # must be an org
+
+                except Exception as e:
+                    error_lines.append(row)
+                    import ipdb; ipdb.set_trace()
+                    print(e)
+
+        print('Error Lines: {}'.format(len(error_lines)))
+        print('Unique ABNs: {}'.format(len(unique_abn_list)))
+        print('Lines: {}'.format(len(lines)))
+        print(unique_abn_list)
+        return lines
+
 
