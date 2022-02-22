@@ -18,17 +18,17 @@
                                 <div class="form-group" v-if="!isLoading">
                                     <template v-if="apiaryTemplateGroup">
                                         <div class="radio">
-                                            <label>
-                                              <input :disabled="individualDisableApplyRadioButton" type="radio" name="behalf_of_individual" v-model="behalf_of" value="individual"> On behalf of yourself
-                                                  <span v-html="individualExistingRecordText"></span>
+                                            <label :title="individualHasNoLicenceTitle()">
+                                              <input :disabled="individualDisableApplyRadioButton()" type="radio" name="behalf_of_individual" v-model="behalf_of" value="individual"> On behalf of yourself
+                                              <span v-html="individualExistingRecordText"></span>
                                             </label>
                                         </div>
                                     </template>
                                     <div v-if="profile.disturbance_organisations.length > 0">
                                         <div v-for="org in profile.disturbance_organisations" class="radio">
-                                            <label>
-                                              <input :disabled="org.existing_record_text.disable_radio_button" type="radio" name="behalf_of_org" v-model="behalf_of"  :value="org.id"> On behalf of {{org.name}}
-                                                  <span v-html="org.existing_record_text.notification"></span>
+                                            <label :title="orgHasNoLicenceTitle(org)">
+                                              <input :disabled="orgDisableApplyRadioButton(org)" type="radio" name="behalf_of_org" v-model="behalf_of"  :value="org.id"> On behalf of {{org.name}}
+                                              <span v-html="org.existing_record_text.notification"></span>
                                             </label>
                                         </div>
                                         <!--
@@ -273,15 +273,8 @@ export default {
       },
       individualExistingRecordText: function() {
           let approvalText = '';
-          if (this.profile && this.profile.existing_record_text) {
-              approvalText = this.profile.existing_record_text.notification;
-          }
-          return approvalText;
-      },
-      individualDisableApplyRadioButton: function() {
-          let approvalText = '';
-          if (this.profile && this.profile.existing_record_text) {
-              approvalText = this.profile.existing_record_text.disable_radio_button;
+          if (this.profile && this.profile.existing_record_text && this.profile.current_apiary_approval===null) {
+              approvalText = this.profile.existing_record_text.notification + ' (There is no current Apiary Approval)';
           }
           return approvalText;
       },
@@ -298,6 +291,18 @@ export default {
           }
           return currentApproval;
       },
+      currentApiaryButtonDisabled: function() {
+          let currentDisabled = null;
+          if (this.behalf_of === "individual" && this.profile.existing_record_text.disable_radio_button) {
+              currentDisabled = this.profile.existing_record_text.disable_radio_button;
+          } else if (this.behalf_of > 0 && parseInt(this.behalf_of)) {
+              let org = this.profile.disturbance_organisations.find(item => item.id === this.behalf_of)
+              currentDisabled = org.existing_record_text.disable_radio_button;
+          }
+          
+          return currentDisabled;
+      },
+
       applicationTypesList: function() {
           let returnList = [];
           for (let applicationType of this.application_types) {
@@ -305,16 +310,17 @@ export default {
               //if (this.behalf_of === 'individual') {
               if (this.apiaryTemplateGroup) {
                   if (applicationType.domain_used.toLowerCase() === "apiary") {
-                      if (applicationType.text.toLowerCase() === "apiary"){
+                      if (applicationType.text.toLowerCase() === "apiary" && !this.currentApiaryButtonDisabled){
                           applicationType.display_text = "Apiary Sites";
                           returnList.push(applicationType);
                       }
                       // add Site Transfer if selected applicant has an associated current_apiary_approval
-                      if (applicationType.text.toLowerCase() === "site transfer" && this.currentApiaryApproval){
+                      if (applicationType.text.toLowerCase() === "site transfer" && this.currentApiaryApproval && !this.currentApiaryButtonDisabled){
                           applicationType.display_text = "Transfer Apiary Sites";
                           returnList.push(applicationType);
                       }
                       if (applicationType.text.toLowerCase() === "temporary use" && this.currentApiaryApproval){
+                          // always allow New Temp Use Applications
                           applicationType.display_text = "Temporary Use of Apiary Sites";
                           returnList.push(applicationType);
                       }
@@ -390,6 +396,28 @@ export default {
         },(error) => {
         });
     },
+    individualDisableApplyRadioButton: function() {
+        return this.profile.current_apiary_approval===null && this.profile.existing_record_text.disable_radio_button;
+    },
+    orgDisableApplyRadioButton: function(org) {
+        //let org = this.profile.disturbance_organisations.find(item => item.id === _org.id)
+        return org.current_apiary_approval===null && org.existing_record_text.disable_radio_button;
+    },
+    individualHasNoLicenceTitle: function() {
+      console.log(3);
+      if (this.individualDisableApplyRadioButton()) {
+          //console.log(this.profile.full_name + ' has no current licence');
+          return this.profile.full_name + ' has no current licence'
+      }
+    },
+    orgHasNoLicenceTitle: function(org) {
+      console.log(1);
+      if (this.orgDisableApplyRadioButton(org)) {
+          //console.log(this.name + ' has no current licence');
+          return org.name + ' has no current licence'
+      }
+    },
+
     alertText: function() {
         let vm = this;
 		if (vm.selected_application_name == 'Apiary') {

@@ -269,6 +269,12 @@ export default {
                         let tick = '';
                         tick = "<i class='fa fa-exclamation-triangle' style='color:red'></i>"
                         result = '<span>' + full.lodgement_number + '</span>';
+                        if (full.migrated){
+                            result = '<span>' + full.lodgement_number + ' (M)</span>';
+                        } else {
+                            result = '<span>' + full.lodgement_number + '</span>';
+                        }
+
                         if(full.can_reissue){
                             if(!full.can_action){
                                 if(full.set_to_cancel){
@@ -297,7 +303,13 @@ export default {
                         }
                         return result;
                     }
-                    else { return full.lodgement_number }
+                    else { 
+                        if (full.migrated){
+                            return full.lodgement_number + ' (M)'
+                        } else {
+                            return full.lodgement_number
+                        }
+                    }
                     },
                     'createdCell': helpers.dtPopoverCellFn,
                     name: "id, lodgement_number",

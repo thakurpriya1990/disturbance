@@ -19,6 +19,8 @@ MEDIA_APP_DIR = env('MEDIA_APP_DIR', 'das')
 MEDIA_APIARY_DIR = env('MEDIA_APIARY_DIR', 'apiary')
 SPATIAL_DATA_DIR = env('SPATIAL_DATA_DIR', 'spatial_data')
 ANNUAL_RENTAL_FEE_GST_EXEMPT = True
+FILE_UPLOAD_MAX_MEMORY_SIZE = env('FILE_UPLOAD_MAX_MEMORY_SIZE', 15728640)
+APIARY_MIGRATED_LICENCES_APPROVER = env('APIARY_MIGRATED_LICENCES_APPROVER', 'jacinta.overman@dbca.wa.gov.au')
 
 INSTALLED_APPS += [
     'reversion_compare',
@@ -37,6 +39,7 @@ INSTALLED_APPS += [
     'rest_framework_gis',
     'reset_migrations',
     'ckeditor',
+    # 'corsheaders',
     'smart_selects',
 ]
 
@@ -78,7 +81,9 @@ MIDDLEWARE_CLASSES += [
     'disturbance.middleware.FirstTimeNagScreenMiddleware',
     'disturbance.middleware.RevisionOverrideMiddleware',
     'disturbance.middleware.DomainDetectMiddleware',
+    # 'corsheaders.middleware.CorsMiddleware',
 ]
+# CORS_ORIGIN_ALLOW_ALL = True
 
 TEMPLATES[0]['DIRS'].append(os.path.join(BASE_DIR, 'disturbance', 'templates'))
 TEMPLATES[0]['DIRS'].append(os.path.join(BASE_DIR, 'disturbance','components','organisations', 'templates'))
@@ -104,6 +109,7 @@ CACHES = {
 }
 STATIC_ROOT=os.path.join(BASE_DIR, 'staticfiles_ds')
 STATICFILES_DIRS.append(os.path.join(os.path.join(BASE_DIR, 'disturbance', 'static')))
+STATICFILES_DIRS.append(os.path.join(os.path.join(BASE_DIR, 'disturbance', 'static', 'disturbance_vue', 'static')))
 DEV_STATIC = env('DEV_STATIC',False)
 DEV_STATIC_URL = env('DEV_STATIC_URL')
 if DEV_STATIC and not DEV_STATIC_URL:
@@ -133,7 +139,8 @@ ADMIN_GROUP = env('ADMIN_GROUP', 'Disturbance Admin')
 APIARY_ADMIN_GROUP = 'Apiary Admin'
 DAS_APIARY_ADMIN_GROUP = 'DAS-Apiary Admin'
 APIARY_PAYMENTS_OFFICERS_GROUP = 'Apiary Payments Officers'
-APPROVED_EXTERNAL_USERS_GROUP = env('APPROVED_EXTERNAL_USERS_GROUP', 'Disturbance Approved External Users')
+APPROVED_DAS_EXTERNAL_USERS_GROUP = env('APPROVED_DAS_EXTERNAL_USERS_GROUP', 'Disturbance Approved External Users')
+APPROVED_APIARY_EXTERNAL_USERS_GROUP = env('APPROVED_APIARY_EXTERNAL_USERS_GROUP', 'Apiary Approved External Users')
 CRON_EMAIL = env('CRON_EMAIL', 'cron@' + SITE_DOMAIN).lower()
 TENURE_SECTION = env('TENURE_SECTION', None)
 ASSESSMENT_REMINDER_DAYS = env('ASSESSMENT_REMINDER_DAYS', 15)
@@ -195,8 +202,20 @@ LOGGING['loggers']['disturbance'] = {
             'handlers': ['file'],
             'level': 'INFO'
         }
-
-
+# Add a handler
+LOGGING['handlers']['file_apiary'] = {
+    'level': 'INFO',
+    'class': 'logging.handlers.RotatingFileHandler',
+    'filename': os.path.join(BASE_DIR, 'logs', 'apiary.log'),
+    'formatter': 'verbose',
+    'maxBytes': 5242880
+}
+# define logger
+LOGGING['loggers']['apiary'] = {
+    'handlers': ['file_apiary'],
+    'level': 'INFO'
+}
+KMI_SERVER_URL = env('KMI_SERVER_URL', 'https://kmi.dbca.wa.gov.au')
 #APPLICATION_TYPES_SQL='''
 #        SELECT name, name FROM disturbance_applicationtypechoice
 #        WHERE archive_date IS NULL OR archive_date > now()
@@ -211,5 +230,4 @@ LOGGING['loggers']['disturbance'] = {
 #        return row
 #    except:
 #        return []
-
 

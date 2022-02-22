@@ -83,6 +83,21 @@ class ApiarySiteOnApproval(models.Model):
     modified_at = models.DateTimeField(auto_now=True)
     wkb_geometry = PointField(srid=4326, blank=True, null=True)  # store approved coordinates
     site_category = models.ForeignKey('SiteCategory', null=True, blank=True,)
+    licensed_site = models.BooleanField(default=False)
+    issuance_details = JSONField(blank=True, null=True)
+
+    # permit issuance details
+    batch_no = models.CharField(max_length=40, blank=True, null=True)
+    approval_cpc_date = models.DateField(blank=True, null=True)
+    approval_minister_date = models.DateField(blank=True, null=True)
+    map_ref = models.CharField(max_length=40, blank=True, null=True)
+    forest_block = models.CharField(max_length=40, blank=True, null=True)
+    cog = models.CharField(max_length=40, blank=True, null=True)
+    roadtrack = models.CharField(max_length=40, blank=True, null=True)
+    zone = models.CharField(max_length=40, blank=True, null=True)
+    catchment = models.CharField(max_length=40, blank=True, null=True)
+    dra_permit = models.BooleanField(default=False)
+
     objects = GeoManager()
 
     def __str__(self):
@@ -380,7 +395,6 @@ class Approval(RevisionedMixin):
             self.current_proposal.save(version_comment='Created Approval PDF: {}'.format(self.licence_document.name))
 
     def generate_apiary_licence_doc(self, proposal, request_user, preview=None, site_transfer_preview=None):
-        #import ipdb; ipdb.set_trace()
         copied_to_permit = self.copiedToPermit_fields(proposal) #Get data related to isCopiedToPermit tag
         if preview:
             pdf_contents = create_apiary_licence_pdf_contents(self, proposal, copied_to_permit, request_user, site_transfer_preview)
@@ -480,7 +494,6 @@ class Approval(RevisionedMixin):
                 else:
                     self.set_to_cancel = True
                     send_approval_cancel_email_notification(self, future_cancel=True)
-                #import ipdb; ipdb.set_trace()
                 self.save()
                 # Log proposal action
                 self.log_user_action(ApprovalUserAction.ACTION_CANCEL_APPROVAL.format(self.lodgement_number), request)
@@ -668,7 +681,8 @@ class MigratedApiaryLicence(models.Model):
         (LICENCEE_TYPE_INDIVIDUAL, 'Individual'),
     )
 
-    permit_number = models.IntegerField(unique=True)
+    #permit_number = models.IntegerField(unique=True)
+    permit_number = models.IntegerField(null=True, blank=True)
     start_date = models.DateField()
     expiry_date = models.DateField()
     issue_date = models.DateField()

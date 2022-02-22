@@ -310,6 +310,7 @@ export default {
                         // 10. Action
                         data: '',
                         mRender:function (data,type,full) {
+                            console.log(full)
                             let links = '';
                             if (!vm.is_external){
                                 if (full.processing_status=='With Assessor' && vm.check_assessor(full)) {

@@ -33,6 +33,7 @@ module.exports = {
         var assessorLevel = '';
         var readonly = false;
         var _elements = [];
+        var comment_boxes=[];
         if (assessorStatus != null){
             assessorMode = assessorStatus['assessor_mode'];
             assessorCanAssess = assessorStatus['has_assessor_mode'];
@@ -51,7 +52,16 @@ module.exports = {
         readonly = !visibility.editable;
 
         var val = (data) ? (data[c.name]) ? data[c.name] : null : null;
-        var comment_val = (commentData) ? (commentData[c.name]) ? commentData[c.name] : null : null;
+        //var comment_val = (commentData) ? (commentData[c.name]) ? commentData[c.name] : null : null;
+        var comment_val= null;
+        if(commentData){
+            if(commentData.constructor != Object){
+                    comment_val = commentData.find(at => at.name == c.name)
+                }
+            else{
+                comment_val = (commentData[c.name]) ? commentData[c.name] : null;
+            }
+        }
 
         if (c && c.help_text && c.help_text.indexOf("site_url:/") >= 0) {
             var help_text = c.help_text.replace('site_url:/', site_url);
@@ -90,6 +100,10 @@ module.exports = {
             var help_text_assessor_url = c.help_text_assessor_url;
         }
 
+        if (assessorMode && $.inArray(c.type,['declaration','group','section','label']) == -1){
+            comment_boxes = this.generateCommentTextBoxes(h,c,val,assessorLevel,commentData,assessorInfo, comment_val);
+            //console.log(c.type,comment_boxes);
+        }
 
 
         var id = 'id_' + c.name;
@@ -101,7 +115,7 @@ module.exports = {
             case 'text':
         		readonly = (c.readonly) ? (c.readonly): (readonly);
                 _elements.push(
-                    <TextField type="text" name={c.name} value={val} id={id} comment_value={comment_val} label={c.label} help_text={help_text} help_text_assessor={help_text_assessor} assessorMode={assessorMode} readonly={readonly} assessor_readonly={assessor_visibility} isRequired={c.isRequired} help_text_url={help_text_url} help_text_assessor_url={help_text_assessor_url}/>
+                    <TextField type="text" name={c.name} value={val} id={id} comment_value={comment_val} label={c.label} help_text={help_text} help_text_assessor={help_text_assessor} assessorMode={assessorMode} readonly={readonly} assessor_readonly={assessor_visibility} isRequired={c.isRequired} help_text_url={help_text_url} help_text_assessor_url={help_text_assessor_url} comment_boxes={JSON.stringify(comment_boxes)}/>
                 )
                 break;
             case 'text_info':
@@ -116,12 +130,12 @@ module.exports = {
                 break;
             case 'number':
                 _elements.push(
-                    <TextField type="number" name={c.name} value={val} id={id} comment_value={comment_val} label={c.label} help_text={help_text} help_text_assessor={help_text_assessor} assessorMode={assessorMode} readonly={readonly} assessor_readonly={assessor_visibility} isRequired={c.isRequired} help_text_url={help_text_url} help_text_assessor_url={help_text_assessor_url}/>
+                    <TextField type="number" name={c.name} value={val} id={id} comment_value={comment_val} label={c.label} help_text={help_text} help_text_assessor={help_text_assessor} assessorMode={assessorMode} readonly={readonly} assessor_readonly={assessor_visibility} isRequired={c.isRequired} help_text_url={help_text_url} help_text_assessor_url={help_text_assessor_url} comment_boxes={JSON.stringify(comment_boxes)}/>
                 )
                 break;
             case 'email':
                 _elements.push(
-                    <TextField type="email" name={c.name} value={val} id={id} comment_value={comment_val} label={c.label} help_text={help_text} help_text_assessor={help_text_assessor} assessorMode={assessorMode} readonly={readonly} assessor_readonly={assessor_visibility} isRequired={c.isRequired} help_text_url={help_text_url} help_text_assessor_url={help_text_assessor_url}/>
+                    <TextField type="email" name={c.name} value={val} id={id} comment_value={comment_val} label={c.label} help_text={help_text} help_text_assessor={help_text_assessor} assessorMode={assessorMode} readonly={readonly} assessor_readonly={assessor_visibility} isRequired={c.isRequired} help_text_url={help_text_url} help_text_assessor_url={help_text_assessor_url} comment_boxes={JSON.stringify(comment_boxes)}/>
                 )
                 break;
             case 'select':
@@ -131,19 +145,27 @@ module.exports = {
                 }
                 _elements.push(
                     <div>
-                        <Select readonly={readonly} name={c.name} label={c.label} value={c.value} id={id} comment_value={comment_val} options={c.options} help_text={help_text} help_text_assessor={help_text_assessor} value={val} handleChange={this.selectionChanged}  conditions={c.conditions} assessorMode={assessorMode} assessor_readonly={assessor_visibility} isRequired={c.isRequired} help_text_url={help_text_url} help_text_assessor_url={help_text_assessor_url}/>
+                        <Select readonly={readonly} name={c.name} label={c.label} value={c.value} id={id} comment_value={comment_val} options={c.options} help_text={help_text} help_text_assessor={help_text_assessor} value={val} handleChange={this.selectionChanged}  conditions={c.conditions} assessorMode={assessorMode} assessor_readonly={assessor_visibility} isRequired={c.isRequired} help_text_url={help_text_url} help_text_assessor_url={help_text_assessor_url} comment_boxes={JSON.stringify(comment_boxes)}/>
                         <SelectConditions conditions={c.conditions} renderer={this} name={c.name} data={data} id={id1} readonly={readonly} isRequired={c.isRequired}/>
                     </div>
                 )
                 break;
             case 'multi-select':
+
+                // if (assessorMode && $.inArray(c.type,['declaration','group','section','label']) == -1){
+                //     var comment_boxes = this.generateCommentTextBoxes(h,c,val,assessorLevel,commentData,assessorInfo, comment_val);
+                //     // Merge assessor boxes to _elements array
+                //     //Array.prototype.push.apply(_elements,boxes);
+                //     console.log(comment_boxes);
+                // }
+                //console.log(comment_boxes);
                 _elements.push(
-                    <Select name={c.name} label={c.label} value={val} id={id} comment_value={comment_val} options={c.options} value={val} help_text={help_text} help_text_assessor={help_text_assessor} assessorMode={assessorMode} handleChange={this.selectionChanged} readonly={readonly} isMultiple={true} assessor_readonly={assessor_visibility} isRequired={c.isRequired} help_text_url={help_text_url} help_text_assessor_url={help_text_assessor_url}/>
+                    <Select name={c.name} label={c.label} value={val} id={id} comment_value={comment_val} options={c.options} value={val} help_text={help_text} help_text_assessor={help_text_assessor} assessorMode={assessorMode} handleChange={this.selectionChanged} readonly={readonly} isMultiple={true} assessor_readonly={assessor_visibility} isRequired={c.isRequired} help_text_url={help_text_url} help_text_assessor_url={help_text_assessor_url} comment_boxes={JSON.stringify(comment_boxes)}/>
                 )
                 break;
             case 'text_area':
                 _elements.push(
-                    <TextArea readonly={readonly} name={c.name} value={val} id={id} comment_value={comment_val} label={c.label} help_text={help_text} assessorMode={assessorMode} assessor_readonly={assessor_visibility} isRequired={c.isRequired} help_text_url={help_text_url} help_text_assessor_url={help_text_assessor_url}/>
+                    <TextArea readonly={readonly} name={c.name} value={val} id={id} comment_value={comment_val} label={c.label} help_text={help_text} assessorMode={assessorMode} assessor_readonly={assessor_visibility} isRequired={c.isRequired} help_text_url={help_text_url} help_text_assessor_url={help_text_assessor_url} comment_boxes={JSON.stringify(comment_boxes)}/>
                 )
                 break;
             case 'label':
@@ -164,7 +186,7 @@ module.exports = {
                             <HelpText help_text={help_text_assessor} assessorMode={assessorMode} isForAssessor={true}/>
                             <HelpTextUrl help_text_url={help_text_url}/>
                             <HelpTextUrl help_text_url={help_text_assessor_url} assessorMode={assessorMode} isForAssessor={true}/>
-                            <CommentRadioCheckBox assessor_readonly={assessor_visibility} name={c.name} comment_value={comment_val} assessorMode={assessorMode} label={c.label}/>
+                            <CommentRadioCheckBox assessor_readonly={assessor_visibility} name={c.name} comment_value={comment_val} assessorMode={assessorMode} label={c.label} comment_boxes={JSON.stringify(comment_boxes)}/>
                             {c.options.map(op =>{
                                 return(
                                     <Radio name={c.name} label={op.label} value={op.value} isRequired={op.isRequired} id={id1} savedValue={val} handleChange={this.handleRadioChange} conditions={c.conditions} readonly={readonly}/>
@@ -233,12 +255,12 @@ module.exports = {
                 break;
             case 'file':
                 _elements.push(
-                    <File name={c.name} label={c.label} value={val} id={id} comment_value={comment_val} isRepeatable={c.isRepeatable} handleChange={this.handleFileChange} readonly={readonly} help_text={help_text} help_text_assessor={help_text_assessor} assessorMode={assessorMode} docsUrl={this.status_data.docs_url} readonly={readonly} assessor_readonly={assessor_visibility} proposal_id={proposalId} isRequired={c.isRequired} help_text_url={help_text_url} help_text_assessor_url={help_text_assessor_url}/>
+                    <File name={c.name} label={c.label} value={val} id={id} comment_value={comment_val} isRepeatable={c.isRepeatable} handleChange={this.handleFileChange} readonly={readonly} help_text={help_text} help_text_assessor={help_text_assessor} assessorMode={assessorMode} docsUrl={this.status_data.docs_url} readonly={readonly} assessor_readonly={assessor_visibility} proposal_id={proposalId} isRequired={c.isRequired} help_text_url={help_text_url} help_text_assessor_url={help_text_assessor_url} comment_boxes={JSON.stringify(comment_boxes)}/>
                 )
                 break;
             case 'date':
                 _elements.push(
-                    <DateField name={c.name} label={c.label} value={val} id={id} comment_value={comment_val}  handleChange={this.handleFileChange} readonly={readonly} help_text={help_text} help_text_assessor={help_text_assessor} assessorMode={assessorMode} assessor_readonly={assessor_visibility} isRequired={c.isRequired} help_text_url={help_text_url} help_text_assessor_url={help_text_assessor_url}/>
+                    <DateField name={c.name} label={c.label} value={val} id={id} comment_value={comment_val}  handleChange={this.handleFileChange} readonly={readonly} help_text={help_text} help_text_assessor={help_text_assessor} assessorMode={assessorMode} assessor_readonly={assessor_visibility} isRequired={c.isRequired} help_text_url={help_text_url} help_text_assessor_url={help_text_assessor_url} comment_boxes={JSON.stringify(comment_boxes)}/>
                 )
                 break;
             default:
@@ -308,13 +330,13 @@ module.exports = {
                 // Assessor Data
                 var assessor_name = `${c.name}-Assessor`;
                 var assessor_val = _dt == undefined || _dt.assessor == '' ? val : _dt.assessor;
-                var assessor_visibility = assessor_mode == 'assessor' && this.status_data.assessorStatus.has_assessor_mode? true : false;
+                var assessor_visibility = assessor_mode == 'assessor' && this.status_data.assessorStatus.has_assessor_mode && !this.status_data.assessorStatus.status_without_assessor? true : false;
                 assessor_visibility = !assessor_visibility;
                 boxes.push(
                     <AssessorText box_view={box_visibility} type="text" name={assessor_name} value={assessor_val} label={'Assessor'} help_text={c.help_text} readonly={assessor_visibility}/>
                 )
                 // Referral Data
-                var current_referral_present = false;
+                var current_referral_present=false;
                 if (_dt != undefined){
                     $.each(_dt.referrals,(i,v)=> {
                         if (v.email == assessor_info.email){ current_referral_present = true; }
@@ -327,6 +349,7 @@ module.exports = {
                 }
                 if (assessor_mode == 'referral'){
                     if (!current_referral_present){
+                        //console.log('here', current_referral_present)
                         // Add Referral Box
                         var referral_name = `${c.name}-Referral-${assessor_info.email}`;
                         var referral_visibility =  assessor_mode == 'referral' && this.status_data.assessorStatus.assessor_can_assess ? false : true ;
@@ -341,7 +364,7 @@ module.exports = {
             else{
                 if (assessor_mode == 'assessor'){
                     var name = `${c.name}-Assessor`;
-                    var assessor_visibility = assessor_mode == 'assessor' && this.status_data.assessorStatus.has_assessor_mode? true : false;
+                    var assessor_visibility = assessor_mode == 'assessor' && this.status_data.assessorStatus.has_assessor_mode && !this.status_data.assessorStatus.status_without_assessor? true : false;
                     assessor_visibility = !assessor_visibility;
                     boxes.push(
                         <AssessorText box_view={box_visibility} type="text" name={name} value={val} label={'Assessor'} help_text={c.help_text} readonly={assessor_visibility}/>
@@ -411,5 +434,157 @@ module.exports = {
             }
         }
         return _status;
-    }
+    },
+    generateCommentTextBoxes(h,c,val,assessor_mode,comment_data,assessor_info, comment_val){
+        var box_visibility = this.status_data.assessorStatus.assessor_box_view
+        var boxes = [];
+        if (!this.status_data.can_user_edit){
+            if (comment_data){
+                var _dt = undefined;
+                if(comment_data.constructor != Object){
+                    _dt = comment_data.find(at => at.name == c.name)
+                }
+                //var _dt = comment_data.find(at => at.name == c.name)
+                // Assessor Data
+                var assessor_name = `${c.name}-comment-field-Assessor`;
+                //var assessor_val = _dt == undefined || _dt.assessor == '' ? '' : _dt.assessor;
+                var assessor_val=null;
+                //console.log(_dt)
+                if(_dt==undefined)
+                {
+                    //if comment_data is dictionary instead of array (eg. comment data for old Proposal without referral comment functionality)
+                    if(comment_data.constructor == Object){
+                        //console.log('here', comment_val)
+                        assessor_val= comment_val
+                    }
+                }
+                else{
+                    assessor_val = _dt.assessor == '' ? '' : _dt.assessor;
+                }
+                var assessor_visibility = assessor_mode == 'assessor' && this.status_data.assessorStatus.has_assessor_mode && !this.status_data.assessorStatus.status_without_assessor? true : false;
+                assessor_visibility = !assessor_visibility;
+                boxes.push(
+                    {
+                        "box_view": box_visibility,
+                        "name": assessor_name,
+                        "value": assessor_val,
+                        "label": "Deficiency assessor",
+                        "readonly": assessor_visibility,
+                        "question": c.label,
+                        "referral_box": false,
+                        "box_class": "form-control deficiency"
+                    }
+
+                    //<AssessorText box_view={box_visibility} type="text" name={assessor_name} value={assessor_val} label={'Assessor'} help_text={c.help_text} readonly={assessor_visibility}/>
+                )
+                // Referral Data
+                var current_referral_present = false;
+                //console.log(c.type, _dt)
+                if (_dt != undefined){
+                    $.each(_dt.referrals,(i,v)=> {
+                        if (v.email == assessor_info.email){ current_referral_present = true; }
+                        var readonly = v.email == assessor_info.email && assessor_mode == 'referral' && this.status_data.assessorStatus.assessor_can_assess ? false : true;
+                        var referral_name = `${c.name}-comment-field-Referral-${v.email}`;
+                        boxes.push(
+                            {
+                                "box_view": box_visibility,
+                                "name": referral_name,
+                                "value": v.value,
+                                "label": v.full_name,
+                                "readonly": readonly,
+                                "question": c.label,
+                                "referral_box": true,
+                                "box_class": "form-control"
+                            }
+                            //<AssessorText box_view={box_visibility} type="text" name={referral_name} value={v.value} label={v.full_name} help_text={c.help_text} readonly={readonly}/>
+                        )
+                    });
+                }
+                if (assessor_mode == 'referral'){
+                    if (!current_referral_present){
+                        // Add Referral Box
+                        var referral_name = `${c.name}-comment-field-Referral-${assessor_info.email}`;
+                        var referral_visibility =  assessor_mode == 'referral' && this.status_data.assessorStatus.assessor_can_assess ? false : true ;
+                        var referral_label = `${assessor_info.name}`;
+                        boxes.push(
+                            {
+                                "box_view": box_visibility,
+                                "name": referral_name,
+                                "label": referral_label,
+                                "readonly": referral_visibility,
+                                "question": c.label,
+                                "referral_box": true,
+                                "box_class": "form-control",
+                            }
+                            // <AssessorText box_view={box_visibility} type="text" name={referral_name} value={assessor_val} label={referral_label} readonly={referral_visibility}/>
+                            //<AssessorText box_view={box_visibility} type="text" name={referral_name} label={referral_label} readonly={referral_visibility}/>
+                        )
+                    }
+                }
+            }
+            else{
+                if (assessor_mode == 'assessor'){
+                    var name = `${c.name}-comment-field-Assessor`;
+                    var assessor_visibility = assessor_mode == 'assessor' && this.status_data.assessorStatus.has_assessor_mode && !this.status_data.assessorStatus.status_without_assessor? true : false;
+                    assessor_visibility = !assessor_visibility;
+                    boxes.push(
+                        {
+                                "box_view": box_visibility,
+                                "name": name,
+                                "label": "Deficiency assessor",
+                                "readonly": assessor_visibility,
+                                //"value": val,
+                                "value": '',
+                                "question": c.label,
+                                "referral_box": false,
+                                "box_class": "form-control deficiency",
+                        }
+                        //<AssessorText box_view={box_visibility} type="text" name={name} value={val} label={'Assessor'} help_text={c.help_text} readonly={assessor_visibility}/>
+                    )
+                }
+                else if (assessor_mode == 'referral'){
+                    //console.log('referral');
+                    // Add Assessor Box
+                    var name = `${c.name}-comment-field-Assessor`;
+                    var assessor_visibility = assessor_mode != 'assessor' ? true : false;
+                    boxes.push(
+                        {
+                                "box_view": box_visibility,
+                                "name": name,
+                                "label": "Deficiency assessor",
+                                "readonly": assessor_visibility,
+                                //"value": val,
+                                "value": '',
+                                "question": c.label,
+                                "referral_box": false,
+                                "box_class": "form-control deficiency",
+                        }
+                        //<AssessorText box_view={box_visibility} type="text" name={name} value={val} label={'Assessor'} help_text={c.help_text} readonly={assessor_visibility}/>
+                    )
+                    // Add Referral Box
+                    var referral_name = `${c.name}-comment-field-Referral-${assessor_info.email}`;
+                    var referral_visibility = assessor_mode != 'referral' ? true : false;
+                    var referral_label = `${assessor_info.name}`;
+                    boxes.push(
+                        {
+                                "box_view": box_visibility,
+                                "name": referral_name,
+                                "label": referral_label,
+                                "readonly": referral_visibility,
+                                //"value": val,
+                                "value": '',
+                                "question": c.label,
+                                "referral_box": true,
+                                "box_class": "form-control",
+                        }
+                        //<AssessorText box_view={box_visibility} type="text" name={referral_name} value={val} label={referral_label} readonly={referral_visibility}/>
+                    )
+                }
+            }
+        }
+        // if (boxes.length > 0){
+        //     boxes = [<div class="row"> {boxes} </div>]
+        // }
+        return boxes;
+    },
 }

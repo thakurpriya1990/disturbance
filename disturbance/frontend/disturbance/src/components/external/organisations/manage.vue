@@ -1,192 +1,123 @@
 <template>
-    <div class="container" v-if="org" id="userInfo">
-        <div class="row">
-            <div class="col-sm-12">
-                <div class="panel panel-default">
-                  <div class="panel-heading">
-                    <h3 class="panel-title">Organisation Details <small> - View and update the organisation's details</small>
-                        <a class="panelClicker" :href="'#'+pBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="pBody">
-                            <span class="glyphicon glyphicon-chevron-up pull-right "></span>
-                        </a>
-                    </h3>
-                  </div>
-                  <div class="panel-body collapse in" :id="pBody">
-                      <form class="form-horizontal" name="personal_form" method="post">
-                          <div class="form-group">
-                            <label for="" class="col-sm-3 control-label">Name</label>
-                            <div class="col-sm-6">
-                                <input type="text" class="form-control" name="first_name" placeholder="" v-model="org.name">
-                            </div>
-                          </div>
-                          <div class="form-group">
-                            <label for="" class="col-sm-3 control-label" >ABN</label>
-                            <div class="col-sm-6">
-                                <input type="text" disabled class="form-control" name="last_name" placeholder="" v-model="org.abn">
-                            </div>
-                          </div>
-                          <div class="form-group">
-                            <label for="" class="col-sm-3 control-label" >Email</label>
-                            <div class="col-sm-6">
-                                <input type="text" class="form-control" name="email" placeholder="" v-model="org.email">
-                            </div>
-                          </div>
-                          <div class="form-group">
-                            <div class="col-sm-12">
-                                <button v-if="!updatingDetails" class="pull-right btn btn-primary" @click.prevent="updateDetails()">Update</button>
-                                <button v-else disabled class="pull-right btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Updating</button>
-                            </div>
-                          </div>
-                       </form>
-                  </div>
-                </div>
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-sm-12">
-                <div class="panel panel-default">
-                  <div class="panel-heading">
-                    <h3 class="panel-title">Address Details <small> - View and update the organisation's address details</small>
-                        <a class="panelClicker" :href="'#'+adBody" data-toggle="collapse" expanded="false"  data-parent="#userInfo" :aria-controls="adBody">
-                            <span class="glyphicon glyphicon-chevron-down pull-right "></span>
-                        </a>
-                    </h3>
-                  </div>
-                  <div v-if="loading.length == 0" class="panel-body collapse" :id="adBody">
-                      <form class="form-horizontal" action="index.html" method="post">
-                          <div class="form-group">
-                            <label for="" class="col-sm-3 control-label">Street</label>
-                            <div class="col-sm-6">
-                                <input type="text" class="form-control" name="street" placeholder="" v-model="org.address.line1">
-                            </div>
-                          </div>
-                          <div class="form-group">
-                            <label for="" class="col-sm-3 control-label" >Town/Suburb</label>
-                            <div class="col-sm-6">
-                                <input type="text" class="form-control" name="surburb" placeholder="" v-model="org.address.locality">
-                            </div>
-                          </div>
-                          <div class="form-group">
-                            <label for="" class="col-sm-3 control-label">State</label>
-                            <div class="col-sm-3">
-                                <input type="text" class="form-control" name="country" placeholder="" v-model="org.address.state">
-                            </div>
-                            <label for="" class="col-sm-1 control-label">Postcode</label>
-                            <div class="col-sm-2">
-                                <input type="text" class="form-control" name="postcode" placeholder="" v-model="org.address.postcode">
-                            </div>
-                          </div>
-                          <div class="form-group">
-                            <label for="" class="col-sm-3 control-label" >Country</label>
-                            <div class="col-sm-4">
-                                <select class="form-control" name="country" v-model="org.address.country">
-                                    <option v-for="c in countries" :value="c.alpha2Code">{{ c.name }}</option>
-                                </select>
-                            </div>
-                          </div>
-                          <div class="form-group">
-                            <div class="col-sm-12">
-                                <button v-if="!updatingAddress" class="pull-right btn btn-primary" @click.prevent="updateAddress()">Update</button>
-                                <button v-else disabled class="pull-right btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Updating</button>
-                            </div>
-                          </div>
-                       </form>
-                  </div>
-                </div>
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-sm-12">
-                <div class="panel panel-default">
-                  <div class="panel-heading">
-                    <h3 class="panel-title">Contact Details <small> - View and update the organisation's contact details</small>
-                        <a class="panelClicker" :href="'#'+cBody" data-toggle="collapse"  data-parent="#userInfo" expanded="false" :aria-controls="cBody">
-                            <span class="glyphicon glyphicon-chevron-down pull-right "></span>
-                        </a>
-                    </h3> 
-                  </div>
-                  <div class="panel-body collapse" :id="cBody">
-                        <form class="form-horizontal" action="index.html" method="post">
-                            <div class="col-sm-12">
-                                <button @click.prevent="addContact()" style="margin-bottom:10px;" class="btn btn-primary pull-right">Add Contact</button>
-                            </div>
-                            <datatable ref="contacts_datatable" id="organisation_contacts_datatable" :dtOptions="contacts_options" :dtHeaders="contacts_headers"/>
-                        </form>
-                  </div>
-                </div>
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-sm-12">
-                <div class="panel panel-default">
-                  <div class="panel-heading">
-                    <h3 class="panel-title">Linked Persons<small> - Manage the user accounts linked to the organisation</small>
-                        <a class="panelClicker" :href="'#'+oBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="oBody">
-                            <span class="glyphicon glyphicon-chevron-down pull-right "></span>
-                        </a>
-                    </h3>
-                  </div>
-                  <div class="panel-body collapse" :id="oBody">
-                    <div class="row">
+    <div :class="div_container ? 'container' : ''">
 
-                        <div class="col-sm-12">
-                            <div>
-                                
-                                <div>
-                                    <div class="col-sm-12 row">
-                                        <h6>Use the Organisation Administrator pin codes if you want the new user to be linked as organisation administrator.<br> Use the Organisation User pin codes if you want the new user to be linked as organisation user.</h6>
-                                    </div>
-                                    <form class="form-horizontal" action="index.html" method="post">
-                                         <div class="col-sm-6 row">
-                                            <div class="form-group">
-                                                <label for="" class="col-sm-6 control-label"> Organisation User Pin Code 1:</label>
-                                                <div class="col-sm-6">
-                                                    <label class="control-label">{{org.pins.three}}</label>
-                                                </div>
-                                            </div>
-                                            <div class="form-group">
-                                                <label for="" class="col-sm-6 control-label" >Organisation User Pin Code 2:</label>
-                                                <div class="col-sm-6">
-                                                    <label class="control-label">{{org.pins.four}}</label>
-                                                </div>
-                                            </div>
-                                        </div>
-                                         <div class="col-sm-6 row">
-                                            <div class="form-group" :disabled ='!myorgperms.is_admin'>
-                                                <label for="" class="col-sm-6 control-label"> Organisation Administrator Pin Code 1:</label>
-                                                <div class="col-sm-6">
-                                                    <label class="control-label">{{org.pins.one}}</label>
-                                                </div>
-                                            </div>
-                                            <div class="form-group" :disabled ='!myorgperms.is_admin'>
-                                                <label for="" class="col-sm-6 control-label" >Organisation Administrator Pin Code 2:</label>
-                                                <div class="col-sm-6">
-                                                    <label class="control-label">{{org.pins.two}}</label>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </form>
-                                    <div>
-                                        <div class="col-sm-12 row">
-                                            <div class="row">
-                                                <div class="col-sm-12 top-buffer-s">
-                                                    <strong>Persons linked to the organisation are controlled by the organisation. The Department cannot manage this list of people.</strong>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div>
-                                            <datatable ref="contacts_datatable_user" id="organisation_contacts_datatable_ref" :dtOptions="contacts_options_ref" :dtHeaders="contacts_headers_ref" v-model="filterOrgContactStatus"/>
-                                    </div>
-                                </div>
+        <FormSection v-if="org && show_org" :formCollapse="org_collapse" label="Organisation Details" Index="org_details" subheading="View and update the organisation's details">
+            <form class="form-horizontal" name="personal_form" method="post">
+              <div class="form-group">
+                <label for="" class="col-sm-3 control-label">Name</label>
+                <div class="col-sm-6">
+                    <input type="text" class="form-control" name="first_name" placeholder="" v-model="org.name">
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="" class="col-sm-3 control-label" >ABN</label>
+                <div class="col-sm-6">
+                    <input type="text" disabled class="form-control" name="last_name" placeholder="" v-model="org.abn">
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="" class="col-sm-3 control-label" >Email</label>
+                <div class="col-sm-6">
+                    <input type="text" class="form-control" name="email" placeholder="" v-model="org.email">
+                </div>
+              </div>
+              <div class="form-group">
+                <div class="col-sm-12">
+                    <button v-if="!updatingDetails" class="pull-right btn btn-primary" @click.prevent="updateDetails()">Update</button>
+                    <button v-else disabled class="pull-right btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Updating</button>
+                </div>
+              </div>
+            </form>
+        </FormSection>
+        <FormSection v-if="org && show_address" :formCollapse="address_collapse" label="Address Details" Index="add_details" subheading="View and update the organisation's address details">
+            <form class="form-horizontal" action="index.html" method="post">
+              <div class="form-group">
+                <label for="" class="col-sm-3 control-label">Street</label>
+                <div class="col-sm-6">
+                    <input type="text" class="form-control" name="street" placeholder="" v-model="org.address.line1">
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="" class="col-sm-3 control-label" >Town/Suburb</label>
+                <div class="col-sm-6">
+                    <input type="text" class="form-control" name="surburb" placeholder="" v-model="org.address.locality">
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="" class="col-sm-3 control-label">State</label>
+                <div class="col-sm-3">
+                    <input type="text" class="form-control" name="country" placeholder="" v-model="org.address.state">
+                </div>
+                <label for="" class="col-sm-1 control-label">Postcode</label>
+                <div class="col-sm-2">
+                    <input type="text" class="form-control" name="postcode" placeholder="" v-model="org.address.postcode">
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="" class="col-sm-3 control-label" >Country</label>
+                <div class="col-sm-4">
+                    <select class="form-control" name="country" v-model="org.address.country">
+                        <option v-for="c in countries" :value="c.code">{{ c.name }}</option>
+                    </select>
+                </div>
+              </div>
+              <div class="form-group">
+                <div class="col-sm-12">
+                    <button v-if="!updatingAddress" class="pull-right btn btn-primary" @click.prevent="updateAddress()">Update</button>
+                    <button v-else disabled class="pull-right btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Updating</button>
+                </div>
+              </div>
+            </form>
+        </FormSection>
+
+        <FormSection v-if="org && show_linked" :formCollapse="linked_collapse" label="Linked Details" Index="linked_details" subheading="Manage the user accounts linked to the organisation">
+            <div class="col-sm-12 row">
+                <h6>Use the Organisation Administrator pin codes if you want the new user to be linked as organisation administrator.<br> Use the Organisation User pin codes if you want the new user to be linked as organisation user.</h6>
+            </div>
+            <form class="form-horizontal" action="index.html" method="post">
+                 <div class="col-sm-6 row">
+                    <div class="form-group">
+                        <label for="" class="col-sm-6 control-label"> Organisation User Pin Code 1:</label>
+                        <div class="col-sm-6">
+                            <label class="control-label">{{org.pins.three}}</label>
                         </div>
                     </div>
-
+                    <div class="form-group">
+                        <label for="" class="col-sm-6 control-label" >Organisation User Pin Code 2:</label>
+                        <div class="col-sm-6">
+                            <label class="control-label">{{org.pins.four}}</label>
+                        </div>
                     </div>
-                  </div>
+                </div>
+                 <div class="col-sm-6 row">
+                    <div class="form-group" :disabled ='!myorgperms.is_admin'>
+                        <label for="" class="col-sm-6 control-label"> Organisation Administrator Pin Code 1:</label>
+                        <div class="col-sm-6">
+                            <label class="control-label">{{org.pins.one}}</label>
+                        </div>
+                    </div>
+                    <div class="form-group" :disabled ='!myorgperms.is_admin'>
+                        <label for="" class="col-sm-6 control-label" >Organisation Administrator Pin Code 2:</label>
+                        <div class="col-sm-6">
+                            <label class="control-label">{{org.pins.two}}</label>
+                        </div>
+                    </div>
+                </div>
+            </form>
+            <div>
+                <div class="col-sm-12 row">
+                    <div class="row">
+                        <div class="col-sm-12 top-buffer-s">
+                            <strong>Persons linked to the organisation are controlled by the organisation. The Department cannot manage this list of people.</strong>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-        <AddContact ref="add_contact" :org_id="org.id" />
+            <div>
+              <datatable ref="contacts_datatable_user" id="organisation_contacts_datatable_ref" :dtOptions="contacts_options_ref" :dtHeaders="contacts_headers_ref" v-model="filterOrgContactStatus"/>
+            </div>
+        </FormSection>
+
     </div>
 </template>
 
@@ -197,9 +128,54 @@ import { api_endpoints, helpers } from '@/utils/hooks'
 import datatable from '@vue-utils/datatable.vue'
 import utils from '../utils'
 import api from '../api'
+import FormSection from "@/components/forms/section_toggle.vue"
 import AddContact from '@common-utils/add_contact.vue'
+
+
 export default {
     name: 'Organisation',
+    props:{
+        org_id:{
+            type: Number,
+            default: null
+        },
+        isApplication:{
+            type: Boolean,
+            default: false
+        },
+        show_org:{
+            type: Boolean,
+            default: true
+        },
+        show_address:{
+            type: Boolean,
+            default: true
+        },
+        show_linked:{
+            type: Boolean,
+            default: true
+        },
+        show_contact:{
+            type: Boolean,
+            default: true
+        },
+        org_collapse:{
+            type: Boolean,
+            default: false
+        },
+        address_collapse:{
+            type: Boolean,
+            default: true
+        },
+        linked_collapse:{
+            type: Boolean,
+            default: true
+        },
+        div_container:{
+            type: Boolean,
+            default: true
+        },
+    },
     data () {
         let vm = this;
         return {
@@ -386,7 +362,11 @@ export default {
                 columns: [
                     {
                         mRender:function (data,type,full) {
-                            return full.first_name + " " + full.last_name;
+                            if(full.is_admin) {
+                                return full.first_name + " " + full.last_name + " (Admin)";
+                            } else {
+                                return full.first_name + " " + full.last_name;
+                            }
                         }
                     },
                     {data:'phone_number'},
@@ -396,8 +376,11 @@ export default {
                     {
                         mRender:function (data,type,full) {
                             let links = '';
-                            let name = full.first_name + ' ' + full.last_name;
-                            links +=  `<a data-email='${full.email}' data-name='${name}' data-id='${full.id}' class="remove-contact">Remove</a><br/>`;
+                            if(!full.is_admin) {
+                                let name = full.first_name + ' ' + full.last_name;
+                                links +=  `<a data-email='${full.email}' data-name='${name}' data-id='${full.id}' class="remove-contact">Remove</a><br/>`;
+                            }
+                            links +=  `<a data-email-edit='${full.email}' data-name-edit='${name}' data-edit-id='${full.id}' class="edit-contact">Edit</a><br/>`;
                             return links;
                         }
                     }
@@ -459,7 +442,8 @@ export default {
     },
     components: {
         datatable,
-        AddContact
+        AddContact,
+        FormSection,
     },
     computed: {
     },
@@ -495,13 +479,28 @@ export default {
             });
         });
     },
-    methods: {
+   methods: {
         addContact: function(){
             this.$refs.add_contact.isModalOpen = true;
         },
+        editContact: function(_id){
+            let vm = this;
+            vm.$http.get(helpers.add_endpoint_json(api_endpoints.organisation_contacts,_id)).then((response) => {
+                this.$refs.add_contact.contact = response.body;
+                this.addContact();
+            }).then((response) => {
+                this.$refs.contacts_datatable.vmDataTable.ajax.reload();
+            },(error) => {
+                console.log(error);
+            })
+        },
+        refreshDatatable: function(){
+            this.$refs.contacts_datatable.vmDataTable.ajax.reload();
+        },
+
         eventListeners: function(){
             let vm = this;
-            vm.$refs.contacts_datatable.vmDataTable.on('click','.remove-contact',(e) => {
+            vm.$refs.contacts_datatable_user.vmDataTable.on('click','.remove-contact',(e) => {
                 e.preventDefault();
 
                 let name = $(e.target).data('name');
@@ -517,6 +516,15 @@ export default {
                     vm.deleteContact(id);
                 },(error) => {
                 });
+            });
+
+            vm.$refs.contacts_datatable_user.vmDataTable.on('click','.edit-contact',(e) => {
+                e.preventDefault();
+                //var id = $(this).attr('data-id');
+                //vm.editRequirement(id);
+                //let id = $(this).attr('data-edit-id');
+                let id = $(e.target).attr('data-edit-id');
+                vm.editContact(id);
             });
 
             vm.$refs.contacts_datatable_user.vmDataTable.on('click','.accept_contact',(e) => {
@@ -884,7 +892,7 @@ export default {
                 });
             });
         },
-        updateDetails: function() {
+        updateDetails: function(show_alert) {
             let vm = this;
             vm.updatingDetails = true;
             vm.$http.post(helpers.add_endpoint_json(api_endpoints.organisations,(vm.org.id+'/update_details')),JSON.stringify(vm.org),{
@@ -893,11 +901,15 @@ export default {
                 vm.updatingDetails = false;
                 vm.org = response.body;
                 if (vm.org.address == null){ vm.org.address = {}; }
-                swal(
-                    'Saved',
-                    'Organisation details have been saved',
-                    'success'
-                )
+                if (show_alert || show_alert==null) {
+                    swal(
+                        'Saved',
+                        'Organisation details have been saved',
+                        'success'
+                    )
+                } else {
+                    console.log('Org: ' + JSON.stringify(vm.org));
+                }
             }, (error) => {
                 console.log(error);
                 //var another=error;
@@ -940,12 +952,34 @@ export default {
                 console.log(error);
                 swal(
                     'Contact Deleted', 
-                    'The contact could not be deleted because of the following error '+error,
+                    'The contact could not be deleted because of the following error : [' + error.body + ']',
                     'error'
                 )
             });
         },
-        updateAddress: function() {
+        updateContact: function(id){
+            let vm = this;
+            
+            vm.$http.post(helpers.add_endpoint_json(api.organisation_contacts,id),{
+                emulateJSON:true
+            }).then((response) => {
+                swal(
+                    'Update Contact', 
+                    'The contact was successfully updated',
+                    'success'
+                )
+                vm.$refs.contacts_datatable.vmDataTable.ajax.reload();
+            }, (error) => {
+                console.log(error);
+                swal(
+                    'Contact Edit', 
+                    'The contact could not be updated because of the following error : [' + error.body + ']',
+                    'error'
+                )
+            });
+        },
+
+        updateAddress: function(show_alert) {
             let vm = this;
             vm.updatingAddress = true;
             vm.$http.post(helpers.add_endpoint_json(api_endpoints.organisations,(vm.org.id+'/update_address')),JSON.stringify(vm.org.address),{
@@ -953,11 +987,15 @@ export default {
             }).then((response) => {
                 vm.updatingAddress = false;
                 vm.org = response.body;
-                swal(
-                    'Saved',
-                    'Address details have been saved',
-                    'success'
-                )
+                if (show_alert || show_alert==null) {
+                    swal(
+                        'Saved',
+                        'Address details have been saved',
+                        'success'
+                    )
+                } else {
+                    console.log('Org: ' + JSON.stringify(vm.org));
+                }
                 if (vm.org.address == null){ vm.org.address = {}; }
             }, (error) => {
                 console.log(error);
@@ -1000,19 +1038,19 @@ export default {
     mounted: function(){
         this.personal_form = document.forms.personal_form;
         let vm=this;
-        // let initialisers = [
-        //     utils.fetchCountries(),
-        //     utils.fetchOrganisation(vm.org_id),
-        //     utils.fetchOrganisationPermissions(vm.org_id)
-        // ]
-        // Promise.all(initialisers).then(data => {
-        //         vm.countries = data[0];
-        //         vm.org = data[1];
-        //         vm.myorgperms = data[2];
-        //         vm.org.address = vm.org.address != null ? vm.org.address : {};
-        //         vm.org.pins = vm.org.pins != null ? vm.org.pins : {};
+         let initialisers = [
+             utils.fetchCountries(),
+             utils.fetchOrganisation(vm.org_id),
+             utils.fetchOrganisationPermissions(vm.org_id)
+         ]
+         Promise.all(initialisers).then(data => {
+                 vm.countries = data[0];
+                 vm.org = data[1];
+                 vm.myorgperms = data[2];
+                 vm.org.address = vm.org.address != null ? vm.org.address : {};
+                 vm.org.pins = vm.org.pins != null ? vm.org.pins : {};
             
-        // });
+         });
     },
     updated: function(){
         let vm = this;
