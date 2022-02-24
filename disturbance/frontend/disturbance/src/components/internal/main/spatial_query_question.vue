@@ -118,10 +118,12 @@
                         <div class="row">
                             <div class="col-md-3"></div>
                             <div class="col-md-3">
-                                <input type="radio" id="visible_to_proponent_yes" name="visible_to_proponent" value="true">
+                                <input type="radio" id="visible_to_proponent_yes" name="visible_to_proponent" value="true" v-model="spatialquery.visible_to_proponent">
                                 <label for="visible_to_proponent_yes">Yes</label>&nbsp;&nbsp;&nbsp;
-                                <input type="radio" id="visible_to_proponent_no" name="visible_to_proponent" value="false">
+                                <input type="radio" id="visible_to_proponent_no" name="visible_to_proponent" value="false" v-model="spatialquery.visible_to_proponent">
                                 <label for="visible_to_proponent_no">No</label>
+
+
                             </div>
                             <div class="col-md-3">
                                 <input type="number" min="0" class="form-control" name="buffer" v-model="spatialquery.buffer"></input>
@@ -188,7 +190,7 @@
                             <label class="control-label pull-left" style="text-align: left;">Number of polygons to process (Proponent)</label>
                         </div>
                         <div class="col-md-3">
-                            <input type="number" min="-1" value="-1" class="form-control" name="no_polygons_proponent" v-model="spatialquery.no_polygons_proponent"></input>
+                            <input type="number" min="-1" class="form-control" name="no_polygons_proponent" v-model="spatialquery.no_polygons_proponent"></input>
                         </div>
                     </div>
 
@@ -218,7 +220,7 @@
                             <label class="control-label pull-left" style="text-align: left;">Number of polygons to process (Assessor)</label>
                         </div>
                         <div class="col-md-3">
-                            <input type="number" min="-1" :value="-1" class="form-control" name="no_polygons_assessor" v-model="spatialquery.no_polygons_assessor"></input>
+                            <input type="number" min="-1" class="form-control" name="no_polygons_assessor" v-model="spatialquery.no_polygons_assessor"></input>
                         </div>
                     </div>
 
@@ -550,14 +552,14 @@ export default {
             const self = this;
             const data = self.spatialquery;
             //data.options = this.addedOptions;
-            data.options = helpers.copyObject(this.addedOptions);
+            //data.options = helpers.copyObject(this.addedOptions);
             // data.headers = this.addedHeaders;
             // data.expanders = this.addedExpanders;
 
             if (data.id === '') {
                 console.log(data);
 
-                await self.$http.post(api_endpoints.spatial_query_question, JSON.stringify(data),{
+                await self.$http.post(api_endpoints.spatial_query, JSON.stringify(data),{
                     emulateJSON:true
                 }).then((response) => {
                     self.$refs.spatial_query_question_table.vmDataTable.ajax.reload();
@@ -572,7 +574,7 @@ export default {
 
             } else {
 
-                await self.$http.post(helpers.add_endpoint_json(api_endpoints.spatial_query_question,data.id+'/save_spatialquery'),JSON.stringify(data),{
+                await self.$http.post(helpers.add_endpoint_json(api_endpoints.spatial_query,data.id+'/save_spatialquery'),JSON.stringify(data),{
                         emulateJSON:true,
                 }).then((response)=>{
                     self.$refs.spatial_query_question_table.vmDataTable.ajax.reload();
@@ -603,10 +605,10 @@ export default {
             this.spatialquery.operator = '';
             this.spatialquery.value = '';
             this.spatialquery.prefix_answer = '';
-            this.spatialquery.no_polygons_proponent = '';
+            this.spatialquery.no_polygons_proponent = '-1';
             this.spatialquery.answer = '';
             this.spatialquery.prefix_info = '';
-            this.spatialquery.no_polygons_assessor = '';
+            this.spatialquery.no_polygons_assessor = '-1';
             this.spatialquery.assessor_info = '';
             this.spatialquery.regions = '';
             this.spatialquery.id = '';
@@ -670,7 +672,7 @@ export default {
 
                 }).then(async (result) => {
                     if (result) {
-                        await self.$http.delete(helpers.add_endpoint_json(api_endpoints.spatial_query_question,(self.spatialquery.id+'/delete_spatialquery')))
+                        await self.$http.delete(helpers.add_endpoint_json(api_endpoints.spatial_query,(self.spatialquery.id+'/delete_spatialquery')))
                         .then((response) => {
                             self.$refs.spatial_query_question_table.vmDataTable.ajax.reload();
                         }, (error) => {

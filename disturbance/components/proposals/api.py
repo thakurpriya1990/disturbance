@@ -3967,3 +3967,73 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
             logger.exception()
             raise serializers.ValidationError(str(e))
 
+    @detail_route(methods=['DELETE', ])
+    def delete_spatialquery(self, request, *args, **kwargs):
+        '''
+        Delete spatialquery record.
+        '''
+        try:
+            instance = self.get_object()
+
+            with transaction.atomic():
+
+                instance.delete()
+
+            return Response(
+                {'spatialquery_id': instance.id},
+                status=status.HTTP_200_OK
+            )
+
+        except serializers.ValidationError as ve:
+            log = '{0} {1}'.format('save_spatialquery()', ve)
+            logger.exception(log)
+            raise
+
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0]))
+
+        except Exception as e:
+            logger.exception()
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['POST', ])
+    def save_spatialquery(self, request, *args, **kwargs):
+        '''
+        Save spatialquery record.
+        '''
+        try:
+            instance = self.get_object()
+
+            with transaction.atomic():
+                #import ipdb; ipdb.set_trace()
+
+                serializer = SpatialQueryQuestionSerializer(
+                    instance, data=request.data
+                )
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+
+            return Response(
+                {'spatialquery_id': instance.id},
+                status=status.HTTP_200_OK
+            )
+
+        except serializers.ValidationError as ve:
+            log = '{0} {1}'.format('save_spatialquery()', ve)
+            logger.exception(log)
+            raise
+
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0]))
+
+        except Exception as e:
+            logger.exception()
+            raise serializers.ValidationError(str(e))
+
+

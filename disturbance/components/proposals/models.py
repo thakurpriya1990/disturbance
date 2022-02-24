@@ -5199,7 +5199,7 @@ class SpatialQueryQuestion(models.Model):
                          
     question = models.ForeignKey(MasterlistQuestion, related_name='questions', on_delete=models.PROTECT)
     #answer_mlq = models.CharField('Answer (Masterlist Question)', max_length=100)
-    answer_mlq = models.ForeignKey(QuestionOption, related_name='question_options', on_delete=models.PROTECT)
+    answer_mlq = models.ForeignKey(QuestionOption, related_name='question_options', on_delete=models.PROTECT, blank=True, null=True)
 
     layer_name = models.CharField(max_length=100)
     layer_url = models.CharField(max_length=512, blank=True, null=True)
@@ -5209,16 +5209,16 @@ class SpatialQueryQuestion(models.Model):
     how = models.CharField('Overlapping/Outside', max_length=40, choices=HOW_CHOICES, default=HOW_CHOICES[0][0])
     column_name = models.CharField('Name of layer attribute/field', max_length=100)
     operator = models.CharField('Operator', max_length=40, choices=OPERATOR_CHOICES, default=OPERATOR_CHOICES[0][0])
-    value = models.CharField(max_length=100)
+    value = models.CharField(max_length=100, blank=True, null=True)
 
     prefix_answer = models.TextField(blank=True, null=True)
-    no_polygons_proponent = models.IntegerField('No. of polygons to process (Proponent)', default=-1)
+    no_polygons_proponent = models.IntegerField('No. of polygons to process (Proponent)', default=-1, blank=True)
     answer = models.TextField(blank=True, null=True)
     prefix_info = models.CharField(max_length=100, blank=True, null=True)
-    no_polygons_assessor = models.IntegerField('No. of polygons to process (Assessor)', default=-1)
+    no_polygons_assessor = models.IntegerField('No. of polygons to process (Assessor)', default=-1, blank=True)
     assessor_info = models.TextField(blank=True, null=True)
 
-    regions = models.CharField('Regions', max_length=40, choices=REGION_CHOICES, default=REGION_CHOICES[0][0])
+    regions = models.CharField('Regions', max_length=40, choices=REGION_CHOICES, default=REGION_CHOICES[0][0], blank=True)
                                         
     class Meta:
         app_label = 'disturbance'
