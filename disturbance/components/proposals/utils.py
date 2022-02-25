@@ -1630,8 +1630,9 @@ def _populate_data_from_item(item, repetition, suffix):
         raise Exception('Missing name in item %s' % item['label'])
 
     if 'children' not in item:
-        if item['type'] in ['checkbox' 'declaration']:
+        if item['type'] =='checkbox':
             print('checkbox item', item)
+            item_data[item['name']]='on'
         elif item['type'] == 'file':
             print('file item', item)
         else:
@@ -1640,9 +1641,10 @@ def _populate_data_from_item(item, repetition, suffix):
                 else:
                     #item_data[item['name']] = post_data.get(extended_item_name)
                     #This is where we can add API call to SQS to get the answer.
+                    print('item type:', item['type'])
                     item_data[item['name']]= item['options'][0]['value']
                     #print(item)
-                    print('radiobuttons/ textarea/ text/ date etc item', item)
+                    #print('radiobuttons/ textarea/ text/ date etc item', item)
     else:
         if 'repetition' in item:
             item_data = generate_item_data_shape(extended_item_name,item,item_data,1,suffix)
