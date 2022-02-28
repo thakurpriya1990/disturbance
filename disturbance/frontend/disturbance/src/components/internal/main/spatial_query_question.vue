@@ -56,7 +56,7 @@
                         </div>
                         <div class="col-md-9">
                             <select class="form-control" ref="select_question" name="select-question" v-model="spatialquery.question">
-                                <option v-for="item in spatialquery_selects.all_masterlist" :value="item.id" >{{item.question}}</option>
+                                <option v-for="item in spatialquery_selects.all_masterlist" :value="item.id" >(ID: {{item.id}}) {{item.question}}</option>
                             </select>     
                         </div>
                     </div>
@@ -68,7 +68,7 @@
                         </div>
                         <div class="col-md-9" v-if="spatialquery.question">
                             <select class="form-control" ref="select_option" name="select-option" v-model="spatialquery.answer_mlq" :disabled="!has_options(spatialquery.question)">
-                                <option v-for="item in selected_question(spatialquery.question).option" :value="item.id" >{{item.label}}</option>
+                                <option v-for="item in selected_question(spatialquery.question).option" :value="item.id" >(ID: {{item.id}}) {{item.label}}</option>
                             </select>     
                         </div>
                     </div>
