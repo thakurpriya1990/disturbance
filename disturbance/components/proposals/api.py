@@ -130,7 +130,7 @@ from disturbance.components.approvals.models import Approval, ApiarySiteOnApprov
 from disturbance.components.approvals.serializers import ApprovalLogEntrySerializer
 from disturbance.components.compliances.models import Compliance
 
-from disturbance.helpers import is_authorised_to_modify, is_customer, is_internal, is_das_apiary_admin
+from disturbance.helpers import is_authorised_to_modify, is_customer, is_internal, is_das_apiary_admin, is_authorised_to_modify_draft
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from rest_framework.pagination import PageNumberPagination
@@ -2128,8 +2128,9 @@ class ProposalViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
 
+            print('in draft')
             # Ensure the current user is a member of the organisation that created the draft application.
-            is_authorised_to_modify(request, instance)
+            is_authorised_to_modify_draft(request, instance)
 
             save_proponent_data(instance, request, self)
             return redirect(reverse('external'))
@@ -2140,7 +2141,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(repr(e.error_dict))
         except Exception as e:
             print(traceback.print_exc())
-        raise serializers.ValidationError(str(e))
+            raise serializers.ValidationError(str(e))
 
     @detail_route(methods=['post'])
     @renderer_classes((JSONRenderer,))
