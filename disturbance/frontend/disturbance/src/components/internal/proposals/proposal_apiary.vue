@@ -438,6 +438,7 @@
                                         :hasAssessorMode="hasAssessorMode"
                                         :is_external="false"
                                         :is_internal="true"
+                                        :show_col_vacant_when_submitted="true"
                                     />
                                 </div>
                                 <div v-else-if="proposal && proposal.application_type=='Site Transfer'">

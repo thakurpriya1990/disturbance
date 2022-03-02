@@ -325,12 +325,12 @@ class ApiaryGlobalSettingsAdmin(admin.ModelAdmin):
 
 @admin.register(ApiaryAnnualRentalFee)
 class ApiaryAnnualRentalFeeAdmin(admin.ModelAdmin):
-    pass
+    list_display = ['id', 'amount_south_west', 'amount_remote', 'date_from',]
 
 
 @admin.register(ApiaryAnnualRentalFeeRunDate)
 class ApiaryAnnualRentalFeeRunDateAdmin(admin.ModelAdmin):
-    pass
+    list_display = ['id', 'name', 'date_run_cron',]
 
 
 # @admin.register(ApiaryAnnualRentalFeePeriodStartDate)
@@ -352,7 +352,7 @@ class ApiarySiteFeeInline(admin.TabularInline):
 
 @admin.register(ApiarySiteFeeType)
 class ApiarySiteFeeTypeAdmin(admin.ModelAdmin):
-    pass
+    list_display = ['id', 'name', 'description',]
 
 
 # @admin.register(SiteApplicationFee)
