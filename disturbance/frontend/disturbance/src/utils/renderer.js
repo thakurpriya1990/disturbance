@@ -271,6 +271,12 @@ module.exports = {
             // Merge assessor boxes to _elements array
             Array.prototype.push.apply(_elements,boxes);
         }
+        if ($.inArray(c.type,['declaration','group','section','label', 'checkbox']) == -1){
+            var applicant_boxes = this.generateAddInfoApplicantTextBoxes(h,c,val,assessorLevel,readonly, null);
+            // Merge assessor boxes to _elements array
+            Array.prototype.push.apply(_elements,applicant_boxes);
+        }
+        
         return _elements;
     },
 
@@ -585,6 +591,33 @@ module.exports = {
         // if (boxes.length > 0){
         //     boxes = [<div class="row"> {boxes} </div>]
         // }
+        return boxes;
+    },
+    generateAddInfoApplicantTextBoxes(h,c,val,assessor_mode,readonly,add_info_applicant){
+        var box_visibility = true;
+        var boxes = [];
+            if (add_info_applicant){
+                var _dt = add_info_applicant.find(at => at.name == c.name)
+                // Assessor Data
+                var applicant_name = `${c.name}-ApplicantInfo`;
+                var applicant_val = _dt == undefined || _dt == '' ? val : _dt;
+                var applicant_visibility = assessor_mode == 'assessor' && this.status_data.assessorStatus.has_assessor_mode && !this.status_data.assessorStatus.status_without_assessor? false : true;
+                applicant_visibility = !applicant_visibility;
+                boxes.push(
+                    <AssessorText box_view={box_visibility} type="text" name={applicant_name} value={applicant_val} label={'Additional Info (applicant)'} help_text={c.help_text} readonly={readonly}/>
+                )
+            }
+            else{
+                    var name = `${c.name}-Assessor`;
+                    var applicant_visibility = assessor_mode == 'assessor' && this.status_data.assessorStatus.has_assessor_mode && !this.status_data.assessorStatus.status_without_assessor? false : true;
+                    applicant_visibility = !applicant_visibility;
+                    boxes.push(
+                        <AssessorText box_view={box_visibility} type="text" name={name} value={val} label={'Additional Info (applicant)'} help_text={c.help_text} readonly={readonly}/>
+                    )                
+            }
+        if (boxes.length > 0){
+            boxes = [<div class="row"> {boxes} </div>]
+        }
         return boxes;
     },
 }
