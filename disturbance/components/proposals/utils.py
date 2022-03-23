@@ -54,7 +54,10 @@ def create_data_from_form(schema, post_data, file_data, post_data_index=None,spe
     special_fields_list = []
     assessor_data_list = []
     comment_data_list = {}
+    add_info_applicant_list={}
     special_fields_search = SpecialFieldsSearch(special_fields)
+    add_info_applicant_search=AddInfoApplicantDataSearch()
+    add_info_assessor_search=AddInfoAssessorDataSearch()
     if assessor_data:
         assessor_fields_search = AssessorDataSearch()
         comment_fields_search = CommentDataSearch()
@@ -63,19 +66,23 @@ def create_data_from_form(schema, post_data, file_data, post_data_index=None,spe
             data.update(_create_data_from_item(item, post_data, file_data, 0, ''))
             #_create_data_from_item(item, post_data, file_data, 0, '')
             special_fields_search.extract_special_fields(item, post_data, file_data, 0, '')
+            add_info_applicant_search.extract_special_fields(item, post_data, file_data, 0, '')
+            add_info_assessor_search.extract_special_fields(item, post_data, file_data, 0, '')
             if assessor_data:
                 assessor_fields_search.extract_special_fields(item, post_data, file_data, 0, '')
                 comment_fields_search.extract_special_fields(item, post_data, file_data, 0, '')
         special_fields_list = special_fields_search.special_fields
+        add_info_applicant_list = add_info_applicant_search.comment_data
+        add_info_assessor_list = add_info_assessor_search.comment_data
         if assessor_data:
             assessor_data_list = assessor_fields_search.assessor_data
             comment_data_list = comment_fields_search.comment_data
     except:
         traceback.print_exc()
     if assessor_data:
-        return [data],special_fields_list,assessor_data_list,comment_data_list
+        return [data],special_fields_list,assessor_data_list,comment_data_list, add_info_assessor_list
 
-    return [data],special_fields_list
+    return [data],special_fields_list, add_info_applicant_list, add_info_assessor_list
 
 
 def _extend_item_name(name, suffix, repetition):
@@ -380,6 +387,139 @@ class SpecialFieldsSearch(object):
 
             item_data[item['name']] = item_data_list
         return item_data
+
+
+class AddInfoApplicantDataSearch(object):
+
+    def __init__(self,lookup_field='canBeEditedByAssessor'):
+        self.lookup_field = lookup_field
+        self.comment_data = {}
+        #self.comment_data = []
+
+    
+
+    def extract_add_info_applicant_data(self,item,post_data):
+        res = {}
+        values = []
+        for k in post_data:
+            if re.match(item,k):
+                values.append({k:post_data[k]})
+        if values:
+            for v in values:
+                for k,v in v.items():
+                    parts = k.split('{}'.format(item))
+                    if len(parts) > 1:
+                        ref_parts = parts[1].split('-add-info-applicant')
+                        if len(ref_parts) > 1:
+                            if len(ref_parts)==2 and ref_parts[0]=='' and ref_parts[1]=='':
+                                res = {'{}'.format(item):v}
+        return res
+
+    
+    def extract_special_fields(self,item, post_data, file_data, repetition, suffix):
+        item_data = {}
+        if 'name' in item:
+            extended_item_name = item['name']
+        else:
+            raise Exception('Missing name in item %s' % item['label'])
+
+        if 'children' not in item:
+            #print(item, extended_item_name)
+            #self.comment_data.update(self.extract_comment_data(extended_item_name,post_data))
+            self.comment_data.update(self.extract_add_info_applicant_data(extended_item_name,post_data))
+
+        else:
+            if 'repetition' in item:
+                item_data = self.generate_item_data_special_field(extended_item_name,item,item_data,post_data,file_data,len(post_data[item['name']]),suffix)
+            else:
+                item_data = self.generate_item_data_special_field(extended_item_name, item, item_data, post_data, file_data,1,suffix)
+
+
+        if 'conditions' in item:
+            for condition in list(item['conditions'].keys()):
+                for child in item['conditions'][condition]:
+                    item_data.update(self.extract_special_fields(child, post_data, file_data, repetition, suffix))
+
+        return item_data
+
+    def generate_item_data_special_field(self,item_name,item,item_data,post_data,file_data,repetition,suffix):
+        item_data_list = []
+        for rep in range(0, repetition):
+            child_data = {}
+            for child_item in item.get('children'):
+                child_data.update(self.extract_special_fields(child_item, post_data, file_data, 0,
+                                                         '{}-{}'.format(suffix, rep)))
+            item_data_list.append(child_data)
+
+            item_data[item['name']] = item_data_list
+        return item_data
+
+
+class AddInfoAssessorDataSearch(object):
+
+    def __init__(self,lookup_field='canBeEditedByAssessor'):
+        self.lookup_field = lookup_field
+        self.comment_data = {}
+        #self.comment_data = []
+
+    
+
+    def extract_add_info_assessor_data(self,item,post_data):
+        res = {}
+        values = []
+        for k in post_data:
+            if re.match(item,k):
+                values.append({k:post_data[k]})
+        if values:
+            for v in values:
+                for k,v in v.items():
+                    parts = k.split('{}'.format(item))
+                    if len(parts) > 1:
+                        ref_parts = parts[1].split('-add-info-Assessor')
+                        if len(ref_parts) > 1:
+                            if len(ref_parts)==2 and ref_parts[0]=='' and ref_parts[1]=='':
+                                res = {'{}'.format(item):v}
+        return res
+
+    
+    def extract_special_fields(self,item, post_data, file_data, repetition, suffix):
+        item_data = {}
+        if 'name' in item:
+            extended_item_name = item['name']
+        else:
+            raise Exception('Missing name in item %s' % item['label'])
+
+        if 'children' not in item:
+            #print(item, extended_item_name)
+            #self.comment_data.update(self.extract_comment_data(extended_item_name,post_data))
+            self.comment_data.update(self.extract_add_info_assessor_data(extended_item_name,post_data))
+
+        else:
+            if 'repetition' in item:
+                item_data = self.generate_item_data_special_field(extended_item_name,item,item_data,post_data,file_data,len(post_data[item['name']]),suffix)
+            else:
+                item_data = self.generate_item_data_special_field(extended_item_name, item, item_data, post_data, file_data,1,suffix)
+
+
+        if 'conditions' in item:
+            for condition in list(item['conditions'].keys()):
+                for child in item['conditions'][condition]:
+                    item_data.update(self.extract_special_fields(child, post_data, file_data, repetition, suffix))
+
+        return item_data
+
+    def generate_item_data_special_field(self,item_name,item,item_data,post_data,file_data,repetition,suffix):
+        item_data_list = []
+        for rep in range(0, repetition):
+            child_data = {}
+            for child_item in item.get('children'):
+                child_data.update(self.extract_special_fields(child_item, post_data, file_data, 0,
+                                                         '{}-{}'.format(suffix, rep)))
+            item_data_list.append(child_data)
+
+            item_data[item['name']] = item_data_list
+        return item_data
+
 
 
 # -------------------------------------------------------------------------------------------------------------
@@ -786,7 +926,8 @@ def save_proponent_data_disturbance(instance,request,viewset):
         try:
             lookable_fields = ['isTitleColumnForDashboard','isActivityColumnForDashboard','isRegionColumnForDashboard']
 
-            extracted_fields,special_fields = create_data_from_form(instance.schema, request.POST, request.FILES, special_fields=lookable_fields)
+            extracted_fields,special_fields, add_info_applicant, add_info_asessor = create_data_from_form(instance.schema, request.POST, request.FILES, special_fields=lookable_fields)
+            
             instance.data = extracted_fields
 
             form_data=json.loads(request.POST['schema'])
@@ -811,6 +952,7 @@ def save_proponent_data_disturbance(instance,request,viewset):
                 'title': special_fields.get('isTitleColumnForDashboard',None),
 
                 'data': extracted_fields,
+                'add_info_applicant': add_info_applicant,
                 'processing_status': instance.PROCESSING_STATUS_CHOICES[1][0] if instance.processing_status == 'temp' else instance.processing_status,
                 'customer_status': instance.PROCESSING_STATUS_CHOICES[1][0] if instance.processing_status == 'temp' else instance.customer_status,
                 # 'lodgement_sequence': 1 if instance.lodgement_sequence == 0 else instance.lodgement_sequence,
@@ -859,7 +1001,7 @@ def save_assessor_data(instance,request,viewset):
     with transaction.atomic():
         try:
             lookable_fields = ['isTitleColumnForDashboard','isActivityColumnForDashboard','isRegionColumnForDashboard']
-            extracted_fields,special_fields,assessor_data,comment_data = create_data_from_form(
+            extracted_fields,special_fields,assessor_data,comment_data, add_info_asessor = create_data_from_form(
                 instance.schema, request.POST, request.FILES,special_fields=lookable_fields,assessor_data=True)
 
             logger.info("ASSESSOR DATA - Region: {}, Activity: {}".format(special_fields.get('isRegionColumnForDashboard',None), special_fields.get('isActivityColumnForDashboard',None)))
@@ -868,6 +1010,7 @@ def save_assessor_data(instance,request,viewset):
                 'data': extracted_fields,
                 'assessor_data': assessor_data,
                 'comment_data': comment_data,
+                'add_info_assessor': add_info_asessor,
             }
             serializer = SaveProposalSerializer(instance, data, partial=True)
             serializer.is_valid(raise_exception=True)
@@ -1607,3 +1750,68 @@ def generate_schema(proposal_type, request):
     if request.method=='POST':
         create_helppage_object(proposal_type)
     return new_Schema_return            
+
+
+# Populate data in Proposal using the CDDP configuration
+def prefill_data_from_shape(schema ):
+    data = {}
+    
+    try:
+        for item in schema:
+            data.update(_populate_data_from_item(item, 0, ''))
+           
+    except:
+        traceback.print_exc()
+    return [data]
+
+def _populate_data_from_item(item, repetition, suffix):
+    item_data = {}
+
+    if 'name' in item:
+        extended_item_name = item['name']
+    else:
+        raise Exception('Missing name in item %s' % item['label'])
+
+    if 'children' not in item:
+        if item['type'] =='checkbox':
+            print('checkbox item', item)
+            item_data[item['name']]='on'
+        elif item['type'] == 'file':
+            print('file item', item)
+        else:
+                if item['type'] == 'multi-select':
+                    print('multi-select item', item)
+                else:
+                    #item_data[item['name']] = post_data.get(extended_item_name)
+                    #This is where we can add API call to SQS to get the answer.
+                    print('item type:', item['type'])
+                    item_data[item['name']]= item['options'][0]['value']
+                    #print(item)
+                    #print('radiobuttons/ textarea/ text/ date etc item', item)
+    else:
+        if 'repetition' in item:
+            item_data = generate_item_data_shape(extended_item_name,item,item_data,1,suffix)
+        else:
+            item_data = generate_item_data_shape(extended_item_name, item, item_data,1,suffix)
+
+
+    if 'conditions' in item:
+        for condition in list(item['conditions'].keys()):
+            if condition==item_data[item['name']]:
+                for child in item['conditions'][condition]:
+                    item_data.update(_populate_data_from_item(child,  repetition, suffix))
+
+    return item_data
+
+def generate_item_data_shape(item_name,item,item_data,repetition,suffix):
+    item_data_list = []
+    for rep in range(0, repetition):
+        child_data = {}
+        for child_item in item.get('children'):
+            child_data.update(_populate_data_from_item(child_item, 0,
+                                                     '{}-{}'.format(suffix, rep)))
+            #print('child item in generate item data', child_item)
+        item_data_list.append(child_data)
+
+        item_data[item['name']] = item_data_list
+    return item_data

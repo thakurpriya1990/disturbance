@@ -139,7 +139,7 @@
                     </div>
                     <!-- <div class="row">
                         <div class="col-md-6">
-                        <div v-for="(c, cid) in ['isRepeatable', 'isRequired']" v-bind:key="`check_${cid}`" >
+                        <div v-for="(c, cid) in ['isRepeatable', 'isRequired','isCopiedToPermit','canBeEditedByAssessor' ]" v-bind:key="`check_${cid}`" >
                             <input type="checkbox" :value="true" v-model="getCheckedTag(c).isChecked" >&nbsp;&nbsp;<label>{{c.label}}</label></input><label>{{ c }}</label>
                         </div>
                         </div>
@@ -153,6 +153,16 @@
                     <div class="row">
                         <div class="col-md-6">
                             <input type="checkbox" :value="true" v-model="getCheckedTag('isRequired').isChecked" >&nbsp;&nbsp;&nbsp;<label>isRequired</label></input>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <input type="checkbox" :value="true" v-model="getCheckedTag('isCopiedToPermit').isChecked" >&nbsp;&nbsp;&nbsp;<label>isCopiedToPermit</label></input>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <input type="checkbox" :value="true" v-model="getCheckedTag('canBeEditedByAssessor').isChecked" >&nbsp;&nbsp;&nbsp;<label>canBeEditedByAssessor</label></input>
                         </div>
                     </div>
 
@@ -488,7 +498,7 @@ export default {
                     tag: atag,
                     isChecked: set_checked,
                 }
-                if (['isRepeatable','isRequired'].includes(atag)){
+                if (['isRepeatable','isRequired', 'isCopiedToPermit', 'canBeEditedByAssessor'].includes(atag)){
                     this.checkedTag.push(checked)
                 }
             }
