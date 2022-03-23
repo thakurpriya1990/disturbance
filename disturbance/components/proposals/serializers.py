@@ -243,6 +243,7 @@ class ProposalSerializer(BaseProposalSerializer):
     #district = serializers.CharField(source='district.name', read_only=True)
     #tenure = serializers.CharField(source='tenure.name', read_only=True)
     comment_data= serializers.SerializerMethodField(read_only=True)
+    #add_info_applicant= serializers.SerializerMethodField(read_only=True)
 
     proposal_apiary = serializers.SerializerMethodField()
     apiary_temporary_use = ProposalApiaryTemporaryUseSerializer(many=False, read_only=True)
@@ -257,6 +258,8 @@ class ProposalSerializer(BaseProposalSerializer):
             'apiary_temporary_use',
             'apiary_group_application_type',
             'shapefile_json',
+            'add_info_applicant',
+            'add_info_assessor',
             # 'apiary_temporary_use_set',
         )
 
@@ -294,6 +297,8 @@ class SaveProposalSerializer(BaseProposalSerializer):
                 'data',
                 'assessor_data',
                 'comment_data',
+                'add_info_applicant',
+                'add_info_assessor',
                 'schema',
                 'customer_status',
                 'processing_status',
@@ -415,6 +420,8 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'current_assessor',
                 'assessor_data',
                 'comment_data',
+                'add_info_applicant',
+                'add_info_assessor',
                 'latest_referrals',
                 'allowed_assessors',
                 'proposed_issuance_approval',
