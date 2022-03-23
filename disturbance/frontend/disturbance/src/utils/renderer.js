@@ -35,6 +35,7 @@ module.exports = {
         var _elements = [];
         var comment_boxes=[];
         var addInfoApplicant= this.status_data.addInfoApplicant
+        var addInfoAssessor= this.status_data.addInfoAssessor
         if (assessorStatus != null){
             assessorMode = assessorStatus['assessor_mode'];
             assessorCanAssess = assessorStatus['has_assessor_mode'];
@@ -55,6 +56,7 @@ module.exports = {
         var val = (data) ? (data[c.name]) ? data[c.name] : null : null;
         //var comment_val = (commentData) ? (commentData[c.name]) ? commentData[c.name] : null : null;
         var add_info_applicant_val = (addInfoApplicant) ? (addInfoApplicant[c.name]) ? addInfoApplicant[c.name] : null : null;
+        var add_info_assessor_val = (addInfoAssessor) ? (addInfoAssessor[c.name]) ? addInfoAssessor[c.name] : null : null;
         var comment_val= null;
         if(commentData){
             if(commentData.constructor != Object){
@@ -279,7 +281,7 @@ module.exports = {
             Array.prototype.push.apply(_elements,applicant_boxes);
         }
         if (assessorMode && $.inArray(c.type,['declaration','group','section','label', 'checkbox']) == -1){
-            var assessor_boxes = this.generateAddInfoAssessorTextBoxes(h,c,val,assessorLevel,null);
+            var assessor_boxes = this.generateAddInfoAssessorTextBoxes(h,c,val,assessorLevel, add_info_assessor_val);
             // Merge assessor boxes to _elements array
             Array.prototype.push.apply(_elements,assessor_boxes);
         }
@@ -406,12 +408,13 @@ module.exports = {
         return boxes;
     },
     status_data : {},
-    store_status_data(readonly,assessorData,commentData,addInfoApplicant,assessorEmail,assessorMode,can_user_edit,docs_url, proposalId, applicationType){
+    store_status_data(readonly,assessorData,commentData,addInfoApplicant,addInfoAssessor,assessorEmail,assessorMode,can_user_edit,docs_url, proposalId, applicationType){
         this.status_data = {
             'readonly': readonly,
             'assessorData': assessorData,
             'commentData': commentData,
             'addInfoApplicant': addInfoApplicant,
+            'addInfoAssessor': addInfoAssessor,
             'assessorInfo': assessorEmail,
             'assessorStatus': assessorMode,
             'can_user_edit': can_user_edit,
@@ -640,7 +643,7 @@ module.exports = {
                 // }
                 //var _dt = add_info_assessor.find(at => at.name == c.name)
                 // Assessor Data
-                var assessor_name = `${c.name}-add_info_Assessor`;
+                var assessor_name = `${c.name}-add-info-Assessor`;
                 //var assessor_val = _dt == undefined || _dt.assessor == '' ? '' : _dt.assessor;
                 var assessor_val=add_info_assessor;
                 //console.log(_dt)
@@ -678,7 +681,7 @@ module.exports = {
             }
             else{
                 if (assessor_mode == 'assessor'){
-                    var name = `${c.name}-add_info_Assessor`;
+                    var name = `${c.name}-add-info-Assessor`;
                     var assessor_visibility = assessor_mode == 'assessor' && this.status_data.assessorStatus.has_assessor_mode && !this.status_data.assessorStatus.status_without_assessor? true : false;
                     assessor_visibility = !assessor_visibility;
                     boxes.push(
@@ -699,7 +702,7 @@ module.exports = {
                 else if (assessor_mode == 'referral'){
                     //console.log('referral');
                     // Add Assessor Box
-                    var name = `${c.name}-add_info_Assessor`;
+                    var name = `${c.name}-add-info-Assessor`;
                     var assessor_visibility = assessor_mode != 'assessor' ? true : false;
                     boxes.push(
                         // {
