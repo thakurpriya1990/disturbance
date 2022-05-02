@@ -1779,6 +1779,7 @@ def _populate_data_from_item(item, repetition, suffix):
         elif item['type'] == 'file':
             print('file item', item)
         else:
+            try:
                 if item['type'] == 'multi-select':
                     print('multi-select item', item)
                 else:
@@ -1788,6 +1789,9 @@ def _populate_data_from_item(item, repetition, suffix):
                     item_data[item['name']]= item['options'][0]['value']
                     #print(item)
                     #print('radiobuttons/ textarea/ text/ date etc item', item)
+            except Exception as e:
+                logger.error(e)
+                import ipdb; ipdb.set_trace()
     else:
         if 'repetition' in item:
             item_data = generate_item_data_shape(extended_item_name,item,item_data,1,suffix)
