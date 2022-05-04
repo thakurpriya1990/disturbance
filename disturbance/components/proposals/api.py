@@ -3878,6 +3878,7 @@ class SpatialQueryQuestionRenderer(DatatablesRenderer):
 
 
 class SpatialQueryQuestionPaginatedViewSet(viewsets.ModelViewSet):
+    """ For the dashboard table - http://localhost:8000/internal/schema 'Spatial Query Questions' tab """
     filter_backends = (SpatialQueryQuestionFilterBackend,)
     pagination_class = DatatablesPageNumberPagination
     renderer_classes = (SpatialQueryQuestionRenderer,)
@@ -3908,7 +3909,7 @@ class SpatialQueryQuestionPaginatedViewSet(viewsets.ModelViewSet):
 
 
 class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
-    """ http://localhost:8000/api/spatial_query/1.json """
+    """ For the 'New Question' and 'Edit' in 'Spatial Query Questions' tab  http://localhost:8000/api/spatial_query/1.json """
     queryset = SpatialQueryQuestion.objects.all()
     serializer_class = SpatialQueryQuestionSerializer
 
@@ -4008,11 +4009,11 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
 
             with transaction.atomic():
-                #import ipdb; ipdb.set_trace()
 
                 serializer = SpatialQueryQuestionSerializer(
                     instance, data=request.data
                 )
+                #import ipdb; ipdb.set_trace()
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
 

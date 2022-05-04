@@ -70,7 +70,7 @@ libspatialindex-dev
 
 RUN add-apt-repository ppa:deadsnakes/ppa && \
 apt-get update && \
-apt-get install --no-install-recommends -y python3.7 python3.7-dev && \
+apt-get install --no-install-recommends -y python3.7 python3.7-dev python3.7-distutils && \
 ln -s /usr/bin/python3.7 /usr/bin/python && \
 #ln -s /usr/bin/pip3 /usr/bin/pip && \
 python3.7 -m pip install --upgrade pip==21.3.1 && \

@@ -35,6 +35,21 @@ class ApiaryLicenceReader():
     from disturbance.utils.migration_utils import ApiaryLicenceReader
     reader=ApiaryLicenceReader('disturbance/utils/csv/apiary_migration_file_01Sep20211-TEST.csv')
     reader.run_migration()
+
+    Delete previously migrated proposals/licences:
+    for idx, i in enumerate(Proposal.objects.filter(migrated=True)):
+        print(idx)
+        a = i.approval
+        af = a.annual_rental_fees.all()
+        if af:
+            af.delete()
+            
+        if i.fee_invoice_references:
+            Invoice.objects.filter(reference__in=i.fee_invoice_references).delete()
+            
+        #i.delete()
+
+    Proposal.objects.filter(migrated=True).delete()
     '''
     def __init__(self, filename):
         self.filename = filename
@@ -63,8 +78,8 @@ class ApiaryLicenceReader():
                     'trading_name': row['trading_name'],
                     'licencee': row['licencee'],
                     'abn': row['abn'],
-                    'first_name': row['first_name'],
-                    'last_name': row['last_name'],
+                    'first_name': row['first_name'] if 'first_name' in row else row['licencee'],
+                    'last_name': row['last_name'] if 'last_name' in row else 'No Last Name',
                     'address_line1': row['address_line1'],
                     'address_line2': row['address_line2'],
                     'address_line3': row['address_line3'],
@@ -125,7 +140,9 @@ class ApiaryLicenceReader():
                 else:
                     #print(row)
                     #raise ImportException("Entry is not a valid organisation or individual licence record")
-                    raise ImportException(row)
+                    print(row)
+                    import ipdb; ipdb.set_trace()
+                    #raise ImportException(row)
 
         except Exception as e:
             import ipdb; ipdb.set_trace()
@@ -382,9 +399,16 @@ class ApiaryLicenceReader():
         try:
             #if data['email1'] == 'info@safaris.net.au':
             #    import ipdb; ipdb.set_trace()
-            user, created_user = EmailUser.objects.get_or_create(email=data['email'],
-                    defaults={'first_name': data['first_name'], 'last_name': data['last_name'], 'phone_number': data['phone_number1'], 'mobile_number': data['mobile_number']}
-                )
+            first_name = data['first_name'] if 'first_name' in data else 'No First Name'
+            last_name = data['last_name'] if 'last_name' in data else 'No Last Name'
+            email = data['email'].replace(' ', '')
+            user = EmailUser.objects.filter(email=email)
+            if len(user) == 0:
+                user, created_user = EmailUser.objects.get_or_create(email=email,
+                        defaults={'first_name': first_name, 'last_name': last_name, 'phone_number': data['phone_number1'], 'mobile_number': data['mobile_number']}
+                    )
+            else:
+                user = user[0]
             return user
             #print '{} {} {}'.format(data['first_name'], data['last_name'], EmailUser.objects.filter(first_name=data['first_name'], last_name=data['last_name']))
             #print data['email1']
@@ -399,13 +423,21 @@ class ApiaryLicenceReader():
         try:
             #if data['email1'] == 'info@safaris.net.au':
             #    import ipdb; ipdb.set_trace()
-            user, created_user = EmailUser.objects.get_or_create(email=data['email'],
-                    defaults={'first_name': data['first_name'], 'last_name': data['last_name'], 'phone_number': data['phone_number1'], 'mobile_number': data['mobile_number']}
-                )
+            first_name = data['first_name'] if 'first_name' in data else 'No First Name'
+            last_name = data['last_name'] if 'last_name' in data else 'No Last Name'
+            email = data['email'].replace(' ', '')
+            user = EmailUser.objects.filter(email=email)
+            if len(user) == 0:
+                user, created_user = EmailUser.objects.get_or_create(email=email,
+                        defaults={'first_name': first_name, 'last_name': last_name, 'phone_number': data['phone_number1'], 'mobile_number': data['mobile_number']}
+                    )
+            else:
+                user = user[0]
             #print '{} {} {}'.format(data['first_name'], data['last_name'], EmailUser.objects.filter(first_name=data['first_name'], last_name=data['last_name']))
             #print data['email1']
         except Exception:
             print('user: {}   *********** 1 *********** FAILED'.format(data['email']))
+            import ipdb; ipdb.set_trace()
             #return
 
         lo=ledger_organisation.objects.filter(abn=data['abn'])
