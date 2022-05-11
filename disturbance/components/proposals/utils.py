@@ -1764,7 +1764,7 @@ def prefill_data_from_shape(schema ):
         traceback.print_exc()
     return [data]
 
-def _populate_data_from_item(item, repetition, suffix):
+def _populate_data_from_item(item, repetition, suffix, sqs_value=None):
     item_data = {}
 
     if 'name' in item:
@@ -1774,25 +1774,53 @@ def _populate_data_from_item(item, repetition, suffix):
 
     if 'children' not in item:
         if item['type'] =='checkbox':
-            print('checkbox item', item)
-            item_data[item['name']]='on'
+            if sqs_value:
+                for val in sqs_value:
+                    if val==item['label']:
+                        item_data[item['name']]='on'
         elif item['type'] == 'file':
             print('file item', item)
         else:
                 if item['type'] == 'multi-select':
-                    print('multi-select item', item)
+                    #Get value from SQS. Value should be an array of the correct options.
+                    sqs_value=item['options'][1]['value']
+                    sqs_value=[sqs_value]
+                    if sqs_value:
+                        item_data[item['name']]=[]
+                    for val in sqs_value:
+                        if item['options']:
+                            for op in item['options']:
+                                if val==op['value']:
+                                    item_data[item['name']].append(op['value'])
+
+                elif item['type'] == 'radiobuttons' or item['type'] == 'select' :
+                    #Get value from SQS
+                    sqs_value=item['options'][1]['value']
+                    if item['options']:
+                        for op in item['options']:
+                            if sqs_value==op['value']:
+                                item_data[item['name']]=op['value']
+                                break
                 else:
-                    #item_data[item['name']] = post_data.get(extended_item_name)
+                    #All the other types e.g. textarea, text, date.
                     #This is where we can add API call to SQS to get the answer.
-                    print('item type:', item['type'])
-                    item_data[item['name']]= item['options'][0]['value']
+                    sqs_value="test"
+                    item_data[item['name']]= sqs_value
                     #print(item)
                     #print('radiobuttons/ textarea/ text/ date etc item', item)
     else:
         if 'repetition' in item:
             item_data = generate_item_data_shape(extended_item_name,item,item_data,1,suffix)
         else:
-            item_data = generate_item_data_shape(extended_item_name, item, item_data,1,suffix)
+            #item_data = generate_item_data_shape(extended_item_name, item, item_data,1,suffix)
+            #Check if item has checkbox childer
+            if check_checkbox_item(extended_item_name, item, item_data,1,suffix):
+                #make a call to sqs for item
+                sqs_values=['first']
+                #pass sqs values as an attribute.
+                item_data = generate_item_data_shape(extended_item_name, item, item_data,1,suffix, sqs_values)
+            else:
+                item_data = generate_item_data_shape(extended_item_name, item, item_data,1,suffix)
 
 
     if 'conditions' in item:
@@ -1803,15 +1831,22 @@ def _populate_data_from_item(item, repetition, suffix):
 
     return item_data
 
-def generate_item_data_shape(item_name,item,item_data,repetition,suffix):
+def generate_item_data_shape(item_name,item,item_data,repetition,suffix, sqs_value=None):
     item_data_list = []
     for rep in range(0, repetition):
         child_data = {}
         for child_item in item.get('children'):
             child_data.update(_populate_data_from_item(child_item, 0,
-                                                     '{}-{}'.format(suffix, rep)))
+                                                     '{}-{}'.format(suffix, rep), sqs_value))
             #print('child item in generate item data', child_item)
         item_data_list.append(child_data)
 
         item_data[item['name']] = item_data_list
     return item_data
+
+def check_checkbox_item(item_name,item,item_data,repetition,suffix):
+    checkbox_item=False
+    for child_item in item.get('children'):
+        if child_item['type']=='checkbox':
+            checkbox_item=True        
+    return checkbox_item
