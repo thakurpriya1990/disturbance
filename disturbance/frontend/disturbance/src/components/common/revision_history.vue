@@ -9,11 +9,11 @@
                             <th style="padding-left: 10px;">Date</th>
                             <th style="padding-left: 10px;">Action</th>
                         </tr>
-                        <tr v-for="prop in this.lodgement_revisions_actions" :key="prop.id">
-                            <td>{{ prop.id }}</td>
-                            <td style="padding-left: 10px;">{{ prop.date | formatDateNoTime }}</td>
-                            <td style="padding-left: 10px;" v-on:click="getCompareProposal(prop['index'])">
-                                <span v-bind:id=prop.id v-html=prop.action></span>
+                        <tr v-for="revision in this.lodgement_revisions_actions.slice(0,this.revisionsToShow)" :key="revision.id">
+                            <td>{{ revision.id }}</td>
+                            <td style="padding-left: 10px;">{{ revision.date | formatDateNoTime }}</td>
+                            <td style="padding-left: 10px;" v-on:click="getCompareProposal(revision['index'])">
+                                <span v-bind:id=revision.id v-html=revision.action></span>
                             </td>
                         </tr>
                     </table>
@@ -23,7 +23,7 @@
                         <tr>
                             <th style="visibility: hidden;">Version</th>
                         </tr>
-                        <tr v-for="prop in this.lodgement_revisions_view_actions" :key="prop.id">
+                        <tr v-for="prop in this.lodgement_revisions_view_actions.slice(0,this.revisionsToShow)" :key="prop.id">
                             <td  style="padding-left: 15px;" v-on:click="getViewProposal(prop['index'])">
                                 <span v-bind:id=prop.view_id v-html=prop.view_action></span>
                             </td>
@@ -32,7 +32,9 @@
                 </div>
             </div>
             <a tabindex="2" ref="showActionBtn" class="actionBtn">Show All</a>
+            <a @click="">Show All</a>
         </div>
+        <RevisionHistoryModal />
     </div>
 </template>
 <script>
@@ -41,6 +43,7 @@ import {
     helpers
 } from '@/utils/hooks'
 import Vue from 'vue'
+import RevisionHistoryModal from './revision_history_modal.vue'
 export default {
     name: 'RevisionHistorySection',
     props: {
@@ -57,6 +60,8 @@ export default {
             lodgement_revisions_view_actions: [],
             allRevisionsTableRows: '',
             popoversInitialised: false,
+            revisionsToShow: 5,
+            versionCurrentlyShowing: 0,
             actionsDtOptions: {
                 language: {
                     processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
@@ -91,6 +96,7 @@ export default {
     watch:{
     },
     computed: {
+        console: () => console,
         getRevisionDiffsUrl: function() {
             let url = ''
             url = helpers.add_endpoint_join('/api/proposal/',
@@ -104,8 +110,9 @@ export default {
                 &#x1f441; is eyeball. Viewing doesn't fit very well. */
             let index = 0
             for (let prop in this.proposal.reversion_history) {
-                let action_label = '<a style="cursor:pointer;">Compare</a>'
-                let view_action_label = '<a style="cursor:pointer;">View</a>'
+                let action_label = '<a style="cursor:pointer;" v-on:click="getViewProposal(${index})>Compare</a>'
+                let view_action_label = `<a style="cursor:pointer;">View</a>`
+                console.log(view_action_label);
                 if (index === 0) { 
                     view_action_label = '<div style="pointer-events: none;">&#x1f441;</div>'
                     action_label = '<div style="visibility: hidden; pointer-events: none;">View</div>'
@@ -113,23 +120,26 @@ export default {
                 this.lodgement_revisions_actions.push({"index": index,
                                                        "id": prop,
                                                        "action": action_label,
-                                                       "date": this.proposal.reversion_history[prop]["date"],})
+                                                       "date": this.proposal.reversion_history[prop]["date"],
+                })
                 this.lodgement_revisions_view_actions.push({"index": index,
                                                             "view_id": "v_"+prop,
                                                             "view_action": view_action_label})
+                                
                 index += 1
             }
         },
     },
     methods:{
-        getCompareProposal: async function (revision) {
+        getCompareProposal: async function (compare_version) {
             /* This handles the user clicks. Change the labels of entries and add all selected 
                revision differences to the DOM. */
 
-                // Always Compare against the most recent version. 
-               this.getViewProposal(0)
+            // Always Compare against the most recent version. 
+            this.getViewProposal(0)
 
-            let clicked_revision = this.lodgement_revisions_actions[revision]
+
+            let clicked_revision = this.lodgement_revisions_actions[compare_version]
 
             for (let index = 0; index < this.lodgement_revisions_actions.length; index++) {
                 this.lodgement_revisions_actions[index].action = '<a style="cursor:pointer;">Compare</a>'
@@ -141,8 +151,13 @@ export default {
 
             // Now post to the API to get the differences between latest version and this one.
             const revisions_length = Object.keys(this.proposal.reversion_history).length
-            let revision_index = this.lodgement_revisions_actions.length - revision
-            const diffs = await Vue.http.post(this.getRevisionDiffsUrl, {"version_number": revision_index})
+            let revision_index = this.lodgement_revisions_actions.length - compare_version
+
+            console.log('this.versionCurrentlyShowing = ' + this.versionCurrentlyShowing)
+            console.log('compare_version = ' + compare_version)
+
+            let url = `/api/proposal/${this.proposal.id}/get_revision_diffs.json?newer_version=${this.versionCurrentlyShowing}&older_version=${compare_version}`
+            const diffs = await Vue.http.get(url);
 
             // Remove any previous revisions
             $(".revision_note").remove()
@@ -184,6 +199,12 @@ export default {
                the selected revision. */
             
             let clicked_revision = this.lodgement_revisions_view_actions[revision]
+            
+            console.log('clicked_revision = ' + revision)
+
+            // Store the revision currently showing so it can be accessed from the compare method
+            this.versionCurrentlyShowing = revision
+
             // Set initial values for the View table.
             for (let index = 0; index < this.lodgement_revisions_view_actions.length; index++) {
                 this.lodgement_revisions_view_actions[index].view_action = '<a style="visibility: visible; cursor:pointer;">View</a>'
@@ -242,8 +263,10 @@ export default {
                                          "id": actions[row_count]['id'],
                                          "action": actions[row_count]['action'],
                                          "view_action": view_actions[row_count]['view_action'],
-                                         "date": formatted_date,})
+                                         "date": formatted_date,
+                                         })
                 }
+                console.log(data_for_table);
                 datatable_options.data = data_for_table
                 let table = $('#'+actionLogId).DataTable(datatable_options);
             }).on('shown.bs.popover', function () {

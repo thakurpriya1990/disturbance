@@ -362,6 +362,7 @@
         <AmendmentRequest ref="amendment_request" :proposal_id="proposal.id" @refreshFromResponse="refreshFromResponse"></AmendmentRequest>
         <ProposedApproval ref="proposed_approval" :processing_status="proposal.processing_status" :proposal_id="proposal.id" :proposal_type='proposal.proposal_type' :isApprovalLevelDocument="isApprovalLevelDocument" :submitter_email="proposal.submitter_email" :applicant_email="applicant_email" @refreshFromResponse="refreshFromResponse"/>
     </div>
+    
 </template>
 <script>
 import ProposalDisturbance from '../../form.vue'
@@ -450,6 +451,7 @@ export default {
             revision_history_url: helpers.add_endpoint_json(api_endpoints.proposals,vm.$route.params.proposal_id+'/revision_history'),
             panelClickersInitialised: false,
             sendingReferral: false,
+            versionCurrentlyShowing: 0,
         }
     },
     components: {
@@ -468,7 +470,7 @@ export default {
     },
     filters: {
         formatDate: function(data){
-            return data ? moment(data).format('DD/MM/YYYY HH:mm:ss'): '';
+            return data ? moment(data).format('MMMM Do YYYY') + ' at ' + moment(data).format('h:mm:ss a'): '';
         },
     },
     props: {
@@ -480,6 +482,7 @@ export default {
 
     },
     computed: {
+        console: () => console,
         contactsURL: function(){
             return this.proposal!= null ? helpers.add_endpoint_json(api_endpoints.organisations,this.proposal.applicant.id+'/contacts') : '';
         },
@@ -531,19 +534,43 @@ export default {
         },
     },
     methods: {
-        updateProposalRevision: async function(proposal_revision) {
+        updateProposalRevision: async function(proposal_version) {
             /* This method is called when a Submission Revision Compare button is clicked (response to a signal).
               It updates the background model (this.proposal) and updates the Vue values so the DOM is updated. */
 
+            this.versionCurrentlyShowing = proposal_version
+
             $(".revision_note").remove()  // Remove any previous revisions
 
-            let url = `/api/proposal/${this.proposalId}/internal_revision_proposal.json?revision_number=${proposal_revision}`
+            let url = `/api/proposal/${this.proposalId}/internal_revision_proposal.json?revision_number=${proposal_version}`
+
             // Get the required Proposal data
             const res = await Vue.http.get(url);
+
             // Set the model data to the correct data
-            this.proposal.data = res.body;
+            this.proposal = Object.assign({}, res.body);
+
+            /*  If we are not viewing the current version (which is always 0),
+                disable any action buttons and fields.
+                The most simple way to achieve this without changing the vue template is the just
+                modify the assessor_mode variables to appropriate values.
+            */
+            if(proposal_version!=0) {
+                console.log('Viewing older version: Disabling buttons and fields')
+                this.proposal.assessor_mode.has_assessor_mode = false;
+                this.proposal.assessor_mode.assessor_can_assess = false;
+                this.proposal.lodgement_number = this.proposal.lodgement_number + `-${proposal_version} (${proposal_version} Older than current version)`
+                //this.proposalContainerStyle.backgroundColor = '#efefef';
+                document.body.style.backgroundColor = '#f5f5dc';
+            } else {
+                 //this.proposalContainerStyle.backgroundColor = '#ffffff';
+                 document.body.style.backgroundColor = '#ffffff';             
+            }
+
+            // console.log('res.body.data = ' + JSON.stringify(res.body.data));
+
             // Update the DOM values to the correct data.
-            this.$refs.proposal_disturbance.values = Object.assign({}, res.body[0]);
+            this.$refs.proposal_disturbance.values = Object.assign({}, res.body.data[0]);
         },
         locationUpdated: function(){
             console.log('in locationUpdated()');
@@ -1139,6 +1166,7 @@ export default {
             if(vm.hasAmendmentRequest){
                 vm.deficientFields();
             }
+            //vm.updateProposalRevision()
         });
     },
     created: function() {
@@ -1198,4 +1226,5 @@ export default {
     margin-bottom: 10px;
     width: 100%;
 }
+
 </style>
