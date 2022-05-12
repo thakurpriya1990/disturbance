@@ -33,6 +33,7 @@ INSTALLED_APPS += [
     'disturbance.components.approvals',
     'disturbance.components.compliances',
     'disturbance.components.das_payments',
+    'disturbance.components.history',
     'taggit',
     'rest_framework',
     'rest_framework_datatables',
