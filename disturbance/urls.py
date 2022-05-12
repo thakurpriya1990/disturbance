@@ -91,11 +91,12 @@ api_patterns = [
     #url(r'^api/reports/payment_settlements$', main_api.PaymentSettlementReportView.as_view(),name='payment-settlements-report'),
     url(r'^api/deed_poll_url', deed_poll_url, name='deed_poll_url'),
     url(r'^api/history/compare/field/(?P<app_label>[\w-]+)/(?P<model_name>[\w-]+)/(?P<pk>\d+)/(?P<newer_version>\d+)/(?P<older_version>\d+)/(?P<compare_field>[\w-]+)/$',
+            history_api.GetCompareFieldVersionsView.as_view(), name='get-compare-field-versions'),
     url(r'^api/history/compare/(?P<app_label>[\w-]+)/(?P<model_name>[\w-]+)/(?P<pk>\d+)/(?P<newer_version>\d+)/(?P<older_version>\d+)/$',
             history_api.GetCompareVersionsView.as_view(), name='get-compare-versions'),
     url(r'^api/history/(?P<app_label>[\w-]+)/(?P<component_name>[\w-]+)/(?P<model_name>[\w-]+)/(?P<serializer_name>[\w-]+)/(?P<pk>\d+)/(?P<version_number>\d+)/$',
             history_api.GetVersionView.as_view(), name='get-version'),
-]#  
+]
 
 # URL Patterns
 # You have to be careful about the order of the urls below.
