@@ -25,13 +25,4 @@ class InternalAuthorizationViewSet(viewsets.GenericViewSet): # pylint: disable=t
             return self.queryset
 
         raise PermissionDenied()
-
-class InternalAuthorizationView(views.APIView): # pylint: disable=too-many-ancestors
-    """ This ViewSet adds authorization that only allows internal users to
-        return data.
-    """
-    def get(self, request):
-        """ Deny access to the version history for external users """
-        if not is_internal(self.request):
-            raise PermissionDenied()
         
