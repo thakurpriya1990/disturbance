@@ -17,11 +17,16 @@ from rest_framework.renderers import JSONRenderer
 from reversion.models import Version
 from django.apps import apps
 
-from disturbance.components.main.views import InternalAuthorizationView
-from disturbance.components.main.views import InternalAuthorizationViewSet
-
 logger = logging.getLogger(__name__)
 
+class InternalAuthorizationView(views.APIView): # pylint: disable=too-many-ancestors
+    """ This ViewSet adds authorization that only allows internal users to
+        return data.
+    """
+    def get(self, request):
+        """ Deny access to the version history for external users """
+        if not is_internal(self.request):
+            raise PermissionDenied()
 
 class GetVersionsView(InternalAuthorizationView):
     """ A View to return all versions of a model as .json """
