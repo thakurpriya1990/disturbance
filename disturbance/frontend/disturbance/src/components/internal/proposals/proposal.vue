@@ -28,7 +28,7 @@
                                 {{ proposal.lodgement_date | formatDate}}
                             </div>
                         </div>
-                        <RevisionHistory v-if="showHistory" :revision_history_url=" revision_history_url" :proposal="proposal" @reversion_proposal="updateProposalRevision"/>
+                        <RevisionHistory v-if="showHistory" :revision_history_url="revision_history_url" :model_object="proposal" :history_context="history_context" @update_model_object="updateProposalRevision"/>
                     </div>
                 </div>
             </div>
@@ -453,6 +453,13 @@ export default {
             sendingReferral: false,
             versionCurrentlyShowing: 0,
             showHistory: false,
+            history_context: {
+                reference_id_field: 'lodgement_number',
+                app_label: 'disturbance',
+                component_name: 'proposals',
+                model_name: 'Proposal',
+                serializer_name: 'InternalProposalSerializer',
+            }
         }
     },
     components: {
