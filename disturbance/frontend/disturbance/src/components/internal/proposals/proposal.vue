@@ -28,7 +28,7 @@
                                 {{ proposal.lodgement_date | formatDate}}
                             </div>
                         </div>
-                            <RevisionHistory :revision_history_url=" revision_history_url" :proposal="proposal" @reversion_proposal="updateProposalRevision"/>
+                        <RevisionHistory v-if="showHistory" :revision_history_url=" revision_history_url" :proposal="proposal" @reversion_proposal="updateProposalRevision"/>
                     </div>
                 </div>
             </div>
@@ -452,6 +452,7 @@ export default {
             panelClickersInitialised: false,
             sendingReferral: false,
             versionCurrentlyShowing: 0,
+            showHistory: false,
         }
     },
     components: {
@@ -1175,10 +1176,14 @@ export default {
             this.original_proposal = helpers.copyObject(res.body);
             this.proposal.applicant.address = this.proposal.applicant.address != null ? this.proposal.applicant.address : {};
             this.hasAmendmentRequest=this.proposal.hasAmendmentRequest;
+            if(Object.keys(this.proposal.reversion_history).length>0){
+                this.showHistory = true;
+            }
         },
         err => {
           console.log(err);
         });
+
     },
     /*
     beforeRouteEnter: function(to, from, next) {
