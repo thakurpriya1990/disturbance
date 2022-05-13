@@ -1,18 +1,18 @@
 <template id="revision_history">
     <div class="row">
         <div class="panel-body panel-collapse">
-            <div style="white-space: nowrap;">
+            <div class="scrollable-div">
                 <div style="float: left; width: 80%;">
                     <table class="table small-table">
                         <tr>
                             <th>Lodgement</th>
                             <th style="padding-left: 10px;">Date</th>
-                            <th style="padding-left: 10px;">Action</th>
+                            <th style="padding-left: 10px; text-align:center">Actions</th>
                         </tr>
-                        <tr v-for="revision in this.lodgement_revisions_actions.slice(0,this.revisionsToShow)" :key="revision.id">
+                        <tr v-for="revision in this.lodgement_revisions_actions" :key="revision.id">
                             <td>{{ revision.id }}</td>
                             <td style="padding-left: 10px;">{{ revision.date | formatDateNoTime }}</td>
-                            <td style="padding-left: 10px;" v-on:click="getCompareProposal(revision['index'])">
+                            <td style="padding-left: 10px;" v-on:click="getCompareVersions(revision['index'])">
                                 <span v-bind:id=revision.id v-html=revision.action></span>
                             </td>
                         </tr>
@@ -23,18 +23,15 @@
                         <tr>
                             <th style="visibility: hidden;">Version</th>
                         </tr>
-                        <tr v-for="prop in this.lodgement_revisions_view_actions.slice(0,this.revisionsToShow)" :key="prop.id">
-                            <td  style="padding-left: 15px;" v-on:click="getViewProposal(prop['index'])">
-                                <span v-bind:id=prop.view_id v-html=prop.view_action></span>
+                        <tr v-for="revision in this.lodgement_revisions_view_actions" :key="revision.id">
+                            <td  style="padding-left: 15px;" v-on:click="getViewVersion(revision['index'])">
+                                <span v-bind:id=revision.view_id v-html=revision.view_action></span>
                             </td>
                         </tr>
                     </table>
                 </div>
             </div>
-            <a tabindex="2" ref="showActionBtn" class="actionBtn">Show All</a>
-            <a @click="">Show All</a>
         </div>
-        <RevisionHistoryModal />
     </div>
 </template>
 <script>
@@ -43,14 +40,17 @@ import {
     helpers
 } from '@/utils/hooks'
 import Vue from 'vue'
-import RevisionHistoryModal from './revision_history_modal.vue'
 export default {
     name: 'RevisionHistorySection',
     props: {
-        proposal: {
+        model_object: {
             type: Object,
             required: true
         },
+        history_context: {
+            type: Object,
+            required: true
+        }
     },
     data() {
         return {
@@ -60,7 +60,7 @@ export default {
             lodgement_revisions_view_actions: [],
             allRevisionsTableRows: '',
             popoversInitialised: false,
-            revisionsToShow: 5,
+            revisionsToShowInPanel: 5,
             versionCurrentlyShowing: 0,
             actionsDtOptions: {
                 language: {
@@ -82,11 +82,12 @@ export default {
                     { data: 'action' },
                     { data: 'view_action' },
                 ],
-                order: [],
+                order: []
             },
         }
     },
     components:{
+
     },
     filters: {
         formatDateNoTime: function(data){
@@ -94,25 +95,18 @@ export default {
         },
     },
     watch:{
+
     },
     computed: {
         console: () => console,
-        getRevisionDiffsUrl: function() {
-            let url = ''
-            url = helpers.add_endpoint_join('/api/proposal/',
-                                            this.proposal.id +
-                                            '/get_revision_diffs/')
-            return url;
-        },
         createLodgementRevisionTable: function() {
-            /* This creates a table of versions for the current Proposal. Each entry has the Proposal ID along with the revision
+            /* This creates a table of versions for the current model object. Each entry has the model object ID along with the revision
                 number and date of submission. An action is provided for each entry to allow comparison between versions. 
                 &#x1f441; is eyeball. Viewing doesn't fit very well. */
             let index = 0
-            for (let prop in this.proposal.reversion_history) {
-                let action_label = '<a style="cursor:pointer;" v-on:click="getViewProposal(${index})>Compare</a>'
+            for (let prop in this.model_object.reversion_history) {
+                let action_label = '<a style="cursor:pointer;">Compare</a>'
                 let view_action_label = `<a style="cursor:pointer;">View</a>`
-                console.log(view_action_label);
                 if (index === 0) { 
                     view_action_label = '<div style="pointer-events: none;">&#x1f441;</div>'
                     action_label = '<div style="visibility: hidden; pointer-events: none;">View</div>'
@@ -120,7 +114,7 @@ export default {
                 this.lodgement_revisions_actions.push({"index": index,
                                                        "id": prop,
                                                        "action": action_label,
-                                                       "date": this.proposal.reversion_history[prop]["date"],
+                                                       "date": this.model_object.reversion_history[prop]["date"],
                 })
                 this.lodgement_revisions_view_actions.push({"index": index,
                                                             "view_id": "v_"+prop,
@@ -131,12 +125,12 @@ export default {
         },
     },
     methods:{
-        getCompareProposal: async function (compare_version) {
+        getCompareVersions: async function (compare_version) {
             /* This handles the user clicks. Change the labels of entries and add all selected 
                revision differences to the DOM. */
 
             // Always Compare against the most recent version. 
-            this.getViewProposal(0)
+            this.getViewVersion(0)
 
 
             let clicked_revision = this.lodgement_revisions_actions[compare_version]
@@ -150,14 +144,24 @@ export default {
             }
 
             // Now post to the API to get the differences between latest version and this one.
-            const revisions_length = Object.keys(this.proposal.reversion_history).length
+            const revisions_length = Object.keys(this.model_object.reversion_history).length
             let revision_index = this.lodgement_revisions_actions.length - compare_version
 
             console.log('this.versionCurrentlyShowing = ' + this.versionCurrentlyShowing)
             console.log('compare_version = ' + compare_version)
+            
+            let url = '/api/history/compare/field/' + 
+            this.history_context.app_label + '/' +
+            this.history_context.model_name + '/' +
+            this.model_object.id + '/' +
+            this.versionCurrentlyShowing + '/' +
+            compare_version + '/' +
+            'data/' +
+            '?differences_only=True';
 
-            let url = `/api/proposal/${this.proposal.id}/get_revision_diffs.json?newer_version=${this.versionCurrentlyShowing}&older_version=${compare_version}`
             const diffs = await Vue.http.get(url);
+
+            console.log(url);
 
             // Remove any previous revisions
             $(".revision_note").remove()
@@ -194,7 +198,7 @@ export default {
                 }
             }
         },
-        getViewProposal: async function (revision) {
+        getViewVersion: async function (revision) {
             /* Handle the user clicks. Change the labels of entries and ask the page to be redrawn with 
                the selected revision. */
             
@@ -212,16 +216,12 @@ export default {
                 this.lodgement_revisions_actions[0].action = '<div style="visibility: hidden;">&#x1f441;</div>'
                 this.lodgement_revisions_actions[index].action = '<a style="cursor:pointer;">Compare</a>'
             }
-            // Update the Proposal Page title to show the revision.
-            if (clicked_revision.view_id.split('-')[1] == this.lodgement_revisions_view_actions.length) {                
-                $( "#proposal_title" ).text("Proposal: " + clicked_revision.view_id.split('-')[0].replace('v_', ''))
-            }
-            else {
-                $( "#proposal_title" ).text("Proposal: " + clicked_revision.view_id.replace('v_', ''))
-            }
 
-            await this.$emit("reversion_proposal", revision)
-
+            await this.$emit("update_model_object", revision)
+        },
+        showRevisionHistory: function(){
+            let vm = this;
+            vm.$refs.revision_history.isModalOpen = true;
         },
         initialiseRevisionHistoryPopover: function(vm_uid, ref, datatable_options, actions, view_actions){
             let vm = this;
@@ -266,7 +266,6 @@ export default {
                                          "date": formatted_date,
                                          })
                 }
-                console.log(data_for_table);
                 datatable_options.data = data_for_table
                 let table = $('#'+actionLogId).DataTable(datatable_options);
             }).on('shown.bs.popover', function () {
@@ -308,6 +307,7 @@ export default {
         this.$nextTick(() => {
             vm.initialisePopovers();
         });
+        $('test-table').DataTable();
     }
 }
 </script>
@@ -318,4 +318,26 @@ export default {
 .actionBtn {
     cursor: pointer;
 }
+
+.scrollable-div {
+    height:100px;
+    white-space: nowrap;
+    overflow-y: scroll;
+    font-size:13px;
+}
+
+.scrollable-div::-webkit-scrollbar {
+    width: 12px;
+}
+
+.scrollable-div::-webkit-scrollbar-track {
+    -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.3); 
+    border-radius: 10px;
+}
+
+.scrollable-div::-webkit-scrollbar-thumb {
+    border-radius: 10px;
+    -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.5); 
+}
+
 </style>
