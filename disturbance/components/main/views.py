@@ -1,7 +1,4 @@
 import logging
-from rest_framework import viewsets
-from rest_framework import views
-from rest_framework.exceptions import PermissionDenied
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.conf import settings
