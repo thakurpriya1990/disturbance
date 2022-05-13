@@ -6,7 +6,6 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.conf import settings
 
-from disturbance.helpers import is_customer, is_internal
 from disturbance.components.main.models import ApiaryGlobalSettings
 
 logger = logging.getLogger(__name__)
