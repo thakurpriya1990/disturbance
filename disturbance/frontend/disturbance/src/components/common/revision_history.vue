@@ -147,8 +147,7 @@ export default {
             const revisions_length = Object.keys(this.model_object.reversion_history).length
             let revision_index = this.lodgement_revisions_actions.length - compare_version
 
-            console.log('this.versionCurrentlyShowing = ' + this.versionCurrentlyShowing)
-            console.log('compare_version = ' + compare_version)
+            //console.log('compare_version = ' + compare_version)
             
             let url = '/api/history/compare/field/' + 
             this.history_context.app_label + '/' +
