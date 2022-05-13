@@ -1,4 +1,3 @@
-from ledger.accounts.models import EmailUser,Address
 from django.utils import timezone
 from disturbance import settings
 from disturbance.components.approvals.models import (
@@ -92,7 +91,7 @@ class ApprovalSerializerForLicenceDoc(serializers.ModelSerializer):
         return approval.relevant_applicant_name
 
     def get_authority_holder_address(self, approval):
-        return approval.relevant_applicant_address.summary
+        return approval.relevant_applicant_address.summary if approval.relevant_applicant_address else '(Address not found)'
 
     def get_trading_name(self, approval):
         #return approval.applicant.trading_name if approval.applicant else ''

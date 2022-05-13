@@ -36,6 +36,7 @@ class ApiaryLicenceReader():
     reader=ApiaryLicenceReader('disturbance/utils/csv/apiary_migration_file_01Sep20211-TEST.csv')
     reader.run_migration()
 
+    ------------------------------------------------------------------------------------------------
     Delete previously migrated proposals/licences:
     for idx, i in enumerate(Proposal.objects.filter(migrated=True)):
         print(idx)
@@ -50,6 +51,20 @@ class ApiaryLicenceReader():
         #i.delete()
 
     Proposal.objects.filter(migrated=True).delete()
+    
+    ------------------------------------------------------------------------------------------------
+    import pandas as pd
+    df=pd.read_excel('/home/jawaidm/Downloads/apiary_migration_file_01Sep2021 - COMPLETED DATA - 26 April 2022 - NOT TO BE REISSUED DATA CHANGE.xlsx')
+
+    df['Start Date']=pd.to_datetime(df['Start Date'], errors='coerce')
+    df['Expiry Date']=pd.to_datetime(df['Expiry Date'], errors='coerce')
+    df['Issue Date']=pd.to_datetime(df['Issue Date'], errors='coerce')
+    df['approval_cpc_date']=pd.to_datetime(df['approval_cpc_date'], errors='coerce')
+    df['approval_minister_date']=pd.to_datetime(df['approval_minister_date'], errors='coerce')
+
+    df.iloc[153]
+    df.iloc[1]
+    df.to_csv('disturbance/utils/csv/apiary_migration_file_26Apr2022_v2.csv', sep=':', index=False)
     '''
     def __init__(self, filename):
         self.filename = filename
@@ -77,7 +92,7 @@ class ApiaryLicenceReader():
                     'longitude': row['longitude'],
                     'trading_name': row['trading_name'],
                     'licencee': row['licencee'],
-                    'abn': row['abn'],
+                    'abn': row['abn'].translate(string.whitespace).replace(' ',''),
                     'first_name': row['first_name'] if 'first_name' in row else row['licencee'],
                     'last_name': row['last_name'] if 'last_name' in row else 'No Last Name',
                     'address_line1': row['address_line1'],
@@ -86,7 +101,7 @@ class ApiaryLicenceReader():
                     'suburb': row['suburb'],
                     'state': row['state'],
                     'country': row['country'],
-                    'postcode': row['postcode'],
+                    'postcode': str(row['postcode']),
                     'phone_number1': row['phone_number1'],
                     'phone_number2': row['phone_number2'],
                     'mobile_number': row['mobile_number'],
@@ -145,8 +160,8 @@ class ApiaryLicenceReader():
                     #raise ImportException(row)
 
         except Exception as e:
-            import ipdb; ipdb.set_trace()
             print(e)
+            import ipdb; ipdb.set_trace()
 
     def run_migration(self):
         with transaction.atomic():
@@ -154,11 +169,18 @@ class ApiaryLicenceReader():
                 #import ipdb; ipdb.set_trace()
                 self._write_to_migrated_apiary_licence_model()
                 self._create_licences()
-                self._create_licence_pdf()
+                #self._create_licence_pdf()
                 #import denied sites
-            except:
+            except Exception as e:
+                print(e)
                 import ipdb; ipdb.set_trace()
-                raise Exception
+
+        try:
+            self._create_licence_pdf()
+        except Exception as e:
+            print(e)
+            import ipdb; ipdb.set_trace()
+
 
     def _verify_data(self, verify=False):
         lines=[]
@@ -221,7 +243,7 @@ class ApiaryLicenceReader():
                 123 Something Road, Perth, WA, 6100, Import Test Org 3, 615503, DDD_03, john, Doe_1, john.doe_1@dbca.wa.gov.au, 08 555 5555
 
                 File No:Licence No:Expiry Date:Term:Trading Name:Licensee:ABN:Title:First Name:Surname:Other Contact:Address 1:Address 2:Address 3:Suburb:State:Country:Post:Telephone1:Telephone2:Mobile:Insurance Expiry:Survey Cert:Name:SPV:ATAP Expiry:Eco Cert Expiry:Vessels:Vehicles:Email1:Email2:Email3:Email4
-                2018/001899-1:HQ70324:28-Feb-21:3 YEAR:4 U We Do:4 U We Do Pty Ltd::MR:Petrus:Grobler::Po Box 2483:::ESPERANCE:WA:AUSTRALIA:6450:458021841:::23-Jun-18::::30-Jun-18::0:7:groblerp@gmail.com:::
+                2018/0012345-1:HQ12345:28-Feb-21:3 YEAR:MyCompany:MyCompany Pty Ltd::MR:Joe:Any::Po Box 1234:::ESPERANCE:WA:AUSTRALIA:6450:458021841:::23-Jun-18::::30-Jun-18::0:7:any@gmail.com:::
             To test:
                 from commercialoperator.components.proposals.models import create_organisation_data
                 create_migration_data('commercialoperator/utils/csv/orgs.csv')
@@ -233,26 +255,42 @@ class ApiaryLicenceReader():
                 error_lines=[]
                 for idx, row in enumerate(reader):
                     #import ipdb; ipdb.set_trace()
+                    if row[5].replace(' ','')=='-30.28512637300':
+                        import ipdb; ipdb.set_trace()
+
+                    #if idx==3:
+                    #    break
+                        
                     try:
                         #if not row[0].startswith('#') and row[4].strip().lower() == 'current':
-                        if not row[0].startswith('#') and not row[7].strip() == 'AJ & DE Dowsett':
+                        if not row[0].startswith('#') or not row[7].strip() == 'AJ & DE Dowsett' or not row[9].replace(' ','') == '':
+                            if row[4].startswith('Vacant') and row[9].strip() == '':
+                                # Vacant, with no ABN
+                                continue
+
                             data={}
-                            data.update({'permit_number': row[0].strip() if row[0].strip()!='' else None})
+                            data.update({'permit_number': int(row[0].strip().split('.')[0]) if row[0].strip()!='' else None})
                             start_date_raw = row[1].strip()
                             if start_date_raw:
-                                start_date = datetime.datetime.strptime(start_date_raw, '%d/%m/%Y').date()
+                                #start_date = datetime.datetime.strptime(start_date_raw, '%d/%m/%Y').date()
+                                start_date = datetime.datetime.strptime(start_date_raw, '%Y-%m-%d').date()
+                                #start_date = datetime.datetime.strptime(start_date_raw, '%Y-%m-%d %H:%M:%S').date()
                                 data.update({'start_date': start_date})
                             else:
-                                continue
+                                start_date = datetime.date.today()
+                                data.update({'start_date': datetime.date.today()})
+                                #continue
                             expiry_date_raw = row[2].strip()
                             if expiry_date_raw:
-                                expiry_date = datetime.datetime.strptime(row[2].strip(), '%d/%m/%Y').date()
+                                expiry_date = datetime.datetime.strptime(row[2].strip(), '%Y-%m-%d').date()
+                                #expiry_date = datetime.datetime.strptime(row[2].strip(), '%Y-%m-%d %H:%M:%S').date()
                                 data.update({'expiry_date': expiry_date})
                             else:
                                 data.update({'expiry_date': datetime.date.today()})
 
                             try:
-                                issue_date = datetime.datetime.strptime(row[3].strip(), '%d/%m/%Y').date()
+                                issue_date = datetime.datetime.strptime(row[3].strip(), '%Y-%m-%d').date()
+                                #issue_date = datetime.datetime.strptime(row[3].strip(), '%Y-%m-%d %H:%M:%S').date()
                                 data.update({'issue_date': issue_date})
                             # set issue_date to start_date
                             except:
@@ -273,7 +311,7 @@ class ApiaryLicenceReader():
                             #data.update({'term': row[3].strip()})
 
 
-                            data.update({'abn': row[9].translate(string.whitespace).replace(' ','')})
+                            data.update({'abn': str(row[9].translate(string.whitespace).replace(' ',''))})
                             data.update({'trading_name': row[7].strip()})
                             if row[8].strip() != '':
                                 data.update({'licencee': row[8].strip()})
@@ -304,10 +342,14 @@ class ApiaryLicenceReader():
                             #if country == 'A':
                                 #country = 'Australia'
                             country_str = 'Australia' if country_raw.lower().startswith('a') else country_raw
-                            country=Country.objects.get(printable_name__icontains=country_str)
+                            try:
+                                country=Country.objects.get(printable_name__icontains=country_str)
+                            except Exception as e:
+                                country=Country.objects.get(iso_3166_1_a2='AU')
+
                             data.update({'country': country.iso_3166_1_a2}) # 2 char 'AU'
                             if row[19].translate(string.whitespace) != '':
-                                data.update({'postcode': row[19].translate(string.whitespace)})
+                                data.update({'postcode': str(row[19].translate(string.whitespace).split('.')[0])})
                             else:
                                 data.update({'postcode': '6000'})
                             data.update({'phone_number1': row[20].translate(b' -()')})
@@ -324,10 +366,10 @@ class ApiaryLicenceReader():
 
                             # batch_no:approval_cpc_date:approval_minister_date:map_ref:forest_block:cog:roadtrack:zone:catchment:dra_permit
                             data.update({'batch_no': row[25].strip()})
-                            approval_cpc_date_raw = row[26].strip()
+                            approval_cpc_date_raw = row[26].strip() if len(row)>26 else ''
                             try:
                                 if approval_cpc_date_raw:
-                                    approval_cpc_date = datetime.datetime.strptime(approval_cpc_date_raw, '%d/%m/%Y').date()
+                                    approval_cpc_date = datetime.datetime.strptime(approval_cpc_date_raw, '%Y-%m-%d').date()
                                     data.update({'approval_cpc_date': approval_cpc_date})
                                 else:
                                     data.update({'approval_cpc_date': None})
@@ -337,7 +379,7 @@ class ApiaryLicenceReader():
                                 import ipdb; ipdb.set_trace()
 
                             if approval_minister_date_raw:
-                                approval_minister_date = datetime.datetime.strptime(approval_minister_date_raw, '%d/%m/%Y').date()
+                                approval_minister_date = datetime.datetime.strptime(approval_minister_date_raw, '%Y-%m-%d').date()
                                 data.update({'approval_minister_date': approval_minister_date})
                             else:
                                 data.update({'approval_minister_date': None})
@@ -366,8 +408,9 @@ class ApiaryLicenceReader():
                             elif data.get('abn')=='':
                                 data.update({'licencee_type': 'individual'})
                             else:
-                                #import ipdb; ipdb.set_trace()
-                                raise ImportException("Entry is not a valid organisation or individual licence record")
+                                print("Entry is not a valid organisation or individual licence record")
+                                import ipdb; ipdb.set_trace()
+                                #raise ImportException("Entry is not a valid organisation or individual licence record")
 
                             #if data['abn'] != '':
                             lines.append(data) # must be an org
@@ -379,18 +422,18 @@ class ApiaryLicenceReader():
                         print(e)
                         print(row)
                         error_lines.append(row)
-                        print
+                        print 
 
         except Exception as e:
-            import ipdb; ipdb.set_trace()
             #logger.info('{}'.format(e))
-            if data:
-                logger.error('{}'.format(e))
-                logger.error('Main {}'.format(data))
-                #print('Main {}'.format(data))
-            else:
-                print(e)
-            raise
+#            if data:
+#                logger.error('{}'.format(e))
+#                logger.error('Main {}'.format(data))
+#                #print('Main {}'.format(data))
+#            else:
+#                print(e)
+            print(e)
+            import ipdb; ipdb.set_trace()
 
         print(len(error_lines))
         return lines
@@ -418,6 +461,7 @@ class ApiaryLicenceReader():
 
     def _create_organisation(self, data, count, debug=False):
         #import ipdb; ipdb.set_trace()
+        #created_lo = False
         if debug:
             import ipdb; ipdb.set_trace()
         try:
@@ -443,17 +487,36 @@ class ApiaryLicenceReader():
         lo=ledger_organisation.objects.filter(abn=data['abn'])
         if lo.count() > 0:
             lo = lo[0]
+
+            if not lo.postal_address:
+                oa, created = OrganisationAddress.objects.get_or_create(
+                    line1=data['address_line1'],
+                    locality=data['suburb'],
+                    postcode=str(data['postcode']) if data['postcode'] else '0000',
+                    defaults={
+                        'line2': data['address_line2'],
+                        'line3': data['address_line3'],
+                        'state': data['state'],
+                        'country': country.code,
+                    }
+                )
+                lo.postal_address=oa
+                lo.save()
+
         else:
             try:
                 #print 'Country: {}'.format(data['country'])
                 #country_str = 'Australia' if country_raw.lower().startswith('a') else country_raw
-                country=Country.objects.get(iso_3166_1_a2=data.get('country'))
+                try:
+                    country=Country.objects.get(iso_3166_1_a2=data.get('country'))
+                except Exception as e:
+                    country=Country.objects.get(iso_3166_1_a2='AU')
 
                 #country=Country.objects.get(printable_name__icontains=data['country'])
                 oa, created = OrganisationAddress.objects.get_or_create(
                     line1=data['address_line1'],
                     locality=data['suburb'],
-                    postcode=data['postcode'] if data['postcode'] else '0000',
+                    postcode=str(data['postcode']) if data['postcode'] else '0000',
                     defaults={
                         'line2': data['address_line2'],
                         'line3': data['address_line3'],
@@ -465,25 +528,28 @@ class ApiaryLicenceReader():
                 oa = OrganisationAddress.objects.filter(
                     line1=data['address_line1'],
                     locality=data['suburb'],
-                    postcode=data['postcode'] if data['postcode'] else '0000',
+                    postcode=str(data['postcode']) if data['postcode'] else '0000',
                     line2=data['address_line2'],
                     line3=data['address_line3'],
                     state=data['state'],
                     country=country.code
                 ).first()
 
-            except Exception:
+            except Exception as e:
                 print('Country 2: {}'.format(data['country']))
-                raise
+                print(e)
 
-                lo, created_lo = ledger_organisation.objects.create(
-                    abn=data['abn'],
-                    name=data['licencee'],
-                    postal_address=oa,
-                    billing_address=oa,
-                    trading_name=data['trading_name'],
-                )
-                org, created_org = Organisation.objects.get_or_create(organisation=lo)
+                try:
+                    lo, created_lo = ledger_organisation.objects.create(
+                        abn=data['abn'],
+                        name=data['licencee'],
+                        postal_address=oa,
+                        billing_address=oa,
+                        trading_name=data['trading_name'],
+                    )
+                    org, created_org = Organisation.objects.get_or_create(organisation=lo)
+                except Exception as e:
+                    import ipdb; ipdb.set_trace()
 
         abn_existing = []
         abn_new = []
@@ -507,7 +573,11 @@ class ApiaryLicenceReader():
             #print 'Country: {}'.format(data['country'])
             #country_str = 'Australia' if data['country'].lower().startswith('a') else data['country']
             #country=Country.objects.get(printable_name__icontains=country_str)
-            country=Country.objects.get(iso_3166_1_a2=data.get('country'))
+            try:
+                country=Country.objects.get(iso_3166_1_a2=data.get('country'))
+            except Exceptioon as e:
+                country=Country.objects.get(iso_3166_1_a2='AU')
+
             oa, created = OrganisationAddress.objects.get_or_create(
                 line1=data['address_line1'],
                 locality=data['suburb'],
@@ -532,8 +602,8 @@ class ApiaryLicenceReader():
 
         except Exception as e:
             print('Country 2: {}'.format(data['country']))
+            print(e)
             import ipdb; ipdb.set_trace()
-            raise
 
         try:
             #import ipdb; ipdb.set_trace()
@@ -542,7 +612,7 @@ class ApiaryLicenceReader():
             try:
                 lo = ledger_organisation.objects.get(abn=data['abn'])
             except:
-                lo, created = ledger_organisation.objects.get_or_create(
+                lo, created_lo = ledger_organisation.objects.get_or_create(
                     abn=data['abn'],
                     defaults={
                         'name': data['licencee'],
@@ -565,57 +635,64 @@ class ApiaryLicenceReader():
 
         except Exception as e:
             print('Error creating Organisation: {} - {}'.format(data['licencee'], data['abn']))
-            raise
+            print(e)
+            import ipdb; ipdb.set_trace()
 
         try:
             org, created = Organisation.objects.get_or_create(organisation=lo)
         except Exception as e:
             print('Error: Org: {}'.format(org))
-            #raise
-
-        try:
-            #Organisation.objects.get(id=12).delegates.filter().delete()
-            #import ipdb; ipdb.set_trace()
-            #user_delegate_ids = list(UserDelegation.objects.filter(organisation=org)[1:].values_list('id', flat=True))
-            #if len(user_delegate_ids)>0:
-            #    UserDelegation.objects.filter(id__in=user_delegate_ids).delete()
-
-            UserDelegation.objects.filter(organisation=org).delete()
-            delegate, created = UserDelegation.objects.get_or_create(organisation=org, user=user)
-        except Exception as e:
+            print(e)
             import ipdb; ipdb.set_trace()
-            print('Delegate Creation Failed: {}'.format(user))
-            #raise
 
-        try:
-            oc, created = OrganisationContact.objects.get_or_create(
-                organisation=org,
-                #email=data['email1'],
-                email=delegate.user.email,
-                defaults={
-                    'first_name': user.first_name,
-                    'last_name': user.last_name,
-                    'phone_number': user.phone_number,
-                    'mobile_number': user.mobile_number if data['mobile_number'] else '',
-                    'user_status': 'active',
-                    'user_role': 'organisation_admin',
-                    'is_admin': True
-                }
-            )
-            if oc and 'ledger.dpaw.wa.gov.au' in oc.email:
-                oc.email = delegate.user.email
-                oc.save()
 
-            if oc and not created:
-                oc.user_role ='organisation_admin'
-                oc.is_admin = True
-                oc.user_status ='active'
-                oc.save()
-
-        except Exception as e:
+        #if data['abn']!='38052249024':
+        print(f'Ledger_Org: {lo}, {org.delegates.all().count()}')
+        if org.delegates.all().count()==0:
             #import ipdb; ipdb.set_trace()
-            print('Org Contact: {}'.format(user))
-            #raise
+            try:
+                #Organisation.objects.get(id=12).delegates.filter().delete()
+                #import ipdb; ipdb.set_trace()
+                #user_delegate_ids = list(UserDelegation.objects.filter(organisation=org)[1:].values_list('id', flat=True))
+                #if len(user_delegate_ids)>0:
+                #    UserDelegation.objects.filter(id__in=user_delegate_ids).delete()
+
+                #UserDelegation.objects.filter(organisation=org).delete()
+                delegate, created = UserDelegation.objects.get_or_create(organisation=org, user=user)
+            except Exception as e:
+                print('Delegate Creation Failed: {}'.format(user))
+                import ipdb; ipdb.set_trace()
+
+            try:
+                oc, created = OrganisationContact.objects.get_or_create(
+                    organisation=org,
+                    #email=data['email1'],
+                    email=delegate.user.email,
+                    defaults={
+                        'first_name': user.first_name,
+                        'last_name': user.last_name,
+                        'phone_number': user.phone_number,
+                        'mobile_number': user.mobile_number if data['mobile_number'] else '',
+                        'user_status': 'active',
+                        'user_role': 'organisation_admin',
+                        'is_admin': True
+                    }
+                )
+                if oc and 'ledger.dpaw.wa.gov.au' in oc.email:
+                    oc.email = delegate.user.email
+                    oc.save()
+
+                if oc and not created:
+                    oc.user_role ='organisation_admin'
+                    oc.is_admin = True
+                    oc.user_status ='active'
+                    oc.save()
+
+            except Exception as e:
+                print('Org Contact: {}'.format(user))
+                print(e)
+                import ipdb; ipdb.set_trace()
+                #raise
 
         #return abn_new, abn_existing
         return org, user
@@ -773,7 +850,7 @@ class ApiaryLicenceReader():
 
     def _create_licence_pdf(self):
         approvals_migrated = Approval.objects.filter(current_proposal__application_type__name=ApplicationType.APIARY, migrated=True)
-        print('Total Approvals: {}'.format(approvals_migrated))
+        print('Total Approvals: {} - {}'.format(approvals_migrated.count(), approvals_migrated))
         for idx, a in enumerate(approvals_migrated):
             a.generate_doc(a.current_proposal.submitter)
             print('{}, Created PDF for Approval {}'.format(idx, a))
