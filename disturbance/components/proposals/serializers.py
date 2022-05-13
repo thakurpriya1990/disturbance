@@ -447,7 +447,8 @@ class InternalProposalSerializer(BaseProposalSerializer):
         from reversion.models import Version
 
         # Select all versions in reverse order (they are in reverse order by default)
-        versions = Version.objects.get_for_object(obj).select_related('revision').filter(revision__comment__contains='processing_status')
+        versions = Version.objects.get_for_object(obj).select_related('revision')\
+            .filter(revision__comment__contains='processing_status').get_unique()
 
         # Build the dictionary of reversions
         version_dictionary = {}
