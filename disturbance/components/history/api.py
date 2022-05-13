@@ -1,7 +1,7 @@
-""" This module provides generic end points for using with 
+""" This module provides generic end points for using with
     models that are registered with django reversion.
 
-    This api will only if the django apps are in 
+    Some methods will only work if the django apps are in
     the 'components' directory
 """
 import sys
@@ -10,12 +10,10 @@ import datetime
 import json
 from ast import literal_eval
 from deepdiff import DeepDiff
-from rest_framework.decorators import detail_route
-from rest_framework import serializers
-from rest_framework.response import Response
-from rest_framework.renderers import JSONRenderer
-from reversion.models import Version
 from django.apps import apps
+from rest_framework.response import Response
+from reversion.models import Version
+from disturbance.helpers import is_internal
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +56,8 @@ class GetVersionsView(InternalAuthorizationView):
             versions = Version.objects.get_for_object(instance).select_related('revision')\
             .filter(revision__comment__contains=revision_comment_filter).get_unique()
         else:
-            versions = Version.objects.get_for_object(instance).select_related('revision').get_unique()
+            versions = Version.objects.get_for_object(instance).select_related('revision')\
+            .get_unique()
 
         logger.info('versions sql = %s', versions)
 
