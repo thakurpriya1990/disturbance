@@ -15,14 +15,4 @@ logger = logging.getLogger(__name__)
 def deed_poll_url(request):
     deed_poll_url = ApiaryGlobalSettings.objects.get(key=ApiaryGlobalSettings.KEY_PRINT_DEED_POLL_URL)
     return Response(deed_poll_url.value)
-
-class InternalAuthorizationViewSet(viewsets.GenericViewSet): # pylint: disable=too-many-ancestors
-    """ This ViewSet adds authorization that only allows internal users to
-        return data.
-    """
-    def get_queryset(self):
-        if is_internal(self.request):
-            return self.queryset
-
-        raise PermissionDenied()
-        
+ 
