@@ -8,6 +8,7 @@ import json
 import datetime
 import pytz
 import requests
+import re
 
 from dateutil.relativedelta import relativedelta
 from django.contrib.gis.db.models.fields import PointField
@@ -447,8 +448,11 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
       
     
     def save(self, *args, **kwargs):
-        # Store the original processing status before it is overwritten by save()
+        # Store the original values of fields we want to keep track of in 
+        # django reversion before they are overwritten by super() below
         original_processing_status = self._original_state['processing_status']
+        original_assessor_data = self._original_state['assessor_data']
+        original_comment_data = self._original_state['comment_data']
 
         # Populate self with the new field values
         super(Proposal, self).save(*args, **kwargs)
@@ -464,6 +468,12 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         # so we have a way of filtering based on the status changing
         if self.processing_status != original_processing_status:
             self.save(version_comment=f'processing_status: {self.processing_status}')
+        elif self.assessor_data != original_assessor_data:
+            # Although the status hasn't changed we add the text 'processing_status'
+            # So we can filter based on it later (for both assessor_data nd comment_data)
+            self.save(version_comment='assessor_data: Has changed - tagging with processing_status')
+        elif self.comment_data != original_comment_data:
+            self.save(version_comment='comment_data: Has changed - tagging with processing_status')
 
     @property
     def fee_paid(self):
@@ -842,6 +852,68 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         logger.info(f'\n\nformatted_differences = \n\n {formatted_differences}')
 
         return literal_eval(formatted_differences)
+
+
+    def get_version_differences_comment_data(self, newer_version: int, older_version: int):
+        """ Returns the differences between the comment data oftwo versions
+
+        Due to the structure of the 'comment_data' field being different to the 
+        structure of the 'data' field, we need some custom logic to return the 
+        section identifier.
+
+        This will make the compare function on the front end much easier as
+        we can just look for the id of the appropriate field to append the
+        revision note.
+
+        """
+
+        # Fail if either argument is negative
+        if(newer_version<0 or older_version<0):
+            raise Exception('The newer_version and older_version arguements must be 0 or higher')
+
+        # Refuse to compare if the newer version is not actually newer
+        if(newer_version>=older_version):
+            raise Exception('The newer_version arguement must be smaller than the older_version argument')
+
+        versions = list(Version.objects.get_for_object(self).select_related('revision')\
+            .filter(revision__comment__contains='processing_status').get_unique())
+
+        newer_version_data = versions[newer_version].field_dict['comment_data']
+        older_version_data = versions[older_version].field_dict['comment_data']
+
+        logger.info(f'\n\nnewer_version_data = {newer_version_data}')
+        logger.info(f'\n\nolder_version_data = {older_version_data}')
+
+        differences = DeepDiff(newer_version_data, older_version_data, ignore_order=True)
+
+        logger.info(f'\n\ndifferences = {type(differences)}')
+
+        json_differences = json.loads(differences.to_json())
+
+        logger.info(f'\n\json_differences = {type(json_differences)}')
+        values_changed = json_differences['values_changed']
+        logger.info(f'\n\nvalues_changed = {type(values_changed)}')
+
+        differences_list = []
+
+        for key in values_changed:
+            logger.info('\n\n key ' + str(key))
+            logger.info('\n\n value ' + str(values_changed[key]['new_value']))
+            if(values_changed[key]['new_value']):
+                regex = re.search('(?<=\[).+?(?=\])', str(key))
+                root_level = regex.group(0)
+                root_level_name = older_version_data[int(root_level)]['name']
+                differences_list.append({root_level_name:values_changed[key]['new_value']})             
+
+        logger.info('\n\n differences_list ' + str(differences_list))
+
+        return differences_list
+
+    def get_comment_data_id_from_root_level(root_level, comment_data):
+        """ Return a section id from comment data provided a root level
+            and the full comment_data field.
+        """
+        pass
 
     def get_reversion_history(self):
         """
