@@ -129,6 +129,14 @@ export default {
             /* This handles the user clicks. Change the labels of entries and add all selected 
                revision differences to the DOM. */
 
+            /* todo
+
+            For this revision_history.vue to be fully generic, the compare versions
+            function should emit to the Proposal.vue and the comparison functions should be
+            implemented there instead.
+
+            */
+
             // Always Compare against the most recent version. 
             this.getViewVersion(0)
 
@@ -165,9 +173,11 @@ export default {
             // Remove any previous revisions
             $(".revision_note").remove()
 
+            
             // Find each section that has a revision and append it to that section title.
             for (let entry in diffs.data) {
                 for (let k in diffs.data[entry]) {
+                    console.log('k = ' + k);
                     const revision_text = diffs.data[entry][k]
 
                     if (revision_text == '') {continue;}
@@ -191,11 +201,67 @@ export default {
                         const replacement_html = "<input disabled class='revision_note' style='width: 100%; margin-top: 3px; padding-top: 0px; color: red; border: 1px solid red;' value='" + 
                                                  revision_text + 
                                                  "'>"
-
+                        console.log('parent = ' + JSON.stringify($("#id_" + k ).parent()));
                         $("#id_" + k ).parent().append(replacement_html)
                     }
                 }
             }
+
+            /*
+            let comment_data_url = '/api/history/compare/field/' + 
+            this.history_context.app_label + '/' +
+            this.history_context.model_name + '/' +
+            this.model_object.id + '/' +
+            this.versionCurrentlyShowing + '/' +
+            compare_version + '/' +
+            //'data/' +
+            'comment_data/' +
+            '?differences_only=True';*/
+
+            let comment_data_url = `/api/proposal/1933/version_differences_comment_data.json?newer_version=${this.versionCurrentlyShowing}&older_version=${compare_version}`
+
+            console.log('comment_data_url = ' + comment_data_url)
+
+            const comment_data_diffs = await Vue.http.get(comment_data_url);
+
+            console.log('comment_data_diffs.data = ' + comment_data_diffs.data)
+
+            // Find each section that has a revision and append it to that section title.
+            for (let entry in comment_data_diffs.data) {
+                for (let k in comment_data_diffs.data[entry]) {
+                    const revision_text = comment_data_diffs.data[entry][k]
+
+                    if (revision_text == '') {continue;}
+                    //const replacement = $("#id_" + k ).parent().find('input')
+                    const replacement = $('[name="' + k + '-comment-field-Assessor"]')
+                    console.log('selector = ', '[name="' + k + '-comment-field-Assesor"]')
+                    console.log('replacement = ', replacement)
+
+                    if (replacement.attr('type') == "text") {
+                        const replacement_html = "<input disabled class='revision_note' style='width: 100%; margin-top: 3px; color: red; border: 1px solid red;' value='" + 
+                                                 revision_text + 
+                                                 "'><br class='revision_note'>"
+                        replacement.after(replacement_html)
+                    }
+                    else if (replacement.attr('type') == "radio") {
+                        const replacement_html = "<input disabled class='revision_note' type='radio' id='radio' checked>" + 
+                                                 "<label class='revision_note' for='radio'" +
+                                                 "style='margin-top: -200px; text-transform: capitalize; color: red; padding-left: 10px; padding-bottom: 20px;'>" + 
+                                                 revision_text +
+                                                 "</label><br class='revision_note'>"
+                        $("#id_" + k ).parent().after(replacement_html)
+                    }
+                    else {
+                        const replacement_html = "<input disabled class='revision_note' style='width: 100%; margin-top: 3px; padding-top: 0px; color: red; border: 1px solid red;' value='" + 
+                                                 revision_text + 
+                                                 "'>"
+                        //console.log('parent = ' + JSON.stringify($("#id_" + k ).parent()));
+                        console.log('replacement.siblings() = ', replacement.siblings())
+                        console.log('replacement_html = ' + replacement_html)
+                        replacement.after(replacement_html)
+                    }
+                }
+            }       
         },
         getViewVersion: async function (revision) {
             /* Handle the user clicks. Change the labels of entries and ask the page to be redrawn with 
