@@ -29,7 +29,7 @@ class InternalAuthorizationView(views.APIView): # pylint: disable=too-many-ances
             raise PermissionDenied()
 
 class GetVersionsView(InternalAuthorizationView):
-    """ A View to return all versions of a model as .json """
+    """ A View to return all unique (no duplicated) versions of a model as .json """
     def get(self, request, app_label, component_name, model_name, pk, reference_id_field):
         """ Returns all versions for any model object
 
@@ -61,7 +61,7 @@ class GetVersionsView(InternalAuthorizationView):
             versions = Version.objects.get_for_object(instance).select_related('revision')\
             .get_unique()
 
-        logger.info('versions sql = %s', versions)
+        logger.info('versions %s', versions)
 
         # Build the list of versions
         versions_list = []
@@ -106,7 +106,21 @@ class GetVersionView(InternalAuthorizationView):
 
         instance = model.objects.get(pk=int(pk))
 
-        version = Version.objects.get_for_object(instance)[int(version_number)]
+        """ It's important that we always retrieve the full list of unique
+            versions filtered by revision__comment
+
+            If instead we try to get the version by index like so:
+
+            Version.objects.get_for_object(instance)[int(newer_version)]
+
+            We will have the wrong data because not all versions are 
+            displayed on the front end, only those that are unique and
+            have a processing_status revision comment
+        """
+        versions = list(Version.objects.get_for_object(instance).select_related('revision')\
+            .filter(revision__comment__contains='processing_status').get_unique())
+
+        version = versions[int(version_number)]
 
         model_class = instance.__class__
 
@@ -148,8 +162,22 @@ class GetCompareVersionsView(InternalAuthorizationView):
 
         instance = model.objects.get(pk=int(pk))
 
-        newer_version = Version.objects.get_for_object(instance)[int(newer_version)]
-        older_version = Version.objects.get_for_object(instance)[int(older_version)]
+        """ It's important that we always retrieve the full list of unique
+            versions filtered by revision__comment
+
+            If instead we try to get the version by index like so:
+
+            Version.objects.get_for_object(instance)[int(newer_version)]
+
+            We will have the wrong data because not all versions are 
+            displayed on the front end, only those that are unique and
+            have a processing_status revision comment
+        """        
+        versions = list(Version.objects.get_for_object(instance).select_related('revision')\
+            .filter(revision__comment__contains='processing_status').get_unique())
+
+        newer_version = versions[int(newer_version)]
+        older_version = versions[int(older_version)]
 
         differences = DeepDiff(newer_version.field_dict, older_version.field_dict, \
                                 ignore_order=True)
@@ -193,8 +221,25 @@ class GetCompareFieldVersionsView(InternalAuthorizationView):
 
         instance = model.objects.get(pk=int(pk))
 
-        newer_version = Version.objects.get_for_object(instance)[int(newer_version)]
-        older_version = Version.objects.get_for_object(instance)[int(older_version)]
+        """ It's important that we always retrieve the full list of unique
+            versions filtered by revision__comment
+
+            If instead we try to get the version by index like so:
+
+            Version.objects.get_for_object(instance)[int(newer_version)]
+
+            We will have the wrong data because not all versions are 
+            displayed on the front end, only those that are unique and
+            have a processing_status revision comment
+        """
+        versions = list(Version.objects.get_for_object(instance).select_related('revision')\
+            .filter(revision__comment__contains='processing_status').get_unique())
+
+        newer_version = versions[int(newer_version)]
+        older_version = versions[int(older_version)]
+
+        logger.info('\n\nnewer_version.field_dict[compare_field] = ' + str(newer_version.field_dict[compare_field]))
+        logger.info('\n\nnewer_version.field_dict[compare_field] = ' + str(older_version.field_dict[compare_field]))
 
         differences = DeepDiff(newer_version.field_dict[compare_field], older_version.field_dict[compare_field], ignore_order=True)
 
