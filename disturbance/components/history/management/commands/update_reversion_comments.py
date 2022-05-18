@@ -29,9 +29,9 @@ class Command(BaseCommand):
         except ValueError:
             raise CommandError('No model of name {} exists in the {} application.'.format(model_name, app_label))
 
-        models = model.objects.all()[:100]
+        models = model.objects.all() # [:100] add a slice to test with less records
 
-        change_database = True
+        change_database = True # Make False for testing to avoid writing to database
 
         for instance in models:
             self.stdout.write('\nSelecting Versions for {} {}'.format(instance._meta.verbose_name_raw, instance.pk))
