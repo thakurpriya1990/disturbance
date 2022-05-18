@@ -3916,6 +3916,37 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return self.queryset
 
+#    def list(self, request, *args, **kwargs):
+#        """ http://localhost:8001/api/spatial_query.json - returns all in queryset"""
+#        queryset = self.get_queryset()
+#        serializer = self.get_serializer(queryset, many=True)
+#        return Response(serializer.data)
+
+    @list_route(methods=['GET', ])
+    def grouped_by_layer(self, request, *args, **kwargs):
+        """ http://localhost:8001/api/spatial_query/grouped_by_layer.json 
+  
+            Group spatial query questions by layer_name
+        """
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+
+        rendered = JSONRenderer().render(serializer.data).decode('utf-8')
+        sqq_json = json.loads(rendered)
+
+        #import ipdb; ipdb.set_trace()
+        layer_names = [i['layer_name'] for i in sqq_json]
+        unique_layer_names = list(set(layer_names))
+        unique_layer_list = [{'layer_name': i, 'questions': []} for i in unique_layer_names]
+        for layer_dict in unique_layer_list:
+            for sqq_record in sqq_json:
+                #print(j['layer_name'])
+                if layer_dict['layer_name'] in sqq_record.values():
+                    layer_dict['questions'].append(sqq_record)
+
+        return Response(unique_layer_list)
+
+
     @list_route(methods=['GET', ])
     def get_spatialquery_selects(self, request, *args, **kwargs):
         '''
