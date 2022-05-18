@@ -8,6 +8,7 @@ import sys
 import logging
 import datetime
 import json
+
 from ast import literal_eval
 from deepdiff import DeepDiff
 from django.apps import apps
@@ -15,9 +16,11 @@ from rest_framework import views
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from reversion.models import Version
+
 from disturbance.helpers import is_internal
 
 logger = logging.getLogger(__name__)
+
 
 class InternalAuthorizationView(views.APIView): # pylint: disable=too-many-ancestors
     """ This ViewSet adds authorization that only allows internal users to
