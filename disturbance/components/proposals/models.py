@@ -790,8 +790,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
         versions_length = len(versions)
 
-        logger.info(f'newer_version = {newer_version}')
-        logger.info(f'older_version = {older_version}')
+        logger.debug(f'newer_version = {newer_version}')
+        logger.debug(f'older_version = {older_version}')
 
         newer_version = versions[newer_version].field_dict["data"]
 
@@ -849,21 +849,20 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
         formatted_differences = json.dumps(json.loads(differences.to_json(default_mapping=default_mapping)), indent=4, sort_keys=True) #[1:-1]
 
-        logger.info(f'\n\nformatted_differences = \n\n {formatted_differences}')
+        logger.debug(f'\n\nformatted_differences = \n\n {formatted_differences}')
 
         return literal_eval(formatted_differences)
 
 
     def get_version_differences_comment_data(self, newer_version: int, older_version: int):
-        """ Returns the differences between the comment data oftwo versions
+        """ Returns the differences between the comment data of two versions
 
         Due to the structure of the 'comment_data' field being different to the 
         structure of the 'data' field, we need some custom logic to return the 
-        section identifier.
+        section identifier and the email for the referrer.
 
-        This will make the compare function on the front end much easier as
-        we can just look for the id of the appropriate field to append the
-        revision note.
+        This will make it possible for the compare function on the front end
+        to append the revision notes to the correct location.
 
         """
 
@@ -881,39 +880,76 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         newer_version_data = versions[newer_version].field_dict['comment_data']
         older_version_data = versions[older_version].field_dict['comment_data']
 
-        logger.info(f'\n\nnewer_version_data = {newer_version_data}')
-        logger.info(f'\n\nolder_version_data = {older_version_data}')
-
         differences = DeepDiff(newer_version_data, older_version_data, ignore_order=True)
 
-        logger.info(f'\n\ndifferences = {type(differences)}')
+        logger.debug(f'differences = {type(differences)}')
 
         json_differences = json.loads(differences.to_json())
 
-        logger.info(f'\n\json_differences = {type(json_differences)}')
-        values_changed = json_differences['values_changed']
-        logger.info(f'\n\nvalues_changed = {type(values_changed)}')
-
         differences_list = []
 
+        if not 'values_changed' in json_differences:
+            return differences_list
+
+        values_changed = json_differences['values_changed']
+
         for key in values_changed:
-            logger.info('\n\n key ' + str(key))
-            logger.info('\n\n value ' + str(values_changed[key]['new_value']))
+            logger.debug('\n\n key = ' + str(key))
+            logger.debug('\n\n new value = ' + str(values_changed[key]['new_value']))
+            logger.debug('\n\n old value = ' + str(values_changed[key]['old_value']))
+
             if(values_changed[key]['new_value']):
+                """ Due to the structure of comment_data we need to get the section name
+                    for both the assessor comments and the referral comments.
+                    
+                    We also need the email for the Refferal comments.
+
+                    With this information we can attach the revision notes in the
+                    right place on the frontend.
+
+                    Also keep in mind that deep diff will return a different
+                    data structure once referral comments have been added.
+                """
                 regex = re.search('(?<=\[).+?(?=\])', str(key))
                 root_level = regex.group(0)
                 root_level_name = older_version_data[int(root_level)]['name']
-                differences_list.append({root_level_name:values_changed[key]['new_value']})             
+                assessor_comment = older_version_data[int(root_level)]['assessor']
+                assessor_comment_newer = newer_version_data[int(root_level)]['assessor']
 
-        logger.info('\n\n differences_list ' + str(differences_list))
+                referrals = older_version_data[int(root_level)]['referrals']
+                logger.debug('\n\n type(referrals) ' + str(type(referrals)))
+
+                # Skip instances there there are no referrals in the old version
+                # and the assessor_command hasn't actually changed
+                if len(referrals) == 0 and assessor_comment == assessor_comment_newer:
+                    continue
+
+                #if ( ( len(assessor_comment.strip()) > 0 or len(referrals)>0 ) or ( len(assessor_comment.strip())) > 0 and len(referrals)>0 ):
+                if 'referrals' in key:
+                    logger.debug('found a referral')
+                    referrer = older_version_data[int(root_level)]['referrals']
+                    logger.debug('\n\n referrer ' + str(referrer))
+                    referrer_email = referrer[0]['email']
+                    logger.debug('\n\n referrer_email ' + str(referrer_email))
+
+                    if referrer_email:
+                        root_level_name += f'-comment-field-Referral-{referrer_email}'
+                        differences_list.append({root_level_name:values_changed[key]['new_value']}) 
+                else:
+                    if assessor_comment:
+                        root_level_name += '-comment-field-Assessor'
+                        logger.debug('\n\n type(new_value) ' + str(type(values_changed[key]['new_value'])))
+                        if(type(values_changed[key]['new_value']) is dict):
+                            # Once referrer comments are added we will get a dictionary here
+                            new_value_dict = values_changed[key]['new_value']
+                            new_value = new_value_dict['assessor']
+                            differences_list.append({root_level_name:new_value})
+                        else:
+                            differences_list.append({root_level_name:values_changed[key]['new_value']})
+
+        logger.debug('\n\n differences_list ' + str(differences_list))
 
         return differences_list
-
-    def get_comment_data_id_from_root_level(root_level, comment_data):
-        """ Return a section id from comment data provided a root level
-            and the full comment_data field.
-        """
-        pass
 
     def get_reversion_history(self):
         """
