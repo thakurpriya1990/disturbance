@@ -48,7 +48,7 @@ class Command(BaseCommand):
         else:
             models = model.objects.all()[:records_to_process] # add a slice to test with less records
 
-        change_database = False # Make False for testing to avoid writing to database
+        change_database = True # Make False for testing to avoid writing to database
 
         for instance in models:
             self.stdout.write('\nSelecting Versions for {} {}'.format(instance._meta.verbose_name_raw, instance.pk))
