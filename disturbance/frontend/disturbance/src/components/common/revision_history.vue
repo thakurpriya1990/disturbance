@@ -32,6 +32,16 @@
                 </div>
             </div>
         </div>
+        <div v-show="showLoader" id="floatingCirclesG">
+            <div class="f_circleG" id="frotateG_01"></div>
+            <div class="f_circleG" id="frotateG_02"></div>
+            <div class="f_circleG" id="frotateG_03"></div>
+            <div class="f_circleG" id="frotateG_04"></div>
+            <div class="f_circleG" id="frotateG_05"></div>
+            <div class="f_circleG" id="frotateG_06"></div>
+            <div class="f_circleG" id="frotateG_07"></div>
+            <div class="f_circleG" id="frotateG_08"></div>
+        </div>
     </div>
 </template>
 <script>
@@ -60,8 +70,8 @@ export default {
             lodgement_revisions_view_actions: [],
             allRevisionsTableRows: '',
             popoversInitialised: false,
-            revisionsToShowInPanel: 5,
             versionCurrentlyShowing: 0,
+            isLoadingData: false,
             actionsDtOptions: {
                 language: {
                     processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
@@ -123,23 +133,15 @@ export default {
                 index += 1
             }
         },
+        showLoader: function() {
+            return this.isLoadingData;
+        }
     },
     methods:{
         getCompareVersions: async function (compare_version) {
-            /* This handles the user clicks. Change the labels of entries and add all selected 
-               revision differences to the DOM. */
-
-            /* todo
-
-            For this revision_history.vue to be fully generic, the compare versions
-            function should emit to the Proposal.vue and the comparison functions should be
-            implemented there instead.
-
+            /*  Updates the history panel to show which item is being compared against
+                Then emits to the component above to process the compare.
             */
-
-            // Always Compare against the most recent version. 
-            this.getViewVersion(0)
-
 
             let clicked_revision = this.lodgement_revisions_actions[compare_version]
 
@@ -150,122 +152,14 @@ export default {
                 this.lodgement_revisions_view_actions[0].view_action = '<div style="">&#x1f441;</div>'
                 this.lodgement_revisions_view_actions[index].view_action = '<a style="cursor:pointer;">View</a>'
             }
-
-            // Now post to the API to get the differences between latest version and this one.
-            const revisions_length = Object.keys(this.model_object.reversion_history).length
-            let revision_index = this.lodgement_revisions_actions.length - compare_version
-
-            //console.log('compare_version = ' + compare_version)
             
-            let url = '/api/history/compare/field/' + 
-            this.history_context.app_label + '/' +
-            this.history_context.model_name + '/' +
-            this.model_object.id + '/' +
-            this.versionCurrentlyShowing + '/' +
-            compare_version + '/' +
-            'data/' +
-            '?differences_only=True';
-
-            const diffs = await Vue.http.get(url);
-
-            console.log(url);
-
-            // Remove any previous revisions
-            $(".revision_note").remove()
-
-            
-            // Find each section that has a revision and append it to that section title.
-            for (let entry in diffs.data) {
-                for (let k in diffs.data[entry]) {
-                    console.log('k = ' + k);
-                    const revision_text = diffs.data[entry][k]
-
-                    if (revision_text == '') {continue;}
-                    const replacement = $("#id_" + k ).parent().find('input')
-
-                    if (replacement.attr('type') == "text") {
-                        const replacement_html = "<input disabled class='revision_note' style='width: 100%; margin-top: 3px; color: red; border: 1px solid red;' value='" + 
-                                                 revision_text + 
-                                                 "'><br class='revision_note'>"
-                        replacement.after(replacement_html)
-                    }
-                    else if (replacement.attr('type') == "radio") {
-                        const replacement_html = "<input disabled class='revision_note' type='radio' id='radio' checked>" + 
-                                                 "<label class='revision_note' for='radio'" +
-                                                 "style='margin-top: -200px; text-transform: capitalize; color: red; padding-left: 10px; padding-bottom: 20px;'>" + 
-                                                 revision_text +
-                                                 "</label><br class='revision_note'>"
-                        $("#id_" + k ).parent().after(replacement_html)
-                    }
-                    else {
-                        const replacement_html = "<input disabled class='revision_note' style='width: 100%; margin-top: 3px; padding-top: 0px; color: red; border: 1px solid red;' value='" + 
-                                                 revision_text + 
-                                                 "'>"
-                        console.log('parent = ' + JSON.stringify($("#id_" + k ).parent()));
-                        $("#id_" + k ).parent().append(replacement_html)
-                    }
-                }
-            }
-
-            /*
-            let comment_data_url = '/api/history/compare/field/' + 
-            this.history_context.app_label + '/' +
-            this.history_context.model_name + '/' +
-            this.model_object.id + '/' +
-            this.versionCurrentlyShowing + '/' +
-            compare_version + '/' +
-            //'data/' +
-            'comment_data/' +
-            '?differences_only=True';*/
-
-            let comment_data_url = `/api/proposal/1933/version_differences_comment_data.json?newer_version=${this.versionCurrentlyShowing}&older_version=${compare_version}`
-
-            console.log('comment_data_url = ' + comment_data_url)
-
-            const comment_data_diffs = await Vue.http.get(comment_data_url);
-
-            console.log('comment_data_diffs.data = ' + comment_data_diffs.data)
-
-            // Find each section that has a revision and append it to that section title.
-            for (let entry in comment_data_diffs.data) {
-                for (let k in comment_data_diffs.data[entry]) {
-                    const revision_text = comment_data_diffs.data[entry][k]
-
-                    if (revision_text == '') {continue;}
-                    //const replacement = $("#id_" + k ).parent().find('input')
-                    const replacement = $('[name="' + k + '-comment-field-Assessor"]')
-                    console.log('selector = ', '[name="' + k + '-comment-field-Assesor"]')
-                    console.log('replacement = ', replacement)
-
-                    if (replacement.attr('type') == "text") {
-                        const replacement_html = "<input disabled class='revision_note' style='width: 100%; margin-top: 3px; color: red; border: 1px solid red;' value='" + 
-                                                 revision_text + 
-                                                 "'><br class='revision_note'>"
-                        replacement.after(replacement_html)
-                    }
-                    else if (replacement.attr('type') == "radio") {
-                        const replacement_html = "<input disabled class='revision_note' type='radio' id='radio' checked>" + 
-                                                 "<label class='revision_note' for='radio'" +
-                                                 "style='margin-top: -200px; text-transform: capitalize; color: red; padding-left: 10px; padding-bottom: 20px;'>" + 
-                                                 revision_text +
-                                                 "</label><br class='revision_note'>"
-                        $("#id_" + k ).parent().after(replacement_html)
-                    }
-                    else {
-                        const replacement_html = "<input disabled class='revision_note' style='width: 100%; margin-top: 3px; padding-top: 0px; color: red; border: 1px solid red;' value='" + 
-                                                 revision_text + 
-                                                 "'>"
-                        //console.log('parent = ' + JSON.stringify($("#id_" + k ).parent()));
-                        console.log('replacement.siblings() = ', replacement.siblings())
-                        console.log('replacement_html = ' + replacement_html)
-                        replacement.after(replacement_html)
-                    }
-                }
-            }       
+            // Process the comparison of the model versions ins the component above
+            await this.$emit("compare_model_versions", compare_version)
         },
         getViewVersion: async function (revision) {
-            /* Handle the user clicks. Change the labels of entries and ask the page to be redrawn with 
-               the selected revision. */
+            /*  Updates the history panel to show which version is being viewed
+                Then emits to the component above to process the change of model object.
+            */
             
             let clicked_revision = this.lodgement_revisions_view_actions[revision]
             
@@ -281,7 +175,8 @@ export default {
                 this.lodgement_revisions_actions[0].action = '<div style="visibility: hidden;">&#x1f441;</div>'
                 this.lodgement_revisions_actions[index].action = '<a style="cursor:pointer;">Compare</a>'
             }
-
+           
+            // Process the change of model version in the component above
             await this.$emit("update_model_object", revision)
         },
         showRevisionHistory: function(){
@@ -403,6 +298,187 @@ export default {
 .scrollable-div::-webkit-scrollbar-thumb {
     border-radius: 10px;
     -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.5); 
+}
+
+.spinner{
+    left:50%;
+    margin-left: -4em;
+}
+
+#floatingCirclesG{
+	position:relative;
+	width:125px;
+	height:125px;
+	margin:auto;
+	transform:scale(0.6);
+		-o-transform:scale(0.6);
+		-ms-transform:scale(0.6);
+		-webkit-transform:scale(0.6);
+		-moz-transform:scale(0.6);
+}
+
+.f_circleG{
+	position:absolute;
+	background-color:rgb(255,255,255);
+	height:22px;
+	width:22px;
+	border-radius:12px;
+		-o-border-radius:12px;
+		-ms-border-radius:12px;
+		-webkit-border-radius:12px;
+		-moz-border-radius:12px;
+	animation-name:f_fadeG;
+		-o-animation-name:f_fadeG;
+		-ms-animation-name:f_fadeG;
+		-webkit-animation-name:f_fadeG;
+		-moz-animation-name:f_fadeG;
+	animation-duration:1.2s;
+		-o-animation-duration:1.2s;
+		-ms-animation-duration:1.2s;
+		-webkit-animation-duration:1.2s;
+		-moz-animation-duration:1.2s;
+	animation-iteration-count:infinite;
+		-o-animation-iteration-count:infinite;
+		-ms-animation-iteration-count:infinite;
+		-webkit-animation-iteration-count:infinite;
+		-moz-animation-iteration-count:infinite;
+	animation-direction:normal;
+		-o-animation-direction:normal;
+		-ms-animation-direction:normal;
+		-webkit-animation-direction:normal;
+		-moz-animation-direction:normal;
+}
+
+#frotateG_01{
+	left:0;
+	top:51px;
+	animation-delay:0.45s;
+		-o-animation-delay:0.45s;
+		-ms-animation-delay:0.45s;
+		-webkit-animation-delay:0.45s;
+		-moz-animation-delay:0.45s;
+}
+
+#frotateG_02{
+	left:15px;
+	top:15px;
+	animation-delay:0.6s;
+		-o-animation-delay:0.6s;
+		-ms-animation-delay:0.6s;
+		-webkit-animation-delay:0.6s;
+		-moz-animation-delay:0.6s;
+}
+
+#frotateG_03{
+	left:51px;
+	top:0;
+	animation-delay:0.75s;
+		-o-animation-delay:0.75s;
+		-ms-animation-delay:0.75s;
+		-webkit-animation-delay:0.75s;
+		-moz-animation-delay:0.75s;
+}
+
+#frotateG_04{
+	right:15px;
+	top:15px;
+	animation-delay:0.9s;
+		-o-animation-delay:0.9s;
+		-ms-animation-delay:0.9s;
+		-webkit-animation-delay:0.9s;
+		-moz-animation-delay:0.9s;
+}
+
+#frotateG_05{
+	right:0;
+	top:51px;
+	animation-delay:1.05s;
+		-o-animation-delay:1.05s;
+		-ms-animation-delay:1.05s;
+		-webkit-animation-delay:1.05s;
+		-moz-animation-delay:1.05s;
+}
+
+#frotateG_06{
+	right:15px;
+	bottom:15px;
+	animation-delay:1.2s;
+		-o-animation-delay:1.2s;
+		-ms-animation-delay:1.2s;
+		-webkit-animation-delay:1.2s;
+		-moz-animation-delay:1.2s;
+}
+
+#frotateG_07{
+	left:51px;
+	bottom:0;
+	animation-delay:1.35s;
+		-o-animation-delay:1.35s;
+		-ms-animation-delay:1.35s;
+		-webkit-animation-delay:1.35s;
+		-moz-animation-delay:1.35s;
+}
+
+#frotateG_08{
+	left:15px;
+	bottom:15px;
+	animation-delay:1.5s;
+		-o-animation-delay:1.5s;
+		-ms-animation-delay:1.5s;
+		-webkit-animation-delay:1.5s;
+		-moz-animation-delay:1.5s;
+}
+
+
+
+@keyframes f_fadeG{
+	0%{
+		background-color:rgb(0,0,0);
+	}
+
+	100%{
+		background-color:rgb(255,255,255);
+	}
+}
+
+@-o-keyframes f_fadeG{
+	0%{
+		background-color:rgb(0,0,0);
+	}
+
+	100%{
+		background-color:rgb(255,255,255);
+	}
+}
+
+@-ms-keyframes f_fadeG{
+	0%{
+		background-color:rgb(0,0,0);
+	}
+
+	100%{
+		background-color:rgb(255,255,255);
+	}
+}
+
+@-webkit-keyframes f_fadeG{
+	0%{
+		background-color:rgb(0,0,0);
+	}
+
+	100%{
+		background-color:rgb(255,255,255);
+	}
+}
+
+@-moz-keyframes f_fadeG{
+	0%{
+		background-color:rgb(0,0,0);
+	}
+
+	100%{
+		background-color:rgb(255,255,255);
+	}
 }
 
 </style>
