@@ -1472,7 +1472,24 @@ class ProposalViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(str(e))
 
         instance = self.get_object()
-        differences = instance.get_version_differences_comment_data(newer_version, older_version)
+        differences = instance.get_version_differences_comment_and_assessor_data('comment_data', newer_version, older_version)
+
+        return Response(differences)
+
+    @detail_route(methods=['GET'])
+    def version_differences_assessor_data(self, request, *args, **kwargs):
+        """ Returns a json response containing the differences between two 
+            versions.
+        
+        """
+        try:
+            newer_version = int(request.GET.get("newer_version"))
+            older_version = int(request.GET.get("older_version"))
+        except ValueError as e:
+            raise serializers.ValidationError(str(e))
+
+        instance = self.get_object()
+        differences = instance.get_version_differences_comment_and_assessor_data('assessor_data', newer_version, older_version)
 
         return Response(differences)
 
