@@ -1,11 +1,23 @@
 """ This custom management command will iterate through model versions
-    and add reivison comments when certain fields change so that we 
+    and add revision comments when certain fields change so that we 
     can filter based on this when showing a version history on the 
     frontend.
 
+    Usage: ./manage_ds.py update_reversion_comments <app_label> <model_name> <records_to_process>
+
+    Examples:
+    
+    Process versions for all proposals in the disturbance app
+
+    ./manage_ds.py update_reversion_comments disturbance Proposal 0
+
+    Process versions for 100 proposals in the disturbance app
+
+    ./manage_ds.py update_reversion_comments disturbance Proposal 100
+
     Todo: To make this fully generic, we would need to pass in the list
     of fields that we are checking for changes in. Currently it is checking
-    procesing_status, assessor_data and comment_data (which are spefici to 
+    procesing_status, assessor_data and comment_data (which are speficic to 
     a Proposal model)
 """
 from django.apps import apps
@@ -18,10 +30,12 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument('app_label', nargs='+', type=str)
         parser.add_argument('model_name', nargs='+', type=str)
+        parser.add_argument('records_to_process', nargs='+', type=str)
 
     def handle(self, *args, **options):
         app_label = options['app_label'][0]
         model_name = options['model_name'][0]
+        records_to_process = int(options['records_to_process'][0])
         self.stdout.write('app_label = %s' % app_label)
         self.stdout.write('model_name = %s' % model_name)
         try:
@@ -29,9 +43,12 @@ class Command(BaseCommand):
         except ValueError:
             raise CommandError('No model of name {} exists in the {} application.'.format(model_name, app_label))
 
-        models = model.objects.all() # [:100] add a slice to test with less records
+        if 0 == records_to_process:
+            models = model.objects.all() # Process all 
+        else:
+            models = model.objects.all()[:records_to_process] # add a slice to test with less records
 
-        change_database = True # Make False for testing to avoid writing to database
+        change_database = False # Make False for testing to avoid writing to database
 
         for instance in models:
             self.stdout.write('\nSelecting Versions for {} {}'.format(instance._meta.verbose_name_raw, instance.pk))
