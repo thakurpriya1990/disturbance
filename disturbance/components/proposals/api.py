@@ -1,4 +1,5 @@
 import re
+from telnetlib import NEW_ENVIRON
 import traceback
 import os
 
@@ -1418,7 +1419,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-    @detail_route(methods=['POST',])
+    @detail_route(methods=['GET',])
     def get_revision_diffs(self, request, *args, **kwargs):
         """
         Use the Proposal model method to get the differences between the lastest revision and
@@ -1426,8 +1427,9 @@ class ProposalViewSet(viewsets.ModelViewSet):
         """
         try:
             instance = self.get_object()
-            version_number = request.data.get("version_number")
-            diffs = instance.get_revision_diff(version_number)
+            newer_version = int(request.GET.get("newer_version"))
+            older_version = int(request.GET.get("older_version"))
+            diffs = instance.get_revision_diff(newer_version, older_version)
 
             return Response(diffs)
         except serializers.ValidationError:
@@ -1439,6 +1441,57 @@ class ProposalViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['GET'])
+    def version_differences(self, request, *args, **kwargs):
+        """ Returns a json response containing the differences between two 
+            versions.
+        
+        """
+        try:
+            newer_version = int(request.GET.get("newer_version"))
+            older_version = int(request.GET.get("older_version"))
+        except ValueError as e:
+            raise serializers.ValidationError(str(e))
+
+        instance = self.get_object()
+        differences = instance.get_version_differences(newer_version, older_version)
+
+        return Response(differences)
+
+    @detail_route(methods=['GET'])
+    def version_differences_comment_data(self, request, *args, **kwargs):
+        """ Returns a json response containing the differences between two 
+            versions.
+        
+        """
+        try:
+            newer_version = int(request.GET.get("newer_version"))
+            older_version = int(request.GET.get("older_version"))
+        except ValueError as e:
+            raise serializers.ValidationError(str(e))
+
+        instance = self.get_object()
+        differences = instance.get_version_differences_comment_and_assessor_data('comment_data', newer_version, older_version)
+
+        return Response(differences)
+
+    @detail_route(methods=['GET'])
+    def version_differences_assessor_data(self, request, *args, **kwargs):
+        """ Returns a json response containing the differences between two 
+            versions.
+        
+        """
+        try:
+            newer_version = int(request.GET.get("newer_version"))
+            older_version = int(request.GET.get("older_version"))
+        except ValueError as e:
+            raise serializers.ValidationError(str(e))
+
+        instance = self.get_object()
+        differences = instance.get_version_differences_comment_and_assessor_data('assessor_data', newer_version, older_version)
+
+        return Response(differences)
 
     @detail_route(methods=['POST'])
     @renderer_classes((JSONRenderer,))
@@ -1766,12 +1819,19 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
     @detail_route(methods=['GET',])
     def internal_revision_proposal(self, request, *args, **kwargs):
-
+        
         instance = self.get_object()
+
         version_number = int(request.query_params.get("revision_number"))
         revision = instance.get_revision(version_number)
+        
+        # Populate a new Proposal object with the version data
+        instance = Proposal(**revision)
 
-        return Response(revision)
+        serializer_class = self.internal_serializer_class()
+        serializer = serializer_class(instance,context={'request':request})
+
+        return Response(serializer.data)
 
     @detail_route(methods=['GET',])
     def internal_proposal_wrapper(self, request, *args, **kwargs):

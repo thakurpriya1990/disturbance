@@ -33,6 +33,7 @@ INSTALLED_APPS += [
     'disturbance.components.approvals',
     'disturbance.components.compliances',
     'disturbance.components.das_payments',
+    'disturbance.components.history',
     'taggit',
     'rest_framework',
     'rest_framework_datatables',
@@ -216,6 +217,26 @@ LOGGING['loggers']['apiary'] = {
     'handlers': ['file_apiary'],
     'level': 'INFO'
 }
+
+# Add a debug level logger for development
+if DEBUG:
+    LOGGING = {
+        'version': 1,
+        'disable_existing_loggers': True,
+        'handlers': {
+            'console': {
+                'class': 'logging.StreamHandler',
+            },
+        },
+        'loggers': {
+            'disturbance': {
+                'handlers': ['console'],
+                'level': 'DEBUG',
+                'propagate': False,
+            },
+        },
+    }    
+
 KMI_SERVER_URL = env('KMI_SERVER_URL', 'https://kmi.dbca.wa.gov.au')
 
 DEV_APP_BUILD_URL = env('DEV_APP_BUILD_URL')  # URL of the Dev app.js served by webpack & express
