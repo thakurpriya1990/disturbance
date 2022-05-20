@@ -567,7 +567,6 @@ export default {
                 console.log('Viewing older version: Disabling buttons and fields')
                 this.proposal.assessor_mode.has_assessor_mode = false;
                 this.proposal.assessor_mode.assessor_can_assess = false;
-                this.canSeeSubmission = true;
                 this.proposal.lodgement_number = this.proposal.lodgement_number + `-${proposal_version} (${proposal_version} Older than current version)`
                 //this.proposalContainerStyle.backgroundColor = '#efefef';
                 document.body.style.backgroundColor = '#f5f5dc';
