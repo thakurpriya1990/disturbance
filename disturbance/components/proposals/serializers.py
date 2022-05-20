@@ -1,4 +1,5 @@
 from ledger.payments.models import Invoice
+import collections
 from disturbance.components.proposals.models import (
                                     ProposalType,
                                     Proposal,
@@ -35,7 +36,6 @@ class ProposalTypeSerializer(serializers.ModelSerializer):
             'schema',
             'activities'
         )
-
 
     def get_activities(self,obj):
         return obj.activities.names()
@@ -334,6 +334,7 @@ class SaveProposalRegionSerializer(BaseProposalSerializer):
                 )
         #read_only_fields=('documents','requirements')
 
+
 class ApplicantSerializer(serializers.ModelSerializer):
     from disturbance.components.organisations.serializers import OrganisationAddressSerializer
     address = OrganisationAddressSerializer()
@@ -371,7 +372,8 @@ class InternalProposalSerializer(BaseProposalSerializer):
     #tenure = serializers.CharField(source='tenure.name', read_only=True)
     apiary_temporary_use = ProposalApiaryTemporaryUseSerializer(many=False, read_only=True)
     requirements_completed=serializers.SerializerMethodField()
-
+    reversion_history = serializers.SerializerMethodField()
+    
     class Meta:
         model = Proposal
         fields = (
@@ -432,8 +434,31 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'fee_paid',
                 'apiary_temporary_use',
                 'requirements_completed',
+                'reversion_history',
                 )
         read_only_fields=('documents','requirements')
+
+
+    def get_reversion_history(self, obj):
+        """
+        This uses Reversion to get all the revisions made to this Proposal. The revisions are returned as a dict with the
+        Proposal id and version as key.
+        """
+        from reversion.models import Version
+        reversion_dict = {}
+        # Get all revisions that have been submitted (not just saved by user) including the original.
+        all_revisions = [v for v in Version.objects.get_for_object(obj)[0:] if not v.field_dict['customer_status'] == 'draft']
+        # Strip out duplicates (only take the most recent of a revision).
+        unique_revisions = collections.OrderedDict({v.field_dict['lodgement_date']:v for v in all_revisions})
+        number_of_revisions = len(unique_revisions)
+
+        # Work backwards through the revisions so the most recent are at the top.
+        for index, revision in enumerate(unique_revisions.values()):
+            # Add the index to the end of the lodgement number to show the revision.        
+            this_revision_key = '{}-{}'.format(revision.field_dict['lodgement_number'], number_of_revisions-index)
+            reversion_dict[this_revision_key] = {'date': revision.field_dict['lodgement_date']}
+
+        return reversion_dict
 
     def get_approval_level_document(self,obj):
         if obj.approval_level_document is not None:
@@ -474,7 +499,6 @@ class InternalProposalSerializer(BaseProposalSerializer):
 
     def get_requirements_completed(self,obj):
         return True
-
 
 
 class ReferralProposalSerializer(InternalProposalSerializer):
@@ -1108,7 +1132,7 @@ class DTSchemaQuestionSerializer(SchemaQuestionSerializer):
         return obj.question_id
 
     def get_proposal_type(self, obj):
-        return obj.section.proposal_type.name
+        return obj.section.proposal_type.name_with_version
 
     def get_options(self, obj):
         options = obj.get_options()
@@ -1128,6 +1152,18 @@ class ProposalTypeSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProposalType
         fields = '__all__'
+
+class ProposalTypeSchemaSerializer(serializers.ModelSerializer):
+    '''
+    Serializer for Licence ProposalType.
+    '''
+    class Meta:
+        model = ProposalType
+        fields = (
+            'id',
+            'name',
+            'name_with_version'
+        )
 
 
 class SchemaProposalTypeSerializer(serializers.ModelSerializer):
@@ -1164,4 +1200,4 @@ class DTSchemaProposalTypeSerializer(SchemaProposalTypeSerializer):
         datatables_always_serialize = fields
 
     def get_proposal_type(self, obj):
-        return ProposalTypeSerializer(obj.proposal_type).data
+        return ProposalTypeSchemaSerializer(obj.proposal_type).data

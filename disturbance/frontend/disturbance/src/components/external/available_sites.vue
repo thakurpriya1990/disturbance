@@ -1,6 +1,6 @@
 <template>
     <div class="container">
-        <FormSection :formCollapse="false" label="Available Sites" Index="available_sites">
+        <FormSection :formCollapse="false" label="Sites" Index="available_sites">
             <ComponentSiteSelection
                 :apiary_sites="apiary_sites"
                 :is_internal="true"
