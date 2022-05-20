@@ -400,7 +400,7 @@ class ComplianceViewSet(viewsets.ModelViewSet):
             user_id = request.data.get('user_id',None)
             user = None
             if not user_id:
-                raise serializers.ValiationError('A user id is required')
+                raise serializers.ValidationError('A user id is required')
             try:
                 user = EmailUser.objects.get(id=user_id)
             except EmailUser.DoesNotExist:
