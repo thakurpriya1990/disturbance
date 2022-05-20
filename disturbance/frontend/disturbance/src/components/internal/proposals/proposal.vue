@@ -588,8 +588,9 @@ export default {
                revision differences to the DOM. */
 
             // Always Compare against the most recent version.
-            this.versionCurrentlyShowing = 0 
-            this.updateProposalVersion(0)
+            if 0 != this.versionCurrentlyShowing:
+                this.versionCurrentlyShowing = 0
+                this.updateProposalVersion(0)
 
             // Remove any previous revisions
             $(".revision_note").remove()
