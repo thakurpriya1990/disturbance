@@ -44,14 +44,14 @@ class GetVersionsView(InternalAuthorizationView):
         """
         super().get(self)
 
-        logger.info('app_label = %s', app_label)
-        logger.info('model_name = %s', model_name)
-        logger.info('pk = %s', pk)
-        logger.info('component_name =  %s', component_name)
+        logger.debug('app_label = %s', app_label)
+        logger.debug('model_name = %s', model_name)
+        logger.debug('pk = %s', pk)
+        logger.debug('component_name =  %s', component_name)
 
         model = apps.get_model(app_label=app_label, model_name=model_name)
 
-        logger.info('model = %s', model)
+        logger.debug('model = %s', model)
 
         instance = model.objects.get(pk=int(pk))
 
@@ -64,7 +64,7 @@ class GetVersionsView(InternalAuthorizationView):
             versions = Version.objects.get_for_object(instance).select_related('revision')\
             .get_unique()
 
-        logger.info('versions %s', versions)
+        logger.debug('versions %s', versions)
 
         # Build the list of versions
         versions_list = []
@@ -97,15 +97,15 @@ class GetVersionView(InternalAuthorizationView):
         """
         super().get(self)
 
-        logger.info('app_label = %s', app_label)
-        logger.info('model_name = %s', model_name)
-        logger.info('pk = %s', pk)
-        logger.info('version_number =  %s', version_number)
-        logger.info('component_name =  %s', component_name)
+        logger.debug('app_label = %s', app_label)
+        logger.debug('model_name = %s', model_name)
+        logger.debug('pk = %s', pk)
+        logger.debug('version_number =  %s', version_number)
+        logger.debug('component_name =  %s', component_name)
 
         model = apps.get_model(app_label=app_label, model_name=model_name)
 
-        logger.info('model = %s', model)
+        logger.debug('model = %s', model)
 
         instance = model.objects.get(pk=int(pk))
 
@@ -150,18 +150,23 @@ class GetCompareVersionsView(InternalAuthorizationView):
         1 is one version older
         2 is two older and so on...
 
+        In practice the compare is much more complicated than the view as the data
+        structure can be vastly different especially if it has JSON fields 
+        therefor unless a model has only basic fields some model specific logic
+        will need to be implimented in the appropriate component.
+
     """
     def get(self, request, app_label, model_name, pk, newer_version, older_version):
         """ Returns the difference between two specific versions of any model object """
         super().get(self)
 
-        logger.info('app_label = %s', app_label)
-        logger.info('model_name = %s', model_name)
-        logger.info('pk = %s', pk)
+        logger.debug('app_label = %s', app_label)
+        logger.debug('model_name = %s', model_name)
+        logger.debug('pk = %s', pk)
 
         model = apps.get_model(app_label=app_label, model_name=model_name)
 
-        logger.info('model = %s', model)
+        logger.debug('model = %s', model)
 
         instance = model.objects.get(pk=int(pk))
 
@@ -190,7 +195,7 @@ class GetCompareVersionsView(InternalAuthorizationView):
         formatted_differences = json.dumps(json.loads(differences.to_json(
             default_mapping=default_mapping)), indent=4, sort_keys=True)
 
-        logger.info('\n\nformatted_differences = %s \n\n', formatted_differences)              
+        logger.debug('\n\nformatted_differences = %s \n\n', formatted_differences)              
 
         return Response(literal_eval(formatted_differences))
 
@@ -214,13 +219,13 @@ class GetCompareFieldVersionsView(InternalAuthorizationView):
         """ Returns the difference between two specific versions of any model object """
         super().get(self)
 
-        logger.info('app_label = %s', app_label)
-        logger.info('model_name = %s', model_name)
-        logger.info('pk = %s', pk)
+        logger.debug('app_label = %s', app_label)
+        logger.debug('model_name = %s', model_name)
+        logger.debug('pk = %s', pk)
 
         model = apps.get_model(app_label=app_label, model_name=model_name)
 
-        logger.info('model = %s', model)
+        logger.debug('model = %s', model)
 
         instance = model.objects.get(pk=int(pk))
 
@@ -241,8 +246,8 @@ class GetCompareFieldVersionsView(InternalAuthorizationView):
         newer_version = versions[int(newer_version)]
         older_version = versions[int(older_version)]
 
-        logger.info('\n\nnewer_version.field_dict[compare_field] = ' + str(newer_version.field_dict[compare_field]))
-        logger.info('\n\nnewer_version.field_dict[compare_field] = ' + str(older_version.field_dict[compare_field]))
+        logger.debug('\n\nnewer_version.field_dict[compare_field] = ' + str(newer_version.field_dict[compare_field]))
+        logger.debug('\n\nnewer_version.field_dict[compare_field] = ' + str(older_version.field_dict[compare_field]))
 
         differences = DeepDiff(newer_version.field_dict[compare_field], older_version.field_dict[compare_field], ignore_order=True)
 
@@ -260,6 +265,6 @@ class GetCompareFieldVersionsView(InternalAuthorizationView):
         formatted_differences = json.dumps(json.loads(differences.to_json(
             default_mapping=default_mapping)), indent=4, sort_keys=True)
 
-        logger.info('\n\nformatted_differences = %s \n\n', formatted_differences)   
+        logger.debug('\n\nformatted_differences = %s \n\n', formatted_differences)   
 
         return Response(literal_eval(formatted_differences))
