@@ -442,7 +442,7 @@
                     // Id (database id)
                     visible: vm.show_col_id,
                     searchable: true,
-                    mRender: function (data, type, apiary_site) {
+                    render: function (data, type, apiary_site) {
                         return apiary_site.id;
                     }
                 }
@@ -451,9 +451,10 @@
                 let vm = this
                 return {
                     // Site (current): general status. Marker
+                    data: "id",
                     visible: vm.show_col_site,
                     searchable: false,
-                    mRender: function (data, type, apiary_site) {
+                    render: function (data, type, apiary_site) {
                         let status_for_colour = getStatusForColour(apiary_site, false)
                         let fillColour = SiteColours[status_for_colour].fill
                         let strokeColour = SiteColours[status_for_colour].stroke
@@ -477,15 +478,17 @@
                 let vm = this
                 return {
                     // Status (current): general status.  Text
+                    data: "id",
                     visible: vm.show_col_status,
                     searchable: false,
-                    mRender: function (data, type, apiary_site){
+                    render: function (data, type, apiary_site){
                         let dynamic_status = getStatusForColour(apiary_site, false)
                         let display_name = getDisplayNameFromStatus(dynamic_status)
                         return display_name
                     }
                 }
             },
+            /*
             column_vacant: function(){
                 let vm = this
                 return {
@@ -517,12 +520,14 @@
                     }
                 }
             },
+            */
             column_action: function(){
                 let vm = this
                 return {
                     // Action
+                    data: "id",
                     searchable: false,
-                    mRender: function (data, type, apiary_site) {
+                    render: function (data, type, apiary_site) {
                         let action_list = []
 
                         // View on map
@@ -574,8 +579,8 @@
                 let vm = this
                 return {
                     serverSide: false,
-                    searching: true,
-                    searchDelay: 10,
+                    //searching: true,
+                    //searchDelay: 10,
                     lengthMenu: [ [10, 25, 50, 100, -1], [10, 25, 50, 100, "All"] ],
                     order: [
                         [1, 'desc'], [0, 'desc'],
@@ -592,14 +597,17 @@
                         //}
                         $(row).attr('data-apiary-site-id', data.id)  // Used for the Popup
                     },
-                    columns: vm.columns,
-
-                    dom: 'tip',
-                    paging: false,
+                    paging: true,
                     deferRender: true,
                     scrollY: 400,
                     scrollCollapse: true,
                     scroller: true,
+                    dom: 'tip',
+                    columns: vm.columns,
+                    //data: vm.datatableData,
+                    initComplete: function() {
+                        console.log('in initComplete')
+                    },
                 }
             },
         },
@@ -747,10 +755,12 @@
                 this.apiarySitesQuerySource.addFeature(feature)
                 return feature
             },
+            /*
             addApiarySitesAsGeojsonToTable: function(apiary_sites_geojson){
                 console.log('in addApiarySitesAsGeojsonToTable: ' + apiary_sites_geojson.length)
                 this.$refs.table_apiary_site.vmDataTable.rows.add(apiary_sites_geojson).draw()
             },
+            */
             addEventListeners: function () {
                 $("#" + this.table_id).on("click", "a[data-view-on-map]", this.zoomOnApiarySite)
                 $("#" + this.table_id).on("click", "a[data-toggle-availability]", this.toggleAvailability)
@@ -1463,7 +1473,8 @@
                 console.log('showHideApiarySites()')
                 let vm = this
 
-                vm.$refs.table_apiary_site.vmDataTable.search(vm.search_text).draw()
+               // vm.$refs.table_apiary_site.vmDataTable.search(vm.search_text).draw()
+                let datatableData = []
 
                 for (let site_status of vm.show_hide_instructions){
                     if (site_status.options){
@@ -1494,7 +1505,7 @@
                                         option.ajax_obj.abort();
                                         option.ajax_obj = null;
                                     }
-                                    option.ajax_obj = $.ajax('/api/apiary_site/' + option.api + '/?search_text=' + vm.search_text, {
+                                    option.ajax_obj = await $.ajax('/api/apiary_site/' + option.api + '/?search_text=' + vm.search_text, {
                                         dataType: 'json',
                                         success: function(re, status, xhr){
                                             let apiary_sites_geojson = []
@@ -1510,13 +1521,15 @@
 
                                                 //vm.addApiarySiteAsGeojsonToTable(apiary_site_geojson, feature_and_row)
                                                 apiary_site_geojson.feature_and_row = feature_and_row
-                                                apiary_sites_geojson.push(apiary_site_geojson)
+                                                //apiary_sites_geojson.push(apiary_site_geojson)
+                                                console.log("push")
+                                                datatableData.push(apiary_site_geojson)
 
                                                 // Cache it
                                                 option.features_and_rows.push(feature_and_row)
                                             }
                                             if(!option.loaded_for_table){
-                                                vm.addApiarySitesAsGeojsonToTable(apiary_sites_geojson)
+                                                //vm.addApiarySitesAsGeojsonToTable(apiary_sites_geojson)
                                                 option.loaded_for_table = true
                                             }
                                             option.loaded = true
@@ -1584,7 +1597,7 @@
                                     site_status.ajax_obj.abort();
                                     site_status.ajax_obj = null;
                                 }
-                                site_status.ajax_obj = $.ajax('/api/apiary_site/' + site_status.api + '/?search_text=' + vm.search_text, {
+                                site_status.ajax_obj = await $.ajax('/api/apiary_site/' + site_status.api + '/?search_text=' + vm.search_text, {
                                     dataType: 'json',
                                     success: function(re, status, xhr){
                                         let apiary_sites_geojson = []
@@ -1602,13 +1615,15 @@
                                             // Add the row to the table
                                             //vm.addApiarySiteAsGeojsonToTable(apiary_site_geojson, feature_and_row)
                                             apiary_site_geojson.feature_and_row = feature_and_row
-                                            apiary_sites_geojson.push(apiary_site_geojson)
+                                            //apiary_sites_geojson.push(apiary_site_geojson)
+                                            console.log("push")
+                                            datatableData.push(apiary_site_geojson)
 
                                             // Add this feature_and_row obj to the main storage
                                             site_status.features_and_rows.push(feature_and_row)
                                         }
                                         if (!site_status.loaded_for_table){
-                                            vm.addApiarySitesAsGeojsonToTable(apiary_sites_geojson)
+                                            //vm.addApiarySitesAsGeojsonToTable(apiary_sites_geojson)
                                             site_status.loaded_for_table = true
                                         }
                                         site_status.loaded = true
@@ -1642,6 +1657,10 @@
                         site_status.shown = site_status.show
                     }
                 } // END: loop for show_hide_instructions
+                console.log("datatableData")
+                console.log(datatableData)
+                this.$refs.table_apiary_site.vmDataTable.clear().rows.add(datatableData).draw()
+                console.log("end showHideApiarySites")
             }, // END: showHideApiarySites()
         },
         created: function() {
@@ -1684,26 +1703,6 @@
                         }
                     }
 
-                    // Per row (per apiary_site)
-                    //if (rowData.properties.status === 'current'){
-                    //    // When apiary_site is current
-                    //    if (vm.show_statuses_for_table.includes('current')){
-                    //        // 'current' is selected in the filter
-                    //        if(vm.show_availabilities_for_table.includes('available') && rowData.properties.available){
-                    //            return true
-                    //        } else if(vm.show_availabilities_for_table.includes('unavailable') && !rowData.properties.available){
-                    //            return true
-                    //        } else {
-                    //            return false
-                    //        }
-                    //    } else {
-                    //        return false
-                    //    }
-                    //} else if (rowData.properties.is_vacant){
-                    //    return vm.show_statuses_for_table.includes('vacant')
-                    //} else {
-                    //    return vm.show_statuses_for_table.includes(rowData.properties.status)
-                    //}
                 })
             }
         },
