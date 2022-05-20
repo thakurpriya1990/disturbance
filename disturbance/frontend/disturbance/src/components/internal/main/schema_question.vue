@@ -82,7 +82,7 @@
 
                     <div class="row">
                         <div class="col-md-3">
-                            <label class="control-label pull-left" >Licence Purpose</label>
+                            <label class="control-label pull-left" >Licence Proposal Type</label>
                         </div>
                         <div class="col-md-6" v-if="isNewEntry">
                             <select class="form-control" ref="select_purpose" name="select-purpose" v-model="filterQuestionProposalType" >
@@ -290,6 +290,7 @@ export default {
                     { 
                         data: "proposal_type",
                         searchable: false,
+                        name:'section__proposal_type_id'
                     },
                     { 
                         data: "section",

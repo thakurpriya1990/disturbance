@@ -3,6 +3,10 @@ from ledger.accounts.models import EmailUser
 from django.conf import settings
 
 import logging
+
+from rest_framework import serializers
+
+from disturbance.components.organisations.models import Organisation
 logger = logging.getLogger(__name__)
 
 def belongs_to(user, group_name):
@@ -70,3 +74,81 @@ def is_internal(request):
 def get_all_officers():
     return EmailUser.objects.filter(groups__name='Disturbance Admin')
 
+def is_authorised_to_modify(request, instance):
+    authorised = True
+
+    # print('1. Application', instance.application_type )
+    # print("2. Apiary", str(instance.application_type) == "Apiary")
+
+    # Getting Organisation is different in DAS and Apiary
+    if str(instance.application_type) == "Apiary":
+        # Get Organisation if in Apiary
+        applicant = instance.relevant_applicant
+        # print("3. Apiary Applicant", applicant)
+    else:
+        # Get Organisation if in DAS
+        # There can only ever be one Organisation associated with an application so it is
+        # ok to just pull the first element from organisation_set.
+        applicant = instance.applicant.organisation.organisation_set.all()[0]
+        # print("4. DAS Applicant", applicant)
+    applicantIsIndividual = isinstance(applicant, EmailUser)
+    # print('5. applicantIsIndividual', applicantIsIndividual)
+    if is_internal(request):
+        # the status must be 'with_assessor'
+        authorised &= instance.processing_status == 'with_assessor'
+        # print("6. Internal with assessor", instance.processing_status == 'with_assessor')
+        # the user must be an assessor for this type of application
+        authorised &= instance.can_process()
+        # print('7. Can process', instance.can_process())
+    elif is_customer(request):
+        # the status of the application must be DRAFT for customer to modify
+        authorised &= instance.processing_status == 'draft'
+        # print('8. Processing status draft', instance.processing_status == 'draft')
+        if applicantIsIndividual:
+                        # it is an individual so the applicant and submitter must be the same
+            authorised &= str(request.user.email) == str(instance.relevant_applicant)
+            # print('9. Indiv submitter matches applicant', str(request.user.email) == str(instance.relevant_applicant))
+        else:
+            # the applicant is an organisation so make sure the submitter is in the organisation
+            authorised &= is_in_organisation_contacts(request, instance.relevant_applicant)
+            # print('10. Applicant is in Org', is_in_organisation_contacts(request, instance.relevant_applicant))
+
+    # print('11. Authorised', authorised)
+    if not authorised:
+        raise serializers.ValidationError('You are not authorised to modify this application.')
+
+def is_authorised_to_modify_draft(request, instance):
+    #import ipdb; ipdb.set_trace()
+    authorised = True
+
+    # Getting Organisation is different in DAS and Apiary
+    if str(instance.application_type) == "Apiary":
+        # Get Organisation if in Apiary
+        applicant = instance.relevant_applicant
+    else:
+        # Get Organisation if in DAS
+        # There can only ever be one Organisation associated with an application so it is
+        # ok to just pull the first element from organisation_set.
+        applicant = instance.applicant.organisation.organisation_set.all()[0]
+    applicantIsIndividual = isinstance(applicant, EmailUser)
+    if instance.processing_status=='draft':
+        if is_customer(request):
+            # the status of the application must be DRAFT for customer to modify
+            if applicantIsIndividual:
+                # it is an individual so the applicant and submitter must be the same
+                authorised &= str(request.user.email) == str(instance.relevant_applicant)
+            else:
+                # the applicant is an organisation so make sure the submitter is in the organisation
+                authorised &= is_in_organisation_contacts(request, instance.relevant_applicant)
+        else:
+            authorised = False
+    else:
+        if is_internal(request):
+            # the status must be 'with_assessor'
+            # the user must be an assessor for this type of application
+            authorised &= instance.can_assess()
+        else:
+            authorised=False
+
+    if not authorised:
+        raise serializers.ValidationError('You are not authorised to modify this application.')

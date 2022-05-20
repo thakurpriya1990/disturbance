@@ -61,6 +61,7 @@
                         :show_action_available_unavailable="showActionAvailableUnavailable"
                         :show_col_status="false"
                         :show_col_status_when_submitted="true"
+                        :show_col_vacant_when_submitted="show_col_vacant_when_submitted"
                         :key="component_site_selection_key"
                       />
                 </div>
@@ -254,6 +255,10 @@
             proposal_parks:{
                 type:Object,
                 default:null
+            },
+            show_col_vacant_when_submitted: {
+                type: Boolean,
+                default: false
             },
         },
         data:function () {
