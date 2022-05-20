@@ -17,7 +17,7 @@ from rest_framework.renderers import JSONRenderer
 from ledger.accounts.models import EmailUser
 from datetime import datetime
 
-from django.http import HttpResponse#, JsonResponse, Http404
+from django.http import HttpResponse, JsonResponse #, Http404
 from disturbance.components.approvals.email import (
     send_contact_licence_holder_email,
     send_on_site_notification_email,
@@ -1474,7 +1474,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         differences = instance.get_version_differences_comment_and_assessor_data('comment_data', newer_version, older_version)
 
-        return Response(differences)
+        return JsonResponse(differences, safe=False)
 
     @detail_route(methods=['GET'])
     def version_differences_assessor_data(self, request, *args, **kwargs):
@@ -1491,7 +1491,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         differences = instance.get_version_differences_comment_and_assessor_data('assessor_data', newer_version, older_version)
 
-        return Response(differences)
+        return JsonResponse(differences, safe=False)
 
     @detail_route(methods=['POST'])
     @renderer_classes((JSONRenderer,))
