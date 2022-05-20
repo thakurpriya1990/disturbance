@@ -25,7 +25,7 @@
                             </div>
                             <div class="col-sm-12 top-buffer-s">
                                 <strong>Lodged on</strong><br/>
-                                {{ proposal.lodgement_date | formatDate}}
+                                {{ proposal.lodgement_date | formatDate }}
                             </div>
                         </div>
                         <RevisionHistory v-if="showHistory" :revision_history_url="revision_history_url" :model_object="proposal" :history_context="history_context" @update_model_object="updateProposalVersion" @compare_model_versions="compareProposalVersions" />
@@ -573,6 +573,11 @@ export default {
             } else {
                  //this.proposalContainerStyle.backgroundColor = '#ffffff';
                  document.body.style.backgroundColor = '#ffffff';             
+            }
+
+            // If we are looking at the draft version there will be no lodgement date
+            if(!this.proposal.lodgement_date) {
+                this.proposal.lodgement_date = 'Draft just prior to lodgement.';
             }
 
             // Update the DOM values to the correct data.
