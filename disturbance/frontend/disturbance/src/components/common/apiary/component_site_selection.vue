@@ -161,6 +161,7 @@
         data: function(){
             let vm = this;
             return{
+                selectAllCheckboxes: false,
                 apiary_sites_local: JSON.parse(JSON.stringify(this.apiary_sites)),  // Deep copy the array
                 component_map_key: '',
                 table_id: uuid(),
@@ -498,18 +499,33 @@
             constructApiarySitesTable: function(apiary_sites) {
                 if (this.$refs.table_apiary_site){
                     // Clear table
-                    this.$refs.table_apiary_site.vmDataTable.clear().draw();
+                    this.$refs.table_apiary_site.vmDataTable.clear();
 
                     // Construct table
                     if (apiary_sites.length > 0){
                         for(let i=0; i<apiary_sites.length; i++){
                             this.addApiarySiteToTable(apiary_sites[i]);
                         }
+                        if (apiary_sites.length > 1){
+                            // add "select all checkbox"
+                            let colOne = this.$refs.table_apiary_site.vmDataTable.column(1).header()
+                            if (this.selectAllCheckboxes) {
+                                $(colOne).html(
+                                    `<input type="checkbox" class="select_all_checkbox" checked/>`
+                                    )
+                            } else {
+                                $(colOne).html(
+                                    `<input type="checkbox" class="select_all_checkbox"/>`
+                                    )
+                            }
+                        }
                     }
+                    this.$refs.table_apiary_site.vmDataTable.draw();
                 }
             },
             addApiarySiteToTable: function(apiary_site) {
-                this.$refs.table_apiary_site.vmDataTable.row.add(apiary_site).draw();
+                //this.$refs.table_apiary_site.vmDataTable.row.add(apiary_site).draw();
+                this.$refs.table_apiary_site.vmDataTable.row.add(apiary_site);
             },
             addEventListeners: function () {
                 $("#" + this.table_id).on("click", "a[data-view-on-map]", this.zoomOnApiarySite)
@@ -517,6 +533,7 @@
                 //$("#" + this.table_id).on('click', 'input[type="checkbox"]', this.checkboxClicked)
                 $("#" + this.table_id).on('click', 'input[class="site_checkbox"]', this.checkboxClicked)
                 $("#" + this.table_id).on('click', 'input[class="licensed_site_checkbox"]', this.checkboxLicensedSiteClicked)
+                $("#" + this.table_id).on('click', 'input[class="select_all_checkbox"]', this.checkboxSelectAll)
                 $("#" + this.table_id).on('click', 'a[data-make-vacant]', this.makeVacantClicked)
                 $("#" + this.table_id).on('click', 'a[data-contact-licence-holder]', this.contactLicenceHolder)
 
@@ -574,8 +591,19 @@
                 this.$refs.component_map.setApiarySiteSelectedStatus(apiary_site_id, checked_status)
                 e.stopPropagation()
             },
-
-
+            checkboxSelectAll: async function(e) {
+                //e.preventDefault()
+                this.selectAllCheckboxes = e.target.checked
+                for (let i=0; i<this.apiary_sites_local.length; i++){
+                    let apiarySite = Object.assign({}, this.apiary_sites_local[i])
+                    apiarySite.checked = this.selectAllCheckboxes
+                    Vue.set(this.apiary_sites_local, i, apiarySite)
+                    this.$refs.component_map.setApiarySiteSelectedStatus(this.apiary_sites_local[i].id, this.selectAllCheckboxes)
+                }
+                this.$emit('apiary_sites_updated', this.apiary_sites_local)
+                this.constructApiarySitesTable(this.apiary_sites_local);
+                e.stopPropagation()
+            },
             contactLicenceHolder: function(e){
                 let vm = this;
                 //let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
