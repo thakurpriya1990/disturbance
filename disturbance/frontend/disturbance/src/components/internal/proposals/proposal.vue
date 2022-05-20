@@ -595,9 +595,6 @@ export default {
             // Remove any previous revisions
             $(".revision_note").remove()
 
-            // Show a loading icon
-            this.isLoadingData = true;
-
             // Compare the data field and apply the revision notes
             let url = '/api/history/compare/field/' + 
             this.history_context.app_label + '/' +
@@ -620,9 +617,6 @@ export default {
             let comment_data_url = `/api/proposal/${this.proposal.id}/version_differences_comment_data.json?newer_version=${this.versionCurrentlyShowing}&older_version=${compare_version}`
             const comment_data_diffs = await Vue.http.get(comment_data_url);
             this.applyRevisionNotes(comment_data_diffs.data)
-
-             // Remove the loading icon
-             this.isLoadingData = false;
         },
         applyRevisionNotes: async function (diffdata) {
             // Append a revision note to the appropriate location in the DOM 
