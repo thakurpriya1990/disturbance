@@ -74,4 +74,9 @@ module.exports = {
     //schema_question:"/api/schema_question/",
     schema_question:"/api/schema_question.json",
     schema_question_paginated:"/api/schema_question_paginated/",
+
+    history_version_compare_field: "/api/history/compare/field/",
+    history_version_compare: "/api/history/compare/",
+    history_versions: "/api/history/versions/",
+    history_version: "/api/history/version/",
 }
