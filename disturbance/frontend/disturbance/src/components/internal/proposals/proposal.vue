@@ -25,7 +25,7 @@
                             </div>
                             <div class="col-sm-12 top-buffer-s">
                                 <strong>Lodged on</strong><br/>
-                                {{ proposal.lodgement_date | formatDate}}
+                                {{ proposal.lodgement_date | formatDate }}
                             </div>
                         </div>
                         <RevisionHistory v-if="showHistory" :revision_history_url="revision_history_url" :model_object="proposal" :history_context="history_context" @update_model_object="updateProposalVersion" @compare_model_versions="compareProposalVersions" />
@@ -575,6 +575,11 @@ export default {
                  document.body.style.backgroundColor = '#ffffff';             
             }
 
+            // If we are looking at the draft version there will be no lodgement date
+            if(!this.proposal.lodgement_date) {
+                this.proposal.lodgement_date = 'Draft just prior to lodgement.';
+            }
+
             // Update the DOM values to the correct data.
             this.$refs.proposal_disturbance.values = Object.assign({}, res.body.data[0]);
         },
@@ -583,14 +588,13 @@ export default {
                revision differences to the DOM. */
 
             // Always Compare against the most recent version.
-            this.versionCurrentlyShowing = 0 
-            this.updateProposalVersion(0)
+            if(0 != this.versionCurrentlyShowing) {
+                this.updateProposalVersion(0)
+                this.versionCurrentlyShowing = 0
+            }
 
             // Remove any previous revisions
             $(".revision_note").remove()
-
-            // Show a loading icon
-            this.isLoadingData = true;
 
             // Compare the data field and apply the revision notes
             let url = '/api/history/compare/field/' + 
@@ -614,9 +618,6 @@ export default {
             let comment_data_url = `/api/proposal/${this.proposal.id}/version_differences_comment_data.json?newer_version=${this.versionCurrentlyShowing}&older_version=${compare_version}`
             const comment_data_diffs = await Vue.http.get(comment_data_url);
             this.applyRevisionNotes(comment_data_diffs.data)
-
-             // Remove the loading icon
-             this.isLoadingData = false;
         },
         applyRevisionNotes: async function (diffdata) {
             // Append a revision note to the appropriate location in the DOM 

@@ -847,11 +847,11 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
         default_mapping = {datetime.datetime: lambda d: str(d)}
 
-        formatted_differences = json.dumps(json.loads(differences.to_json(default_mapping=default_mapping)), indent=4, sort_keys=True) #[1:-1]
+        json_differences = json.loads(differences.to_json(default_mapping=default_mapping))
 
-        logger.debug(f'\n\nformatted_differences = \n\n {formatted_differences}')
+        logger.debug(f'\n\json_differences = \n\n {json_differences}')
 
-        return literal_eval(formatted_differences)
+        return json_differences
 
     def get_version_differences_comment_and_assessor_data(self, field, newer_version: int, older_version: int):
         """ Returns the differences between the comment data of two versions
@@ -924,6 +924,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 # Also keep in mind that deep diff will return a different data structure once referral
                 # comments have been added.
                 
+                # Get the number between the first set of square brackets i.e. x in 'root[x].etc[y].etc[z]
                 regex = re.search('(?<=\[).+?(?=\])', str(key))
                 root_level = regex.group(0)
                 
@@ -933,7 +934,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 referrals = older_version_data[int(root_level)]['referrals']
                 logger.debug('\n\n type(referrals) ' + str(type(referrals)))
 
-                # Skip instances there there are no referrals in the old version
+                # Skip instances where there are no referrals in the old version
                 # and the assessor_comment hasn't actually changed this covers instances
                 # where the older version didn't have any referrals and the new version does
 
@@ -944,6 +945,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                                     assessor_comment, differences_list)
 
         logger.debug('\n\n differences_list ' + str(differences_list))
+
+        #differences_list_json = json.dumps(differences_list)
 
         return differences_list
 
