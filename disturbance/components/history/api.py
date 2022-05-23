@@ -9,12 +9,13 @@ import logging
 import datetime
 import json
 
-from ast import literal_eval
 from deepdiff import DeepDiff
 from django.apps import apps
+from django.http import JsonResponse
 from rest_framework import views
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
+
 from reversion.models import Version
 
 from disturbance.helpers import is_internal
@@ -105,7 +106,7 @@ class GetVersionView(InternalAuthorizationView):
 
         model = apps.get_model(app_label=app_label, model_name=model_name)
 
-        logger.debug('model = %s', model)
+        logger.info('model = %s', model)
 
         instance = model.objects.get(pk=int(pk))
 
@@ -190,14 +191,20 @@ class GetCompareVersionsView(InternalAuthorizationView):
         differences = DeepDiff(newer_version.field_dict, older_version.field_dict, \
                                 ignore_order=True)
 
-        default_mapping = {datetime.datetime: lambda d: str(d)}
+        default_mapping = {
+            datetime.datetime: lambda d: str(d),
+            datetime.date: lambda d: str(d)
+        }
 
-        formatted_differences = json.dumps(json.loads(differences.to_json(
-            default_mapping=default_mapping)), indent=4, sort_keys=True)
+        #formatted_differences = json.dumps(json.loads(differences.to_json(
+        #    default_mapping=default_mapping)), indent=4, sort_keys=True)
+
+        formatted_differences = json.loads(differences.to_json(
+            default_mapping=default_mapping))
 
         logger.debug('\n\nformatted_differences = %s \n\n', formatted_differences)              
 
-        return Response(literal_eval(formatted_differences))
+        return JsonResponse(formatted_differences)
 
 class GetCompareFieldVersionsView(InternalAuthorizationView):
     """ Returns the difference for a specific field
@@ -260,11 +267,14 @@ class GetCompareFieldVersionsView(InternalAuthorizationView):
                         differences_list.append({k.split('\'')[-2]:diff['new_value'],})
             return Response(differences_list)
 
-        default_mapping = {datetime.datetime: lambda d: str(d)}
+        default_mapping = {
+            datetime.datetime: lambda d: str(d),
+            datetime.date: lambda d: str(d)
+        }
 
-        formatted_differences = json.dumps(json.loads(differences.to_json(
-            default_mapping=default_mapping)), indent=4, sort_keys=True)
+        formatted_differences = json.loads(differences.to_json(
+            default_mapping=default_mapping))
 
         logger.debug('\n\nformatted_differences = %s \n\n', formatted_differences)   
 
-        return Response(literal_eval(formatted_differences))
+        return JsonResponse(formatted_differences)
