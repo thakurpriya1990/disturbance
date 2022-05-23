@@ -1,26 +1,28 @@
 #!/bin/bash
 ## sole parameter is an integer indicating incremental daily version
-## git branch --set-upstream-to=origin/das_dev das_dev	
+## git branch --set-upstream-to=origin/cols_dev cols_dev  
 
-if [ $# -lt 2 ]; then
-    echo "ERROR: Must specify <github branch> and <integer indicating incremental daily version> e.g."
-    echo "$0 das_dev 1 <optional: --no-cache>"
+#if [ `echo "$1"` -eq '--help' ]; then
+if [[ ( $@ == "--help") ||  $@ == "-h" ]]; then
+    echo "$0 <optional: --no-cache>"
     exit 1
 fi
 
-if [ $# -eq 3 ]; then
-    NO_CACHE=$3
+if [ $# -eq 1 ]; then
+    NO_CACHE=$1
 fi
 
-GIT_BRANCH=$1
-BUILD_TAG=dbcawa/disturbance:v$(date +%Y.%m.%d).$2
-git checkout $GIT_BRANCH &&
-git pull &&
+#GIT_BRANCH=$1
+#git checkout $GIT_BRANCH &&
+#git pull &&
+date_var=$(date +%Y.%m.%d.%H.%M%S)
+BUILD_TAG=dbcawa/disturbance:v$date_var
 cd disturbance/frontend/disturbance/ &&
 npm run build &&
 cd ../../../ &&
-source venv/bin/activate &&
-./manage_ds.py collectstatic --no-input &&
+#source venv/bin/activate &&
+#./manage_co.py collectstatic --no-input &&
+#git log --pretty=medium -30 > ./git_history_recent &&
 docker image build $NO_CACHE --tag $BUILD_TAG . &&
 echo $BUILD_TAG &&
 docker push $BUILD_TAG
