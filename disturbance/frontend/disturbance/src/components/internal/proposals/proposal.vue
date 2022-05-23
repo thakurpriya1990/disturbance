@@ -478,7 +478,8 @@ export default {
     },
     filters: {
         formatDate: function(data){
-            return data ? moment(data).format('MMMM Do YYYY') + ' at ' + moment(data).format('h:mm:ss a'): '';
+            // The only time the lodgement_date field should be empty is when viewing the final draft (just prior to submission)
+            return data ? moment(data).format('MMMM Do YYYY') + ' at ' + moment(data).format('h:mm:ss a'): 'Draft just prior to lodgement.';
         },
     },
     props: {
@@ -560,7 +561,7 @@ export default {
 
             /*  If we are not viewing the current version (which is always 0),
                 disable any action buttons and fields.
-                The most simple way to achieve this without changing the vue template is the just
+                The most simple way to achieve this without changing the vue template is to just
                 modify the assessor_mode variables to appropriate values.
             */
             if(proposal_version!=0) {
@@ -573,11 +574,6 @@ export default {
             } else {
                  //this.proposalContainerStyle.backgroundColor = '#ffffff';
                  document.body.style.backgroundColor = '#ffffff';             
-            }
-
-            // If we are looking at the draft version there will be no lodgement date
-            if(!this.proposal.lodgement_date) {
-                this.proposal.lodgement_date = 'Draft just prior to lodgement.';
             }
 
             // Update the DOM values to the correct data.
