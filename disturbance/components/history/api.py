@@ -191,7 +191,10 @@ class GetCompareVersionsView(InternalAuthorizationView):
         differences = DeepDiff(newer_version.field_dict, older_version.field_dict, \
                                 ignore_order=True)
 
-        default_mapping = {datetime.datetime: lambda d: str(d)}
+        default_mapping = {
+            datetime.datetime: lambda d: str(d),
+            datetime.date: lambda d: str(d)
+        }
 
         #formatted_differences = json.dumps(json.loads(differences.to_json(
         #    default_mapping=default_mapping)), indent=4, sort_keys=True)
@@ -264,7 +267,10 @@ class GetCompareFieldVersionsView(InternalAuthorizationView):
                         differences_list.append({k.split('\'')[-2]:diff['new_value'],})
             return Response(differences_list)
 
-        default_mapping = {datetime.datetime: lambda d: str(d)}
+        default_mapping = {
+            datetime.datetime: lambda d: str(d),
+            datetime.date: lambda d: str(d)
+        }
 
         formatted_differences = json.loads(differences.to_json(
             default_mapping=default_mapping))
