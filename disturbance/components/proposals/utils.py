@@ -1377,6 +1377,7 @@ def get_checkbox_option_children_new(section_question,question,section, parent_n
                 }
                 options.append(op_dict)
     for op in options:
+        conditions={}
         #op_name=parent_name+'-'+option_count
         op_name='{}-{}'.format(parent_name,option_count)
         op_dict={
