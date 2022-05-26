@@ -564,11 +564,12 @@ export default {
                 The most simple way to achieve this without changing the vue template is to just
                 modify the assessor_mode variables to appropriate values.
             */
+            let reversion_history_length = Object.keys(this.proposal.reversion_history).length
             if(proposal_version!=0) {
                 console.log('Viewing older version: Disabling buttons and fields')
                 this.proposal.assessor_mode.has_assessor_mode = false;
                 this.proposal.assessor_mode.assessor_can_assess = false;
-                this.proposal.lodgement_number = this.proposal.lodgement_number + `-${proposal_version} (${proposal_version} Older than current version)`
+                this.proposal.lodgement_number = this.proposal.lodgement_number + `-${reversion_history_length - proposal_version} (${proposal_version} Older than current version)`
                 //this.proposalContainerStyle.backgroundColor = '#efefef';
                 document.body.style.backgroundColor = '#f5f5dc';
             } else {
