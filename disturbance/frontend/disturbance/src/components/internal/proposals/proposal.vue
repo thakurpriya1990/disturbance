@@ -545,7 +545,8 @@ export default {
     methods: {
         updateProposalVersion: async function(proposal_version) {
             /* Changes the currently viewed Proposal and updates the values object on the ProposalDisturbace
-            component so data field values change in the DOM. */
+            component so data field values change in the DOM. 
+            */
 
             this.versionCurrentlyShowing = proposal_version
 
@@ -570,10 +571,8 @@ export default {
                 this.proposal.assessor_mode.has_assessor_mode = false;
                 this.proposal.assessor_mode.assessor_can_assess = false;
                 this.proposal.lodgement_number = this.proposal.lodgement_number + `-${reversion_history_length - proposal_version} (${proposal_version} Older than current version)`
-                //this.proposalContainerStyle.backgroundColor = '#efefef';
                 document.body.style.backgroundColor = '#f5f5dc';
             } else {
-                 //this.proposalContainerStyle.backgroundColor = '#ffffff';
                  document.body.style.backgroundColor = '#ffffff';             
             }
 
