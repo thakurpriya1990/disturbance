@@ -12,7 +12,7 @@
         </div>
         <div class="col-md-3">
             <CommsLogs :comms_url="comms_url" :logs_url="logs_url" :comms_add_url="comms_add_url" :disable_add_entry="false"/>
-            <div class="row" v-if="canSeeSubmission || versionCurrentlyShowing>0">
+            <div class="row" v-if="canSeeSubmission || (!canSeeSubmission && showingProposal) || versionCurrentlyShowing>0">
                 <div class="panel panel-default">
                     <div class="panel-heading">
                        Submission
@@ -643,12 +643,29 @@ export default {
                         replacement.after(replacement_html)
                     }
                     else if (replacement.attr('type') == "radio") {
-                        const replacement_html = "<input disabled class='revision_note' type='radio' id='radio' checked>" + 
+                        let replacement_html = ''
+                        if('yes' == revision_text){
+                            console.log('yes')
+                            replacement_html = "<div class='revision_note' style='border:1px solid red; padding:5px;'><div><div class='radio'><input style='margin:0; color: red;' disabled class='revision_note' type='radio' id='radio' checked>" + 
                                                  "<label class='revision_note' for='radio'" +
-                                                 "style='margin-top: -200px; text-transform: capitalize; color: red; padding-left: 10px; padding-bottom: 20px;'>" + 
+                                                 "style='text-transform: capitalize; color: red; '>" + 
                                                  revision_text +
-                                                 "</label><br class='revision_note'>"
-                        replacement.after(replacement_html)
+                                                 "</label></div></div>" +
+                                                 "<div><div class='radio'><input style='margin:0;' disabled class='revision_note' type='radio' id='radio'>" + 
+                                                 "<label class='revision_note' for='radio'" +
+                                                 "style='text-transform: capitalize; color: red; '>No</label></div></div></div>"
+                        } else {
+                            console.log('no')
+                            replacement_html = "<div class='revision_note' style='border:1px solid red; padding:5px;'><div><div class='radio'><input style='margin:0; color: red;' disabled class='revision_note' type='radio' id='radio'>" + 
+                                                 "<label class='revision_note' for='radio'" +
+                                                 "style='text-transform: capitalize; color: red;'>Yes</label></div></div>" +
+                                                 "<div><div class='radio'><input style='margin:0; color:red;' disabled class='revision_note' type='radio' id='radio' checked>" + 
+                                                 "<label class='revision_note' for='radio'" +
+                                                 "style='text-transform: capitalize; color: red;'>" + 
+                                                 revision_text +
+                                                 "</label></div></div></div>"
+                        }
+                        replacement.last().parent().after(replacement_html)
                     }
                     else {
                         const replacement_html = "<input disabled class='revision_note' style='width: 100%; margin-top: 3px; padding-top: 0px; color: red; border: 1px solid red;' value='" + 
