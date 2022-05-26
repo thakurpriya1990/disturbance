@@ -207,10 +207,10 @@ class SpatialQueryQuestionAdminForm(forms.ModelForm):
 
     class Meta:
         model = SpatialQueryQuestion
-        #fields = '__all__'
+        fields = '__all__'
         #fields= ('question', 'option', 'answer_type', 'help_text_url', 'help_text_assessor_url','help_text', 'help_text_assessor')
         #fields= ('question', 'answer_mlq')
-        fields= ('question',)
+        #fields= ('question',)
 
 #    def __init__(self, *args, **kwargs):
 #        super(SpatialQueryQuestionAdminForm, self).__init__(*args, **kwargs)

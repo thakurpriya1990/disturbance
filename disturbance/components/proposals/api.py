@@ -3946,6 +3946,29 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
 
         return Response(unique_layer_list)
 
+    @list_route(methods=['GET', ])
+    def grouped_by_question(self, request, *args, **kwargs):
+        """ http://localhost:8001/api/spatial_query/grouped_by_question.json 
+  
+            Group spatial query questions by layer_name
+        """
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+
+        rendered = JSONRenderer().render(serializer.data).decode('utf-8')
+        sqq_json = json.loads(rendered)
+
+        #import ipdb; ipdb.set_trace()
+        questions = [i['question'] for i in sqq_json]
+        unique_questions = list(set(questions))
+        question_group_list = [{'question_group': i, 'questions': []} for i in unique_questions]
+        for question_dict in question_group_list:
+            for sqq_record in sqq_json:
+                #print(j['layer_name'])
+                if question_dict['question_group'] in sqq_record.values():
+                    question_dict['questions'].append(sqq_record)
+
+        return Response(question_group_list)
 
     @list_route(methods=['GET', ])
     def get_spatialquery_selects(self, request, *args, **kwargs):

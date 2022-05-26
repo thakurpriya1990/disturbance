@@ -1230,7 +1230,7 @@ class SpatialQueryQuestionSerializer(serializers.ModelSerializer):
     '''
     Serializer for Schema builder using Masterlist questions.
     '''
-    options = serializers.SerializerMethodField()
+#    options = serializers.SerializerMethodField()
     #name = serializers.CharField(read_only=True)
 
     class Meta:
@@ -1239,10 +1239,10 @@ class SpatialQueryQuestionSerializer(serializers.ModelSerializer):
         #fields = ('id', 'question', 'options')
 
 
-    def get_options(self, obj):
-        #import ipdb; ipdb.set_trace()
-        #return obj.question.option.values_list('id','label','value')
-        return obj.question.option.values()
+#    def get_options(self, obj):
+#        #import ipdb; ipdb.set_trace()
+#        #return obj.question.option.values_list('id','label','value')
+#        return obj.question.option.values()
 
 
 class DTSpatialQueryQuestionSerializer(serializers.ModelSerializer):

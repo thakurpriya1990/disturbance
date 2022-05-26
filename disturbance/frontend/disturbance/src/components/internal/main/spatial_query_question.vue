@@ -50,6 +50,7 @@
             <div>
                 <form class="form-horizontal" name="spatial_query_question">
 
+                    <!--
                     <div class="row">
                         <div class="col-md-3">
                             <label class="control-label pull-left" >Question</label>
@@ -72,6 +73,28 @@
                             </select>     
                         </div>
                     </div>
+                    -->
+
+                    <div class="row"><div class="col-md-12" >&nbsp;</div></div>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label class="control-label pull-left" >Question</label>
+                        </div>
+                        <div class="col-md-9">
+                            <input class="form-control" name="layer_name" v-model="spatialquery.question"></input>
+                        </div>
+                    </div>
+
+                    <div class="row"><div class="col-md-12" >&nbsp;</div></div>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label class="control-label pull-left" >Answer</label>
+                        </div>
+                        <div class="col-md-9">
+                            <input class="form-control" name="layer_url" v-model="spatialquery.answer_mlq"></input>
+                        </div>
+                    </div>
+
 
                     <div class="row"><div class="col-md-12" >&nbsp;</div></div>
                     <div class="row">
