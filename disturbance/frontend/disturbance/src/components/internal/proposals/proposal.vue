@@ -26,6 +26,7 @@
                             <div class="col-sm-12 top-buffer-s">
                                 <strong>Lodged on</strong><br/>
                                 {{ proposal.lodgement_date | formatDate }}
+                                <input type="hidden" id="lodgement_date" value="">
                             </div>
                         </div>
                         <RevisionHistory v-if="showHistory" :revision_history_url="revision_history_url" :model_object="proposal" :history_context="history_context" @update_model_object="updateProposalVersion" @compare_model_versions="compareProposalVersions" />
@@ -42,6 +43,7 @@
                             <div class="col-sm-12">
                                 <strong>Status</strong><br/>
                                 {{ proposal.processing_status }}
+                                <input type="hidden" id="processing_status" value="">
                             </div>
                             <div class="col-sm-12">
                                 <div class="separator"></div>
@@ -592,8 +594,13 @@ export default {
             // Remove any previous revisions
             $(".revision_note").remove()
 
+            // Compare the root level elements (tenure, title etc. as there are not contained in the data field)
+            const root_level_elements_url = `/api/history/compare/root/fields/disturbance/Proposal/${this.proposal.id}/${this.versionCurrentlyShowing}/${compare_version}/?differences_only=True`
+            const root_level_element_diffs = await Vue.http.get(root_level_elements_url);
+            this.applyTenureRevisionNotes(root_level_element_diffs.data)  
+
             // Compare the data field and apply the revision notes
-            let url = '/api/history/compare/field/' + 
+            const url = '/api/history/compare/field/' + 
             this.history_context.app_label + '/' +
             this.history_context.model_name + '/' +
             this.proposal.id + '/' +
@@ -605,32 +612,37 @@ export default {
             const data_diffs = await Vue.http.get(url).then();
             this.applyRevisionNotes(data_diffs.data)
 
-            // Compare the assessor_data field and apply to revision notes
-            let assessor_data_url = `/api/proposal/${this.proposal.id}/version_differences_assessor_data.json?newer_version=${this.versionCurrentlyShowing}&older_version=${compare_version}`
+            // Compare the assessor_data field and apply revision notes
+            const assessor_data_url = `/api/proposal/${this.proposal.id}/version_differences_assessor_data.json?newer_version=${this.versionCurrentlyShowing}&older_version=${compare_version}`
             const assessor_data_diffs = await Vue.http.get(assessor_data_url);
             this.applyRevisionNotes(assessor_data_diffs.data)
 
-            // Compare the comment_data field and apply to revision notes
-            let comment_data_url = `/api/proposal/${this.proposal.id}/version_differences_comment_data.json?newer_version=${this.versionCurrentlyShowing}&older_version=${compare_version}`
+            // Compare the comment_data field and apply revision notes
+            const comment_data_url = `/api/proposal/${this.proposal.id}/version_differences_comment_data.json?newer_version=${this.versionCurrentlyShowing}&older_version=${compare_version}`
             const comment_data_diffs = await Vue.http.get(comment_data_url);
             this.applyRevisionNotes(comment_data_diffs.data)
         },
         applyRevisionNotes: async function (diffdata) {
             // Append a revision note to the appropriate location in the DOM 
             for (let entry in diffdata) {
+                //console.log('!@#$ entry = ' + entry)
                 for (let k in diffdata[entry]) {
-                    const revision_text = diffdata[entry][k]
+                    //console.log('!@#$ diffdata[entry] = ' + diffdata[entry])
+                    //console.log('!@#$ k = ' + k)
+                    let revision_text = diffdata[entry][k]
 
-                    if (revision_text == '') {continue;}
+                    if (revision_text == '') {revision_text = '<Blank>';}
                     //const replacement = $("#id_" + k ).parent().find('input')
                     const replacement = $('[name="' + k + '"]')
-                    console.log('selector = ', '[name="' + k + '"]')
-                    console.log('replacement = ', replacement)
-                    console.log('replacement is textarea = ', replacement.is('textarea'))
-                    console.log('replacement type = ', replacement.attr('type'))
+                    //console.log('!@#$ selector = ', '[name="' + k + '"]')
+                    //console.log('!@#$ replacement = ', replacement)
+                    //console.log('!@#$ replacement is textarea = ', replacement.is('textarea'))
+                    //console.log('!@#$ replacement type = ', replacement.attr('type'))
+                    if(replacement.is(':checkbox')){
+                        console.log('!@#$ is checkbox area')
 
-                    if(replacement.is('textarea')){
-                        console.log('is text area')
+                    }else if(replacement.is('textarea')){
+                        //console.log('is text area')
                         const replacement_html = "<textarea disabled class='revision_note' style='width: 100%; margin-top: 3px; padding-top: 0px; color: red; border: 1px solid red;'>" + 
                                                  revision_text + 
                                                  "</textarea>"
@@ -645,7 +657,7 @@ export default {
                     else if (replacement.attr('type') == "radio") {
                         let replacement_html = ''
                         if('yes' == revision_text){
-                            console.log('yes')
+                            //console.log('yes')
                             replacement_html = "<div class='revision_note' style='border:1px solid red; padding:5px;'><div><div class='radio'><input style='margin:0; color: red;' disabled class='revision_note' type='radio' id='radio' checked>" + 
                                                  "<label class='revision_note' for='radio'" +
                                                  "style='text-transform: capitalize; color: red; '>" + 
@@ -655,7 +667,7 @@ export default {
                                                  "<label class='revision_note' for='radio'" +
                                                  "style='text-transform: capitalize; color: red; '>No</label></div></div></div>"
                         } else {
-                            console.log('no')
+                            //console.log('no')
                             replacement_html = "<div class='revision_note' style='border:1px solid red; padding:5px;'><div><div class='radio'><input style='margin:0; color: red;' disabled class='revision_note' type='radio' id='radio'>" + 
                                                  "<label class='revision_note' for='radio'" +
                                                  "style='text-transform: capitalize; color: red;'>Yes</label></div></div>" +
@@ -672,12 +684,40 @@ export default {
                                                  revision_text + 
                                                  "'>"
                         //console.log('parent = ' + JSON.stringify($("#id_" + k ).parent()));
-                        console.log('replacement.siblings() = ', replacement.siblings())
-                        console.log('replacement_html = ' + replacement_html)
-                        replacement.after(replacement_html)
+                        //console.log('replacement.siblings() = ', replacement.siblings())
+                        //console.log('replacement_html = ' + replacement_html)
+                        replacement.last().after(replacement_html)
                     }
                 }
-            }            
+            }
+        },
+        applyTenureRevisionNotes: async function(diffdata) {
+            /*  For some reason the tenure field used to render the tenure checkbox list
+                Is not kept in the data field but comes back from deep diff as
+                a root level element root['tenure']
+                Without a section id we have to locate those elements manually
+            */
+            console.log('!@#$ =================== applyTenureRevisionNotes = ')
+            for (let entry in diffdata) {
+                for (let k in diffdata[entry]) {   
+                    if('tenure'==k){
+                        const revision_text = diffdata[entry][k];
+                        const land_tenures = revision_text.split(',');
+                        let replacement_html = '<div class="revision_note" style="color:red; border:1px solid red;">';
+                        replacement_html += '<div style="padding-left:15px;">';
+                        for(let i in land_tenures){
+                            replacement_html += `<div class="form-group"><div class="checkbox"><label><input type="checkbox" checked value="${land_tenures[i]}"> ${land_tenures[i]}</label></div></div>`;
+                        }
+                        replacement_html += '</div>'
+                        replacement_html += '</div>'
+                        const replacement = $('#section_tenureSection .panel-body').first()
+                        replacement.after(replacement_html);
+                        console.log('!@#$ div#section_tenureSection = ' + $('div#section_tenureSection'))
+                        //console.log('!@#$ replacement_html = ' + replacement_html)
+                        console.log('!@#$ tenure = ' + revision_text)
+                    }
+                }
+            }         
         },
         locationUpdated: function(){
             console.log('in locationUpdated()');
