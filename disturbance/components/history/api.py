@@ -206,6 +206,82 @@ class GetCompareVersionsView(InternalAuthorizationView):
 
         return JsonResponse(formatted_differences)
 
+
+class GetCompareSerializedVersionsView(InternalAuthorizationView):
+    """ Returns the difference between two specific versions of any model object
+        using any serializer.
+
+        api/history/compare/serialized/app_label/model_name/serializer_name/pk/newer_version/older_version/
+
+        Example:
+
+        api/history/compare/serialized/disturbance/Proposal/InternalProposalSerializer/1933/0/1/
+
+    """
+    def get(self, request, app_label, component_name, model_name, serializer_name, pk, \
+        newer_version, older_version):
+        """ Returns the difference between two specific versions of any model object
+        using any serializer """
+        super().get(self)
+
+        logger.debug('app_label = %s', app_label)
+        logger.debug('model_name = %s', model_name)
+        logger.debug('pk = %s', pk)
+
+        model = apps.get_model(app_label=app_label, model_name=model_name)
+
+        logger.debug('model = %s', model)
+
+        instance = model.objects.get(pk=int(pk))
+
+        """ It's important that we always retrieve the full list of unique
+            versions filtered by revision__comment
+
+            If instead we try to get the version by index like so:
+
+            Version.objects.get_for_object(instance)[int(newer_version)]
+
+            We will have the wrong data because not all versions are 
+            displayed on the front end, only those that are unique and
+            have a processing_status revision comment
+        """        
+        versions = list(Version.objects.get_for_object(instance).select_related('revision')\
+            .filter(revision__comment__contains='processing_status').get_unique())
+
+        newer_version = versions[int(newer_version)]
+        older_version = versions[int(older_version)]
+
+        serializer_class = getattr(
+            sys.modules[f'{app_label}.components.{component_name}.serializers'],
+            serializer_name)
+
+        model_class = instance.__class__
+
+        newer_instance = model_class(**newer_version.field_dict)
+        older_instance = model_class(**older_version.field_dict)
+
+        newer_version_serializer = serializer_class(newer_instance,context={'request':request})
+        older_version_serializer = serializer_class(older_instance,context={'request':request})
+
+        differences = DeepDiff(newer_version_serializer.data, older_version_serializer.data, \
+                                ignore_order=True)
+
+        default_mapping = {
+            datetime.datetime: lambda d: str(d),
+            datetime.date: lambda d: str(d)
+        }
+
+        #formatted_differences = json.dumps(json.loads(differences.to_json(
+        #    default_mapping=default_mapping)), indent=4, sort_keys=True)
+
+        formatted_differences = json.loads(differences.to_json(
+            default_mapping=default_mapping))
+
+        logger.debug('\n\nformatted_differences = %s \n\n', formatted_differences)              
+
+        return JsonResponse(formatted_differences)
+
+
 class GetCompareFieldVersionsView(InternalAuthorizationView):
     """ Returns the difference for a specific field
      between two specific versions of any model object
@@ -253,8 +329,8 @@ class GetCompareFieldVersionsView(InternalAuthorizationView):
         newer_version = versions[int(newer_version)]
         older_version = versions[int(older_version)]
 
-        logger.debug('\n\nnewer_version.field_dict[compare_field] = ' + str(newer_version.field_dict[compare_field]))
-        logger.debug('\n\nnewer_version.field_dict[compare_field] = ' + str(older_version.field_dict[compare_field]))
+        #logger.debug('\n\nnewer_version.field_dict[compare_field] = ' + str(newer_version.field_dict[compare_field]))
+        #logger.debug('\n\nnewer_version.field_dict[compare_field] = ' + str(older_version.field_dict[compare_field]))
 
         differences = DeepDiff(newer_version.field_dict[compare_field], older_version.field_dict[compare_field], ignore_order=True)
 
@@ -262,9 +338,78 @@ class GetCompareFieldVersionsView(InternalAuthorizationView):
         if differences_only:
             differences_list = []
             for difference in differences.items():
+                logger.debug(f'difference = {difference}')
                 if "values_changed" in difference:
                     for k, diff in difference[1].items():
+                        logger.debug(f'k = {k}')
+                        logger.debug(f'diff = {diff}')
                         differences_list.append({k.split('\'')[-2]:diff['new_value'],})
+                #if "" in difference:
+
+            return Response(differences_list)
+
+        default_mapping = {
+            datetime.datetime: lambda d: str(d),
+            datetime.date: lambda d: str(d)
+        }
+
+        formatted_differences = json.loads(differences.to_json(
+            default_mapping=default_mapping))
+
+        #logger.debug('\n\nformatted_differences = %s \n\n', formatted_differences)   
+
+        return JsonResponse(formatted_differences)
+
+
+class GetCompareRootLevelFieldsVersionsView(InternalAuthorizationView):
+    """ Returns the differences between the root level fields of any model object """
+    def get(self, request, app_label, model_name, pk, newer_version, older_version):
+        """ Returns the difference between all the root fields of two specific versions
+        of any model object """
+        super().get(self)
+
+        logger.debug('app_label = %s', app_label)
+        logger.debug('model_name = %s', model_name)
+        logger.debug('pk = %s', pk)
+
+        model = apps.get_model(app_label=app_label, model_name=model_name)
+
+        logger.debug('model = %s', model)
+
+        instance = model.objects.get(pk=int(pk))
+
+        """ It's important that we always retrieve the full list of unique
+            versions filtered by revision__comment
+
+            If instead we try to get the version by index like so:
+
+            Version.objects.get_for_object(instance)[int(newer_version)]
+
+            We will have the wrong data because not all versions are 
+            displayed on the front end, only those that are unique and
+            have a processing_status revision comment
+        """
+        versions = list(Version.objects.get_for_object(instance).select_related('revision')\
+            .filter(revision__comment__contains='processing_status').get_unique())
+
+        newer_version = versions[int(newer_version)]
+        older_version = versions[int(older_version)]
+
+        #logger.debug('\n\nnewer_version.field_dict = ' + str(newer_version.field_dict))
+        #logger.debug('\n\nnewer_version.field_dict = ' + str(older_version.field_dict))
+
+        differences = DeepDiff(newer_version.field_dict, older_version.field_dict, ignore_order=True)
+
+        differences_only = request.GET.get('differences_only')
+        if differences_only:
+            differences_list = []
+            for difference in differences.items():
+                if "values_changed" in difference:
+                    for k, diff in difference[1].items():
+                        #There will only be one opening square bracket for root level items
+                        if 1 == k.count('['):
+                            logger.debug('\n\nk = ' + k)
+                            differences_list.append({k.split('\'')[-2]:diff['new_value'],})
             return Response(differences_list)
 
         default_mapping = {
