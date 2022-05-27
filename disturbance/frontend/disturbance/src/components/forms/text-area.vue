@@ -16,6 +16,7 @@
                 <HelpTextUrl :help_text_url="help_text_assessor_url" assessorMode={assessorMode} isForAssessor={true} />
             </template> 
 
+            
 
             <template v-if="assessorMode">
                 <template v-if="!showingComment">
@@ -25,6 +26,7 @@
                 </template>
                 <a href="" v-else  @click.prevent="toggleComment"><i class="fa fa-ban">&nbsp;</i></a>
             </template>
+            <LayerInfo :help_text="value" />
             <textarea :readonly="readonly" class="form-control" rows="5" :name="name" :required="isRequired">{{ value }}</textarea>
         </div>
         <!-- <Comment :question="label" :readonly="assessor_readonly" :name="name+'-comment-field'" v-show="showingComment && assessorMode" :value="comment_value"/>  -->
@@ -38,10 +40,11 @@ import Comment from './comment.vue'
 import CommentBox from './comment_box_referral.vue'
 import HelpText from './help_text.vue'
 import HelpTextUrl from './help_text_url.vue'
+import LayerInfo from './layer_info.vue'
 export default {
     name:"text-area",
     props:["name","value", "id", "isRequired", "help_text","help_text_assessor","assessorMode","label","readonly","comment_value","assessor_readonly", "help_text_url", "help_text_assessor_url","comment_boxes",],
-    components: {Comment, HelpText, HelpTextUrl, CommentBox},
+    components: {Comment, HelpText, HelpTextUrl, CommentBox, LayerInfo},
     data(){
         let vm = this;
         return {
