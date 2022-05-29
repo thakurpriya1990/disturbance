@@ -321,11 +321,19 @@ class ComplianceViewSet(viewsets.ModelViewSet):
         try:
             with transaction.atomic():
                 instance = self.get_object()
+
                 data = {
                 'text': request.data.get('detail')
                 }
                 serializer = SaveComplianceSerializer(instance, data=data)
                 serializer.is_valid(raise_exception=True)
+
+                # Must ensure processing_status is "future" or "due" to prevent modification of
+                # data that has previously been approved or is with assessor.
+                if instance.processing_status not in [instance.PROCESSING_STATUS_CHOICES[0][0],
+                                                      instance.PROCESSING_STATUS_CHOICES[1][0]]:
+                    raise serializers.ValidationError("Compliance Request is not in the correct processing status: ",
+                                                       instance.processing_status)
                 instance = serializer.save()
                 if instance.apiary_compliance:
                     instance.apiary_submit(request)
@@ -392,7 +400,7 @@ class ComplianceViewSet(viewsets.ModelViewSet):
             user_id = request.data.get('user_id',None)
             user = None
             if not user_id:
-                raise serializers.ValiationError('A user id is required')
+                raise serializers.ValidationError('A user id is required')
             try:
                 user = EmailUser.objects.get(id=user_id)
             except EmailUser.DoesNotExist:

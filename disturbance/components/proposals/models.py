@@ -1,10 +1,15 @@
 from __future__ import unicode_literals
 
+import logging
+import copy
+import subprocess
+import collections
 import json
 import datetime
-
 import pytz
 import requests
+import re
+
 from dateutil.relativedelta import relativedelta
 from django.contrib.gis.db.models.fields import PointField
 from django.contrib.gis.db.models.manager import GeoManager
@@ -20,15 +25,23 @@ from django.utils.encoding import python_2_unicode_compatible
 from django.core.exceptions import ValidationError
 from django.contrib.postgres.fields.jsonb import JSONField
 from django.utils import timezone
+
+from dirtyfields import DirtyFieldsMixin
+from reversion.models import Version
+from deepdiff import DeepDiff
+from multiselectfield import MultiSelectField
+from smart_selects.db_fields import ChainedForeignKey, ChainedManyToManyField
+from rest_framework import serializers
+from ast import literal_eval
+from taggit.models import TaggedItemBase
+
 from ledger.checkout.utils import createCustomBasket
 from ledger.payments.invoice.utils import CreateInvoiceBasket
 from ledger.settings_base import TIME_ZONE
-from rest_framework import serializers
-from taggit.models import TaggedItemBase
+
 from ledger.accounts.models import EmailUser, RevisionedMixin
 from ledger.payments.models import Invoice
 from disturbance import exceptions
-# from disturbance.components.approvals.models import ApiarySiteOnApproval
 from disturbance.components.organisations.models import Organisation
 from disturbance.components.main.models import CommunicationsLogEntry, UserAction, Document, Region, District, \
     ApplicationType, RegionDbca, DistrictDbca, CategoryDbca
@@ -50,12 +63,7 @@ from disturbance.components.proposals.email import (
         send_site_transfer_approval_email_notification,
         )
 from disturbance.ordered_model import OrderedModel
-import copy
-import subprocess
-from multiselectfield import MultiSelectField
-from smart_selects.db_fields import ChainedForeignKey, ChainedManyToManyField
 
-import logging
 
 from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_PENDING, SITE_STATUS_APPROVED, SITE_STATUS_DENIED, \
     SITE_STATUS_CURRENT, RESTRICTED_RADIUS, SITE_STATUS_TRANSFERRED, PAYMENT_SYSTEM_ID, PAYMENT_SYSTEM_PREFIX
@@ -108,6 +116,10 @@ class ProposalType(models.Model):
             else:
                 False
         return False
+
+    @property
+    def name_with_version(self):
+        return '{} - v{}'.format(self.name, self.version)
 
     @property
     def apiary_group_proposal_type(self):
@@ -272,8 +284,7 @@ class ProposalDocument(Document):
 def fee_invoice_references_default():
     return []
 
-
-class Proposal(RevisionedMixin):
+class Proposal(DirtyFieldsMixin, RevisionedMixin):
     CUSTOMER_STATUS_TEMP = 'temp'
     CUSTOMER_STATUS_DRAFT = 'draft'
     CUSTOMER_STATUS_WITH_ASSESSOR = 'with_assessor'
@@ -434,14 +445,35 @@ class Proposal(RevisionedMixin):
 
     def __str__(self):
         return str(self.id)
-
-    #Append 'P' to Proposal id to generate Lodgement number. Lodgement number and lodgement sequence are used to generate Reference.
+      
+    
     def save(self, *args, **kwargs):
-        super(Proposal, self).save(*args,**kwargs)
+        # Store the original values of fields we want to keep track of in 
+        # django reversion before they are overwritten by super() below
+        original_processing_status = self._original_state['processing_status']
+        original_assessor_data = self._original_state['assessor_data']
+        original_comment_data = self._original_state['comment_data']
+
+        # Populate self with the new field values
+        super(Proposal, self).save(*args, **kwargs)
+
+        # Append 'P' to Proposal id to generate Lodgement number.
+        # Lodgement number and lodgement sequence are used to generate Reference.
         if self.lodgement_number == '':
             new_lodgment_id = 'P{0:06d}'.format(self.pk)
             self.lodgement_number = new_lodgment_id
-            self.save()
+            self.save(version_comment=f'processing_status: {self.processing_status}')
+        
+        # If the processing_status has changed then add a reversion comment
+        # so we have a way of filtering based on the status changing
+        if self.processing_status != original_processing_status:
+            self.save(version_comment=f'processing_status: {self.processing_status}')
+        elif self.assessor_data != original_assessor_data:
+            # Although the status hasn't changed we add the text 'processing_status'
+            # So we can filter based on it later (for both assessor_data nd comment_data)
+            self.save(version_comment='assessor_data: Has changed - tagging with processing_status')
+        elif self.comment_data != original_comment_data:
+            self.save(version_comment='comment_data: Has changed - tagging with processing_status')
 
     @property
     def fee_paid(self):
@@ -596,8 +628,6 @@ class Proposal(RevisionedMixin):
         """
         return self.customer_status in self.CUSTOMER_VIEWABLE_STATE
 
-
-
     @property
     def is_discardable(self):
         """
@@ -676,6 +706,312 @@ class Proposal(RevisionedMixin):
                 ):
             apiary = True
         return apiary
+
+    def get_revision(self, version_number):
+        """
+        Gets a full Proposal version to show when the View button is clicked.
+        """
+
+        versions = self.get_reversion_history()
+
+        return versions[version_number].field_dict
+
+
+        """
+        all_revisions_list = list(self.get_reversion_history().values())
+        print(all_revisions_list[version_number].field_dict["data"][0].keys())
+        version1 = all_revisions_list[version_number].field_dict["data"]
+        version = all_revisions_list[version_number].field_dict["data"][0]
+        dic = self.flatten_json(version)
+
+        out = {}
+        for k, v in dic.items():
+            out[k.split('_0_')[1]] = v
+        return version1
+        """
+
+    def get_revision_flat(self, version_number):
+        """
+        Gets all the differences in Proposal version to show when the Compare link is clicked.
+        """
+
+        all_revisions_list = list(self.get_reversion_history().values())
+        version = all_revisions_list[version_number].field_dict["data"][0]
+        dic = self.flatten_json(version)
+
+        out = {}
+        for k, v in dic.items():
+            out[k.split('_0_')[1]] = v
+        return out
+
+    def flatten_json(self, dictionary):
+        """ 
+        Flatten a nested json string.
+        """
+        from itertools import chain, starmap
+
+        def unpack(parent_key, parent_value):
+            # Unpack one level of nesting in json file.
+            # Unpack one level only!!!
+            
+            if isinstance(parent_value, dict):
+                for key, value in parent_value.items():
+                    temp1 = parent_key + '_' + key
+                    yield temp1, value
+            elif isinstance(parent_value, list):
+                i = 0 
+                for value in parent_value:
+                    temp2 = parent_key + '_'+str(i) 
+                    i += 1
+                    yield temp2, value
+            else:
+                yield parent_key, parent_value    
+
+                
+        # Keep iterating until the termination condition is satisfied
+        while True:
+            # Keep unpacking the json file until all values are atomic elements (not dictionary or list)
+            dictionary = dict(chain.from_iterable(starmap(unpack, dictionary.items())))
+            # Terminate condition: not any value in the json file is dictionary or list
+            if not any(isinstance(value, dict) for value in dictionary.values()) and \
+            not any(isinstance(value, list) for value in dictionary.values()):
+                break
+
+        return dictionary
+
+    def get_revision_diff(self, newer_version, older_version):
+        """
+        Gets all the revision differences between the most recent revision and the revision specified.
+        """
+
+        versions = self.get_reversion_history()
+
+        # all_revisions_list = list(self.get_reversion_history().values())
+
+        versions_length = len(versions)
+
+        logger.debug(f'newer_version = {newer_version}')
+        logger.debug(f'older_version = {older_version}')
+
+        newer_version = versions[newer_version].field_dict["data"]
+
+        older_version = versions[older_version].field_dict["data"]
+
+        diffs = DeepDiff(newer_version, older_version, ignore_order=True)
+
+        diffs_list = []
+        for v in diffs.items():
+            if "values_changed" in v:
+                for k, v in v[1].items():
+                    diffs_list.append({k.split('\'')[-2]:v['new_value'],})
+        return diffs_list
+
+
+    def get_version_differences(self, newer_version: int, older_version: int):
+        """ Returns the differences between two versions
+
+        The most recent version is always 0.
+
+        The second most recent version is 1 and so on all the way to the oldest
+        version
+
+        This method will raise an Exception if the newer_version argument is
+        higher than or equal to the older version to make sure we are indeed
+        comparing a newer version with an older version.
+
+        See: https://django-reversion.readthedocs.io for more information.
+
+        """
+
+        # Fail if either argument is negative
+        if(newer_version<0 or older_version<0):
+            raise Exception('The newer_version and older_version arguements must be 0 or higher')
+
+        # Refuse to compare if the newer version is not actually newer
+        if(newer_version>=older_version):
+            raise Exception('The newer_version arguement must be smaller than the older_version argument')
+
+        versions = self.get_reversion_history()
+
+        # Complain if either requested version doesn't exist
+        if (newer_version>=(len(versions)-1)):
+            raise IndexError(f'The newer_version you requested "{newer_version}" doesn\'t exist')
+
+        if (older_version>(len(versions)-1)):
+            raise IndexError(f'The older_version you requested "{older_version}" doesn\'t exist')
+
+        newer_version_data = versions[newer_version].field_dict
+        older_version_data = versions[older_version].field_dict
+
+        differences = DeepDiff(newer_version_data, older_version_data, ignore_order=True)
+
+        default_mapping = {datetime.datetime: lambda d: str(d)}
+
+        json_differences = json.loads(differences.to_json(default_mapping=default_mapping))
+
+        logger.debug(f'\n\json_differences = \n\n {json_differences}')
+
+        return json_differences
+
+    def get_version_differences_comment_and_assessor_data(self, field, newer_version: int, older_version: int):
+        """ Returns the differences between the comment data of two versions
+
+        Due to the structure of the 'comment_data' and 'assessor_data' fields being different to the 
+        structure of the 'data' field, we need some custom logic to return the section identifier and
+        the email for the referrer.
+
+        This makes it possible for the compare function on the front end to append the revision notes
+        to the correct location quite easily.
+
+        This method only works when each item in the JSON field has it's data in the following
+        structure:
+
+        {
+        "name": "Section0-7Group1-1-Yes2",
+        "assessor": "",
+        "referrals": [
+            {
+            "email": "tracy.sonneman@dbca.wa.gov.au",
+            "value": "",
+            "full_name": "Tracy Sonneman"
+            }
+        ]
+        },
+
+        """
+
+        # Fail if either argument is negative
+        if(newer_version<0 or older_version<0):
+            raise Exception('The newer_version and older_version arguements must be 0 or higher')
+
+        # Refuse to compare if the newer version is not actually newer
+        if(newer_version>=older_version):
+            raise Exception('The newer_version arguement must be smaller than the older_version argument')
+
+        versions = list(Version.objects.get_for_object(self).select_related('revision')\
+            .filter(revision__comment__contains='processing_status').get_unique())
+
+        newer_version_data = versions[newer_version].field_dict[field]
+        older_version_data = versions[older_version].field_dict[field]
+
+        differences = DeepDiff(newer_version_data, older_version_data, ignore_order=True)
+
+        logger.debug(f'differences = {type(differences)}')
+
+        json_differences = json.loads(differences.to_json())
+
+        differences_list = []
+
+        if not 'values_changed' in json_differences:
+            return differences_list
+
+        values_changed = json_differences['values_changed']
+
+        for key in values_changed:
+            logger.debug('\n\n key = ' + str(key))
+            logger.debug('\n\n new value = ' + str(values_changed[key]['new_value']))
+            logger.debug('\n\n old value = ' + str(values_changed[key]['old_value']))
+
+            if(values_changed[key]['new_value']):
+                # Due to the structure of comment_data and assessor_data we need to get the section name
+                # for both the comments and the referral comments.
+                #    
+                # We also need the email for the Refferal comments.
+                #
+                # With this information we can attach the revision notes in the right place on the frontend
+                # quite easily.
+                #
+                # Also keep in mind that deep diff will return a different data structure once referral
+                # comments have been added.
+                
+                # Get the number between the first set of square brackets i.e. x in 'root[x].etc[y].etc[z]
+                regex = re.search('(?<=\[).+?(?=\])', str(key))
+                root_level = regex.group(0)
+                
+                assessor_comment = older_version_data[int(root_level)]['assessor']
+                assessor_comment_newer = newer_version_data[int(root_level)]['assessor']
+
+                referrals = older_version_data[int(root_level)]['referrals']
+                logger.debug('\n\n type(referrals) ' + str(type(referrals)))
+
+                # Skip instances where there are no referrals in the old version
+                # and the assessor_comment hasn't actually changed this covers instances
+                # where the older version didn't have any referrals and the new version does
+
+                if len(referrals) == 0 and assessor_comment == assessor_comment_newer:
+                    continue
+
+                differences_list = self.append_to_differences_list_by_field(field, older_version_data, values_changed, key, root_level,
+                                    assessor_comment, differences_list)
+
+        logger.debug('\n\n differences_list ' + str(differences_list))
+
+        #differences_list_json = json.dumps(differences_list)
+
+        return differences_list
+
+    def append_to_differences_list_by_field(self, field, older_version_data, values_changed, key, root_level, \
+                                            assessor_comment, differences_list):
+        """ Returns the differences list with the appropriate keys depending on the field type
+            (either assessor_data or comment_data)
+
+            Mainly used to break up the complexity of the get_version_differences_comment_and_assessor_data
+            method.
+        
+        """
+        root_level_name = older_version_data[int(root_level)]['name']
+
+        if 'referrals' in key:
+            logger.debug('found a referral')
+            referrer = older_version_data[int(root_level)]['referrals']
+            logger.debug('\n\n referrer ' + str(referrer))
+            referrer_email = referrer[0]['email']
+            logger.debug('\n\n referrer_email ' + str(referrer_email))
+
+            if referrer_email:
+                if 'comment_data' == field:
+                    root_level_name += f'-comment-field-Referral-{referrer_email}'
+                else:
+                    root_level_name += f'-Referral-{referrer_email}'
+                    
+                differences_list.append({root_level_name:values_changed[key]['new_value']}) 
+        else:
+            if assessor_comment:
+                if 'comment_data' == field:
+                    root_level_name += '-comment-field-Assessor'
+                else:
+                    root_level_name += '-Assessor' 
+                logger.debug('\n\n type(new_value) ' + str(type(values_changed[key]['new_value'])))
+                if(type(values_changed[key]['new_value']) is dict):
+                    # Once referrer comments are added we will get a dictionary here
+                    new_value_dict = values_changed[key]['new_value']
+                    new_value = new_value_dict['assessor']
+                    differences_list.append({root_level_name:new_value})
+                else:
+                    differences_list.append({root_level_name:values_changed[key]['new_value']})
+        return differences_list
+
+
+    def get_reversion_history(self):
+        """
+        Get the revisions for this Proposal where the processing_status has changed
+        """
+        # Get all revisions that have been submitted (not just saved by user) including the original.
+        #all_revisions = [v for v in Version.objects.get_for_object(self)[0:] if not v.field_dict['customer_status'] == 'draft']
+        # Strip out duplicates (only take the most recent of a revision).
+        #unique_revisions = collections.OrderedDict({v.field_dict['lodgement_date']:v for v in all_revisions})
+
+        unique_revisions = Version.objects.get_for_object(self).select_related('revision').filter(revision__comment__contains='processing_status')
+
+        return unique_revisions
+
+    def get_full_reversion_history(self):
+        """  Get all the revisions for this Proposal.
+        """
+
+        revisions = Version.objects.get_for_object(self).select_related('revision')
+
+        return revisions
 
     def __assessor_group(self):
         # Alternative logic for Apiary applications

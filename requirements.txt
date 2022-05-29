@@ -51,3 +51,4 @@ django-treebeard==4.3.1
 git+https://github.com/digi604/django-smart-selects.git@js-unlinting-fixes
 django-multiselectfield==0.1.12
 psycopg2==2.8.6
+deepdiff==5.7.0
