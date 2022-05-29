@@ -1,4 +1,5 @@
 import re
+from telnetlib import NEW_ENVIRON
 import traceback
 import os
 
@@ -16,7 +17,7 @@ from rest_framework.renderers import JSONRenderer
 from ledger.accounts.models import EmailUser
 from datetime import datetime
 
-from django.http import HttpResponse#, JsonResponse, Http404
+from django.http import HttpResponse, JsonResponse #, Http404
 from disturbance.components.approvals.email import (
     send_contact_licence_holder_email,
     send_on_site_notification_email,
@@ -130,7 +131,7 @@ from disturbance.components.approvals.models import Approval, ApiarySiteOnApprov
 from disturbance.components.approvals.serializers import ApprovalLogEntrySerializer
 from disturbance.components.compliances.models import Compliance
 
-from disturbance.helpers import is_authorised_to_modify, is_customer, is_internal, is_das_apiary_admin
+from disturbance.helpers import is_authorised_to_modify, is_customer, is_internal, is_das_apiary_admin, is_authorised_to_modify_draft
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from rest_framework.pagination import PageNumberPagination
@@ -629,7 +630,6 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
 
     @list_route(methods=['GET', ])
     @basic_exception_handler
-    @query_debugger
     def list_apiary_sites_vacant(self, request):
         search_text = request.query_params.get('search_text', '')
         qs_vacant_site_proposal, qs_vacant_site_approval = get_qs_vacant_site(search_text)
@@ -1397,6 +1397,101 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
+    @detail_route(methods=['POST',])
+    def get_revision(self, request, *args, **kwargs):
+        """
+        Use the Proposal model method to get a particular Proposal revision.
+        """
+        try:
+            instance = self.get_object()
+            version_number = request.data.get("version_number")
+            revision = instance.get_revision_flat(version_number)
+            
+            return Response(revision)
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['GET',])
+    def get_revision_diffs(self, request, *args, **kwargs):
+        """
+        Use the Proposal model method to get the differences between the lastest revision and
+        the revision specified.
+        """
+        try:
+            instance = self.get_object()
+            newer_version = int(request.GET.get("newer_version"))
+            older_version = int(request.GET.get("older_version"))
+            diffs = instance.get_revision_diff(newer_version, older_version)
+
+            return Response(diffs)
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['GET'])
+    def version_differences(self, request, *args, **kwargs):
+        """ Returns a json response containing the differences between two 
+            versions.
+        
+        """
+        try:
+            newer_version = int(request.GET.get("newer_version"))
+            older_version = int(request.GET.get("older_version"))
+        except ValueError as e:
+            raise serializers.ValidationError(str(e))
+
+        instance = self.get_object()
+        differences = instance.get_version_differences(newer_version, older_version)
+
+        return Response(differences)
+
+    @detail_route(methods=['GET'])
+    def version_differences_comment_data(self, request, *args, **kwargs):
+        """ Returns a json response containing the differences between two 
+            versions.
+        
+        """
+        try:
+            newer_version = int(request.GET.get("newer_version"))
+            older_version = int(request.GET.get("older_version"))
+        except ValueError as e:
+            raise serializers.ValidationError(str(e))
+
+        instance = self.get_object()
+        differences = instance.get_version_differences_comment_and_assessor_data('comment_data', newer_version, older_version)
+
+        return JsonResponse(differences, safe=False)
+
+    @detail_route(methods=['GET'])
+    def version_differences_assessor_data(self, request, *args, **kwargs):
+        """ Returns a json response containing the differences between two 
+            versions.
+        
+        """
+        try:
+            newer_version = int(request.GET.get("newer_version"))
+            older_version = int(request.GET.get("older_version"))
+        except ValueError as e:
+            raise serializers.ValidationError(str(e))
+
+        instance = self.get_object()
+        differences = instance.get_version_differences_comment_and_assessor_data('assessor_data', newer_version, older_version)
+
+        return JsonResponse(differences, safe=False)
+
     @detail_route(methods=['POST'])
     @renderer_classes((JSONRenderer,))
     def process_deed_poll_document(self, request, *args, **kwargs):
@@ -1719,6 +1814,22 @@ class ProposalViewSet(viewsets.ModelViewSet):
         #serializer = InternalProposalSerializer(instance,context={'request':request})
         serializer_class = self.internal_serializer_class()
         serializer = serializer_class(instance,context={'request':request})
+        return Response(serializer.data)
+
+    @detail_route(methods=['GET',])
+    def internal_revision_proposal(self, request, *args, **kwargs):
+        
+        instance = self.get_object()
+
+        version_number = int(request.query_params.get("revision_number"))
+        revision = instance.get_revision(version_number)
+        
+        # Populate a new Proposal object with the version data
+        instance = Proposal(**revision)
+
+        serializer_class = self.internal_serializer_class()
+        serializer = serializer_class(instance,context={'request':request})
+
         return Response(serializer.data)
 
     @detail_route(methods=['GET',])
@@ -2076,8 +2187,9 @@ class ProposalViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
 
+            print('in draft')
             # Ensure the current user is a member of the organisation that created the draft application.
-            is_authorised_to_modify(request, instance)
+            is_authorised_to_modify_draft(request, instance)
 
             save_proponent_data(instance, request, self)
             return redirect(reverse('external'))
@@ -2088,7 +2200,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(repr(e.error_dict))
         except Exception as e:
             print(traceback.print_exc())
-        raise serializers.ValidationError(str(e))
+            raise serializers.ValidationError(str(e))
 
     @detail_route(methods=['post'])
     @renderer_classes((JSONRenderer,))
@@ -3108,7 +3220,7 @@ class SchemaQuestionFilterBackend(DatatablesFilterBackend):
         # ).filter_queryset(request, queryset, view).distinct()
 
         search_text = request.GET.get('search[value]')
-        purpose = request.GET.get('licence_purpose_id')
+        proposal_type = request.GET.get('proposal_type_id')
         section = request.GET.get('section_id')
         group = request.GET.get('group_id')
 
@@ -3126,14 +3238,14 @@ class SchemaQuestionFilterBackend(DatatablesFilterBackend):
                     id__in=search_text_question_ids
                 ).distinct()
 
-            purpose = purpose.lower() if purpose else 'all'
-            if purpose != 'all':
-                purpose_ids = SectionQuestion.objects.values(
+            proposal_type = proposal_type.lower() if proposal_type else 'all'
+            if proposal_type != 'all':
+                proposal_type_ids = SectionQuestion.objects.values(
                     'id'
                 ).filter(
-                    section__licence_purpose_id=int(purpose)
+                    section__proposal_type_id=int(proposal_type)
                 )
-                queryset = queryset.filter(id__in=purpose_ids)
+                queryset = queryset.filter(id__in=proposal_type_ids)
 
             section = section.lower() if section else 'all'
             if section != 'all':
@@ -3368,7 +3480,7 @@ class SchemaQuestionViewSet(viewsets.ModelViewSet):
             qs = ProposalType.objects.filter().exclude(sections=None)
             proposal_types = [
                 {
-                    'label': p.name,
+                    'label': p.name_with_version,
                     'value': p.id
                 } for p in qs
             ]
@@ -3589,7 +3701,7 @@ class SchemaProposalTypeViewSet(viewsets.ModelViewSet):
             sections = ProposalType.objects.all()
             proposal_types = [
                 {
-                    'label': s.name,
+                    'label': s.name_with_version,
                     'value': s.id,
                 } for s in sections if not s.apiary_group_proposal_type and s.latest
             ]

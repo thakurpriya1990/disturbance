@@ -12,7 +12,7 @@
         </div>
         <div class="col-md-3">
             <CommsLogs :comms_url="comms_url" :logs_url="logs_url" :comms_add_url="comms_add_url" :disable_add_entry="false"/>
-            <div class="row" v-if="canSeeSubmission">
+            <div class="row" v-if="canSeeSubmission || versionCurrentlyShowing>0">
                 <div class="panel panel-default">
                     <div class="panel-heading">
                        Submission
@@ -25,43 +25,13 @@
                             </div>
                             <div class="col-sm-12 top-buffer-s">
                                 <strong>Lodged on</strong><br/>
-                                {{ proposal.lodgement_date | formatDate}}
-                            </div>
-                            <div class="col-sm-12 top-buffer-s">
-                                <table class="table small-table">
-                                    <tr>
-                                        <th>Lodgement</th>
-                                        <th>Date</th>
-                                        <th>Action</th>
-                                    </tr>
-                                </table>
+                                {{ proposal.lodgement_date | formatDate }}
                             </div>
                         </div>
+                        <RevisionHistory v-if="showHistory" :revision_history_url="revision_history_url" :model_object="proposal" :history_context="history_context" @update_model_object="updateProposalVersion" @compare_model_versions="compareProposalVersions" />
                     </div>
                 </div>
             </div>
-
-
-            <!--
-            <div class="row" v-if="canSeeSubmission">
-                <div class="panel panel-default">
-                    <div class="panel-heading">
-                       History
-                    </div>
-                                    <table class="table small-table">
-                                        <tr>
-                                            <th>ID</th>
-                                            <th>Last Modified</th>
-                                        </tr>
-                                        <tr v-for="p in proposal.get_history">
-                                            <td>{{ p.id }}</td>
-                                            <td>{{ p.modified | formatDate}}</td>
-                                        </tr>
-                                    </table>
-                </div>
-            </div>
-            -->
-
             <div class="row">
                 <div class="panel panel-default">
                     <div class="panel-heading">
@@ -353,7 +323,13 @@
                                     <ProposalApiary v-if="proposal" :proposal="proposal" id="proposalStart" :showSections="sectionShow" ref="proposal_apiary" :is_external="false" :is_internal="true" :hasAssessorMode="hasAssessorMode"></ProposalApiary>
                                 </div>
                                 <div v-else>
-                                    <ProposalDisturbance form_width="inherit" :withSectionsSelector="false" v-if="proposal" :proposal="proposal"> </ProposalDisturbance>
+                                    <ProposalDisturbance 
+                                    ref="proposal_disturbance" 
+                                    form_width="inherit" 
+                                    :withSectionsSelector="false" 
+                                    v-if="proposal" 
+                                    :proposal="proposal"
+                                    />
                                     <NewApply v-if="proposal" :proposal="proposal"></NewApply>
                                 </div>
 
@@ -386,6 +362,7 @@
         <AmendmentRequest ref="amendment_request" :proposal_id="proposal.id" @refreshFromResponse="refreshFromResponse"></AmendmentRequest>
         <ProposedApproval ref="proposed_approval" :processing_status="proposal.processing_status" :proposal_id="proposal.id" :proposal_type='proposal.proposal_type' :isApprovalLevelDocument="isApprovalLevelDocument" :submitter_email="proposal.submitter_email" :applicant_email="applicant_email" @refreshFromResponse="refreshFromResponse"/>
     </div>
+    
 </template>
 <script>
 import ProposalDisturbance from '../../form.vue'
@@ -399,6 +376,7 @@ import Requirements from './proposal_requirements.vue'
 import ProposedApproval from './proposed_issuance.vue'
 import ApprovalScreen from './proposal_approval.vue'
 import CommsLogs from '@common-utils/comms_logs.vue'
+import RevisionHistory from '@common-utils/revision_history.vue'
 import MoreReferrals from '@common-utils/more_referrals.vue'
 import ResponsiveDatatablesHelper from "@/utils/responsive_datatable_helper.js"
 import { api_endpoints, helpers } from '@/utils/hooks'
@@ -470,8 +448,18 @@ export default {
             comms_url: helpers.add_endpoint_json(api_endpoints.proposals,vm.$route.params.proposal_id+'/comms_log'),
             comms_add_url: helpers.add_endpoint_json(api_endpoints.proposals,vm.$route.params.proposal_id+'/add_comms_log'),
             logs_url: helpers.add_endpoint_json(api_endpoints.proposals,vm.$route.params.proposal_id+'/action_log'),
+            revision_history_url: helpers.add_endpoint_json(api_endpoints.proposals,vm.$route.params.proposal_id+'/revision_history'),
             panelClickersInitialised: false,
             sendingReferral: false,
+            versionCurrentlyShowing: 0,
+            showHistory: false,
+            history_context: {
+                reference_id_field: 'lodgement_number',
+                app_label: 'disturbance',
+                component_name: 'proposals',
+                model_name: 'Proposal',
+                serializer_name: 'InternalProposalSerializer',
+            }
         }
     },
     components: {
@@ -484,13 +472,15 @@ export default {
         ProposedApproval,
         ApprovalScreen,
         CommsLogs,
+        RevisionHistory,
         MoreReferrals,
         NewApply,
     },
     filters: {
         formatDate: function(data){
-            return data ? moment(data).format('DD/MM/YYYY HH:mm:ss'): '';
-        }
+            // The only time the lodgement_date field should be empty is when viewing the final draft (just prior to submission)
+            return data ? moment(data).format('MMMM Do YYYY') + ' at ' + moment(data).format('h:mm:ss a'): 'Draft just prior to lodgement.';
+        },
     },
     props: {
         proposalId: {
@@ -501,6 +491,7 @@ export default {
 
     },
     computed: {
+        console: () => console,
         contactsURL: function(){
             return this.proposal!= null ? helpers.add_endpoint_json(api_endpoints.organisations,this.proposal.applicant.id+'/contacts') : '';
         },
@@ -552,6 +543,125 @@ export default {
         },
     },
     methods: {
+        updateProposalVersion: async function(proposal_version) {
+            /* Changes the currently viewed Proposal and updates the values object on the ProposalDisturbace
+            component so data field values change in the DOM. */
+
+            this.versionCurrentlyShowing = proposal_version
+
+            $(".revision_note").remove()  // Remove any revision notes that may be visible
+
+            let url = `/api/history/version/disturbance/proposals/Proposal/InternalProposalSerializer/${this.proposalId}/${proposal_version}/`
+
+            // Get the required Proposal data
+            const res = await Vue.http.get(url);
+
+            // Set the model data to the version requested
+            this.proposal = Object.assign({}, res.body);
+
+            /*  If we are not viewing the current version (which is always 0),
+                disable any action buttons and fields.
+                The most simple way to achieve this without changing the vue template is to just
+                modify the assessor_mode variables to appropriate values.
+            */
+            if(proposal_version!=0) {
+                console.log('Viewing older version: Disabling buttons and fields')
+                this.proposal.assessor_mode.has_assessor_mode = false;
+                this.proposal.assessor_mode.assessor_can_assess = false;
+                this.proposal.lodgement_number = this.proposal.lodgement_number + `-${proposal_version} (${proposal_version} Older than current version)`
+                //this.proposalContainerStyle.backgroundColor = '#efefef';
+                document.body.style.backgroundColor = '#f5f5dc';
+            } else {
+                 //this.proposalContainerStyle.backgroundColor = '#ffffff';
+                 document.body.style.backgroundColor = '#ffffff';             
+            }
+
+            // Update the DOM values to the correct data.
+            this.$refs.proposal_disturbance.values = Object.assign({}, res.body.data[0]);
+        },
+        compareProposalVersions: async function(compare_version) {
+            /* This handles the user clicks. Change the labels of entries and add all selected 
+               revision differences to the DOM. */
+
+            // Always Compare against the most recent version.
+            if(0 != this.versionCurrentlyShowing) {
+                this.updateProposalVersion(0)
+                this.versionCurrentlyShowing = 0
+            }
+
+            // Remove any previous revisions
+            $(".revision_note").remove()
+
+            // Compare the data field and apply the revision notes
+            let url = '/api/history/compare/field/' + 
+            this.history_context.app_label + '/' +
+            this.history_context.model_name + '/' +
+            this.proposal.id + '/' +
+            this.versionCurrentlyShowing + '/' +
+            compare_version + '/' +
+            'data/' +
+            '?differences_only=True';
+
+            const data_diffs = await Vue.http.get(url).then();
+            this.applyRevisionNotes(data_diffs.data)
+
+            // Compare the assessor_data field and apply to revision notes
+            let assessor_data_url = `/api/proposal/${this.proposal.id}/version_differences_assessor_data.json?newer_version=${this.versionCurrentlyShowing}&older_version=${compare_version}`
+            const assessor_data_diffs = await Vue.http.get(assessor_data_url);
+            this.applyRevisionNotes(assessor_data_diffs.data)
+
+            // Compare the comment_data field and apply to revision notes
+            let comment_data_url = `/api/proposal/${this.proposal.id}/version_differences_comment_data.json?newer_version=${this.versionCurrentlyShowing}&older_version=${compare_version}`
+            const comment_data_diffs = await Vue.http.get(comment_data_url);
+            this.applyRevisionNotes(comment_data_diffs.data)
+        },
+        applyRevisionNotes: async function (diffdata) {
+            // Append a revision note to the appropriate location in the DOM 
+            for (let entry in diffdata) {
+                for (let k in diffdata[entry]) {
+                    const revision_text = diffdata[entry][k]
+
+                    if (revision_text == '') {continue;}
+                    //const replacement = $("#id_" + k ).parent().find('input')
+                    const replacement = $('[name="' + k + '"]')
+                    console.log('selector = ', '[name="' + k + '"]')
+                    console.log('replacement = ', replacement)
+                    console.log('replacement is textarea = ', replacement.is('textarea'))
+                    console.log('replacement type = ', replacement.attr('type'))
+
+                    if(replacement.is('textarea')){
+                        console.log('is text area')
+                        const replacement_html = "<textarea disabled class='revision_note' style='width: 100%; margin-top: 3px; padding-top: 0px; color: red; border: 1px solid red;'>" + 
+                                                 revision_text + 
+                                                 "</textarea>"
+                        replacement.after(replacement_html)
+                    }
+                    else if (replacement.attr('type') == "text") {
+                        const replacement_html = "<input disabled class='revision_note' style='width: 100%; margin-top: 3px; color: red; border: 1px solid red;' value='" + 
+                                                 revision_text + 
+                                                 "'><br class='revision_note'>"
+                        replacement.after(replacement_html)
+                    }
+                    else if (replacement.attr('type') == "radio") {
+                        const replacement_html = "<input disabled class='revision_note' type='radio' id='radio' checked>" + 
+                                                 "<label class='revision_note' for='radio'" +
+                                                 "style='margin-top: -200px; text-transform: capitalize; color: red; padding-left: 10px; padding-bottom: 20px;'>" + 
+                                                 revision_text +
+                                                 "</label><br class='revision_note'>"
+                        replacement.after(replacement_html)
+                    }
+                    else {
+                        const replacement_html = "<input disabled class='revision_note' style='width: 100%; margin-top: 3px; padding-top: 0px; color: red; border: 1px solid red;' value='" + 
+                                                 revision_text + 
+                                                 "'>"
+                        //console.log('parent = ' + JSON.stringify($("#id_" + k ).parent()));
+                        console.log('replacement.siblings() = ', replacement.siblings())
+                        console.log('replacement_html = ' + replacement_html)
+                        replacement.after(replacement_html)
+                    }
+                }
+            }            
+        },
         locationUpdated: function(){
             console.log('in locationUpdated()');
         },
@@ -920,7 +1030,6 @@ export default {
                 vm.department_users = response.body
                 vm.loading.splice('Loading Department Users',1);
             },(error) => {
-                console.log(error);
                 vm.loading.splice('Loading Department Users',1);
             })
         },
@@ -1155,10 +1264,14 @@ export default {
             this.original_proposal = helpers.copyObject(res.body);
             this.proposal.applicant.address = this.proposal.applicant.address != null ? this.proposal.applicant.address : {};
             this.hasAmendmentRequest=this.proposal.hasAmendmentRequest;
+            if(Object.keys(this.proposal.reversion_history).length>1){
+                this.showHistory = true;
+            }
         },
         err => {
           console.log(err);
         });
+
     },
     /*
     beforeRouteEnter: function(to, from, next) {
@@ -1206,4 +1319,5 @@ export default {
     margin-bottom: 10px;
     width: 100%;
 }
+
 </style>
