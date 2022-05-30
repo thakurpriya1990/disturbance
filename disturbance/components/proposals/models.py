@@ -901,7 +901,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         differences_list = []
 
         if 'values_changed' in json_differences:            
-
+            logger.debug('\n\n values_changed ========================= ')
             values_changed = json_differences['values_changed']
 
             for key in values_changed:
@@ -909,43 +909,42 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 #logger.debug('\n\n new value = ' + str(values_changed[key]['new_value']))
                 #logger.debug('\n\n old value = ' + str(values_changed[key]['old_value']))
 
-                if(values_changed[key]['new_value']):
-                    # Due to the structure of comment_data and assessor_data we need to get the section name
-                    # for both the comments and the referral comments.
-                    #    
-                    # We also need the email for the Refferal comments.
-                    #
-                    # With this information we can attach the revision notes in the right place on the frontend
-                    # quite easily.
-                    #
-                    # Also keep in mind that deep diff will return a different data structure once referral
-                    # comments have been added.
-                    
-                    # Get the number between the first set of square brackets i.e. x in 'root[x].etc[y].etc[z]
-                    regex = re.search('(?<=\[).+?(?=\])', str(key))
-                    root_level = regex.group(0)
-                    
-                    assessor_comment = older_version_data[int(root_level)]['assessor']
-                    assessor_comment_newer = newer_version_data[int(root_level)]['assessor']
-
-                    referrals = older_version_data[int(root_level)]['referrals']
-                    logger.debug('\n\n type(referrals) ' + str(type(referrals)))
-
-                    # Skip instances where there are no referrals in the old version
-                    # and the assessor_comment hasn't actually changed this covers instances
-                    # where the older version didn't have any referrals and the new version does
-
-                    if len(referrals) == 0 and assessor_comment == assessor_comment_newer:
-                        continue
-
-                    differences_list = self.append_to_differences_list_by_field(field, older_version_data, values_changed, key, root_level,
-                                        assessor_comment, differences_list)
-        
-
+                # Due to the structure of comment_data and assessor_data we need to get the section name
+                # for both the comments and the referral comments.
+                #    
+                # We also need the email for the Refferal comments.
+                #
+                # With this information we can attach the revision notes in the right place on the frontend
+                # quite easily.
+                #
+                # Also keep in mind that deep diff will return a different data structure once referral
+                # comments have been added.
                 
-        logger.debug('\n\n differences_list ' + str(differences_list))
+                # Get the number between the first set of square brackets i.e. x in 'root[x].etc[y].etc[z]
+                regex = re.search('(?<=\[).+?(?=\])', str(key))
+                root_level = regex.group(0)
+                
+                assessor_comment = older_version_data[int(root_level)]['assessor']
+                assessor_comment_newer = newer_version_data[int(root_level)]['assessor']
 
-        #differences_list_json = json.dumps(differences_list)
+                referrals = older_version_data[int(root_level)]['referrals']
+                logger.debug('\n\n type(referrals) ' + str(type(referrals)))
+
+                # Skip instances where there are no referrals in the old version
+                # and the assessor_comment hasn't actually changed this covers instances
+                # where the older version didn't have any referrals and the new version does
+
+                logger.debug('\n\n len(referrals) ' + str(len(referrals)))
+                logger.debug('\n\n assessor_comment == assessor_comment_newer ' + str(assessor_comment == assessor_comment_newer))
+
+                #if (len(referrals) == 0) and (assessor_comment == assessor_comment_newer):
+                #    logger.debug('\n\n passing ------------------__> ')
+                #    continue
+
+                differences_list = self.append_to_differences_list_by_field(field, older_version_data, values_changed, key, root_level,
+                                    assessor_comment, differences_list)
+                    
+        logger.debug('\n\n differences_list ' + str(differences_list))
 
         return differences_list
 
@@ -975,19 +974,19 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     
                 differences_list.append({root_level_name:values_changed[key]['new_value']}) 
         else:
-            if assessor_comment:
-                if 'comment_data' == field:
-                    root_level_name += '-comment-field-Assessor'
-                else:
-                    root_level_name += '-Assessor' 
-                logger.debug('\n\n type(new_value) ' + str(type(values_changed[key]['new_value'])))
-                if(type(values_changed[key]['new_value']) is dict):
-                    # Once referrer comments are added we will get a dictionary here
-                    new_value_dict = values_changed[key]['new_value']
-                    new_value = new_value_dict['assessor']
-                    differences_list.append({root_level_name:new_value})
-                else:
-                    differences_list.append({root_level_name:values_changed[key]['new_value']})
+            if 'comment_data' == field:
+                root_level_name += '-comment-field-Assessor'
+            else:
+                root_level_name += '-Assessor' 
+            logger.debug('\n\n type(new_value) ' + str(type(values_changed[key]['new_value'])))
+            if(type(values_changed[key]['new_value']) is dict):
+                # Once referrer comments are added we will get a dictionary here
+                new_value_dict = values_changed[key]['new_value']
+                new_value = new_value_dict['assessor']
+                differences_list.append({root_level_name:new_value})
+            else:
+                differences_list.append({root_level_name:values_changed[key]['new_value']})
+
         return differences_list
 
 

@@ -640,7 +640,7 @@ export default {
                     //console.log('!@#$ replacement is textarea = ', replacement.is('textarea'))
                     //console.log('!@#$ replacement type = ', replacement.attr('type'))
                     if(replacement.is(':checkbox')){
-                        console.log('!@#$ is checkbox area')
+                        console.log('!@#$ is checkbox')
                         let replacement_html = '<span class="revision_note" style="width: 100%; margin-top: 3px; padding-top: 0px; color: red;">'
                         //replacement_html += '<input onclick="return false;" type="checkbox"> '
                         replacement_html += revision_text
@@ -682,11 +682,17 @@ export default {
                                                  revision_text +
                                                  "</label></div></div></div>"
                         } else {
+                            if (' (not present)' == revision_text) {
+                                replacement_html =  '<span class="revision_note" style="margin:0; color:red;">'
+                                replacement_html += revision_text
+                                replacement_html += '</span>'
+                            } else {
                             replacement_html =   "<div><div class='radio'><input style='margin:0; color:red;' disabled class='revision_note' type='radio' id='radio' checked>" + 
                                                  "<label class='revision_note' for='radio'" +
                                                  "style='text-transform: capitalize; color: red;'>" + 
                                                  revision_text +
-                                                 "</label></div></div>"                            
+                                                 "</label></div></div>"  
+                            }
                         }
 
                         replacement.last().parent().after(replacement_html)
@@ -703,6 +709,13 @@ export default {
                     }
                 }
             }
+        },
+        getFieldTypeFromID: function(id) {
+            const data = this.proposal.schema;
+            const field = data.filter(function(data){
+                return data.name == id;
+            });
+            return field.type;
         },
         locationUpdated: function(){
             console.log('in locationUpdated()');
