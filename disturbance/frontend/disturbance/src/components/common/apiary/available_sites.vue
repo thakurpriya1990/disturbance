@@ -70,6 +70,7 @@
                         </div>
                     </div>
                 </div>
+                <!--
                 <Datatable
                     class="table_apiary_site"
                     ref="table_apiary_site"
@@ -77,6 +78,7 @@
                     :dtOptions="dtOptions"
                     :dtHeaders="dtHeaders"
                 />
+                -->
                 <div class="button_row">
                     <span class="view_all_button" @click="displayAllFeatures">View All On Map</span>
                 </div>
@@ -749,7 +751,7 @@
             },
             addApiarySitesAsGeojsonToTable: function(apiary_sites_geojson){
                 console.log('in addApiarySitesAsGeojsonToTable: ' + apiary_sites_geojson.length)
-                this.$refs.table_apiary_site.vmDataTable.rows.add(apiary_sites_geojson).draw()
+                //this.$refs.table_apiary_site.vmDataTable.rows.add(apiary_sites_geojson).draw()
             },
             addEventListeners: function () {
                 $("#" + this.table_id).on("click", "a[data-view-on-map]", this.zoomOnApiarySite)
@@ -1463,7 +1465,7 @@
                 console.log('showHideApiarySites()')
                 let vm = this
 
-                vm.$refs.table_apiary_site.vmDataTable.search(vm.search_text).draw()
+                //vm.$refs.table_apiary_site.vmDataTable.search(vm.search_text).draw()
 
                 for (let site_status of vm.show_hide_instructions){
                     if (site_status.options){
@@ -1851,10 +1853,12 @@
         position: relative;
         z-index: 10;
     }
+    /*
     .table_apiary_site {
         position: relative;
         z-index: 10;
     }
+    */
     .button_row {
         display: flex;
         justify-content: flex-end;
