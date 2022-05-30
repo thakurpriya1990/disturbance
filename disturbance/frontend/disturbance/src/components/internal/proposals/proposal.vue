@@ -594,11 +594,6 @@ export default {
             // Remove any previous revisions
             $(".revision_note").remove()
 
-            // Compare the root level elements (tenure, title etc. as there are not contained in the data field)
-            const root_level_elements_url = `/api/history/compare/root/fields/disturbance/Proposal/${this.proposal.id}/${this.versionCurrentlyShowing}/${compare_version}/?differences_only=True`
-            const root_level_element_diffs = await Vue.http.get(root_level_elements_url);
-            this.applyTenureRevisionNotes(root_level_element_diffs.data)  
-
             // Compare the data field and apply the revision notes
             const url = '/api/history/compare/field/' + 
             this.history_context.app_label + '/' +
@@ -628,19 +623,29 @@ export default {
                 //console.log('!@#$ entry = ' + entry)
                 for (let k in diffdata[entry]) {
                     //console.log('!@#$ diffdata[entry] = ' + diffdata[entry])
-                    //console.log('!@#$ k = ' + k)
                     let revision_text = diffdata[entry][k]
 
-                    if (revision_text == '') {revision_text = '<Blank>';}
-                    //const replacement = $("#id_" + k ).parent().find('input')
-                    const replacement = $('[name="' + k + '"]')
+
+                    if (revision_text == '') {revision_text = '[Previously Blank]';}
+                    let replacement = $("#id_" + k ).parent().find('input')
+                    if(replacement.length!=1) {
+                        replacement = $('[name="' + k + '"]')
+                    }
+
+                    console.log('!@#$ k = ' + k)
+                    console.log('!@#$ revision_text = ' + revision_text)
+
                     //console.log('!@#$ selector = ', '[name="' + k + '"]')
                     //console.log('!@#$ replacement = ', replacement)
                     //console.log('!@#$ replacement is textarea = ', replacement.is('textarea'))
                     //console.log('!@#$ replacement type = ', replacement.attr('type'))
                     if(replacement.is(':checkbox')){
                         console.log('!@#$ is checkbox area')
-
+                        let replacement_html = '<span class="revision_note" style="width: 100%; margin-top: 3px; padding-top: 0px; color: red;">'
+                        //replacement_html += '<input onclick="return false;" type="checkbox"> '
+                        replacement_html += revision_text
+                        replacement_html += '</span>'
+                        replacement.parent().after(replacement_html)
                     }else if(replacement.is('textarea')){
                         //console.log('is text area')
                         const replacement_html = "<textarea disabled class='revision_note' style='width: 100%; margin-top: 3px; padding-top: 0px; color: red; border: 1px solid red;'>" + 
@@ -666,7 +671,7 @@ export default {
                                                  "<div><div class='radio'><input style='margin:0;' disabled class='revision_note' type='radio' id='radio'>" + 
                                                  "<label class='revision_note' for='radio'" +
                                                  "style='text-transform: capitalize; color: red; '>No</label></div></div></div>"
-                        } else {
+                        } else if ('no' == revision_text ) {
                             //console.log('no')
                             replacement_html = "<div class='revision_note' style='border:1px solid red; padding:5px;'><div><div class='radio'><input style='margin:0; color: red;' disabled class='revision_note' type='radio' id='radio'>" + 
                                                  "<label class='revision_note' for='radio'" +
@@ -676,10 +681,18 @@ export default {
                                                  "style='text-transform: capitalize; color: red;'>" + 
                                                  revision_text +
                                                  "</label></div></div></div>"
+                        } else {
+                            replacement_html =   "<div><div class='radio'><input style='margin:0; color:red;' disabled class='revision_note' type='radio' id='radio' checked>" + 
+                                                 "<label class='revision_note' for='radio'" +
+                                                 "style='text-transform: capitalize; color: red;'>" + 
+                                                 revision_text +
+                                                 "</label></div></div>"                            
                         }
+
                         replacement.last().parent().after(replacement_html)
                     }
                     else {
+
                         const replacement_html = "<input disabled class='revision_note' style='width: 100%; margin-top: 3px; padding-top: 0px; color: red; border: 1px solid red;' value='" + 
                                                  revision_text + 
                                                  "'>"
@@ -690,34 +703,6 @@ export default {
                     }
                 }
             }
-        },
-        applyTenureRevisionNotes: async function(diffdata) {
-            /*  For some reason the tenure field used to render the tenure checkbox list
-                Is not kept in the data field but comes back from deep diff as
-                a root level element root['tenure']
-                Without a section id we have to locate those elements manually
-            */
-            console.log('!@#$ =================== applyTenureRevisionNotes = ')
-            for (let entry in diffdata) {
-                for (let k in diffdata[entry]) {   
-                    if('tenure'==k){
-                        const revision_text = diffdata[entry][k];
-                        const land_tenures = revision_text.split(',');
-                        let replacement_html = '<div class="revision_note" style="color:red; border:1px solid red;">';
-                        replacement_html += '<div style="padding-left:15px;">';
-                        for(let i in land_tenures){
-                            replacement_html += `<div class="form-group"><div class="checkbox"><label><input type="checkbox" checked value="${land_tenures[i]}"> ${land_tenures[i]}</label></div></div>`;
-                        }
-                        replacement_html += '</div>'
-                        replacement_html += '</div>'
-                        const replacement = $('#section_tenureSection .panel-body').first()
-                        replacement.after(replacement_html);
-                        console.log('!@#$ div#section_tenureSection = ' + $('div#section_tenureSection'))
-                        //console.log('!@#$ replacement_html = ' + replacement_html)
-                        console.log('!@#$ tenure = ' + revision_text)
-                    }
-                }
-            }         
         },
         locationUpdated: function(){
             console.log('in locationUpdated()');
