@@ -302,13 +302,13 @@ class GetCompareFieldVersionsView(InternalAuthorizationView):
         """ Returns the difference between two specific versions of any model object """
         super().get(self)
 
-        logger.debug('app_label = %s', app_label)
-        logger.debug('model_name = %s', model_name)
-        logger.debug('pk = %s', pk)
+        #logger.debug('app_label = %s', app_label)
+        #logger.debug('model_name = %s', model_name)
+        #logger.debug('pk = %s', pk)
 
         model = apps.get_model(app_label=app_label, model_name=model_name)
 
-        logger.debug('model = %s', model)
+        #logger.debug('model = %s', model)
 
         instance = model.objects.get(pk=int(pk))
 
@@ -341,10 +341,35 @@ class GetCompareFieldVersionsView(InternalAuthorizationView):
                 logger.debug(f'difference = {difference}')
                 if "values_changed" in difference:
                     for k, diff in difference[1].items():
-                        logger.debug(f'k = {k}')
-                        logger.debug(f'diff = {diff}')
+                        #logger.debug(f'k = {k}')
+                        #logger.debug(f'diff = {diff}')
                         differences_list.append({k.split('\'')[-2]:diff['new_value'],})
-                #if "" in difference:
+                if 'dictionary_item_added' in difference:
+                    logger.debug('\n\n difference[0] = ' + str(difference[0]))
+                    for item in difference[1]:
+                        logger.debug('\n\n item = ' + str(item))
+                        differences_list.append({item.split('\'')[-2]:' (present)',})
+                if 'dictionary_item_removed' in difference:
+                    logger.debug('\n\n difference[0] = ' + str(difference[0]))
+                    for item in difference[1]:
+                        logger.debug('\n\n item = ' + str(item))
+                        differences_list.append({item.split('\'')[-2]:' (not present)',})
+                if 'iterable_item_added' in difference:
+                    logger.debug('\n\n difference[0] = ' + str(difference[0]))
+                    for key, value in difference[1].items():
+                        logger.debug('\n\n item = ' + str(key))
+                        logger.debug('\n\n value = ' + str(value))
+                        differences_list.append({key.split('\'')[-2]:'+{} (present)'.format(value),})
+                if 'iterable_item_removed' in difference:
+                    logger.debug('\n\n difference[0] = ' + str(difference[0]))
+                    for key, value in difference[1].items():
+                        logger.debug('\n\n item = ' + str(item))
+                        logger.debug('\n\n value = ' + str(item[0]))
+                        differences_list.append({item.split('\'')[-2]:'-{} (not present)'.format(value),})    
+
+                    #dictionary_items_added = json_differences['dictionary_item_added']
+                    #for key in dictionary_items_added:
+                    #    logger.debug('\n\n key = ' + str(key))
 
             return Response(differences_list)
 
