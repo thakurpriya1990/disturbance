@@ -637,9 +637,7 @@ export default {
                     }
 
                     if (revision_text == '') {
-                        let replacement_html =  "<div class='revision_note' style='border:1px solid red; color:red; padding:5px;'> (not present)</div>"
-                        replacement.last().parent().after(replacement_html)
-                        continue;
+                        revision_text = ' (not present)';
                     }
                     console.log('!@#$ k = ' + k)
                     console.log('!@#$ revision_text = ' + revision_text)
