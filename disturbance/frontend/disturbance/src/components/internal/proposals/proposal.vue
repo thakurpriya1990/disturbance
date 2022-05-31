@@ -326,7 +326,8 @@
                                 </div>
                                 <div v-else>
                                     <ProposalDisturbance 
-                                    ref="proposal_disturbance" 
+                                    ref="proposal_disturbance"
+                                    :key="'proposal_disturbance' + uuid"
                                     form_width="inherit" 
                                     :withSectionsSelector="false" 
                                     v-if="proposal" 
@@ -461,7 +462,8 @@ export default {
                 component_name: 'proposals',
                 model_name: 'Proposal',
                 serializer_name: 'InternalProposalSerializer',
-            }
+            },
+            uuid: 0,
         }
     },
     components: {
@@ -580,6 +582,11 @@ export default {
 
             // Update the DOM values to the correct data.
             this.$refs.proposal_disturbance.values = Object.assign({}, res.body.data[0]);
+
+            // Rerender the form so it drops any unused sections and creates any required sections
+            this.$nextTick(function(){
+                this.uuid++;
+            });
         },
         compareProposalVersions: async function(compare_version) {
             /* This handles the user clicks. Change the labels of entries and add all selected 
@@ -624,30 +631,26 @@ export default {
                 for (let k in diffdata[entry]) {
                     //console.log('!@#$ diffdata[entry] = ' + diffdata[entry])
                     let revision_text = diffdata[entry][k]
-
-
-                    if (revision_text == '') {revision_text = '[Previously Blank]';}
-                    let replacement = $("#id_" + k ).parent().find('input')
+                    let replacement = $("#id_" + k ).parent().find('input');
                     if(replacement.length!=1) {
                         replacement = $('[name="' + k + '"]')
                     }
 
+                    if (revision_text == '') {
+                        let replacement_html =  "<div class='revision_note' style='border:1px solid red; color:red; padding:5px;'> (not present)</div>"
+                        replacement.last().parent().after(replacement_html)
+                        continue;
+                    }
                     console.log('!@#$ k = ' + k)
                     console.log('!@#$ revision_text = ' + revision_text)
 
-                    //console.log('!@#$ selector = ', '[name="' + k + '"]')
-                    //console.log('!@#$ replacement = ', replacement)
-                    //console.log('!@#$ replacement is textarea = ', replacement.is('textarea'))
-                    //console.log('!@#$ replacement type = ', replacement.attr('type'))
-                    if(replacement.is(':checkbox')){
+                    if(replacement.is(':checkbox')) {
                         console.log('!@#$ is checkbox')
-                        let replacement_html = '<span class="revision_note" style="width: 100%; margin-top: 3px; padding-top: 0px; color: red;">'
-                        //replacement_html += '<input onclick="return false;" type="checkbox"> '
+                        let replacement_html = '<span class="revision_note" style="width: 100%; margin-top: 3px; padding-top: 0px; color: red;">';
                         replacement_html += revision_text
                         replacement_html += '</span>'
                         replacement.parent().after(replacement_html)
-                    }else if(replacement.is('textarea')){
-                        //console.log('is text area')
+                    } else if(replacement.is('textarea')){
                         const replacement_html = "<textarea disabled class='revision_note' style='width: 100%; margin-top: 3px; padding-top: 0px; color: red; border: 1px solid red;'>" + 
                                                  revision_text + 
                                                  "</textarea>"
@@ -687,7 +690,7 @@ export default {
                                 replacement_html += revision_text
                                 replacement_html += '</span>'
                             } else {
-                            replacement_html =   "<div><div class='radio'><input style='margin:0; color:red;' disabled class='revision_note' type='radio' id='radio' checked>" + 
+                            replacement_html =   "<div class='revision_note' style='border:1px solid red; padding:5px;'><div class='radio'><input style='margin:0; color:red;' disabled class='revision_note' type='radio' id='radio' checked>" + 
                                                  "<label class='revision_note' for='radio'" +
                                                  "style='text-transform: capitalize; color: red;'>" + 
                                                  revision_text +
