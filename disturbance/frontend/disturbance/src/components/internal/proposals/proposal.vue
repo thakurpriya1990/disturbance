@@ -639,8 +639,8 @@ export default {
                     if (revision_text == '') {
                         revision_text = ' (not present)';
                     }
-                    console.log('!@#$ k = ' + k)
-                    console.log('!@#$ revision_text = ' + revision_text)
+                    //console.log('!@#$ k = ' + k)
+                    //console.log('!@#$ revision_text = ' + revision_text)
 
                     if(replacement.is(':checkbox')) {
                         console.log('!@#$ is checkbox')
