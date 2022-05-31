@@ -8,7 +8,7 @@ import sys
 import logging
 import datetime
 import json
-
+import re
 from deepdiff import DeepDiff
 from django.apps import apps
 from django.http import JsonResponse
@@ -334,22 +334,26 @@ class GetCompareFieldVersionsView(InternalAuthorizationView):
 
         differences = DeepDiff(newer_version.field_dict[compare_field], older_version.field_dict[compare_field], ignore_order=True)
 
+        # Regex to add spaces before capitals in a string (needed for iterables such as multi-select values)
+        pattern = re.compile(r'([a-z])([A-Z])')
+
         differences_only = request.GET.get('differences_only')
         if differences_only:
             differences_list = []
             for difference in differences.items():
                 logger.debug(f'difference = {difference}')
                 if "values_changed" in difference:
-                    for k, diff in difference[1].items():
-                        logger.debug(f'k = {k}')
-                        logger.debug(f'diff = {diff}')
-                        # Find out if this field is iterable
-                        logger.debug('\n\n item = ' + str(item))
-                        logger.debug("\n\n k.split('\\'') = " + str(k.split('\'')[-1]))
-                        # Continue coding here k.split('\'')[-1] = k.split('\'') = ][2] <--- isolate keys that have an
-                        # index on the end and we will know they are iterables (then we can say i.e. 'Canning' replaced 'Pingelly')
-
-                        differences_list.append({k.split('\'')[-2]:diff['new_value'],})
+                    for key, values in difference[1].items():
+                        logger.debug(f'key = {key}')
+                        logger.debug(f'values = {values}')
+                        key_suffix = key.split('\'')[-1]
+                        # Check if we are dealing with an iterable field
+                        if '[' in key_suffix and ']' in key_suffix:
+                            old_value = re.sub(pattern, r"\1 \2", values['old_value'])
+                            new_value = re.sub(pattern, r"\1 \2", values['new_value'])
+                            differences_list.append({key.split('\'')[-2]:'{} replaced with {}'.format(old_value, new_value),})
+                        else:
+                            differences_list.append({key.split('\'')[-2]:values['new_value'],})
                 if 'dictionary_item_added' in difference:
                     logger.debug('\n\n difference[0] = ' + str(difference[0]))
                     for item in difference[1]:
@@ -365,17 +369,15 @@ class GetCompareFieldVersionsView(InternalAuthorizationView):
                     for key, value in difference[1].items():
                         logger.debug('\n\n item = ' + str(key))
                         logger.debug('\n\n value = ' + str(value))
+                        value = re.sub(pattern, r"\1 \2", value)
                         differences_list.append({key.split('\'')[-2]:'+{} (present)'.format(value),})
                 if 'iterable_item_removed' in difference:
                     logger.debug('\n\n difference[0] = ' + str(difference[0]))
                     for key, value in difference[1].items():
-                        logger.debug('\n\n item = ' + str(item))
-                        logger.debug('\n\n value = ' + str(item[0]))
+                        logger.debug('\n\n key = ' + str(key))
+                        logger.debug('\n\n value = ' + str(value))
+                        value = re.sub(pattern, r"\1 \2", value)
                         differences_list.append({key.split('\'')[-2]:'-{} (not present)'.format(value),})    
-
-                    #dictionary_items_added = json_differences['dictionary_item_added']
-                    #for key in dictionary_items_added:
-                    #    logger.debug('\n\n key = ' + str(key))
 
             return Response(differences_list)
 
