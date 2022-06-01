@@ -12,7 +12,7 @@
         </div>
         <div class="col-md-3">
             <CommsLogs :comms_url="comms_url" :logs_url="logs_url" :comms_add_url="comms_add_url" :disable_add_entry="false"/>
-            <div class="row" v-if="canSeeSubmission || versionCurrentlyShowing>0">
+            <div class="row" v-if="canSeeSubmission || (!canSeeSubmission && showingProposal) || versionCurrentlyShowing>0">
                 <div class="panel panel-default">
                     <div class="panel-heading">
                        Submission
@@ -26,6 +26,7 @@
                             <div class="col-sm-12 top-buffer-s">
                                 <strong>Lodged on</strong><br/>
                                 {{ proposal.lodgement_date | formatDate }}
+                                <input type="hidden" id="lodgement_date" value="">
                             </div>
                         </div>
                         <RevisionHistory v-if="showHistory" :revision_history_url="revision_history_url" :model_object="proposal" :history_context="history_context" @update_model_object="updateProposalVersion" @compare_model_versions="compareProposalVersions" />
@@ -42,6 +43,7 @@
                             <div class="col-sm-12">
                                 <strong>Status</strong><br/>
                                 {{ proposal.processing_status }}
+                                <input type="hidden" id="processing_status" value="">
                             </div>
                             <div class="col-sm-12">
                                 <div class="separator"></div>
@@ -324,7 +326,8 @@
                                 </div>
                                 <div v-else>
                                     <ProposalDisturbance 
-                                    ref="proposal_disturbance" 
+                                    ref="proposal_disturbance"
+                                    :key="'proposal_disturbance' + uuid"
                                     form_width="inherit" 
                                     :withSectionsSelector="false" 
                                     v-if="proposal" 
@@ -459,7 +462,8 @@ export default {
                 component_name: 'proposals',
                 model_name: 'Proposal',
                 serializer_name: 'InternalProposalSerializer',
-            }
+            },
+            uuid: 0,
         }
     },
     components: {
@@ -545,7 +549,8 @@ export default {
     methods: {
         updateProposalVersion: async function(proposal_version) {
             /* Changes the currently viewed Proposal and updates the values object on the ProposalDisturbace
-            component so data field values change in the DOM. */
+            component so data field values change in the DOM. 
+            */
 
             this.versionCurrentlyShowing = proposal_version
 
@@ -564,20 +569,24 @@ export default {
                 The most simple way to achieve this without changing the vue template is to just
                 modify the assessor_mode variables to appropriate values.
             */
+            let reversion_history_length = Object.keys(this.proposal.reversion_history).length
             if(proposal_version!=0) {
                 console.log('Viewing older version: Disabling buttons and fields')
                 this.proposal.assessor_mode.has_assessor_mode = false;
                 this.proposal.assessor_mode.assessor_can_assess = false;
-                this.proposal.lodgement_number = this.proposal.lodgement_number + `-${proposal_version} (${proposal_version} Older than current version)`
-                //this.proposalContainerStyle.backgroundColor = '#efefef';
+                this.proposal.lodgement_number = this.proposal.lodgement_number + `-${reversion_history_length - proposal_version} (${proposal_version} Older than current version)`
                 document.body.style.backgroundColor = '#f5f5dc';
             } else {
-                 //this.proposalContainerStyle.backgroundColor = '#ffffff';
                  document.body.style.backgroundColor = '#ffffff';             
             }
 
             // Update the DOM values to the correct data.
             this.$refs.proposal_disturbance.values = Object.assign({}, res.body.data[0]);
+
+            // Rerender the form so it drops any unused sections and creates any required sections
+            this.$nextTick(function(){
+                this.uuid++;
+            });
         },
         compareProposalVersions: async function(compare_version) {
             /* This handles the user clicks. Change the labels of entries and add all selected 
@@ -593,7 +602,7 @@ export default {
             $(".revision_note").remove()
 
             // Compare the data field and apply the revision notes
-            let url = '/api/history/compare/field/' + 
+            const url = '/api/history/compare/field/' + 
             this.history_context.app_label + '/' +
             this.history_context.model_name + '/' +
             this.proposal.id + '/' +
@@ -605,32 +614,41 @@ export default {
             const data_diffs = await Vue.http.get(url).then();
             this.applyRevisionNotes(data_diffs.data)
 
-            // Compare the assessor_data field and apply to revision notes
-            let assessor_data_url = `/api/proposal/${this.proposal.id}/version_differences_assessor_data.json?newer_version=${this.versionCurrentlyShowing}&older_version=${compare_version}`
+            // Compare the assessor_data field and apply revision notes
+            const assessor_data_url = `/api/proposal/${this.proposal.id}/version_differences_assessor_data.json?newer_version=${this.versionCurrentlyShowing}&older_version=${compare_version}`
             const assessor_data_diffs = await Vue.http.get(assessor_data_url);
             this.applyRevisionNotes(assessor_data_diffs.data)
 
-            // Compare the comment_data field and apply to revision notes
-            let comment_data_url = `/api/proposal/${this.proposal.id}/version_differences_comment_data.json?newer_version=${this.versionCurrentlyShowing}&older_version=${compare_version}`
+            // Compare the comment_data field and apply revision notes
+            const comment_data_url = `/api/proposal/${this.proposal.id}/version_differences_comment_data.json?newer_version=${this.versionCurrentlyShowing}&older_version=${compare_version}`
             const comment_data_diffs = await Vue.http.get(comment_data_url);
             this.applyRevisionNotes(comment_data_diffs.data)
         },
         applyRevisionNotes: async function (diffdata) {
             // Append a revision note to the appropriate location in the DOM 
             for (let entry in diffdata) {
+                //console.log('!@#$ entry = ' + entry)
                 for (let k in diffdata[entry]) {
-                    const revision_text = diffdata[entry][k]
+                    //console.log('!@#$ diffdata[entry] = ' + diffdata[entry])
+                    let revision_text = diffdata[entry][k]
+                    let replacement = $("#id_" + k ).parent().find('input');
+                    if(replacement.length!=1) {
+                        replacement = $('[name="' + k + '"]')
+                    }
 
-                    if (revision_text == '') {continue;}
-                    //const replacement = $("#id_" + k ).parent().find('input')
-                    const replacement = $('[name="' + k + '"]')
-                    console.log('selector = ', '[name="' + k + '"]')
-                    console.log('replacement = ', replacement)
-                    console.log('replacement is textarea = ', replacement.is('textarea'))
-                    console.log('replacement type = ', replacement.attr('type'))
+                    if (revision_text == '') {
+                        revision_text = ' (not present)';
+                    }
+                    //console.log('!@#$ k = ' + k)
+                    //console.log('!@#$ revision_text = ' + revision_text)
 
-                    if(replacement.is('textarea')){
-                        console.log('is text area')
+                    if(replacement.is(':checkbox')) {
+                        console.log('!@#$ is checkbox')
+                        let replacement_html = '<span class="revision_note" style="width: 100%; margin-top: 3px; padding-top: 0px; color: red;">';
+                        replacement_html += revision_text
+                        replacement_html += '</span>'
+                        replacement.parent().after(replacement_html)
+                    } else if(replacement.is('textarea')){
                         const replacement_html = "<textarea disabled class='revision_note' style='width: 100%; margin-top: 3px; padding-top: 0px; color: red; border: 1px solid red;'>" + 
                                                  revision_text + 
                                                  "</textarea>"
@@ -643,24 +661,62 @@ export default {
                         replacement.after(replacement_html)
                     }
                     else if (replacement.attr('type') == "radio") {
-                        const replacement_html = "<input disabled class='revision_note' type='radio' id='radio' checked>" + 
+                        let replacement_html = ''
+                        if('yes' == revision_text){
+                            //console.log('yes')
+                            replacement_html = "<div class='revision_note' style='border:1px solid red; padding:5px;'><div><div class='radio'><input style='margin:0; color: red;' disabled class='revision_note' type='radio' id='radio' checked>" + 
                                                  "<label class='revision_note' for='radio'" +
-                                                 "style='margin-top: -200px; text-transform: capitalize; color: red; padding-left: 10px; padding-bottom: 20px;'>" + 
+                                                 "style='text-transform: capitalize; color: red; '>" + 
                                                  revision_text +
-                                                 "</label><br class='revision_note'>"
-                        replacement.after(replacement_html)
+                                                 "</label></div></div>" +
+                                                 "<div><div class='radio'><input style='margin:0;' disabled class='revision_note' type='radio' id='radio'>" + 
+                                                 "<label class='revision_note' for='radio'" +
+                                                 "style='text-transform: capitalize; color: red; '>No</label></div></div></div>"
+                        } else if ('no' == revision_text ) {
+                            //console.log('no')
+                            replacement_html = "<div class='revision_note' style='border:1px solid red; padding:5px;'><div><div class='radio'><input style='margin:0; color: red;' disabled class='revision_note' type='radio' id='radio'>" + 
+                                                 "<label class='revision_note' for='radio'" +
+                                                 "style='text-transform: capitalize; color: red;'>Yes</label></div></div>" +
+                                                 "<div><div class='radio'><input style='margin:0; color:red;' disabled class='revision_note' type='radio' id='radio' checked>" + 
+                                                 "<label class='revision_note' for='radio'" +
+                                                 "style='text-transform: capitalize; color: red;'>" + 
+                                                 revision_text +
+                                                 "</label></div></div></div>"
+                        } else {
+                            if (' (not present)' == revision_text) {
+                                replacement_html =  '<span class="revision_note" style="margin:0; color:red;">'
+                                replacement_html += revision_text
+                                replacement_html += '</span>'
+                            } else {
+                            replacement_html =   "<div class='revision_note' style='border:1px solid red; padding:5px;'><div class='radio'><input style='margin:0; color:red;' disabled class='revision_note' type='radio' id='radio' checked>" + 
+                                                 "<label class='revision_note' for='radio'" +
+                                                 "style='text-transform: capitalize; color: red;'>" + 
+                                                 revision_text +
+                                                 "</label></div></div>"  
+                            }
+                        }
+
+                        replacement.last().parent().after(replacement_html)
                     }
                     else {
+
                         const replacement_html = "<input disabled class='revision_note' style='width: 100%; margin-top: 3px; padding-top: 0px; color: red; border: 1px solid red;' value='" + 
                                                  revision_text + 
                                                  "'>"
                         //console.log('parent = ' + JSON.stringify($("#id_" + k ).parent()));
-                        console.log('replacement.siblings() = ', replacement.siblings())
-                        console.log('replacement_html = ' + replacement_html)
-                        replacement.after(replacement_html)
+                        //console.log('replacement.siblings() = ', replacement.siblings())
+                        //console.log('replacement_html = ' + replacement_html)
+                        replacement.last().after(replacement_html)
                     }
                 }
-            }            
+            }
+        },
+        getFieldTypeFromID: function(id) {
+            const data = this.proposal.schema;
+            const field = data.filter(function(data){
+                return data.name == id;
+            });
+            return field.type;
         },
         locationUpdated: function(){
             console.log('in locationUpdated()');
