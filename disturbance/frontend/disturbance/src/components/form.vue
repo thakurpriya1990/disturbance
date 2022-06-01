@@ -82,7 +82,7 @@
         render(h) {
             let vm =this;
             //Renderer.sections = [];
-            Renderer.store_status_data(vm.proposal.readonly,vm.proposal.assessor_data,vm.proposal.comment_data,vm.proposal.add_info_applicant, vm.proposal.add_info_assessor, vm.proposal.current_assessor,vm.proposal.assessor_mode,vm.proposal.can_user_edit,vm.proposal.documents_url, vm.proposal.id, vm.proposal.application_type);
+            Renderer.store_status_data(vm.proposal.readonly,vm.proposal.assessor_data,vm.proposal.layer_data,vm.proposal.comment_data,vm.proposal.add_info_applicant, vm.proposal.add_info_assessor, vm.proposal.current_assessor,vm.proposal.assessor_mode,vm.proposal.can_user_edit,vm.proposal.documents_url, vm.proposal.id, vm.proposal.application_type);
             if (vm.withSectionsSelector){
                 return (
                     <div>
@@ -103,7 +103,7 @@
                         </div>
                         <div class="col-md-9">
                             {vm.proposal.schema.map(d =>{
-                                return Renderer.renderChildren(h,d,vm.values,vm.proposal.assessor_data,vm.proposal.readonly,vm.proposal.assessor_mode,vm.proposal.assessor)
+                                return Renderer.renderChildren(h,d,vm.values,vm.proposal.assessor_data,vm.proposal.layer_data,vm.proposal.readonly,vm.proposal.assessor_mode,vm.proposal.assessor)
                             })}
                             { this.$slots.default }
                         </div>
@@ -115,7 +115,7 @@
                     return (
                         <div>
                             {vm.proposal.schema.map(d =>{
-                                return Renderer.renderChildren(h,d,vm.values,vm.proposal.assessor_data,vm.proposal.readonly,vm.proposal.assessor_mode,vm.proposal.assessor)
+                                return Renderer.renderChildren(h,d,vm.values,vm.proposal.assessor_data,vm.proposal.layer_data,vm.proposal.readonly,vm.proposal.assessor_mode,vm.proposal.assessor)
                             })}
                             { this.$slots.default }
                         </div>
@@ -125,7 +125,7 @@
                     return (
                         <div class={vm.form_width}>
                             {vm.proposal.schema.map(d =>{
-                                return Renderer.renderChildren(h,d,vm.values,vm.proposal.assessor_data,vm.proposal.readonly,vm.proposal.assessor_mode,vm.proposal.assessor)
+                                return Renderer.renderChildren(h,d,vm.values,vm.proposal.assessor_data,vm.proposal.layer_data,vm.proposal.readonly,vm.proposal.assessor_mode,vm.proposal.assessor)
                             })}
                             { this.$slots.default }
                         </div>

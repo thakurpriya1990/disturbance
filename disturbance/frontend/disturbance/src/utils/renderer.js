@@ -25,6 +25,7 @@ module.exports = {
         var assessorStatus = this.status_data.assessorStatus;
         var assessorData = this.status_data.assessorData;
         var commentData = this.status_data.commentData;
+        var layerData= this.status_data.layerData;
         var assessorInfo = this.status_data.assessorInfo;
         var proposalId = this.status_data.proposalId;
         var applicationType = this.status_data.applicationType;
@@ -54,6 +55,7 @@ module.exports = {
         readonly = !visibility.editable;
 
         var val = (data) ? (data[c.name]) ? data[c.name] : null : null;
+        var layer_val = (layerData) ? layerData.find(at => at.name == c.name) : null;
         //var comment_val = (commentData) ? (commentData[c.name]) ? commentData[c.name] : null : null;
         var add_info_applicant_val = (addInfoApplicant) ? (addInfoApplicant[c.name]) ? addInfoApplicant[c.name] : null : null;
         var add_info_assessor_val = (addInfoAssessor) ? (addInfoAssessor[c.name]) ? addInfoAssessor[c.name] : null : null;
@@ -169,7 +171,7 @@ module.exports = {
                 break;
             case 'text_area':
                 _elements.push(
-                    <TextArea readonly={readonly} name={c.name} value={val} id={id} comment_value={comment_val} label={c.label} help_text={help_text} assessorMode={assessorMode} assessor_readonly={assessor_visibility} isRequired={c.isRequired} help_text_url={help_text_url} help_text_assessor_url={help_text_assessor_url} comment_boxes={JSON.stringify(comment_boxes)}/>
+                    <TextArea readonly={readonly} name={c.name} value={val} id={id} comment_value={comment_val} label={c.label} help_text={help_text} assessorMode={assessorMode} assessor_readonly={assessor_visibility} isRequired={c.isRequired} help_text_url={help_text_url} help_text_assessor_url={help_text_assessor_url} comment_boxes={JSON.stringify(comment_boxes)} layer_val={layer_val}/>
                 )
                 break;
             case 'label':
@@ -408,10 +410,11 @@ module.exports = {
         return boxes;
     },
     status_data : {},
-    store_status_data(readonly,assessorData,commentData,addInfoApplicant,addInfoAssessor,assessorEmail,assessorMode,can_user_edit,docs_url, proposalId, applicationType){
+    store_status_data(readonly,assessorData,layerData,commentData,addInfoApplicant,addInfoAssessor,assessorEmail,assessorMode,can_user_edit,docs_url, proposalId, applicationType){
         this.status_data = {
             'readonly': readonly,
             'assessorData': assessorData,
+            'layerData': layerData,
             'commentData': commentData,
             'addInfoApplicant': addInfoApplicant,
             'addInfoAssessor': addInfoAssessor,
