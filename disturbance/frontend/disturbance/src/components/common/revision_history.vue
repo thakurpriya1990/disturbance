@@ -12,7 +12,7 @@
                         <tr v-for="revision in this.lodgement_revisions_actions" :key="revision.id">
                             <td>{{ revision.id }}</td>
                             <td style="padding-left: 10px;">{{ revision.date | formatDateNoTime }}</td>
-                            <td style="padding-left: 10px;" v-on:click="getCompareVersions(revision['index'])">
+                            <td style="padding-left: 10px;" v-on:click="getCompareVersions(revision['index'],revision.date)">
                                 <span v-bind:id=revision.id v-html=revision.action></span>
                             </td>
                         </tr>
@@ -30,6 +30,9 @@
                         </tr>
                     </table>
                 </div>
+            </div>
+            <div v-if="compareModeActive" align="center">
+                <span>&nbsp;<button class="btn btn-primary w-100" @click="getViewVersion(0)">Exit Compare Mode</button></span>
             </div>
         </div>
     </div>
@@ -62,6 +65,7 @@ export default {
             popoversInitialised: false,
             versionCurrentlyShowing: 0,
             isLoadingData: false,
+            compareModeActive:false,
             actionsDtOptions: {
                 language: {
                     processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
@@ -128,46 +132,44 @@ export default {
         }
     },
     methods:{
-        getCompareVersions: async function (compare_version) {
+        getCompareVersions: async function (compare_version, lodgement_date) {
             /*  Updates the history panel to show which item is being compared against
                 Then emits to the component above to process the compare.
             */
 
-            let clicked_revision = this.lodgement_revisions_actions[compare_version]
+            this.compareModeActive = true;
+            let clicked_version = this.lodgement_revisions_actions[compare_version]
 
             for (let index = 0; index < this.lodgement_revisions_actions.length; index++) {
                 this.lodgement_revisions_actions[index].action = '<a style="cursor:pointer;">Compare</a>'
-                clicked_revision.action = '<div>Comparing</div>'        // should be non-clickable now
+                clicked_version.action = '<div>Comparing</div>'        // should be non-clickable now
                 this.lodgement_revisions_actions[0].action = '<div style="visibility: hidden;">&#x1f441;</div>'
                 this.lodgement_revisions_view_actions[0].view_action = '<div style="">&#x1f441;</div>'
                 this.lodgement_revisions_view_actions[index].view_action = '<a style="cursor:pointer;">View</a>'
             }
             
             // Process the comparison of the model versions ins the component above
-            await this.$emit("compare_model_versions", compare_version)
+            await this.$emit("compare_model_versions", {compare_version, lodgement_date})
         },
-        getViewVersion: async function (revision) {
+        getViewVersion: async function (version) {
             /*  Updates the history panel to show which version is being viewed
                 Then emits to the component above to process the change of model object.
             */
-            
-            let clicked_revision = this.lodgement_revisions_view_actions[revision]
-            
-            console.log('clicked_revision = ' + revision)
-
+            this.compareModeActive = false;
+            let clicked_version = this.lodgement_revisions_view_actions[version]
             // Store the revision currently showing so it can be accessed from the compare method
-            this.versionCurrentlyShowing = revision
+            this.versionCurrentlyShowing = version
 
             // Set initial values for the View table.
             for (let index = 0; index < this.lodgement_revisions_view_actions.length; index++) {
                 this.lodgement_revisions_view_actions[index].view_action = '<a style="visibility: visible; cursor:pointer;">View</a>'
-                clicked_revision.view_action = '<div style="">&#x1f441;</div>'
+                clicked_version.view_action = '<div style="">&#x1f441;</div>'
                 this.lodgement_revisions_actions[0].action = '<div style="visibility: hidden;">&#x1f441;</div>'
                 this.lodgement_revisions_actions[index].action = '<a style="cursor:pointer;">Compare</a>'
             }
            
             // Process the change of model version in the component above
-            await this.$emit("update_model_object", revision)
+            await this.$emit("update_model_object", version)
         },
         showRevisionHistory: function(){
             let vm = this;
