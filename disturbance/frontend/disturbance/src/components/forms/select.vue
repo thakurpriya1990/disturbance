@@ -83,7 +83,7 @@ export default {
         'help_text_url':String,
         'help_text_assessor_url':String,
         "value":[String,Array],
-        "comment_value": String,
+        "comment_value": [String, Object],
         "assessor_readonly": Boolean,
         "options":Array,
         "conditions":Object,
@@ -99,7 +99,7 @@ export default {
             }
         },
         'readonly': Boolean,
-        "comment_boxes":Array,
+        "comment_boxes":[String, Array],
     },
     data:function () {
         let vm =this;
