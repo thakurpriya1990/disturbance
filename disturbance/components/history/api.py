@@ -351,7 +351,7 @@ class GetCompareFieldVersionsView(InternalAuthorizationView):
                         if '[' in key_suffix and ']' in key_suffix:
                             old_value = re.sub(pattern, r"\1 \2", values['old_value'])
                             new_value = re.sub(pattern, r"\1 \2", values['new_value'])
-                            differences_list.append({key.split('\'')[-2]:'{} replaced with {}'.format(old_value, new_value),})
+                            differences_list.append({key.split('\'')[-2]:'-{},+{}'.format(old_value, new_value),})
                         else:
                             differences_list.append({key.split('\'')[-2]:values['new_value'],})
                 if 'dictionary_item_added' in difference:
@@ -369,15 +369,15 @@ class GetCompareFieldVersionsView(InternalAuthorizationView):
                     for key, value in difference[1].items():
                         logger.debug('\n\n item = ' + str(key))
                         logger.debug('\n\n value = ' + str(value))
-                        value = re.sub(pattern, r"\1 \2", value)
-                        differences_list.append({key.split('\'')[-2]:'+{} (present)'.format(value),})
+                        #value = re.sub(pattern, r"\1 \2", value)
+                        differences_list.append({key.split('\'')[-2]:'+{}'.format(value),})
                 if 'iterable_item_removed' in difference:
                     logger.debug('\n\n difference[0] = ' + str(difference[0]))
                     for key, value in difference[1].items():
                         logger.debug('\n\n key = ' + str(key))
                         logger.debug('\n\n value = ' + str(value))
-                        value = re.sub(pattern, r"\1 \2", value)
-                        differences_list.append({key.split('\'')[-2]:'-{} (not present)'.format(value),})    
+                        #value = re.sub(pattern, r"\1 \2", value)
+                        differences_list.append({key.split('\'')[-2]:'-{}'.format(value),})    
 
             return Response(differences_list)
 
