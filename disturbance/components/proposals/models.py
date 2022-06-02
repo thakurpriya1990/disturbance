@@ -456,19 +456,21 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
         # Populate self with the new field values
         super(Proposal, self).save(*args, **kwargs)
-        
+
+        # Append 'P' to Proposal id to generate Lodgement number.
+        # Lodgement number and lodgement sequence are used to generate Reference.
+        if self.lodgement_number == '':
+            new_lodgment_id = 'P{0:06d}'.format(self.pk)
+            self.lodgement_number = new_lodgment_id
+            self.save()
+
         # If the processing_status has changed then add a reversion comment
         # so we have a way of filtering based on the status changing
         if self.processing_status != original_processing_status:
-            # Append 'P' to Proposal id to generate Lodgement number.
-            # Lodgement number and lodgement sequence are used to generate Reference.
-            if self.lodgement_number == '':
-                new_lodgment_id = 'P{0:06d}'.format(self.pk)
-                self.lodgement_number = new_lodgment_id
             self.save(version_comment=f'processing_status: {self.processing_status}')
         elif self.assessor_data != original_assessor_data:
             # Although the status hasn't changed we add the text 'processing_status'
-            # So we can filter based on it later (for both assessor_data nd comment_data)
+            # So we can filter based on it later (for both assessor_data and comment_data)
             self.save(version_comment='assessor_data: Has changed - tagging with processing_status')
         elif self.comment_data != original_comment_data:
             self.save(version_comment='comment_data: Has changed - tagging with processing_status')
