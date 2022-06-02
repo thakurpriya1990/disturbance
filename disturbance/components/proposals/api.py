@@ -1556,6 +1556,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             action = request.POST.get('action')
             section = request.POST.get('input_name')
+
             if action == 'list' and 'input_name' in request.POST:
                 pass
 
@@ -1592,8 +1593,12 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 document.save()
                 instance.save(version_comment='File Added: {}'.format(filename)) # to allow revision to be added to reversion history
                 #instance.current_proposal.save(version_comment='File Added: {}'.format(filename)) # to allow revision to be added to reversion history
-
-            return  Response( [dict(input_name=d.input_name, name=d.name,file=d._file.url, id=d.id, can_delete=d.can_delete, can_hide=d.can_hide) for d in instance.documents.filter(input_name=section, hidden=False) if d._file] )
+            
+            proposal_lodgement_date = request.POST.get('proposal_lodgement_date')
+            if proposal_lodgement_date:
+                return  Response( [dict(input_name=d.input_name, name=d.name,file=d._file.url, id=d.id, can_delete=d.can_delete, can_hide=d.can_hide) for d in instance.documents.filter(input_name=section, hidden=False, uploaded_date__lte=proposal_lodgement_date) if d._file] )
+            else:
+                return  Response( [dict(input_name=d.input_name, name=d.name,file=d._file.url, id=d.id, can_delete=d.can_delete, can_hide=d.can_hide) for d in instance.documents.filter(input_name=section, hidden=False) if d._file] )
 
         except serializers.ValidationError:
             print(traceback.print_exc())
