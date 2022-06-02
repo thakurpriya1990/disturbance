@@ -69,18 +69,38 @@ COLUMN_MAPPING = {
     'suspended':              'site_status',
 }
 
-class ImportException(Exception):
-    pass
-
 
 class ApiaryLicenceReader():
+    """
+    FROM shell_plus:
+	from disturbance.utils.migration_utils_pd import ApiaryLicenceReader
+	alr = ApiaryLicenceReader('disturbance/utils/csv/apiary_migration_file_20May2022.xlsx')
+
+	alr.create_users()
+	alr.create_organisations()
+	alr.create_licences()
+	alr.create_licence_pdf()
+
+    FROM mgt-command:
+        python manage_ds.py apiary_migration_script --filename disturbance/utils/csv/apiary_migration_file_20May2022.xlsx
+    """
 
     def __init__(self, filename):
         self.df = self._read_excel(filename)
-        self.df_grouped = self.df.groupby('abn')
-
         self.application_type = ApplicationType.objects.get(name=ApplicationType.APIARY)
         self.proposal_type = ProposalType.objects.all().order_by('name', '-version').distinct('name').get(name=self.application_type.name)
+
+    def __get_phone_number(self, row):
+        try: 
+            return row.phone_number1 
+        except: 
+            return row.mobile_number
+
+    def __get_mobile_number(self, row):
+        try: 
+            return row.mobile_number 
+        except: 
+            return row.phone_number1
 
     def _read_excel(self, filename):
         def _get_country_code(x):
@@ -89,6 +109,7 @@ class ApiaryLicenceReader():
             except Exception as e:
                 country=Country.objects.get(iso_3166_1_a2='AU')
             return country.code
+
 
         df = pd.read_excel(filename)
 
@@ -101,10 +122,9 @@ class ApiaryLicenceReader():
         df['approval_cpc_date']      = pd.to_datetime(df['approval_cpc_date'], errors='coerce')
         df['approval_minister_date'] = pd.to_datetime(df['approval_minister_date'], errors='coerce')
 
-        df['issue_date'] = df['issue_date'].apply(lambda x: x if isinstance(x, datetime.datetime) else x.start_date) # fill null values
+        #df['issue_date'] = df['issue_date'].apply(lambda x: x if isinstance(x, datetime.datetime) else x.start_date) # fill null values
         df['abn']          = df['abn'].str.replace(" ","")
         df['email']        = df['email'].str.replace(" ","").str.lower()
-        #import ipdb; ipdb.set_trace()
         df['first_name'] = df['first_name'].apply(lambda x: x.lower().capitalize().strip() if not pd.isnull(x) else 'No First Name')
         df['last_name'] = df['last_name'].apply(lambda x: x.lower().capitalize().strip() if not pd.isnull(x) else 'No Last Name')
         df['licencee'] = df['licencee'].apply(lambda x: x.strip() if not pd.isnull(x) else 'No Licencee Name')
@@ -119,17 +139,14 @@ class ApiaryLicenceReader():
         df['country'] = df['country'].apply(_get_country_code)
  
         # clean everything else
-        #df[df.columns] = df.apply(lambda x: x if not pd.isnull(x) else '')
         df.fillna('', inplace=True)
         df.replace({np.NaN: ''}, inplace=True)
 
         # check excel column names are the same column_mappings
-        #if list(df.columns) != list(COLUMN_MAPPING.values()):
         if df.columns.values.tolist() != [*COLUMN_MAPPING.values()]:
             raise Exception('Column Names have changed!')
 
         # add extra column
-        #import ipdb; ipdb.set_trace()
         df['licencee_type'] = df['abn'].apply(lambda x: 'organisation' if x else 'individual')
 
         return df
@@ -137,55 +154,41 @@ class ApiaryLicenceReader():
     def run_migration(self):
 
         # create the users and organisations, if they don't already exist
-        t0_start = time.process_time()
+        t0_start = time.time()
         try:
             self.create_users()
             self.create_organisations()
         except Exception as e:
             print(e)
             import ipdb; ipdb.set_trace()
-        t0_end = time.process_time()
+        t0_end = time.time()
         print('TIME TAKEN (Orgs and Users): {}'.format(t0_end - t0_start))
 
         with transaction.atomic():
             # create the Migratiom models
-            t1_start = time.process_time()
+            t1_start = time.time()
             try:
-                #self._write_to_migrated_apiary_licence_model()
                 self.create_licences()
             except Exception as e:
                 print(e)
                 import ipdb; ipdb.set_trace()
-            t1_end = time.process_time()
+            t1_end = time.time()
             print('TIME TAKEN (Create License Models): {}'.format(t1_end - t1_start))
 
         # create the Licence/Permit PDFs
-        t2_start = time.process_time()
+        t2_start = time.time()
         try:
             self.create_licence_pdf()
         except Exception as e:
             print(e)
             import ipdb; ipdb.set_trace()
-        t2_end = time.process_time()
+        t2_end = time.time()
         print('TIME TAKEN (Create License PDFs): {}'.format(t2_end - t2_start))
 
         print('TIME TAKEN (Total): {}'.format(t2_end - t0_start))
 
     def create_users(self):
-        def get_phone_number():
-            try: 
-                return row.phone_number1 
-            except: 
-                return row.mobile_number
-
-        def get_mobile_number():
-            try: 
-                return row.mobile_number 
-            except: 
-                return row.phone_number1
-
         # Iterate through the dataframe and create non-existent users
-        #for index, row in self.df_grouped.first().iterrows():
         for index, row in self.df.groupby('email').first().iterrows():
             if row.status != 'Vacant':
                 try:
@@ -199,15 +202,15 @@ class ApiaryLicenceReader():
                             email=row.name,
                             first_name=row.first_name,
                             last_name=row.last_name,
-                            phone_number=get_phone_number(),
-                            mobile_number=get_mobile_number()
+                            phone_number=self.__get_phone_number(row),
+                            mobile_number=self.__get_mobile_number(row)
                         )
                 except Exception as e:
                     import ipdb; ipdb.set_trace()
                     logger.error(f'user: {row.name}   *********** 1 *********** FAILED. {e}')
 
     def create_organisations(self):
-        for index, row in self.df_grouped.first().iterrows():
+        for index, row in self.df.groupby('abn').first().iterrows():
             if row.status != 'Vacant':
                 #import ipdb; ipdb.set_trace()
                 try: 
@@ -284,18 +287,6 @@ class ApiaryLicenceReader():
         return oa
 
     def _create_org_contact(self, row, org):
-        def get_phone_number():
-            try: 
-                return row.phone_number1 
-            except: 
-                return row.mobile_number
-
-        def get_mobile_number():
-            try: 
-                return row.mobile_number 
-            except: 
-                return row.phone_number1
-
         try:
             oc, created = OrganisationContact.objects.get_or_create(
                 organisation=org,
@@ -303,8 +294,8 @@ class ApiaryLicenceReader():
                 defaults={
                     'first_name': row.first_name,
                     'last_name': row.last_name,
-                    'phone_number': get_phone_number(),
-                    'mobile_number': get_mobile_number(),
+                    'phone_number': self.__get_phone_number(row),
+                    'mobile_number': self.__get_mobile_number(row),
                     'user_status': 'active',
                     'user_role': 'organisation_admin',
                     'is_admin': True
@@ -322,62 +313,8 @@ class ApiaryLicenceReader():
             print(e)
             import ipdb; ipdb.set_trace()
 
-#    def _write_to_migrated_apiary_licence_model(self):
-#        def get_phone_number():
-#            try: 
-#                return row.phone_number1 
-#            except: 
-#                return row.mobile_number
-#
-#        def get_mobile_number():
-#            try: 
-#                return row.mobile_number 
-#            except: 
-#                return row.phone_number1
-#
-#        #for index, row in self.df_grouped.first().iterrows():
-#        for index, row in self.df.iterrows():
-#            if row.status != 'Vacant':
-#                try:
-#                    #import ipdb;ipdb.set_trace()
-#                    defaults = {
-#                        #'permit_number': row.permit_number,
-#                        'start_date': row.start_date if row.start_date else datetime.date.today(),
-#                        'expiry_date': row.expiry_date if row.expiry_date else datetime.date.today(),
-#                        'issue_date': row.issue_date if row.issue_date else row.start_date,
-#                        'status': row.status.lower(),
-#                        'latitude': row.latitude,
-#                        'longitude': row.longitude,
-#                        'trading_name': row.trading_name,
-#                        'licencee': row.licencee,
-#                        'abn': row.abn,
-#                        'first_name': row.first_name,
-#                        'last_name': row.last_name,
-#                        'address_line1': row.address_line1,
-#                        'address_line2': row.address_line2,
-#                        'address_line3': row.address_line3,
-#                        'suburb': row.suburb,
-#                        'state': row.state,
-#                        'country': row.country,
-#                        'postcode': str(int(row['postcode'])),
-#                        'phone_number1': get_phone_number(),
-#                        #'phone_number2': row['phone_number2,
-#                        'mobile_number': get_mobile_number(),
-#                        'email': row.email,
-#                        #'licencee_type': 'organisation' if row.name else 'individual',
-#                        'licencee_type': row.licencee_type,
-#                        'migrated': True,
-#                    }
-#
-#                    licence = MigratedApiaryLicence.objects.create(**defaults)
-#
-#                except Exception as e:
-#                    print(e)
-#                    import ipdb; ipdb.set_trace()
-
     def create_licences(self):
         count = 1
-        #for index, row in self.df_grouped.first().iterrows():
         for index, row in self.df.iterrows():
             try:
                 #if row.status != 'Vacant' and index>4474:
