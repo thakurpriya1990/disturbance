@@ -1013,6 +1013,18 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
         return revisions
 
+    def get_documents_for_version(self, version_number):
+        # get the datetime the requested version was lodged
+        versions = list(Version.objects.get_for_object(self).select_related('revision')\
+            .filter(revision__comment__contains='processing_status').get_unique())
+        version = versions[version_number]
+        proposal = Proposal(**version)
+        version_lodgement_date = version.field_dict['lodgement_date']
+        # select all the files that were uploaded prior to this time that are not hidden
+        version_documents = ProposalDocument.objects.filter(proposal=proposal, uploaded_date__lte=version_lodgement_date)
+        return version_documents
+
+
     def __assessor_group(self):
         # Alternative logic for Apiary applications
         if self.apiary_group_application_type:
