@@ -26,6 +26,7 @@
                 </template>
                 <a href="" v-else  @click.prevent="toggleComment"><i class="fa fa-ban">&nbsp;</i></a>
             </template>
+
      
             <template v-if="readonly">
                 <select v-if="!isMultiple" disabled ref="selectB" :id="selectid" :name="name" class="form-control" :data-conditions="cons" style="width:100%">
@@ -54,6 +55,9 @@
                 </select>
             </template>
         </div>
+        <template>
+                <LayerInfo v-show="assessorMode" :layer_value="layer_val"  :assessorMode="assessorMode"/>
+        </template>
 
         
         <!-- <Comment :question="label" :readonly="assessor_readonly" :name="name+'-comment-field'" v-show="showingComment && assessorMode" :value="comment_value"/>  -->
@@ -71,6 +75,7 @@ import Comment from './comment.vue'
 import CommentBox from './comment_box_referral.vue'
 import HelpText from './help_text.vue'
 import HelpTextUrl from './help_text_url.vue'
+import LayerInfo from './layer_info.vue'
 export default {
     name:"selectComp",
     props:{
@@ -100,6 +105,11 @@ export default {
         },
         'readonly': Boolean,
         "comment_boxes":"",
+        "layer_val": {
+            default:function () {
+                return false;
+            }
+        },
     },
     data:function () {
         let vm =this;
@@ -127,7 +137,7 @@ export default {
             return has_value;
         },
     },
-    components: { Comment, HelpText, HelpTextUrl, CommentBox},
+    components: { Comment, HelpText, HelpTextUrl, CommentBox, LayerInfo},
     methods:{
         toggleComment(){
             this.showingComment = ! this.showingComment;

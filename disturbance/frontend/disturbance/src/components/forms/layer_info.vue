@@ -1,13 +1,14 @@
 <template lang="html">
-    <div class="col-md-12">
+    <div class="col-md-12" v-if="assessorMode">
     <div class="row">
         <div class="col-md-12">
             <div class="form-group">
                 <div class="">
-                  <!-- <p class="col-md-6" style="color:red">Layer Name: <p  style="color:red"v-html="layer_name"></p></p> -->
+ 
                   <div class="row">
                       <div class="col-md-6" style="color:blue">Layer last updated: <span p style="color:blue" v-html="layer_date"></span></div>
                         <p class="col-md-6" style="color:blue" v-html="layer_name"></p></p>
+
                   </div>
                   <div v-if="new_layer_updated && new_layer_name" class="row">
                         <div class="col-md-12" style="color:red">Layer has expired.</div>
@@ -25,7 +26,7 @@
 
 <script>
 export default {
-    props:["layer_value"],
+    props:["layer_value", "assessorMode"],
     computed:{
         
         layer_name:function () {
