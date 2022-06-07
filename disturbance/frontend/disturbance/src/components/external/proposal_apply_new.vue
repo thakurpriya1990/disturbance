@@ -129,7 +129,7 @@ export default {
   data: function() {
     let vm = this;
     return {
-        "proposal": null,
+        //"proposal": null,
         agent: {},
         behalf_of: '',
         profile: {
