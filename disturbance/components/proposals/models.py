@@ -1021,7 +1021,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         #proposal = Proposal(**version)
         version_lodgement_date = version.field_dict['lodgement_date']
         version_documents = ProposalDocument.objects.filter(proposal=self, uploaded_date__lte=version_lodgement_date)\
-            .order_by('input_name')
+            .order_by('input_name', 'uploaded_date')
         return version_documents, version_lodgement_date
 
     def get_document_differences(self, newer_version, older_version, differences_only):
@@ -1031,9 +1031,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         newer_documents_list = []
         input_name = ''
         for document in newer_version_documents:
-            logger.debug('newer_document.name = ' + str(document.name))
-            logger.debug('newer_document.hidden = ' + str(document.hidden))
             if not document.hidden:
+                logger.debug('newer_document.input_name = ' + str(document.input_name))
+                logger.debug('newer_document.name = ' + str(document.name))
+                logger.debug('newer_document.hidden = ' + str(document.hidden) + '\n\n')
                 if input_name != document.input_name:
                     input_name = document.input_name
                     input_item = {input_name:[]}
@@ -1042,7 +1043,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                 #logger.debug('input_name ' + str(input_name))
 
-                input_item[input_name] += [{document.name:document._file.path}]
+                input_item[input_name] += [{document.name:document._file.url}]
 
         #return newer_documents_list
 
@@ -1054,8 +1055,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             .select_related('revision').filter(revision__date_created__lte=older_version_lodgement_date).order_by('-revision__date_created').first()
             older_document = ProposalDocument(**older_document_version.field_dict)
             if not older_document.hidden:
+                logger.debug('older_document.input_name = ' + str(older_document.input_name))
                 logger.debug('older_document.name = ' + str(older_document.name))
-                logger.debug('older_document.hidden = ' + str(older_document.hidden))
+                logger.debug('older_document.hidden = ' + str(older_document.hidden) + '\n\n')
                 if input_name != older_document.input_name:
                     input_name = older_document.input_name
                     input_item = {input_name:[]}
@@ -1064,7 +1066,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                 #logger.debug('input_name ' + str(input_name))
 
-                input_item[input_name] += [{older_document.name:older_document._file.path}]
+                input_item[input_name] += [{older_document.name:older_document._file.url}]
 
         #return older_documents_list
 
@@ -1083,6 +1085,36 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         #if differences_only:
         differences_list = []
         for difference in differences.items():
+            if "values_changed" in difference:
+                logger.debug('\n\n values_changed -----------------> ')
+                for key, value in difference[1].items():
+                    key_suffix = key.split('\'')[-1]
+                    logger.debug('\n\n key = ' + str(key))
+                    logger.debug('\n\n values = ' + str(value))
+                    section = key.split('\'')[-2]
+                    # Add the old value document to the list as an remove
+                    old_value_dict = value['old_value']
+                    logger.debug('\n\n old_value_dict = ' + str(old_value_dict))
+                    operation = '-'
+                    for item in old_value_dict:
+                        file_name = item
+                        file_path = old_value_dict[item]
+                        logger.debug('\n\n item = ' + str(item))
+                        logger.debug('\n\n file_path = ' + str(file_path))
+                        differences_list.append({section:(operation, file_name, file_path)})
+                    # Add the new value document to the list as an add
+                    new_value_dict = value['new_value']
+                    logger.debug('\n\n new_value_dict = ' + str(new_value_dict))
+                    operation = '+'
+                    for item in new_value_dict:
+                        file_name = item
+                        file_path = new_value_dict[item]
+                        logger.debug('\n\n item = ' + str(item))
+                        logger.debug('\n\n file_path = ' + str(file_path))
+                        differences_list.append({section:(operation, file_name, file_path)})
+
+                    #differences_list.append({section:'-{},+{}'.format(old_value, new_value),})
+
             logger.debug(f'difference = {difference}')
             if "iterable_item_removed" in difference:
                 logger.debug('\n\n iterable_item_removed -----------------> ')
