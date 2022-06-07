@@ -220,7 +220,7 @@
         <div class="col-md-8">
             <div v-if="proposal_compare_version!=0" class="panel panel-default sticky-footer">
                 Comparing
-                <span class="label label-success">
+                <span class="label label-default">
                     {{proposal.lodgement_number}}-{{reversion_history_length}}: {{proposal.lodgement_date | formatDate }}   
                 </span>&nbsp;
                 with
@@ -670,13 +670,13 @@ export default {
                     if (revision_text == '') {
                         revision_text = ' (not present)';
                     }
-                    console.log('!@#$ k = ' + k)
+                    //console.log('!@#$ k = ' + k)
                     //console.log('!@#$ revision_text = ' + revision_text)
 
                     if(replacement.is(':checkbox')) {
-                        console.log('!@#$ is checkbox')
-                        console.log('!@#$ replacement ' + replacement)
-                        console.log('!@#$ replacement.text ' + replacement.parent().text() )
+                        //console.log('!@#$ is checkbox')
+                        //console.log('!@#$ replacement ' + replacement)
+                        //console.log('!@#$ replacement.text ' + replacement.parent().text() )
                         
                         let replacement_html = '<div class="revision_note" style="border:1px solid red; width: 100%; margin-top: 3px; padding-top: 0px; color: red; padding:10px 0 15px 10px;">';
                         if(' (not present)'==revision_text){
@@ -726,47 +726,50 @@ export default {
                             let compare_select = null;
                             let compare_select_id = k + '_compare_select';
                             if ($(this).is('select:not(.revision_note)')){
+                                console.log('!@#$ select found ------------_>' );
                                 select_found = true;
-                                if($(this)[0].hasAttribute('multiple')){
-                                    //console.log('!@#$ multi select found ------------_>' );
-                                    //console.log(k + '_compare_select');
-                                    //console.log('!@#$ compare_select.length ------_>' + $('#' + k + '_compare_select').length);
-                                    if(0==$('#' + k + '_compare_select').length){
-                                        compare_select = $(this).clone();
-                                        compare_select.attr('id', compare_select_id)
-                                        compare_select.addClass('revision_note')
-                                        replacement.last().after(compare_select);
-                                        vm.$nextTick(function(e){
-                                            $('#'+compare_select_id).select2({
-                                                "theme": "bootstrap",
-                                                allowClear: true,
-                                                placeholder:"Select..."
-                                            });
-                                            //console.log('compare_select.next.text' + compare_select.next().text());
-                                            compare_select.next().attr('style','margin-top:15px; border:1px solid red;')
-                                            compare_select.next().attr('id', k + '_compare_select2')
-                                            compare_select.next().addClass('revision_note')
-                                        });
-                                        // Add all the existing options
-                                        const current_version_options = $(this).siblings('input:hidden');
-                                        $.each(current_version_options, function(i, current_version){
-                                            var newOption = new Option(current_version.value, current_version.value, true, true);
-                                            // Append it to the select
-                                            $('#'+compare_select_id).append(newOption).trigger('change');                                            
-                                        });
-                                        //console.log('current_version_options.length' + current_version_options.length);
-                                    } else {
-                                        compare_select = $(k + '_compare_select')
-                                    }
-
+                                if(0==$('#' + k + '_compare_select').length){
+                                    console.log('!@#$ Cloning select and setting up select2');
+                                    compare_select = $(this).clone();
+                                    compare_select.attr('id', compare_select_id);
+                                    compare_select.addClass('revision_note');
+                                    replacement.last().after(compare_select);
                                     vm.$nextTick(function(e){
+                                        $('#'+compare_select_id).select2({
+                                            "theme": "bootstrap",
+                                            allowClear: true,
+                                            placeholder:"Select..."
+                                        });
+                                    });
+                                    vm.$nextTick(function(e){
+                                        compare_select = $('#' + compare_select_id);
+                                        compare_select.next().attr('style','margin-top:15px; border:1px solid red;');
+                                        compare_select.next().attr('id', k + '_compare_select2');
+                                        compare_select.next().addClass('revision_note');
+                                    });
+                                    // Add all the existing options
+                                    const current_version_options = $(this).siblings('input:hidden');
+                                    $.each(current_version_options, function(i, current_version){
+                                        console.log('!@#$ Adding option = ' + current_version.value );
+                                        var newOption = new Option(current_version.value, current_version.value, true, true);
+                                        // Append it to the select
+                                        $('#'+compare_select_id).append(newOption).trigger('change');                                            
+                                    });
+                                }
+                                if($(this)[0].hasAttribute('multiple')){
+                                    console.log('!@#$ is multi select ------------_>' );
+                                    vm.$nextTick(function(e){
+                                        console.log('operation = ' + revision_text.substring(0,1));
                                         // Replace item in compare multi-select
                                         if(revision_text.includes(',')){
                                             const item_to_remove = revision_text.split(',')[0];
                                             const option_value_remove = item_to_remove.substring(1);
-                                            //console.log('Removing item = ' + option_value_remove);
+                                            console.log('Removing item = ' + option_value_remove);
                                             vm.$nextTick(function(e){
-                                                $('#' + k + '_compare_select2').find('li.select2-selection__choice[title|=' + option_value_remove + ']').remove();
+                                                console.log('#' + k + '_compare_select2 = ' + $('#' + k + '_compare_select2').length);
+                                                console.log('option_value_remove = ' + option_value_remove);
+                                                console.log(' Selection choice length = ' + $('#' + k + '_compare_select2').find('li.select2-selection__choice[title|=' + option_value_remove + ']').length);
+                                                $('#' + k + '_compare_select2').find('li.select2-selection__choice[title|=' + option_value_remove + ']').remove();          
                                             });
                                             const item_to_add = revision_text.split(',')[1];
                                             const option_text_add = item_to_add.substring(1).replace(/([A-Z])/g, ' $1').trim();
@@ -778,10 +781,11 @@ export default {
                                         // Remove item from compare multi-select 
                                         else if('-' == revision_text.substring(0,1)){
                                             const option_value = revision_text.substring(1);
-                                            //console.log('Removing item = ' + option_value);
-                                            //console.log('options to remove = ' + $('#' + k + '_compare_select2').find('li.select2-selection__choice[title|=' + option_value + ']').length);
+                                            console.log('Removing item = ' + option_value);
+                                            console.log('options to remove = ' + $('#' + k + '_compare_select2').find('li.select2-selection__choice[title|=' + option_value + ']').length);
                                             vm.$nextTick(function(e){
                                                 $('#' + k + '_compare_select2').find('li.select2-selection__choice[title|=' + option_value + ']').remove();
+                                                $('#'+compare_select_id).trigger('change');
                                             });
                                         // Add item to compare multi-select
                                         } else if ('+' == revision_text.substring(0,1)) {
@@ -790,11 +794,10 @@ export default {
                                             const newOption = new Option(option_text, option_value, true, true);
                                             $('#'+compare_select_id).append(newOption).trigger('change');
                                         }
-
                                     });
-
                                 } else {
-                                    console.log('!@#$ select found ------------_>' );
+                                    console.log('!@#$ is regular select ------------_>' );
+                                    $('#'+compare_select_id).val(revision_text).trigger('change');
                                 }
                             }
                         }));
@@ -842,17 +845,14 @@ export default {
                     
                     // Depending on the operation swap, add or remove files
                     // Replace item in compare multi-select
-                    if(operation.includes(',')){                    
-                        
-                    }
-                    // Remove item from files list
-                    else if('-' == operation){
+                    if('-' == operation){
                         $('#' + compare_files_div_id).find('div[data-file-name="' + name +'"]').remove();
                     }
                     // Add item to files list
                     else if('+' == operation){
-                        const file_div = '<div><p>File: <span>' + name + '</span> (unlinked)</p></div>'
-                        $('#' + compare_files_div_id).children().last().append(file_div);
+                        //const file_div = '<div><p>File: <span>' + name + '</span> (deleted by applicant)</p></div>'
+                        const file_div = `<div data-file-name="${name}"><p>File: <a href="${path}" target="_blank">${name}</a></p></div>`
+                        $('#' + compare_files_div_id + ':last-child').append(file_div);
                     }
                 }
             }          
