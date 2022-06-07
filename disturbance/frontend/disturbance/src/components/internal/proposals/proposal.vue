@@ -648,6 +648,11 @@ export default {
             const comment_data_url = `/api/proposal/${this.proposal.id}/version_differences_comment_data.json?newer_version=${this.versionCurrentlyShowing}&older_version=${compare_version}`
             const comment_data_diffs = await Vue.http.get(comment_data_url);
             this.applyRevisionNotes(comment_data_diffs.data)
+
+            // Compare the proposal documents and apply revision notes
+            const document_data_url = `/api/proposal/${this.proposal.id}/version_differences_documents.json?newer_version=${this.versionCurrentlyShowing}&older_version=${compare_version}`
+            const document_data_diffs = await Vue.http.get(document_data_url);
+            this.applyFileRevisionNotes(document_data_diffs.data)            
         },
         applyRevisionNotes: async function (diffdata) {
             let vm = this;
@@ -710,8 +715,12 @@ export default {
                         replacement.last().parent().after(replacement_html)
                     }
                     else {
-                        // Find out if we are dealing with a select field
-                        // console.log('replacement.siblings().length = ' + replacement.siblings().length);
+                        /*  Find out if we are dealing with a select field
+                            This is a bit fragile and hacky. Could be cleaned up
+                            and refactored.
+                            Basically cloning the select2 and then adding and removing items
+                            to show the state of the older version.
+                        */
                         let select_found = false;
                         $.each(replacement.siblings(), (function(i, obj){
                             let compare_select = null;
@@ -719,9 +728,9 @@ export default {
                             if ($(this).is('select:not(.revision_note)')){
                                 select_found = true;
                                 if($(this)[0].hasAttribute('multiple')){
-                                    console.log('!@#$ multi select found ------------_>' );
-                                    console.log(k + '_compare_select');
-                                    console.log('!@#$ compare_select.length ------_>' + $('#' + k + '_compare_select').length);
+                                    //console.log('!@#$ multi select found ------------_>' );
+                                    //console.log(k + '_compare_select');
+                                    //console.log('!@#$ compare_select.length ------_>' + $('#' + k + '_compare_select').length);
                                     if(0==$('#' + k + '_compare_select').length){
                                         compare_select = $(this).clone();
                                         compare_select.attr('id', compare_select_id)
@@ -733,7 +742,7 @@ export default {
                                                 allowClear: true,
                                                 placeholder:"Select..."
                                             });
-                                            console.log('compare_select.next.text' + compare_select.next().text());
+                                            //console.log('compare_select.next.text' + compare_select.next().text());
                                             compare_select.next().attr('style','margin-top:15px; border:1px solid red;')
                                             compare_select.next().attr('id', k + '_compare_select2')
                                             compare_select.next().addClass('revision_note')
@@ -745,7 +754,7 @@ export default {
                                             // Append it to the select
                                             $('#'+compare_select_id).append(newOption).trigger('change');                                            
                                         });
-                                        console.log('current_version_options.length' + current_version_options.length);
+                                        //console.log('current_version_options.length' + current_version_options.length);
                                     } else {
                                         compare_select = $(k + '_compare_select')
                                     }
@@ -755,22 +764,22 @@ export default {
                                         if(revision_text.includes(',')){
                                             const item_to_remove = revision_text.split(',')[0];
                                             const option_value_remove = item_to_remove.substring(1);
-                                            console.log('Removing item = ' + option_value_remove);
+                                            //console.log('Removing item = ' + option_value_remove);
                                             vm.$nextTick(function(e){
                                                 $('#' + k + '_compare_select2').find('li.select2-selection__choice[title|=' + option_value_remove + ']').remove();
                                             });
                                             const item_to_add = revision_text.split(',')[1];
                                             const option_text_add = item_to_add.substring(1).replace(/([A-Z])/g, ' $1').trim();
                                             const option_value_add = item_to_add.substring(1);
-                                            console.log('Adding item = ' + item_to_add);
+                                            //console.log('Adding item = ' + item_to_add);
                                             const newOption = new Option(option_text_add, option_value_add, true, true);
                                             $('#'+compare_select_id).append(newOption).trigger('change');
                                         }
                                         // Remove item from compare multi-select 
                                         else if('-' == revision_text.substring(0,1)){
                                             const option_value = revision_text.substring(1);
-                                            console.log('Removing item = ' + option_value);
-                                            console.log('options to remove = ' + $('#' + k + '_compare_select2').find('li.select2-selection__choice[title|=' + option_value + ']').length);
+                                            //console.log('Removing item = ' + option_value);
+                                            //console.log('options to remove = ' + $('#' + k + '_compare_select2').find('li.select2-selection__choice[title|=' + option_value + ']').length);
                                             vm.$nextTick(function(e){
                                                 $('#' + k + '_compare_select2').find('li.select2-selection__choice[title|=' + option_value + ']').remove();
                                             });
@@ -798,6 +807,55 @@ export default {
                     }
                 }
             }
+        },
+        applyFileRevisionNotes: function(diffdata){
+            let vm = this;
+            for (let entry in diffdata) {
+                
+                for (let k in diffdata[entry]) {
+                    let file = diffdata[entry][k]
+                    console.log('!@#$ FILES ================ diffdata[entry][k] = ' + diffdata[entry][k])
+                    const operation = file[0]
+                    const name = file[1]
+                    const path = file[2]
+                    let replacement = $("#id_" + k );
+                    if(replacement.length!=1) {
+                        replacement = $('[name="' + k + '"]')
+                    }
+
+                    console.log('!@#$ FILES ================ k = ' + k)
+                    console.log('!@#$ operation ================ operation = ' + operation)
+                    console.log('!@#$ name ================ name = ' + name)
+                    console.log('!@#$ path ================ path = ' + path)
+
+                    let compare_files_div = null;
+                    let compare_files_div_id = k + '_compare_files';
+
+                    if(0 == $('#' + compare_files_div_id).length){
+                        compare_files_div = replacement.siblings('div.files').clone();
+                        compare_files_div.attr('id', compare_files_div_id);
+                        compare_files_div.removeClass('files');
+                        compare_files_div.addClass('revision_note');
+                        compare_files_div.attr('style','margin-top:15px; padding:15px 0 5px 15px; border:1px solid red;');
+                        replacement.siblings('div.files').after(compare_files_div);  
+                    }
+                    
+                    // Depending on the operation swap, add or remove files
+                    // Replace item in compare multi-select
+                    if(operation.includes(',')){                    
+                        
+                    }
+                    // Remove item from files list
+                    else if('-' == operation){
+                        $('#' + compare_files_div_id).find('div[data-file-name="' + name +'"]').remove();
+                    }
+                    // Add item to files list
+                    else if('+' == operation){
+                        const file_div = '<div><p>File: <span>' + name + '</span> (unlinked)</p></div>'
+                        $('#' + compare_files_div_id).children().last().append(file_div);
+                    }
+                }
+            }          
         },
         getFieldTypeFromID: function(id) {
             const data = this.proposal.schema;

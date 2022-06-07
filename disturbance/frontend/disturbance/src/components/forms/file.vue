@@ -29,8 +29,8 @@
             </template>
             <span v-if="show_spinner"><i class='fa fa-2x fa-spinner fa-spin'></i></span>
             <!-- <i id="file-spinner" class=""></i> -->
-            <div v-if="files">
-                <div v-for="v in documents">
+            <div v-if="files" class="files">
+                <div v-for="v in documents" :data-file-name="v.name">
                     <p>
                         File: <a :href="v.file" target="_blank">{{v.name}}</a> &nbsp;
                         <span v-if="!readonly && v.can_delete">

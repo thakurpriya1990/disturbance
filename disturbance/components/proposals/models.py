@@ -1018,12 +1018,111 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         versions = list(Version.objects.get_for_object(self).select_related('revision')\
             .filter(revision__comment__contains='processing_status').get_unique())
         version = versions[version_number]
-        proposal = Proposal(**version)
+        #proposal = Proposal(**version)
         version_lodgement_date = version.field_dict['lodgement_date']
-        # select all the files that were uploaded prior to this time that are not hidden
-        version_documents = ProposalDocument.objects.filter(proposal=proposal, uploaded_date__lte=version_lodgement_date)
-        return version_documents
+        version_documents = ProposalDocument.objects.filter(proposal=self, uploaded_date__lte=version_lodgement_date)\
+            .order_by('input_name')
+        return version_documents, version_lodgement_date
 
+    def get_document_differences(self, newer_version, older_version, differences_only):
+        newer_version_documents, newer_version_lodgement_date = self.get_documents_for_version(newer_version)
+        older_version_documents, older_version_lodgement_date = self.get_documents_for_version(older_version)
+
+        newer_documents_list = []
+        input_name = ''
+        for document in newer_version_documents:
+            logger.debug('newer_document.name = ' + str(document.name))
+            logger.debug('newer_document.hidden = ' + str(document.hidden))
+            if not document.hidden:
+                if input_name != document.input_name:
+                    input_name = document.input_name
+                    input_item = {input_name:[]}
+                    newer_documents_list.append(input_item)
+                    #logger.debug('adding ' + str(input_item))
+
+                #logger.debug('input_name ' + str(input_name))
+
+                input_item[input_name] += [{document.name:document._file.path}]
+
+        #return newer_documents_list
+
+        older_documents_list = []
+        input_name = ''
+        for document in older_version_documents:
+            # We need to get the state (hidden or not) of the document as it was in the older version
+            older_document_version = Version.objects.get_for_object(document)\
+            .select_related('revision').filter(revision__date_created__lte=older_version_lodgement_date).order_by('-revision__date_created').first()
+            older_document = ProposalDocument(**older_document_version.field_dict)
+            if not older_document.hidden:
+                logger.debug('older_document.name = ' + str(older_document.name))
+                logger.debug('older_document.hidden = ' + str(older_document.hidden))
+                if input_name != older_document.input_name:
+                    input_name = older_document.input_name
+                    input_item = {input_name:[]}
+                    older_documents_list.append(input_item)
+                    #logger.debug('adding ' + str(input_item))
+
+                #logger.debug('input_name ' + str(input_name))
+
+                input_item[input_name] += [{older_document.name:older_document._file.path}]
+
+        #return older_documents_list
+
+        #logger.debug('older_documents_list = ' + str(older_documents_list))
+
+
+        #logger.debug('\n\nolder_documents_list = ' + str(newer_documents_list))
+
+        #logger.debug('newer_version_documents length = ' + str(len(list(newer_version_documents))))
+        #logger.debug('older_version_documents length = ' + str(len(list(older_version_documents))))
+
+        differences = DeepDiff(newer_documents_list, older_documents_list, ignore_order=True)
+
+        #logger.debug('\n\ndifferences = ' + str(differences))
+
+        #if differences_only:
+        differences_list = []
+        for difference in differences.items():
+            logger.debug(f'difference = {difference}')
+            if "iterable_item_removed" in difference:
+                logger.debug('\n\n iterable_item_removed -----------------> ')
+                operation = '-'
+                for item in difference[1]:
+                    document = difference[1][item]
+                    for x in document:
+                        logger.debug('\n\n x = ' + x)
+
+                        section = item.split('\'')[-2]
+
+                        #file = document[section][0]
+                        for key, value in document.items():
+
+                            file_name = key
+                            file_path = document[key]
+                            differences_list.append({section:(operation, file_name, file_path)})
+
+            if "iterable_item_added" in difference:
+                logger.debug('\n\n iterable_item_added -----------------> ')
+                operation = '+'
+                for item in difference[1]:
+                    logger.debug('\n\n item = ' + str(item))
+                    document = difference[1][item]
+                    for x in document:
+                        section = item.split('\'')[-2]
+                        logger.debug('\n\n section = ' + str(section))
+                        logger.debug('\n\n document = ' + str(document))
+
+                        section = item.split('\'')[-2]
+
+                        #file = document[section][0]
+                        for key, value in document.items():
+
+                            file_name = key
+                            file_path = document[key]
+                            differences_list.append({section:(operation, file_name, file_path)})
+
+        return differences_list
+        
 
     def __assessor_group(self):
         # Alternative logic for Apiary applications
