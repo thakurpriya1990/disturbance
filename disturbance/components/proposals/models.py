@@ -462,15 +462,15 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         if self.lodgement_number == '':
             new_lodgment_id = 'P{0:06d}'.format(self.pk)
             self.lodgement_number = new_lodgment_id
-            self.save(version_comment=f'processing_status: {self.processing_status}')
-        
+            self.save()
+
         # If the processing_status has changed then add a reversion comment
         # so we have a way of filtering based on the status changing
         if self.processing_status != original_processing_status:
             self.save(version_comment=f'processing_status: {self.processing_status}')
         elif self.assessor_data != original_assessor_data:
             # Although the status hasn't changed we add the text 'processing_status'
-            # So we can filter based on it later (for both assessor_data nd comment_data)
+            # So we can filter based on it later (for both assessor_data and comment_data)
             self.save(version_comment='assessor_data: Has changed - tagging with processing_status')
         elif self.comment_data != original_comment_data:
             self.save(version_comment='comment_data: Has changed - tagging with processing_status')
@@ -847,11 +847,11 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
         default_mapping = {datetime.datetime: lambda d: str(d)}
 
-        formatted_differences = json.dumps(json.loads(differences.to_json(default_mapping=default_mapping)), indent=4, sort_keys=True) #[1:-1]
+        json_differences = json.loads(differences.to_json(default_mapping=default_mapping))
 
-        logger.debug(f'\n\nformatted_differences = \n\n {formatted_differences}')
+        logger.debug(f'\n\json_differences = \n\n {json_differences}')
 
-        return literal_eval(formatted_differences)
+        return json_differences
 
     def get_version_differences_comment_and_assessor_data(self, field, newer_version: int, older_version: int):
         """ Returns the differences between the comment data of two versions
@@ -896,23 +896,21 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
         differences = DeepDiff(newer_version_data, older_version_data, ignore_order=True)
 
-        logger.debug(f'differences = {type(differences)}')
+        #logger.debug(f'differences = {type(differences)}')
 
         json_differences = json.loads(differences.to_json())
 
         differences_list = []
 
-        if not 'values_changed' in json_differences:
-            return differences_list
+        if 'values_changed' in json_differences:            
+            logger.debug('\n\n values_changed ========================= ')
+            values_changed = json_differences['values_changed']
 
-        values_changed = json_differences['values_changed']
+            for key in values_changed:
+                #logger.debug('\n\n key = ' + str(key))
+                #logger.debug('\n\n new value = ' + str(values_changed[key]['new_value']))
+                #logger.debug('\n\n old value = ' + str(values_changed[key]['old_value']))
 
-        for key in values_changed:
-            logger.debug('\n\n key = ' + str(key))
-            logger.debug('\n\n new value = ' + str(values_changed[key]['new_value']))
-            logger.debug('\n\n old value = ' + str(values_changed[key]['old_value']))
-
-            if(values_changed[key]['new_value']):
                 # Due to the structure of comment_data and assessor_data we need to get the section name
                 # for both the comments and the referral comments.
                 #    
@@ -924,6 +922,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 # Also keep in mind that deep diff will return a different data structure once referral
                 # comments have been added.
                 
+                # Get the number between the first set of square brackets i.e. x in 'root[x].etc[y].etc[z]
                 regex = re.search('(?<=\[).+?(?=\])', str(key))
                 root_level = regex.group(0)
                 
@@ -933,16 +932,20 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 referrals = older_version_data[int(root_level)]['referrals']
                 logger.debug('\n\n type(referrals) ' + str(type(referrals)))
 
-                # Skip instances there there are no referrals in the old version
+                # Skip instances where there are no referrals in the old version
                 # and the assessor_comment hasn't actually changed this covers instances
                 # where the older version didn't have any referrals and the new version does
 
-                if len(referrals) == 0 and assessor_comment == assessor_comment_newer:
-                    continue
+                logger.debug('\n\n len(referrals) ' + str(len(referrals)))
+                logger.debug('\n\n assessor_comment == assessor_comment_newer ' + str(assessor_comment == assessor_comment_newer))
+
+                #if (len(referrals) == 0) and (assessor_comment == assessor_comment_newer):
+                #    logger.debug('\n\n passing ------------------__> ')
+                #    continue
 
                 differences_list = self.append_to_differences_list_by_field(field, older_version_data, values_changed, key, root_level,
                                     assessor_comment, differences_list)
-
+                    
         logger.debug('\n\n differences_list ' + str(differences_list))
 
         return differences_list
@@ -973,19 +976,19 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     
                 differences_list.append({root_level_name:values_changed[key]['new_value']}) 
         else:
-            if assessor_comment:
-                if 'comment_data' == field:
-                    root_level_name += '-comment-field-Assessor'
-                else:
-                    root_level_name += '-Assessor' 
-                logger.debug('\n\n type(new_value) ' + str(type(values_changed[key]['new_value'])))
-                if(type(values_changed[key]['new_value']) is dict):
-                    # Once referrer comments are added we will get a dictionary here
-                    new_value_dict = values_changed[key]['new_value']
-                    new_value = new_value_dict['assessor']
-                    differences_list.append({root_level_name:new_value})
-                else:
-                    differences_list.append({root_level_name:values_changed[key]['new_value']})
+            if 'comment_data' == field:
+                root_level_name += '-comment-field-Assessor'
+            else:
+                root_level_name += '-Assessor' 
+            logger.debug('\n\n type(new_value) ' + str(type(values_changed[key]['new_value'])))
+            if(type(values_changed[key]['new_value']) is dict):
+                # Once referrer comments are added we will get a dictionary here
+                new_value_dict = values_changed[key]['new_value']
+                new_value = new_value_dict['assessor']
+                differences_list.append({root_level_name:new_value})
+            else:
+                differences_list.append({root_level_name:values_changed[key]['new_value']})
+
         return differences_list
 
 

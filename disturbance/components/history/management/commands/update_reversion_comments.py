@@ -11,7 +11,7 @@
 
     ./manage_ds.py update_reversion_comments disturbance Proposal 0
 
-    Process versions for 100 proposals in the disturbance app
+    Process versions for proposals with pk=100 in the disturbance app
 
     ./manage_ds.py update_reversion_comments disturbance Proposal 100
 
@@ -30,12 +30,12 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument('app_label', nargs='+', type=str)
         parser.add_argument('model_name', nargs='+', type=str)
-        parser.add_argument('records_to_process', nargs='+', type=str)
+        parser.add_argument('pk', nargs='+', type=str)
 
     def handle(self, *args, **options):
         app_label = options['app_label'][0]
         model_name = options['model_name'][0]
-        records_to_process = int(options['records_to_process'][0])
+        pk = int(options['pk'][0])
         self.stdout.write('app_label = %s' % app_label)
         self.stdout.write('model_name = %s' % model_name)
         try:
@@ -43,10 +43,10 @@ class Command(BaseCommand):
         except ValueError:
             raise CommandError('No model of name {} exists in the {} application.'.format(model_name, app_label))
 
-        if 0 == records_to_process:
+        if 0 == pk:
             models = model.objects.all() # Process all 
         else:
-            models = model.objects.all()[:records_to_process] # add a slice to test with less records
+            models = model.objects.filter(pk=pk) # add a slice to test with less records
 
         change_database = True # Make False for testing to avoid writing to database
 
