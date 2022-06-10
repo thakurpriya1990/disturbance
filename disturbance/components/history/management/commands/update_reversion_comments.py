@@ -23,6 +23,7 @@
 from django.apps import apps
 from django.core.management.base import BaseCommand, CommandError
 from reversion.models import Version
+import csv
 
 class Command(BaseCommand):
     help = 'Adds revision comments whenever a model version processing_status changes'
@@ -38,6 +39,7 @@ class Command(BaseCommand):
         pk = int(options['pk'][0])
         self.stdout.write('app_label = %s' % app_label)
         self.stdout.write('model_name = %s' % model_name)
+        comments_orig = []
         try:
             model = apps.get_model(app_label=app_label, model_name=model_name)
         except ValueError:
@@ -58,6 +60,7 @@ class Command(BaseCommand):
                     self.stdout.write(self.style.WARNING('\n\tStatus change detected'))
                     if change_database:
                         self.stdout.write(self.style.SUCCESS('\tInserting: "processing_status: {}" into revision table'.format( version.field_dict['processing_status'])))
+                        comments_orig.append([version.id, version.revision.id, version.revision.comment])
                         if(version.revision.comment):
                             version.revision.comment = 'processing_status: {}'.format( version.field_dict['processing_status'] ) + ', ' + version.revision.comment
                         else:
@@ -68,6 +71,7 @@ class Command(BaseCommand):
                         self.stdout.write(self.style.WARNING('\n\tStatus change detected'))
                         if change_database:
                             self.stdout.write(self.style.SUCCESS('\tInserting: "processing_status: {}" into revision table'.format( version.field_dict['processing_status'])))
+                            comments_orig.append([version.id, version.revision.id, version.revision.comment])
                             if(version.revision.comment):
                                 version.revision.comment = 'processing_status: {}'.format( version.field_dict['processing_status'] ) + ', ' + version.revision.comment
                             else:
@@ -79,6 +83,7 @@ class Command(BaseCommand):
                         self.stdout.write(self.style.WARNING('\n\tAssessor Data change detected'))
                         if change_database:
                             self.stdout.write(self.style.SUCCESS('\tInserting: "assessor_data: Has changed - tagging with processing_status" into revision table'))
+                            comments_orig.append([version.id, version.revision.id, version.revision.comment])
                             if(version.revision.comment):
                                 version.revision.comment = version.revision.comment + ', ' + 'assessor_data: Has changed - tagging with processing_status'.format( version.field_dict['assessor_data'] )
                             else:
@@ -88,6 +93,7 @@ class Command(BaseCommand):
                         self.stdout.write(self.style.WARNING('\n\tComment Data change detected'))
                         if change_database:
                             self.stdout.write(self.style.SUCCESS('\tInserting: "comment_data: Has changed - tagging with processing_status" into revision table'.format( version.field_dict['comment_data'])))
+                            comments_orig.append([version.id, version.revision.id, version.revision.comment])
                             if(version.revision.comment):
                                 version.revision.comment = version.revision.comment + ', ' + 'comment_data: Has changed - tagging with processing_status'.format( version.field_dict['comment_data'] )
                             else:
@@ -97,4 +103,11 @@ class Command(BaseCommand):
                 self.stdout.write('\t{} {} - Date: {} Status: {}'.format(instance._meta.verbose_name_raw, \
                     instance.pk, version.revision.date_created, version.field_dict['processing_status']))
 
+
+        with open("update_reversion_comments_orig.csv", "w") as f:
+            writer = csv.writer(f)
+            writer.writerows(comments_orig)
+
         self.stdout.write(self.style.SUCCESS('Finished processing {} records.'.format(len(models))))
+
+
