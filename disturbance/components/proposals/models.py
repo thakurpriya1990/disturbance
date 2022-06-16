@@ -907,10 +907,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             values_changed = json_differences['values_changed']
 
             for key in values_changed:
-                #logger.debug('\n\n key = ' + str(key))
-                #logger.debug('\n\n new value = ' + str(values_changed[key]['new_value']))
-                #logger.debug('\n\n old value = ' + str(values_changed[key]['old_value']))
-
                 # Due to the structure of comment_data and assessor_data we need to get the section name
                 # for both the comments and the referral comments.
                 #    
@@ -930,28 +926,30 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 assessor_comment_newer = newer_version_data[int(root_level)]['assessor']
 
                 referrals = older_version_data[int(root_level)]['referrals']
-                logger.debug('\n\n type(referrals) ' + str(type(referrals)))
+                newer_referrals = newer_version_data[int(root_level)]['referrals']
+                #logger.debug('\n\n referrals = ' + str(referrals))
+                #logger.debug('\n\n newer_referrals = ' + str(newer_referrals))
 
                 # Skip instances where there are no referrals in the old version
                 # and the assessor_comment hasn't actually changed this covers instances
                 # where the older version didn't have any referrals and the new version does
 
-                logger.debug('\n\n len(referrals) ' + str(len(referrals)))
-                logger.debug('\n\n assessor_comment == assessor_comment_newer ' + str(assessor_comment == assessor_comment_newer))
+                #logger.debug('\n\n len(referrals) ' + str(len(referrals)))
+                #logger.debug('\n\n assessor_comment == assessor_comment_newer ' + str(assessor_comment == assessor_comment_newer))
 
                 #if (len(referrals) == 0) and (assessor_comment == assessor_comment_newer):
                 #    logger.debug('\n\n passing ------------------__> ')
                 #    continue
 
-                differences_list = self.append_to_differences_list_by_field(field, older_version_data, values_changed, key, root_level,
-                                    assessor_comment, differences_list)
+                differences_list = self.append_to_differences_list_by_field(field, older_version_data, newer_version_data, values_changed, key, root_level,
+                                    assessor_comment, assessor_comment_newer, differences_list)
                     
-        logger.debug('\n\n differences_list ' + str(differences_list))
+        #logger.debug('\n\n differences_list ' + str(differences_list))
 
         return differences_list
 
-    def append_to_differences_list_by_field(self, field, older_version_data, values_changed, key, root_level, \
-                                            assessor_comment, differences_list):
+    def append_to_differences_list_by_field(self, field, older_version_data, newer_version_data, values_changed, key, root_level, \
+                                            assessor_comment, assessor_comment_newer, differences_list):
         """ Returns the differences list with the appropriate keys depending on the field type
             (either assessor_data or comment_data)
 
@@ -961,33 +959,61 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         """
         root_level_name = older_version_data[int(root_level)]['name']
 
-        if 'referrals' in key:
-            logger.debug('found a referral')
-            referrer = older_version_data[int(root_level)]['referrals']
-            logger.debug('\n\n referrer ' + str(referrer))
-            referrer_email = referrer[0]['email']
-            logger.debug('\n\n referrer_email ' + str(referrer_email))
+        if 'Section0-0' in root_level_name:
+            logger.debug('\n\nvalues_changed[key][new_value] = ' + str(values_changed[key]['new_value']))
+            logger.debug('\nvalues_changed[key][old_value] = ' + str(values_changed[key]['old_value']))
 
-            if referrer_email:
-                if 'comment_data' == field:
-                    root_level_name += f'-comment-field-Referral-{referrer_email}'
+        #logger.debug('\rkey = ' + str(key))
+        #logger.debug('\rroot_level_name = ' + str(root_level_name))
+
+        # if the assessor comment hasn't changed then it must be a referral comment change
+        if assessor_comment:
+            if assessor_comment == assessor_comment_newer:
+                logger.debug('found a referral')
+                referrer = older_version_data[int(root_level)]['referrals']
+                if not referrer:
+                    referrer_newer = newer_version_data[int(root_level)]['referrals']
+                    referrer_email = referrer_newer[0]['email']
+                    if referrer_email:
+                        if 'comment_data' == field:
+                            root_level_name += f'-comment-field-Referral-{referrer_email}'
+                        else:
+                            root_level_name += f'-Referral-{referrer_email}'                
+                    differences_list.append({root_level_name:'(Previously Blank)'}) 
                 else:
-                    root_level_name += f'-Referral-{referrer_email}'
-                    
-                differences_list.append({root_level_name:values_changed[key]['new_value']}) 
+                    logger.debug('\n\n referrer ' + str(referrer))
+                    logger.debug('\n\n values_changed[key][new_value] ' + str(values_changed[key]['new_value']))
+                    referrer_email = referrer[0]['email']
+                    logger.debug('\n\n referrer_email ' + str(referrer_email))
+
+                    if referrer_email:
+                        if 'comment_data' == field:
+                            root_level_name += f'-comment-field-Referral-{referrer_email}'
+                        else:
+                            root_level_name += f'-Referral-{referrer_email}'
+                            
+                        differences_list.append({root_level_name:values_changed[key]['new_value']}) 
+            else:
+
+                if 'comment_data' == field:
+                    root_level_name += '-comment-field-Assessor'
+                else:
+                    root_level_name += '-Assessor' 
+                if(type(values_changed[key]['new_value']) is dict):
+                    # Once referrer comments are added we will get a dictionary here
+                    new_value_dict = values_changed[key]['new_value']
+                    new_value = new_value_dict['assessor']
+                    differences_list.append({root_level_name:new_value})
+                else:
+                    differences_list.append({root_level_name:values_changed[key]['new_value']})
         else:
-            if 'comment_data' == field:
-                root_level_name += '-comment-field-Assessor'
-            else:
-                root_level_name += '-Assessor' 
-            logger.debug('\n\n type(new_value) ' + str(type(values_changed[key]['new_value'])))
-            if(type(values_changed[key]['new_value']) is dict):
-                # Once referrer comments are added we will get a dictionary here
-                new_value_dict = values_changed[key]['new_value']
-                new_value = new_value_dict['assessor']
-                differences_list.append({root_level_name:new_value})
-            else:
-                differences_list.append({root_level_name:values_changed[key]['new_value']})
+            if assessor_comment_newer:
+                if 'comment_data' == field:
+                    root_level_name += '-comment-field-Assessor'
+                else:
+                    root_level_name += '-Assessor'
+                differences_list.append({root_level_name:'(Previously Blank)'})
+
 
         return differences_list
 
@@ -1032,9 +1058,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         input_name = ''
         for document in newer_version_documents:
             if not document.hidden:
-                logger.debug('newer_document.input_name = ' + str(document.input_name))
-                logger.debug('newer_document.name = ' + str(document.name))
-                logger.debug('newer_document.hidden = ' + str(document.hidden) + '\n\n')
+                #logger.debug('newer_document.input_name = ' + str(document.input_name))
+                #logger.debug('newer_document.name = ' + str(document.name))
+                #logger.debug('newer_document.hidden = ' + str(document.hidden) + '\n\n')
                 if input_name != document.input_name:
                     input_name = document.input_name
                     input_item = {input_name:[]}
@@ -1055,9 +1081,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             .select_related('revision').filter(revision__date_created__lte=older_version_lodgement_date).order_by('-revision__date_created').first()
             older_document = ProposalDocument(**older_document_version.field_dict)
             if not older_document.hidden:
-                logger.debug('older_document.input_name = ' + str(older_document.input_name))
-                logger.debug('older_document.name = ' + str(older_document.name))
-                logger.debug('older_document.hidden = ' + str(older_document.hidden) + '\n\n')
+                #logger.debug('older_document.input_name = ' + str(older_document.input_name))
+                #logger.debug('older_document.name = ' + str(older_document.name))
+                #logger.debug('older_document.hidden = ' + str(older_document.hidden) + '\n\n')
                 if input_name != older_document.input_name:
                     input_name = older_document.input_name
                     input_item = {input_name:[]}
@@ -1086,43 +1112,43 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         differences_list = []
         for difference in differences.items():
             if "values_changed" in difference:
-                logger.debug('\n\n values_changed -----------------> ')
+                #logger.debug('\n\n values_changed -----------------> ')
                 for key, value in difference[1].items():
                     key_suffix = key.split('\'')[-1]
-                    logger.debug('\n\n key = ' + str(key))
-                    logger.debug('\n\n values = ' + str(value))
+                    #logger.debug('\n\n key = ' + str(key))
+                    #logger.debug('\n\n values = ' + str(value))
                     section = key.split('\'')[-2]
                     # Add the old value document to the list as an remove
                     old_value_dict = value['old_value']
-                    logger.debug('\n\n old_value_dict = ' + str(old_value_dict))
+                    #logger.debug('\n\n old_value_dict = ' + str(old_value_dict))
                     operation = '-'
                     for item in old_value_dict:
                         file_name = item
                         file_path = old_value_dict[item]
-                        logger.debug('\n\n item = ' + str(item))
-                        logger.debug('\n\n file_path = ' + str(file_path))
+                        #logger.debug('\n\n item = ' + str(item))
+                        #logger.debug('\n\n file_path = ' + str(file_path))
                         differences_list.append({section:(operation, file_name, file_path)})
                     # Add the new value document to the list as an add
                     new_value_dict = value['new_value']
-                    logger.debug('\n\n new_value_dict = ' + str(new_value_dict))
+                    #logger.debug('\n\n new_value_dict = ' + str(new_value_dict))
                     operation = '+'
                     for item in new_value_dict:
                         file_name = item
                         file_path = new_value_dict[item]
-                        logger.debug('\n\n item = ' + str(item))
-                        logger.debug('\n\n file_path = ' + str(file_path))
+                        #logger.debug('\n\n item = ' + str(item))
+                        #logger.debug('\n\n file_path = ' + str(file_path))
                         differences_list.append({section:(operation, file_name, file_path)})
 
                     #differences_list.append({section:'-{},+{}'.format(old_value, new_value),})
 
             logger.debug(f'difference = {difference}')
             if "iterable_item_removed" in difference:
-                logger.debug('\n\n iterable_item_removed -----------------> ')
+                #logger.debug('\n\n iterable_item_removed -----------------> ')
                 operation = '-'
                 for item in difference[1]:
                     document = difference[1][item]
                     for x in document:
-                        logger.debug('\n\n x = ' + x)
+                        #logger.debug('\n\n x = ' + x)
 
                         section = item.split('\'')[-2]
 
