@@ -790,9 +790,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
         versions_length = len(versions)
 
-        logger.debug(f'newer_version = {newer_version}')
-        logger.debug(f'older_version = {older_version}')
-
         newer_version = versions[newer_version].field_dict["data"]
 
         older_version = versions[older_version].field_dict["data"]
@@ -849,7 +846,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
         json_differences = json.loads(differences.to_json(default_mapping=default_mapping))
 
-        logger.debug(f'\n\json_differences = \n\n {json_differences}')
+        #logger.debug(f'\n\json_differences = \n\n {json_differences}')
 
         return json_differences
 
@@ -903,7 +900,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         differences_list = []
 
         if 'values_changed' in json_differences:            
-            logger.debug('\n\n values_changed ========================= ')
+            #logger.debug('\n\n values_changed ========================= ')
             values_changed = json_differences['values_changed']
 
             for key in values_changed:
@@ -927,19 +924,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                 referrals = older_version_data[int(root_level)]['referrals']
                 newer_referrals = newer_version_data[int(root_level)]['referrals']
-                #logger.debug('\n\n referrals = ' + str(referrals))
-                #logger.debug('\n\n newer_referrals = ' + str(newer_referrals))
 
                 # Skip instances where there are no referrals in the old version
                 # and the assessor_comment hasn't actually changed this covers instances
                 # where the older version didn't have any referrals and the new version does
-
-                #logger.debug('\n\n len(referrals) ' + str(len(referrals)))
-                #logger.debug('\n\n assessor_comment == assessor_comment_newer ' + str(assessor_comment == assessor_comment_newer))
-
-                #if (len(referrals) == 0) and (assessor_comment == assessor_comment_newer):
-                #    logger.debug('\n\n passing ------------------__> ')
-                #    continue
 
                 differences_list = self.append_to_differences_list_by_field(field, older_version_data, newer_version_data, values_changed, key, root_level,
                                     assessor_comment, assessor_comment_newer, differences_list)
@@ -959,17 +947,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         """
         root_level_name = older_version_data[int(root_level)]['name']
 
-        if 'Section0-0' in root_level_name:
-            logger.debug('\n\nvalues_changed[key][new_value] = ' + str(values_changed[key]['new_value']))
-            logger.debug('\nvalues_changed[key][old_value] = ' + str(values_changed[key]['old_value']))
-
-        #logger.debug('\rkey = ' + str(key))
-        #logger.debug('\rroot_level_name = ' + str(root_level_name))
-
         # if the assessor comment hasn't changed then it must be a referral comment change
         if assessor_comment:
             if assessor_comment == assessor_comment_newer:
-                logger.debug('found a referral')
+                #logger.debug('found a referral')
                 referrer = older_version_data[int(root_level)]['referrals']
                 if not referrer:
                     referrer_newer = newer_version_data[int(root_level)]['referrals']
@@ -981,10 +962,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                             root_level_name += f'-Referral-{referrer_email}'                
                     differences_list.append({root_level_name:'(Previously Blank)'}) 
                 else:
-                    logger.debug('\n\n referrer ' + str(referrer))
-                    logger.debug('\n\n values_changed[key][new_value] ' + str(values_changed[key]['new_value']))
+                    #logger.debug('\n\n referrer ' + str(referrer))
+                    #logger.debug('\n\n values_changed[key][new_value] ' + str(values_changed[key]['new_value']))
                     referrer_email = referrer[0]['email']
-                    logger.debug('\n\n referrer_email ' + str(referrer_email))
+                    #logger.debug('\n\n referrer_email ' + str(referrer_email))
 
                     if referrer_email:
                         if 'comment_data' == field:
@@ -1141,7 +1122,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                     #differences_list.append({section:'-{},+{}'.format(old_value, new_value),})
 
-            logger.debug(f'difference = {difference}')
+            #logger.debug(f'difference = {difference}')
             if "iterable_item_removed" in difference:
                 #logger.debug('\n\n iterable_item_removed -----------------> ')
                 operation = '-'
@@ -1160,15 +1141,15 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                             differences_list.append({section:(operation, file_name, file_path)})
 
             if "iterable_item_added" in difference:
-                logger.debug('\n\n iterable_item_added -----------------> ')
+                #logger.debug('\n\n iterable_item_added -----------------> ')
                 operation = '+'
                 for item in difference[1]:
-                    logger.debug('\n\n item = ' + str(item))
+                    #logger.debug('\n\n item = ' + str(item))
                     document = difference[1][item]
                     for x in document:
                         section = item.split('\'')[-2]
-                        logger.debug('\n\n section = ' + str(section))
-                        logger.debug('\n\n document = ' + str(document))
+                        #logger.debug('\n\n section = ' + str(section))
+                        #logger.debug('\n\n document = ' + str(document))
 
                         section = item.split('\'')[-2]
 
