@@ -593,7 +593,7 @@ export default {
             */
             
             if(proposal_version!=0) {
-                console.log('Viewing older version: Disabling buttons and fields')
+                //console.log('Viewing older version: Disabling buttons and fields')
                 this.proposal.assessor_mode.has_assessor_mode = false;
                 this.proposal.assessor_mode.assessor_can_assess = false;
                 this.proposal.lodgement_number = this.proposal.lodgement_number + `-${this.reversion_history_length - proposal_version} (${proposal_version} Older than current version)`
@@ -662,13 +662,19 @@ export default {
                 for (let k in diffdata[entry]) {
                     //console.log('!@#$ diffdata[entry] = ' + diffdata[entry])
                     let revision_text = diffdata[entry][k]
+                    // The section identifier for referrer comments contains an email address
+                    // jQuery selectors don't like the @ symbol (and other special characters)
+                    if(k.includes('@')) {
+                        k = k.replace('@','\\@')
+                        //console.log('k changed to: ' + k)
+                    }
                     let replacement = $("#id_" + k ).parent().find('input');
                     if(replacement.length!=1) {
                         replacement = $('[name="' + k + '"]')
                     }
-
+                    const previously_blank_text = '(Previously Blank)';
                     if (revision_text == '') {
-                        revision_text = ' (not present)';
+                        revision_text = previously_blank_text;
                     }
                     //console.log('!@#$ k = ' + k)
                     //console.log('!@#$ revision_text = ' + revision_text)
@@ -679,9 +685,13 @@ export default {
                         //console.log('!@#$ replacement.text ' + replacement.parent().text() )
                         
                         let replacement_html = '<div class="revision_note" style="border:1px solid red; width: 100%; margin-top: 3px; padding-top: 0px; color: red; padding:10px 0 15px 10px;">';
-                        if(' (not present)'==revision_text){
+                        if('-'==revision_text){
+                            //console.log('revision_text = ' + revision_text)
+                            //console.log('previously_blank_text = ' + previously_blank_text)
                             replacement_html += '<input type="checkbox" disabled="disabled"> '
                         } else {
+                            //console.log('revision_text = ' + revision_text)
+                            //console.log('previously_blank_text = ' + previously_blank_text)
                             replacement_html += '<input type="checkbox" checked="checked" disabled="disabled""> '
                         }              
                         replacement_html += replacement.parent().text().trim()
@@ -701,10 +711,10 @@ export default {
                     }
                     else if (replacement.attr('type') == "radio") {
                         let replacement_html = ''
-                        if (' (not present)' == revision_text) {
-                            replacement_html =  '<span class="revision_note" style="margin:0; color:red;">'
+                        if (previously_blank_text == revision_text) {
+                            replacement_html =  '<div class="revision_note" style="border:1px solid red; padding:5px;"><span class="revision_note" style="margin:0; color:red;">'
                             replacement_html += revision_text
-                            replacement_html += '</span>'
+                            replacement_html += '</span></div>'
                         } else {
                         replacement_html =   "<div class='revision_note' style='border:1px solid red; padding:5px;'><div class='radio'><input style='margin:0; color:red;' disabled class='revision_note' type='radio' id='radio' checked>" + 
                                                 "<label class='revision_note' for='radio'" +
@@ -726,10 +736,10 @@ export default {
                             let compare_select = null;
                             let compare_select_id = k + '_compare_select';
                             if ($(this).is('select:not(.revision_note)')){
-                                console.log('!@#$ select found ------------_>' );
+                                //console.log('!@#$ select found ------------_>' );
                                 select_found = true;
                                 if(0==$('#' + k + '_compare_select').length){
-                                    console.log('!@#$ Cloning select and setting up select2');
+                                    //console.log('!@#$ Cloning select and setting up select2');
                                     compare_select = $(this).clone();
                                     compare_select.attr('id', compare_select_id);
                                     compare_select.addClass('revision_note');
@@ -750,25 +760,25 @@ export default {
                                     // Add all the existing options
                                     const current_version_options = $(this).siblings('input:hidden');
                                     $.each(current_version_options, function(i, current_version){
-                                        console.log('!@#$ Adding option = ' + current_version.value );
+                                        //console.log('!@#$ Adding option = ' + current_version.value );
                                         var newOption = new Option(current_version.value, current_version.value, true, true);
                                         // Append it to the select
                                         $('#'+compare_select_id).append(newOption).trigger('change');                                            
                                     });
                                 }
                                 if($(this)[0].hasAttribute('multiple')){
-                                    console.log('!@#$ is multi select ------------_>' );
+                                    //console.log('!@#$ is multi select ------------_>' );
                                     vm.$nextTick(function(e){
-                                        console.log('operation = ' + revision_text.substring(0,1));
+                                        //console.log('operation = ' + revision_text.substring(0,1));
                                         // Replace item in compare multi-select
                                         if(revision_text.includes(',')){
                                             const item_to_remove = revision_text.split(',')[0];
                                             const option_value_remove = item_to_remove.substring(1);
-                                            console.log('Removing item = ' + option_value_remove);
+                                            //console.log('Removing item = ' + option_value_remove);
                                             vm.$nextTick(function(e){
-                                                console.log('#' + k + '_compare_select2 = ' + $('#' + k + '_compare_select2').length);
-                                                console.log('option_value_remove = ' + option_value_remove);
-                                                console.log(' Selection choice length = ' + $('#' + k + '_compare_select2').find('li.select2-selection__choice[title|=' + option_value_remove + ']').length);
+                                                //console.log('#' + k + '_compare_select2 = ' + $('#' + k + '_compare_select2').length);
+                                                //console.log('option_value_remove = ' + option_value_remove);
+                                                //console.log(' Selection choice length = ' + $('#' + k + '_compare_select2').find('li.select2-selection__choice[title|=' + option_value_remove + ']').length);
                                                 $('#' + k + '_compare_select2').find('li.select2-selection__choice[title|=' + option_value_remove + ']').remove();          
                                             });
                                             const item_to_add = revision_text.split(',')[1];
@@ -781,8 +791,8 @@ export default {
                                         // Remove item from compare multi-select 
                                         else if('-' == revision_text.substring(0,1)){
                                             const option_value = revision_text.substring(1);
-                                            console.log('Removing item = ' + option_value);
-                                            console.log('options to remove = ' + $('#' + k + '_compare_select2').find('li.select2-selection__choice[title|=' + option_value + ']').length);
+                                            //console.log('Removing item = ' + option_value);
+                                            //console.log('options to remove = ' + $('#' + k + '_compare_select2').find('li.select2-selection__choice[title|=' + option_value + ']').length);
                                             vm.$nextTick(function(e){
                                                 $('#' + k + '_compare_select2').find('li.select2-selection__choice[title|=' + option_value + ']').remove();
                                                 $('#'+compare_select_id).trigger('change');
@@ -796,7 +806,7 @@ export default {
                                         }
                                     });
                                 } else {
-                                    console.log('!@#$ is regular select ------------_>' );
+                                    //console.log('!@#$ is regular select ------------_>' );
                                     $('#'+compare_select_id).val(revision_text).trigger('change');
                                 }
                             }
@@ -817,7 +827,7 @@ export default {
                 
                 for (let k in diffdata[entry]) {
                     let file = diffdata[entry][k]
-                    console.log('!@#$ FILES ================ diffdata[entry][k] = ' + diffdata[entry][k])
+                    //console.log('!@#$ FILES ================ diffdata[entry][k] = ' + diffdata[entry][k])
                     const operation = file[0]
                     const name = file[1]
                     const path = file[2]
@@ -826,10 +836,10 @@ export default {
                         replacement = $('[name="' + k + '"]')
                     }
 
-                    console.log('!@#$ FILES ================ k = ' + k)
-                    console.log('!@#$ operation ================ operation = ' + operation)
-                    console.log('!@#$ name ================ name = ' + name)
-                    console.log('!@#$ path ================ path = ' + path)
+                    //console.log('!@#$ FILES ================ k = ' + k)
+                    //console.log('!@#$ operation ================ operation = ' + operation)
+                    //console.log('!@#$ name ================ name = ' + name)
+                    //console.log('!@#$ path ================ path = ' + path)
 
                     let compare_files_div = null;
                     let compare_files_div_id = k + '_compare_files';
@@ -863,9 +873,6 @@ export default {
                 return data.name == id;
             });
             return field.type;
-        },
-        locationUpdated: function(){
-            console.log('in locationUpdated()');
         },
         checkAssessorData: function(){
             //check assessor boxes and clear value of hidden assessor boxes so it won't get printed on approval pdf.
