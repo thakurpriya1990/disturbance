@@ -745,6 +745,12 @@
                     vm.select2Applied = true
                 }
             },
+            addApiarySitesToMap: function(apiary_sites_geojson){
+                let vm = this
+                            //vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
+                let features = (new GeoJSON()).readFeatures(apiary_sites_geojson)
+                this.apiarySitesQuerySource.addFeatures(features)
+            },
             addApiarySiteToMap: function(apiary_site_geojson) {
                 let vm = this
                 let feature = (new GeoJSON()).readFeature(apiary_site_geojson)
@@ -1562,29 +1568,30 @@
                                     option.ajax_obj = $.ajax('/api/apiary_site/' + option.api + '/?search_text=' + vm.search_text, {
                                         dataType: 'json',
                                         success: function(re, status, xhr){
-                                            let apiary_sites_geojson = []
-                                            for (let apiary_site_geojson of re.features){
-                                                // Add the apiary_site to the map
-                                                let feature = vm.addApiarySiteToMap(apiary_site_geojson)
+                                            vm.addApiarySitesToMap(re)
+                                      //      let apiary_sites_geojson = []
+                                      //      for (let apiary_site_geojson of re.features){
+                                      //          // Add the apiary_site to the map
+                                      //          let feature = vm.addApiarySiteToMap(apiary_site_geojson)
 
-                                                // Add the apiary_site to the table
-                                                let feature_and_row = {
-                                                    'feature': feature,
-                                                    //'row_geojson': apiary_site_geojson,
-                                                }
+                                      //          // Add the apiary_site to the table
+                                      //          let feature_and_row = {
+                                      //              'feature': feature,
+                                      //              //'row_geojson': apiary_site_geojson,
+                                      //          }
 
-                                                //vm.addApiarySiteAsGeojsonToTable(apiary_site_geojson, feature_and_row)
-                                                apiary_site_geojson.feature_and_row = feature_and_row
-                                                apiary_sites_geojson.push(apiary_site_geojson)
+                                      //          //vm.addApiarySiteAsGeojsonToTable(apiary_site_geojson, feature_and_row)
+                                      //          apiary_site_geojson.feature_and_row = feature_and_row
+                                      //          apiary_sites_geojson.push(apiary_site_geojson)
 
-                                                // Cache it
-                                                option.features_and_rows.push(feature_and_row)
-                                            }
-                                            //if(!option.loaded_for_table){
-                                            //    //vm.addApiarySitesAsGeojsonToTable(apiary_sites_geojson)
-                                            //    option.loaded_for_table = true
-                                            //}
-                                            option.loaded = true
+                                      //          // Cache it
+                                      //          option.features_and_rows.push(feature_and_row)
+                                      //      }
+                                      //      //if(!option.loaded_for_table){
+                                      //      //    //vm.addApiarySitesAsGeojsonToTable(apiary_sites_geojson)
+                                      //      //    option.loaded_for_table = true
+                                      //      //}
+                                      //      option.loaded = true
                                         },
                                         error: function (jqXhr, textStatus, errorMessage) { // error callback 
                                             console.log(errorMessage)
@@ -1656,31 +1663,32 @@
                                 site_status.ajax_obj = $.ajax('/api/apiary_site/' + site_status.api + '/?search_text=' + vm.search_text, {
                                     dataType: 'json',
                                     success: function(re, status, xhr){
-                                        let apiary_sites_geojson = []
-                                        for (let apiary_site_geojson of re.features){
-                                            //apiary_site_geojson.rows = site_status.rows
-                                            // Add the apiary_site to the map
-                                            let feature = vm.addApiarySiteToMap(apiary_site_geojson)
+                                        vm.addApiarySitesToMap(re)
+                                   //     let apiary_sites_geojson = []
+                                   //     for (let apiary_site_geojson of re.features){
+                                   //         //apiary_site_geojson.rows = site_status.rows
+                                   //         // Add the apiary_site to the map
+                                   //         let feature = vm.addApiarySiteToMap(apiary_site_geojson)
 
-                                            // Cache the feature obj and geojson object
-                                            let feature_and_row = { 
-                                                'feature': feature,
-                                                //'row_geojson': apiary_site_geojson,
-                                            }
+                                   //         // Cache the feature obj and geojson object
+                                   //         let feature_and_row = { 
+                                   //             'feature': feature,
+                                   //             //'row_geojson': apiary_site_geojson,
+                                   //         }
 
-                                            // Add the row to the table
-                                            //vm.addApiarySiteAsGeojsonToTable(apiary_site_geojson, feature_and_row)
-                                            apiary_site_geojson.feature_and_row = feature_and_row
-                                            apiary_sites_geojson.push(apiary_site_geojson)
+                                   //         // Add the row to the table
+                                   //         //vm.addApiarySiteAsGeojsonToTable(apiary_site_geojson, feature_and_row)
+                                   //         apiary_site_geojson.feature_and_row = feature_and_row
+                                   //         apiary_sites_geojson.push(apiary_site_geojson)
 
-                                            // Add this feature_and_row obj to the main storage
-                                            site_status.features_and_rows.push(feature_and_row)
-                                        }
-                                        //if (!site_status.loaded_for_table){
-                                        //    //vm.addApiarySitesAsGeojsonToTable(apiary_sites_geojson)
-                                        //    site_status.loaded_for_table = true
-                                        //}
-                                        site_status.loaded = true
+                                   //         // Add this feature_and_row obj to the main storage
+                                   //         site_status.features_and_rows.push(feature_and_row)
+                                   //     }
+                                   //     //if (!site_status.loaded_for_table){
+                                   //     //    //vm.addApiarySitesAsGeojsonToTable(apiary_sites_geojson)
+                                   //     //    site_status.loaded_for_table = true
+                                   //     //}
+                                   //     site_status.loaded = true
                                     },
                                     error: function (jqXhr, textStatus, errorMessage) { // error callback 
                                         console.log(errorMessage)
