@@ -111,6 +111,15 @@ export default {
            
         }
     },
+    watch: {
+        // Watcher needed to recreate the jquery select2 when changing proposal versions
+        value: {
+            immediately: true,
+            handler (value, old_value){
+                this.init();
+            }
+        }
+    },
     computed:{
         cons:function () {
             return JSON.stringify(this.conditions);
@@ -146,7 +155,7 @@ export default {
         },
         init:function () {
             let vm =this;
-            setTimeout(function (e) {
+            vm.$nextTick(function (e) {
                    $('#'+vm.selectid).select2({
                        "theme": "bootstrap",
                        allowClear: true,
@@ -171,7 +180,7 @@ export default {
                    if (vm.value) {
                        vm.handleChange(vm.$refs.selectB);
                    }
-               },100);
+               });
         }
     },
     mounted:function () {

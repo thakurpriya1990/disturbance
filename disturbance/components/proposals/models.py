@@ -18,7 +18,7 @@ from django.contrib.gis.measure import Distance
 from django.contrib.postgres.fields import ArrayField
 from django.db import models,transaction
 from django.contrib.gis.db import models as gis_models
-from django.db.models import Q
+from django.db.models import Q, Max
 from django.dispatch import receiver
 from django.db.models.signals import pre_delete, post_save
 from django.utils.encoding import python_2_unicode_compatible
@@ -462,15 +462,15 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         if self.lodgement_number == '':
             new_lodgment_id = 'P{0:06d}'.format(self.pk)
             self.lodgement_number = new_lodgment_id
-            self.save(version_comment=f'processing_status: {self.processing_status}')
-        
+            self.save()
+
         # If the processing_status has changed then add a reversion comment
         # so we have a way of filtering based on the status changing
         if self.processing_status != original_processing_status:
             self.save(version_comment=f'processing_status: {self.processing_status}')
         elif self.assessor_data != original_assessor_data:
             # Although the status hasn't changed we add the text 'processing_status'
-            # So we can filter based on it later (for both assessor_data nd comment_data)
+            # So we can filter based on it later (for both assessor_data and comment_data)
             self.save(version_comment='assessor_data: Has changed - tagging with processing_status')
         elif self.comment_data != original_comment_data:
             self.save(version_comment='comment_data: Has changed - tagging with processing_status')
@@ -896,23 +896,21 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
         differences = DeepDiff(newer_version_data, older_version_data, ignore_order=True)
 
-        logger.debug(f'differences = {type(differences)}')
+        #logger.debug(f'differences = {type(differences)}')
 
         json_differences = json.loads(differences.to_json())
 
         differences_list = []
 
-        if not 'values_changed' in json_differences:
-            return differences_list
+        if 'values_changed' in json_differences:            
+            logger.debug('\n\n values_changed ========================= ')
+            values_changed = json_differences['values_changed']
 
-        values_changed = json_differences['values_changed']
+            for key in values_changed:
+                #logger.debug('\n\n key = ' + str(key))
+                #logger.debug('\n\n new value = ' + str(values_changed[key]['new_value']))
+                #logger.debug('\n\n old value = ' + str(values_changed[key]['old_value']))
 
-        for key in values_changed:
-            logger.debug('\n\n key = ' + str(key))
-            logger.debug('\n\n new value = ' + str(values_changed[key]['new_value']))
-            logger.debug('\n\n old value = ' + str(values_changed[key]['old_value']))
-
-            if(values_changed[key]['new_value']):
                 # Due to the structure of comment_data and assessor_data we need to get the section name
                 # for both the comments and the referral comments.
                 #    
@@ -938,15 +936,17 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 # and the assessor_comment hasn't actually changed this covers instances
                 # where the older version didn't have any referrals and the new version does
 
-                if len(referrals) == 0 and assessor_comment == assessor_comment_newer:
-                    continue
+                logger.debug('\n\n len(referrals) ' + str(len(referrals)))
+                logger.debug('\n\n assessor_comment == assessor_comment_newer ' + str(assessor_comment == assessor_comment_newer))
+
+                #if (len(referrals) == 0) and (assessor_comment == assessor_comment_newer):
+                #    logger.debug('\n\n passing ------------------__> ')
+                #    continue
 
                 differences_list = self.append_to_differences_list_by_field(field, older_version_data, values_changed, key, root_level,
                                     assessor_comment, differences_list)
-
+                    
         logger.debug('\n\n differences_list ' + str(differences_list))
-
-        #differences_list_json = json.dumps(differences_list)
 
         return differences_list
 
@@ -976,19 +976,19 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     
                 differences_list.append({root_level_name:values_changed[key]['new_value']}) 
         else:
-            if assessor_comment:
-                if 'comment_data' == field:
-                    root_level_name += '-comment-field-Assessor'
-                else:
-                    root_level_name += '-Assessor' 
-                logger.debug('\n\n type(new_value) ' + str(type(values_changed[key]['new_value'])))
-                if(type(values_changed[key]['new_value']) is dict):
-                    # Once referrer comments are added we will get a dictionary here
-                    new_value_dict = values_changed[key]['new_value']
-                    new_value = new_value_dict['assessor']
-                    differences_list.append({root_level_name:new_value})
-                else:
-                    differences_list.append({root_level_name:values_changed[key]['new_value']})
+            if 'comment_data' == field:
+                root_level_name += '-comment-field-Assessor'
+            else:
+                root_level_name += '-Assessor' 
+            logger.debug('\n\n type(new_value) ' + str(type(values_changed[key]['new_value'])))
+            if(type(values_changed[key]['new_value']) is dict):
+                # Once referrer comments are added we will get a dictionary here
+                new_value_dict = values_changed[key]['new_value']
+                new_value = new_value_dict['assessor']
+                differences_list.append({root_level_name:new_value})
+            else:
+                differences_list.append({root_level_name:values_changed[key]['new_value']})
+
         return differences_list
 
 
@@ -4186,6 +4186,8 @@ class ApiaryAnnualRentalFeeRunDate(RevisionedMixin):
 
 
 class ApiarySite(models.Model):
+    id = models.IntegerField(primary_key=True, editable=False)
+
     site_guid = models.CharField(max_length=50, blank=True)
     latest_proposal_link = models.ForeignKey('disturbance.ApiarySiteOnProposal', blank=True, null=True, on_delete=models.SET_NULL)
     latest_approval_link = models.ForeignKey('disturbance.ApiarySiteOnApproval', blank=True, null=True, on_delete=models.SET_NULL)
@@ -4197,6 +4199,16 @@ class ApiarySite(models.Model):
 
     def __str__(self):
         return '{}'.format(self.id,)
+
+    def save(self, **kwargs):
+        #import ipdb; ipdb.set_trace()
+        if not self.id:
+            max = ApiarySite.objects.aggregate(id_max=Max('id'))['id_max']
+            self.id = int(max) + 1 if max is not None else 1
+
+        #kwargs.pop('force_insert')
+        #kwargs.update({'force_update': True})
+        super().save(kwargs)
 
     def delete(self, using=None, keep_parents=False):
         super(ApiarySite, self).delete(using, keep_parents)
