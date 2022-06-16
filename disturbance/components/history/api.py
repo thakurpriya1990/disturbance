@@ -358,12 +358,12 @@ class GetCompareFieldVersionsView(InternalAuthorizationView):
                     logger.debug('\n\n difference[0] = ' + str(difference[0]))
                     for item in difference[1]:
                         logger.debug('\n\n item = ' + str(item))
-                        differences_list.append({item.split('\'')[-2]:'(Previously Blank)',})
+                        differences_list.append({item.split('\'')[-2]:'+',})
                 if 'dictionary_item_removed' in difference:
                     logger.debug('\n\n difference[0] = ' + str(difference[0]))
                     for item in difference[1]:
                         logger.debug('\n\n item = ' + str(item))
-                        differences_list.append({item.split('\'')[-2]:'(Previously Blank)',})
+                        differences_list.append({item.split('\'')[-2]:'-',})
                 if 'iterable_item_added' in difference:
                     logger.debug('\n\n difference[0] = ' + str(difference[0]))
                     for key, value in difference[1].items():
