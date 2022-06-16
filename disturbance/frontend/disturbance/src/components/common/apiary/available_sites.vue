@@ -125,7 +125,7 @@
     import VectorLayer from 'ol/layer/Vector';
     import VectorSource from 'ol/source/Vector';
     import { Circle as CircleStyle, Fill, Stroke, Style, Text, RegularShape } from 'ol/style';
-    import { FullScreen as FullScreenControl, MousePosition as MousePositionControl } from 'ol/control';
+    import { FullScreen as FullScreenControl, MousePosition as MousePositionControl, SelectFeature } from 'ol/control';
     import { Feature } from 'ol';
     import { LineString, Point } from 'ol/geom';
     import { getDistance } from 'ol/sphere';
@@ -1186,6 +1186,15 @@
                     className: 'custom-mouse-position',
                 }));
 
+               // let selectCtrl = new SelectFeature(
+               //     clusterSource, {
+               //         clickout: true,
+               //         eventListeners: {
+               //             
+               //         }
+               //     }
+               // )
+
                 // Add apiary_sites passed as a props
                 //for (let i=0; i<vm.apiary_site_geojson_array.length; i++){
                 //    //this.addApiarySite(vm.apiary_site_geojson_array[i])
@@ -1210,19 +1219,31 @@
                 vm.map.addOverlay(vm.overlay)
 
                 vm.map.on('singleclick', function(evt){
+                    console.log({evt})
                     if (vm.mode === 'layer'){
                         let feature = vm.map.forEachFeatureAtPixel(evt.pixel, function(feature, layer) {
                             return feature;
                         });
                         if (feature){
-                            if (!feature.id){
-                                // When the Modify object is used for the layer, 'feature' losts some of the attributes including 'id', 'status'...
-                                // Therefore try to get the correct feature by the coordinate
+
+                            let features = feature.get('features')
+                            if (features.length == 1){
+                                console.log('site')
+                                if (!feature.id){
+                                    // When the Modify object is used for the layer, 'feature' losts some of the attributes including 'id', 'status'...
+                                    // Therefore try to get the correct feature by the coordinate
+                                    let geometry = feature.getGeometry();
+                                    let coord = geometry.getCoordinates();
+                                    feature = vm.apiarySitesQuerySource.getFeaturesAtCoordinate(coord)
+                                }
+                                vm.showPopup(feature[0])
+                            } else {
+                                console.log('cluster')
                                 let geometry = feature.getGeometry();
-                                let coord = geometry.getCoordinates();
-                                feature = vm.apiarySitesQuerySource.getFeaturesAtCoordinate(coord)
+                                let coordinates = geometry.getCoordinates();
+                                console.log({coordinates})
+                                vm.zoomToCoordinates(coordinates)
                             }
-                            vm.showPopup(feature[0])
                         } else {
                             vm.closePopup()
                             let view = vm.map.getView()
@@ -1389,7 +1410,7 @@
                           '</tbody>' +
                         '</table>'
                     let content = '<div style="padding: 0.25em;">' +
-                                      '<div style="background: darkgray; color: white; text-align: center;" class="align-middle">' + svg_hexa + ' site: ' + feature.id_ + '</div>' +
+                                      '<div style="background: darkgray; color: white; text-align: center; padding: 0.5em;" class="align-middle">' + svg_hexa + ' site: ' + feature.id_ + '</div>' +
                                       a_table +
                                       //'<div style="font-size: 0.8em;">' +
                                       //    '<div>' + status_str + '</div>' +
@@ -1469,10 +1490,14 @@
             zoomToApiarySiteById: function(apiary_site_id){
                 let feature = this.apiarySitesQuerySource.getFeatureById(apiary_site_id)
                 let geometry = feature.getGeometry()
-                let coord = geometry.getCoordinates()
-                let view = this.map.getView()
+                //let coord = geometry.getCoordinates()
+                //let view = this.map.getView()
                 this.map.getView().animate({zoom: 16, center: feature['values_']['geometry']['flatCoordinates']})
                 this.showPopup(feature)
+            },
+            zoomToCoordinates: function(coordinates){
+                let currentZoomLevel = this.map.getView().getZoom()
+                this.map.getView().animate({zoom: currentZoomLevel + 1, center: coordinates})
             },
             setApiarySiteSelectedStatus: function(apiary_site_id, selected) {
                 let feature = this.apiarySitesQuerySource.getFeatureById(apiary_site_id)
