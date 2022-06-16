@@ -745,9 +745,12 @@
                     vm.select2Applied = true
                 }
             },
+            clearApiarySitesFromMap: function(){
+                let vm = this
+                this.apiarySitesQuerySource.clear()
+            },
             addApiarySitesToMap: function(apiary_sites_geojson){
                 let vm = this
-                            //vm.apiarySitesQuerySource.addFeatures((new GeoJSON()).readFeatures(res.body))
                 let features = (new GeoJSON()).readFeatures(apiary_sites_geojson)
                 this.apiarySitesQuerySource.addFeatures(features)
             },
@@ -1534,6 +1537,7 @@
                 let vm = this
 
                 //vm.$refs.table_apiary_site.vmDataTable.search(vm.search_text).draw()
+                vm.clearApiarySitesFromMap()
 
                 for (let site_status of vm.show_hide_instructions){
                     if (site_status.options){
@@ -1619,10 +1623,10 @@
                                 }
                             }
                             //option.map_updated = true
-                            option.shown = option.show
+                            //option.shown = option.show
                         }
                         //site_status.map_updated = true
-                        site_status.shown = site_status.show
+                        //site_status.shown = site_status.show
                     } else {
                         console.log('not in options')
                         // No sub options
@@ -1716,7 +1720,7 @@
                             }
                         }
                         //site_status.map_updated = true
-                        site_status.shown = site_status.show
+                        //site_status.shown = site_status.show
                     }
                 } // END: loop for show_hide_instructions
             }, // END: showHideApiarySites()
