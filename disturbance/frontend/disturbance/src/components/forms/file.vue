@@ -205,7 +205,9 @@ export default {
             formData.append('action', 'list');
             formData.append('input_name', vm.name);
             formData.append('csrfmiddlewaretoken', vm.csrf_token);
-            formData.append('proposal_lodgement_date', vm.proposal_lodgement_date);
+            if(vm.proposal_lodgement_date){
+                formData.append('proposal_lodgement_date', vm.proposal_lodgement_date);
+            }
             vm.$http.post(vm.proposal_document_action, formData)
                 .then(res=>{
                     vm.documents = res.body;
