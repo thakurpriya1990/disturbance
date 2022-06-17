@@ -1617,19 +1617,22 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
             proposal_lodgement_date = request.POST.get('proposal_lodgement_date')
             # Only go through the overhead of finding older proposal documents when viewing a version other than current
-            if proposal_lodgement_date and (parser.parse(str(instance.lodgement_date))!=parser.parse(proposal_lodgement_date)):
-                # For viewing older versions of a proposal we need to build a list of documents that were not hidden at that time
-                documents = instance.documents.filter(input_name=section, uploaded_date__lte=proposal_lodgement_date).order_by('input_name', 'uploaded_date')
-                older_version_documents = []
-                for document in documents:
-                    older_document_version = Version.objects.get_for_object(document)\
-                    .select_related('revision').filter(revision__date_created__lte=proposal_lodgement_date).order_by('-revision__date_created').first()
-                    older_document = ProposalDocument(**older_document_version.field_dict)
-                    if not older_document.hidden:
+            if proposal_lodgement_date:
+                if(parser.parse(str(instance.lodgement_date))!=parser.parse(proposal_lodgement_date)):
+                    # For viewing older versions of a proposal we need to build a list of documents that were not hidden at that time
+                    documents = instance.documents.filter(input_name=section, uploaded_date__lte=proposal_lodgement_date).order_by('input_name', 'uploaded_date')
+                    older_version_documents = []
+                    for document in documents:
+                        older_document_version = Version.objects.get_for_object(document)\
+                        .select_related('revision').filter(revision__date_created__lte=proposal_lodgement_date).order_by('-revision__date_created').first()
                         older_document = ProposalDocument(**older_document_version.field_dict)
-                        older_version_documents.append(older_document)
+                        if not older_document.hidden:
+                            older_document = ProposalDocument(**older_document_version.field_dict)
+                            older_version_documents.append(older_document)
 
-                return  Response( [dict(input_name=d.input_name, name=d.name,file=d._file.url, id=d.id, can_delete=d.can_delete, can_hide=d.can_hide) for d in older_version_documents if d._file] )
+                    return  Response( [dict(input_name=d.input_name, name=d.name,file=d._file.url, id=d.id, can_delete=d.can_delete, can_hide=d.can_hide) for d in older_version_documents if d._file] )
+                else:
+                    return  Response( [dict(input_name=d.input_name, name=d.name,file=d._file.url, id=d.id, can_delete=d.can_delete, can_hide=d.can_hide) for d in instance.documents.filter(input_name=section, hidden=False) if d._file] )
             else:
                 return  Response( [dict(input_name=d.input_name, name=d.name,file=d._file.url, id=d.id, can_delete=d.can_delete, can_hide=d.can_hide) for d in instance.documents.filter(input_name=section, hidden=False) if d._file] )
 
