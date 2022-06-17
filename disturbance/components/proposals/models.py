@@ -888,19 +888,19 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         versions = list(Version.objects.get_for_object(self).select_related('revision')\
             .filter(revision__comment__contains='processing_status').get_unique())
 
-        newer_version_data = versions[newer_version].field_dict[field]
         older_version_data = versions[older_version].field_dict[field]
+        newer_version_data = versions[newer_version].field_dict[field]
 
-        differences = DeepDiff(newer_version_data, older_version_data, ignore_order=True)
+        differences = DeepDiff(older_version_data, newer_version_data, ignore_order=True)
 
-        #logger.debug(f'differences = {type(differences)}')
+        #logger.debug(f'differences = {differences}')
 
         json_differences = json.loads(differences.to_json())
 
         differences_list = []
 
         if 'values_changed' in json_differences:            
-            #logger.debug('\n\n values_changed ========================= ')
+            logger.debug('\n\n values_changed ========================= ')
             values_changed = json_differences['values_changed']
 
             for key in values_changed:
@@ -918,86 +918,86 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 # Get the number between the first set of square brackets i.e. x in 'root[x].etc[y].etc[z]
                 regex = re.search('(?<=\[).+?(?=\])', str(key))
                 root_level = regex.group(0)
-                
-                assessor_comment = older_version_data[int(root_level)]['assessor']
-                assessor_comment_newer = newer_version_data[int(root_level)]['assessor']
 
-                referrals = older_version_data[int(root_level)]['referrals']
-                newer_referrals = newer_version_data[int(root_level)]['referrals']
-
-                # Skip instances where there are no referrals in the old version
-                # and the assessor_comment hasn't actually changed this covers instances
-                # where the older version didn't have any referrals and the new version does
-
-                differences_list = self.append_to_differences_list_by_field(field, older_version_data, newer_version_data, values_changed, key, root_level,
-                                    assessor_comment, assessor_comment_newer, differences_list)
-                    
-        #logger.debug('\n\n differences_list ' + str(differences_list))
+                differences_list = self.append_to_differences_list_by_field(field, older_version_data, newer_version_data, \
+                    values_changed, key, root_level,differences_list)
 
         return differences_list
 
     def append_to_differences_list_by_field(self, field, older_version_data, newer_version_data, values_changed, key, root_level, \
-                                            assessor_comment, assessor_comment_newer, differences_list):
-        """ Returns the differences list with the appropriate keys depending on the field type
-            (either assessor_data or comment_data)
-
-            Mainly used to break up the complexity of the get_version_differences_comment_and_assessor_data
-            method.
+                                            differences_list):
+        """ Returns the differences list with the appropriate keys for the assessor_data field. """
         
-        """
-        root_level_name = older_version_data[int(root_level)]['name']
+        older_assessor_comment = older_version_data[int(root_level)]['assessor']
+        newer_assessor_comment = newer_version_data[int(root_level)]['assessor']
 
-        # if the assessor comment hasn't changed then it must be a referral comment change
-        if assessor_comment:
-            if assessor_comment == assessor_comment_newer:
-                #logger.debug('found a referral')
-                referrer = older_version_data[int(root_level)]['referrals']
-                if not referrer:
-                    referrer_newer = newer_version_data[int(root_level)]['referrals']
-                    referrer_email = referrer_newer[0]['email']
-                    if referrer_email:
-                        if 'comment_data' == field:
-                            root_level_name += f'-comment-field-Referral-{referrer_email}'
-                        else:
-                            root_level_name += f'-Referral-{referrer_email}'                
-                    differences_list.append({root_level_name:'(Previously Blank)'}) 
-                else:
-                    #logger.debug('\n\n referrer ' + str(referrer))
-                    #logger.debug('\n\n values_changed[key][new_value] ' + str(values_changed[key]['new_value']))
-                    referrer_email = referrer[0]['email']
-                    #logger.debug('\n\n referrer_email ' + str(referrer_email))
+        logger.debug('key = ' + str(key))
 
-                    if referrer_email:
-                        if 'comment_data' == field:
-                            root_level_name += f'-comment-field-Referral-{referrer_email}'
-                        else:
-                            root_level_name += f'-Referral-{referrer_email}'
-                            
-                        differences_list.append({root_level_name:values_changed[key]['new_value']}) 
-            else:
+        root_level_name = newer_version_data[int(root_level)]['name']
 
-                if 'comment_data' == field:
-                    root_level_name += '-comment-field-Assessor'
-                else:
-                    root_level_name += '-Assessor' 
-                if(type(values_changed[key]['new_value']) is dict):
-                    # Once referrer comments are added we will get a dictionary here
-                    new_value_dict = values_changed[key]['new_value']
-                    new_value = new_value_dict['assessor']
-                    differences_list.append({root_level_name:new_value})
-                else:
-                    differences_list.append({root_level_name:values_changed[key]['new_value']})
+        if 'assessor_data' == field:
+            assessor_suffix = '-Assessor'
+            referral_suffix = '-Referral-'
+        elif 'comment_data' == field:
+            assessor_suffix = '-comment-field-Assessor'
+            referral_suffix = '-comment-field-Referral-'            
         else:
-            if assessor_comment_newer:
-                if 'comment_data' == field:
-                    root_level_name += '-comment-field-Assessor'
+            raise ValueError('The field argument must be either assessor_data or comment_data')
+
+        if older_assessor_comment:
+            # if the assessor comment hasn't changed then it must be a referral comment change that deep diff picked up
+            if newer_assessor_comment == older_assessor_comment:
+                older_referrals = older_version_data[int(root_level)]['referrals']
+                newer_referrals = newer_version_data[int(root_level)]['referrals']
+                if newer_referrals:
+                    if older_referrals:
+                        for referrer in newer_referrals:
+                            referrer_email = referrer['email']
+                            root_level_name_appended = root_level_name + f'{referral_suffix}{referrer_email}'
+                            differences_list.append({root_level_name_appended:values_changed[key]['old_value']})
+
+            else:
+                if 'referral' not in key:
+                    root_level_name_appended = root_level_name + assessor_suffix
+                    differences_list.append({root_level_name_appended:values_changed[key]['old_value']})
                 else:
-                    root_level_name += '-Assessor'
-                differences_list.append({root_level_name:'(Previously Blank)'})
+                    older_referrals = older_version_data[int(root_level)]['referrals']
+                    newer_referrals = newer_version_data[int(root_level)]['referrals']
+                    if newer_referrals:
+                        for i, new_referral in enumerate(newer_referrals):
+                            logger.debug('\n new_referral \n' + str(new_referral['value'] ))
+                            logger.debug('\n older_referral \n' + str(older_referrals[i]['value']))
+                            if new_referral['value'] != older_referrals[i]['value']:                           
+                                referrer_email = new_referral['email']
+                                root_level_name_appended = root_level_name + f'{referral_suffix}{referrer_email}'
+                                differences_list.append({root_level_name_appended:older_referrals[i]['value']})
+
+        else:
+            if newer_assessor_comment:
+                root_level_name_appended = root_level_name + assessor_suffix
+                differences_list.append({root_level_name_appended:'(Previously Blank)'})
+                older_referrals = older_version_data[int(root_level)]['referrals']
+                newer_referrals = newer_version_data[int(root_level)]['referrals']
+                if newer_referrals:
+                    for i, new_referral in enumerate(newer_referrals):
+                        if new_referral['value'] != older_referrals[i]['value']:                           
+                            referrer_email = new_referral['email']
+                            root_level_name_appended = root_level_name + f'{referral_suffix}{referrer_email}'
+                            differences_list.append({root_level_name_appended:older_referrals[i]['value']})
+            else:
+                # Edge case. Both the old assessor comment and the new assessor comment are empty
+                # Which means the change deep diff picked up must be a referral comment
+                older_referrals = older_version_data[int(root_level)]['referrals']
+                newer_referrals = newer_version_data[int(root_level)]['referrals']
+                if newer_referrals:
+                    for i, new_referral in enumerate(newer_referrals):
+                        if new_referral['value'] != older_referrals[i]['value']:                           
+                            referrer_email = new_referral['email']
+                            root_level_name_appended = root_level_name + f'{referral_suffix}{referrer_email}'
+                            differences_list.append({root_level_name_appended:older_referrals[i]['value']})
 
 
         return differences_list
-
 
     def get_reversion_history(self):
         """
