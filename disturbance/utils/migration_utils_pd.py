@@ -36,8 +36,8 @@ COLUMN_MAPPING = {
     'Expiry Date':            'expiry_date',
     'Issue Date':             'issue_date',
     'Status':                 'status',
-    'Latitude':               'latitude',
-    'Longitude':              'longitude',
+    'Latitude':               'longitude', # these trwo reversed - incorect in spreadsheet
+    'Longitude':              'latitude',  # these trwo reversed - incorect in spreadsheet
     'Trading Name':           'trading_name',
     'Licensee':               'licencee',
     'ABN':                    'abn',
@@ -73,16 +73,22 @@ COLUMN_MAPPING = {
 class ApiaryLicenceReader():
     """
     FROM shell_plus:
-	from disturbance.utils.migration_utils_pd import ApiaryLicenceReader
-	alr = ApiaryLicenceReader('disturbance/utils/csv/apiary_migration_file_20May2022.xlsx')
+        from disturbance.utils.migration_utils_pd import ApiaryLicenceReader
+        alr = ApiaryLicenceReader('disturbance/utils/csv/apiary_migration_file_02Jun2022.xlsx')
 
-	alr.create_users()
-	alr.create_organisations()
-	alr.create_licences()
-	alr.create_licence_pdf()
+        alr.create_users()
+        alr.create_organisations()
+        alr.create_licences()
+        alr.create_licence_pdf()
 
     FROM mgt-command:
-        python manage_ds.py apiary_migration_script --filename disturbance/utils/csv/apiary_migration_file_20May2022.xlsx
+        python manage_ds.py apiary_migration_script --filename disturbance/utils/csv/apiary_migration_file_02Jun2022.xlsx
+
+
+    Check for unique permit numbers
+        pm = df['permit_number'].value_counts().loc[lambda x: x>1][1:].astype('int')
+        pm.to_excel('/tmp/permit_numbers.xlsx')
+
     """
 
     def __init__(self, filename):
@@ -123,32 +129,35 @@ class ApiaryLicenceReader():
         df['approval_minister_date'] = pd.to_datetime(df['approval_minister_date'], errors='coerce')
 
         #df['issue_date'] = df['issue_date'].apply(lambda x: x if isinstance(x, datetime.datetime) else x.start_date) # fill null values
-        df['abn']          = df['abn'].str.replace(" ","")
-        df['email']        = df['email'].str.replace(" ","").str.lower()
+        df['issue_date'] = df.apply(lambda row: row.issue_date if isinstance(row.issue_date, datetime.datetime) else row.start_date, axis=1)
+        df['abn']        = df['abn'].str.replace(" ","")
+        df['email']      = df['email'].str.replace(" ","").str.lower()
         df['first_name'] = df['first_name'].apply(lambda x: x.lower().capitalize().strip() if not pd.isnull(x) else 'No First Name')
-        df['last_name'] = df['last_name'].apply(lambda x: x.lower().capitalize().strip() if not pd.isnull(x) else 'No Last Name')
-        df['licencee'] = df['licencee'].apply(lambda x: x.strip() if not pd.isnull(x) else 'No Licencee Name')
-        df['postcode'] = df['postcode'].apply(lambda x: '0000' if pd.isnull(x) else x)
+        df['last_name']  = df['last_name'].apply(lambda x: x.lower().capitalize().strip() if not pd.isnull(x) else 'No Last Name')
+        df['licencee']   = df['licencee'].apply(lambda x: x.strip() if not pd.isnull(x) else 'No Licencee Name')
+        df['postcode']   = df['postcode'].apply(lambda x: '0000' if pd.isnull(x) else x)
         #df['phone_number1'] = df['phone_number1'].apply(lambda x: x.mobile_number if pd.isnull(x) else x)
         #df['mobile_number'] = df['mobile_number'].apply(lambda x: x.phone_number1 if pd.isnull(x) else x)
-        df['site_status'] = df['site_status'].apply(lambda x: settings.SITE_STATUS_SUSPENDED if not pd.isnull(x) else settings.SITE_STATUS_CURRENT)
+        df['site_status']= df['site_status'].apply(lambda x: settings.SITE_STATUS_SUSPENDED if not pd.isnull(x) else settings.SITE_STATUS_CURRENT)
         df['dra_permit'] = df['site_status'].apply(lambda x: True if not pd.isnull(x) else False)
-        df['licensed_site'] = df['licensed_site'].apply(lambda x: True if not pd.isnull(x) else False)
+#        df['licensed_site'] = df['licensed_site'].apply(lambda x: True if not pd.isnull(x) else False)
         #df['approval_cpc_date'] = df['approval_cpc_date'].apply(lambda x: x if not pd.isnull(x) or not x.empty else None)
         #df['approval_minister_date'] = df['approval_minister_date'].apply(lambda x: x if not pd.isnull(x)  or not x.empty else None)
-        df['country'] = df['country'].apply(_get_country_code)
+        df['country']    = df['country'].apply(_get_country_code)
  
         # clean everything else
         df.fillna('', inplace=True)
         df.replace({np.NaN: ''}, inplace=True)
 
         # check excel column names are the same column_mappings
+        #import ipdb; ipdb.set_trace()
         if df.columns.values.tolist() != [*COLUMN_MAPPING.values()]:
             raise Exception('Column Names have changed!')
 
         # add extra column
         df['licencee_type'] = df['abn'].apply(lambda x: 'organisation' if x else 'individual')
 
+        #return df[:500]
         return df
 
     def run_migration(self):
@@ -164,16 +173,15 @@ class ApiaryLicenceReader():
         t0_end = time.time()
         print('TIME TAKEN (Orgs and Users): {}'.format(t0_end - t0_start))
 
-        with transaction.atomic():
-            # create the Migratiom models
-            t1_start = time.time()
-            try:
-                self.create_licences()
-            except Exception as e:
-                print(e)
-                import ipdb; ipdb.set_trace()
-            t1_end = time.time()
-            print('TIME TAKEN (Create License Models): {}'.format(t1_end - t1_start))
+        # create the Migratiom models
+        t1_start = time.time()
+        try:
+            self.create_licences()
+        except Exception as e:
+            print(e)
+            import ipdb; ipdb.set_trace()
+        t1_end = time.time()
+        print('TIME TAKEN (Create License Models): {}'.format(t1_end - t1_start))
 
         # create the Licence/Permit PDFs
         t2_start = time.time()
@@ -315,39 +323,64 @@ class ApiaryLicenceReader():
 
     def create_licences(self):
         count = 1
-        for index, row in self.df.iterrows():
-            try:
-                #if row.status != 'Vacant' and index>4474:
-                if row.status != 'Vacant':
-                    #import ipdb; ipdb.set_trace()
-                    if row.licencee_type == 'organisation':
-                        org = Organisation.objects.get(organisation__abn=row.abn)
-                        user = EmailUser.objects.get(email=row.email)
-                        self._migrate_approval(data=row, submitter=user, applicant=org, proxy_applicant=None)
-                        print("Permit number {} migrated".format(row.get('permit_number')))
-                        print
-                        print
+        completed_site_numbers = []
+        duplicate_site_numbers = []
+        with transaction.atomic():
+            for index, row in self.df.iterrows():
+                try:
+                    site_number = int(row.permit_number) if row.permit_number else int(row.licensed_site)
+                    ApiarySite.objects.filter(id=site_number)
+                    if site_number not in completed_site_numbers and \
+                        site_number not in completed_site_numbers and \
+                        not ApiarySite.objects.filter(id=site_number).exists():
 
-                    elif row.licencee_type == 'individual':
-                        user = EmailUser.objects.get(email=row.email)
-                        self._migrate_approval(data=row, submitter=user, applicant=None, proxy_applicant=user)
-                        print("Permit number {} migrated".format(row.get('permit_number')))
+                        #if row.status != 'Vacant' and index>4474:
+                        if row.status != 'Vacant':
+                            #import ipdb; ipdb.set_trace()
+                            if row.licencee_type == 'organisation':
+                                org = Organisation.objects.get(organisation__abn=row.abn)
+                                user = EmailUser.objects.get(email=row.email)
+                                self._migrate_approval(data=row, submitter=user, applicant=org, proxy_applicant=None)
+                                print("Permit number {} migrated".format(row.get('permit_number')))
+                                print
+                                print
 
+                            elif row.licencee_type == 'individual':
+                                user = EmailUser.objects.get(email=row.email)
+                                self._migrate_approval(data=row, submitter=user, applicant=None, proxy_applicant=user)
+                                print("Permit number {} migrated".format(row.get('permit_number')))
+
+                            else:
+                                # declined and not to be reissued
+                                status = data['status']
+
+                            completed_site_numbers.append(site_number)
+                            count += 1
+
+                            print()
+                            print(f'******************************************************** INDEX: {index}')
+                            print()
                     else:
-                        # declined and not to be reissued
-                        status = data['status']
-                    count += 1
+                        duplicate_site_numbers.append(site_number)
 
-                    print()
-                    print(f'******************************************************** INDEX: {index}')
-                    print()
-            except Exception as e:
-                import ipdb; ipdb.set_trace()
-                print(e)
+                except ValueError as e:
+                    print(f'ERROR: SITE NUMBER {site_number} - SKIPPING')
+                    #import ipdb; ipdb.set_trace()
+                except Exception as e:
+                    print(e)
+                    import ipdb; ipdb.set_trace()
+
+        print(f'Duplicate Site Numbers: {duplicate_site_numbers}')
 
     def _migrate_approval(self, data, submitter, applicant=None, proxy_applicant=None):
         from disturbance.components.approvals.models import Approval
         #import ipdb; ipdb.set_trace()
+        try:
+            site_number = int(data.permit_number) if data.permit_number else int(data.licensed_site)
+        except Exception as e:
+            import ipdb; ipdb.set_trace()
+            print('ERROR: There is no site_number - Must provide a site number in migration spreadsheeet. {e}')
+
         try:
             expiry_date = data['expiry_date'] if data['expiry_date'] else datetime.date.today()
             start_date = data['start_date'] if data['start_date'] else datetime.date.today()
@@ -406,16 +439,18 @@ class ApiaryLicenceReader():
             approval.save()
 
             # create apiary sites and intermediate table entries
+            #geometry = GEOSGeometry('POINT(' + str(data['latitude']) + ' ' + str(data['longitude']) + ')', srid=4326)
             geometry = GEOSGeometry('POINT(' + str(data['latitude']) + ' ' + str(data['longitude']) + ')', srid=4326)
-            apiary_site = ApiarySite.objects.create()
-            site_category = get_category(geometry)
             #import ipdb; ipdb.set_trace()
+            apiary_site = ApiarySite.objects.create(id=site_number)
+            site_category = get_category(geometry)
             intermediary_approval_site = ApiarySiteOnApproval.objects.create(
+                                            #id=site_number,
                                             apiary_site=apiary_site,
                                             approval=approval,
                                             wkb_geometry=geometry,
                                             site_category = site_category,
-                                            licensed_site=data['licensed_site'],
+                                            licensed_site=True if data['licensed_site'] else False,
                                             batch_no=data['batch_no'],
                                             approval_cpc_date=data['approval_cpc_date'] if data.approval_cpc_date else None,
                                             approval_minister_date=data['approval_minister_date'] if data.approval_minister_date else None,
@@ -428,9 +463,11 @@ class ApiaryLicenceReader():
                                             dra_permit=data['dra_permit'],
                                             site_status=data['site_status'],
                                             )
+            #import ipdb; ipdb.set_trace()
             pa, pa_created = ProposalApiary.objects.get_or_create(proposal=proposal)
 
             intermediary_proposal_site = ApiarySiteOnProposal.objects.create(
+                                            #id=site_number,
                                             apiary_site=apiary_site,
                                             #approval=approval,
                                             proposal_apiary=pa,
@@ -438,7 +475,7 @@ class ApiaryLicenceReader():
                                             site_category_draft = site_category,
                                             wkb_geometry_processed=geometry,
                                             site_category_processed = site_category,
-                                            licensed_site=data['licensed_site'],
+                                            licensed_site=True if data['licensed_site'] else False,
                                             batch_no=data['batch_no'],
                                             #approval_cpc_date=data['approval_cpc_date'],
                                             #approval_minister_date=data['approval_minister_date'],
@@ -452,6 +489,7 @@ class ApiaryLicenceReader():
                                             catchment=data['catchment'],
                                             dra_permit=data['dra_permit'],
                                             )
+            #import ipdb; ipdb.set_trace()
 
             apiary_site.latest_approval_link=intermediary_approval_site
             apiary_site.latest_proposal_link=intermediary_proposal_site
@@ -494,7 +532,7 @@ def create_invoice(proposal, payment_method='other'):
         ]
 
         user = EmailUser.objects.get(email__icontains='das@dbca.wa.gov.au')
-        invoice_text = 'Migration Invoice'
+        invoice_text = 'Migrated Permit/Licence Invoice'
 
         basket  = createCustomBasket(line_items, user, settings.PAYMENT_SYSTEM_ID)
         order = CreateInvoiceBasket(payment_method=payment_method, system=settings.PAYMENT_SYSTEM_PREFIX).create_invoice_and_order(basket, 0, None, None, user=user, invoice_text=invoice_text)
