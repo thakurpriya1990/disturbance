@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 
 import requests
@@ -15,6 +16,8 @@ from disturbance.components.main.models import CategoryDbca, RegionDbca, Distric
 from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_APPROVED, SITE_STATUS_TRANSFERRED, RESTRICTED_RADIUS, \
     SITE_STATUS_PENDING, SITE_STATUS_DISCARDED, SITE_STATUS_VACANT, SITE_STATUS_DENIED, SITE_STATUS_CURRENT, \
     SITE_STATUS_NOT_TO_BE_REISSUED, SITE_STATUS_SUSPENDED
+
+logger = logging.getLogger(__name__)
 
 
 def retrieve_department_users():

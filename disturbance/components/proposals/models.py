@@ -18,7 +18,7 @@ from django.contrib.gis.measure import Distance
 from django.contrib.postgres.fields import ArrayField
 from django.db import models,transaction
 from django.contrib.gis.db import models as gis_models
-from django.db.models import Q
+from django.db.models import Q, Max
 from django.dispatch import receiver
 from django.db.models.signals import pre_delete, post_save
 from django.utils.encoding import python_2_unicode_compatible
@@ -4186,6 +4186,8 @@ class ApiaryAnnualRentalFeeRunDate(RevisionedMixin):
 
 
 class ApiarySite(models.Model):
+    id = models.IntegerField(primary_key=True, editable=False)
+
     site_guid = models.CharField(max_length=50, blank=True)
     latest_proposal_link = models.ForeignKey('disturbance.ApiarySiteOnProposal', blank=True, null=True, on_delete=models.SET_NULL)
     latest_approval_link = models.ForeignKey('disturbance.ApiarySiteOnApproval', blank=True, null=True, on_delete=models.SET_NULL)
@@ -4197,6 +4199,16 @@ class ApiarySite(models.Model):
 
     def __str__(self):
         return '{}'.format(self.id,)
+
+    def save(self, **kwargs):
+        #import ipdb; ipdb.set_trace()
+        if not self.id:
+            max = ApiarySite.objects.aggregate(id_max=Max('id'))['id_max']
+            self.id = int(max) + 1 if max is not None else 1
+
+        #kwargs.pop('force_insert')
+        #kwargs.update({'force_update': True})
+        super().save(kwargs)
 
     def delete(self, using=None, keep_parents=False):
         super(ApiarySite, self).delete(using, keep_parents)
