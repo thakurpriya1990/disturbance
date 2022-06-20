@@ -125,7 +125,7 @@ from disturbance.components.proposals.serializers_apiary import (
     ApiarySiteOnProposalDraftMinimalGeometrySerializer,
     ApiarySiteFeeSerializer,
     ApiarySiteOnProposalVacantDraftMinimalGeometrySerializer,
-    ApiarySiteOnProposalVacantProcessedMinimalGeometrySerializer,
+    ApiarySiteOnProposalVacantProcessedMinimalGeometrySerializer, ApiarySiteOnProposalDraftGeometrySerializer,
 )
 from disturbance.components.approvals.models import Approval, ApiarySiteOnApproval
 from disturbance.components.approvals.serializers import ApprovalLogEntrySerializer
@@ -856,6 +856,21 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
 class ProposalApiaryViewSet(viewsets.ModelViewSet):
     queryset = ProposalApiary.objects.none()
     serializer_class = ProposalApiarySerializer
+
+    # To solve the performance issue
+    @detail_route(methods=['GET',])
+    @basic_exception_handler
+    def apiary_sites(self, request, *args, **kwargs):
+        proposal_apiary = self.get_object()
+        ret = []
+        for apiary_site in proposal_apiary.apiary_sites.all():
+            inter_obj = ApiarySiteOnProposal.objects.get(apiary_site=apiary_site, proposal_apiary=proposal_apiary)
+            if inter_obj.site_status == SITE_STATUS_DRAFT:
+                serializer = ApiarySiteOnProposalDraftGeometrySerializer
+            else:
+                serializer = ApiarySiteOnProposalProcessedGeometrySerializer
+            ret.append(serializer(inter_obj).data)
+        return ret
 
     @detail_route(methods=['GET', ])
     def on_site_information_list(self, request, *args, **kwargs):
