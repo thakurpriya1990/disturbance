@@ -726,8 +726,6 @@ export default {
                     }
                     else {
                         /*  Find out if we are dealing with a select field
-                            This is a bit fragile and hacky. Could be cleaned up
-                            and refactored.
                             Basically cloning the select2 and then adding and removing items
                             to show the state of the older version.
                         */
@@ -736,10 +734,8 @@ export default {
                             let compare_select = null;
                             let compare_select_id = k + '_compare_select';
                             if ($(this).is('select:not(.revision_note)')){
-                                //console.log('!@#$ select found ------------_>' );
                                 select_found = true;
                                 if(0==$('#' + k + '_compare_select').length){
-                                    //console.log('!@#$ Cloning select and setting up select2');
                                     compare_select = $(this).clone();
                                     compare_select.attr('id', compare_select_id);
                                     compare_select.addClass('revision_note');
@@ -760,43 +756,35 @@ export default {
                                     // Add all the existing options
                                     const current_version_options = $(this).siblings('input:hidden');
                                     $.each(current_version_options, function(i, current_version){
-                                        //console.log('!@#$ Adding option = ' + current_version.value );
-                                        var newOption = new Option(current_version.value, current_version.value, true, true);
-                                        // Append it to the select
+                                        const option_text = $('body').find('option[value=' + current_version.value + ']').first().text();
+                                        console.log('!@#$ option_text = ' + option_text );
+                                        console.log('!@#$ current_version.value = ' + current_version.value);
+                                        var newOption = new Option(option_text, current_version.value, true, true);
                                         $('#'+compare_select_id).append(newOption).trigger('change');                                            
                                     });
                                 }
                                 if($(this)[0].hasAttribute('multiple')){
-                                    //console.log('!@#$ is multi select ------------_>' );
                                     vm.$nextTick(function(e){
-                                        //console.log('operation = ' + revision_text.substring(0,1));
-                                        // Replace item in compare multi-select
                                         if(revision_text.includes(',')){
                                             const item_to_remove = revision_text.split(',')[0];
                                             const option_value_remove = item_to_remove.substring(1);
-                                            //console.log('Removing item = ' + option_value_remove);
+                                            console.log('Removing item = ' + option_value_remove);
+                                            const option_text = $('body').find('option[value=' + option_value_remove + ']').first().text();
                                             vm.$nextTick(function(e){
-                                                //console.log('#' + k + '_compare_select2 = ' + $('#' + k + '_compare_select2').length);
-                                                //console.log('option_value_remove = ' + option_value_remove);
-                                                //console.log(' Selection choice length = ' + $('#' + k + '_compare_select2').find('li.select2-selection__choice[title|=' + option_value_remove + ']').length);
-                                                $('#' + k + '_compare_select2').find('li.select2-selection__choice[title|=' + option_value_remove + ']').remove();          
+                                                $('#' + k + '_compare_select2').find("li.select2-selection__choice[title|='" + option_text + "']").remove();          
                                             });
                                             const item_to_add = revision_text.split(',')[1];
                                             const option_text_add = item_to_add.substring(1).replace(/([A-Z])/g, ' $1').trim();
                                             const option_value_add = item_to_add.substring(1);
-                                            //console.log('Adding item = ' + item_to_add);
                                             const newOption = new Option(option_text_add, option_value_add, true, true);
                                             $('#'+compare_select_id).append(newOption).trigger('change');
                                         }
                                         // Remove item from compare multi-select 
                                         else if('-' == revision_text.substring(0,1)){
                                             const option_value = revision_text.substring(1);
-                                            //console.log('Removing item = ' + option_value);
-                                            //console.log('options to remove = ' + $('#' + k + '_compare_select2').find('li.select2-selection__choice[title|=' + option_value + ']').length);
-                                            vm.$nextTick(function(e){
-                                                $('#' + k + '_compare_select2').find('li.select2-selection__choice[title|=' + option_value + ']').remove();
-                                                $('#'+compare_select_id).trigger('change');
-                                            });
+                                            const option_text = $('body').find('option[value=' + option_value + ']').first().text();
+                                            $('#' + k + '_compare_select2').find('li.select2-selection__choice[title|="' + option_text + '"]').remove();
+                                            $('#' + k + '_compare_select2').trigger('change');
                                         // Add item to compare multi-select
                                         } else if ('+' == revision_text.substring(0,1)) {
                                             const option_text = revision_text.substring(1).replace(/([A-Z])/g, ' $1').trim();
