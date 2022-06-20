@@ -47,6 +47,10 @@
                 type: Number,
                 default: 0,
             },
+            apiary_proposal_id: {
+                type: Number,
+                default: 0,
+            },
             apiary_sites: {
                 type: Array,
                 default: function(){
@@ -430,10 +434,29 @@
         },
         created: function(){
             let vm = this;
-            if (this.apiary_approval_id){
+            if (vm.apiary_proposal_id){
+                vm.loading_sites = true
+                let url_sites = '/api/proposal_apiary/' + vm.apiary_proposal_id + '/apiary_sites/'
+                Vue.http.get(url_sites).then(
+                    (res) => {
+                        console.log('--- in component_site_selection ---')
+                        console.log(res.body)
+
+                        //vm.apiary_sites = res.body
+                        //vm.apiary_sites_local = JSON.parse(JSON.stringify(vm.apiary_sites)),  // Deep copy the array
+                        //vm.constructApiarySitesTable(res.body.features);
+                        //vm.addApiarySitesToMap(res.body.features)
+                        //vm.ensureCheckedStatus();
+                        vm.loading_sites = false
+                    },
+                    (err) => {
+                        vm.loading_sites = false
+                    }
+                )
+            } else if (vm.apiary_approval_id){
                 vm.loading_sites = true
                 // Retrieve apiary_sites
-                let url_sites = '/api/approvals/' + this.apiary_approval_id + '/apiary_sites/'
+                let url_sites = '/api/approvals/' + vm.apiary_approval_id + '/apiary_sites/'
                 Vue.http.get(url_sites).then(
                     (res) => {
                         console.log('--- in component_site_selection ---')
@@ -444,7 +467,6 @@
                         vm.constructApiarySitesTable(res.body.features);
                         vm.addApiarySitesToMap(res.body.features)
                         vm.ensureCheckedStatus();
-                        //vm.$refs.component_map.setLoadingSitesStatus(false)
                         vm.loading_sites = false
                     },
                     (err) => {
@@ -455,16 +477,16 @@
         },
         mounted: function(){
             let vm = this;
-            this.$nextTick(() => {
+            vm.$nextTick(() => {
                 vm.addEventListeners();
-                if (!this.apiary_approval_id){
-                    // apiary_approval_id is not provided, which means apiary_sites have been provided
+                if (!vm.apiary_approval_id && !vm.apiary_proposal_id){
+                    // apiary_approval_id and apiary_proposal_id are not provided, which means apiary_sites have been already provided
                     vm.constructApiarySitesTable(vm.apiary_sites);
                     vm.addApiarySitesToMap(vm.apiary_sites)
                     vm.ensureCheckedStatus();
                 }
             });
-            this.$emit('apiary_sites_updated', this.apiary_sites_local)
+            vm.$emit('apiary_sites_updated', vm.apiary_sites_local)
         },
         components: {
             ComponentMap,
