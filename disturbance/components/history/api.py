@@ -297,13 +297,11 @@ class GetCompareFieldVersionsView(InternalAuthorizationView):
                 #logger.debug(f'difference = {difference}')
                 if "values_changed" in difference:
                     for key, values in difference[1].items():
-                        #logger.debug(f'key = {key}')
-                        #logger.debug(f'values = {values}')
                         key_suffix = key.split('\'')[-1]
                         # Check if we are dealing with an iterable field
                         if '[' in key_suffix and ']' in key_suffix:
-                            old_value = re.sub(pattern, r"\1 \2", values['old_value'])
-                            new_value = re.sub(pattern, r"\1 \2", values['new_value'])
+                            old_value = values['old_value']
+                            new_value = values['new_value']
                             differences_list.append({key.split('\'')[-2]:'-{},+{}'.format(old_value, new_value),})
                         else:
                             differences_list.append({key.split('\'')[-2]:values['new_value'],})
@@ -329,7 +327,6 @@ class GetCompareFieldVersionsView(InternalAuthorizationView):
                     for key, value in difference[1].items():
                         #logger.debug('\n\n key = ' + str(key))
                         #logger.debug('\n\n value = ' + str(value))
-                        #value = re.sub(pattern, r"\1 \2", value)
                         differences_list.append({key.split('\'')[-2]:'-{}'.format(value),})    
 
             return Response(differences_list)
