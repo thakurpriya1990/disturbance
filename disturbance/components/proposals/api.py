@@ -870,7 +870,7 @@ class ProposalApiaryViewSet(viewsets.ModelViewSet):
             else:
                 serializer = ApiarySiteOnProposalProcessedGeometrySerializer
             ret.append(serializer(inter_obj).data)
-        return ret
+        return Response(ret)
 
     @detail_route(methods=['GET', ])
     def on_site_information_list(self, request, *args, **kwargs):
@@ -1828,7 +1828,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
         instance.internal_view_log(request)
         #serializer = InternalProposalSerializer(instance,context={'request':request})
         serializer_class = self.internal_serializer_class()
-        serializer = serializer_class(instance,context={'request':request})
+        serializer = serializer_class(instance,context={'request': request})
         return Response(serializer.data)
 
     @detail_route(methods=['GET',])
