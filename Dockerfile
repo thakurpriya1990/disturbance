@@ -55,14 +55,14 @@ tzdata \
 cron \
 rsyslog \
 gunicorn \
-libreoffice \
+#libreoffice \
 libpq-dev \
 patch \
 postgresql-client \
 mtr \
 htop \
 vim \
-ssh \
+#ssh \
 python3-gevent \
 software-properties-common \
 imagemagick

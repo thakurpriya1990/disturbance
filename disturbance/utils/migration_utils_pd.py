@@ -157,6 +157,7 @@ class ApiaryLicenceReader():
         # add extra column
         df['licencee_type'] = df['abn'].apply(lambda x: 'organisation' if x else 'individual')
 
+        import ipdb; ipdb.set_trace()
         #return df[:500]
         return df
 
@@ -326,6 +327,7 @@ class ApiaryLicenceReader():
         completed_site_numbers = []
         duplicate_site_numbers = []
         with transaction.atomic():
+            #for index, row in self.df[3244:].iterrows():
             for index, row in self.df.iterrows():
                 try:
                     site_number = int(row.permit_number) if row.permit_number else int(row.licensed_site)

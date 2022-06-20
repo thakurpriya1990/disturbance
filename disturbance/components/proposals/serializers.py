@@ -460,7 +460,6 @@ class InternalProposalSerializer(BaseProposalSerializer):
         # django reversion wont allow .count() after .get_unique()
         versions_count = len(list(Version.objects.get_for_object(obj).select_related('revision')\
             .filter(revision__comment__contains='processing_status').get_unique()))
-        logger.debug('versions_count = ' + str(versions_count))
         # Build the dictionary of reversions
         version_dictionary = {}
         for index, version in enumerate(versions):

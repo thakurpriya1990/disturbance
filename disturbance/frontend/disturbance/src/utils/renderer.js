@@ -28,6 +28,7 @@ module.exports = {
         var assessorInfo = this.status_data.assessorInfo;
         var proposalId = this.status_data.proposalId;
         var applicationType = this.status_data.applicationType;
+        var proposalLodgementDate = this.status_data.proposalLodgementDate;
         var assessorMode = false;
         var assessorCanAssess = false;
         var assessorLevel = '';
@@ -255,7 +256,7 @@ module.exports = {
                 break;
             case 'file':
                 _elements.push(
-                    <File name={c.name} label={c.label} value={val} id={id} comment_value={comment_val} isRepeatable={c.isRepeatable} handleChange={this.handleFileChange} readonly={readonly} help_text={help_text} help_text_assessor={help_text_assessor} assessorMode={assessorMode} docsUrl={this.status_data.docs_url} assessor_readonly={assessor_visibility} proposal_id={proposalId} isRequired={c.isRequired} help_text_url={help_text_url} help_text_assessor_url={help_text_assessor_url} comment_boxes={JSON.stringify(comment_boxes)}/>
+                    <File name={c.name} label={c.label} value={val} id={id} comment_value={comment_val} isRepeatable={c.isRepeatable} handleChange={this.handleFileChange} readonly={readonly} help_text={help_text} help_text_assessor={help_text_assessor} assessorMode={assessorMode} docsUrl={this.status_data.docs_url} assessor_readonly={assessor_visibility} proposal_id={proposalId} proposal_lodgement_date={proposalLodgementDate} isRequired={c.isRequired} help_text_url={help_text_url} help_text_assessor_url={help_text_assessor_url} comment_boxes={JSON.stringify(comment_boxes)}/>
                 )
                 break;
             case 'date':
@@ -393,7 +394,7 @@ module.exports = {
         return boxes;
     },
     status_data : {},
-    store_status_data(readonly,assessorData,commentData,assessorEmail,assessorMode,can_user_edit,docs_url, proposalId, applicationType){
+    store_status_data(readonly,assessorData,commentData,assessorEmail,assessorMode,can_user_edit,docs_url, proposalId, applicationType, proposalLodgementDate){
         this.status_data = {
             'readonly': readonly,
             'assessorData': assessorData,
@@ -403,7 +404,8 @@ module.exports = {
             'can_user_edit': can_user_edit,
             'docs_url': docs_url,
             'proposalId': proposalId,
-            'applicationType': applicationType
+            'applicationType': applicationType,
+            'proposalLodgementDate': proposalLodgementDate
         }
     },
     getVisibility(h,c,readonly,assessor_mode,assessor_can_assess){
