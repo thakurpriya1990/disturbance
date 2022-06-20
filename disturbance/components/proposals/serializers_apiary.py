@@ -1025,10 +1025,12 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
         return url
 
     def get_apiary_sites(self, proposal_apiary):
-        request = self.context['request']
-        with_apiary_sites = request.GET.get('with_apiary_sites', True)
-        if with_apiary_sites in ['false', 'False', 'F', 'f', False]:
-            with_apiary_sites = False
+        with_apiary_sites = True
+        if hasattr(self.context, 'request'):
+            request = self.context['request']
+            with_apiary_sites = request.GET.get('with_apiary_sites', True)
+            if with_apiary_sites in ['false', 'False', 'F', 'f', False]:
+                with_apiary_sites = False
 
         ret = []
         if with_apiary_sites:

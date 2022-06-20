@@ -442,11 +442,11 @@
                         console.log('--- in component_site_selection ---')
                         console.log(res.body)
 
-                        //vm.apiary_sites = res.body
-                        //vm.apiary_sites_local = JSON.parse(JSON.stringify(vm.apiary_sites)),  // Deep copy the array
-                        //vm.constructApiarySitesTable(res.body.features);
-                        //vm.addApiarySitesToMap(res.body.features)
-                        //vm.ensureCheckedStatus();
+                        vm.apiary_sites = res.body
+                        vm.apiary_sites_local = JSON.parse(JSON.stringify(vm.apiary_sites)),  // Deep copy the array
+                        vm.constructApiarySitesTable(res.body);
+                        vm.addApiarySitesToMap(res.body)
+                        vm.ensureCheckedStatus();
                         vm.loading_sites = false
                     },
                     (err) => {
