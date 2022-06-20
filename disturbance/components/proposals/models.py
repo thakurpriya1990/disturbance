@@ -931,7 +931,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         older_assessor_comment = older_version_data[int(root_level)]['assessor']
         newer_assessor_comment = newer_version_data[int(root_level)]['assessor']
 
-        logger.debug('key = ' + str(key))
+        #logger.debug('key = ' + str(key))
 
         root_level_name = newer_version_data[int(root_level)]['name']
 
@@ -945,21 +945,35 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             raise ValueError('The field argument must be either assessor_data or comment_data')
 
         if older_assessor_comment:
+            logger.debug('\n There is an older comment: \n' + str(older_assessor_comment))
             # if the assessor comment hasn't changed then it must be a referral comment change that deep diff picked up
             if newer_assessor_comment == older_assessor_comment:
                 older_referrals = older_version_data[int(root_level)]['referrals']
                 newer_referrals = newer_version_data[int(root_level)]['referrals']
                 if newer_referrals:
                     if older_referrals:
-                        for referrer in newer_referrals:
-                            referrer_email = referrer['email']
+                        for i, new_referral in enumerate(newer_referrals):
+                            referrer_email = new_referral['email']
                             root_level_name_appended = root_level_name + f'{referral_suffix}{referrer_email}'
-                            differences_list.append({root_level_name_appended:values_changed[key]['old_value']})
-
+                            try:                
+                                if new_referral['value'] != older_referrals[i]['value']:
+                                    if {root_level_name_appended:older_referrals[i]['value']} not in differences_list:
+                                        differences_list.append({root_level_name_appended:older_referrals[i]['value']})
+                            except IndexError:
+                                # This referral doesn't exist in the older version
+                                if new_referral['value']:
+                                    differences_list.append({root_level_name_appended:'(Previously Blank)'})
             else:
+                logger.debug('key = ' + str(key))
                 if 'referral' not in key:
                     root_level_name_appended = root_level_name + assessor_suffix
-                    differences_list.append({root_level_name_appended:values_changed[key]['old_value']})
+                    old_value = values_changed[key]['old_value']
+                    logger.debug('old_value = ' + str(old_value))
+                    if(type(old_value) is dict):
+                        # In certain circumstances, deep diff returns a dictionary rather than just a value
+                        differences_list.append({root_level_name_appended:old_value['assessor']})
+                    else:
+                        differences_list.append({root_level_name_appended:old_value})
                 else:
                     older_referrals = older_version_data[int(root_level)]['referrals']
                     newer_referrals = newer_version_data[int(root_level)]['referrals']
@@ -967,11 +981,16 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         for i, new_referral in enumerate(newer_referrals):
                             logger.debug('\n new_referral \n' + str(new_referral['value'] ))
                             logger.debug('\n older_referral \n' + str(older_referrals[i]['value']))
-                            if new_referral['value'] != older_referrals[i]['value']:                           
-                                referrer_email = new_referral['email']
-                                root_level_name_appended = root_level_name + f'{referral_suffix}{referrer_email}'
-                                differences_list.append({root_level_name_appended:older_referrals[i]['value']})
-
+                            referrer_email = new_referral['email']
+                            root_level_name_appended = root_level_name + f'{referral_suffix}{referrer_email}'
+                            try:
+                                if new_referral['value'] != older_referrals[i]['value']:
+                                    if {root_level_name_appended:older_referrals[i]['value']} not in differences_list:                        
+                                        differences_list.append({root_level_name_appended:older_referrals[i]['value']})
+                            except IndexError:
+                                # This referral doesn't exist in the older version
+                                if new_referral['value']:
+                                    differences_list.append({root_level_name_appended:'(Previously Blank)'})
         else:
             if newer_assessor_comment:
                 root_level_name_appended = root_level_name + assessor_suffix
@@ -980,10 +999,16 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 newer_referrals = newer_version_data[int(root_level)]['referrals']
                 if newer_referrals:
                     for i, new_referral in enumerate(newer_referrals):
-                        if new_referral['value'] != older_referrals[i]['value']:                           
-                            referrer_email = new_referral['email']
-                            root_level_name_appended = root_level_name + f'{referral_suffix}{referrer_email}'
-                            differences_list.append({root_level_name_appended:older_referrals[i]['value']})
+                        try:
+                            if new_referral['value'] != older_referrals[i]['value']:                           
+                                referrer_email = new_referral['email']
+                                root_level_name_appended = root_level_name + f'{referral_suffix}{referrer_email}'
+                                if {root_level_name_appended:older_referrals[i]['value']} not in differences_list:                        
+                                    differences_list.append({root_level_name_appended:older_referrals[i]['value']})
+                        except IndexError:
+                            # This referral doesn't exist in the older version
+                            if new_referral['value']:
+                                differences_list.append({root_level_name_appended:'(Previously Blank)'})
             else:
                 # Edge case. Both the old assessor comment and the new assessor comment are empty
                 # Which means the change deep diff picked up must be a referral comment
@@ -991,11 +1016,16 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 newer_referrals = newer_version_data[int(root_level)]['referrals']
                 if newer_referrals:
                     for i, new_referral in enumerate(newer_referrals):
-                        if new_referral['value'] != older_referrals[i]['value']:                           
-                            referrer_email = new_referral['email']
-                            root_level_name_appended = root_level_name + f'{referral_suffix}{referrer_email}'
-                            differences_list.append({root_level_name_appended:older_referrals[i]['value']})
-
+                        referrer_email = new_referral['email']
+                        root_level_name_appended = root_level_name + f'{referral_suffix}{referrer_email}'
+                        try:
+                            if new_referral['value'] != older_referrals[i]['value']:
+                                if {root_level_name_appended:older_referrals[i]['value']} not in differences_list:                         
+                                    differences_list.append({root_level_name_appended:older_referrals[i]['value']})
+                        except IndexError:
+                            # This referral doesn't exist in the older version
+                            if new_referral['value']:
+                                differences_list.append({root_level_name_appended:'(Previously Blank)'})
 
         return differences_list
 
