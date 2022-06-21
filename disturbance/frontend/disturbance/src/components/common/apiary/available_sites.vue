@@ -515,6 +515,8 @@
                 this.apiarySitesQuerySource.addFeatures(features)
             },
             addEventListeners: function () {
+                //$("#" + this.table_id).on('click', 'a[data-contact-licence-holder]', this.contactLicenceHolder)
+                $("#app").on('click', 'a[data-contact-licence-holder]', this.contactLicenceHolder)
             },
             getApiarySiteAvailableFromEvent(e){
                 let apiary_site_available = e.target.getAttribute("data-apiary-site-available");
@@ -1040,8 +1042,17 @@
                 let feature = this.apiarySitesQuerySource.getFeatureById(apiary_site_id)
                 this.showPopup(feature)
             },
-            get_actions: function(feature){
-                console.log({feature})
+            get_approval_link: function(feature){
+                let approval_link = ''
+                if (feature.get('approval_id') && this.is_internal){
+                    approval_link = '<tr>' + 
+                                        '<th scope="row">Licence</th>' +
+                                        '<td><a href="/internal/approval/' + feature.get('approval_id') + '">' + feature.get('lodgement_number') + '</a></td>' +
+                                    '</tr>'
+                }
+                return approval_link
+            },
+            get_actions: function(feature, contactLicenceHolder){
                 let action_list = []
 
                 let a_status = getStatusForColour(feature, false, this.display_at_time_of_submitted)
@@ -1058,6 +1069,7 @@
                         let available = feature.get('available')
                         if (available){
                             let display_text = 'Contact licence holder'
+                            //let ret = '<a data-contact-licence-holder="' + feature.id_ + '" :onclick="this.contactLicenceHolder(' + feature.id_ + ')">' + display_text + '</a>';
                             let ret = '<a data-contact-licence-holder="' + feature.id_ + '">' + display_text + '</a>';
                             action_list.push(ret);
                         }
@@ -1070,14 +1082,13 @@
                 if (feature){
                     let geometry = feature.getGeometry();
                     let coord = geometry.getCoordinates();
-                    let approval_link = (feature.get('approval_id') && this.is_internal) ? 
-                        '<div><a href="/internal/approval/' + feature.get('approval_id') + '">' + feature.get('lodgement_number') + '</a></div>' : '' 
                     let svg_hexa = "<svg xmlns='http://www.w3.org/2000/svg' version='1.1' height='20' width='15'>" +
                     '<g transform="translate(0, 4) scale(0.9)"><path d="M 14.3395,12.64426 7.5609998,16.557828 0.78249996,12.64426 0.7825,4.8171222 7.5609999,0.90355349 14.3395,4.8171223 Z" id="path837" style="fill:none;stroke:#ffffff;stroke-width:1.565;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" /></g></svg>'
                     //let status_str = feature.get('is_vacant') ? getDisplayNameFromStatus(feature.get('status')) + ' (vacant)' : getDisplayNameFromStatus(feature.get('status'))
                     let a_status = getStatusForColour(feature, false, this.display_at_time_of_submitted)
                     let status_str = getDisplayNameFromStatus(a_status)
-                    let actions = this.get_actions(feature)
+                    let actions = this.get_actions(feature, this.contactLicenceHolder)
+                    let approval_link = this.get_approval_link(feature)
                     let a_table = '<table class="table">' +
                           '<tbody>' +
                             '<tr>' +
@@ -1092,6 +1103,7 @@
                               '<th scope="row">Coordinates</th>' +
                               '<td>' + feature['values_']['geometry']['flatCoordinates'] + '</td>' +
                             '</tr>' +
+                            approval_link + 
                             '<tr>' +
                               '<th scope="row">Action</th>' +
                               '<td>' + actions + '</td>' +
@@ -1203,11 +1215,9 @@
                 this.openOnSiteInformationModal(apiary_site_id)
             },
             contactLicenceHolder: function(e){
-                console.log('contactLicenceHolder')
                 let vm = this;
                 //let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
                 let apiary_site_id = e.target.getAttribute("data-contact-licence-holder");
-
                 this.contactLicenceHolderClicked(apiary_site_id)
                 e.stopPropagation()
             },
