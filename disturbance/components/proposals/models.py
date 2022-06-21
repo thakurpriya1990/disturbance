@@ -4336,7 +4336,7 @@ class ApiaryAnnualRentalFeePeriodStartDate(RevisionedMixin):
         (NAME_PERIOD_START, 'Start date of the annual site fee'),
     )
     name = models.CharField(unique=True, max_length=50, choices=NAME_CHOICES, )
-    period_start_date = models.DateField(blank=True, null=True)
+    period_start_date = models.DateField(blank=True, null=True, help_text='Although Year, month and day are entered, the system uses only the month and the day internally')
 
     def __str__(self):
         try:
@@ -4359,7 +4359,7 @@ class ApiaryAnnualRentalFeeRunDate(RevisionedMixin):
         (NAME_CRON, 'Date to Issue'),
     )
     name = models.CharField(unique=True, max_length=50, choices=NAME_CHOICES, )
-    date_run_cron = models.DateField(blank=True, null=True)
+    date_run_cron = models.DateField(blank=True, null=True, help_text='Although Year, month and day are entered, the system uses only the month and the day internally')
 
     class Meta:
         app_label = 'disturbance'
