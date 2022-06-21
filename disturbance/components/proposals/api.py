@@ -589,6 +589,13 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
                 return True
         return False
 
+    @detail_route(methods=['GET',])
+    @basic_exception_handler
+    def relevant_applicant_name(self, request, *args, **kwargs):
+        apiary_site = self.get_object()
+        relevant_applicant = apiary_site.get_relevant_applicant_name()
+        return Response({'relevant_applicant': relevant_applicant})
+
     def get_queryset(self):
         user = self.request.user
         qs = ApiarySite.objects.all()
