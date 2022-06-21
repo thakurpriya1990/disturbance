@@ -4347,6 +4347,7 @@ class ApiaryAnnualRentalFeePeriodStartDate(RevisionedMixin):
     class Meta:
         app_label = 'disturbance'
         ordering = ('period_start_date', )  # oldest record first, latest record last
+        verbose_name = 'Annual Site Fee Priod Start Date'
 
 
 class ApiaryAnnualRentalFeeRunDate(RevisionedMixin):

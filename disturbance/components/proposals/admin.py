@@ -117,13 +117,24 @@ class ProposalDocumentInline(admin.TabularInline):
     model = models.ProposalDocument
     extra = 0
 
+
 @admin.register(models.AmendmentReason)
 class AmendmentReasonAdmin(admin.ModelAdmin):
     list_display = ['reason']
 
+
+@admin.register(ApiaryAnnualRentalFeePeriodStartDate)
+class ApiaryAnnualRentalFeePeriodStartDateAdmin(admin.ModelAdmin):
+    list_display = ['name', 'start_month_date']
+
+    def start_month_date(self, obj):
+        return obj.period_start_date.strftime('%d of %b')
+
+
 @admin.register(models.Proposal)
 class ProposalAdmin(VersionAdmin):
     inlines =[ProposalDocumentInline,]
+
 
 @admin.register(models.ProposalAssessorGroup)
 class ProposalAssessorGroupAdmin(admin.ModelAdmin):
@@ -330,7 +341,13 @@ class ApiaryAnnualRentalFeeAdmin(admin.ModelAdmin):
 
 @admin.register(ApiaryAnnualRentalFeeRunDate)
 class ApiaryAnnualRentalFeeRunDateAdmin(admin.ModelAdmin):
-    list_display = ['id', 'name', 'date_run_cron',]
+    # list_display = ['id', 'name', 'date_run_cron', 'run_month', 'run_date',]
+    list_display = ['id', 'name', 'run_month_date']
+
+    def run_month_date(self, obj):
+        return obj.date_run_cron.strftime('%d of %b')
+
+
 
 
 # @admin.register(ApiaryAnnualRentalFeePeriodStartDate)

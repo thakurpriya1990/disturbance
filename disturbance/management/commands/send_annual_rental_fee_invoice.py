@@ -23,6 +23,7 @@ from disturbance.settings import SITE_STATUS_CURRENT, SITE_STATUS_SUSPENDED, PAY
 import logging
 logger = logging.getLogger(__name__)
 
+
 def get_annual_rental_fee_period(target_date):
     """
     Retrieve the annual site fee period, the invoice for this period should have been issued on the target_date passed as a parameter
