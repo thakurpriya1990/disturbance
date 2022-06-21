@@ -124,3 +124,16 @@ class DomainDetectMiddleware(object):
             response = self.get_response(request)
         response = self.process_response(request, response)
         return response
+
+
+class CacheControlMiddleware(object):
+    def process_response(self, request, response):
+        if request.path[:5] == '/api/' or request.path == '/':
+            response['Cache-Control'] = 'private, no-store'
+        elif request.path[:8] == '/static/':
+            response['Cache-Control'] = 'public, max-age=86400'
+        else:
+            response['Cache-Control'] = 'private, no-store'
+        return response
+
+

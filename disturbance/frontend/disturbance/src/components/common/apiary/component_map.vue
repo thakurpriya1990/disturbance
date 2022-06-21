@@ -160,7 +160,6 @@
             vm.setBaseLayer('osm')
             vm.set_mode('layer')
             vm.addOptionalLayers()
-            //vm.map.addLayer(vm.apiarySitesQueryLayer);
             vm.displayAllFeatures()
         },
         components: {
@@ -176,6 +175,13 @@
             }
         },
         methods: {
+            //setLoadingSitesStatus: function(a_status){
+            //    console.log('in setLoadingSitesStatus')
+            //    console.log({a_status})
+            //    console.log(this.loading_sites)
+            //    this.loading_sites = a_status
+            //    console.log(this.loading_sites)
+            //},
             addJoint: function(point, styles){
                 let s = new Style({
                     image: new CircleStyle({

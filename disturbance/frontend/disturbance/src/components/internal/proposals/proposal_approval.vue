@@ -35,6 +35,7 @@
                     :show_col_site="false"
                     :show_col_site_when_submitted="true"
                     :show_col_status_when_submitted="true"
+                    :apiary_proposal_id="proposal.proposal_apiary.id"
                 />
             </FormSection>
         </template>
