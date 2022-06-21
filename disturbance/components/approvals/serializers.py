@@ -407,10 +407,18 @@ class ApprovalSerializer(serializers.ModelSerializer):
         )
 
     def get_apiary_sites(self, approval):
+        with_apiary_sites = True
+        if hasattr(self.context, 'request'):
+            request = self.context['request']
+            with_apiary_sites = request.GET.get('with_apiary_sites', True)
+            if with_apiary_sites in ['false', 'False', 'F', 'f', False]:
+                with_apiary_sites = False
+
         ret = []
-        for relation in approval.get_relations():
-            ret.append(ApiarySiteOnApprovalGeometrySerializer(relation).data)
-        return ret
+        if with_apiary_sites:
+            for relation in approval.get_relations():
+                ret.append(ApiarySiteOnApprovalGeometrySerializer(relation).data)
+        return ret  ####
 
     def get_activity(self, approval):
         activity_text = None
