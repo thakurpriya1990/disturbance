@@ -1,6 +1,9 @@
 <template lang="html">
     <div>
         <div class="row col-sm-12">
+            <div v-if="loading_sites" class="spinner_on_map">
+                <i class='fa fa-4x fa-spinner fa-spin'></i>
+            </div>
             <ComponentMap
                 ref="component_map"
                 :is_internal="is_internal"
@@ -40,6 +43,14 @@
 
     export default {
         props:{
+            apiary_approval_id: {
+                type: Number,
+                default: 0,
+            },
+            apiary_proposal_id: {
+                type: Number,
+                default: 0,
+            },
             apiary_sites: {
                 type: Array,
                 default: function(){
@@ -168,6 +179,7 @@
                 apiary_site_geojson_array: [],  // This is passed to the ComponentMap as props
                 default_checkbox_checked: false,  // If checked property isn't set as a apiary_site's property, this default value is used
                 popup_opened_by_link: false,
+                loading_sites: false,
                 dtHeaders: [
                     'Id',
                     '',
@@ -421,17 +433,60 @@
             }
         },
         created: function(){
+            let vm = this;
+            if (vm.apiary_proposal_id){
+                vm.loading_sites = true
+                let url_sites = '/api/proposal_apiary/' + vm.apiary_proposal_id + '/apiary_sites/'
+                Vue.http.get(url_sites).then(
+                    (res) => {
+                        console.log('--- in component_site_selection ---')
+                        console.log(res.body)
 
+                        vm.apiary_sites = res.body
+                        vm.apiary_sites_local = JSON.parse(JSON.stringify(vm.apiary_sites)),  // Deep copy the array
+                        vm.constructApiarySitesTable(res.body);
+                        vm.addApiarySitesToMap(res.body)
+                        vm.ensureCheckedStatus();
+                        vm.loading_sites = false
+                    },
+                    (err) => {
+                        vm.loading_sites = false
+                    }
+                )
+            } else if (vm.apiary_approval_id){
+                vm.loading_sites = true
+                // Retrieve apiary_sites
+                let url_sites = '/api/approvals/' + vm.apiary_approval_id + '/apiary_sites/'
+                Vue.http.get(url_sites).then(
+                    (res) => {
+                        console.log('--- in component_site_selection ---')
+                        console.log(res.body)
+
+                        vm.apiary_sites = res.body.features
+                        vm.apiary_sites_local = JSON.parse(JSON.stringify(vm.apiary_sites)),  // Deep copy the array
+                        vm.constructApiarySitesTable(res.body.features);
+                        vm.addApiarySitesToMap(res.body.features)
+                        vm.ensureCheckedStatus();
+                        vm.loading_sites = false
+                    },
+                    (err) => {
+                        vm.loading_sites = false
+                    }
+                )
+            }
         },
         mounted: function(){
             let vm = this;
-            this.$nextTick(() => {
+            vm.$nextTick(() => {
                 vm.addEventListeners();
-                vm.constructApiarySitesTable(vm.apiary_sites);
-                vm.addApiarySitesToMap(vm.apiary_sites)
-                vm.ensureCheckedStatus();
+                if (!vm.apiary_approval_id && !vm.apiary_proposal_id){
+                    // apiary_approval_id and apiary_proposal_id are not provided, which means apiary_sites have been already provided
+                    vm.constructApiarySitesTable(vm.apiary_sites);
+                    vm.addApiarySitesToMap(vm.apiary_sites)
+                    vm.ensureCheckedStatus();
+                }
             });
-            this.$emit('apiary_sites_updated', this.apiary_sites_local)
+            vm.$emit('apiary_sites_updated', vm.apiary_sites_local)
         },
         components: {
             ComponentMap,
@@ -492,6 +547,9 @@
                     //this.apiary_site_geojson_array.push(apiary_sites[i].as_geojson)
                     this.apiary_site_geojson_array.push(apiary_sites[i])
                 }
+
+                console.log('------------')
+                console.log(this.$refs.component_map)
 
                 // Reload ComponentMap by assigning a new key value
                 this.component_map_key = uuid()
@@ -741,5 +799,11 @@
 }
 .licensed_site_checkbox {
     text-align: center;
+}
+.spinner_on_map {
+    position: absolute;
+    top: 10%;
+    left: 50%;
+    z-index: 100000;
 }
 </style>

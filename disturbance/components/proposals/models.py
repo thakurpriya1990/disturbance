@@ -66,7 +66,8 @@ from disturbance.ordered_model import OrderedModel
 
 
 from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_PENDING, SITE_STATUS_APPROVED, SITE_STATUS_DENIED, \
-    SITE_STATUS_CURRENT, RESTRICTED_RADIUS, SITE_STATUS_TRANSFERRED, PAYMENT_SYSTEM_ID, PAYMENT_SYSTEM_PREFIX
+    SITE_STATUS_CURRENT, RESTRICTED_RADIUS, SITE_STATUS_TRANSFERRED, PAYMENT_SYSTEM_ID, PAYMENT_SYSTEM_PREFIX, \
+    SITE_STATUS_SUSPENDED, SITE_STATUS_NOT_TO_BE_REISSUED
 
 logger = logging.getLogger(__name__)
 
@@ -3216,6 +3217,11 @@ class ApiarySiteOnProposal(RevisionedMixin):
     def __str__(self):
         return 'id:{}: (apiary_site: {}, proposal_apiary: {})'.format(self.id, self.apiary_site.id, self.proposal_apiary.id)
 
+    def get_relevant_applicant_name(self):
+        if self.proposal_apiary and self.proposal_apiary.proposal:
+            return self.proposal_apiary.proposal.relevant_applicant_name
+        return ''
+
     class Meta:
         app_label = 'disturbance'
         unique_together = ['apiary_site', 'proposal_apiary',]
@@ -4376,6 +4382,20 @@ class ApiarySite(models.Model):
     # Store the approval link intermediate object this apiary site transitioned from when got the 'vacant' status
     approval_link_for_vacant = models.ForeignKey('disturbance.ApiarySiteOnApproval', blank=True, null=True, related_name='vacant_apiary_site', on_delete=models.SET_NULL)
     is_vacant = models.BooleanField(default=False)
+
+    def get_relevant_applicant_name(self):
+        relevant_name = ''
+
+        try:
+            if not self.is_vacant:
+                if self.latest_approval_link and self.latest_approval_link.site_status in [SITE_STATUS_CURRENT, SITE_STATUS_SUSPENDED, SITE_STATUS_NOT_TO_BE_REISSUED,]:
+                    relevant_name = self.latest_approval_link.approval.relevant_applicant_name
+                elif self.latest_proposal_link and self.latest_proposal_link.site_status in [SITE_STATUS_PENDING, SITE_STATUS_DENIED,]:
+                    relevant_name = self.latest_proposal_link.proposal_apiary.proposal.relevant_applicant_name
+        except Exception as e:
+            logger.error('Exception raised when retrieving the relevant applicant name for the apiary site: {}. Error: {}'.format(self, e))
+
+        return relevant_name
 
     def __str__(self):
         return '{}'.format(self.id,)
