@@ -158,17 +158,13 @@
         },
         methods:{
             loadTemporaryUses: async function(){
-                console.log('loadTemporaryUses');
 
                 await this.$http.get('/api/approvals/' + this.approval_id + '/temporary_use/').then(
                     (accept)=>{
-                        console.log('accept')
-                        console.log(accept.body)
                         this.temporary_uses = accept.body
                         this.constructTemporaryUseTable()
                     },
                     (reject)=>{
-                        console.log('reject')
                     },
                 )
             },
@@ -219,7 +215,6 @@
                 return data
             },
             createProposal:function () {
-                console.log('createProposal');
 
                 let vm = this;
                 vm.creatingProposal = true;
@@ -227,9 +222,6 @@
 
                 vm.$http.post('/api/proposal.json', data).then(res => {
                     vm.proposal = res.body;
-
-                    console.log('returned: ')
-                    console.log(vm.proposal)
 
                     vm.$router.push({ name:"draft_proposal", params:{ proposal_id: vm.proposal.id }});
                     vm.creatingProposal = false;
