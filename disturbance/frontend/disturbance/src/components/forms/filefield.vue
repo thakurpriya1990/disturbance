@@ -89,7 +89,7 @@ export default {
                     "application/pdf,text/csv,application/msword,application/vnd.ms-excel,application/x-msaccess," +
                     "application/x-7z-compressed,application/x-bzip,application/x-bzip2,application/zip," + 
                     ".dbf,.gdb,.gpx,.prj,.shp,.shx," + 
-                    ".json,.kml,.gpx";
+                    ".json,.kml,.gpx,.txt,";
                 return file_types;
             }
         },

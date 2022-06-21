@@ -72,7 +72,7 @@ import CommentBox from './comment_box_referral.vue'
 import HelpText from './help_text.vue'
 import HelpTextUrl from './help_text_url.vue'
 export default {
-    name:"select",
+    name:"Select",
     props:{
         'name':String,
         'label':String,
@@ -83,7 +83,7 @@ export default {
         'help_text_url':String,
         'help_text_assessor_url':String,
         "value":[String,Array],
-        "comment_value": String,
+        "comment_value": [String, Object],
         "assessor_readonly": Boolean,
         "options":Array,
         "conditions":Object,
@@ -99,7 +99,7 @@ export default {
             }
         },
         'readonly': Boolean,
-        "comment_boxes":Array,
+        "comment_boxes":[String, Array],
     },
     data:function () {
         let vm =this;
@@ -109,6 +109,15 @@ export default {
             multipleSelected: [],
             showingComment: false,
            
+        }
+    },
+    watch: {
+        // Watcher needed to recreate the jquery select2 when changing proposal versions
+        value: {
+            immediately: true,
+            handler (value, old_value){
+                this.init();
+            }
         }
     },
     computed:{
@@ -146,7 +155,7 @@ export default {
         },
         init:function () {
             let vm =this;
-            setTimeout(function (e) {
+            vm.$nextTick(function (e) {
                    $('#'+vm.selectid).select2({
                        "theme": "bootstrap",
                        allowClear: true,
@@ -171,7 +180,7 @@ export default {
                    if (vm.value) {
                        vm.handleChange(vm.$refs.selectB);
                    }
-               },100);
+               });
         }
     },
     mounted:function () {

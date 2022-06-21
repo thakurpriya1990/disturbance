@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import datetime
 from django.db import models,transaction
+from django.db.models import Q, Max
 from django.dispatch import receiver
 from django.db.models.signals import pre_delete
 from django.core.exceptions import ValidationError

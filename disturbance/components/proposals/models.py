@@ -18,7 +18,7 @@ from django.contrib.gis.measure import Distance
 from django.contrib.postgres.fields import ArrayField
 from django.db import models,transaction
 from django.contrib.gis.db import models as gis_models
-from django.db.models import Q
+from django.db.models import Q, Max
 from django.dispatch import receiver
 from django.db.models.signals import pre_delete, post_save
 from django.utils.encoding import python_2_unicode_compatible
@@ -462,15 +462,15 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         if self.lodgement_number == '':
             new_lodgment_id = 'P{0:06d}'.format(self.pk)
             self.lodgement_number = new_lodgment_id
-            self.save(version_comment=f'processing_status: {self.processing_status}')
-        
+            self.save()
+
         # If the processing_status has changed then add a reversion comment
         # so we have a way of filtering based on the status changing
         if self.processing_status != original_processing_status:
             self.save(version_comment=f'processing_status: {self.processing_status}')
         elif self.assessor_data != original_assessor_data:
             # Although the status hasn't changed we add the text 'processing_status'
-            # So we can filter based on it later (for both assessor_data nd comment_data)
+            # So we can filter based on it later (for both assessor_data and comment_data)
             self.save(version_comment='assessor_data: Has changed - tagging with processing_status')
         elif self.comment_data != original_comment_data:
             self.save(version_comment='comment_data: Has changed - tagging with processing_status')
@@ -790,9 +790,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
         versions_length = len(versions)
 
-        logger.debug(f'newer_version = {newer_version}')
-        logger.debug(f'older_version = {older_version}')
-
         newer_version = versions[newer_version].field_dict["data"]
 
         older_version = versions[older_version].field_dict["data"]
@@ -849,7 +846,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
         json_differences = json.loads(differences.to_json(default_mapping=default_mapping))
 
-        logger.debug(f'\n\json_differences = \n\n {json_differences}')
+        #logger.debug(f'\n\json_differences = \n\n {json_differences}')
 
         return json_differences
 
@@ -891,28 +888,22 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         versions = list(Version.objects.get_for_object(self).select_related('revision')\
             .filter(revision__comment__contains='processing_status').get_unique())
 
-        newer_version_data = versions[newer_version].field_dict[field]
         older_version_data = versions[older_version].field_dict[field]
+        newer_version_data = versions[newer_version].field_dict[field]
 
-        differences = DeepDiff(newer_version_data, older_version_data, ignore_order=True)
+        differences = DeepDiff(older_version_data, newer_version_data, ignore_order=True)
 
-        logger.debug(f'differences = {type(differences)}')
+        #logger.debug(f'differences = {differences}')
 
         json_differences = json.loads(differences.to_json())
 
         differences_list = []
 
-        if not 'values_changed' in json_differences:
-            return differences_list
+        if 'values_changed' in json_differences:            
+            logger.debug('\n\n values_changed ========================= ')
+            values_changed = json_differences['values_changed']
 
-        values_changed = json_differences['values_changed']
-
-        for key in values_changed:
-            logger.debug('\n\n key = ' + str(key))
-            logger.debug('\n\n new value = ' + str(values_changed[key]['new_value']))
-            logger.debug('\n\n old value = ' + str(values_changed[key]['old_value']))
-
-            if(values_changed[key]['new_value']):
+            for key in values_changed:
                 # Due to the structure of comment_data and assessor_data we need to get the section name
                 # for both the comments and the referral comments.
                 #    
@@ -927,70 +918,116 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 # Get the number between the first set of square brackets i.e. x in 'root[x].etc[y].etc[z]
                 regex = re.search('(?<=\[).+?(?=\])', str(key))
                 root_level = regex.group(0)
-                
-                assessor_comment = older_version_data[int(root_level)]['assessor']
-                assessor_comment_newer = newer_version_data[int(root_level)]['assessor']
 
-                referrals = older_version_data[int(root_level)]['referrals']
-                logger.debug('\n\n type(referrals) ' + str(type(referrals)))
-
-                # Skip instances where there are no referrals in the old version
-                # and the assessor_comment hasn't actually changed this covers instances
-                # where the older version didn't have any referrals and the new version does
-
-                if len(referrals) == 0 and assessor_comment == assessor_comment_newer:
-                    continue
-
-                differences_list = self.append_to_differences_list_by_field(field, older_version_data, values_changed, key, root_level,
-                                    assessor_comment, differences_list)
-
-        logger.debug('\n\n differences_list ' + str(differences_list))
-
-        #differences_list_json = json.dumps(differences_list)
+                differences_list = self.append_to_differences_list_by_field(field, older_version_data, newer_version_data, \
+                    values_changed, key, root_level,differences_list)
 
         return differences_list
 
-    def append_to_differences_list_by_field(self, field, older_version_data, values_changed, key, root_level, \
-                                            assessor_comment, differences_list):
-        """ Returns the differences list with the appropriate keys depending on the field type
-            (either assessor_data or comment_data)
-
-            Mainly used to break up the complexity of the get_version_differences_comment_and_assessor_data
-            method.
+    def append_to_differences_list_by_field(self, field, older_version_data, newer_version_data, values_changed, key, root_level, \
+                                            differences_list):
+        """ Returns the differences list with the appropriate keys for the assessor_data field. """
         
-        """
-        root_level_name = older_version_data[int(root_level)]['name']
+        older_assessor_comment = older_version_data[int(root_level)]['assessor']
+        newer_assessor_comment = newer_version_data[int(root_level)]['assessor']
 
-        if 'referrals' in key:
-            logger.debug('found a referral')
-            referrer = older_version_data[int(root_level)]['referrals']
-            logger.debug('\n\n referrer ' + str(referrer))
-            referrer_email = referrer[0]['email']
-            logger.debug('\n\n referrer_email ' + str(referrer_email))
+        #logger.debug('key = ' + str(key))
 
-            if referrer_email:
-                if 'comment_data' == field:
-                    root_level_name += f'-comment-field-Referral-{referrer_email}'
-                else:
-                    root_level_name += f'-Referral-{referrer_email}'
-                    
-                differences_list.append({root_level_name:values_changed[key]['new_value']}) 
+        root_level_name = newer_version_data[int(root_level)]['name']
+
+        if 'assessor_data' == field:
+            assessor_suffix = '-Assessor'
+            referral_suffix = '-Referral-'
+        elif 'comment_data' == field:
+            assessor_suffix = '-comment-field-Assessor'
+            referral_suffix = '-comment-field-Referral-'            
         else:
-            if assessor_comment:
-                if 'comment_data' == field:
-                    root_level_name += '-comment-field-Assessor'
-                else:
-                    root_level_name += '-Assessor' 
-                logger.debug('\n\n type(new_value) ' + str(type(values_changed[key]['new_value'])))
-                if(type(values_changed[key]['new_value']) is dict):
-                    # Once referrer comments are added we will get a dictionary here
-                    new_value_dict = values_changed[key]['new_value']
-                    new_value = new_value_dict['assessor']
-                    differences_list.append({root_level_name:new_value})
-                else:
-                    differences_list.append({root_level_name:values_changed[key]['new_value']})
-        return differences_list
+            raise ValueError('The field argument must be either assessor_data or comment_data')
 
+        if older_assessor_comment:
+            logger.debug('\n There is an older comment: \n' + str(older_assessor_comment))
+            # if the assessor comment hasn't changed then it must be a referral comment change that deep diff picked up
+            if newer_assessor_comment == older_assessor_comment:
+                older_referrals = older_version_data[int(root_level)]['referrals']
+                newer_referrals = newer_version_data[int(root_level)]['referrals']
+                if newer_referrals:
+                    if older_referrals:
+                        for i, new_referral in enumerate(newer_referrals):
+                            referrer_email = new_referral['email']
+                            root_level_name_appended = root_level_name + f'{referral_suffix}{referrer_email}'
+                            try:                
+                                if new_referral['value'] != older_referrals[i]['value']:
+                                    if {root_level_name_appended:older_referrals[i]['value']} not in differences_list:
+                                        differences_list.append({root_level_name_appended:older_referrals[i]['value']})
+                            except IndexError:
+                                # This referral doesn't exist in the older version
+                                if new_referral['value']:
+                                    differences_list.append({root_level_name_appended:'(Previously Blank)'})
+            else:
+                logger.debug('key = ' + str(key))
+                if 'referral' not in key:
+                    root_level_name_appended = root_level_name + assessor_suffix
+                    old_value = values_changed[key]['old_value']
+                    logger.debug('old_value = ' + str(old_value))
+                    if(type(old_value) is dict):
+                        # In certain circumstances, deep diff returns a dictionary rather than just a value
+                        differences_list.append({root_level_name_appended:old_value['assessor']})
+                    else:
+                        differences_list.append({root_level_name_appended:old_value})
+                else:
+                    older_referrals = older_version_data[int(root_level)]['referrals']
+                    newer_referrals = newer_version_data[int(root_level)]['referrals']
+                    if newer_referrals:
+                        for i, new_referral in enumerate(newer_referrals):
+                            logger.debug('\n new_referral \n' + str(new_referral['value'] ))
+                            logger.debug('\n older_referral \n' + str(older_referrals[i]['value']))
+                            referrer_email = new_referral['email']
+                            root_level_name_appended = root_level_name + f'{referral_suffix}{referrer_email}'
+                            try:
+                                if new_referral['value'] != older_referrals[i]['value']:
+                                    if {root_level_name_appended:older_referrals[i]['value']} not in differences_list:                        
+                                        differences_list.append({root_level_name_appended:older_referrals[i]['value']})
+                            except IndexError:
+                                # This referral doesn't exist in the older version
+                                if new_referral['value']:
+                                    differences_list.append({root_level_name_appended:'(Previously Blank)'})
+        else:
+            if newer_assessor_comment:
+                root_level_name_appended = root_level_name + assessor_suffix
+                differences_list.append({root_level_name_appended:'(Previously Blank)'})
+                older_referrals = older_version_data[int(root_level)]['referrals']
+                newer_referrals = newer_version_data[int(root_level)]['referrals']
+                if newer_referrals:
+                    for i, new_referral in enumerate(newer_referrals):
+                        try:
+                            if new_referral['value'] != older_referrals[i]['value']:                           
+                                referrer_email = new_referral['email']
+                                root_level_name_appended = root_level_name + f'{referral_suffix}{referrer_email}'
+                                if {root_level_name_appended:older_referrals[i]['value']} not in differences_list:                        
+                                    differences_list.append({root_level_name_appended:older_referrals[i]['value']})
+                        except IndexError:
+                            # This referral doesn't exist in the older version
+                            if new_referral['value']:
+                                differences_list.append({root_level_name_appended:'(Previously Blank)'})
+            else:
+                # Edge case. Both the old assessor comment and the new assessor comment are empty
+                # Which means the change deep diff picked up must be a referral comment
+                older_referrals = older_version_data[int(root_level)]['referrals']
+                newer_referrals = newer_version_data[int(root_level)]['referrals']
+                if newer_referrals:
+                    for i, new_referral in enumerate(newer_referrals):
+                        referrer_email = new_referral['email']
+                        root_level_name_appended = root_level_name + f'{referral_suffix}{referrer_email}'
+                        try:
+                            if new_referral['value'] != older_referrals[i]['value']:
+                                if {root_level_name_appended:older_referrals[i]['value']} not in differences_list:                         
+                                    differences_list.append({root_level_name_appended:older_referrals[i]['value']})
+                        except IndexError:
+                            # This referral doesn't exist in the older version
+                            if new_referral['value']:
+                                differences_list.append({root_level_name_appended:'(Previously Blank)'})
+
+        return differences_list
 
     def get_reversion_history(self):
         """
@@ -1012,6 +1049,149 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         revisions = Version.objects.get_for_object(self).select_related('revision')
 
         return revisions
+
+    def get_documents_for_version(self, version_number):
+        # get the datetime the requested version was lodged
+        versions = list(Version.objects.get_for_object(self).select_related('revision')\
+            .filter(revision__comment__contains='processing_status').get_unique())
+        version = versions[version_number]
+        #proposal = Proposal(**version)
+        version_lodgement_date = version.field_dict['lodgement_date']
+        version_documents = ProposalDocument.objects.filter(proposal=self, uploaded_date__lte=version_lodgement_date)\
+            .order_by('input_name', 'uploaded_date')
+        return version_documents, version_lodgement_date
+
+    def get_document_differences(self, newer_version, older_version, differences_only):
+        newer_version_documents, newer_version_lodgement_date = self.get_documents_for_version(newer_version)
+        older_version_documents, older_version_lodgement_date = self.get_documents_for_version(older_version)
+
+        newer_documents_list = []
+        input_name = ''
+        for document in newer_version_documents:
+            if not document.hidden:
+                #logger.debug('newer_document.input_name = ' + str(document.input_name))
+                #logger.debug('newer_document.name = ' + str(document.name))
+                #logger.debug('newer_document.hidden = ' + str(document.hidden) + '\n\n')
+                if input_name != document.input_name:
+                    input_name = document.input_name
+                    input_item = {input_name:[]}
+                    newer_documents_list.append(input_item)
+                    #logger.debug('adding ' + str(input_item))
+
+                #logger.debug('input_name ' + str(input_name))
+
+                input_item[input_name] += [{document.name:document._file.url}]
+
+        #return newer_documents_list
+
+        older_documents_list = []
+        input_name = ''
+        for document in older_version_documents:
+            # We need to get the state (hidden or not) of the document as it was in the older version
+            older_document_version = Version.objects.get_for_object(document)\
+            .select_related('revision').filter(revision__date_created__lte=older_version_lodgement_date).order_by('-revision__date_created').first()
+            older_document = ProposalDocument(**older_document_version.field_dict)
+            if not older_document.hidden:
+                #logger.debug('older_document.input_name = ' + str(older_document.input_name))
+                #logger.debug('older_document.name = ' + str(older_document.name))
+                #logger.debug('older_document.hidden = ' + str(older_document.hidden) + '\n\n')
+                if input_name != older_document.input_name:
+                    input_name = older_document.input_name
+                    input_item = {input_name:[]}
+                    older_documents_list.append(input_item)
+                    #logger.debug('adding ' + str(input_item))
+
+                #logger.debug('input_name ' + str(input_name))
+
+                input_item[input_name] += [{older_document.name:older_document._file.url}]
+
+        #return older_documents_list
+
+        #logger.debug('older_documents_list = ' + str(older_documents_list))
+
+
+        #logger.debug('\n\nolder_documents_list = ' + str(newer_documents_list))
+
+        #logger.debug('newer_version_documents length = ' + str(len(list(newer_version_documents))))
+        #logger.debug('older_version_documents length = ' + str(len(list(older_version_documents))))
+
+        differences = DeepDiff(newer_documents_list, older_documents_list, ignore_order=True)
+
+        #logger.debug('\n\ndifferences = ' + str(differences))
+
+        #if differences_only:
+        differences_list = []
+        for difference in differences.items():
+            if "values_changed" in difference:
+                #logger.debug('\n\n values_changed -----------------> ')
+                for key, value in difference[1].items():
+                    key_suffix = key.split('\'')[-1]
+                    #logger.debug('\n\n key = ' + str(key))
+                    #logger.debug('\n\n values = ' + str(value))
+                    section = key.split('\'')[-2]
+                    # Add the old value document to the list as an remove
+                    old_value_dict = value['old_value']
+                    #logger.debug('\n\n old_value_dict = ' + str(old_value_dict))
+                    operation = '-'
+                    for item in old_value_dict:
+                        file_name = item
+                        file_path = old_value_dict[item]
+                        #logger.debug('\n\n item = ' + str(item))
+                        #logger.debug('\n\n file_path = ' + str(file_path))
+                        differences_list.append({section:(operation, file_name, file_path)})
+                    # Add the new value document to the list as an add
+                    new_value_dict = value['new_value']
+                    #logger.debug('\n\n new_value_dict = ' + str(new_value_dict))
+                    operation = '+'
+                    for item in new_value_dict:
+                        file_name = item
+                        file_path = new_value_dict[item]
+                        #logger.debug('\n\n item = ' + str(item))
+                        #logger.debug('\n\n file_path = ' + str(file_path))
+                        differences_list.append({section:(operation, file_name, file_path)})
+
+                    #differences_list.append({section:'-{},+{}'.format(old_value, new_value),})
+
+            #logger.debug(f'difference = {difference}')
+            if "iterable_item_removed" in difference:
+                #logger.debug('\n\n iterable_item_removed -----------------> ')
+                operation = '-'
+                for item in difference[1]:
+                    document = difference[1][item]
+                    for x in document:
+                        #logger.debug('\n\n x = ' + x)
+
+                        section = item.split('\'')[-2]
+
+                        #file = document[section][0]
+                        for key, value in document.items():
+
+                            file_name = key
+                            file_path = document[key]
+                            differences_list.append({section:(operation, file_name, file_path)})
+
+            if "iterable_item_added" in difference:
+                #logger.debug('\n\n iterable_item_added -----------------> ')
+                operation = '+'
+                for item in difference[1]:
+                    #logger.debug('\n\n item = ' + str(item))
+                    document = difference[1][item]
+                    for x in document:
+                        section = item.split('\'')[-2]
+                        #logger.debug('\n\n section = ' + str(section))
+                        #logger.debug('\n\n document = ' + str(document))
+
+                        section = item.split('\'')[-2]
+
+                        #file = document[section][0]
+                        for key, value in document.items():
+
+                            file_name = key
+                            file_path = document[key]
+                            differences_list.append({section:(operation, file_name, file_path)})
+
+        return differences_list
+        
 
     def __assessor_group(self):
         # Alternative logic for Apiary applications
@@ -4186,6 +4366,8 @@ class ApiaryAnnualRentalFeeRunDate(RevisionedMixin):
 
 
 class ApiarySite(models.Model):
+    id = models.IntegerField(primary_key=True, editable=False)
+
     site_guid = models.CharField(max_length=50, blank=True)
     latest_proposal_link = models.ForeignKey('disturbance.ApiarySiteOnProposal', blank=True, null=True, on_delete=models.SET_NULL)
     latest_approval_link = models.ForeignKey('disturbance.ApiarySiteOnApproval', blank=True, null=True, on_delete=models.SET_NULL)
@@ -4197,6 +4379,16 @@ class ApiarySite(models.Model):
 
     def __str__(self):
         return '{}'.format(self.id,)
+
+    def save(self, **kwargs):
+        #import ipdb; ipdb.set_trace()
+        if not self.id:
+            max = ApiarySite.objects.aggregate(id_max=Max('id'))['id_max']
+            self.id = int(max) + 1 if max is not None else 1
+
+        #kwargs.pop('force_insert')
+        #kwargs.update({'force_update': True})
+        super().save(kwargs)
 
     def delete(self, using=None, keep_parents=False):
         super(ApiarySite, self).delete(using, keep_parents)
