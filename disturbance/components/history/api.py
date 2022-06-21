@@ -45,15 +45,7 @@ class GetVersionsView(InternalAuthorizationView):
         """
         super().get(self)
 
-        logger.debug('app_label = %s', app_label)
-        logger.debug('model_name = %s', model_name)
-        logger.debug('pk = %s', pk)
-        logger.debug('component_name =  %s', component_name)
-
         model = apps.get_model(app_label=app_label, model_name=model_name)
-
-        logger.debug('model = %s', model)
-
         instance = model.objects.get(pk=int(pk))
 
         revision_comment_filter = request.GET.get('revision_comment_filter')
@@ -64,8 +56,6 @@ class GetVersionsView(InternalAuthorizationView):
         else:
             versions = Version.objects.get_for_object(instance).select_related('revision')\
             .get_unique()
-
-        logger.debug('versions %s', versions)
 
         # Build the list of versions
         versions_list = []
@@ -98,16 +88,7 @@ class GetVersionView(InternalAuthorizationView):
         """
         super().get(self)
 
-        logger.debug('app_label = %s', app_label)
-        logger.debug('model_name = %s', model_name)
-        logger.debug('pk = %s', pk)
-        logger.debug('version_number =  %s', version_number)
-        logger.debug('component_name =  %s', component_name)
-
         model = apps.get_model(app_label=app_label, model_name=model_name)
-
-        logger.info('model = %s', model)
-
         instance = model.objects.get(pk=int(pk))
 
         """ It's important that we always retrieve the full list of unique
@@ -161,14 +142,7 @@ class GetCompareVersionsView(InternalAuthorizationView):
         """ Returns the difference between two specific versions of any model object """
         super().get(self)
 
-        logger.debug('app_label = %s', app_label)
-        logger.debug('model_name = %s', model_name)
-        logger.debug('pk = %s', pk)
-
         model = apps.get_model(app_label=app_label, model_name=model_name)
-
-        logger.debug('model = %s', model)
-
         instance = model.objects.get(pk=int(pk))
 
         """ It's important that we always retrieve the full list of unique
@@ -202,8 +176,6 @@ class GetCompareVersionsView(InternalAuthorizationView):
         formatted_differences = json.loads(differences.to_json(
             default_mapping=default_mapping))
 
-        logger.debug('\n\nformatted_differences = %s \n\n', formatted_differences)              
-
         return JsonResponse(formatted_differences)
 
 
@@ -224,14 +196,7 @@ class GetCompareSerializedVersionsView(InternalAuthorizationView):
         using any serializer """
         super().get(self)
 
-        logger.debug('app_label = %s', app_label)
-        logger.debug('model_name = %s', model_name)
-        logger.debug('pk = %s', pk)
-
         model = apps.get_model(app_label=app_label, model_name=model_name)
-
-        logger.debug('model = %s', model)
-
         instance = model.objects.get(pk=int(pk))
 
         """ It's important that we always retrieve the full list of unique
@@ -277,8 +242,6 @@ class GetCompareSerializedVersionsView(InternalAuthorizationView):
         formatted_differences = json.loads(differences.to_json(
             default_mapping=default_mapping))
 
-        logger.debug('\n\nformatted_differences = %s \n\n', formatted_differences)              
-
         return JsonResponse(formatted_differences)
 
 
@@ -302,14 +265,7 @@ class GetCompareFieldVersionsView(InternalAuthorizationView):
         """ Returns the difference between two specific versions of any model object """
         super().get(self)
 
-        #logger.debug('app_label = %s', app_label)
-        #logger.debug('model_name = %s', model_name)
-        #logger.debug('pk = %s', pk)
-
         model = apps.get_model(app_label=app_label, model_name=model_name)
-
-        #logger.debug('model = %s', model)
-
         instance = model.objects.get(pk=int(pk))
 
         """ It's important that we always retrieve the full list of unique
@@ -329,9 +285,6 @@ class GetCompareFieldVersionsView(InternalAuthorizationView):
         newer_version = versions[int(newer_version)]
         older_version = versions[int(older_version)]
 
-        #logger.debug('\n\nnewer_version.field_dict[compare_field] = ' + str(newer_version.field_dict[compare_field]))
-        #logger.debug('\n\nnewer_version.field_dict[compare_field] = ' + str(older_version.field_dict[compare_field]))
-
         differences = DeepDiff(newer_version.field_dict[compare_field], older_version.field_dict[compare_field], ignore_order=True)
 
         # Regex to add spaces before capitals in a string (needed for iterables such as multi-select values)
@@ -341,43 +294,40 @@ class GetCompareFieldVersionsView(InternalAuthorizationView):
         if differences_only:
             differences_list = []
             for difference in differences.items():
-                logger.debug(f'difference = {difference}')
+                #logger.debug(f'difference = {difference}')
                 if "values_changed" in difference:
                     for key, values in difference[1].items():
-                        logger.debug(f'key = {key}')
-                        logger.debug(f'values = {values}')
                         key_suffix = key.split('\'')[-1]
                         # Check if we are dealing with an iterable field
                         if '[' in key_suffix and ']' in key_suffix:
-                            old_value = re.sub(pattern, r"\1 \2", values['old_value'])
-                            new_value = re.sub(pattern, r"\1 \2", values['new_value'])
-                            differences_list.append({key.split('\'')[-2]:'{} replaced with {}'.format(old_value, new_value),})
+                            old_value = values['old_value']
+                            new_value = values['new_value']
+                            differences_list.append({key.split('\'')[-2]:'-{},+{}'.format(old_value, new_value),})
                         else:
                             differences_list.append({key.split('\'')[-2]:values['new_value'],})
                 if 'dictionary_item_added' in difference:
-                    logger.debug('\n\n difference[0] = ' + str(difference[0]))
+                    #logger.debug('\n\n difference[0] = ' + str(difference[0]))
                     for item in difference[1]:
-                        logger.debug('\n\n item = ' + str(item))
-                        differences_list.append({item.split('\'')[-2]:' (present)',})
+                        #logger.debug('\n\n item = ' + str(item))
+                        differences_list.append({item.split('\'')[-2]:'+',})
                 if 'dictionary_item_removed' in difference:
-                    logger.debug('\n\n difference[0] = ' + str(difference[0]))
+                    #logger.debug('\n\n difference[0] = ' + str(difference[0]))
                     for item in difference[1]:
-                        logger.debug('\n\n item = ' + str(item))
-                        differences_list.append({item.split('\'')[-2]:' (not present)',})
+                        #logger.debug('\n\n item = ' + str(item))
+                        differences_list.append({item.split('\'')[-2]:'-',})
                 if 'iterable_item_added' in difference:
-                    logger.debug('\n\n difference[0] = ' + str(difference[0]))
+                    #logger.debug('\n\n difference[0] = ' + str(difference[0]))
                     for key, value in difference[1].items():
-                        logger.debug('\n\n item = ' + str(key))
-                        logger.debug('\n\n value = ' + str(value))
-                        value = re.sub(pattern, r"\1 \2", value)
-                        differences_list.append({key.split('\'')[-2]:'+{} (present)'.format(value),})
+                        #logger.debug('\n\n item = ' + str(key))
+                        #logger.debug('\n\n value = ' + str(value))
+                        #value = re.sub(pattern, r"\1 \2", value)
+                        differences_list.append({key.split('\'')[-2]:'+{}'.format(value),})
                 if 'iterable_item_removed' in difference:
-                    logger.debug('\n\n difference[0] = ' + str(difference[0]))
+                    #logger.debug('\n\n difference[0] = ' + str(difference[0]))
                     for key, value in difference[1].items():
-                        logger.debug('\n\n key = ' + str(key))
-                        logger.debug('\n\n value = ' + str(value))
-                        value = re.sub(pattern, r"\1 \2", value)
-                        differences_list.append({key.split('\'')[-2]:'-{} (not present)'.format(value),})    
+                        #logger.debug('\n\n key = ' + str(key))
+                        #logger.debug('\n\n value = ' + str(value))
+                        differences_list.append({key.split('\'')[-2]:'-{}'.format(value),})    
 
             return Response(differences_list)
 
@@ -401,14 +351,7 @@ class GetCompareRootLevelFieldsVersionsView(InternalAuthorizationView):
         of any model object """
         super().get(self)
 
-        logger.debug('app_label = %s', app_label)
-        logger.debug('model_name = %s', model_name)
-        logger.debug('pk = %s', pk)
-
         model = apps.get_model(app_label=app_label, model_name=model_name)
-
-        logger.debug('model = %s', model)
-
         instance = model.objects.get(pk=int(pk))
 
         """ It's important that we always retrieve the full list of unique
@@ -428,9 +371,6 @@ class GetCompareRootLevelFieldsVersionsView(InternalAuthorizationView):
         newer_version = versions[int(newer_version)]
         older_version = versions[int(older_version)]
 
-        #logger.debug('\n\nnewer_version.field_dict = ' + str(newer_version.field_dict))
-        #logger.debug('\n\nnewer_version.field_dict = ' + str(older_version.field_dict))
-
         differences = DeepDiff(newer_version.field_dict, older_version.field_dict, ignore_order=True)
 
         differences_only = request.GET.get('differences_only')
@@ -441,7 +381,7 @@ class GetCompareRootLevelFieldsVersionsView(InternalAuthorizationView):
                     for k, diff in difference[1].items():
                         #There will only be one opening square bracket for root level items
                         if 1 == k.count('['):
-                            logger.debug('\n\nk = ' + k)
+                            #logger.debug('\n\nk = ' + k)
                             differences_list.append({k.split('\'')[-2]:diff['new_value'],})
             return Response(differences_list)
 
@@ -452,7 +392,5 @@ class GetCompareRootLevelFieldsVersionsView(InternalAuthorizationView):
 
         formatted_differences = json.loads(differences.to_json(
             default_mapping=default_mapping))
-
-        logger.debug('\n\nformatted_differences = %s \n\n', formatted_differences)   
 
         return JsonResponse(formatted_differences)

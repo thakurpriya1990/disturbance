@@ -1,5 +1,6 @@
 <template lang="html">
     <div v-if="proposal" class="container" id="internalProposal">
+
         <template v-if="is_local">
             proposal.vue
         </template>
@@ -29,7 +30,7 @@
                                 <input type="hidden" id="lodgement_date" value="">
                             </div>
                         </div>
-                        <RevisionHistory v-if="showHistory" :revision_history_url="revision_history_url" :model_object="proposal" :history_context="history_context" @update_model_object="updateProposalVersion" @compare_model_versions="compareProposalVersions" />
+                        <RevisionHistory v-if="showHistory" ref="revision_history" :revision_history_url="revision_history_url" :model_object="proposal" :history_context="history_context" @update_model_object="updateProposalVersion" @compare_model_versions="compareProposalVersions" />
                     </div>
                 </div>
             </div>
@@ -217,6 +218,18 @@
         </div>
         <div class="col-md-1"></div>
         <div class="col-md-8">
+            <div v-if="proposal_compare_version!=0" class="panel panel-default sticky-footer">
+                Comparing
+                <span class="label label-default">
+                    {{proposal.lodgement_number}}-{{reversion_history_length}}: {{proposal.lodgement_date | formatDate }}   
+                </span>&nbsp;
+                with
+                <span class="label label-danger">
+                    {{proposal.lodgement_number}}-{{reversion_history_length - proposal_compare_version}}:
+                    {{compare_version_lodgement_date | formatDate}} ({{proposal_compare_version}} Older than current)
+                </span>
+                
+            </div>
             <div class="row">
                 <template v-if="proposal.processing_status == 'With Approver' || isFinalised">
                     <ApprovalScreen :proposal="proposal" @refreshFromResponse="refreshFromResponse"/>
@@ -364,6 +377,9 @@
         <ProposedDecline ref="proposed_decline" :processing_status="proposal.processing_status" :proposal_id="proposal.id" @refreshFromResponse="refreshFromResponse"></ProposedDecline>
         <AmendmentRequest ref="amendment_request" :proposal_id="proposal.id" @refreshFromResponse="refreshFromResponse"></AmendmentRequest>
         <ProposedApproval ref="proposed_approval" :processing_status="proposal.processing_status" :proposal_id="proposal.id" :proposal_type='proposal.proposal_type' :isApprovalLevelDocument="isApprovalLevelDocument" :submitter_email="proposal.submitter_email" :applicant_email="applicant_email" @refreshFromResponse="refreshFromResponse"/>
+    
+
+    
     </div>
     
 </template>
@@ -463,6 +479,9 @@ export default {
                 model_name: 'Proposal',
                 serializer_name: 'InternalProposalSerializer',
             },
+            proposal_compare_version: 0,
+            reversion_history_length: 0,
+            compare_version_lodgement_date: '',
             uuid: 0,
         }
     },
@@ -554,6 +573,9 @@ export default {
 
             this.versionCurrentlyShowing = proposal_version
 
+            // Reset this as viewing versions cancels any compare
+            this.proposal_compare_version = 0
+
             $(".revision_note").remove()  // Remove any revision notes that may be visible
 
             let url = `/api/history/version/disturbance/proposals/Proposal/InternalProposalSerializer/${this.proposalId}/${proposal_version}/`
@@ -569,12 +591,12 @@ export default {
                 The most simple way to achieve this without changing the vue template is to just
                 modify the assessor_mode variables to appropriate values.
             */
-            let reversion_history_length = Object.keys(this.proposal.reversion_history).length
+            
             if(proposal_version!=0) {
-                console.log('Viewing older version: Disabling buttons and fields')
+                //console.log('Viewing older version: Disabling buttons and fields')
                 this.proposal.assessor_mode.has_assessor_mode = false;
                 this.proposal.assessor_mode.assessor_can_assess = false;
-                this.proposal.lodgement_number = this.proposal.lodgement_number + `-${reversion_history_length - proposal_version} (${proposal_version} Older than current version)`
+                this.proposal.lodgement_number = this.proposal.lodgement_number + `-${this.reversion_history_length - proposal_version} (${proposal_version} Older than current version)`
                 document.body.style.backgroundColor = '#f5f5dc';
             } else {
                  document.body.style.backgroundColor = '#ffffff';             
@@ -588,7 +610,7 @@ export default {
                 this.uuid++;
             });
         },
-        compareProposalVersions: async function(compare_version) {
+        compareProposalVersions: async function({compare_version, lodgement_date}) {
             /* This handles the user clicks. Change the labels of entries and add all selected 
                revision differences to the DOM. */
 
@@ -597,6 +619,9 @@ export default {
                 this.updateProposalVersion(0)
                 this.versionCurrentlyShowing = 0
             }
+
+            this.compare_version_lodgement_date = lodgement_date
+            this.proposal_compare_version = compare_version
 
             // Remove any previous revisions
             $(".revision_note").remove()
@@ -623,31 +648,55 @@ export default {
             const comment_data_url = `/api/proposal/${this.proposal.id}/version_differences_comment_data.json?newer_version=${this.versionCurrentlyShowing}&older_version=${compare_version}`
             const comment_data_diffs = await Vue.http.get(comment_data_url);
             this.applyRevisionNotes(comment_data_diffs.data)
+
+            // Compare the proposal documents and apply revision notes
+            const document_data_url = `/api/proposal/${this.proposal.id}/version_differences_documents.json?newer_version=${this.versionCurrentlyShowing}&older_version=${compare_version}`
+            const document_data_diffs = await Vue.http.get(document_data_url);
+            this.applyFileRevisionNotes(document_data_diffs.data)            
         },
         applyRevisionNotes: async function (diffdata) {
+            let vm = this;
             // Append a revision note to the appropriate location in the DOM 
             for (let entry in diffdata) {
                 //console.log('!@#$ entry = ' + entry)
                 for (let k in diffdata[entry]) {
                     //console.log('!@#$ diffdata[entry] = ' + diffdata[entry])
                     let revision_text = diffdata[entry][k]
+                    // The section identifier for referrer comments contains an email address
+                    // jQuery selectors don't like the @ symbol (and other special characters)
+                    if(k.includes('@')) {
+                        k = k.replace('@','\\@')
+                        //console.log('k changed to: ' + k)
+                    }
                     let replacement = $("#id_" + k ).parent().find('input');
                     if(replacement.length!=1) {
                         replacement = $('[name="' + k + '"]')
                     }
-
+                    const previously_blank_text = '(Previously Blank)';
                     if (revision_text == '') {
-                        revision_text = ' (not present)';
+                        revision_text = previously_blank_text;
                     }
                     //console.log('!@#$ k = ' + k)
                     //console.log('!@#$ revision_text = ' + revision_text)
 
                     if(replacement.is(':checkbox')) {
-                        console.log('!@#$ is checkbox')
-                        let replacement_html = '<span class="revision_note" style="width: 100%; margin-top: 3px; padding-top: 0px; color: red;">';
-                        replacement_html += revision_text
-                        replacement_html += '</span>'
-                        replacement.parent().after(replacement_html)
+                        //console.log('!@#$ is checkbox')
+                        //console.log('!@#$ replacement ' + replacement)
+                        //console.log('!@#$ replacement.text ' + replacement.parent().text() )
+                        
+                        let replacement_html = '<div class="revision_note" style="border:1px solid red; width: 100%; margin-top: 3px; padding-top: 0px; color: red; padding:10px 0 15px 10px;">';
+                        if('-'==revision_text){
+                            //console.log('revision_text = ' + revision_text)
+                            //console.log('previously_blank_text = ' + previously_blank_text)
+                            replacement_html += '<input type="checkbox" disabled="disabled"> '
+                        } else {
+                            //console.log('revision_text = ' + revision_text)
+                            //console.log('previously_blank_text = ' + previously_blank_text)
+                            replacement_html += '<input type="checkbox" checked="checked" disabled="disabled""> '
+                        }              
+                        replacement_html += replacement.parent().text().trim()
+                        replacement_html += '</div>'
+                        replacement.parent().parent().after(replacement_html)
                     } else if(replacement.is('textarea')){
                         const replacement_html = "<textarea disabled class='revision_note' style='width: 100%; margin-top: 3px; padding-top: 0px; color: red; border: 1px solid red;'>" + 
                                                  revision_text + 
@@ -662,54 +711,149 @@ export default {
                     }
                     else if (replacement.attr('type') == "radio") {
                         let replacement_html = ''
-                        if('yes' == revision_text){
-                            //console.log('yes')
-                            replacement_html = "<div class='revision_note' style='border:1px solid red; padding:5px;'><div><div class='radio'><input style='margin:0; color: red;' disabled class='revision_note' type='radio' id='radio' checked>" + 
-                                                 "<label class='revision_note' for='radio'" +
-                                                 "style='text-transform: capitalize; color: red; '>" + 
-                                                 revision_text +
-                                                 "</label></div></div>" +
-                                                 "<div><div class='radio'><input style='margin:0;' disabled class='revision_note' type='radio' id='radio'>" + 
-                                                 "<label class='revision_note' for='radio'" +
-                                                 "style='text-transform: capitalize; color: red; '>No</label></div></div></div>"
-                        } else if ('no' == revision_text ) {
-                            //console.log('no')
-                            replacement_html = "<div class='revision_note' style='border:1px solid red; padding:5px;'><div><div class='radio'><input style='margin:0; color: red;' disabled class='revision_note' type='radio' id='radio'>" + 
-                                                 "<label class='revision_note' for='radio'" +
-                                                 "style='text-transform: capitalize; color: red;'>Yes</label></div></div>" +
-                                                 "<div><div class='radio'><input style='margin:0; color:red;' disabled class='revision_note' type='radio' id='radio' checked>" + 
-                                                 "<label class='revision_note' for='radio'" +
-                                                 "style='text-transform: capitalize; color: red;'>" + 
-                                                 revision_text +
-                                                 "</label></div></div></div>"
+                        if (previously_blank_text == revision_text) {
+                            replacement_html =  '<div class="revision_note" style="border:1px solid red; padding:5px;"><span class="revision_note" style="margin:0; color:red;">'
+                            replacement_html += revision_text
+                            replacement_html += '</span></div>'
                         } else {
-                            if (' (not present)' == revision_text) {
-                                replacement_html =  '<span class="revision_note" style="margin:0; color:red;">'
-                                replacement_html += revision_text
-                                replacement_html += '</span>'
-                            } else {
-                            replacement_html =   "<div class='revision_note' style='border:1px solid red; padding:5px;'><div class='radio'><input style='margin:0; color:red;' disabled class='revision_note' type='radio' id='radio' checked>" + 
-                                                 "<label class='revision_note' for='radio'" +
-                                                 "style='text-transform: capitalize; color: red;'>" + 
-                                                 revision_text +
-                                                 "</label></div></div>"  
-                            }
+                        replacement_html =   "<div class='revision_note' style='border:1px solid red; padding:5px;'><div class='radio'><input style='margin:0; color:red;' disabled class='revision_note' type='radio' id='radio' checked>" + 
+                                                "<label class='revision_note' for='radio'" +
+                                                "style='text-transform: capitalize; color: red;'>" + 
+                                                revision_text +
+                                                "</label></div></div>"  
                         }
-
                         replacement.last().parent().after(replacement_html)
                     }
                     else {
-
-                        const replacement_html = "<input disabled class='revision_note' style='width: 100%; margin-top: 3px; padding-top: 0px; color: red; border: 1px solid red;' value='" + 
-                                                 revision_text + 
-                                                 "'>"
-                        //console.log('parent = ' + JSON.stringify($("#id_" + k ).parent()));
-                        //console.log('replacement.siblings() = ', replacement.siblings())
-                        //console.log('replacement_html = ' + replacement_html)
-                        replacement.last().after(replacement_html)
+                        /*  Find out if we are dealing with a select field
+                            Basically cloning the select2 and then adding and removing items
+                            to show the state of the older version.
+                        */
+                        let select_found = false;
+                        $.each(replacement.siblings(), (function(i, obj){
+                            let compare_select = null;
+                            let compare_select_id = k + '_compare_select';
+                            if ($(this).is('select:not(.revision_note)')){
+                                select_found = true;
+                                if(0==$('#' + k + '_compare_select').length){
+                                    compare_select = $(this).clone();
+                                    compare_select.attr('id', compare_select_id);
+                                    compare_select.addClass('revision_note');
+                                    replacement.last().after(compare_select);
+                                    vm.$nextTick(function(e){
+                                        $('#'+compare_select_id).select2({
+                                            "theme": "bootstrap",
+                                            allowClear: true,
+                                            placeholder:"Select..."
+                                        });
+                                    });
+                                    vm.$nextTick(function(e){
+                                        compare_select = $('#' + compare_select_id);
+                                        compare_select.next().attr('style','margin-top:15px; border:1px solid red;');
+                                        compare_select.next().attr('id', k + '_compare_select2');
+                                        compare_select.next().addClass('revision_note');
+                                    });
+                                    // Add all the existing options
+                                    const current_version_options = $(this).siblings('input:hidden');
+                                    $.each(current_version_options, function(i, current_version){
+                                        const option_text = $('body').find('option[value=' + current_version.value + ']').first().text();
+                                        console.log('!@#$ option_text = ' + option_text );
+                                        console.log('!@#$ current_version.value = ' + current_version.value);
+                                        var newOption = new Option(option_text, current_version.value, true, true);
+                                        $('#'+compare_select_id).append(newOption).trigger('change');                                            
+                                    });
+                                }
+                                if($(this)[0].hasAttribute('multiple')){
+                                    vm.$nextTick(function(e){
+                                        if(revision_text.includes(',')){
+                                            const item_to_remove = revision_text.split(',')[0];
+                                            const option_value_remove = item_to_remove.substring(1);
+                                            console.log('Removing item = ' + option_value_remove);
+                                            const option_text = $('body').find('option[value=' + option_value_remove + ']').first().text();
+                                            vm.$nextTick(function(e){
+                                                $('#' + k + '_compare_select2').find("li.select2-selection__choice[title|='" + option_text + "']").remove();          
+                                            });
+                                            const item_to_add = revision_text.split(',')[1];
+                                            const option_text_add = item_to_add.substring(1).replace(/([A-Z])/g, ' $1').trim();
+                                            const option_value_add = item_to_add.substring(1);
+                                            const newOption = new Option(option_text_add, option_value_add, true, true);
+                                            $('#'+compare_select_id).append(newOption).trigger('change');
+                                        }
+                                        // Remove item from compare multi-select 
+                                        else if('-' == revision_text.substring(0,1)){
+                                            const option_value = revision_text.substring(1);
+                                            const option_text = $('body').find('option[value=' + option_value + ']').first().text();
+                                            $('#' + k + '_compare_select2').find('li.select2-selection__choice[title|="' + option_text + '"]').remove();
+                                            $('#' + k + '_compare_select2').trigger('change');
+                                        // Add item to compare multi-select
+                                        } else if ('+' == revision_text.substring(0,1)) {
+                                            const option_text = revision_text.substring(1).replace(/([A-Z])/g, ' $1').trim();
+                                            const option_value = revision_text.substring(1);
+                                            const newOption = new Option(option_text, option_value, true, true);
+                                            $('#'+compare_select_id).append(newOption).trigger('change');
+                                        }
+                                    });
+                                } else {
+                                    //console.log('!@#$ is regular select ------------_>' );
+                                    $('#'+compare_select_id).val(revision_text).trigger('change');
+                                }
+                            }
+                        }));
+                        if(!select_found){
+                            const replacement_html = "<input disabled class='revision_note' style='width: 100%; margin-top: 3px; padding-top: 0px; color: red; border: 1px solid red;' value='" + 
+                                                    revision_text + 
+                                                    "'>"
+                            replacement.last().after(replacement_html)
+                        }
                     }
                 }
             }
+        },
+        applyFileRevisionNotes: function(diffdata){
+            let vm = this;
+            for (let entry in diffdata) {
+                
+                for (let k in diffdata[entry]) {
+                    let file = diffdata[entry][k]
+                    //console.log('!@#$ FILES ================ diffdata[entry][k] = ' + diffdata[entry][k])
+                    const operation = file[0]
+                    const name = file[1]
+                    const path = file[2]
+                    let replacement = $("#id_" + k );
+                    if(replacement.length!=1) {
+                        replacement = $('[name="' + k + '"]')
+                    }
+
+                    //console.log('!@#$ FILES ================ k = ' + k)
+                    //console.log('!@#$ operation ================ operation = ' + operation)
+                    //console.log('!@#$ name ================ name = ' + name)
+                    //console.log('!@#$ path ================ path = ' + path)
+
+                    let compare_files_div = null;
+                    let compare_files_div_id = k + '_compare_files';
+
+                    if(0 == $('#' + compare_files_div_id).length){
+                        compare_files_div = replacement.siblings('div.files').clone();
+                        compare_files_div.attr('id', compare_files_div_id);
+                        compare_files_div.removeClass('files');
+                        compare_files_div.addClass('revision_note');
+                        compare_files_div.attr('style','margin-top:15px; padding:15px 0 5px 15px; border:1px solid red;');
+                        replacement.siblings('div.files').after(compare_files_div);  
+                    }
+                    
+                    // Depending on the operation swap, add or remove files
+                    // Replace item in compare multi-select
+                    if('-' == operation){
+                        $('#' + compare_files_div_id).find('div[data-file-name="' + name +'"]').remove();
+                    }
+                    // Add item to files list
+                    else if('+' == operation){
+                        //const file_div = '<div><p>File: <span>' + name + '</span> (deleted by applicant)</p></div>'
+                        const file_div = `<div data-file-name="${name}"><p>File: <a href="${path}" target="_blank">${name}</a></p></div>`
+                        $('#' + compare_files_div_id + ':last-child').append(file_div);
+                    }
+                }
+            }          
         },
         getFieldTypeFromID: function(id) {
             const data = this.proposal.schema;
@@ -717,9 +861,6 @@ export default {
                 return data.name == id;
             });
             return field.type;
-        },
-        locationUpdated: function(){
-            console.log('in locationUpdated()');
         },
         checkAssessorData: function(){
             //check assessor boxes and clear value of hidden assessor boxes so it won't get printed on approval pdf.
@@ -1320,7 +1461,8 @@ export default {
             this.original_proposal = helpers.copyObject(res.body);
             this.proposal.applicant.address = this.proposal.applicant.address != null ? this.proposal.applicant.address : {};
             this.hasAmendmentRequest=this.proposal.hasAmendmentRequest;
-            if(Object.keys(this.proposal.reversion_history).length>1){
+            this.reversion_history_length = Object.keys(this.proposal.reversion_history).length
+            if(this.reversion_history_length>1){
                 this.showHistory = true;
             }
         },
@@ -1374,6 +1516,18 @@ export default {
     margin-top: 15px;
     margin-bottom: 10px;
     width: 100%;
+}
+
+.sticky-footer {
+    /*margin: auto;*/
+    font-size:1.2em;
+    position:fixed;
+    top:0;
+    /*border:2px solid #000;*/
+    z-index: 99 !important;
+    background: #efefef;
+    padding:10px;
+    margin:0 0 0 -15px;
 }
 
 </style>
