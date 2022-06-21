@@ -509,6 +509,24 @@
                 let vm = this
                 this.apiarySitesQuerySource.clear()
             },
+            clearAjaxObjects: function(){
+                let vm = this
+                for (let site_status of vm.show_hide_instructions){
+                    if (site_status.options){
+                        for (let option of site_status.options){
+                            if (option.ajax_obj != null) {
+                                option.ajax_obj.abort();
+                                option.ajax_obj = null;
+                            }
+                        }
+                    } else {
+                        if (site_status.ajax_obj != null) {
+                            site_status.ajax_obj.abort();
+                            site_status.ajax_obj = null;
+                        }
+                    }
+                }
+            },
             addApiarySitesToMap: function(apiary_sites_geojson){
                 let vm = this
                 let features = (new GeoJSON()).readFeatures(apiary_sites_geojson)
@@ -1053,6 +1071,7 @@
                 return approval_link
             },
             get_actions: function(feature, contactLicenceHolder){
+                console.log({feature})
                 let action_list = []
 
                 let a_status = getStatusForColour(feature, false, this.display_at_time_of_submitted)
@@ -1079,6 +1098,9 @@
                 return ret_str
             },
             showPopup: function(feature){
+                let unique_id = uuid()
+
+
                 if (feature){
                     let geometry = feature.getGeometry();
                     let coord = geometry.getCoordinates();
@@ -1091,6 +1113,10 @@
                     let approval_link = this.get_approval_link(feature)
                     let a_table = '<table class="table">' +
                           '<tbody>' +
+                            '<tr>' +
+                              '<th scope="row">Holder/Applicant</th>' +
+                              '<td><span id=' + unique_id + '></span></td>' +
+                            '</tr>' +
                             '<tr>' +
                               '<th scope="row">Status</th>' +
                               '<td>' + status_str + '</td>' +
@@ -1117,6 +1143,16 @@
 
                     this.content_element.innerHTML = content;
                     this.overlay.setPosition(coord);
+
+                    this.$http.get('/api/apiary_site/' + feature.id_ + '/relevant_applicant_name').then(
+                        res => {
+                            let applicant_name = res.body.relevant_applicant
+                            $('#' + unique_id).text(applicant_name)
+                        },
+                        err => {
+                            console.log({err})
+                        }
+                    )
                 }
             },
             showPopupForLayersJson: function(geojson, coord, column_names, display_all_columns, target_layer){
@@ -1252,16 +1288,17 @@
                 let vm = this
 
                 vm.clearApiarySitesFromMap()
+                vm.clearAjaxObjects()
 
                 for (let site_status of vm.show_hide_instructions){
                     if (site_status.options){
                         // Options (sub categories) exist, which means this site_status is 'current' (for current implementation)
                         for (let option of site_status.options){
                             if (site_status.show && option.show){
-                                if (option.ajax_obj != null) {
-                                    option.ajax_obj.abort();
-                                    option.ajax_obj = null;
-                                }
+                                //if (option.ajax_obj != null) {
+                                //    option.ajax_obj.abort();
+                                //    option.ajax_obj = null;
+                                //}
                                 option.loading_sites = true
                                 option.ajax_obj = $.ajax('/api/apiary_site/' + option.api + '/?search_text=' + vm.search_text, {
                                     dataType: 'json',
@@ -1305,10 +1342,10 @@
                             // Store data in the data storage
 
                             /* Cancel all the previous requests */
-                            if (site_status.ajax_obj != null) {
-                                site_status.ajax_obj.abort();
-                                site_status.ajax_obj = null;
-                            }
+                            //if (site_status.ajax_obj != null) {
+                            //    site_status.ajax_obj.abort();
+                            //    site_status.ajax_obj = null;
+                            //}
                             site_status.loading_sites = true
                             site_status.ajax_obj = $.ajax('/api/apiary_site/' + site_status.api + '/?search_text=' + vm.search_text, {
                                 dataType: 'json',
