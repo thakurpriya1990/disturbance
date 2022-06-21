@@ -127,7 +127,7 @@ from disturbance.components.proposals.serializers_apiary import (
     ApiarySiteOnProposalDraftMinimalGeometrySerializer,
     ApiarySiteFeeSerializer,
     ApiarySiteOnProposalVacantDraftMinimalGeometrySerializer,
-    ApiarySiteOnProposalVacantProcessedMinimalGeometrySerializer,
+    ApiarySiteOnProposalVacantProcessedMinimalGeometrySerializer, ApiarySiteOnProposalDraftGeometrySerializer,
 )
 from disturbance.components.approvals.models import Approval, ApiarySiteOnApproval
 from disturbance.components.approvals.serializers import ApprovalLogEntrySerializer
@@ -589,6 +589,13 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
                 return True
         return False
 
+    @detail_route(methods=['GET',])
+    @basic_exception_handler
+    def relevant_applicant_name(self, request, *args, **kwargs):
+        apiary_site = self.get_object()
+        relevant_applicant = apiary_site.get_relevant_applicant_name()
+        return Response({'relevant_applicant': relevant_applicant})
+
     def get_queryset(self):
         user = self.request.user
         qs = ApiarySite.objects.all()
@@ -859,6 +866,21 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
 class ProposalApiaryViewSet(viewsets.ModelViewSet):
     queryset = ProposalApiary.objects.none()
     serializer_class = ProposalApiarySerializer
+
+    # To solve the performance issue
+    @detail_route(methods=['GET',])
+    @basic_exception_handler
+    def apiary_sites(self, request, *args, **kwargs):
+        proposal_apiary = self.get_object()
+        ret = []
+        for apiary_site in proposal_apiary.apiary_sites.all():
+            inter_obj = ApiarySiteOnProposal.objects.get(apiary_site=apiary_site, proposal_apiary=proposal_apiary)
+            if inter_obj.site_status == SITE_STATUS_DRAFT:
+                serializer = ApiarySiteOnProposalDraftGeometrySerializer
+            else:
+                serializer = ApiarySiteOnProposalProcessedGeometrySerializer
+            ret.append(serializer(inter_obj).data)
+        return Response(ret)
 
     @detail_route(methods=['GET', ])
     def on_site_information_list(self, request, *args, **kwargs):
@@ -1854,7 +1876,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
         instance.internal_view_log(request)
         #serializer = InternalProposalSerializer(instance,context={'request':request})
         serializer_class = self.internal_serializer_class()
-        serializer = serializer_class(instance,context={'request':request})
+        serializer = serializer_class(instance,context={'request': request})
         return Response(serializer.data)
 
     @detail_route(methods=['GET',])
