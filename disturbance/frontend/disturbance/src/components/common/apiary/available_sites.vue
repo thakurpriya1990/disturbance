@@ -515,6 +515,8 @@
                 this.apiarySitesQuerySource.addFeatures(features)
             },
             addEventListeners: function () {
+                //$("#" + this.table_id).on('click', 'a[data-contact-licence-holder]', this.contactLicenceHolder)
+                $("#app").on('click', 'a[data-contact-licence-holder]', this.contactLicenceHolder)
             },
             getApiarySiteAvailableFromEvent(e){
                 let apiary_site_available = e.target.getAttribute("data-apiary-site-available");
@@ -1040,7 +1042,7 @@
                 let feature = this.apiarySitesQuerySource.getFeatureById(apiary_site_id)
                 this.showPopup(feature)
             },
-            get_actions: function(feature){
+            get_actions: function(feature, contactLicenceHolder){
                 console.log({feature})
                 let action_list = []
 
@@ -1058,6 +1060,7 @@
                         let available = feature.get('available')
                         if (available){
                             let display_text = 'Contact licence holder'
+                            //let ret = '<a data-contact-licence-holder="' + feature.id_ + '" :onclick="this.contactLicenceHolder(' + feature.id_ + ')">' + display_text + '</a>';
                             let ret = '<a data-contact-licence-holder="' + feature.id_ + '">' + display_text + '</a>';
                             action_list.push(ret);
                         }
@@ -1077,7 +1080,7 @@
                     //let status_str = feature.get('is_vacant') ? getDisplayNameFromStatus(feature.get('status')) + ' (vacant)' : getDisplayNameFromStatus(feature.get('status'))
                     let a_status = getStatusForColour(feature, false, this.display_at_time_of_submitted)
                     let status_str = getDisplayNameFromStatus(a_status)
-                    let actions = this.get_actions(feature)
+                    let actions = this.get_actions(feature, this.contactLicenceHolder)
                     let a_table = '<table class="table">' +
                           '<tbody>' +
                             '<tr>' +
@@ -1203,11 +1206,9 @@
                 this.openOnSiteInformationModal(apiary_site_id)
             },
             contactLicenceHolder: function(e){
-                console.log('contactLicenceHolder')
                 let vm = this;
                 //let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
                 let apiary_site_id = e.target.getAttribute("data-contact-licence-holder");
-
                 this.contactLicenceHolderClicked(apiary_site_id)
                 e.stopPropagation()
             },
