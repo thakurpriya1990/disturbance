@@ -4,6 +4,7 @@ import traceback
 import os
 
 import json
+from dateutil import parser
 
 import pytz
 from ledger.settings_base import TIME_ZONE, DATABASES
@@ -16,6 +17,7 @@ from rest_framework.response import Response
 from rest_framework.renderers import JSONRenderer
 from ledger.accounts.models import EmailUser
 from datetime import datetime
+from reversion.models import Version
 
 from django.http import HttpResponse, JsonResponse #, Http404
 from disturbance.components.approvals.email import (
@@ -33,7 +35,7 @@ from disturbance.components.proposals.utils import (
     save_assessor_data,
     save_apiary_assessor_data, update_proposal_apiary_temporary_use,
 )
-from disturbance.components.proposals.models import searchKeyWords, search_reference, \
+from disturbance.components.proposals.models import ProposalDocument, searchKeyWords, search_reference, \
     OnSiteInformation, ApiarySite, ApiaryChecklistQuestion, ApiaryChecklistAnswer, \
     ProposalApiaryTemporaryUse, ApiarySiteOnProposal, PublicLiabilityInsuranceDocument, DeedPollDocument, \
     SupportingApplicationDocument, search_sections
@@ -141,6 +143,7 @@ from rest_framework_datatables.renderers import DatatablesRenderer
 from disturbance.components.main.process_document import (
         process_generic_document, 
         )
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -1507,6 +1510,24 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
         return JsonResponse(differences, safe=False)
 
+    @detail_route(methods=['GET'])
+    def version_differences_documents(self, request, *args, **kwargs):
+        """ Returns a json response containing the differences between two 
+            versions.
+        
+        """
+        try:
+            newer_version = int(request.GET.get("newer_version"))
+            older_version = int(request.GET.get("older_version"))
+        except ValueError as e:
+            raise serializers.ValidationError(str(e))
+
+        instance = self.get_object()
+        differences_only = request.GET.get('differences_only')
+        differences = instance.get_document_differences(newer_version, older_version, differences_only)
+
+        return JsonResponse(differences, safe=False)
+
     @detail_route(methods=['POST'])
     @renderer_classes((JSONRenderer,))
     def process_deed_poll_document(self, request, *args, **kwargs):
@@ -1571,6 +1592,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             action = request.POST.get('action')
             section = request.POST.get('input_name')
+
             if action == 'list' and 'input_name' in request.POST:
                 pass
 
@@ -1608,7 +1630,26 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 instance.save(version_comment='File Added: {}'.format(filename)) # to allow revision to be added to reversion history
                 #instance.current_proposal.save(version_comment='File Added: {}'.format(filename)) # to allow revision to be added to reversion history
 
-            return  Response( [dict(input_name=d.input_name, name=d.name,file=d._file.url, id=d.id, can_delete=d.can_delete, can_hide=d.can_hide) for d in instance.documents.filter(input_name=section, hidden=False) if d._file] )
+            proposal_lodgement_date = request.POST.get('proposal_lodgement_date')
+            # Only go through the overhead of finding older proposal documents when viewing a version other than current
+            if proposal_lodgement_date:
+                if(parser.parse(str(instance.lodgement_date))!=parser.parse(proposal_lodgement_date)):
+                    # For viewing older versions of a proposal we need to build a list of documents that were not hidden at that time
+                    documents = instance.documents.filter(input_name=section, uploaded_date__lte=proposal_lodgement_date).order_by('input_name', 'uploaded_date')
+                    older_version_documents = []
+                    for document in documents:
+                        older_document_version = Version.objects.get_for_object(document)\
+                        .select_related('revision').filter(revision__date_created__lte=proposal_lodgement_date).order_by('-revision__date_created').first()
+                        older_document = ProposalDocument(**older_document_version.field_dict)
+                        if not older_document.hidden:
+                            older_document = ProposalDocument(**older_document_version.field_dict)
+                            older_version_documents.append(older_document)
+
+                    return  Response( [dict(input_name=d.input_name, name=d.name,file=d._file.url, id=d.id, can_delete=d.can_delete, can_hide=d.can_hide) for d in older_version_documents if d._file] )
+                else:
+                    return  Response( [dict(input_name=d.input_name, name=d.name,file=d._file.url, id=d.id, can_delete=d.can_delete, can_hide=d.can_hide) for d in instance.documents.filter(input_name=section, hidden=False) if d._file] )
+            else:
+                return  Response( [dict(input_name=d.input_name, name=d.name,file=d._file.url, id=d.id, can_delete=d.can_delete, can_hide=d.can_hide) for d in instance.documents.filter(input_name=section, hidden=False) if d._file] )
 
         except serializers.ValidationError:
             print(traceback.print_exc())

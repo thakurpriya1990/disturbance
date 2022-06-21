@@ -279,7 +279,14 @@ export default {
             let columnList = [
                 {
                     // 1. Number
-                    data: "lodgement_number",
+                    data: "id",
+                    'render':function(data,type,full){
+                        if (full.migrated){
+                            return full.lodgement_number + ' (M)'
+                        } else {
+                            return full.lodgement_number
+                        } 
+                    },
                     orderable: true,
                     searchable: true,
                 },

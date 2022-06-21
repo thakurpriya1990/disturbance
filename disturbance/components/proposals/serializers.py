@@ -1,3 +1,5 @@
+import logging
+
 from ledger.payments.models import Invoice
 import collections
 from disturbance.components.proposals.models import (
@@ -25,6 +27,9 @@ from disturbance.components.proposals.serializers_apiary import ProposalApiarySe
     ProposalApiaryTemporaryUseSerializer
 from disturbance.components.proposals.serializers_base import BaseProposalSerializer, ProposalReferralSerializer, \
     ProposalDeclinedDetailsSerializer, EmailUserSerializer
+
+
+logger = logging.getLogger(__name__)
 
 
 class ProposalTypeSerializer(serializers.ModelSerializer):
@@ -132,6 +137,7 @@ class ListProposalSerializer(BaseProposalSerializer):
                 'can_user_view',
                 'reference',
                 'lodgement_number',
+                'migrated',
                 'lodgement_sequence',
                 'can_officer_process',
                 'assessor_process',
@@ -161,6 +167,7 @@ class ListProposalSerializer(BaseProposalSerializer):
                 'can_user_view',
                 'reference',
                 'lodgement_number',
+                'migrated',
                 'can_officer_process',
                 'assessor_process',
                 'allowed_assessors',
@@ -446,14 +453,17 @@ class InternalProposalSerializer(BaseProposalSerializer):
         """
         from reversion.models import Version
 
-        # Select all versions in reverse order (they are in reverse order by default)
+        # Versions are in reverse order by default
         versions = Version.objects.get_for_object(obj).select_related('revision')\
             .filter(revision__comment__contains='processing_status').get_unique()
-
+        # this seems like inefficient duplication however
+        # django reversion wont allow .count() after .get_unique()
+        versions_count = len(list(Version.objects.get_for_object(obj).select_related('revision')\
+            .filter(revision__comment__contains='processing_status').get_unique()))
         # Build the dictionary of reversions
         version_dictionary = {}
         for index, version in enumerate(versions):
-            version_key = f'{obj.lodgement_number}-{index}'
+            version_key = f'{obj.lodgement_number}-{versions_count-index}'
             version_dictionary[version_key] = {
                 'date': version.revision.date_created,
                 'processing_status': version.field_dict['processing_status'],
