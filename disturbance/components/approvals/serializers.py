@@ -408,7 +408,7 @@ class ApprovalSerializer(serializers.ModelSerializer):
 
     def get_apiary_sites(self, approval):
         with_apiary_sites = True
-        if hasattr(self.context, 'request'):
+        if 'request' in self.context:
             request = self.context['request']
             with_apiary_sites = request.GET.get('with_apiary_sites', True)
             if with_apiary_sites in ['false', 'False', 'F', 'f', False]:
