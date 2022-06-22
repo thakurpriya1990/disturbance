@@ -83,6 +83,7 @@ MIDDLEWARE_CLASSES += [
     'disturbance.middleware.RevisionOverrideMiddleware',
     'disturbance.middleware.DomainDetectMiddleware',
     'disturbance.middleware.CacheControlMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     # 'corsheaders.middleware.CorsMiddleware',
 ]
 # CORS_ORIGIN_ALLOW_ALL = True
