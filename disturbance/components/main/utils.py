@@ -184,7 +184,8 @@ def _get_vacant_apiary_site(search_text=''):
     from disturbance.components.proposals.models import ApiarySite
     queries = Q(is_vacant=True)
     if search_text:
-        queries &= Q(id__icontains=search_text)
+        # queries &= Q(id__icontains=search_text)
+        queries &= Q(id=search_text)
     qs_vacant_site = ApiarySite.objects.filter(queries).distinct()
     return qs_vacant_site
 
@@ -246,7 +247,8 @@ def get_qs_denied_site(search_text=''):
     q_include_apiary_site = Q()
     q_include_apiary_site &= Q(latest_proposal_link__isnull=False)
     if search_text:
-        q_include_apiary_site &= Q(id__icontains=search_text)
+        # q_include_apiary_site &= Q(id__icontains=search_text)
+        q_include_apiary_site &= Q(id=search_text)
     qs_apiary_sites = ApiarySite.objects.filter(q_include_apiary_site)
 
     # ApiarySiteOnProposal conditions for include
@@ -283,7 +285,8 @@ def get_qs_pending_site(search_text=''):
     q_include_apiary_site = Q()
     q_include_apiary_site &= Q(latest_proposal_link__isnull=False)
     if search_text:
-        q_include_apiary_site &= Q(id__icontains=search_text)
+        # q_include_apiary_site &= Q(id__icontains=search_text)
+        q_include_apiary_site &= Q(id=search_text)
     qs_apiary_sites = ApiarySite.objects.filter(q_include_apiary_site)
 
     # ApiarySiteOnProposal conditions for include
@@ -321,7 +324,8 @@ def get_qs_suspended_site(search_text=''):
     q_include_apiary_site = Q()
     q_include_apiary_site &= Q(latest_approval_link__isnull=False)
     if search_text:
-        q_include_apiary_site &= Q(id__icontains=search_text)
+        # q_include_apiary_site &= Q(id__icontains=search_text)
+        q_include_apiary_site &= Q(id=search_text)
     qs_apiary_sites = ApiarySite.objects.filter(q_include_apiary_site)
 
     # 2.1. Include
@@ -368,7 +372,8 @@ def get_qs_current_site(search_text='', available=None):
     q_include_apiary_site = Q()
     q_include_apiary_site &= Q(latest_approval_link__isnull=False)
     if search_text:
-        q_include_apiary_site &= Q(id__icontains=search_text)
+        # q_include_apiary_site &= Q(id__icontains=search_text)
+        q_include_apiary_site &= Q(id=search_text)
     qs_apiary_sites = ApiarySite.objects.filter(q_include_apiary_site)
 
     # 2.1. Include
@@ -457,7 +462,8 @@ def get_qs_not_to_be_reissued_site(search_text=''):
     q_include_apiary_site = Q()
     q_include_apiary_site &= Q(latest_approval_link__isnull=False)
     if search_text:
-        q_include_apiary_site &= Q(id__icontains=search_text)
+        # q_include_apiary_site &= Q(id__icontains=search_text)
+        q_include_apiary_site &= Q(id=search_text)
     qs_apiary_sites = ApiarySite.objects.filter(q_include_apiary_site)
 
     # 2.1. Include

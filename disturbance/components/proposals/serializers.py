@@ -274,7 +274,7 @@ class ProposalSerializer(BaseProposalSerializer):
     def get_proposal_apiary(self, obj):
         if hasattr(obj, 'proposal_apiary'):
             pasl = obj.proposal_apiary
-            return ProposalApiarySerializer(pasl).data
+            return ProposalApiarySerializer(pasl, context=self.context).data
         else:
             return ''
 
