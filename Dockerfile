@@ -55,7 +55,7 @@ tzdata \
 cron \
 rsyslog \
 gunicorn \
-#libreoffice \
+libreoffice \
 libpq-dev \
 patch \
 postgresql-client \
