@@ -127,6 +127,8 @@ class AmendmentReasonAdmin(admin.ModelAdmin):
 @admin.register(ApiaryAnnualRentalFeePeriodStartDate)
 class ApiaryAnnualRentalFeePeriodStartDateAdmin(admin.ModelAdmin):
     list_display = ['name', 'start_month_date', 'end_month_date']
+    readonly_fields = ['name',]
+    fields = ('name', 'period_start_date',)
 
     def start_month_date(self, obj):
         return obj.period_start_date.strftime('%d of %b')
@@ -353,7 +355,9 @@ class ApiaryAnnualRentalFeeAdmin(admin.ModelAdmin):
 @admin.register(ApiaryAnnualRentalFeeRunDate)
 class ApiaryAnnualRentalFeeRunDateAdmin(admin.ModelAdmin):
     # list_display = ['id', 'name', 'date_run_cron', 'run_month', 'run_date',]
-    list_display = ['name', 'run_month_date']
+    list_display = ['name', 'run_month_date', 'enabled']
+    readonly_fields = ['name',]
+    fields = ('name', 'date_run_cron', 'enabled')
 
     def run_month_date(self, obj):
         return obj.date_run_cron.strftime('%d of %b')
