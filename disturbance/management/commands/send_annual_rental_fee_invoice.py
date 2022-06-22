@@ -23,6 +23,7 @@ from disturbance.settings import SITE_STATUS_CURRENT, SITE_STATUS_SUSPENDED, PAY
 import logging
 logger = logging.getLogger(__name__)
 
+
 def get_annual_rental_fee_period(target_date):
     """
     Retrieve the annual site fee period, the invoice for this period should have been issued on the target_date passed as a parameter
@@ -107,6 +108,11 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         try:
+            run_date = ApiaryAnnualRentalFeeRunDate.objects.get(name=ApiaryAnnualRentalFeeRunDate.NAME_CRON)
+            if not run_date.enabled:
+                # Cron is disabled.  Do nothing
+                return
+
             # Determine the start and end date of the annual site fee, for which the invoices should be issued
             today_now_local = datetime.datetime.now(pytz.timezone(TIME_ZONE))
             today_date_local = today_now_local.date()

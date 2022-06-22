@@ -298,7 +298,8 @@ class ApprovalSerializer(serializers.ModelSerializer):
     application_type = serializers.SerializerMethodField(read_only=True)
 
     # apiary_site_location = serializers.SerializerMethodField()
-    current_proposal = ProposalSerializer()
+    # current_proposal = ProposalSerializer()
+    current_proposal = serializers.SerializerMethodField()
     organisation_name = serializers.SerializerMethodField()
     organisation_abn = serializers.SerializerMethodField()
     applicant_first_name = serializers.SerializerMethodField()
@@ -406,9 +407,12 @@ class ApprovalSerializer(serializers.ModelSerializer):
             'template_group',
         )
 
+    def get_current_proposal(self, approval):
+        return ProposalSerializer(approval.current_proposal, context=self.context).data
+
     def get_apiary_sites(self, approval):
         with_apiary_sites = True
-        if hasattr(self.context, 'request'):
+        if 'request' in self.context:
             request = self.context['request']
             with_apiary_sites = request.GET.get('with_apiary_sites', True)
             if with_apiary_sites in ['false', 'False', 'F', 'f', False]:
