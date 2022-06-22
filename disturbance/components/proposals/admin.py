@@ -1,4 +1,5 @@
 import os
+import datetime
 
 from django.contrib import admin
 from ledger.accounts.models import EmailUser
@@ -125,10 +126,20 @@ class AmendmentReasonAdmin(admin.ModelAdmin):
 
 @admin.register(ApiaryAnnualRentalFeePeriodStartDate)
 class ApiaryAnnualRentalFeePeriodStartDateAdmin(admin.ModelAdmin):
-    list_display = ['name', 'start_month_date']
+    list_display = ['name', 'start_month_date', 'end_month_date']
 
     def start_month_date(self, obj):
         return obj.period_start_date.strftime('%d of %b')
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def end_month_date(self, obj):
+        period_end_date = datetime.date(year=obj.period_start_date.year + 1, month=obj.period_start_date.month, day=obj.period_start_date.day) - datetime.timedelta(days=1)
+        return period_end_date.strftime('%d of %b')
 
 
 @admin.register(models.Proposal)
@@ -342,12 +353,16 @@ class ApiaryAnnualRentalFeeAdmin(admin.ModelAdmin):
 @admin.register(ApiaryAnnualRentalFeeRunDate)
 class ApiaryAnnualRentalFeeRunDateAdmin(admin.ModelAdmin):
     # list_display = ['id', 'name', 'date_run_cron', 'run_month', 'run_date',]
-    list_display = ['id', 'name', 'run_month_date']
+    list_display = ['name', 'run_month_date']
 
     def run_month_date(self, obj):
         return obj.date_run_cron.strftime('%d of %b')
 
+    def has_add_permission(self, request, obj=None):
+        return False
 
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 # @admin.register(ApiaryAnnualRentalFeePeriodStartDate)
