@@ -4360,6 +4360,7 @@ class ApiaryAnnualRentalFeeRunDate(RevisionedMixin):
     )
     name = models.CharField(unique=True, max_length=50, choices=NAME_CHOICES, )
     date_run_cron = models.DateField(blank=True, null=True, help_text='Although year, month and day are entered, the system uses only the month and the day internally')
+    enabled = models.BooleanField(default=False)
 
     class Meta:
         app_label = 'disturbance'
