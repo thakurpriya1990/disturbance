@@ -60,6 +60,7 @@ module.exports = {
         //var comment_val = (commentData) ? (commentData[c.name]) ? commentData[c.name] : null : null;
         var add_info_applicant_val = (addInfoApplicant) ? (addInfoApplicant[c.name]) ? addInfoApplicant[c.name] : null : null;
         var add_info_assessor_val = (addInfoAssessor) ? (addInfoAssessor[c.name]) ? addInfoAssessor[c.name] : null : null;
+        console.log(c.name, add_info_assessor_val);
         var comment_val= null;
         if(commentData){
             if(commentData.constructor != Object){
@@ -665,6 +666,7 @@ module.exports = {
                 // }
                 var assessor_visibility = assessor_mode == 'assessor' && this.status_data.assessorStatus.has_assessor_mode && !this.status_data.assessorStatus.status_without_assessor? true : false;
                 assessor_visibility = !assessor_visibility;
+                var assessor_visibility_always=true;
                 boxes.push(
                     // {
                     //     "box_view": box_visibility,
@@ -677,54 +679,54 @@ module.exports = {
                     //     "box_class": "form-control deficiency"
                     // }
 
-                    <AssessorText box_view={box_visibility} type="text" name={assessor_name} value={assessor_val} label={'Additional Info (assessor)'} help_text={c.help_text} readonly={assessor_visibility}/>
+                    <AssessorText box_view={box_visibility} type="text" name={assessor_name} value={assessor_val} label={'Additional Info (assessor)'} help_text={c.help_text} readonly={assessor_visibility_always}/>
                 )
                 // Referral Data
                 var current_referral_present = false;
                 
                 
             }
-            else{
-                if (assessor_mode == 'assessor'){
-                    var name = `${c.name}-add-info-Assessor`;
-                    var assessor_visibility = assessor_mode == 'assessor' && this.status_data.assessorStatus.has_assessor_mode && !this.status_data.assessorStatus.status_without_assessor? true : false;
-                    assessor_visibility = !assessor_visibility;
-                    boxes.push(
-                        // {
-                        //         "box_view": box_visibility,
-                        //         "name": name,
-                        //         "label": "Additional Info (assessor)",
-                        //         "readonly": assessor_visibility,
-                        //         //"value": val,
-                        //         "value": '',
-                        //         "question": c.label,
-                        //         "referral_box": false,
-                        //         "box_class": "form-control deficiency",
-                        // }
-                        <AssessorText box_view={box_visibility} type="text" name={name} value={''} label={'Additional Info (assessor)'} help_text={c.help_text} readonly={assessor_visibility}/>
-                    )
-                }
-                else if (assessor_mode == 'referral'){
-                    //console.log('referral');
-                    // Add Assessor Box
-                    var name = `${c.name}-add-info-Assessor`;
-                    var assessor_visibility = assessor_mode != 'assessor' ? true : false;
-                    boxes.push(
-                        // {
-                        //         "box_view": box_visibility,
-                        //         "name": name,
-                        //         "label": "Additional Info (assessor)",
-                        //         "readonly": assessor_visibility,
-                        //         //"value": val,
-                        //         "value": '',
-                        //         "question": c.label,
-                        //         "referral_box": false,
-                        //         "box_class": "form-control deficiency",
-                        // }
-                        <AssessorText box_view={box_visibility} type="text" name={name} value={''} label={'Additional Info (assessor)'} help_text={c.help_text} readonly={assessor_visibility}/>
-                    )
-                }
-            }
+            // else{
+            //     if (assessor_mode == 'assessor'){
+            //         var name = `${c.name}-add-info-Assessor`;
+            //         var assessor_visibility = assessor_mode == 'assessor' && this.status_data.assessorStatus.has_assessor_mode && !this.status_data.assessorStatus.status_without_assessor? true : false;
+            //         assessor_visibility = !assessor_visibility;
+            //         boxes.push(
+            //             // {
+            //             //         "box_view": box_visibility,
+            //             //         "name": name,
+            //             //         "label": "Additional Info (assessor)",
+            //             //         "readonly": assessor_visibility,
+            //             //         //"value": val,
+            //             //         "value": '',
+            //             //         "question": c.label,
+            //             //         "referral_box": false,
+            //             //         "box_class": "form-control deficiency",
+            //             // }
+            //             <AssessorText box_view={box_visibility} type="text" name={name} value={''} label={'Additional Info (assessor)'} help_text={c.help_text} readonly={assessor_visibility}/>
+            //         )
+            //     }
+            //     else if (assessor_mode == 'referral'){
+            //         //console.log('referral');
+            //         // Add Assessor Box
+            //         var name = `${c.name}-add-info-Assessor`;
+            //         var assessor_visibility = assessor_mode != 'assessor' ? true : false;
+            //         boxes.push(
+            //             // {
+            //             //         "box_view": box_visibility,
+            //             //         "name": name,
+            //             //         "label": "Additional Info (assessor)",
+            //             //         "readonly": assessor_visibility,
+            //             //         //"value": val,
+            //             //         "value": '',
+            //             //         "question": c.label,
+            //             //         "referral_box": false,
+            //             //         "box_class": "form-control deficiency",
+            //             // }
+            //             <AssessorText box_view={box_visibility} type="text" name={name} value={''} label={'Additional Info (assessor)'} help_text={c.help_text} readonly={assessor_visibility}/>
+            //         )
+            //     }
+            // }
         }
         if (boxes.length > 0){
             boxes = [<div class="row"> {boxes} </div>]
