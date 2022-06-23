@@ -145,6 +145,12 @@ class ApiaryAnnualRentalFeePeriodStartDateAdmin(admin.ModelAdmin):
         period_end_date = datetime.date(year=obj.period_start_date.year + 1, month=obj.period_start_date.month, day=obj.period_start_date.day) - datetime.timedelta(days=1)
         return period_end_date.strftime('%d of %b')
 
+    def get_actions(self, request):
+        actions = super().get_actions(request)
+        if 'delete_selected' in actions:
+            del actions['delete_selected']
+        return actions
+
 
 @admin.register(models.Proposal)
 class ProposalAdmin(VersionAdmin):
@@ -377,6 +383,12 @@ class ApiaryAnnualRentalFeeRunDateAdmin(admin.ModelAdmin):
         today_date_local = today_now_local.date()
         period_start_date, period_end_date = get_annual_rental_fee_period(today_date_local)
         return '{} --- {}'.format(period_start_date.strftime('%Y/%m/%d'), period_end_date.strftime('%Y/%m/%d'))
+
+    def get_actions(self, request):
+        actions = super().get_actions(request)
+        if 'delete_selected' in actions:
+            del actions['delete_selected']
+        return actions
 
     run_month_date.short_description = 'Date on which start billing for the next annual site fee'
 
