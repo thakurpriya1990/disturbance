@@ -1,5 +1,7 @@
 import os
 import datetime
+import pytz
+from ledger.settings_base import TIME_ZONE
 
 from django.contrib import admin
 from ledger.accounts.models import EmailUser
@@ -355,7 +357,7 @@ class ApiaryAnnualRentalFeeAdmin(admin.ModelAdmin):
 @admin.register(ApiaryAnnualRentalFeeRunDate)
 class ApiaryAnnualRentalFeeRunDateAdmin(admin.ModelAdmin):
     # list_display = ['id', 'name', 'date_run_cron', 'run_month', 'run_date',]
-    list_display = ['name', 'run_month_date', 'enabled']
+    list_display = ['name', 'run_month_date', 'enabled', 'current_charging_period']
     readonly_fields = ['name',]
     fields = ('name', 'date_run_cron', 'enabled')
 
@@ -367,6 +369,14 @@ class ApiaryAnnualRentalFeeRunDateAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+    def current_charging_period(self, obj):
+        from disturbance.management.commands.send_annual_rental_fee_invoice import get_annual_rental_fee_period
+
+        today_now_local = datetime.datetime.now(pytz.timezone(TIME_ZONE))
+        today_date_local = today_now_local.date()
+        period_start_date, period_end_date = get_annual_rental_fee_period(today_date_local)
+        return '{} --- {}'.format(period_start_date.strftime('%Y/%m/%d'), period_end_date.strftime('%Y/%m/%d'))
 
 
 # @admin.register(ApiaryAnnualRentalFeePeriodStartDate)
