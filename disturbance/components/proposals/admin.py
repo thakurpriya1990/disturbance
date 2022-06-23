@@ -146,7 +146,7 @@ class ApiaryAnnualRentalFeePeriodStartDateAdmin(admin.ModelAdmin):
     def end_month_date(self, obj):
         period_end_date = datetime.date(year=obj.period_start_date.year + 1, month=obj.period_start_date.month, day=obj.period_start_date.day) - datetime.timedelta(days=1)
         # return period_end_date.strftime('%d of %b')
-        return custom_strftime('{S} of %b', obj.period_end_date)
+        return custom_strftime('{S} of %b', period_end_date)
 
     def get_actions(self, request):
         actions = super().get_actions(request)
