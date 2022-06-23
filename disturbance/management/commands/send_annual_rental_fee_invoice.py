@@ -37,7 +37,7 @@ def get_annual_rental_fee_period(target_date):
 
     # Calculate the run_date in the year where the target_date is in
     prev_run_date = datetime.date(year=target_date_year, month=run_date_month, day=run_date_day)
-    if prev_run_date > target_date:
+    if target_date < prev_run_date:
         # prev_run_date calculated above is in the future.  Calculate one before that
         prev_run_date = datetime.date(year=prev_run_date.year-1, month=prev_run_date.month, day=prev_run_date.day)
 

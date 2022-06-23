@@ -4336,7 +4336,7 @@ class ApiaryAnnualRentalFeePeriodStartDate(RevisionedMixin):
         (NAME_PERIOD_START, 'Start date of the annual site fee'),
     )
     name = models.CharField(unique=True, max_length=50, choices=NAME_CHOICES, )
-    period_start_date = models.DateField(blank=True, null=True, help_text='Although year, month and day are entered, the system uses only the month and the day internally')
+    period_start_date = models.DateField(blank=True, null=True, help_text='Although year, month and date are entered, the system uses only the month and the date internally')
 
     def __str__(self):
         try:
@@ -4347,7 +4347,7 @@ class ApiaryAnnualRentalFeePeriodStartDate(RevisionedMixin):
     class Meta:
         app_label = 'disturbance'
         ordering = ('period_start_date', )  # oldest record first, latest record last
-        verbose_name = 'Annual Site Fee Priod Start Date'
+        verbose_name = 'Annual Site Fee Period Start Date'
 
 
 class ApiaryAnnualRentalFeeRunDate(RevisionedMixin):
@@ -4359,8 +4359,8 @@ class ApiaryAnnualRentalFeeRunDate(RevisionedMixin):
         (NAME_CRON, 'Date to Issue'),
     )
     name = models.CharField(unique=True, max_length=50, choices=NAME_CHOICES, )
-    date_run_cron = models.DateField(blank=True, null=True, help_text='Although year, month and day are entered, the system uses only the month and the day internally')
-    enabled = models.BooleanField(default=False)
+    date_run_cron = models.DateField(blank=True, null=True, help_text='Although year, month and date are entered, the system uses only the month and the date internally')
+    enabled = models.BooleanField(default=False, help_text='')
 
     class Meta:
         app_label = 'disturbance'
