@@ -5,7 +5,7 @@
                 <div v-show="!fullscreen" id="filter_search_row_wrapper">
                     <div class="filter_search_wrapper" style="margin-bottom: 5px;" id="filter_search_row">
                         <template v-show="select2Applied">
-                            <div class="row">
+                            <div class="row" id="filters_parent">
                                 <div class="col-sm-1">
                                     <label class="control-label">Status</label>
                                 </div>
@@ -476,6 +476,7 @@
                         placeholder:"Select Status",
                         multiple:true,
                         data: vm.filter_status_options,
+                        dropdownParent: $('#filters_parent'),
                     }).
                     on('select2:select', function(e){
                         vm.updateInstructions()
@@ -493,6 +494,7 @@
                         placeholder:"Select Availabilities",
                         multiple:true,
                         data: vm.filter_availability_options,
+                        dropdownParent: $('#filters_parent'),
                     }).
                     on("select2:select",function (e) {
                         vm.updateInstructions()
