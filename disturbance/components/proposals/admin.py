@@ -357,7 +357,7 @@ class ApiaryAnnualRentalFeeAdmin(admin.ModelAdmin):
 @admin.register(ApiaryAnnualRentalFeeRunDate)
 class ApiaryAnnualRentalFeeRunDateAdmin(admin.ModelAdmin):
     # list_display = ['id', 'name', 'date_run_cron', 'run_month', 'run_date',]
-    list_display = ['name', 'run_month_date', 'enabled', 'current_charging_period']
+    list_display = ['name', 'run_month_date', 'enabled', 'period_to_be_charged_for']
     readonly_fields = ['name',]
     fields = ('name', 'date_run_cron', 'enabled')
 
@@ -370,7 +370,7 @@ class ApiaryAnnualRentalFeeRunDateAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         return False
 
-    def current_charging_period(self, obj):
+    def period_to_be_charged_for(self, obj):
         from disturbance.management.commands.send_annual_rental_fee_invoice import get_annual_rental_fee_period
 
         today_now_local = datetime.datetime.now(pytz.timezone(TIME_ZONE))
@@ -378,6 +378,7 @@ class ApiaryAnnualRentalFeeRunDateAdmin(admin.ModelAdmin):
         period_start_date, period_end_date = get_annual_rental_fee_period(today_date_local)
         return '{} --- {}'.format(period_start_date.strftime('%Y/%m/%d'), period_end_date.strftime('%Y/%m/%d'))
 
+    run_month_date.short_description = 'Date on which start billing for the next annual site fee'
 
 # @admin.register(ApiaryAnnualRentalFeePeriodStartDate)
 # class ApiaryAnnualRentalFeePeriodStartDateAdmin(admin.ModelAdmin):
