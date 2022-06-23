@@ -7,6 +7,7 @@ from django.contrib import admin
 from ledger.accounts.models import EmailUser
 
 import disturbance
+from disturbance.components.main.utils import custom_strftime
 from disturbance.components.proposals import models
 from disturbance.components.proposals import forms
 from disturbance.components.main.models import ActivityMatrix, SystemMaintenance, ApplicationType, GlobalSettings, \
@@ -133,7 +134,8 @@ class ApiaryAnnualRentalFeePeriodStartDateAdmin(admin.ModelAdmin):
     fields = ('name', 'period_start_date',)
 
     def start_month_date(self, obj):
-        return obj.period_start_date.strftime('%d of %b')
+        # return obj.period_start_date.strftime('%d of %b')
+        return custom_strftime('{S} of %b', obj.period_start_date)
 
     def has_add_permission(self, request, obj=None):
         return False
@@ -143,7 +145,8 @@ class ApiaryAnnualRentalFeePeriodStartDateAdmin(admin.ModelAdmin):
 
     def end_month_date(self, obj):
         period_end_date = datetime.date(year=obj.period_start_date.year + 1, month=obj.period_start_date.month, day=obj.period_start_date.day) - datetime.timedelta(days=1)
-        return period_end_date.strftime('%d of %b')
+        # return period_end_date.strftime('%d of %b')
+        return custom_strftime('{S} of %b', obj.period_end_date)
 
     def get_actions(self, request):
         actions = super().get_actions(request)
@@ -368,7 +371,8 @@ class ApiaryAnnualRentalFeeRunDateAdmin(admin.ModelAdmin):
     fields = ('name', 'date_run_cron', 'enabled')
 
     def run_month_date(self, obj):
-        return obj.date_run_cron.strftime('%d of %b')
+        # return obj.date_run_cron.strftime('%d of %b')
+        return custom_strftime('{S} of %b', obj.date_run_cron)
 
     def has_add_permission(self, request, obj=None):
         return False
