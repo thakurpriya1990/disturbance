@@ -1101,9 +1101,6 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
     def get_site_remainders(self, proposal_apiary):
         today_local = datetime.now(pytz.timezone(TIME_ZONE)).date()
 
-        for site in proposal_apiary.apiary_sites.all():
-            print(site)
-
         ret_list = []
         for category in SiteCategory.CATEGORY_CHOICES:
             try:
