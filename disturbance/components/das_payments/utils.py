@@ -563,12 +563,12 @@ def round_amount_according_to_env(amount):
     return amount
 
 
-def generate_line_items_for_annual_rental_fee(approval, today_now, period, apiary_sites):
+def generate_line_items_for_annual_rental_fee(approval, today_now, period, apiary_sites_to_be_charged):
     oracle_code_obj = ApiaryGlobalSettings.objects.get(key=ApiaryGlobalSettings.KEY_ORACLE_CODE_APIARY_SITE_ANNUAL_RENTAL_FEE)
     num_of_days_in_period = period[1] - (period[0] - timedelta(days=1))
 
     # Retrieve summarised payment data per charge_period
-    apiary_sites_charged, invoice_period = calculate_total_annual_rental_fee(approval, period, apiary_sites)
+    apiary_sites_charged, invoice_period = calculate_total_annual_rental_fee(approval, period, apiary_sites_to_be_charged)
 
     line_items = []
 
