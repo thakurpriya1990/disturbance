@@ -3833,7 +3833,12 @@ class ProposalApiary(RevisionedMixin):
 
                     if not preview:
                         email_data = send_annual_rental_fee_awaiting_payment_confirmation(approval, annual_rental_fee, invoice)
-                    # TODO: Add comms log
+
+                        from disturbance.components.approvals.serializers import ApprovalLogEntrySerializer
+                        email_data['approval'] = u'{}'.format(approval.id)
+                        serializer = ApprovalLogEntrySerializer(data=email_data)
+                        serializer.is_valid(raise_exception=True)
+                        serializer.save()
 
                 #print approval,approval.id, created
             # Generate compliances
