@@ -1,5 +1,5 @@
 <template lang="html">
-    <div class="col-md-12" v-if="assessorMode && layer_value">
+    <div class="" v-if="assessorMode && layer_value">
     <div class="row">
         <div class="col-md-12">
             <div class="form-group">
