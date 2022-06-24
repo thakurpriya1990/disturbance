@@ -734,3 +734,11 @@ def get_qs_approval_for_export():
     qs_on_approval = ApiarySiteOnApproval.objects.filter(q_include_approval).exclude(q_exclude_approval).distinct('apiary_site')
 
     return qs_on_approval
+
+
+def suffix(d):
+    return 'th' if 11 <= d <= 13 else {1: 'st', 2: 'nd', 3: 'rd'}.get(d % 10, 'th')
+
+
+def custom_strftime(format_str, t):
+    return t.strftime(format_str).replace('{S}', str(t.day) + suffix(t.day))
