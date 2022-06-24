@@ -20,6 +20,7 @@ from disturbance.components.main import api as main_api
 from disturbance.components.history import api as history_api
 
 from ledger.urls import urlpatterns as ledger_patterns
+from django_media_serv.urls import urlpatterns as media_serv_patterns
 
 # API patterns
 from disturbance.management.default_data_manager import DefaultDataManager
@@ -169,7 +170,7 @@ urlpatterns = [
         name='booking-settlements-report'),
 
                   # url(r'^external/proposal/(?P<proposal_pk>\d+)/submit_temp_use_success/$', success_view, name='external-proposal-temporary-use-submit-success'),
-] + ledger_patterns
+] + ledger_patterns + media_serv_patterns
 
 if not are_migrations_running():
     DefaultDataManager()
