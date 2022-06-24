@@ -63,7 +63,7 @@ def get_approvals(annual_rental_fee_period):
     q_objects = Q()
     q_objects &= Q(apiary_approval=True)
     q_objects &= Q(expiry_date__gte=annual_rental_fee_period.period_start_date)
-    q_objects &= Q(status=Approval.STATUS_CURRENT)
+    q_objects &= Q(status__in=[Approval.STATUS_CURRENT, Approval.STATUS_SUSPENDED])
 
     approval_qs = Approval.objects.filter(q_objects).exclude(
         # We don't want to send an invoice for the same period
