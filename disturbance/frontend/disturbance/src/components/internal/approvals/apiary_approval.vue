@@ -327,13 +327,10 @@ export default {
   created: function(){
     let url_approval = helpers.add_endpoint_json(api_endpoints.approvals,this.approvalId)
     url_approval = url_approval + '?with_apiary_sites=false'
-    console.log(url_approval)
 
     //Vue.http.get(helpers.add_endpoint_json(api_endpoints.approvals,this.approvalId)).then((response) => {
     Vue.http.get(url_approval).then(
         (response) => {
-            console.log('--- in created at apiary_approval.vue ---')
-            console.log(response.body)
             this.approval = response.body;
             this.approval.applicant_id = response.body.applicant_id;
             if (this.approval.organisation_abn) {
