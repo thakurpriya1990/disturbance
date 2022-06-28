@@ -286,8 +286,8 @@
                         />
                     </div>
                     <div v-else>
-                        <Requirements 
-                            :proposal="proposal" 
+                        <Requirements
+                            :proposal="proposal"
                             @refreshRequirements="refreshRequirements"
                         />
                     </div>
@@ -1397,7 +1397,7 @@ export default {
         });
     },
     created: function() {
-        Vue.http.get(`/api/proposal/${this.proposalId}/internal_proposal.json/?with_apiary_sites=false`).then(res => {
+        Vue.http.get(`/api/proposal/${this.proposalId}/internal_proposal.json/?with_apiary_sites=true`).then(res => {
               this.proposal = res.body;
               console.log('--- in proposal_apiary.vue ---')
               console.log(res.body)
