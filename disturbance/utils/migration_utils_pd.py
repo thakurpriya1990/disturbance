@@ -157,7 +157,7 @@ class ApiaryLicenceReader():
         # add extra column
         df['licencee_type'] = df['abn'].apply(lambda x: 'organisation' if x else 'individual')
 
-        import ipdb; ipdb.set_trace()
+        #import ipdb; ipdb.set_trace()
         #return df[:500]
         return df
 
@@ -219,13 +219,20 @@ class ApiaryLicenceReader():
                     logger.error(f'user: {row.name}   *********** 1 *********** FAILED. {e}')
 
     def create_organisations(self):
+        count = 0
         for index, row in self.df.groupby('abn').first().iterrows():
+            #import ipdb; ipdb.set_trace()
+            #if count == 87:
+            #    import ipdb; ipdb.set_trace()
+
             if row.status != 'Vacant':
-                #import ipdb; ipdb.set_trace()
                 try: 
                     lo = ledger_organisation.objects.filter(abn=row.name)
                 except Exception as e:
                     import ipdb; ipdb.set_trace()
+
+                if ledger_organisation.objects.filter(name=row.licencee).count() > 0:
+                    licencee = row.licencee + ' (2)'
 
                 if lo.count() > 0:
                     lo = lo[0]
@@ -252,7 +259,7 @@ class ApiaryLicenceReader():
                         oa = self._create_org_address(row)
                         lo = ledger_organisation.objects.create(
                             abn=row.name,
-                            name=row.licencee,
+                            name=licencee,
                             postal_address=oa,
                             billing_address=oa,
                             trading_name=row.trading_name,
@@ -264,6 +271,7 @@ class ApiaryLicenceReader():
                     except Exception as e:
                         import ipdb; ipdb.set_trace()
                         print(e)
+            count += 1
 
     def _create_org_address(self, row):
         oa = None
