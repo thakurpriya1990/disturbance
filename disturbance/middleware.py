@@ -20,6 +20,8 @@ CHECKOUT_PATH = re.compile('^/ledger/checkout/checkout')
 class FirstTimeNagScreenMiddleware(object):
     def process_request(self, request):
         #print ("FirstTimeNagScreenMiddleware: REQUEST SESSION")
+        if 'static' in request.path:
+            return
         if request.user.is_authenticated() and request.method == 'GET' and 'api' not in request.path and 'admin' not in request.path:
             #print('DEBUG: {}: {} == {}, {} == {}, {} == {}'.format(request.user, request.user.first_name, (not request.user.first_name), request.user.last_name, (not request.user.last_name), request.user.dob, (not request.user.dob) ))
             if (not request.user.first_name) or (not request.user.last_name):# or (not request.user.dob):
