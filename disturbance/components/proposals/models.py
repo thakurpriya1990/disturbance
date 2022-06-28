@@ -4365,7 +4365,8 @@ class ApiaryAnnualRentalFeeRunDate(RevisionedMixin):
     )
     name = models.CharField(unique=True, max_length=50, choices=NAME_CHOICES, )
     date_run_cron = models.DateField(blank=True, null=True, help_text='Although year, month and date are entered, the system uses only the month and the date internally')
-    enabled = models.BooleanField(default=False, help_text='')
+    enabled = models.BooleanField(default=False, help_text='Sets whether the annual fee is applied to already existing sites')
+    enabled_for_new_site = models.BooleanField(default=False, help_text='Sets whether the annual fee is applied to newly added sites when an application is approved')
 
     class Meta:
         app_label = 'disturbance'
