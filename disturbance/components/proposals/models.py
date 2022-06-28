@@ -3795,50 +3795,52 @@ class ProposalApiary(RevisionedMixin):
                 # This period should not overwrap the existings, otherwise you will need a refund
                 annual_rental_fee_period, perioed_created = AnnualRentalFeePeriod.objects.get_or_create(period_start_date=period_start_date, period_end_date=period_end_date)
 
-                line_items, apiary_sites_charged, invoice_period = generate_line_items_for_annual_rental_fee(
-                    approval,
-                    today_now_local,
-                    (annual_rental_fee_period.period_start_date, annual_rental_fee_period.period_end_date),
-                    sites_approved
-                )
-
-                if line_items:
-                    basket = createCustomBasket(line_items, approval.relevant_applicant_email_user, PAYMENT_SYSTEM_ID)
-                    order = CreateInvoiceBasket(
-                        payment_method='other', system=PAYMENT_SYSTEM_PREFIX
-                    ).create_invoice_and_order(basket, 0, None, None, user=approval.relevant_applicant_email_user,
-                                               invoice_text='Payment Invoice')
-                    invoice = Invoice.objects.get(order_number=order.number)
-
-                    line_items = make_serializable(line_items)  # Make line items serializable to store in the JSONField
-                    annual_rental_fee = AnnualRentalFee.objects.create(
-                        approval=approval,
-                        annual_rental_fee_period=annual_rental_fee_period,
-                        invoice_reference=invoice.reference,
-                        invoice_period_start_date=invoice_period[0],
-                        invoice_period_end_date=invoice_period[1],
-                        lines=line_items,
+                run_date = ApiaryAnnualRentalFeeRunDate.objects.get(name=ApiaryAnnualRentalFeeRunDate.NAME_CRON)
+                if run_date.enabled_for_new_site:
+                    line_items, apiary_sites_charged, invoice_period = generate_line_items_for_annual_rental_fee(
+                        approval,
+                        today_now_local,
+                        (annual_rental_fee_period.period_start_date, annual_rental_fee_period.period_end_date),
+                        sites_approved
                     )
 
-                    for site in sites_approved:
-                        # Store the apiary sites which the invoice created above has been issued for
-                        apiary_site = ApiarySite.objects.get(id=site['id'])
-                        annual_rental_fee_apiary_site = AnnualRentalFeeApiarySite(apiary_site=apiary_site, annual_rental_fee=annual_rental_fee)
-                        annual_rental_fee_apiary_site.save()
+                    if line_items:
+                        basket = createCustomBasket(line_items, approval.relevant_applicant_email_user, PAYMENT_SYSTEM_ID)
+                        order = CreateInvoiceBasket(
+                            payment_method='other', system=PAYMENT_SYSTEM_PREFIX
+                        ).create_invoice_and_order(basket, 0, None, None, user=approval.relevant_applicant_email_user,
+                                                   invoice_text='Payment Invoice')
+                        invoice = Invoice.objects.get(order_number=order.number)
 
-                        # Add approved sites to the existing temporary use proposal with status 'draft'
-                        proposal_apiary_temporary_use_qs = ProposalApiaryTemporaryUse.objects.filter(loaning_approval=approval, proposal__processing_status=Proposal.PROCESSING_STATUS_DRAFT)
-                        for proposal_apiary_temporary_use in proposal_apiary_temporary_use_qs:
-                            temp_use_apiary_site, temp_created = TemporaryUseApiarySite.objects.get_or_create(apiary_site=site, proposal_apiary_temporary_use=proposal_apiary_temporary_use)
+                        line_items = make_serializable(line_items)  # Make line items serializable to store in the JSONField
+                        annual_rental_fee = AnnualRentalFee.objects.create(
+                            approval=approval,
+                            annual_rental_fee_period=annual_rental_fee_period,
+                            invoice_reference=invoice.reference,
+                            invoice_period_start_date=invoice_period[0],
+                            invoice_period_end_date=invoice_period[1],
+                            lines=line_items,
+                        )
 
-                    if not preview:
-                        email_data = send_annual_rental_fee_awaiting_payment_confirmation(approval, annual_rental_fee, invoice)
+                        for site in sites_approved:
+                            # Store the apiary sites which the invoice created above has been issued for
+                            apiary_site = ApiarySite.objects.get(id=site['id'])
+                            annual_rental_fee_apiary_site = AnnualRentalFeeApiarySite(apiary_site=apiary_site, annual_rental_fee=annual_rental_fee)
+                            annual_rental_fee_apiary_site.save()
 
-                        from disturbance.components.approvals.serializers import ApprovalLogEntrySerializer
-                        email_data['approval'] = u'{}'.format(approval.id)
-                        serializer = ApprovalLogEntrySerializer(data=email_data)
-                        serializer.is_valid(raise_exception=True)
-                        serializer.save()
+                            # Add approved sites to the existing temporary use proposal with status 'draft'
+                            proposal_apiary_temporary_use_qs = ProposalApiaryTemporaryUse.objects.filter(loaning_approval=approval, proposal__processing_status=Proposal.PROCESSING_STATUS_DRAFT)
+                            for proposal_apiary_temporary_use in proposal_apiary_temporary_use_qs:
+                                temp_use_apiary_site, temp_created = TemporaryUseApiarySite.objects.get_or_create(apiary_site=site, proposal_apiary_temporary_use=proposal_apiary_temporary_use)
+
+                        if not preview:
+                            email_data = send_annual_rental_fee_awaiting_payment_confirmation(approval, annual_rental_fee, invoice)
+
+                            from disturbance.components.approvals.serializers import ApprovalLogEntrySerializer
+                            email_data['approval'] = u'{}'.format(approval.id)
+                            serializer = ApprovalLogEntrySerializer(data=email_data)
+                            serializer.is_valid(raise_exception=True)
+                            serializer.save()
 
                 #print approval,approval.id, created
             # Generate compliances
@@ -4365,8 +4367,8 @@ class ApiaryAnnualRentalFeeRunDate(RevisionedMixin):
     )
     name = models.CharField(unique=True, max_length=50, choices=NAME_CHOICES, )
     date_run_cron = models.DateField(blank=True, null=True, help_text='Although year, month and date are entered, the system uses only the month and the date internally')
-    enabled = models.BooleanField(default=False, help_text='Sets whether the annual fee is applied to already existing sites')
-    enabled_for_new_site = models.BooleanField(default=False, help_text='Sets whether the annual fee is applied to newly added sites when an application is approved')
+    enabled = models.BooleanField(default=False, verbose_name='Apply by cronjob', help_text='Sets whether the annual fee is applied to the sites by the cron job')
+    enabled_for_new_site = models.BooleanField(default=False, verbose_name='Apply when approved', help_text='Sets whether the annual fee is applied when an application is approved')
 
     class Meta:
         app_label = 'disturbance'
