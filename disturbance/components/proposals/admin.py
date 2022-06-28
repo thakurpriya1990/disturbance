@@ -366,9 +366,9 @@ class ApiaryAnnualRentalFeeAdmin(admin.ModelAdmin):
 @admin.register(ApiaryAnnualRentalFeeRunDate)
 class ApiaryAnnualRentalFeeRunDateAdmin(admin.ModelAdmin):
     # list_display = ['id', 'name', 'date_run_cron', 'run_month', 'run_date',]
-    list_display = ['name', 'run_month_date', 'enabled', 'period_to_be_charged_for']
+    list_display = ['name', 'run_month_date', 'enabled', 'enabled_for_new_site', 'period_to_be_charged_for']
     readonly_fields = ['name',]
-    fields = ('name', 'date_run_cron', 'enabled')
+    fields = ('name', 'date_run_cron', 'enabled', 'enabled_for_new_site')
 
     def run_month_date(self, obj):
         # return obj.date_run_cron.strftime('%d of %b')
