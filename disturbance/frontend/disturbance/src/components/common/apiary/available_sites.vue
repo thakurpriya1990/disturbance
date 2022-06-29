@@ -99,7 +99,6 @@
 </template>
 
 <script>
-    import ComponentSiteSelection from '@/components/common/apiary/component_site_selection.vue'
     import FormSection from "@/components/forms/section_toggle.vue"
     import ContactLicenceHolderModal from "@/components/common/apiary/contact_licence_holder_modal.vue"
     import uuid from 'uuid'
@@ -298,7 +297,6 @@
             }
         },
         components: {
-            ComponentSiteSelection,
             FormSection,
             ContactLicenceHolderModal,
             Datatable
