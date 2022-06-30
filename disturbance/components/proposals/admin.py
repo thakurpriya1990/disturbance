@@ -1,10 +1,13 @@
 import os
 import datetime
+import pytz
+from ledger.settings_base import TIME_ZONE
 
 from django.contrib import admin
 from ledger.accounts.models import EmailUser
 
 import disturbance
+from disturbance.components.main.utils import custom_strftime
 from disturbance.components.proposals import models
 from disturbance.components.proposals import forms
 from disturbance.components.main.models import ActivityMatrix, SystemMaintenance, ApplicationType, GlobalSettings, \
@@ -131,7 +134,8 @@ class ApiaryAnnualRentalFeePeriodStartDateAdmin(admin.ModelAdmin):
     fields = ('name', 'period_start_date',)
 
     def start_month_date(self, obj):
-        return obj.period_start_date.strftime('%d of %b')
+        # return obj.period_start_date.strftime('%d of %b')
+        return custom_strftime('{S} of %b', obj.period_start_date)
 
     def has_add_permission(self, request, obj=None):
         return False
@@ -141,7 +145,14 @@ class ApiaryAnnualRentalFeePeriodStartDateAdmin(admin.ModelAdmin):
 
     def end_month_date(self, obj):
         period_end_date = datetime.date(year=obj.period_start_date.year + 1, month=obj.period_start_date.month, day=obj.period_start_date.day) - datetime.timedelta(days=1)
-        return period_end_date.strftime('%d of %b')
+        # return period_end_date.strftime('%d of %b')
+        return custom_strftime('{S} of %b', period_end_date)
+
+    def get_actions(self, request):
+        actions = super().get_actions(request)
+        if 'delete_selected' in actions:
+            del actions['delete_selected']
+        return actions
 
 
 @admin.register(models.Proposal)
@@ -355,12 +366,13 @@ class ApiaryAnnualRentalFeeAdmin(admin.ModelAdmin):
 @admin.register(ApiaryAnnualRentalFeeRunDate)
 class ApiaryAnnualRentalFeeRunDateAdmin(admin.ModelAdmin):
     # list_display = ['id', 'name', 'date_run_cron', 'run_month', 'run_date',]
-    list_display = ['name', 'run_month_date', 'enabled']
+    list_display = ['name', 'run_month_date', 'enabled', 'enabled_for_new_site', 'period_to_be_charged_for']
     readonly_fields = ['name',]
-    fields = ('name', 'date_run_cron', 'enabled')
+    fields = ('name', 'date_run_cron', 'enabled', 'enabled_for_new_site')
 
     def run_month_date(self, obj):
-        return obj.date_run_cron.strftime('%d of %b')
+        # return obj.date_run_cron.strftime('%d of %b')
+        return custom_strftime('{S} of %b', obj.date_run_cron)
 
     def has_add_permission(self, request, obj=None):
         return False
@@ -368,6 +380,21 @@ class ApiaryAnnualRentalFeeRunDateAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         return False
 
+    def period_to_be_charged_for(self, obj):
+        from disturbance.management.commands.send_annual_rental_fee_invoice import get_annual_rental_fee_period
+
+        today_now_local = datetime.datetime.now(pytz.timezone(TIME_ZONE))
+        today_date_local = today_now_local.date()
+        period_start_date, period_end_date = get_annual_rental_fee_period(today_date_local)
+        return '{} --- {}'.format(period_start_date.strftime('%Y/%m/%d'), period_end_date.strftime('%Y/%m/%d'))
+
+    def get_actions(self, request):
+        actions = super().get_actions(request)
+        if 'delete_selected' in actions:
+            del actions['delete_selected']
+        return actions
+
+    run_month_date.short_description = 'Date on which start billing for the next annual site fee'
 
 # @admin.register(ApiaryAnnualRentalFeePeriodStartDate)
 # class ApiaryAnnualRentalFeePeriodStartDateAdmin(admin.ModelAdmin):

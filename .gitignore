@@ -34,6 +34,8 @@ var/
 .installed.cfg
 *.egg
 *.bak
+*.csv
+*.xls*
 
 # PyInstaller
 #  Usually these files are written by a python script from a template

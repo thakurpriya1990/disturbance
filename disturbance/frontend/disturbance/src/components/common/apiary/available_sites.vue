@@ -5,7 +5,7 @@
                 <div v-show="!fullscreen" id="filter_search_row_wrapper">
                     <div class="filter_search_wrapper" style="margin-bottom: 5px;" id="filter_search_row">
                         <template v-show="select2Applied">
-                            <div class="row">
+                            <div class="row" id="filters_parent">
                                 <div class="col-sm-1">
                                     <label class="control-label">Status</label>
                                 </div>
@@ -323,7 +323,6 @@
         },
         watch: {
             search_text: function(){
-                console.log('in search_text: ' + this.search_text)
                 // Clear data storage in the filters
                 let vm = this
 
@@ -401,10 +400,8 @@
                 } else {
                     for (let option of options){
                         if (availabilities_currently_selected.includes(option.id)){
-                            console.log('Show: ' + option.id)
                             option.show = true
                         } else {
-                            console.log('Hide: ' + option.id)
                             option.show = false
                         }
                     }
@@ -420,16 +417,13 @@
                     // No availabilities selected
                     if (statuses_currently_selected.length === 0){
                         for (let site_status of vm.show_hide_instructions){
-                            console.log('Show: ' + site_status.id)
                             site_status.show = true
                         }
                     } else {
                         for (let site_status of vm.show_hide_instructions){
                             if (statuses_currently_selected.includes(site_status.id)){
-                                console.log('Show: ' + site_status.id)
                                 site_status.show = true
                             } else {
-                                console.log('Hide: ' + site_status.id)
                                 site_status.show = false
                             }
                         }
@@ -439,14 +433,11 @@
                     for (let site_status of vm.show_hide_instructions){
                         if (site_status.id === 'current'){
                             if (statuses_currently_selected.includes(site_status.id)){
-                                console.log('Show: ' + site_status.id)
                                 site_status.show = true
                             } else {
-                                console.log('Hide: ' + site_status.id)
                                 site_status.show = false
                             }
                         } else {
-                            console.log('Hide: ' + site_status.id)
                             site_status.show = false
                         }
                     }
@@ -476,13 +467,13 @@
                         placeholder:"Select Status",
                         multiple:true,
                         data: vm.filter_status_options,
+                        dropdownParent: $('#filters_parent'),
                     }).
                     on('select2:select', function(e){
                         vm.updateInstructions()
                         vm.showHideApiarySites()
                     }).
                     on('select2:unselect', function(e){
-                        console.log('unselect')
                         vm.updateInstructions()
                         vm.showHideApiarySites()
                     })
@@ -493,6 +484,7 @@
                         placeholder:"Select Availabilities",
                         multiple:true,
                         data: vm.filter_availability_options,
+                        dropdownParent: $('#filters_parent'),
                     }).
                     on("select2:select",function (e) {
                         vm.updateInstructions()
@@ -940,7 +932,6 @@
                 vm.map.addOverlay(vm.overlay)
 
                 vm.map.on('singleclick', function(evt){
-                    console.log({evt})
                     if (vm.mode === 'layer'){
                         let feature = vm.map.forEachFeatureAtPixel(evt.pixel, function(feature, layer) {
                             return feature;
@@ -949,7 +940,6 @@
 
                             let features = feature.get('features')
                             if (features.length == 1){
-                                console.log('site')
                                 if (!feature.id){
                                     // When the Modify object is used for the layer, 'feature' losts some of the attributes including 'id', 'status'...
                                     // Therefore try to get the correct feature by the coordinate
@@ -959,10 +949,8 @@
                                 }
                                 vm.showPopup(feature[0])
                             } else {
-                                console.log('cluster')
                                 let geometry = feature.getGeometry();
                                 let coordinates = geometry.getCoordinates();
-                                console.log({coordinates})
                                 vm.zoomToCoordinates(coordinates)
                             }
                         } else {
@@ -1071,7 +1059,6 @@
                 return approval_link
             },
             get_actions: function(feature, contactLicenceHolder){
-                console.log({feature})
                 let action_list = []
 
                 let a_status = getStatusForColour(feature, false, this.display_at_time_of_submitted)
@@ -1331,7 +1318,6 @@
                             }
                         }
                     } else {
-                        console.log('not in options')
                         // No sub options
                         if (site_status.show){
                             // Show all the apiary sites in this site_status
