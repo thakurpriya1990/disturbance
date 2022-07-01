@@ -88,10 +88,12 @@ class DistrictDbca(models.Model):
     district_name = models.CharField(max_length=200, blank=True, null=True)
     office = models.CharField(max_length=200, blank=True, null=True)
     object_id = models.PositiveIntegerField(blank=True, null=True)
+    enabled = models.BooleanField(default=True)
 
     class Meta:
         ordering = ['object_id', ]
         app_label = 'disturbance'
+        verbose_name_plural = "Apiary DBCA Districts"
 
 
 class RegionDbca(models.Model):
@@ -99,10 +101,12 @@ class RegionDbca(models.Model):
     region_name = models.CharField(max_length=200, blank=True, null=True)
     office = models.CharField(max_length=200, blank=True, null=True)
     object_id = models.PositiveIntegerField(blank=True, null=True)
+    enabled = models.BooleanField(default=True)
 
     class Meta:
         ordering = ['object_id', ]
         app_label = 'disturbance'
+        verbose_name_plural = "Apiary DBCA Regions"
 
 
 class CategoryDbca(models.Model):

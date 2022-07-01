@@ -11,5 +11,6 @@ class DisturbanceConfig(AppConfig):
             from disturbance.components.organisations import signals
             from disturbance.components.proposals import signals
             from disturbance.components.approvals import signals
+            from disturbance.components.main import signals
 
         self.run_once = True
