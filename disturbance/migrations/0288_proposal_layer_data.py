@@ -8,8 +8,11 @@ from django.db import migrations
 
 class Migration(migrations.Migration):
 
+    # dependencies = [
+    #     ('disturbance', '0287_proposal_add_info_assessor'),
+    # ]
     dependencies = [
-        ('disturbance', '0287_proposal_add_info_assessor'),
+        ('disturbance', '0288_auto_20220323_1918'),
     ]
 
     operations = [
