@@ -314,18 +314,24 @@ class ApiaryGlobalSettings(models.Model):
     KEY_APIARY_SITES_LIST_TOKEN = 'apiary_sites_list_token'
     KEY_APIARY_LICENCE_TEMPLATE_FILE = 'apiary_licence_template_file'
     KEY_PRINT_DEED_POLL_URL = 'print_deed_poll_url'
+    KEY_DBCA_DISTRICTS_FILE = 'dbca_districts_file'
+    KEY_DBCA_REGIONS_FILE = 'dbca_regions_file'
 
     keys = (
         (KEY_ORACLE_CODE_APIARY_SITE_ANNUAL_RENTAL_FEE, 'Oracle code for the apiary site annual site fee'),
         (KEY_APIARY_SITES_LIST_TOKEN, 'Token to import the apiary sites list'),
         (KEY_APIARY_LICENCE_TEMPLATE_FILE, 'Apiary licence template file'),
         (KEY_PRINT_DEED_POLL_URL, 'URL of the deed poll'),
+        (KEY_DBCA_DISTRICTS_FILE, 'DBCA districts geojson file'),
+        (KEY_DBCA_REGIONS_FILE, 'DBCA regions geojson file'),
     )
 
     default_values = (
         (KEY_ORACLE_CODE_APIARY_SITE_ANNUAL_RENTAL_FEE, 'T1 EXEMPT'),
         (KEY_APIARY_SITES_LIST_TOKEN, 'abc123'),
         (KEY_APIARY_LICENCE_TEMPLATE_FILE, ''),
+        (KEY_DBCA_DISTRICTS_FILE, ''),
+        (KEY_DBCA_REGIONS_FILE, ''),
         (KEY_PRINT_DEED_POLL_URL, 'https://parks.dpaw.wa.gov.au/sites/default/files/downloads/know/DBCA%20apiary%20deed%20poll.pdf')
     )
     key = models.CharField(max_length=255, choices=keys, blank=False, null=False, unique=True)
