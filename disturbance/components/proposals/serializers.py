@@ -419,6 +419,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'assessor_mode',
                 'current_assessor',
                 'assessor_data',
+                'layer_data',
                 'comment_data',
                 'add_info_applicant',
                 'add_info_assessor',

@@ -57,7 +57,7 @@ def create_data_from_form(schema, post_data, file_data, post_data_index=None,spe
     add_info_applicant_list={}
     special_fields_search = SpecialFieldsSearch(special_fields)
     add_info_applicant_search=AddInfoApplicantDataSearch()
-    add_info_assessor_search=AddInfoAssessorDataSearch()
+    #add_info_assessor_search=AddInfoAssessorDataSearch()
     if assessor_data:
         assessor_fields_search = AssessorDataSearch()
         comment_fields_search = CommentDataSearch()
@@ -67,22 +67,22 @@ def create_data_from_form(schema, post_data, file_data, post_data_index=None,spe
             #_create_data_from_item(item, post_data, file_data, 0, '')
             special_fields_search.extract_special_fields(item, post_data, file_data, 0, '')
             add_info_applicant_search.extract_special_fields(item, post_data, file_data, 0, '')
-            add_info_assessor_search.extract_special_fields(item, post_data, file_data, 0, '')
+            #add_info_assessor_search.extract_special_fields(item, post_data, file_data, 0, '')
             if assessor_data:
                 assessor_fields_search.extract_special_fields(item, post_data, file_data, 0, '')
                 comment_fields_search.extract_special_fields(item, post_data, file_data, 0, '')
         special_fields_list = special_fields_search.special_fields
         add_info_applicant_list = add_info_applicant_search.comment_data
-        add_info_assessor_list = add_info_assessor_search.comment_data
+        #add_info_assessor_list = add_info_assessor_search.comment_data
         if assessor_data:
             assessor_data_list = assessor_fields_search.assessor_data
             comment_data_list = comment_fields_search.comment_data
     except:
         traceback.print_exc()
     if assessor_data:
-        return [data],special_fields_list,assessor_data_list,comment_data_list, add_info_assessor_list
+        return [data],special_fields_list,assessor_data_list,comment_data_list
 
-    return [data],special_fields_list, add_info_applicant_list, add_info_assessor_list
+    return [data],special_fields_list, add_info_applicant_list
 
 
 def _extend_item_name(name, suffix, repetition):
@@ -926,7 +926,7 @@ def save_proponent_data_disturbance(instance,request,viewset):
         try:
             lookable_fields = ['isTitleColumnForDashboard','isActivityColumnForDashboard','isRegionColumnForDashboard']
 
-            extracted_fields,special_fields, add_info_applicant, add_info_asessor = create_data_from_form(instance.schema, request.POST, request.FILES, special_fields=lookable_fields)
+            extracted_fields,special_fields, add_info_applicant = create_data_from_form(instance.schema, request.POST, request.FILES, special_fields=lookable_fields)
             
             instance.data = extracted_fields
 
@@ -1001,7 +1001,7 @@ def save_assessor_data(instance,request,viewset):
     with transaction.atomic():
         try:
             lookable_fields = ['isTitleColumnForDashboard','isActivityColumnForDashboard','isRegionColumnForDashboard']
-            extracted_fields,special_fields,assessor_data,comment_data, add_info_asessor = create_data_from_form(
+            extracted_fields,special_fields,assessor_data,comment_data = create_data_from_form(
                 instance.schema, request.POST, request.FILES,special_fields=lookable_fields,assessor_data=True)
 
             logger.info("ASSESSOR DATA - Region: {}, Activity: {}".format(special_fields.get('isRegionColumnForDashboard',None), special_fields.get('isActivityColumnForDashboard',None)))
@@ -1010,7 +1010,6 @@ def save_assessor_data(instance,request,viewset):
                 'data': extracted_fields,
                 'assessor_data': assessor_data,
                 'comment_data': comment_data,
-                'add_info_assessor': add_info_asessor,
             }
             serializer = SaveProposalSerializer(instance, data, partial=True)
             serializer.is_valid(raise_exception=True)
@@ -1753,7 +1752,7 @@ def generate_schema(proposal_type, request):
 
 
 # Populate data in Proposal using the CDDP configuration
-def prefill_data_from_shape(schema ):
+def prefill_data_from_shape_original(schema ):
     data = {}
     
     try:
@@ -1764,7 +1763,7 @@ def prefill_data_from_shape(schema ):
         traceback.print_exc()
     return [data]
 
-def _populate_data_from_item(item, repetition, suffix):
+def _populate_data_from_item_original(item, repetition, suffix, sqs_value=None):
     item_data = {}
 
     if 'name' in item:
@@ -1774,19 +1773,39 @@ def _populate_data_from_item(item, repetition, suffix):
 
     if 'children' not in item:
         if item['type'] =='checkbox':
-            print('checkbox item', item)
-            item_data[item['name']]='on'
+            if sqs_value:
+                for val in sqs_value:
+                    if val==item['label']:
+                        item_data[item['name']]='on'
         elif item['type'] == 'file':
             print('file item', item)
         else:
             try:
                 if item['type'] == 'multi-select':
-                    print('multi-select item', item)
+                    #Get value from SQS. Value should be an array of the correct options.
+                    sqs_value=item['options'][1]['value']
+                    sqs_value=[sqs_value]
+                    if sqs_value:
+                        item_data[item['name']]=[]
+                    for val in sqs_value:
+                        if item['options']:
+                            for op in item['options']:
+                                if val==op['value']:
+                                    item_data[item['name']].append(op['value'])
+
+                elif item['type'] == 'radiobuttons' or item['type'] == 'select' :
+                    #Get value from SQS
+                    sqs_value=item['options'][1]['value']
+                    if item['options']:
+                        for op in item['options']:
+                            if sqs_value==op['value']:
+                                item_data[item['name']]=op['value']
+                                break
                 else:
-                    #item_data[item['name']] = post_data.get(extended_item_name)
+                    #All the other types e.g. textarea, text, date.
                     #This is where we can add API call to SQS to get the answer.
-                    print('item type:', item['type'])
-                    item_data[item['name']]= item['options'][0]['value']
+                    sqs_value="test"
+                    item_data[item['name']]= sqs_value
                     #print(item)
                     #print('radiobuttons/ textarea/ text/ date etc item', item)
             except Exception as e:
@@ -1796,7 +1815,15 @@ def _populate_data_from_item(item, repetition, suffix):
         if 'repetition' in item:
             item_data = generate_item_data_shape(extended_item_name,item,item_data,1,suffix)
         else:
-            item_data = generate_item_data_shape(extended_item_name, item, item_data,1,suffix)
+            #item_data = generate_item_data_shape(extended_item_name, item, item_data,1,suffix)
+            #Check if item has checkbox childer
+            if check_checkbox_item(extended_item_name, item, item_data,1,suffix):
+                #make a call to sqs for item
+                sqs_values=['first']
+                #pass sqs values as an attribute.
+                item_data = generate_item_data_shape(extended_item_name, item, item_data,1,suffix, sqs_values)
+            else:
+                item_data = generate_item_data_shape(extended_item_name, item, item_data,1,suffix)
 
 
     if 'conditions' in item:
@@ -1807,15 +1834,182 @@ def _populate_data_from_item(item, repetition, suffix):
 
     return item_data
 
-def generate_item_data_shape(item_name,item,item_data,repetition,suffix):
+def generate_item_data_shape_original(item_name,item,item_data,repetition,suffix, sqs_value=None):
     item_data_list = []
     for rep in range(0, repetition):
         child_data = {}
         for child_item in item.get('children'):
             child_data.update(_populate_data_from_item(child_item, 0,
-                                                     '{}-{}'.format(suffix, rep)))
+                                                     '{}-{}'.format(suffix, rep), sqs_value))
             #print('child item in generate item data', child_item)
         item_data_list.append(child_data)
 
         item_data[item['name']] = item_data_list
     return item_data
+
+def check_checkbox_item_original(item_name,item,item_data,repetition,suffix):
+    checkbox_item=False
+    for child_item in item.get('children'):
+        if child_item['type']=='checkbox':
+            checkbox_item=True        
+    return checkbox_item
+
+class PrefillData(object):
+
+    def __init__(self):
+        self.data={}
+        self.layer_data=[]
+        self.add_info_assessor={}
+
+    def prefill_data_from_shape(self, schema ):
+        #data = {}
+        
+        try:
+            for item in schema:
+                self.data.update(self._populate_data_from_item(item, 0, ''))
+               
+        except:
+            traceback.print_exc()
+        return [self.data]
+
+    def _populate_data_from_item(self, item, repetition, suffix, sqs_value=None):
+        item_data = {}
+
+        if 'name' in item:
+            extended_item_name = item['name']
+        else:
+            raise Exception('Missing name in item %s' % item['label'])
+
+        if 'children' not in item:
+            if item['type'] =='checkbox':
+                if sqs_value:
+                    for val in sqs_value:
+                        if val==item['label']:
+                            item_data[item['name']]='on'
+                            item_layer_data={
+                            'name': item['name'],
+                            'layer_name': 'layer name',
+                            'layer_updated': 'layer updated',
+                            'new_layer_name': 'new layer name',
+                            'new_layer_updated': 'new layer updated'
+                            }
+                            self.layer_data.append(item_layer_data)
+            elif item['type'] == 'file':
+                print('file item', item)
+            else:
+                    if item['type'] == 'multi-select':
+                        #Get value from SQS. Value should be an array of the correct options.
+                        sqs_value=item['options'][1]['value']
+                        sqs_value=[sqs_value]
+                        if sqs_value:
+                            item_data[item['name']]=[]
+                        for val in sqs_value:
+                            if item['options']:
+                                for op in item['options']:
+                                    if val==op['value']:
+                                        item_data[item['name']].append(op['value'])
+                                        item_layer_data={
+                                        'name': item['name'],
+                                        'layer_name': 'layer name',
+                                        'layer_updated': 'layer updated',
+                                        'new_layer_name': 'new layer name',
+                                        'new_layer_updated': 'new layer updated'
+                                        }
+                                        self.layer_data.append(item_layer_data)
+                                        # add_info_asessor_item={
+                                        #     'name': item['name'],
+                                        #     'value': 'test'
+                                        # }
+                                        sqs_assessor_value='test'
+
+                                        self.add_info_assessor[item['name']]= sqs_assessor_value
+
+                    elif item['type'] == 'radiobuttons' or item['type'] == 'select' :
+                        #Get value from SQS
+                        sqs_value=item['options'][1]['value']
+                        if item['options']:
+                            for op in item['options']:
+                                if sqs_value==op['value']:
+                                    item_data[item['name']]=op['value']
+                                    item_layer_data={
+                                        'name': item['name'],
+                                        'layer_name': 'layer name',
+                                        'layer_updated': 'layer updated',
+                                        'new_layer_name': 'new layer name',
+                                        'new_layer_updated': 'new layer updated'
+                                    }
+                                    self.layer_data.append(item_layer_data)
+                                    break
+                    else:
+                        #All the other types e.g. textarea, text, date.
+                        #This is where we can add API call to SQS to get the answer.
+                        sqs_value="test"
+                        item_data[item['name']]= sqs_value
+                        item_layer_data={
+                        'name': item['name'],
+                        'layer_name': 'layer  name',
+                        'layer_updated': 'layer updated',
+                        'new_layer_name': 'new layer name',
+                        'new_layer_updated': 'new layer updated'
+                        }
+                        self.layer_data.append(item_layer_data)
+                        sqs_assessor_value='test'
+                        self.add_info_assessor[item['name']]= sqs_assessor_value
+                        #print(item)
+                        #print('radiobuttons/ textarea/ text/ date etc item', item)
+        else:
+            if 'repetition' in item:
+                item_data = self.generate_item_data_shape(extended_item_name,item,item_data,1,suffix)
+            else:
+                #item_data = generate_item_data_shape(extended_item_name, item, item_data,1,suffix)
+                #Check if item has checkbox childer
+                if self.check_checkbox_item(extended_item_name, item, item_data,1,suffix):
+                    #make a call to sqs for item
+                    sqs_values=['first']
+                    #pass sqs values as an attribute.
+                    item_data = self.generate_item_data_shape(extended_item_name, item, item_data,1,suffix, sqs_values)
+                else:
+                    item_data = self.generate_item_data_shape(extended_item_name, item, item_data,1,suffix)
+
+
+        if 'conditions' in item:
+            for condition in list(item['conditions'].keys()):
+                if condition==item_data[item['name']]:
+                    for child in item['conditions'][condition]:
+                        item_data.update(self._populate_data_from_item(child,  repetition, suffix))
+
+        return item_data
+
+    def generate_item_data_shape(self, item_name,item,item_data,repetition,suffix, sqs_value=None):
+        item_data_list = []
+        for rep in range(0, repetition):
+            child_data = {}
+            for child_item in item.get('children'):
+                child_data.update(self._populate_data_from_item(child_item, 0,
+                                                         '{}-{}'.format(suffix, rep), sqs_value))
+                #print('child item in generate item data', child_item)
+            item_data_list.append(child_data)
+
+            item_data[item['name']] = item_data_list
+        return item_data
+
+    def check_checkbox_item(self, item_name,item,item_data,repetition,suffix):
+        checkbox_item=False
+        for child_item in item.get('children'):
+            if child_item['type']=='checkbox':
+                checkbox_item=True        
+        return checkbox_item
+
+def save_prefill_data(proposal):
+    prefill_instance= PrefillData()
+    try:
+        prefill_data = prefill_instance.prefill_data_from_shape(proposal.schema)
+        if prefill_data:
+            proposal.data=prefill_data
+            proposal.layer_data= prefill_instance.layer_data
+            print(prefill_instance.add_info_assessor)
+            proposal.add_info_assessor=prefill_instance.add_info_assessor
+            proposal.save()
+            return proposal
+    except:
+        raise

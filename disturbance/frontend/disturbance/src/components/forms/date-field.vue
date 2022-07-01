@@ -26,6 +26,9 @@
                 </template>
                 <a href="" v-else  @click.prevent="toggleComment"><i class="fa fa-ban">&nbsp;</i></a>
             </template>
+            <template>
+                <LayerInfo v-show="assessorMode" :layer_value="layer_val"  :assessorMode="assessorMode"/>
+            </template>
             <div class='input-group date'>
                 <input type="text" :readonly="readonly" :name="name" class="form-control" placeholder="DD/MM/YYYY" :value="value" :required="isRequired"/>
                 <span class="input-group-addon">
@@ -45,15 +48,16 @@ import Comment from './comment.vue'
 import CommentBox from './comment_box_referral.vue'
 import HelpText from './help_text.vue'
 import HelpTextUrl from './help_text_url.vue'
+import LayerInfo from './layer_info.vue'
 export default {
     name:"date",
-    props: ['name', 'label', 'id', 'readonly', 'help_text', 'help_text_assessor', 'assessorMode', 'value', 'conditions', "handleChange","comment_value","assessor_readonly", "isRequired", 'help_text_url', 'help_text_assessor_url', 'comment_boxes',],
+    props: ['name', 'label', 'id', 'readonly', 'help_text', 'help_text_assessor', 'assessorMode', 'value', 'conditions', "handleChange","comment_value","assessor_readonly", "isRequired", 'help_text_url', 'help_text_assessor_url', 'comment_boxes', 'layer_val'],
     data(){
         return {
             showingComment: false
         }
     },
-    components: {Comment, HelpText, HelpTextUrl, CommentBox},
+    components: {Comment, HelpText, HelpTextUrl, CommentBox, LayerInfo,},
     computed: {
         isChecked: function() {
         //TODO return value from database
