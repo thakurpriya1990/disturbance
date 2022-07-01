@@ -259,7 +259,7 @@ class ApiaryLicenceReader():
                         oa = self._create_org_address(row)
                         lo = ledger_organisation.objects.create(
                             abn=row.name,
-                            name=licencee,
+                            name=row.licencee,
                             postal_address=oa,
                             billing_address=oa,
                             trading_name=row.trading_name,
