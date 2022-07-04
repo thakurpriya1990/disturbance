@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import datetime
 from django.db import models,transaction
+from django.db.models import Q, Max
 from django.dispatch import receiver
 from django.db.models.signals import pre_delete
 from django.core.exceptions import ValidationError
@@ -102,6 +103,11 @@ class ApiarySiteOnApproval(models.Model):
 
     def __str__(self):
         return 'id:{}: (apiary_site: {}, approval: {})'.format(self.id, self.apiary_site.id, self.approval.id)
+
+    def get_relevant_applicant_name(self):
+        if self.approval:
+            return self.approval.relevant_applicant_name
+        return ''
 
     class Meta:
         app_label = 'disturbance'

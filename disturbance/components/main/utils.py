@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 
 import requests
@@ -15,6 +16,8 @@ from disturbance.components.main.models import CategoryDbca, RegionDbca, Distric
 from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_APPROVED, SITE_STATUS_TRANSFERRED, RESTRICTED_RADIUS, \
     SITE_STATUS_PENDING, SITE_STATUS_DISCARDED, SITE_STATUS_VACANT, SITE_STATUS_DENIED, SITE_STATUS_CURRENT, \
     SITE_STATUS_NOT_TO_BE_REISSUED, SITE_STATUS_SUSPENDED
+
+logger = logging.getLogger(__name__)
 
 
 def retrieve_department_users():
@@ -181,7 +184,8 @@ def _get_vacant_apiary_site(search_text=''):
     from disturbance.components.proposals.models import ApiarySite
     queries = Q(is_vacant=True)
     if search_text:
-        queries &= Q(id__icontains=search_text)
+        # queries &= Q(id__icontains=search_text)
+        queries &= Q(id=search_text)
     qs_vacant_site = ApiarySite.objects.filter(queries).distinct()
     return qs_vacant_site
 
@@ -243,7 +247,8 @@ def get_qs_denied_site(search_text=''):
     q_include_apiary_site = Q()
     q_include_apiary_site &= Q(latest_proposal_link__isnull=False)
     if search_text:
-        q_include_apiary_site &= Q(id__icontains=search_text)
+        # q_include_apiary_site &= Q(id__icontains=search_text)
+        q_include_apiary_site &= Q(id=search_text)
     qs_apiary_sites = ApiarySite.objects.filter(q_include_apiary_site)
 
     # ApiarySiteOnProposal conditions for include
@@ -280,7 +285,8 @@ def get_qs_pending_site(search_text=''):
     q_include_apiary_site = Q()
     q_include_apiary_site &= Q(latest_proposal_link__isnull=False)
     if search_text:
-        q_include_apiary_site &= Q(id__icontains=search_text)
+        # q_include_apiary_site &= Q(id__icontains=search_text)
+        q_include_apiary_site &= Q(id=search_text)
     qs_apiary_sites = ApiarySite.objects.filter(q_include_apiary_site)
 
     # ApiarySiteOnProposal conditions for include
@@ -318,7 +324,8 @@ def get_qs_suspended_site(search_text=''):
     q_include_apiary_site = Q()
     q_include_apiary_site &= Q(latest_approval_link__isnull=False)
     if search_text:
-        q_include_apiary_site &= Q(id__icontains=search_text)
+        # q_include_apiary_site &= Q(id__icontains=search_text)
+        q_include_apiary_site &= Q(id=search_text)
     qs_apiary_sites = ApiarySite.objects.filter(q_include_apiary_site)
 
     # 2.1. Include
@@ -365,7 +372,8 @@ def get_qs_current_site(search_text='', available=None):
     q_include_apiary_site = Q()
     q_include_apiary_site &= Q(latest_approval_link__isnull=False)
     if search_text:
-        q_include_apiary_site &= Q(id__icontains=search_text)
+        # q_include_apiary_site &= Q(id__icontains=search_text)
+        q_include_apiary_site &= Q(id=search_text)
     qs_apiary_sites = ApiarySite.objects.filter(q_include_apiary_site)
 
     # 2.1. Include
@@ -454,7 +462,8 @@ def get_qs_not_to_be_reissued_site(search_text=''):
     q_include_apiary_site = Q()
     q_include_apiary_site &= Q(latest_approval_link__isnull=False)
     if search_text:
-        q_include_apiary_site &= Q(id__icontains=search_text)
+        # q_include_apiary_site &= Q(id__icontains=search_text)
+        q_include_apiary_site &= Q(id=search_text)
     qs_apiary_sites = ApiarySite.objects.filter(q_include_apiary_site)
 
     # 2.1. Include
@@ -725,3 +734,11 @@ def get_qs_approval_for_export():
     qs_on_approval = ApiarySiteOnApproval.objects.filter(q_include_approval).exclude(q_exclude_approval).distinct('apiary_site')
 
     return qs_on_approval
+
+
+def suffix(d):
+    return 'th' if 11 <= d <= 13 else {1: 'st', 2: 'nd', 3: 'rd'}.get(d % 10, 'th')
+
+
+def custom_strftime(format_str, t):
+    return t.strftime(format_str).replace('{S}', str(t.day) + suffix(t.day))

@@ -1,8 +1,10 @@
 import re
+from telnetlib import NEW_ENVIRON
 import traceback
 import os
 
 import json
+from dateutil import parser
 
 import pytz
 from ledger.settings_base import TIME_ZONE, DATABASES
@@ -15,8 +17,9 @@ from rest_framework.response import Response
 from rest_framework.renderers import JSONRenderer
 from ledger.accounts.models import EmailUser
 from datetime import datetime
+from reversion.models import Version
 
-from django.http import HttpResponse#, JsonResponse, Http404
+from django.http import HttpResponse, JsonResponse #, Http404
 from disturbance.components.approvals.email import (
     send_contact_licence_holder_email,
     send_on_site_notification_email,
@@ -32,7 +35,7 @@ from disturbance.components.proposals.utils import (
     save_assessor_data,
     save_apiary_assessor_data, update_proposal_apiary_temporary_use,
 )
-from disturbance.components.proposals.models import searchKeyWords, search_reference, \
+from disturbance.components.proposals.models import ProposalDocument, searchKeyWords, search_reference, \
     OnSiteInformation, ApiarySite, ApiaryChecklistQuestion, ApiaryChecklistAnswer, \
     ProposalApiaryTemporaryUse, ApiarySiteOnProposal, PublicLiabilityInsuranceDocument, DeedPollDocument, \
     SupportingApplicationDocument, search_sections
@@ -124,7 +127,7 @@ from disturbance.components.proposals.serializers_apiary import (
     ApiarySiteOnProposalDraftMinimalGeometrySerializer,
     ApiarySiteFeeSerializer,
     ApiarySiteOnProposalVacantDraftMinimalGeometrySerializer,
-    ApiarySiteOnProposalVacantProcessedMinimalGeometrySerializer,
+    ApiarySiteOnProposalVacantProcessedMinimalGeometrySerializer, ApiarySiteOnProposalDraftGeometrySerializer,
 )
 from disturbance.components.approvals.models import Approval, ApiarySiteOnApproval
 from disturbance.components.approvals.serializers import ApprovalLogEntrySerializer
@@ -140,6 +143,7 @@ from rest_framework_datatables.renderers import DatatablesRenderer
 from disturbance.components.main.process_document import (
         process_generic_document, 
         )
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -585,6 +589,13 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
                 return True
         return False
 
+    @detail_route(methods=['GET',])
+    @basic_exception_handler
+    def relevant_applicant_name(self, request, *args, **kwargs):
+        apiary_site = self.get_object()
+        relevant_applicant = apiary_site.get_relevant_applicant_name()
+        return Response({'relevant_applicant': relevant_applicant})
+
     def get_queryset(self):
         user = self.request.user
         qs = ApiarySite.objects.all()
@@ -629,7 +640,6 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
 
     @list_route(methods=['GET', ])
     @basic_exception_handler
-    @query_debugger
     def list_apiary_sites_vacant(self, request):
         search_text = request.query_params.get('search_text', '')
         qs_vacant_site_proposal, qs_vacant_site_approval = get_qs_vacant_site(search_text)
@@ -856,6 +866,21 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
 class ProposalApiaryViewSet(viewsets.ModelViewSet):
     queryset = ProposalApiary.objects.none()
     serializer_class = ProposalApiarySerializer
+
+    # To solve the performance issue
+    @detail_route(methods=['GET',])
+    @basic_exception_handler
+    def apiary_sites(self, request, *args, **kwargs):
+        proposal_apiary = self.get_object()
+        ret = []
+        for apiary_site in proposal_apiary.apiary_sites.all():
+            inter_obj = ApiarySiteOnProposal.objects.get(apiary_site=apiary_site, proposal_apiary=proposal_apiary)
+            if inter_obj.site_status == SITE_STATUS_DRAFT:
+                serializer = ApiarySiteOnProposalDraftGeometrySerializer
+            else:
+                serializer = ApiarySiteOnProposalProcessedGeometrySerializer
+            ret.append(serializer(inter_obj).data)
+        return Response(ret)
 
     @detail_route(methods=['GET', ])
     def on_site_information_list(self, request, *args, **kwargs):
@@ -1418,7 +1443,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-    @detail_route(methods=['POST',])
+    @detail_route(methods=['GET',])
     def get_revision_diffs(self, request, *args, **kwargs):
         """
         Use the Proposal model method to get the differences between the lastest revision and
@@ -1426,8 +1451,9 @@ class ProposalViewSet(viewsets.ModelViewSet):
         """
         try:
             instance = self.get_object()
-            version_number = request.data.get("version_number")
-            diffs = instance.get_revision_diff(version_number)
+            newer_version = int(request.GET.get("newer_version"))
+            older_version = int(request.GET.get("older_version"))
+            diffs = instance.get_revision_diff(newer_version, older_version)
 
             return Response(diffs)
         except serializers.ValidationError:
@@ -1439,6 +1465,75 @@ class ProposalViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['GET'])
+    def version_differences(self, request, *args, **kwargs):
+        """ Returns a json response containing the differences between two 
+            versions.
+        
+        """
+        try:
+            newer_version = int(request.GET.get("newer_version"))
+            older_version = int(request.GET.get("older_version"))
+        except ValueError as e:
+            raise serializers.ValidationError(str(e))
+
+        instance = self.get_object()
+        differences = instance.get_version_differences(newer_version, older_version)
+
+        return Response(differences)
+
+    @detail_route(methods=['GET'])
+    def version_differences_comment_data(self, request, *args, **kwargs):
+        """ Returns a json response containing the differences between two 
+            versions.
+        
+        """
+        try:
+            newer_version = int(request.GET.get("newer_version"))
+            older_version = int(request.GET.get("older_version"))
+        except ValueError as e:
+            raise serializers.ValidationError(str(e))
+
+        instance = self.get_object()
+        differences = instance.get_version_differences_comment_and_assessor_data('comment_data', newer_version, older_version)
+
+        return JsonResponse(differences, safe=False)
+
+    @detail_route(methods=['GET'])
+    def version_differences_assessor_data(self, request, *args, **kwargs):
+        """ Returns a json response containing the differences between two 
+            versions.
+        
+        """
+        try:
+            newer_version = int(request.GET.get("newer_version"))
+            older_version = int(request.GET.get("older_version"))
+        except ValueError as e:
+            raise serializers.ValidationError(str(e))
+
+        instance = self.get_object()
+        differences = instance.get_version_differences_comment_and_assessor_data('assessor_data', newer_version, older_version)
+
+        return JsonResponse(differences, safe=False)
+
+    @detail_route(methods=['GET'])
+    def version_differences_documents(self, request, *args, **kwargs):
+        """ Returns a json response containing the differences between two 
+            versions.
+        
+        """
+        try:
+            newer_version = int(request.GET.get("newer_version"))
+            older_version = int(request.GET.get("older_version"))
+        except ValueError as e:
+            raise serializers.ValidationError(str(e))
+
+        instance = self.get_object()
+        differences_only = request.GET.get('differences_only')
+        differences = instance.get_document_differences(newer_version, older_version, differences_only)
+
+        return JsonResponse(differences, safe=False)
 
     @detail_route(methods=['POST'])
     @renderer_classes((JSONRenderer,))
@@ -1504,6 +1599,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             action = request.POST.get('action')
             section = request.POST.get('input_name')
+
             if action == 'list' and 'input_name' in request.POST:
                 pass
 
@@ -1541,7 +1637,26 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 instance.save(version_comment='File Added: {}'.format(filename)) # to allow revision to be added to reversion history
                 #instance.current_proposal.save(version_comment='File Added: {}'.format(filename)) # to allow revision to be added to reversion history
 
-            return  Response( [dict(input_name=d.input_name, name=d.name,file=d._file.url, id=d.id, can_delete=d.can_delete, can_hide=d.can_hide) for d in instance.documents.filter(input_name=section, hidden=False) if d._file] )
+            proposal_lodgement_date = request.POST.get('proposal_lodgement_date')
+            # Only go through the overhead of finding older proposal documents when viewing a version other than current
+            if proposal_lodgement_date:
+                if(parser.parse(str(instance.lodgement_date))!=parser.parse(proposal_lodgement_date)):
+                    # For viewing older versions of a proposal we need to build a list of documents that were not hidden at that time
+                    documents = instance.documents.filter(input_name=section, uploaded_date__lte=proposal_lodgement_date).order_by('input_name', 'uploaded_date')
+                    older_version_documents = []
+                    for document in documents:
+                        older_document_version = Version.objects.get_for_object(document)\
+                        .select_related('revision').filter(revision__date_created__lte=proposal_lodgement_date).order_by('-revision__date_created').first()
+                        older_document = ProposalDocument(**older_document_version.field_dict)
+                        if not older_document.hidden:
+                            older_document = ProposalDocument(**older_document_version.field_dict)
+                            older_version_documents.append(older_document)
+
+                    return  Response( [dict(input_name=d.input_name, name=d.name,file=d._file.url, id=d.id, can_delete=d.can_delete, can_hide=d.can_hide) for d in older_version_documents if d._file] )
+                else:
+                    return  Response( [dict(input_name=d.input_name, name=d.name,file=d._file.url, id=d.id, can_delete=d.can_delete, can_hide=d.can_hide) for d in instance.documents.filter(input_name=section, hidden=False) if d._file] )
+            else:
+                return  Response( [dict(input_name=d.input_name, name=d.name,file=d._file.url, id=d.id, can_delete=d.can_delete, can_hide=d.can_hide) for d in instance.documents.filter(input_name=section, hidden=False) if d._file] )
 
         except serializers.ValidationError:
             print(traceback.print_exc())
@@ -1761,17 +1876,24 @@ class ProposalViewSet(viewsets.ModelViewSet):
         instance.internal_view_log(request)
         #serializer = InternalProposalSerializer(instance,context={'request':request})
         serializer_class = self.internal_serializer_class()
-        serializer = serializer_class(instance,context={'request':request})
+        serializer = serializer_class(instance,context={'request': request})
         return Response(serializer.data)
 
     @detail_route(methods=['GET',])
     def internal_revision_proposal(self, request, *args, **kwargs):
-
+        
         instance = self.get_object()
+
         version_number = int(request.query_params.get("revision_number"))
         revision = instance.get_revision(version_number)
+        
+        # Populate a new Proposal object with the version data
+        instance = Proposal(**revision)
 
-        return Response(revision)
+        serializer_class = self.internal_serializer_class()
+        serializer = serializer_class(instance,context={'request':request})
+
+        return Response(serializer.data)
 
     @detail_route(methods=['GET',])
     def internal_proposal_wrapper(self, request, *args, **kwargs):

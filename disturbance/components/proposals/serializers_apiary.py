@@ -1025,15 +1025,22 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
         return url
 
     def get_apiary_sites(self, proposal_apiary):
+        with_apiary_sites = True
+        if 'request' in self.context:
+            request = self.context['request']
+            with_apiary_sites = request.GET.get('with_apiary_sites', True)
+            if with_apiary_sites in ['false', 'False', 'F', 'f', False]:
+                with_apiary_sites = False
+
         ret = []
-        for apiary_site in proposal_apiary.apiary_sites.all():
-            inter_obj = ApiarySiteOnProposal.objects.get(apiary_site=apiary_site, proposal_apiary=proposal_apiary)
-            if inter_obj.site_status == SITE_STATUS_DRAFT:
-                serializer = ApiarySiteOnProposalDraftGeometrySerializer
-            else:
-                serializer = ApiarySiteOnProposalProcessedGeometrySerializer
-            ret.append(serializer(inter_obj).data)
-            #import ipdb; ipdb.set_trace()
+        if with_apiary_sites:
+            for apiary_site in proposal_apiary.apiary_sites.all():
+                inter_obj = ApiarySiteOnProposal.objects.get(apiary_site=apiary_site, proposal_apiary=proposal_apiary)
+                if inter_obj.site_status == SITE_STATUS_DRAFT:
+                    serializer = ApiarySiteOnProposalDraftGeometrySerializer
+                else:
+                    serializer = ApiarySiteOnProposalProcessedGeometrySerializer
+                ret.append(serializer(inter_obj).data)
         return ret
 
     def get_transfer_apiary_sites(self, obj):
@@ -1093,9 +1100,6 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
 
     def get_site_remainders(self, proposal_apiary):
         today_local = datetime.now(pytz.timezone(TIME_ZONE)).date()
-
-        for site in proposal_apiary.apiary_sites.all():
-            print(site)
 
         ret_list = []
         for category in SiteCategory.CATEGORY_CHOICES:

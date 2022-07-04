@@ -129,7 +129,7 @@ export default {
   data: function() {
     let vm = this;
     return {
-        "proposal": null,
+        //"proposal": null,
         agent: {},
         behalf_of: '',
         profile: {
@@ -572,10 +572,10 @@ export default {
             }
             //vm.chainedSelectSubActivities1(vm.proposal.activity);
             if(vm.proposal.sub_activity_level1!="" && vm.proposal.sub_activity_level1!=null){
-            vm.chainedSelectSubActivities2(vm.proposal.sub_activity_level1, true);
+                vm.chainedSelectSubActivities2(vm.proposal.sub_activity_level1, true);
             }
             if(vm.proposal.sub_activity_level2!="" && vm.proposal.sub_activity_level2!=null){
-                chainedSelectCategories(vm.proposal.sub_activity_level2, true);
+                vm.chainedSelectCategories(vm.proposal.sub_activity_level2, true);
             }
         }
     }

@@ -1,3 +1,5 @@
+import logging
+
 from ledger.payments.models import Invoice
 import collections
 from disturbance.components.proposals.models import (
@@ -25,6 +27,9 @@ from disturbance.components.proposals.serializers_apiary import ProposalApiarySe
     ProposalApiaryTemporaryUseSerializer
 from disturbance.components.proposals.serializers_base import BaseProposalSerializer, ProposalReferralSerializer, \
     ProposalDeclinedDetailsSerializer, EmailUserSerializer
+
+
+logger = logging.getLogger(__name__)
 
 
 class ProposalTypeSerializer(serializers.ModelSerializer):
@@ -132,6 +137,7 @@ class ListProposalSerializer(BaseProposalSerializer):
                 'can_user_view',
                 'reference',
                 'lodgement_number',
+                'migrated',
                 'lodgement_sequence',
                 'can_officer_process',
                 'assessor_process',
@@ -161,6 +167,7 @@ class ListProposalSerializer(BaseProposalSerializer):
                 'can_user_view',
                 'reference',
                 'lodgement_number',
+                'migrated',
                 'can_officer_process',
                 'assessor_process',
                 'allowed_assessors',
@@ -267,7 +274,7 @@ class ProposalSerializer(BaseProposalSerializer):
     def get_proposal_apiary(self, obj):
         if hasattr(obj, 'proposal_apiary'):
             pasl = obj.proposal_apiary
-            return ProposalApiarySerializer(pasl).data
+            return ProposalApiarySerializer(pasl, context=self.context).data
         else:
             return ''
 
@@ -440,25 +447,30 @@ class InternalProposalSerializer(BaseProposalSerializer):
 
 
     def get_reversion_history(self, obj):
-        """
-        This uses Reversion to get all the revisions made to this Proposal. The revisions are returned as a dict with the
-        Proposal id and version as key.
+        """ This uses Reversion to get all the revisions made to this Proposal.
+        
+        The revisions are returned as a dict with the Proposal id and version as key.
         """
         from reversion.models import Version
-        reversion_dict = {}
-        # Get all revisions that have been submitted (not just saved by user) including the original.
-        all_revisions = [v for v in Version.objects.get_for_object(obj)[0:] if not v.field_dict['customer_status'] == 'draft']
-        # Strip out duplicates (only take the most recent of a revision).
-        unique_revisions = collections.OrderedDict({v.field_dict['lodgement_date']:v for v in all_revisions})
-        number_of_revisions = len(unique_revisions)
 
-        # Work backwards through the revisions so the most recent are at the top.
-        for index, revision in enumerate(unique_revisions.values()):
-            # Add the index to the end of the lodgement number to show the revision.        
-            this_revision_key = '{}-{}'.format(revision.field_dict['lodgement_number'], number_of_revisions-index)
-            reversion_dict[this_revision_key] = {'date': revision.field_dict['lodgement_date']}
+        # Versions are in reverse order by default
+        versions = Version.objects.get_for_object(obj).select_related('revision')\
+            .filter(revision__comment__contains='processing_status').get_unique()
+        # this seems like inefficient duplication however
+        # django reversion wont allow .count() after .get_unique()
+        versions_count = len(list(Version.objects.get_for_object(obj).select_related('revision')\
+            .filter(revision__comment__contains='processing_status').get_unique()))
+        # Build the dictionary of reversions
+        version_dictionary = {}
+        for index, version in enumerate(versions):
+            version_key = f'{obj.lodgement_number}-{versions_count-index}'
+            version_dictionary[version_key] = {
+                'date': version.revision.date_created,
+                'processing_status': version.field_dict['processing_status'],
+            }
 
-        return reversion_dict
+        return version_dictionary
+
 
     def get_approval_level_document(self,obj):
         if obj.approval_level_document is not None:
