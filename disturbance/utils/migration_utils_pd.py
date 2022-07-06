@@ -66,7 +66,7 @@ COLUMN_MAPPING = {
     'zone':                   'zone',
     'catchment':              'catchment',
     'dra_permit':             'dra_permit',
-    #'suspended':              'site_status',
+    'suspended':              'site_status',
 }
 
 
