@@ -389,6 +389,8 @@ class ApiaryLicenceReader():
             expiry_date = data['expiry_date'] if data['expiry_date'] else datetime.date.today()
             start_date = data['start_date'] if data['start_date'] else datetime.date.today()
             issue_date = data['issue_date'] if data['issue_date'] else start_date
+            site_status = 'not_to_be_reissued' if data['status'].lower().strip() == 'not to be reissued' else data['status'].lower().strip()
+
         except Exception as e:
             import ipdb; ipdb.set_trace()
             print(e)
@@ -465,7 +467,7 @@ class ApiaryLicenceReader():
                                             zone=data['zone'],
                                             catchment=data['catchment'],
                                             #dra_permit=data['dra_permit'],
-                                            site_status=data['status'],
+                                            site_status=site_status,
                                             )
             #import ipdb; ipdb.set_trace()
             pa, pa_created = ProposalApiary.objects.get_or_create(proposal=proposal)
@@ -491,7 +493,7 @@ class ApiaryLicenceReader():
                                             roadtrack=data['roadtrack'],
                                             zone=data['zone'],
                                             catchment=data['catchment'],
-                                            site_status=data['status'],
+                                            site_status=site_status,
                                             #dra_permit=data['dra_permit'],
                                             )
             #import ipdb; ipdb.set_trace()
