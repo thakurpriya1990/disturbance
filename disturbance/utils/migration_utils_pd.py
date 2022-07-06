@@ -66,7 +66,7 @@ COLUMN_MAPPING = {
     'zone':                   'zone',
     'catchment':              'catchment',
     'dra_permit':             'dra_permit',
-    'suspended':              'site_status',
+    #'suspended':              'site_status',
 }
 
 
@@ -128,7 +128,6 @@ class ApiaryLicenceReader():
         df['approval_cpc_date']      = pd.to_datetime(df['approval_cpc_date'], errors='coerce')
         df['approval_minister_date'] = pd.to_datetime(df['approval_minister_date'], errors='coerce')
 
-        #df['issue_date'] = df['issue_date'].apply(lambda x: x if isinstance(x, datetime.datetime) else x.start_date) # fill null values
         df['issue_date'] = df.apply(lambda row: row.issue_date if isinstance(row.issue_date, datetime.datetime) else row.start_date, axis=1)
         df['abn']        = df['abn'].str.replace(" ","")
         df['email']      = df['email'].str.replace(" ","").str.lower()
@@ -136,13 +135,8 @@ class ApiaryLicenceReader():
         df['last_name']  = df['last_name'].apply(lambda x: x.lower().capitalize().strip() if not pd.isnull(x) else 'No Last Name')
         df['licencee']   = df['licencee'].apply(lambda x: x.strip() if not pd.isnull(x) else 'No Licencee Name')
         df['postcode']   = df['postcode'].apply(lambda x: '0000' if pd.isnull(x) else x)
-        #df['phone_number1'] = df['phone_number1'].apply(lambda x: x.mobile_number if pd.isnull(x) else x)
-        #df['mobile_number'] = df['mobile_number'].apply(lambda x: x.phone_number1 if pd.isnull(x) else x)
-        df['site_status']= df['site_status'].apply(lambda x: settings.SITE_STATUS_SUSPENDED if not pd.isnull(x) else settings.SITE_STATUS_CURRENT)
-        df['dra_permit'] = df['site_status'].apply(lambda x: True if not pd.isnull(x) else False)
-#        df['licensed_site'] = df['licensed_site'].apply(lambda x: True if not pd.isnull(x) else False)
-        #df['approval_cpc_date'] = df['approval_cpc_date'].apply(lambda x: x if not pd.isnull(x) or not x.empty else None)
-        #df['approval_minister_date'] = df['approval_minister_date'].apply(lambda x: x if not pd.isnull(x)  or not x.empty else None)
+        #df['site_status']= df['site_status'].apply(lambda x: settings.SITE_STATUS_SUSPENDED if not pd.isnull(x) else settings.SITE_STATUS_CURRENT)
+        #df['dra_permit'] = df['site_status'].apply(lambda x: True if not pd.isnull(x) else False)
         df['country']    = df['country'].apply(_get_country_code)
  
         # clean everything else
@@ -395,6 +389,8 @@ class ApiaryLicenceReader():
             expiry_date = data['expiry_date'] if data['expiry_date'] else datetime.date.today()
             start_date = data['start_date'] if data['start_date'] else datetime.date.today()
             issue_date = data['issue_date'] if data['issue_date'] else start_date
+            site_status = 'not_to_be_reissued' if data['status'].lower().strip() == 'not to be reissued' else data['status'].lower().strip()
+
         except Exception as e:
             import ipdb; ipdb.set_trace()
             print(e)
@@ -470,8 +466,8 @@ class ApiaryLicenceReader():
                                             roadtrack=data['roadtrack'],
                                             zone=data['zone'],
                                             catchment=data['catchment'],
-                                            dra_permit=data['dra_permit'],
-                                            site_status=data['site_status'],
+                                            #dra_permit=data['dra_permit'],
+                                            site_status=site_status,
                                             )
             #import ipdb; ipdb.set_trace()
             pa, pa_created = ProposalApiary.objects.get_or_create(proposal=proposal)
@@ -497,7 +493,8 @@ class ApiaryLicenceReader():
                                             roadtrack=data['roadtrack'],
                                             zone=data['zone'],
                                             catchment=data['catchment'],
-                                            dra_permit=data['dra_permit'],
+                                            site_status=site_status,
+                                            #dra_permit=data['dra_permit'],
                                             )
             #import ipdb; ipdb.set_trace()
 
