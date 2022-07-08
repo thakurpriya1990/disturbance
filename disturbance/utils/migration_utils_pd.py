@@ -129,8 +129,10 @@ class ApiaryLicenceReader():
         df['approval_minister_date'] = pd.to_datetime(df['approval_minister_date'], errors='coerce')
 
         df['issue_date'] = df.apply(lambda row: row.issue_date if isinstance(row.issue_date, datetime.datetime) else row.start_date, axis=1)
-        df['abn']        = df['abn'].str.replace(" ","")
-        df['email']      = df['email'].str.replace(" ","").str.lower()
+        df['abn']        = df['abn'].str.replace(" ","").str.strip()
+        df['email']      = df['email'].str.replace(" ","").str.lower().str.strip()
+        #df['abn']        = df['abn'].str.strip().str.lower()
+        #df['email']      = df['email'].str.strip().str.lower()
         df['first_name'] = df['first_name'].apply(lambda x: x.lower().capitalize().strip() if not pd.isnull(x) else 'No First Name')
         df['last_name']  = df['last_name'].apply(lambda x: x.lower().capitalize().strip() if not pd.isnull(x) else 'No Last Name')
         df['licencee']   = df['licencee'].apply(lambda x: x.strip() if not pd.isnull(x) else 'No Licencee Name')
@@ -159,22 +161,22 @@ class ApiaryLicenceReader():
 
         # create the users and organisations, if they don't already exist
         t0_start = time.time()
-        try:
-            self.create_users()
-            self.create_organisations()
-        except Exception as e:
-            print(e)
-            import ipdb; ipdb.set_trace()
+        #try:
+        self.create_users()
+        self.create_organisations()
+        #except Exception as e:
+         #   print(e)
+          #  import ipdb; ipdb.set_trace()
         t0_end = time.time()
         print('TIME TAKEN (Orgs and Users): {}'.format(t0_end - t0_start))
 
         # create the Migratiom models
         t1_start = time.time()
-        try:
-            self.create_licences()
-        except Exception as e:
-            print(e)
-            import ipdb; ipdb.set_trace()
+        #try:
+        self.create_licences()
+        #except Exception as e:
+         #   print(e)
+          #  import ipdb; ipdb.set_trace()
         t1_end = time.time()
         print('TIME TAKEN (Create License Models): {}'.format(t1_end - t1_start))
 
@@ -193,37 +195,43 @@ class ApiaryLicenceReader():
     def create_users(self):
         # Iterate through the dataframe and create non-existent users
         for index, row in self.df.groupby('email').first().iterrows():
-            if row.status != 'Vacant':
-                try:
-                    #    import ipdb; ipdb.set_trace()
-                    #first_name = data['first_name'] if not pd.isnull(data['first_name']) else 'No First Name'
-                    #last_name = data['last_name'] if not pd.isnull(data['last_name']) else 'No Last Name'
-                    #email = df['email']
-                    user = EmailUser.objects.filter(email=row.name)
-                    if user.count() == 0:
-                        user = EmailUser.objects.create(
-                            email=row.name,
-                            first_name=row.first_name,
-                            last_name=row.last_name,
-                            phone_number=self.__get_phone_number(row),
-                            mobile_number=self.__get_mobile_number(row)
-                        )
-                except Exception as e:
-                    import ipdb; ipdb.set_trace()
-                    logger.error(f'user: {row.name}   *********** 1 *********** FAILED. {e}')
+            #if row.status != 'Vacant':
+            try:
+                #    import ipdb; ipdb.set_trace()
+                #first_name = data['first_name'] if not pd.isnull(data['first_name']) else 'No First Name'
+                #last_name = data['last_name'] if not pd.isnull(data['last_name']) else 'No Last Name'
+                #email = df['email']
+                if not row.name:
+                    continue
+                user = EmailUser.objects.filter(email=row.name)
+                if user.count() == 0:
+                    user = EmailUser.objects.create(
+                        email=row.name,
+                        first_name=row.first_name,
+                        last_name=row.last_name,
+                        phone_number=self.__get_phone_number(row),
+                        mobile_number=self.__get_mobile_number(row)
+                    )
+            except Exception as e:
+                import ipdb; ipdb.set_trace()
+                logger.error(f'user: {row.name}   *********** 1 *********** FAILED. {e}')
 
     def create_organisations(self):
+        #import ipdb; ipdb.set_trace()
         count = 0
         for index, row in self.df.groupby('abn').first().iterrows():
             #import ipdb; ipdb.set_trace()
             #if count == 87:
             #    import ipdb; ipdb.set_trace()
 
-            if row.status != 'Vacant':
-                try: 
-                    lo = ledger_organisation.objects.filter(abn=row.name)
-                except Exception as e:
-                    import ipdb; ipdb.set_trace()
+            #if row.status != 'Vacant':
+            if not row.name:
+                continue
+            try: 
+                lo = ledger_organisation.objects.filter(abn=row.name)
+            except Exception as e:
+                import ipdb; ipdb.set_trace()
+            try:
 
                 if ledger_organisation.objects.filter(name=row.licencee).count() > 0:
                     licencee = row.licencee + ' (2)'
@@ -249,23 +257,23 @@ class ApiaryLicenceReader():
                         delegate = UserDelegation.objects.get_or_create(organisation=org, user=user)
 
                 else:
-                    try:
-                        oa = self._create_org_address(row)
-                        lo = ledger_organisation.objects.create(
-                            abn=row.name,
-                            name=row.licencee,
-                            postal_address=oa,
-                            billing_address=oa,
-                            trading_name=row.trading_name,
-                        )
-                        org, created_org = Organisation.objects.get_or_create(organisation=lo)
-                        org_contact = self._create_org_contact(row, org)
-                        user = EmailUser.objects.get(email=row.email)
-                        delegate = UserDelegation.objects.get_or_create(organisation=org, user=user)
-                    except Exception as e:
-                        import ipdb; ipdb.set_trace()
-                        print(e)
+                    oa = self._create_org_address(row)
+                    lo = ledger_organisation.objects.create(
+                        abn=row.name,
+                        name=row.licencee,
+                        postal_address=oa,
+                        billing_address=oa,
+                        trading_name=row.trading_name,
+                    )
+                    org, created_org = Organisation.objects.get_or_create(organisation=lo)
+                    org_contact = self._create_org_contact(row, org)
+                    user = EmailUser.objects.get(email=row.email)
+                    delegate = UserDelegation.objects.get_or_create(organisation=org, user=user)
+            except Exception as e:
+                import ipdb; ipdb.set_trace()
+                print(e)
             count += 1
+        print("Count: orgs: ".format(str(count)))
 
     def _create_org_address(self, row):
         oa = None
@@ -328,53 +336,64 @@ class ApiaryLicenceReader():
         count = 1
         completed_site_numbers = []
         duplicate_site_numbers = []
+        skipped_indices = []
         with transaction.atomic():
             #for index, row in self.df[3244:].iterrows():
             for index, row in self.df.iterrows():
                 try:
+                    # temp solution for vacant sites causing error
+                    #if index in [3823, 6517]:
+                     #   continue
+                    site_number = None
+                    #if not row.permit_number and not row.licensed_site:
+                    #    skipped_indices.append(index)
+                    #    continue
+                    #    raise ValueError("index: {} has no permit_number or licenced_site".format(index))
                     site_number = int(row.permit_number) if row.permit_number else int(row.licensed_site)
-                    ApiarySite.objects.filter(id=site_number)
+                    #ApiarySite.objects.filter(id=site_number)
                     if site_number not in completed_site_numbers and \
-                        site_number not in completed_site_numbers and \
                         not ApiarySite.objects.filter(id=site_number).exists():
 
                         #if row.status != 'Vacant' and index>4474:
-                        if row.status != 'Vacant':
+                        #if row.status != 'Vacant':
                             #import ipdb; ipdb.set_trace()
-                            if row.licencee_type == 'organisation':
-                                org = Organisation.objects.get(organisation__abn=row.abn)
-                                user = EmailUser.objects.get(email=row.email)
-                                self._migrate_approval(data=row, submitter=user, applicant=org, proxy_applicant=None)
-                                print("Permit number {} migrated".format(row.get('permit_number')))
-                                print
-                                print
+                        if row.licencee_type == 'organisation':
+                            org = Organisation.objects.get(organisation__abn=row.abn)
+                            user = EmailUser.objects.get(email=row.email)
+                            self._migrate_approval(data=row, submitter=user, applicant=org, proxy_applicant=None)
+                            print("Permit number {} migrated".format(row.get('permit_number')))
+                            print
+                            print
 
-                            elif row.licencee_type == 'individual':
-                                user = EmailUser.objects.get(email=row.email)
-                                self._migrate_approval(data=row, submitter=user, applicant=None, proxy_applicant=user)
-                                print("Permit number {} migrated".format(row.get('permit_number')))
+                        elif row.licencee_type == 'individual':
+                            user = EmailUser.objects.get(email=row.email)
+                            self._migrate_approval(data=row, submitter=user, applicant=None, proxy_applicant=user)
+                            print("Permit number {} migrated".format(row.get('permit_number')))
 
-                            else:
-                                # declined and not to be reissued
-                                status = data['status']
+                        else:
+                            # declined and not to be reissued
+                            status = data['status']
 
-                            completed_site_numbers.append(site_number)
-                            count += 1
+                        completed_site_numbers.append(site_number)
+                        count += 1
 
-                            print()
-                            print(f'******************************************************** INDEX: {index}')
-                            print()
+                        print()
+                        print(f'******************************************************** INDEX: {index}')
+                        print()
                     else:
                         duplicate_site_numbers.append(site_number)
 
                 except ValueError as e:
                     print(f'ERROR: SITE NUMBER {site_number} - SKIPPING')
-                    #import ipdb; ipdb.set_trace()
+                    import ipdb; ipdb.set_trace()
+                    raise e
                 except Exception as e:
                     print(e)
                     import ipdb; ipdb.set_trace()
+                    raise e
 
         print(f'Duplicate Site Numbers: {duplicate_site_numbers}')
+        print('Skipped indices: {}'.format(skipped_indices))
 
     def _migrate_approval(self, data, submitter, applicant=None, proxy_applicant=None):
         from disturbance.components.approvals.models import Approval
@@ -448,7 +467,10 @@ class ApiaryLicenceReader():
             #geometry = GEOSGeometry('POINT(' + str(data['latitude']) + ' ' + str(data['longitude']) + ')', srid=4326)
             geometry = GEOSGeometry('POINT(' + str(data['latitude']) + ' ' + str(data['longitude']) + ')', srid=4326)
             #import ipdb; ipdb.set_trace()
-            apiary_site = ApiarySite.objects.create(id=site_number)
+            apiary_site = ApiarySite.objects.create(
+                    id=site_number,
+                    is_vacant=True if site_status=='vacant' else False
+                    )
             site_category = get_category(geometry)
             intermediary_approval_site = ApiarySiteOnApproval.objects.create(
                                             #id=site_number,
