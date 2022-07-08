@@ -522,6 +522,9 @@ class ApiaryLicenceReader():
 
             apiary_site.latest_approval_link=intermediary_approval_site
             apiary_site.latest_proposal_link=intermediary_proposal_site
+            if site_status == 'vacant':
+                apiary_site.approval_link_for_vacant=intermediary_approval_site
+                apiary_site.proposal_link_for_vacant=intermediary_proposal_site
             apiary_site.save()
 
 
