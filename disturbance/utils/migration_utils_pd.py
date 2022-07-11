@@ -341,10 +341,12 @@ class ApiaryLicenceReader():
             #for index, row in self.df[3244:].iterrows():
             for index, row in self.df.iterrows():
                 try:
+                    # TODO: remove once migration file has been corrected
                     # temp solution for vacant sites causing error
                     #if index in [3823, 6517]:
                      #   continue
                     site_number = None
+                    # TODO: remove once migration file has been corrected
                     #if not row.permit_number and not row.licensed_site:
                     #    skipped_indices.append(index)
                     #    continue
@@ -522,6 +524,9 @@ class ApiaryLicenceReader():
 
             apiary_site.latest_approval_link=intermediary_approval_site
             apiary_site.latest_proposal_link=intermediary_proposal_site
+            if site_status == 'vacant':
+                apiary_site.approval_link_for_vacant=intermediary_approval_site
+                apiary_site.proposal_link_for_vacant=intermediary_proposal_site
             apiary_site.save()
 
 
