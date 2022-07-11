@@ -439,9 +439,6 @@
                 let url_sites = '/api/proposal_apiary/' + vm.apiary_proposal_id + '/apiary_sites/'
                 Vue.http.get(url_sites).then(
                     (res) => {
-                        console.log('--- in component_site_selection ---')
-                        console.log(res.body)
-
                         vm.apiary_sites = res.body
                         vm.apiary_sites_local = JSON.parse(JSON.stringify(vm.apiary_sites)),  // Deep copy the array
                         vm.constructApiarySitesTable(res.body);
@@ -459,9 +456,6 @@
                 let url_sites = '/api/approvals/' + vm.apiary_approval_id + '/apiary_sites/'
                 Vue.http.get(url_sites).then(
                     (res) => {
-                        console.log('--- in component_site_selection ---')
-                        console.log(res.body)
-
                         vm.apiary_sites = res.body.features
                         vm.apiary_sites_local = JSON.parse(JSON.stringify(vm.apiary_sites)),  // Deep copy the array
                         vm.constructApiarySitesTable(res.body.features);

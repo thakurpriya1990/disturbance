@@ -337,10 +337,19 @@ class GlobalSettingsAdmin(admin.ModelAdmin):
 @admin.register(ApiaryGlobalSettings)
 class ApiaryGlobalSettingsAdmin(admin.ModelAdmin):
     def get_fields(self, request, obj=None):
-        if obj.key == ApiaryGlobalSettings.KEY_APIARY_LICENCE_TEMPLATE_FILE:
+        if obj.key in [ApiaryGlobalSettings.KEY_APIARY_LICENCE_TEMPLATE_FILE, ApiaryGlobalSettings.KEY_DBCA_REGIONS_FILE, ApiaryGlobalSettings.KEY_DBCA_DISTRICTS_FILE,]:
             return ['key', '_file',]
         else:
             return ['key', 'value',]
+
+    def get_actions(self, request):
+        actions = super().get_actions(request)
+        if 'delete_selected' in actions:
+            del actions['delete_selected']
+        return actions
+
+    def has_add_permission(self, request, obj=None):
+        return False
 
     def get_readonly_fields(self, request, obj=None):
         return ['key',]
