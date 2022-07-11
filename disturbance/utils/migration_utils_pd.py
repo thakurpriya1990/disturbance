@@ -341,10 +341,12 @@ class ApiaryLicenceReader():
             #for index, row in self.df[3244:].iterrows():
             for index, row in self.df.iterrows():
                 try:
+                    # TODO: remove once migration file has been corrected
                     # temp solution for vacant sites causing error
                     #if index in [3823, 6517]:
                      #   continue
                     site_number = None
+                    # TODO: remove once migration file has been corrected
                     #if not row.permit_number and not row.licensed_site:
                     #    skipped_indices.append(index)
                     #    continue
