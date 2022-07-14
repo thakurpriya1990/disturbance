@@ -13,8 +13,6 @@ from django.db.models.query_utils import Q
 from rest_framework import serializers
 
 from disturbance.components.main.decorators import timeit
-from disturbance.components.main.models import CategoryDbca, RegionDbca, DistrictDbca, WaCoast
-from disturbance.components.main.signals import logger
 from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_APPROVED, SITE_STATUS_TRANSFERRED, RESTRICTED_RADIUS, \
     SITE_STATUS_PENDING, SITE_STATUS_DISCARDED, SITE_STATUS_VACANT, SITE_STATUS_DENIED, SITE_STATUS_CURRENT, \
     SITE_STATUS_NOT_TO_BE_REISSUED, SITE_STATUS_SUSPENDED
@@ -87,6 +85,8 @@ def get_template_group(request):
 @timeit
 def get_category(wkb_geometry):
     from disturbance.components.proposals.models import SiteCategory
+    from disturbance.components.main.models import CategoryDbca
+
     category = SiteCategory.objects.get(name=SiteCategory.CATEGORY_REMOTE)
     zones = CategoryDbca.objects.filter(wkb_geometry__contains=wkb_geometry)
     if zones:
@@ -126,6 +126,8 @@ def get_feature_in_wa_coastline_smoothed(wkb_geometry):
 
 
 def get_feature_in_wa_coastline(wkb_geometry, smoothed):
+    from disturbance.components.main.models import WaCoast
+
     try:
         features = WaCoast.objects.filter(wkb_geometry__contains=wkb_geometry, smoothed=smoothed)
         if features:
@@ -167,6 +169,9 @@ def get_tenure(wkb_geometry):
 
 
 def get_region_district(wkb_geometry):
+    from disturbance.components.main.models import RegionDbca
+    from disturbance.components.main.models import DistrictDbca
+
     try:
         regions = RegionDbca.objects.filter(wkb_geometry__contains=wkb_geometry, enabled=True)
         districts = DistrictDbca.objects.filter(wkb_geometry__contains=wkb_geometry, enabled=True)
@@ -747,6 +752,7 @@ def custom_strftime(format_str, t):
 
 
 def overwrite_districts_polygons(path_to_geojson_file):
+    from disturbance.components.main.models import DistrictDbca
     try:
         with transaction.atomic():
             # Disable all the existing polygons
@@ -771,6 +777,8 @@ def overwrite_districts_polygons(path_to_geojson_file):
 
 
 def overwrite_regions_polygons(path_to_geojson_file):
+    from disturbance.components.main.models import RegionDbca
+
     try:
         with transaction.atomic():
             # Disable all the existing polygons
