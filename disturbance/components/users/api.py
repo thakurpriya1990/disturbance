@@ -38,19 +38,18 @@ from disturbance.components.users.serializers import   (
                                                 UserFilterSerializer,
 
                                             )
-from disturbance.components.main.utils import retrieve_department_users
+#from disturbance.components.main.utils import retrieve_department_users
 
-class DepartmentUserList(views.APIView):
-    renderer_classes = [JSONRenderer,]
-    def get(self, request, format=None):
-        data = cache.get('department_users')
-        if not data:
-            retrieve_department_users()
-            data = cache.get('department_users')
-        return Response(data)
-        
-        serializer  = UserSerializer(request.user)
-
+#class DepartmentUserList(views.APIView):
+#    renderer_classes = [JSONRenderer,]
+#    def get(self, request, format=None):
+#        data = cache.get('department_users')
+#        if not data:
+#            retrieve_department_users()
+#            data = cache.get('department_users')
+#        return Response(data)
+#        
+#        serializer  = UserSerializer(request.user)
 
 class GetCountries(views.APIView):
     renderer_classes = [JSONRenderer,]
@@ -78,9 +77,35 @@ class UserListFilterView(generics.ListAPIView):
     filter_backends = (filters.SearchFilter,)
     search_fields = ('email', 'first_name', 'last_name')
 
+
 class UserViewSet(viewsets.ModelViewSet):
     queryset = EmailUser.objects.all()
     serializer_class = UserSerializer
+
+    @list_route(methods=['GET',])
+    def get_department_users(self, request, *args, **kwargs):
+        try:
+            search_term = request.GET.get('term', '')
+            #serializer = UserSerializer(
+            #        staff,
+            #        many=True
+            #        )
+            #return Response(serializer.data)
+            data = EmailUser.objects.filter(is_staff=True). \
+                filter(Q(first_name__icontains=search_term) | Q(last_name__icontains=search_term)). \
+                values('email', 'first_name', 'last_name')[:10]
+            data_transform = [{'id': person['email'], 'text': person['first_name'] + ' ' + person['last_name']} for person in data]
+            return Response({"results": data_transform})
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
 
     @detail_route(methods=['POST',])
     def update_personal(self, request, *args, **kwargs):
