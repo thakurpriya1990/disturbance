@@ -352,7 +352,7 @@ class ApiaryGlobalSettings(models.Model):
              update_fields=None):
         super(ApiaryGlobalSettings, self).save(force_insert, force_update, using, update_fields)
 
-        if self.file:
+        if self._file:
             # When regions/districts file has been updated, update polygons for it.
             if self.key == ApiaryGlobalSettings.KEY_DBCA_REGIONS_FILE:
                 overwrite_regions_polygons(self._file.path)
