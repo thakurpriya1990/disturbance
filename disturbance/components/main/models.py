@@ -11,6 +11,8 @@ from ledger.accounts.models import EmailUser, Document, RevisionedMixin
 from django.contrib.postgres.fields.jsonb import JSONField
 from datetime import date
 
+from disturbance.components.main.utils import overwrite_regions_polygons, overwrite_districts_polygons
+
 
 class MapLayer(models.Model):
     display_name = models.CharField(max_length=100, blank=True, null=True)
@@ -345,6 +347,17 @@ class ApiaryGlobalSettings(models.Model):
     class Meta:
         app_label = 'disturbance'
         verbose_name_plural = "Apiary Global Settings"
+
+    def save(self, force_insert=False, force_update=False, using=None,
+             update_fields=None):
+        super(ApiaryGlobalSettings, self).save(force_insert, force_update, using, update_fields)
+
+        if self.file:
+            # When regions/districts file has been updated, update polygons for it.
+            if self.key == ApiaryGlobalSettings.KEY_DBCA_REGIONS_FILE:
+                overwrite_regions_polygons(self._file.path)
+            elif self.key == ApiaryGlobalSettings.KEY_DBCA_DISTRICTS_FILE:
+                overwrite_districts_polygons(self._file.path)
 
     def __str__(self):
         return self.key
