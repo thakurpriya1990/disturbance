@@ -6,9 +6,10 @@ module.exports = {
     organisation_contacts: '/api/organisation_contacts.json',
     organisation_access_group_members: '/api/organisation_access_group_members',
     apiary_organisation_access_group_members: '/api/apiary_organisation_access_group_members',
+    users_api: '/api/users',
     users: '/api/users.json',
     profile: '/api/profile',
-    department_users: '/api/department_users',
+    //department_users: '/api/department_users',
     //other
     //countries: "https://restcountries.eu/rest/v1/?fullText=true",
     countries: '/api/countries',
