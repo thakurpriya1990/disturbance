@@ -7,6 +7,7 @@ from django.core.mail import EmailMultiAlternatives
 from django.core.urlresolvers import reverse
 from django.template import loader, Template
 from django.utils.html import strip_tags
+from confy import env
 
 from ledger.accounts.models import Document
 
