@@ -1064,7 +1064,7 @@
                 if (this.is_internal && this.show_action_make_vacant){
                     if (['denied', 'not_to_be_reissued',].includes(a_status)){
                         let display_text = 'Make Vacant'
-                        let ret = '<a data-make-vacant="' + apiary_site_id + '">' + display_text + '</a>';
+                        let ret = '<a data-make-vacant="' + feature.id_ + '">' + display_text + '</a>';
                         action_list.push(ret);
                     }
                 }
