@@ -9,6 +9,22 @@ from ledger.settings_base import TIME_ZONE
 from rest_framework_gis.serializers import GeoFeatureModelSerializer
 
 from disturbance.components.approvals.serializers_apiary import ApiarySiteOnApprovalGeometrySerializer
+
+
+@property
+def next_number(self):
+    min_dcv_sticker_number = GlobalSettings.objects.get(
+        key=GlobalSettings.KEY_MINUMUM_STICKER_NUMBER_FOR_DCV_PERMIT
+    ).value
+    min_dcv_sticker_number = int(min_dcv_sticker_number)
+    try:
+        ids = [int(i) for i in Sticker.objects.all().values_list('number', flat=True) if
+               i and int(i) < min_dcv_sticker_number]
+        return max(ids) + 1 if ids else 1
+    except Exception as e:
+        print(e)
+
+
 from disturbance.components.main.utils import get_category, get_tenure, get_region_district, \
     get_feature_in_wa_coastline_smoothed, validate_buffer, get_template_group, get_status_for_export
 from disturbance.components.organisations.serializers import OrganisationSerializer
