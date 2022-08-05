@@ -3737,12 +3737,12 @@ class ProposalApiary(RevisionedMixin):
                                 relation_target.batch_no = apiary_site.get('properties')['batch_no']
 
                                 if apiary_site.get('properties')['approval_cpc_date']:
-                                    relation_target.approval_cpc_date = datetime.datetime.strptime(apiary_site.get('properties')['approval_cpc_date'], '%d-%M-%Y')
+                                    relation_target.approval_cpc_date = datetime.datetime.strptime(apiary_site.get('properties')['approval_cpc_date'], '%Y-%M-%d')
                                 else:
                                     relation_target.approval_cpc_date = None
 
                                 if apiary_site.get('properties')['approval_minister_date']:
-                                    relation_target.approval_minister_date = datetime.datetime.strptime(apiary_site.get('properties')['approval_minister_date'], '%d-%M-%Y')
+                                    relation_target.approval_minister_date = datetime.datetime.strptime(apiary_site.get('properties')['approval_minister_date'], '%Y-%M-%d')
                                 else:
                                     relation_target.approval_minister_date = None
 
