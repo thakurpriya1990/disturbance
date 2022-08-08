@@ -3,6 +3,7 @@ from rest_framework import serializers
 from rest_framework_gis.serializers import GeoFeatureModelSerializer
 
 from disturbance.components.approvals.models import ApiarySiteOnApproval
+from disturbance.components.das_payments.utils import round_amount_according_to_env
 from disturbance.components.main.utils import get_category, get_tenure, get_region_district, get_status_for_export
 from disturbance.components.organisations.models import Organisation
 
@@ -239,7 +240,7 @@ class ApiarySiteOnApprovalLicenceDocSerializer(serializers.ModelSerializer):
     catchment = serializers.SerializerMethodField()
     dra_permit = serializers.SerializerMethodField()
     fee_application = serializers.SerializerMethodField()
-    annual_site_fee = serializers.SerializerMethodField()
+    # annual_site_fee = serializers.SerializerMethodField()
     fee_renewal = serializers.SerializerMethodField()
     fee_transfer = serializers.SerializerMethodField()
 
@@ -264,7 +265,7 @@ class ApiarySiteOnApprovalLicenceDocSerializer(serializers.ModelSerializer):
             'catchment',
             'dra_permit',
             'fee_application',
-            'annual_site_fee',
+            # 'annual_site_fee',
             'fee_renewal',
             'fee_transfer',
         )
@@ -337,14 +338,16 @@ class ApiarySiteOnApprovalLicenceDocSerializer(serializers.ModelSerializer):
         return 'Yes' if apiary_site_on_proposal.dra_permit else 'No'
 
     def get_fee_application(self, apiary_site_on_approval):
-        return apiary_site_on_approval.site_category.fee_application_per_site  # This is application fee
+        # return apiary_site_on_approval.site_category.fee_application_per_site  # This is application fee
+        return self.get_annual_site_fee(apiary_site_on_approval)
 
     def get_annual_site_fee(self, apiary_site_on_approval):
         from disturbance.components.proposals.models import ApiaryAnnualRentalFee, SiteCategory
         from datetime import timedelta
 
         fees_applied = ApiaryAnnualRentalFee.get_fees_by_period(apiary_site_on_approval.approval.start_date, apiary_site_on_approval.approval.expiry_date)  # Fee may be changed during the period.  That's why fees_applied is an array.
-        num_of_days_in_period = apiary_site_on_approval.approval.expiry_date - (apiary_site_on_approval.approval.start_date - timedelta(days=1))
+        # num_of_days_in_period = apiary_site_on_approval.approval.expiry_date - (apiary_site_on_approval.approval.start_date - timedelta(days=1))
+        num_of_days_in_year = 365
 
         if apiary_site_on_approval.site_category == SiteCategory.CATEGORY_SOUTH_WEST:
             key_for_amount = 'amount_south_west_per_year'
@@ -353,7 +356,10 @@ class ApiarySiteOnApprovalLicenceDocSerializer(serializers.ModelSerializer):
 
         annual_site_fee = 0
         for fee_for_site in fees_applied:
-            annual_site_fee += fee_for_site.get(key_for_amount) * fee_for_site.get('num_of_days').days / num_of_days_in_period.days
+            # annual_site_fee += fee_for_site.get(key_for_amount) * fee_for_site.get('num_of_days').days / num_of_days_in_year
+            # annual_site_fee = round_amount_according_to_env(annual_site_fee)
+            annual_site_fee = fee_for_site.get(key_for_amount)  # We just display the 1st one
+            break
 
         return annual_site_fee
 
