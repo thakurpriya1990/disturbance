@@ -239,6 +239,7 @@ class ApiarySiteOnApprovalLicenceDocSerializer(serializers.ModelSerializer):
     catchment = serializers.SerializerMethodField()
     dra_permit = serializers.SerializerMethodField()
     fee_application = serializers.SerializerMethodField()
+    annual_site_fee = serializers.SerializerMethodField()
     fee_renewal = serializers.SerializerMethodField()
     fee_transfer = serializers.SerializerMethodField()
 
@@ -263,10 +264,9 @@ class ApiarySiteOnApprovalLicenceDocSerializer(serializers.ModelSerializer):
             'catchment',
             'dra_permit',
             'fee_application',
+            'annual_site_fee',
             'fee_renewal',
             'fee_transfer',
-
-
         )
 
     def get_site_category(self, apiary_site_on_approval):
@@ -337,7 +337,25 @@ class ApiarySiteOnApprovalLicenceDocSerializer(serializers.ModelSerializer):
         return 'Yes' if apiary_site_on_proposal.dra_permit else 'No'
 
     def get_fee_application(self, apiary_site_on_approval):
-        return apiary_site_on_approval.site_category.fee_application_per_site
+        return apiary_site_on_approval.site_category.fee_application_per_site  # This is application fee
+
+    def get_annual_site_fee(self, apiary_site_on_approval):
+        from disturbance.components.proposals.models import ApiaryAnnualRentalFee, SiteCategory
+        from datetime import timedelta
+
+        fees_applied = ApiaryAnnualRentalFee.get_fees_by_period(apiary_site_on_approval.approval.start_date, apiary_site_on_approval.approval.expiry_date)  # Fee may be changed during the period.  That's why fees_applied is an array.
+        num_of_days_in_period = apiary_site_on_approval.approval.expiry_date - (apiary_site_on_approval.approval.start_date - timedelta(days=1))
+
+        if apiary_site_on_approval.site_category == SiteCategory.CATEGORY_SOUTH_WEST:
+            key_for_amount = 'amount_south_west_per_year'
+        else:
+            key_for_amount = 'amount_remote_per_year'
+
+        annual_site_fee = 0
+        for fee_for_site in fees_applied:
+            annual_site_fee += fee_for_site.get(key_for_amount) * fee_for_site.get('num_of_days').days / num_of_days_in_period.days
+
+        return annual_site_fee
 
     def get_fee_renewal(self, apiary_site_on_approval):
         return apiary_site_on_approval.site_category.fee_renewal_per_site
