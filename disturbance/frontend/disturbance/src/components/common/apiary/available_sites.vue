@@ -1083,6 +1083,7 @@
                 return ret_str
             },
             showPopup: function(feature){
+                console.log('in showPopup')
                 let unique_id = uuid()
 
 
@@ -1096,31 +1097,43 @@
                     let status_str = getDisplayNameFromStatus(a_status)
                     let actions = this.get_actions(feature, this.contactLicenceHolder)
                     let approval_link = this.get_approval_link(feature)
-                    let a_table = '<table class="table">' +
-                          '<tbody>' +
-                            '<tr>' +
-                              '<th scope="row">Holder/Applicant</th>' +
-                              '<td><span id=' + unique_id + '></span></td>' +
-                            '</tr>' +
-                            '<tr>' +
-                              '<th scope="row">Status</th>' +
-                              '<td>' + status_str + '</td>' +
-                            '</tr>' +
-                            '<tr>' +
-                              '<th scope="row">Category</th>' +
-                              '<td>' + getDisplayNameOfCategory(feature.get('site_category')) + '</td>' +
-                            '</tr>' +
-                            '<tr>' +
-                              '<th scope="row">Coordinates</th>' +
-                              '<td>' + feature['values_']['geometry']['flatCoordinates'] + '</td>' +
-                            '</tr>' +
-                            approval_link + 
-                            '<tr>' +
-                              '<th scope="row">Action</th>' +
-                              '<td>' + actions + '</td>' +
-                            '</tr>' +
-                          '</tbody>' +
-                        '</table>'
+                    let a_table = ''
+                    if (this.is_internal){
+                        a_table = '<table class="table">' +
+                              '<tbody>' +
+                                '<tr>' +
+                                  '<th scope="row">Holder/Applicant</th>' +
+                                  '<td><span id=' + unique_id + '></span></td>' +
+                                '</tr>' +
+                                '<tr>' +
+                                  '<th scope="row">Status</th>' +
+                                  '<td>' + status_str + '</td>' +
+                                '</tr>' +
+                                '<tr>' +
+                                  '<th scope="row">Category</th>' +
+                                  '<td>' + getDisplayNameOfCategory(feature.get('site_category')) + '</td>' +
+                                '</tr>' +
+                                '<tr>' +
+                                  '<th scope="row">Coordinates</th>' +
+                                  '<td>' + feature['values_']['geometry']['flatCoordinates'] + '</td>' +
+                                '</tr>' +
+                                approval_link + 
+                                '<tr>' +
+                                  '<th scope="row">Action</th>' +
+                                  '<td>' + actions + '</td>' +
+                                '</tr>' +
+                              '</tbody>' +
+                            '</table>'
+                    } else if (this.is_external){
+                        a_table = '<table class="table">' +
+                              '<tbody>' +
+                                '<tr>' +
+                                  '<th scope="row">Status</th>' +
+                                  '<td>' + status_str + '</td>' +
+                                '</tr>' +
+                            '</table>'
+                    }
+
                     let content = '<div style="padding: 0.25em;">' +
                                       '<div style="background: darkgray; color: white; text-align: center; padding: 0.5em;" class="align-middle">' + svg_hexa + ' site: ' + feature.id_ + '</div>' +
                                       a_table +
