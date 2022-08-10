@@ -1061,7 +1061,9 @@ export default {
             },100);
         }); 
         this.$nextTick(() => {
-            this.eventListeners();
+            if (this.show_linked) {
+                this.eventListeners();
+            }
         });
     }
 }
