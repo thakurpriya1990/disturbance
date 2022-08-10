@@ -349,7 +349,7 @@ class ApiarySiteOnApprovalLicenceDocSerializer(serializers.ModelSerializer):
         # num_of_days_in_period = apiary_site_on_approval.approval.expiry_date - (apiary_site_on_approval.approval.start_date - timedelta(days=1))
         num_of_days_in_year = 365
 
-        if apiary_site_on_approval.site_category == SiteCategory.CATEGORY_SOUTH_WEST:
+        if apiary_site_on_approval.site_category.name == SiteCategory.CATEGORY_SOUTH_WEST:
             key_for_amount = 'amount_south_west_per_year'
         else:
             key_for_amount = 'amount_remote_per_year'
