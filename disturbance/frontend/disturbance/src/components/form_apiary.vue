@@ -16,6 +16,7 @@
                 :org_id="proposal.applicant" 
                 :isApplication="true" 
                 :show_linked="false" 
+                :show_address="true" 
                 :org_collapse="true" 
                 :div_container="false"
                 ref="mu_details" 

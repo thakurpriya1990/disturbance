@@ -176,11 +176,7 @@
         },
         methods: {
             //setLoadingSitesStatus: function(a_status){
-            //    console.log('in setLoadingSitesStatus')
-            //    console.log({a_status})
-            //    console.log(this.loading_sites)
             //    this.loading_sites = a_status
-            //    console.log(this.loading_sites)
             //},
             addJoint: function(point, styles){
                 let s = new Style({
@@ -296,7 +292,6 @@
                 })
             },
             setBaseLayer: function(selected_layer_name){
-                console.log('in setBaseLayer')
                 let vm = this
                 if (selected_layer_name == 'sat') {
                     vm.tileLayerOsm.setVisible(false)
