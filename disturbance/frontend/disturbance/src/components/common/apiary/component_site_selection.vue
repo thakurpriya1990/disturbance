@@ -542,9 +542,6 @@
                     this.apiary_site_geojson_array.push(apiary_sites[i])
                 }
 
-                console.log('------------')
-                console.log(this.$refs.component_map)
-
                 // Reload ComponentMap by assigning a new key value
                 this.component_map_key = uuid()
             },
