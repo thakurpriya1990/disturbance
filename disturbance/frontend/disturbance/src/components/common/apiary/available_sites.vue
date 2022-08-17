@@ -1125,7 +1125,7 @@
                               '</tbody>' +
                             '</table>'
                     } else if (this.is_external){
-                        a_table = '<table class="table">' +
+                        a_table = '<table class="table" style="white-space: nowrap;">' +
                               '<tbody>' +
                                 '<tr>' +
                                   '<th scope="row">Status</th>' +
