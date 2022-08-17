@@ -1131,6 +1131,10 @@
                                   '<th scope="row">Status</th>' +
                                   '<td>' + status_str + '</td>' +
                                 '</tr>' +
+                                '<tr>' +
+                                  '<th scope="row">Action</th>' +
+                                  '<td>' + actions + '</td>' +
+                                '</tr>' +
                             '</table>'
                     }
 
