@@ -77,11 +77,16 @@
                     'To',
                     'Site',
                     'Comments',
+                    'The proposed location of the hives',
+                    'Number of hives proposed to be placed on the site',
+                    'The names of the people who are expected to be entering the people_names',
+                    'Flora targeted',
                     'Action',
                 ],
                 dtOptions: {
                     serverSide: false,
                     searchDelay: 1000,
+                    autoWidth: false,
                     lengthMenu: [ [10, 25, 50, 100, -1], [10, 25, 50, 100, "All"] ],
                     order: [
                         [1, 'desc'], [0, 'desc'],
@@ -144,6 +149,42 @@
                             }
                         },
                         {
+                            mRender: function (data, type, full) {
+                                if (full.comments) {
+                                    return full.hives_loc;
+                                } else {
+                                    return '';
+                                }
+                            }
+                        },
+                        {
+                            mRender: function (data, type, full) {
+                                if (full.comments) {
+                                    return full.hives_num;
+                                } else {
+                                    return '';
+                                }
+                            }
+                        },
+                        {
+                            mRender: function (data, type, full) {
+                                if (full.comments) {
+                                    return full.people_names;
+                                } else {
+                                    return '';
+                                }
+                            }
+                        },
+                        {
+                            mRender: function (data, type, full) {
+                                if (full.comments) {
+                                    return full.flora;
+                                } else {
+                                    return '';
+                                }
+                            }
+                        },
+                        {
                             visible: true,
                             mRender: function (data, type, full) {
                                 if (vm.is_external && vm.onSiteInformationEnabled){
@@ -169,6 +210,26 @@
             datatable,
         },
         computed:{
+            column_id: () => {
+            },
+            column_from: () => {
+            },
+            column_to: () => {
+            },
+            column_site: () => {
+            },
+            column_comments: () => {
+            },
+            column_hives_loc: () => {
+            },
+            column_hives_num: () => {
+            },
+            column_people_names: () => {
+            },
+            column_flora: () => {
+            },
+            column_action: () => {
+            },
             number_of_columns: function() {
                 let num =  this.$refs.on_site_information_table.vmDataTable.columns(':visible').nodes().length;
                 return num
