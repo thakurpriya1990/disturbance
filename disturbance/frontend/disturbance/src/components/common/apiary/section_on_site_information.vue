@@ -1,6 +1,6 @@
 <template lang="html">
     <div>
-        <div class="row col-sm-12">
+        <div class="row col-sm-12" style="margin-bottom: 0.5em;">
             <template v-if="is_external">
                 <button :disabled="!onSiteInformationEnabled" class="btn btn-primary pull-right" @click="openOnSiteInformationModalToAdd">Add</button>
             </template>
