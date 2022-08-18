@@ -272,21 +272,27 @@
                     //------------
                     let first_td = tr.children().first()
                     if(first_td.hasClass(vm.td_expand_class_name)){
-                        // Expand
-                        let contents = vm.get_content(full_data)
+                        let $next_elem = tr.next()
+                        if ($next_elem.hasClass('details_row')){
+                            console.log('1')
+                        } else {
+                            console.log('2')
+                            // Expand
+                            let contents = vm.get_content(full_data)
 
-                        let details_elem = $('<tr class="' + vm.expandable_row_class_name +'"><td colspan="' + vm.number_of_columns + '">' + contents + '</td></tr>')
-                        details_elem.hide()
-                        details_elem.insertAfter(tr)
-                        details_elem.fadeIn(1000)
+                            let details_elem = $('<tr class="details_row ' + vm.expandable_row_class_name +'"><td colspan="' + vm.number_of_columns + '">' + contents + '</td></tr>')
+                            details_elem.hide()
+                            details_elem.insertAfter(tr)
+                            details_elem.fadeIn(1000)
 
-                        // Change icon class name to vm.td_collapse_class_name
-                        first_td.removeClass(vm.td_expand_class_name).addClass(vm.td_collapse_class_name)
+                            // Change icon class name to vm.td_collapse_class_name
+                            first_td.removeClass(vm.td_expand_class_name).addClass(vm.td_collapse_class_name)
+                        }
                     } else {
                         let nextElem = tr.next()
                         // Collapse
                         if(nextElem.is('tr') & nextElem.hasClass(vm.expandable_row_class_name)){
-                            // Sticker details row is already shown.  Remove it.
+                            // Details row is already shown.  Remove it.
                             nextElem.fadeOut(500, function(){
                                 nextElem.remove()
                             })
@@ -295,8 +301,8 @@
                         first_td.removeClass(vm.td_collapse_class_name).addClass(vm.td_expand_class_name)
                     }
                 })
-                vm.$refs.on_site_information_table.vmDataTable.on('requestChild.dt', function(e, row) {
-                    row.child(vm.get_content(full_data)).show()
+                vm.$refs.on_site_information_table.vmDataTable.on('responsive-resize', function(e, datatable, columns) {
+                    // Responsive has changed the visibility of columns in the table in response to a resize or recalculation event.
                 })
             },
             editOnSiteInformation: async function(e) {
