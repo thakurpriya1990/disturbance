@@ -90,6 +90,7 @@
                         processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
                     },
                     rowCallback: function (row, obj){
+                        return // We disable the expander for now
                         console.log('in rowCallback')
                         let row_jq = $(row)
                         row_jq.children().first().addClass(vm.td_expand_class_name)
@@ -249,6 +250,7 @@
                 // Listener for thr row
                 let vm = this
                 vm.$refs.on_site_information_table.vmDataTable.on('click', 'td', function(e) {
+                    return  // We disable the expander for now
                     let td_link = $(this)
 
                     if (!(td_link.hasClass(vm.td_expand_class_name) || td_link.hasClass(vm.td_collapse_class_name))){
