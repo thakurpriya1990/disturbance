@@ -406,18 +406,23 @@
                 }
             },
             updateInstructions: function(){
+                console.log('in updateInstructions')
                 let vm = this
                 let statuses_currently_selected = $(vm.$refs.filterStatus).select2('data').map(x => { return x.id })
                 let availabilities_currently_selected = $(vm.$refs.filterAvailability).select2('data').map(x => { return x.id })
                 let current_status_item = vm.show_hide_instructions.filter(x => { return x.id === 'current' })[0]  // We just interested in the 'current' status
+                console.log({statuses_currently_selected})
+                console.log({availabilities_currently_selected})
 
                 if (availabilities_currently_selected.length === 0){
                     // No availabilities selected
                     if (statuses_currently_selected.length === 0){
+                        // No statuses selected --> Show all
                         for (let site_status of vm.show_hide_instructions){
                             site_status.show = true
                         }
                     } else {
+                        // some statuses selected --> Show whatever selected
                         for (let site_status of vm.show_hide_instructions){
                             if (statuses_currently_selected.includes(site_status.id)){
                                 site_status.show = true
@@ -427,16 +432,24 @@
                         }
                     }
                 } else {
-                    // Availability selected
-                    for (let site_status of vm.show_hide_instructions){
-                        if (site_status.id === 'current'){
+                    // Some availability selected
+                    if (statuses_currently_selected.length === 0){
+                        // No statuses selected --> Show only current
+                        for (let site_status of vm.show_hide_instructions){
+                            if (site_status.id === 'current'){
+                                site_status.show = true
+                            } else {
+                                site_status.show = false
+                            }
+                        }
+                    } else {
+                        // Some statuses selected --> Show whatever selected
+                        for (let site_status of vm.show_hide_instructions){
                             if (statuses_currently_selected.includes(site_status.id)){
                                 site_status.show = true
                             } else {
                                 site_status.show = false
                             }
-                        } else {
-                            site_status.show = false
                         }
                     }
                 }
@@ -1288,6 +1301,9 @@
                 // This function shows/hides the apiary sites according to the show_hide_instructions object.
                 /////
                 let vm = this
+
+                let temp = vm.show_hide_instructions
+                console.log({temp})
 
                 vm.clearApiarySitesFromMap()
                 vm.clearAjaxObjects()
