@@ -186,6 +186,15 @@
 
         },
         methods:{
+            get_content: function(data){
+                let hives_loc = '<tr><td><strong>The proposed location of the hives</strong></td><td>' + data.hives_loc + '</td></tr>'
+                let hives_num = '<tr><td><strong>Number of hives proposed to be <br />placed on the site</strong></td><td>' + data.hives_num + '</td></tr>'
+                let people_names = '<tr><td><strong>The names of the people who <br />are expected to be entering the <br />site for apiary purposes</strong></td><td>' + data.people_names + '</td></tr>'
+                let flora = '<tr><td><strong>Flora targeted</strong></td><td>' + data.flora + '</td></tr>'
+
+                let contents = '<table class="child_table">' + hives_loc + hives_num + people_names + flora + '</table>'
+                return contents
+            },
             onSiteInformationAdded: async function() {
                 await this.loadOnSiteInformation(this.approval_id);
                 this.constructOnSiteInformationTable();
@@ -253,19 +262,18 @@
                     // Get full data of this row
                     let $row = vm.$refs.on_site_information_table.vmDataTable.row(tr)
                     let full_data = $row.data()
-                    console.log({full_data})
 
+                    //------------
+                //    if ($row.child.isShown()){
+                //        $row.child.hide()
+                //    } else {
+                //        $row.child(vm.get_content(full_data)).show()
+                //    }
+                    //------------
                     let first_td = tr.children().first()
                     if(first_td.hasClass(vm.td_expand_class_name)){
                         // Expand
-
-                        // If we don't need to retrieve the data from the server, follow the code below
-                        let hives_loc = '<div><strong>The proposed location of the hives</strong>: ' + full_data.hives_loc + '</div>'
-                        let hives_num = '<div><strong>Number of hives proposed to be placed on the site</strong>: ' + full_data.hives_num + '</div>'
-                        let people_names = '<div><strong>The names of the people who are expected to be entering the site for apiary purposes</strong>: ' + full_data.people_names + '</div>'
-                        let flora = '<div><strong>Flora targeted</strong>: ' + full_data.flora + '</div>'
-
-                        let contents = hives_loc + hives_num + people_names + flora
+                        let contents = vm.get_content(full_data)
 
                         let details_elem = $('<tr class="' + vm.expandable_row_class_name +'"><td colspan="' + vm.number_of_columns + '">' + contents + '</td></tr>')
                         details_elem.hide()
@@ -286,6 +294,9 @@
                         // Change icon class name to vm.td_expand_class_name
                         first_td.removeClass(vm.td_collapse_class_name).addClass(vm.td_expand_class_name)
                     }
+                })
+                vm.$refs.on_site_information_table.vmDataTable.on('requestChild.dt', function(e, row) {
+                    row.child(vm.get_content(full_data)).show()
                 })
             },
             editOnSiteInformation: async function(e) {
@@ -416,5 +427,15 @@
     text-indent: 0 !important;
     font-family: 'Courier New', Courier monospace;
     margin: 5px;
+}
+.child_table {
+    border-collapse: collapse;
+    width: 100%;
+}
+.child_table tr {
+    border-bottom: 1px solid #ccc;
+}
+.child_table td {
+    padding: 0.5em;
 }
 </style>
