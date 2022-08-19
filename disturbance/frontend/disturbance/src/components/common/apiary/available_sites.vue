@@ -438,18 +438,20 @@
                         for (let site_status of vm.show_hide_instructions){
                             if (site_status.id === 'current'){
                                 site_status.show = true
-                            } else {
-                                site_status.show = false
+                                continue
                             }
+                            site_status.show = false
                         }
                     } else {
-                        // Some statuses selected --> Show whatever selected
+                        // Some statuses selected
                         for (let site_status of vm.show_hide_instructions){
-                            if (statuses_currently_selected.includes(site_status.id)){
-                                site_status.show = true
-                            } else {
-                                site_status.show = false
+                            if (site_status.id === 'current'){
+                                if (statuses_currently_selected.includes(site_status.id)){
+                                    site_status.show = true
+                                    continue
+                                }
                             }
+                            site_status.show = false
                         }
                     }
                 }
