@@ -3,8 +3,6 @@
 {%  block content %}
     Someone is interested in your apiary site:
 
-    Approval : {{ apiary_site.approval.lodgement_number}}
-
     Apiary Site : {{ apiary_site.id }}
 
     Name : {{ sender.get_full_name }}
