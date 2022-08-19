@@ -1,6 +1,6 @@
 <template lang="html">
     <div>
-        <div class="row col-sm-12">
+        <div class="row col-sm-12" style="margin-bottom: 0.5em;">
             <template v-if="is_external">
                 <button :disabled="!onSiteInformationEnabled" class="btn btn-primary pull-right" @click="openOnSiteInformationModalToAdd">Add</button>
             </template>
@@ -67,6 +67,10 @@
                     period_to: null,
                 },
                 modalBindId: null,
+                // For Expandable row
+                td_expand_class_name: 'expand-icon',
+                td_collapse_class_name: 'collapse-icon',
+                expandable_row_class_name: 'expandable_row_class_name',
                 dtHeaders: [
                     'Id',
                     'From',
@@ -84,6 +88,12 @@
                     ],
                     language: {
                         processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
+                    },
+                    rowCallback: function (row, obj){
+                        return // We disable the expander for now
+                        console.log('in rowCallback')
+                        let row_jq = $(row)
+                        row_jq.children().first().addClass(vm.td_expand_class_name)
                     },
                     responsive: true,
                     processing: true,
@@ -159,6 +169,10 @@
             datatable,
         },
         computed:{
+            number_of_columns: function() {
+                let num =  this.$refs.on_site_information_table.vmDataTable.columns(':visible').nodes().length;
+                return num
+            },
             onSiteInformationEnabled: function() {
                 let enabled = false;
                 try {
@@ -173,6 +187,15 @@
 
         },
         methods:{
+            get_content: function(data){
+                let hives_loc = '<tr><td><strong>The proposed location of the hives</strong></td><td>' + data.hives_loc + '</td></tr>'
+                let hives_num = '<tr><td><strong>Number of hives proposed to be <br />placed on the site</strong></td><td>' + data.hives_num + '</td></tr>'
+                let people_names = '<tr><td><strong>The names of the people who <br />are expected to be entering the <br />site for apiary purposes</strong></td><td>' + data.people_names + '</td></tr>'
+                let flora = '<tr><td><strong>Flora targeted</strong></td><td>' + data.flora + '</td></tr>'
+
+                let contents = '<table class="child_table">' + hives_loc + hives_num + people_names + flora + '</table>'
+                return contents
+            },
             onSiteInformationAdded: async function() {
                 await this.loadOnSiteInformation(this.approval_id);
                 this.constructOnSiteInformationTable();
@@ -223,6 +246,66 @@
             addEventListeners: function() {
                 $("#on-site-information-table").on("click", ".delete_on_site_information", this.deleteOnSiteInformation);
                 $("#on-site-information-table").on("click", ".edit_on_site_information", this.editOnSiteInformation);
+
+                // Listener for thr row
+                let vm = this
+                vm.$refs.on_site_information_table.vmDataTable.on('click', 'td', function(e) {
+                    return  // We disable the expander for now
+                    let td_link = $(this)
+
+                    if (!(td_link.hasClass(vm.td_expand_class_name) || td_link.hasClass(vm.td_collapse_class_name))){
+                        // This row is not configured as expandable row (at the rowCallback)
+                        return
+                    }
+
+                    // Get <tr> element as jQuery object
+                    let tr = td_link.closest('tr')
+
+                    // Get full data of this row
+                    let $row = vm.$refs.on_site_information_table.vmDataTable.row(tr)
+                    let full_data = $row.data()
+
+                    //------------
+                //    if ($row.child.isShown()){
+                //        $row.child.hide()
+                //    } else {
+                //        $row.child(vm.get_content(full_data)).show()
+                //    }
+                    //------------
+                    let first_td = tr.children().first()
+                    if(first_td.hasClass(vm.td_expand_class_name)){
+                        let $next_elem = tr.next()
+                        if ($next_elem.hasClass('details_row')){
+                            console.log('1')
+                        } else {
+                            console.log('2')
+                            // Expand
+                            let contents = vm.get_content(full_data)
+
+                            let details_elem = $('<tr class="details_row ' + vm.expandable_row_class_name +'"><td colspan="' + vm.number_of_columns + '">' + contents + '</td></tr>')
+                            details_elem.hide()
+                            details_elem.insertAfter(tr)
+                            details_elem.fadeIn(1000)
+
+                            // Change icon class name to vm.td_collapse_class_name
+                            first_td.removeClass(vm.td_expand_class_name).addClass(vm.td_collapse_class_name)
+                        }
+                    } else {
+                        let nextElem = tr.next()
+                        // Collapse
+                        if(nextElem.is('tr') & nextElem.hasClass(vm.expandable_row_class_name)){
+                            // Details row is already shown.  Remove it.
+                            nextElem.fadeOut(500, function(){
+                                nextElem.remove()
+                            })
+                        }
+                        // Change icon class name to vm.td_expand_class_name
+                        first_td.removeClass(vm.td_collapse_class_name).addClass(vm.td_expand_class_name)
+                    }
+                })
+                vm.$refs.on_site_information_table.vmDataTable.on('responsive-resize', function(e, datatable, columns) {
+                    // Responsive has changed the visibility of columns in the table in response to a resize or recalculation event.
+                })
             },
             editOnSiteInformation: async function(e) {
                 console.log('in editOnSiteInformation')
@@ -306,6 +389,61 @@
     }
 </script>
 
-<style lang="css" scoped>
-
+<style>
+.collapse-icon {
+    cursor: pointer;
+}
+.collapse-icon::before {
+    top: 5px;
+    left: 4px;
+    height: 14px;
+    width: 14px;
+    border-radius: 14px;
+    line-height: 14px;
+    border: 2px solid white;
+    line-height: 14px;
+    content: '-';
+    color: white;
+    background-color: #d33333;
+    display: inline-block;
+    box-shadow: 0px 0px 3px #444;
+    box-sizing: content-box;
+    text-align: center;
+    text-indent: 0 !important;
+    font-family: 'Courier New', Courier monospace;
+    margin: 5px;
+}
+.expand-icon {
+    cursor: pointer;
+}
+.expand-icon::before {
+    top: 5px;
+    left: 4px;
+    height: 14px;
+    width: 14px;
+    border-radius: 14px;
+    line-height: 14px;
+    border: 2px solid white;
+    line-height: 14px;
+    content: '+';
+    color: white;
+    background-color: #337ab7;
+    display: inline-block;
+    box-shadow: 0px 0px 3px #444;
+    box-sizing: content-box;
+    text-align: center;
+    text-indent: 0 !important;
+    font-family: 'Courier New', Courier monospace;
+    margin: 5px;
+}
+.child_table {
+    border-collapse: collapse;
+    width: 100%;
+}
+.child_table tr {
+    border-bottom: 1px solid #ccc;
+}
+.child_table td {
+    padding: 0.5em;
+}
 </style>
