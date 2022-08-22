@@ -1,5 +1,6 @@
 <template>
     <div class="container">
+        <!-- <div @click="fixCanvasCss">Fix</div> -->
         <FormSection :formCollapse="false" label="Sites" Index="available_sites">
             <div class="map-wrapper">
                 <div v-show="!fullscreen" id="filter_search_row_wrapper">
@@ -389,6 +390,20 @@
             }
         },
         methods: {
+            fixCanvasCss: function(){
+                //$('.ol-layer canvas').each((index)=>{
+                //    console.log('aho')
+                //    console.log({index})
+                //    console.log($(this))
+                //    console.log($(this).css('transform', 'matrix(1, 0, 0, 1, 0, 0)'))
+                //})
+
+                $('.ol-layer canvas').css('transform', 'matrix(1, 0, 0, 1, 0, 0)');
+                // $('.ol-layer canvas').css('transform', '');
+                //let test = $('.ol-layer canvas').css('transform').length
+                //console.log(test)
+                // canvases.css("transform", "matrix(1, 0, 0, 1, 0, 0)")
+            },
             updateAvailabilityInstructions: function(availabilities_currently_selected, options){
                 let vm = this
                 if (availabilities_currently_selected.length === 0){
@@ -817,6 +832,12 @@
                 });
 
                 vm.apiarySitesQuerySource = new VectorSource({ });
+                vm.apiarySitesQuerySource.on('featuresloadend', function(){
+                    console.log('featuresloadend')
+                })
+                vm.apiarySitesQuerySource.on('tileloadend', function(){
+                    console.log('tileloadend')
+                })
 
                 let clusterSource = new Cluster({
                     distance: 50,
@@ -1021,6 +1042,18 @@
                     let extent = vm.map.getView().calculateExtent(vm.map.getSize());
                     let features = vm.apiarySitesQuerySource.getFeaturesInExtent(extent)
                     vm.$emit('featuresDisplayed', features)
+                });
+                //vm.map.on('postrender', function(){
+                //   console.log('postrender')
+                //});
+                //vm.map.on('loadstart', function(){
+                //   console.log('loadstart')
+                //});
+                //vm.map.on('loadend', function(){
+                //   console.log('loadend')
+                //});
+                vm.map.once('rendercomplete', function(event) {
+                    vm.fixCanvasCss()
                 });
                 if (vm.can_modify){
                     let modifyTool = new Modify({
@@ -1523,6 +1556,9 @@
         position: absolute;
         top: 2px;
         right: 8px;
+    }
+    .ol-layer canvas {
+        transform: none !important;
     }
     .close-icon:hover {
         filter: brightness(80%);
