@@ -318,17 +318,23 @@
                 this.$refs.on_site_information_table.vmDataTable.row.add(on_site_information).draw();
             },
             addEventListeners: function() {
+                let vm = this
                 $("#on-site-information-table").on("click", ".delete_on_site_information", this.deleteOnSiteInformation);
                 $("#on-site-information-table").on("click", ".edit_on_site_information", this.editOnSiteInformation);
-                this.$refs.on_site_information_table.vmDataTable.on( 'column-visibility.dt', function () {
-                    console.log('aho')
-                    $('[data-toggle="tooltip"]').tooltip()
-                } );
+                // this.$refs.on_site_information_table.vmDataTable.on( 'childRow.dt', function () {
+                //     console.log('childRow.dt')
+                // });
+                
+
+                // $('#example').on('childRow.dt', function(e, show, row) {
+                //     console.log((show ? "Showing " : "Hiding ") + "row " + row.index());
+                // });
+
                 // Listener for thr row
                 //let vm = this
-                //vm.$refs.on_site_information_table.vmDataTable.on('click', 'td', function(e) {
+                vm.$refs.on_site_information_table.vmDataTable.on('click', 'td', function(e) {
                 //    return  // We disable the expander for now
-                //    let td_link = $(this)
+                    let td_link = $(this)
 
                 //    if (!(td_link.hasClass(vm.td_expand_class_name) || td_link.hasClass(vm.td_collapse_class_name))){
                 //        // This row is not configured as expandable row (at the rowCallback)
@@ -336,10 +342,19 @@
                 //    }
 
                 //    // Get <tr> element as jQuery object
-                //    let tr = td_link.closest('tr')
+                    let tr = td_link.closest('tr')
 
                 //    // Get full data of this row
-                //    let $row = vm.$refs.on_site_information_table.vmDataTable.row(tr)
+                    let $row = vm.$refs.on_site_information_table.vmDataTable.row(tr)
+                    if($row.child.isShown()){
+                        tr.siblings('.child').find('[data-toggle="popover"]')
+                        .popover()
+                        .on('click', function (e) {
+                            e.preventDefault();
+                            return true;
+                        });
+                    }
+                })
                 //    let full_data = $row.data()
 
                 //    //------------
@@ -475,8 +490,8 @@
         mounted: function() {
             let vm = this;
             this.$nextTick(() => {
-                vm.addEventListeners();
                 this.constructOnSiteInformationTable();
+                vm.addEventListeners();
             });
         }
     }
