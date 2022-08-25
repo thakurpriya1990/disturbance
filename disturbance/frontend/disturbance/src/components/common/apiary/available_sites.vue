@@ -390,20 +390,6 @@
             }
         },
         methods: {
-            fixCanvasCss: function(){
-                //$('.ol-layer canvas').each((index)=>{
-                //    console.log('aho')
-                //    console.log({index})
-                //    console.log($(this))
-                //    console.log($(this).css('transform', 'matrix(1, 0, 0, 1, 0, 0)'))
-                //})
-
-                $('.ol-layer canvas').css('transform', 'matrix(1, 0, 0, 1, 0, 0)');
-                // $('.ol-layer canvas').css('transform', '');
-                //let test = $('.ol-layer canvas').css('transform').length
-                //console.log(test)
-                // canvases.css("transform", "matrix(1, 0, 0, 1, 0, 0)")
-            },
             updateAvailabilityInstructions: function(availabilities_currently_selected, options){
                 let vm = this
                 if (availabilities_currently_selected.length === 0){
@@ -421,13 +407,10 @@
                 }
             },
             updateInstructions: function(){
-                console.log('in updateInstructions')
                 let vm = this
                 let statuses_currently_selected = $(vm.$refs.filterStatus).select2('data').map(x => { return x.id })
                 let availabilities_currently_selected = $(vm.$refs.filterAvailability).select2('data').map(x => { return x.id })
                 let current_status_item = vm.show_hide_instructions.filter(x => { return x.id === 'current' })[0]  // We just interested in the 'current' status
-                console.log({statuses_currently_selected})
-                console.log({availabilities_currently_selected})
 
                 if (availabilities_currently_selected.length === 0){
                     // No availabilities selected
@@ -830,16 +813,11 @@
                         center: [115.95, -31.95],
                         zoom: 7,
                         projection: 'EPSG:4326'
-                    })
+                    }),
+                    pixelRatio: 1,  // We need this in order to make this map work correctly with the browser and/or display scaling factor(s) other than 100%
                 });
 
                 vm.apiarySitesQuerySource = new VectorSource({ });
-                vm.apiarySitesQuerySource.on('featuresloadend', function(){
-                    console.log('featuresloadend')
-                })
-                vm.apiarySitesQuerySource.on('tileloadend', function(){
-                    console.log('tileloadend')
-                })
 
                 let clusterSource = new Cluster({
                     distance: 50,
@@ -1054,9 +1032,6 @@
                 //vm.map.on('loadend', function(){
                 //   console.log('loadend')
                 //});
-                vm.map.once('rendercomplete', function(event) {
-                    vm.fixCanvasCss()
-                });
                 if (vm.can_modify){
                     let modifyTool = new Modify({
                         source: vm.apiarySitesQuerySource,
@@ -1131,9 +1106,7 @@
                 return ret_str
             },
             showPopup: function(feature){
-                console.log('in showPopup')
                 let unique_id = uuid()
-
 
                 if (feature){
                     let geometry = feature.getGeometry();
@@ -1338,7 +1311,6 @@
                 let vm = this
 
                 let temp = vm.show_hide_instructions
-                console.log({temp})
 
                 vm.clearApiarySitesFromMap()
                 vm.clearAjaxObjects()
@@ -1360,7 +1332,6 @@
                                         option.loading_sites = false
                                     },
                                     error: function (jqXhr, textStatus, errorMessage) { // error callback 
-                                        console.log(errorMessage)
                                         option.loading_sites = false
                                     }
                                 })
@@ -1429,7 +1400,6 @@
             }, // END: showHideApiarySites()
         },
         created: function() {
-
         },
         mounted: function() {
             let vm = this;
