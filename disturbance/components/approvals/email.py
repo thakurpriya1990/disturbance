@@ -217,7 +217,7 @@ def send_on_site_notification_email(request_data, sender, update=False):
         delegate = approval.relevant_applicant.delegates.all()[0]
         contact = delegate.phone_number if delegate.phone_number else delegate.mobile_number
     else:
-        approval = approval.relevant_applicant.get_full_name(),
+        applicant = approval.relevant_applicant.get_full_name(),
         contact = approval.relevant_applicant.phone_number if approval.relevant_applicant.phone_number else approval.relevant_applicant.mobile_number
 
     context = {
