@@ -1,5 +1,6 @@
 <template>
     <div class="container">
+        <!-- <div @click="fixCanvasCss">Fix</div> -->
         <FormSection :formCollapse="false" label="Sites" Index="available_sites">
             <div class="map-wrapper">
                 <div v-show="!fullscreen" id="filter_search_row_wrapper">
@@ -406,13 +407,10 @@
                 }
             },
             updateInstructions: function(){
-                console.log('in updateInstructions')
                 let vm = this
                 let statuses_currently_selected = $(vm.$refs.filterStatus).select2('data').map(x => { return x.id })
                 let availabilities_currently_selected = $(vm.$refs.filterAvailability).select2('data').map(x => { return x.id })
                 let current_status_item = vm.show_hide_instructions.filter(x => { return x.id === 'current' })[0]  // We just interested in the 'current' status
-                console.log({statuses_currently_selected})
-                console.log({availabilities_currently_selected})
 
                 if (availabilities_currently_selected.length === 0){
                     // No availabilities selected
@@ -438,18 +436,20 @@
                         for (let site_status of vm.show_hide_instructions){
                             if (site_status.id === 'current'){
                                 site_status.show = true
-                            } else {
-                                site_status.show = false
+                                continue
                             }
+                            site_status.show = false
                         }
                     } else {
-                        // Some statuses selected --> Show whatever selected
+                        // Some statuses selected
                         for (let site_status of vm.show_hide_instructions){
-                            if (statuses_currently_selected.includes(site_status.id)){
-                                site_status.show = true
-                            } else {
-                                site_status.show = false
+                            if (site_status.id === 'current'){
+                                if (statuses_currently_selected.includes(site_status.id)){
+                                    site_status.show = true
+                                    continue
+                                }
                             }
+                            site_status.show = false
                         }
                     }
                 }
@@ -813,7 +813,8 @@
                         center: [115.95, -31.95],
                         zoom: 7,
                         projection: 'EPSG:4326'
-                    })
+                    }),
+                    pixelRatio: 1,  // We need this in order to make this map work correctly with the browser and/or display scaling factor(s) other than 100%
                 });
 
                 vm.apiarySitesQuerySource = new VectorSource({ });
@@ -1022,6 +1023,15 @@
                     let features = vm.apiarySitesQuerySource.getFeaturesInExtent(extent)
                     vm.$emit('featuresDisplayed', features)
                 });
+                //vm.map.on('postrender', function(){
+                //   console.log('postrender')
+                //});
+                //vm.map.on('loadstart', function(){
+                //   console.log('loadstart')
+                //});
+                //vm.map.on('loadend', function(){
+                //   console.log('loadend')
+                //});
                 if (vm.can_modify){
                     let modifyTool = new Modify({
                         source: vm.apiarySitesQuerySource,
@@ -1096,9 +1106,7 @@
                 return ret_str
             },
             showPopup: function(feature){
-                console.log('in showPopup')
                 let unique_id = uuid()
-
 
                 if (feature){
                     let geometry = feature.getGeometry();
@@ -1303,7 +1311,6 @@
                 let vm = this
 
                 let temp = vm.show_hide_instructions
-                console.log({temp})
 
                 vm.clearApiarySitesFromMap()
                 vm.clearAjaxObjects()
@@ -1325,7 +1332,6 @@
                                         option.loading_sites = false
                                     },
                                     error: function (jqXhr, textStatus, errorMessage) { // error callback 
-                                        console.log(errorMessage)
                                         option.loading_sites = false
                                     }
                                 })
@@ -1394,7 +1400,6 @@
             }, // END: showHideApiarySites()
         },
         created: function() {
-
         },
         mounted: function() {
             let vm = this;
@@ -1523,6 +1528,9 @@
         position: absolute;
         top: 2px;
         right: 8px;
+    }
+    .ol-layer canvas {
+        transform: none !important;
     }
     .close-icon:hover {
         filter: brightness(80%);
