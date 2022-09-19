@@ -739,7 +739,7 @@ def delete_documents(sender, instance, *args, **kwargs):
 import reversion
 reversion.register(Approval, follow=['documents', 'approval_set', 'action_logs'])
 reversion.register(ApprovalDocument)
-reversion.register(ApprovalLogDocument, follow=['documents'])
+reversion.register(ApprovalLogDocument)
 reversion.register(ApprovalLogEntry)
 reversion.register(ApprovalUserAction)
 reversion.register(ApiarySiteOnApproval)
