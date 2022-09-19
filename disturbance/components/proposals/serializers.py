@@ -1,4 +1,7 @@
+import logging
+
 from ledger.payments.models import Invoice
+import collections
 from disturbance.components.proposals.models import (
                                     ProposalType,
                                     Proposal,
@@ -26,6 +29,9 @@ from disturbance.components.proposals.serializers_base import BaseProposalSerial
     ProposalDeclinedDetailsSerializer, EmailUserSerializer
 
 
+logger = logging.getLogger(__name__)
+
+
 class ProposalTypeSerializer(serializers.ModelSerializer):
     activities = serializers.SerializerMethodField()
     class Meta:
@@ -35,7 +41,6 @@ class ProposalTypeSerializer(serializers.ModelSerializer):
             'schema',
             'activities'
         )
-
 
     def get_activities(self,obj):
         return obj.activities.names()
@@ -132,6 +137,7 @@ class ListProposalSerializer(BaseProposalSerializer):
                 'can_user_view',
                 'reference',
                 'lodgement_number',
+                'migrated',
                 'lodgement_sequence',
                 'can_officer_process',
                 'assessor_process',
@@ -161,6 +167,7 @@ class ListProposalSerializer(BaseProposalSerializer):
                 'can_user_view',
                 'reference',
                 'lodgement_number',
+                'migrated',
                 'can_officer_process',
                 'assessor_process',
                 'allowed_assessors',
@@ -267,7 +274,7 @@ class ProposalSerializer(BaseProposalSerializer):
     def get_proposal_apiary(self, obj):
         if hasattr(obj, 'proposal_apiary'):
             pasl = obj.proposal_apiary
-            return ProposalApiarySerializer(pasl).data
+            return ProposalApiarySerializer(pasl, context=self.context).data
         else:
             return ''
 
@@ -334,6 +341,7 @@ class SaveProposalRegionSerializer(BaseProposalSerializer):
                 )
         #read_only_fields=('documents','requirements')
 
+
 class ApplicantSerializer(serializers.ModelSerializer):
     from disturbance.components.organisations.serializers import OrganisationAddressSerializer
     address = OrganisationAddressSerializer()
@@ -371,7 +379,8 @@ class InternalProposalSerializer(BaseProposalSerializer):
     #tenure = serializers.CharField(source='tenure.name', read_only=True)
     apiary_temporary_use = ProposalApiaryTemporaryUseSerializer(many=False, read_only=True)
     requirements_completed=serializers.SerializerMethodField()
-
+    reversion_history = serializers.SerializerMethodField()
+    
     class Meta:
         model = Proposal
         fields = (
@@ -432,8 +441,36 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'fee_paid',
                 'apiary_temporary_use',
                 'requirements_completed',
+                'reversion_history',
                 )
         read_only_fields=('documents','requirements')
+
+
+    def get_reversion_history(self, obj):
+        """ This uses Reversion to get all the revisions made to this Proposal.
+        
+        The revisions are returned as a dict with the Proposal id and version as key.
+        """
+        from reversion.models import Version
+
+        # Versions are in reverse order by default
+        versions = Version.objects.get_for_object(obj).select_related('revision')\
+            .filter(revision__comment__contains='processing_status').get_unique()
+        # this seems like inefficient duplication however
+        # django reversion wont allow .count() after .get_unique()
+        versions_count = len(list(Version.objects.get_for_object(obj).select_related('revision')\
+            .filter(revision__comment__contains='processing_status').get_unique()))
+        # Build the dictionary of reversions
+        version_dictionary = {}
+        for index, version in enumerate(versions):
+            version_key = f'{obj.lodgement_number}-{versions_count-index}'
+            version_dictionary[version_key] = {
+                'date': version.revision.date_created,
+                'processing_status': version.field_dict['processing_status'],
+            }
+
+        return version_dictionary
+
 
     def get_approval_level_document(self,obj):
         if obj.approval_level_document is not None:
@@ -474,7 +511,6 @@ class InternalProposalSerializer(BaseProposalSerializer):
 
     def get_requirements_completed(self,obj):
         return True
-
 
 
 class ReferralProposalSerializer(InternalProposalSerializer):

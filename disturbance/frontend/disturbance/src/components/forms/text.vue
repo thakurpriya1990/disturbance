@@ -38,7 +38,7 @@ import CommentBox from './comment_box_referral.vue'
 import HelpText from './help_text.vue'
 import HelpTextUrl from './help_text_url.vue'
 export default {
-    name:"text",
+    name:"TextComponent",
     props:["type","name","id", "comment_value","value","isRequired","help_text","help_text_assessor","assessorMode","label","readonly","assessor_readonly", "help_text_url", "help_text_assessor_url", "comment_boxes",],
     components: {Comment, HelpText, HelpTextUrl, CommentBox},
     data(){

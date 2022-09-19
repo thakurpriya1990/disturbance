@@ -6,9 +6,10 @@ module.exports = {
     organisation_contacts: '/api/organisation_contacts.json',
     organisation_access_group_members: '/api/organisation_access_group_members',
     apiary_organisation_access_group_members: '/api/apiary_organisation_access_group_members',
+    users_api: '/api/users',
     users: '/api/users.json',
     profile: '/api/profile',
-    department_users: '/api/department_users',
+    //department_users: '/api/department_users',
     //other
     //countries: "https://restcountries.eu/rest/v1/?fullText=true",
     countries: '/api/countries',
@@ -32,6 +33,7 @@ module.exports = {
     // used in internal and external dashboards
     proposals_paginated_external:   "/api/proposal_paginated/proposals_external/?format=datatables",
     approvals_paginated_external:   "/api/approval_paginated/approvals_external/?format=datatables",
+    // internal_revision_proposal:     "/api/proposal/internal_revision_proposal.json/?revision_number",
     compliances_paginated_external: "/api/compliance_paginated/compliances_external/?format=datatables",
     proposals_paginated_internal:   "/api/proposal_paginated/proposals_internal/?format=datatables",
     referrals_paginated_internal:   "/api/proposal_paginated/referrals_internal/?format=datatables",
@@ -73,4 +75,9 @@ module.exports = {
     //schema_question:"/api/schema_question/",
     schema_question:"/api/schema_question.json",
     schema_question_paginated:"/api/schema_question_paginated/",
+
+    history_version_compare_field: "/api/history/compare/field/",
+    history_version_compare: "/api/history/compare/",
+    history_versions: "/api/history/versions/",
+    history_version: "/api/history/version/",
 }

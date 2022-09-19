@@ -49,10 +49,17 @@
                             <div class="col-sm-12 top-buffer-s">
                                 <strong>Referrals</strong><br/>
                                 <div class="form-group" v-if="!isFinalised">
-                                    <select :disabled="isFinalised || proposal.can_user_edit" ref="department_users" class="form-control">
+                                    <!--select :disabled="isFinalised || proposal.can_user_edit" ref="department_users" class="form-control">
                                         <option value="null"></option>
                                         <option v-for="user in department_users" :value="user.email">{{user.name}}</option>
-                                    </select>
+                                    </select-->
+                                    <select 
+                                        id="department_users"  
+                                        name="department_users"  
+                                        ref="department_users" 
+                                        class="form-control" 
+                                    />
+
                                     <template v-if='!sendingReferral'>
                                         <template v-if="selected_referral && !isFinalised && !proposal.can_user_edit && referral.sent_from == 1">
                                             <label class="control-label pull-left"  for="Name">Comments</label>
@@ -259,6 +266,10 @@ import datatable from '@vue-utils/datatable.vue'
 import CommsLogs from '@common-utils/comms_logs.vue'
 import MoreReferrals from '@common-utils/more_referrals.vue'
 import ResponsiveDatatablesHelper from "@/utils/responsive_datatable_helper.js"
+var select2 = require('select2');
+require("select2/dist/css/select2.min.css");
+require("select2-bootstrap-theme/dist/select2-bootstrap.min.css");
+
 import {
     api_endpoints,
     helpers
@@ -282,7 +293,7 @@ export default {
             sendingReferral: false,
             form: null,
             members: [],
-            department_users : [],
+            //department_users : [],
             contacts_table_initialised: false,
             initialisedSelects: false,
             contacts_table_id: vm._uid+'contacts-table',
@@ -440,6 +451,7 @@ export default {
                 vm.loading.splice('Loading Proposal Group Members',1);
             })
         },
+        /*
         fetchDeparmentUsers: function(){
             let vm = this;
             vm.loading.push('Loading Department Users');
@@ -451,9 +463,11 @@ export default {
                 vm.loading.splice('Loading Department Users',1);
             })
         },
+        */
         initialiseSelects: function(){
             let vm = this;
             if (!vm.initialisedSelects){
+                /*
                 $(vm.$refs.department_users).select2({
                     "theme": "bootstrap",
                     allowClear: true,
@@ -467,6 +481,35 @@ export default {
                     var selected = $(e.currentTarget);
                     vm.selected_referral = selected.val();
                });
+               */
+                $(vm.$refs.department_users).select2({
+                    minimumInputLength: 2,
+                    "theme": "bootstrap",
+                    allowClear: true,
+                    placeholder:"Select Referrer",
+                    ajax: {
+                        url: api_endpoints.users_api + '/get_department_users/',
+                        dataType: 'json',
+                        data: function(params) {
+                            var query = {
+                                term: params.term,
+                                type: 'public',
+                            }
+                            return query;
+                        },
+                    },
+                }).
+                on("select2:select", function (e) {
+                    var selected = $(e.currentTarget);
+                    //vm.selected_referral = selected.val();
+                    let data = e.params.data.id;
+                    vm.selected_referral = data;
+                }).
+                on("select2:unselect",function (e) {
+                    var selected = $(e.currentTarget);
+                    vm.selected_referral = null;
+                });
+
                 // Assigned officer select
                 $(vm.$refs.assigned_officer).select2({
                     "theme": "bootstrap",
@@ -499,7 +542,8 @@ export default {
                 vm.referral.proposal.applicant.address = vm.referral.proposal.applicant.address != null ? vm.referral.proposal.applicant.address : {};
                 swal(
                     'Referral Sent',
-                    'The referral has been sent to '+vm.department_users.find(d => d.email == vm.selected_referral).name,
+                    //'The referral has been sent to '+vm.department_users.find(d => d.email == vm.selected_referral).name,
+                    'The referral has been sent to '+ vm.selected_referral,
                     'success'
                 )
                 $(vm.$refs.department_users).val(null).trigger("change");
@@ -685,7 +729,7 @@ export default {
     mounted: function() {
         let vm = this;
         vm.fetchProposalGroupMembers();
-        vm.fetchDeparmentUsers();
+        //vm.fetchDeparmentUsers();
         //vm.fetchreferrallist()
         
     },

@@ -17,8 +17,8 @@
                     </div>
                     <!--div class="optional-layers-button" @click="set_mode(mode)">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" >
-                            <path 
-                                d="M18.342 0l-2.469 2.47 2.121 2.121-.707.707-2.121-2.121-1.414 1.414 1.414 1.414-.707.707-1.414-1.414-1.414 1.414 1.414 1.414-.707.707-1.414-1.414-1.414 1.414 2.121 2.122-.707.707-2.121-2.121-1.414 1.414 1.414 1.414-.708.707-1.414-1.414-1.414 1.414 1.414 1.414-.708.709-1.414-1.414-1.414 1.413 2.121 2.121-.706.706-2.122-2.121-2.438 2.439 5.656 5.657 18.344-18.343z" 
+                            <path
+                                d="M18.342 0l-2.469 2.47 2.121 2.121-.707.707-2.121-2.121-1.414 1.414 1.414 1.414-.707.707-1.414-1.414-1.414 1.414 1.414 1.414-.707.707-1.414-1.414-1.414 1.414 2.121 2.122-.707.707-2.121-2.121-1.414 1.414 1.414 1.414-.708.707-1.414-1.414-1.414 1.414 1.414 1.414-.708.709-1.414-1.414-1.414 1.413 2.121 2.121-.706.706-2.122-2.121-2.438 2.439 5.656 5.657 18.344-18.343z"
                                 :fill="ruler_colour"
                             />
                         </svg>
@@ -160,7 +160,6 @@
             vm.setBaseLayer('osm')
             vm.set_mode('layer')
             vm.addOptionalLayers()
-            //vm.map.addLayer(vm.apiarySitesQueryLayer);
             vm.displayAllFeatures()
         },
         components: {
@@ -176,6 +175,9 @@
             }
         },
         methods: {
+            //setLoadingSitesStatus: function(a_status){
+            //    this.loading_sites = a_status
+            //},
             addJoint: function(point, styles){
                 let s = new Style({
                     image: new CircleStyle({
@@ -290,7 +292,6 @@
                 })
             },
             setBaseLayer: function(selected_layer_name){
-                console.log('in setBaseLayer')
                 let vm = this
                 if (selected_layer_name == 'sat') {
                     vm.tileLayerOsm.setVisible(false)
@@ -345,7 +346,7 @@
 
                 vm.map = new Map({
                     layers: [
-                        vm.tileLayerOsm, 
+                        vm.tileLayerOsm,
                         vm.tileLayerSat,
                     ],
                     //target: 'map',
@@ -368,7 +369,7 @@
                 vm.map.addLayer(vm.apiarySitesQueryLayer);
 
                 // Set zIndex to some layers to be rendered over the other layers
-                vm.apiarySitesQueryLayer.setZIndex(10)  
+                vm.apiarySitesQueryLayer.setZIndex(10)
 
                 // Full screen toggle
                 vm.map.addControl(new FullScreenControl());
@@ -482,7 +483,7 @@
                                         {'INFO_FORMAT': 'application/json'}
                                     )
 
-                                    // Query 
+                                    // Query
                                     let p = fetch(url, {
                                         credentials: 'include'
                                     })
@@ -625,7 +626,7 @@
                 return coords[0].toFixed(6) + ', ' + coords[1].toFixed(6);
             },
             addApiarySite: function(apiary_site_geojson) {
-                
+
                 let vm = this
                 let feature = (new GeoJSON()).readFeature(apiary_site_geojson)
 

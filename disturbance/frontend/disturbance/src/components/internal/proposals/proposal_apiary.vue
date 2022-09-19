@@ -1,7 +1,6 @@
 <template lang="html">
     <div v-if="proposal" class="container" id="internalProposal">
         <template v-if="is_local">
-            proposal_apiary.vue
         </template>
       <div class="row">
         <h3>Application: {{ proposal.lodgement_number }}</h3>
@@ -286,10 +285,14 @@
                         />
                     </div>
                     <div v-else>
-                        <Requirements :proposal="proposal" @refreshRequirements="refreshRequirements"/>
+                        <Requirements
+                            :proposal="proposal"
+                            @refreshRequirements="refreshRequirements"
+                        />
                     </div>
                 </template>
-                <template v-if="canSeeSubmission || (!canSeeSubmission && showingProposal)">
+                <!--template v-show="canSeeSubmission || (!canSeeSubmission && showingProposal)"-->
+                <div v-show="canSeeProposal">
                     <div class="col-md-12">
                         <div class="row">
                             <div class="panel panel-default">
@@ -438,6 +441,7 @@
                                         :hasAssessorMode="hasAssessorMode"
                                         :is_external="false"
                                         :is_internal="true"
+                                        :show_col_vacant_when_submitted="true"
                                     />
                                 </div>
                                 <div v-else-if="proposal && proposal.application_type=='Site Transfer'">
@@ -472,7 +476,7 @@
                             </form>
                         </div>
                     </div>
-                </template>
+                </div>
             </div>
         </div>
         </div>
@@ -543,7 +547,7 @@ export default {
             members: [],
             //department_users : [],
             apiaryReferralGroups: [],
-            contacts_table_initialised: false,
+            //contacts_table_initialised: false,
             initialisedSelects: false,
             showingProposal:false,
             showingRequirements:false,
@@ -556,7 +560,7 @@ export default {
                 },
                 responsive: true,
                 ajax: {
-                    "url": vm.contactsURL,
+                    "url": '',
                     "dataSrc": ''
                 },
                 columns: [
@@ -627,12 +631,8 @@ export default {
         },
     },
     watch: {
-
     },
     computed: {
-        contactsURL: function(){
-            return this.proposal!= null ? helpers.add_endpoint_json(api_endpoints.organisations,this.proposal.applicant.id+'/contacts') : '';
-        },
         referralListURL: function(){
             return this.proposal!= null ? helpers.add_endpoint_json(api_endpoints.apiary_referrals,'datatable_list')+'?proposal='+this.proposal.id : '';
         },
@@ -675,6 +675,9 @@ export default {
         },
         canSeeSubmission: function(){
             return this.proposal && (this.proposal.processing_status != 'With Assessor (Requirements)' && this.proposal.processing_status != 'With Approver' && !this.isFinalised)
+        },
+        canSeeProposal: function(){
+            return this.canSeeSubmission || this.showingProposal;
         },
         isApprovalLevelDocument: function(){
             return this.proposal && this.proposal.processing_status == 'With Approver' && this.proposal.approval_level != null && this.proposal.approval_level_document == null ? true : false;
@@ -793,7 +796,6 @@ export default {
             //check assessor boxes and clear value of hidden assessor boxes so it won't get printed on approval pdf.
 
             //select all fields including hidden fields
-            //console.log("here");
             var all_fields = $('input[type=text]:required, textarea:required, input[type=checkbox]:required, input[type=radio]:required, input[type=file]:required, select:required')
 
             all_fields.each(function() {
@@ -804,7 +806,6 @@ export default {
                     var visiblity=$("[name="+this.name+"-Assessor]").is(':visible')
                     if(!visiblity){
                         if(ele[0].value!=''){
-                            //console.log(visiblity, ele[0].name, ele[0].value)
                             ele[0].value=''
                         }
                     }
@@ -813,10 +814,10 @@ export default {
         },
         initialiseOrgContactTable: function(){
             let vm = this;
-            if (vm.proposal && !vm.contacts_table_initialised){
+            //if (vm.proposal && !vm.contacts_table_initialised){
+            if (vm.proposal){
                 vm.contacts_options.ajax.url = helpers.add_endpoint_json(api_endpoints.organisations,vm.proposal.applicant.id+'/contacts');
                 vm.contacts_table = $('#'+vm.contacts_table_id).DataTable(vm.contacts_options);
-                vm.contacts_table_initialised = true;
             }
         },
         commaToNewline(s){
@@ -850,25 +851,6 @@ export default {
             this.$refs.proposed_approval.forceToRefreshMap()
         },
         issueProposal:function(){
-            //this.$refs.proposed_approval.approval = helpers.copyObject(this.proposal.proposed_issuance_approval);
-            console.log('in issueProposal')
-            //save approval level comment before opening 'issue approval' modal
-            //if(this.proposal && this.proposal.processing_status == 'With Approver' && this.proposal.approval_level != null && this.proposal.approval_level_document == null){
-            //    if (this.proposal.approval_level_comment!='')
-            //    {
-            //        let vm = this;
-            //        let data = new FormData();
-            //        data.append('approval_level_comment', vm.proposal.approval_level_comment)
-            //        vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/approval_level_comment'),data,{
-            //            emulateJSON:true
-            //            }).then(res=>{
-            //            vm.proposal = res.body;
-            //        vm.refreshFromResponse(res);
-            //        },err=>{
-            //        console.log(err);
-            //        });
-            //    }
-            //}
             if(this.isApprovalLevelDocument && this.proposal.approval_level_comment=='')
             {
                 swal(
@@ -921,10 +903,8 @@ export default {
                     var name=$(d)[0].name
                     var tmp=name.replace("-comment-field","")
                     deficient_fields.push(tmp);
-                    //console.log('data', $("#"+"id_" + tmp))
                 }
             });
-            //console.log('deficient fields', deficient_fields);
             vm.highlight_deficient_fields(deficient_fields);
         },
         save: function(e) {
@@ -1155,19 +1135,6 @@ export default {
             })
 
         },
-        /*
-        fetchDeparmentUsers: function(){
-            let vm = this;
-            vm.loading.push('Loading Department Users');
-            vm.$http.get(api_endpoints.department_users).then((response) => {
-                vm.department_users = response.body
-                vm.loading.splice('Loading Department Users',1);
-            },(error) => {
-                console.log(error);
-                vm.loading.splice('Loading Department Users',1);
-            })
-        },
-        */
         initialiseAssignedOfficerSelect:function(reinit=false){
             let vm = this;
             if (reinit){
@@ -1225,7 +1192,6 @@ export default {
             }
         },
         sendReferral: function(){
-            console.log("sendReferral")
             let vm = this;
             //vm.save_wo();
             vm.checkAssessorData();
@@ -1236,9 +1202,7 @@ export default {
             let data = {'group_id':vm.selected_referral, 'text': vm.referral_text};
             //vm.sendingReferral = true;
             // need to create Referral, ApiaryReferral at this point
-            console.log(api_endpoints.proposal_apiary)
             let url = helpers.add_endpoint_json(api_endpoints.proposal_apiary,(vm.proposal.proposal_apiary.id+'/apiary_assessor_send_referral'))
-            console.log(url)
             //vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,(vm.proposal.id+'/assesor_send_referral')),JSON.stringify(data),{
             //vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal_apiary,(vm.proposal.id+'/apiary_assessor_send_referral')),JSON.stringify(data),{
             vm.$http.post(url,JSON.stringify(data),{
@@ -1271,37 +1235,8 @@ export default {
           },err=>{
           });
 
-        //this.$refs.referral_comment.selected_referral = vm.selected_referral;
-        //this.$refs.referral_comment.isModalOpen = true;
-
-          /*  let data = {'email':vm.selected_referral};
-            vm.sendingReferral = true;
-            vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,(vm.proposal.id+'/assesor_send_referral')),JSON.stringify(data),{
-                emulateJSON:true
-            }).then((response) => {
-                vm.sendingReferral = false;
-                vm.original_proposal = helpers.copyObject(response.body);
-                vm.proposal = response.body;
-                vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
-                swal(
-                    'Referral Sent',
-                    'The referral has been sent to '+vm.department_users.find(d => d.email == vm.selected_referral).name,
-                    'success'
-                )
-                $(vm.$refs.department_users).val(null).trigger("change");
-                vm.selected_referral = '';
-            }, (error) => {
-                console.log(error);
-                swal(
-                    'Referral Error',
-                    helpers.apiVueResourceError(error),
-                    'error'
-                )
-                vm.sendingReferral = false;
-            }); */
         },
         remindReferral:function(r){
-            console.log(r)
             let vm = this;
 
             vm.$http.get(helpers.add_endpoint_json(api_endpoints.apiary_referrals,r.apiary_referral.id+'/remind')).then(response => {
@@ -1323,7 +1258,6 @@ export default {
             });
         },
         resendReferral:function(r){
-            console.log(r)
             let vm = this;
 
             vm.$http.get(helpers.add_endpoint_json(api_endpoints.apiary_referrals,r.apiary_referral.id+'/resend')).then(response => {
@@ -1345,7 +1279,6 @@ export default {
             });
         },
         recallReferral:function(r){
-            console.log(r)
             let vm = this;
             vm.$http.get(helpers.add_endpoint_json(api_endpoints.apiary_referrals,r.apiary_referral.id+'/recall')).then(response => {
                 vm.original_proposal = helpers.copyObject(response.body);
@@ -1367,10 +1300,8 @@ export default {
         }
 
     },
-    mounted: function() {
-        //let vm = this;
-        //vm.fetchDeparmentUsers();
-        this.fetchApiaryReferralGroups();
+    mounted: async function() {
+        await this.fetchApiaryReferralGroups();
     },
     updated: function(){
         let vm = this;
@@ -1384,7 +1315,6 @@ export default {
             vm.panelClickersInitialised = true;
         }
         this.$nextTick(() => {
-            vm.initialiseOrgContactTable();
             vm.initialiseSelects();
             vm.form = document.forms.new_proposal;
             if(vm.hasAmendmentRequest){
@@ -1392,53 +1322,24 @@ export default {
             }
         });
     },
-    created: function() {
-        Vue.http.get(`/api/proposal/${this.proposalId}/internal_proposal.json`).then(res => {
-              this.proposal = res.body;
-              //console.log(res.body)
-              this.original_proposal = helpers.copyObject(res.body);
-              if (this.proposal.applicant) {
-                  this.proposal.applicant.address = this.proposal.applicant.address != null ? this.proposal.applicant.address : {};
-              }
-              this.hasAmendmentRequest = this.proposal.hasAmendmentRequest;
-        },
-        err => {
-          console.log(err);
-        });
-    },
-    /*
-    beforeRouteEnter: function(to, from, next) {
-          Vue.http.get(`/api/proposal/${to.params.proposal_id}/internal_proposal.json`).then(res => {
-              next(vm => {
-                  vm.proposal = res.body;
-                  console.log(res.body)
-                  vm.original_proposal = helpers.copyObject(res.body);
-                  if (vm.proposal.applicant) {
-                      vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
-                  }
-                  vm.hasAmendmentRequest=vm.proposal.hasAmendmentRequest;
-              });
-            },
-            err => {
-              console.log(err);
+    created: async function() {
+        try {
+            const res = await Vue.http.get(`/api/proposal/${this.proposalId}/internal_proposal.json/?with_apiary_sites=true`);
+            this.proposal = Object.assign({}, res.body);
+            //this.original_proposal = helpers.copyObject(res.body);
+            if (this.proposal.applicant) {
+                this.proposal.applicant.address = this.proposal.applicant.address != null ? this.proposal.applicant.address : {};
+            }
+            this.hasAmendmentRequest = this.proposal.hasAmendmentRequest;
+            this.$nextTick(async () => {
+                if (this.organisationApplicant) {
+                    await this.initialiseOrgContactTable();
+                }
             });
+        } catch(err) {
+            console.log(err);
+        }
     },
-    */
-    beforeRouteUpdate: function(to, from, next) {
-        console.log("beforeRouteUpdate");
-          Vue.http.get(`/api/proposal/${to.params.proposal_id}.json`).then(res => {
-              next(vm => {
-                  vm.proposal = res.body;
-                  vm.original_proposal = helpers.copyObject(res.body);
-                  if (vm.proposal.applicant) {
-                      vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
-                  }
-              });
-            },
-            err => {
-              console.log(err);
-            });
-    }
 }
 </script>
 <style scoped>

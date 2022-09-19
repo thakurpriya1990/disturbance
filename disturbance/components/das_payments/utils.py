@@ -495,10 +495,6 @@ def calculate_total_annual_rental_fee(approval, period, sites_charged):
             # No fee charged
             return 0
 
-    # fee_applied = ApiaryAnnualRentalFee.get_fee_at_target_date(period[0])
-    # sites_charged = approval.apiary_sites.filter(status=ApiarySite.STATUS_CURRENT)
-    # num_of_days_in_period = period[1] - (period[0] - timedelta(days=1))  # period[0] is the start date.  (period[0] - timedelta(days=1)) means the previous date of the start date
-
     # Calculate charge start date taking into account the licence's start date
     invoice_period_start_date = approval.no_annual_rental_fee_until + timedelta(days=1) \
         if approval.no_annual_rental_fee_until and period[0] < (approval.no_annual_rental_fee_until + timedelta(days=1)) \
@@ -531,8 +527,6 @@ def calculate_total_annual_rental_fee(approval, period, sites_charged):
             charge_start_date_for_this_site = invoice_period_start_date
             charge_end_date_for_this_site = invoice_period_end_date
 
-        # amount_for_this_site = fee_applied.amount * num_of_days_charged.days / num_of_days_in_period.days
-
         charge_period = (charge_start_date_for_this_site, charge_end_date_for_this_site)
         if charge_period in apiary_sites_charged:
             apiary_sites_charged[charge_period].append(apiary_site)
@@ -563,12 +557,13 @@ def round_amount_according_to_env(amount):
     return amount
 
 
-def generate_line_items_for_annual_rental_fee(approval, today_now, period, apiary_sites):
+def generate_line_items_for_annual_rental_fee(approval, today_now, period, apiary_sites_to_be_charged):
     oracle_code_obj = ApiaryGlobalSettings.objects.get(key=ApiaryGlobalSettings.KEY_ORACLE_CODE_APIARY_SITE_ANNUAL_RENTAL_FEE)
-    num_of_days_in_period = period[1] - (period[0] - timedelta(days=1))
+    # num_of_days_in_period = period[1] - (period[0] - timedelta(days=1))
+    num_of_days_in_year = 365
 
     # Retrieve summarised payment data per charge_period
-    apiary_sites_charged, invoice_period = calculate_total_annual_rental_fee(approval, period, apiary_sites)
+    apiary_sites_charged, invoice_period = calculate_total_annual_rental_fee(approval, period, apiary_sites_to_be_charged)
 
     line_items = []
 
@@ -577,46 +572,64 @@ def generate_line_items_for_annual_rental_fee(approval, today_now, period, apiar
             if not len(apiary_sites):
                 continue
 
-            fee_applied = ApiaryAnnualRentalFee.get_fee_at_target_date(charge_period[0])  # TODO fee might be changed during the period
-            fees_applied = ApiaryAnnualRentalFee.get_fees_by_period(charge_period[0], charge_period[1])
+            fees_applied = ApiaryAnnualRentalFee.get_fees_by_period(charge_period[0], charge_period[1])  # fee might be changed during the period, that's why retern value is an array
 
-            # num_of_days_charged = charge_period[1] - (charge_period[0] - timedelta(days=1))
-            # amount_per_site = fee_applied.amount * num_of_days_charged.days / num_of_days_in_period.days
-
-            amount_per_site = 0
+            amount_south_west_per_site = 0
+            amount_remote_per_site = 0
             for fee_for_site in fees_applied:
-                amount_per_site += fee_for_site.get('amount_per_year') * fee_for_site.get('num_of_days').days / num_of_days_in_period.days
+                # amount_south_west_per_site += fee_for_site.get('amount_south_west_per_year') * fee_for_site.get('num_of_days').days / num_of_days_in_period.days
+                # amount_remote_per_site += fee_for_site.get('amount_remote_per_year') * fee_for_site.get('num_of_days').days / num_of_days_in_period.days
+                amount_south_west_per_site += fee_for_site.get('amount_south_west_per_year') * fee_for_site.get('num_of_days').days / num_of_days_in_year
+                amount_remote_per_site += fee_for_site.get('amount_remote_per_year') * fee_for_site.get('num_of_days').days / num_of_days_in_year
 
-            total_amount = amount_per_site * len(apiary_sites)
-            total_amount = total_amount if total_amount >= 0 else 0
-            total_amount = round_amount_according_to_env(total_amount)
+            apiary_sites_by_category = {
+                SiteCategory.CATEGORY_SOUTH_WEST: [],
+                SiteCategory.CATEGORY_REMOTE: [],
+            }
+            for a_site in apiary_sites:
+                if a_site.latest_approval_link.site_category.name == SiteCategory.CATEGORY_SOUTH_WEST:
+                    apiary_sites_by_category[SiteCategory.CATEGORY_SOUTH_WEST].append(a_site)
+                else:
+                    apiary_sites_by_category[SiteCategory.CATEGORY_REMOTE].append(a_site)
 
-            line_item = {}
-            line_item['ledger_description'] = 'Annual Site Fee: {}, Issued: {} {}, Period: {} to {}, Site(s): {}'.format(
-                approval.lodgement_number,
-                today_now.strftime("%d/%m/%Y"),
-                today_now.strftime("%I:%M %p"),
-                charge_period[0].strftime("%d/%m/%Y"),
-                charge_period[1].strftime("%d/%m/%Y"),
-                ', '.join(['site: ' + str(site.id) for site in apiary_sites])
-            )
-            if len(line_item['ledger_description']) >= 250:
-                # description too long, shorten it
-                line_item['ledger_description'] = 'Annual Site Fee: {}, Issued: {} {}, Period: {} to {}, Number of sites: {}'.format(
+            for category, apiary_sites in apiary_sites_by_category.items():
+                if not len(apiary_sites):
+                    continue
+                amount_per_site = amount_south_west_per_site if category == SiteCategory.CATEGORY_SOUTH_WEST else amount_remote_per_site
+                category_display = 'South West' if category == SiteCategory.CATEGORY_SOUTH_WEST else 'Remote'
+
+                total_amount = amount_per_site * len(apiary_sites)
+                total_amount = total_amount if total_amount >= 0 else 0
+                total_amount = round_amount_according_to_env(total_amount)
+
+                line_item = {}
+                line_item['ledger_description'] = 'Annual Site Fee ({}): {}, Issued: {} {}, Period: {} to {}, Site(s): {}'.format(
+                    category_display,
                     approval.lodgement_number,
                     today_now.strftime("%d/%m/%Y"),
                     today_now.strftime("%I:%M %p"),
                     charge_period[0].strftime("%d/%m/%Y"),
                     charge_period[1].strftime("%d/%m/%Y"),
-                    len(apiary_sites)
+                    ', '.join(['site: ' + str(site.id) for site in apiary_sites])
                 )
+                if len(line_item['ledger_description']) >= 250:
+                    # description too long, shorten it
+                    line_item['ledger_description'] = 'Annual Site Fee ({}): {}, Issued: {} {}, Period: {} to {}, Number of sites: {}'.format(
+                        category_display,
+                        approval.lodgement_number,
+                        today_now.strftime("%d/%m/%Y"),
+                        today_now.strftime("%I:%M %p"),
+                        charge_period[0].strftime("%d/%m/%Y"),
+                        charge_period[1].strftime("%d/%m/%Y"),
+                        len(apiary_sites)
+                    )
 
-            line_item['oracle_code'] = oracle_code_obj.value
-            line_item['price_incl_tax'] = total_amount
-            line_item['price_excl_tax'] = total_amount if ANNUAL_RENTAL_FEE_GST_EXEMPT else calculate_excl_gst(total_amount)
-            line_item['quantity'] = 1
+                line_item['oracle_code'] = oracle_code_obj.value
+                line_item['price_incl_tax'] = total_amount
+                line_item['price_excl_tax'] = total_amount if ANNUAL_RENTAL_FEE_GST_EXEMPT else calculate_excl_gst(total_amount)
+                line_item['quantity'] = 1
 
-            line_items.append(line_item)
+                line_items.append(line_item)
 
     return line_items, apiary_sites_charged, invoice_period
 

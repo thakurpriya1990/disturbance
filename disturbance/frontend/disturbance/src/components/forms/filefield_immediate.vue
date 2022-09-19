@@ -68,7 +68,7 @@ export default {
                     "application/pdf,text/csv,application/msword,application/vnd.ms-excel,application/x-msaccess," +
                     "application/x-7z-compressed,application/x-bzip,application/x-bzip2,application/zip," + 
                     ".dbf,.gdb,.gpx,.prj,.shp,.shx," + 
-                    ".json,.kml,.gpx";
+                    ".json,.kml,.gpx,.txt,";
                 return file_types;
             }
         },
@@ -119,7 +119,6 @@ export default {
                     url = api_endpoints.temporary_document + this.temporary_document_collection_id + '/process_temp_comms_log_document/'
                 }
             } else {
-                console.log(this.documentActionUrl);
                 url = this.documentActionUrl
             }
             return url;
@@ -141,7 +140,6 @@ export default {
             }
         },
         handleChange: function (e) {
-            console.log('in handleChange')
             let vm = this;
 
             if (vm.isRepeatable && e.target.files) {
@@ -150,7 +148,6 @@ export default {
                 avail = [...avail.map(id => {
                     return $(avail[id]).attr('data-que');
                 })];
-                console.log(avail);
                 avail.pop();
                 if (vm.repeat == 1) {
                     vm.repeat+=1;
@@ -176,7 +173,6 @@ export default {
         },
 
         get_documents: async function() {
-            console.log('in get_documents');
             this.show_spinner = true;
 
             if (this.document_action_url) {
@@ -191,14 +187,12 @@ export default {
                 //let res = await Vue.http.post(this.documentActionUrl, formData)
                 this.documents = res.body.filedata;
                 this.commsLogId = res.body.comms_instance_id;
-                //console.log(this.documents);
             }
             this.show_spinner = false;
 
         },
 
         delete_document: async function(file) {
-            console.log('in delete_document');
             this.show_spinner = true;
 
             var formData = new FormData();
@@ -211,7 +205,6 @@ export default {
             formData.append('csrfmiddlewaretoken', this.csrf_token);
             if (this.document_action_url) {
                 let res = await Vue.http.post(this.document_action_url, formData)
-                console.log(res.body)
                 this.documents = res.body.filedata;
                 //this.documents = await this.get_documents()
                 this.commsLogId = res.body.comms_instance_id;
@@ -221,7 +214,6 @@ export default {
 
         },
         cancel: async function(file) {
-            console.log('in cancel');
             this.show_spinner = true;
 
             let formData = new FormData();
@@ -238,7 +230,6 @@ export default {
         },
         
         uploadFile(e){
-            console.log('in uploadFile');
             let _file = null;
 
             if (e.target.files && e.target.files[0]) {
@@ -253,13 +244,9 @@ export default {
         },
 
         handleChangeWrapper: async function(e) {
-            console.log('in handleChangeWrapper');
-            console.log(this.document_action_url)
             if (this.documentActionUrl === 'temporary_document' && !this.temporary_document_collection_id) {
                 // If temporary_document, create TemporaryDocumentCollection object and allow document_action_url to update
-                console.log("in handlechangewrapper")
                 let res = await Vue.http.post(this.document_action_url)
-                console.log(res)
                 this.temporary_document_collection_id = res.body.id
                 await this.$emit('update-temp-doc-coll-id',
                     {
@@ -278,7 +265,6 @@ export default {
         },
 
         save_document: async function(e) {
-            console.log('in save_document');
             this.show_spinner = true;
 
             if (this.document_action_url) {
@@ -314,7 +300,6 @@ export default {
         },
 
         num_documents: function() {
-            console.log('in num_documentssave_document');
             if (this.documents) {
                 return this.documents.length;
             }
@@ -334,7 +319,6 @@ export default {
             }
         }
         this.$nextTick(async () => {
-            console.log(this.document_action_url);
             if (this.documentActionUrl === 'temporary_document' && !this.temporary_document_collection_id) {
                 // pass
             } else {

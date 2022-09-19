@@ -279,7 +279,14 @@ export default {
             let columnList = [
                 {
                     // 1. Number
-                    data: "lodgement_number",
+                    data: "id",
+                    'render':function(data,type,full){
+                        if (full.migrated){
+                            return full.lodgement_number + ' (M)'
+                        } else {
+                            return full.lodgement_number
+                        } 
+                    },
                     orderable: true,
                     searchable: true,
                 },
@@ -307,8 +314,10 @@ export default {
                 columnList.push({
                     // 3.5 Title
                     data: "title",
-                    'render': function (value) {
-                        return helpers.dtPopover(value);
+                    'render': function (value, type) {
+                        //return helpers.dtPopover(value);
+                        var result= helpers.dtPopover(value);
+                        return type=='export' ? value : result;
                     },
                     'createdCell': helpers.dtPopoverCellFn,
                     //visible: false,
@@ -488,7 +497,8 @@ export default {
                     {
                         extend: 'excel',
                         exportOptions: {
-                            columns: ':not(.noexport)'
+                            columns: ':not(.noexport)',
+                            orthogonal:'export'
                         }
                         /*
                         exportOptions: {
@@ -500,7 +510,8 @@ export default {
                     {
                         extend: 'csv',
                         exportOptions: {
-                            columns: ':not(.noexport)'
+                            columns: ':not(.noexport)',
+                            orthogonal:'export'
                         }
                         /*
                         exportOptions: {

@@ -20,6 +20,8 @@ CHECKOUT_PATH = re.compile('^/ledger/checkout/checkout')
 class FirstTimeNagScreenMiddleware(object):
     def process_request(self, request):
         #print ("FirstTimeNagScreenMiddleware: REQUEST SESSION")
+        if 'static' in request.path:
+            return
         if request.user.is_authenticated() and request.method == 'GET' and 'api' not in request.path and 'admin' not in request.path:
             #print('DEBUG: {}: {} == {}, {} == {}, {} == {}'.format(request.user, request.user.first_name, (not request.user.first_name), request.user.last_name, (not request.user.last_name), request.user.dob, (not request.user.dob) ))
             if (not request.user.first_name) or (not request.user.last_name):# or (not request.user.dob):
@@ -95,7 +97,7 @@ class DomainDetectMiddleware(object):
         settings.BASE_EMAIL_HTML = 'disturbance/emails/base_email.html'
 
         http_host = request.META.get('HTTP_HOST', None)
-        if http_host and ('apiary' in http_host.lower() or http_host in settings.APIARY_URL):
+        if http_host and http_host in settings.APIARY_URL:
             settings.DOMAIN_DETECTED = 'apiary'
             settings.SYSTEM_NAME = settings.APIARY_SYSTEM_NAME
             settings.SYSTEM_NAME_SHORT = 'Apiary'
@@ -124,3 +126,16 @@ class DomainDetectMiddleware(object):
             response = self.get_response(request)
         response = self.process_response(request, response)
         return response
+
+
+class CacheControlMiddleware(object):
+    def process_response(self, request, response):
+        if request.path[:5] == '/api/' or request.path == '/':
+            response['Cache-Control'] = 'private, no-store'
+        elif request.path[:8] == '/static/':
+            response['Cache-Control'] = 'public, max-age=86400'
+        else:
+            response['Cache-Control'] = 'private, no-store'
+        return response
+
+

@@ -33,6 +33,7 @@ INSTALLED_APPS += [
     'disturbance.components.approvals',
     'disturbance.components.compliances',
     'disturbance.components.das_payments',
+    'disturbance.components.history',
     'taggit',
     'rest_framework',
     'rest_framework_datatables',
@@ -81,6 +82,8 @@ MIDDLEWARE_CLASSES += [
     'disturbance.middleware.FirstTimeNagScreenMiddleware',
     'disturbance.middleware.RevisionOverrideMiddleware',
     'disturbance.middleware.DomainDetectMiddleware',
+    'disturbance.middleware.CacheControlMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     # 'corsheaders.middleware.CorsMiddleware',
 ]
 # CORS_ORIGIN_ALLOW_ALL = True
@@ -180,12 +183,12 @@ if env('CONSOLE_EMAIL_BACKEND', False):
 
 SITE_STATUS_DRAFT = 'draft'
 SITE_STATUS_PENDING = 'pending'
-SITE_STATUS_APPROVED = 'approved'
+SITE_STATUS_APPROVED = 'approved'  # This status 'approved' is assigned to the ApiarySiteOnProposal object once it's approved.  'current' is assigned to the ApiarySiteOnApproval object after that.
 SITE_STATUS_DENIED = 'denied'
 SITE_STATUS_CURRENT = 'current'
 SITE_STATUS_NOT_TO_BE_REISSUED = 'not_to_be_reissued'
 SITE_STATUS_SUSPENDED = 'suspended'
-SITE_STATUS_TRANSFERRED = 'transferred'
+SITE_STATUS_TRANSFERRED = 'transferred'  # This status 'transferred' is assigned to the old relationship (ApiarySiteOnApproval object)
 SITE_STATUS_VACANT = 'vacant'
 SITE_STATUS_DISCARDED = 'discarded'
 BASE_EMAIL_TEXT = ''
@@ -202,6 +205,7 @@ LOGGING['loggers']['disturbance'] = {
             'handlers': ['file'],
             'level': 'INFO'
         }
+
 # Add a handler
 LOGGING['handlers']['file_apiary'] = {
     'level': 'INFO',
@@ -215,7 +219,30 @@ LOGGING['loggers']['apiary'] = {
     'handlers': ['file_apiary'],
     'level': 'INFO'
 }
+
+# Add a debug level logger for development
+#if DEBUG:
+#    LOGGING = {
+#        'version': 1,
+#        'disable_existing_loggers': True,
+#        'handlers': {
+#            'console': {
+#                'class': 'logging.StreamHandler',
+#            },
+#        },
+#        'loggers': {
+#            'disturbance': {
+#                'handlers': ['console'],
+#                'level': 'DEBUG',
+#                'propagate': False,
+#            },
+#        },
+#    }    
+
 KMI_SERVER_URL = env('KMI_SERVER_URL', 'https://kmi.dbca.wa.gov.au')
+
+DEV_APP_BUILD_URL = env('DEV_APP_BUILD_URL')  # URL of the Dev app.js served by webpack & express
+
 #APPLICATION_TYPES_SQL='''
 #        SELECT name, name FROM disturbance_applicationtypechoice
 #        WHERE archive_date IS NULL OR archive_date > now()

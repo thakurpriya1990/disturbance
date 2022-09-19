@@ -28,6 +28,7 @@ module.exports = {
         var assessorInfo = this.status_data.assessorInfo;
         var proposalId = this.status_data.proposalId;
         var applicationType = this.status_data.applicationType;
+        var proposalLodgementDate = this.status_data.proposalLodgementDate;
         var assessorMode = false;
         var assessorCanAssess = false;
         var assessorLevel = '';
@@ -145,7 +146,7 @@ module.exports = {
                 }
                 _elements.push(
                     <div>
-                        <Select readonly={readonly} name={c.name} label={c.label} value={c.value} id={id} comment_value={comment_val} options={c.options} help_text={help_text} help_text_assessor={help_text_assessor} value={val} handleChange={this.selectionChanged}  conditions={c.conditions} assessorMode={assessorMode} assessor_readonly={assessor_visibility} isRequired={c.isRequired} help_text_url={help_text_url} help_text_assessor_url={help_text_assessor_url} comment_boxes={JSON.stringify(comment_boxes)}/>
+                        <Select readonly={readonly} name={c.name} label={c.label} value={val} id={id} comment_value={comment_val} options={c.options} help_text={help_text} help_text_assessor={help_text_assessor} handleChange={this.selectionChanged}  conditions={c.conditions} assessorMode={assessorMode} assessor_readonly={assessor_visibility} isRequired={c.isRequired} help_text_url={help_text_url} help_text_assessor_url={help_text_assessor_url} comment_boxes={JSON.stringify(comment_boxes)}/>
                         <SelectConditions conditions={c.conditions} renderer={this} name={c.name} data={data} id={id1} readonly={readonly} isRequired={c.isRequired}/>
                     </div>
                 )
@@ -160,7 +161,7 @@ module.exports = {
                 // }
                 //console.log(comment_boxes);
                 _elements.push(
-                    <Select name={c.name} label={c.label} value={val} id={id} comment_value={comment_val} options={c.options} value={val} help_text={help_text} help_text_assessor={help_text_assessor} assessorMode={assessorMode} handleChange={this.selectionChanged} readonly={readonly} isMultiple={true} assessor_readonly={assessor_visibility} isRequired={c.isRequired} help_text_url={help_text_url} help_text_assessor_url={help_text_assessor_url} comment_boxes={JSON.stringify(comment_boxes)}/>
+                    <Select name={c.name} label={c.label} value={val} id={id} comment_value={comment_val} options={c.options} help_text={help_text} help_text_assessor={help_text_assessor} assessorMode={assessorMode} handleChange={this.selectionChanged} readonly={readonly} isMultiple={true} assessor_readonly={assessor_visibility} isRequired={c.isRequired} help_text_url={help_text_url} help_text_assessor_url={help_text_assessor_url} comment_boxes={JSON.stringify(comment_boxes)}/>
                 )
                 break;
             case 'text_area':
@@ -220,7 +221,7 @@ module.exports = {
                 }
                 this.sections.push({name:c.name,label:c.label});
                 _elements.push(
-                    <Section label={c.label} Key={c.name} id={c.name}>
+                    <Section label={c.label} secKey={c.name} id={c.name}>
                         {c.children.map(d=>{
                             return (
                                 <div>
@@ -255,7 +256,7 @@ module.exports = {
                 break;
             case 'file':
                 _elements.push(
-                    <File name={c.name} label={c.label} value={val} id={id} comment_value={comment_val} isRepeatable={c.isRepeatable} handleChange={this.handleFileChange} readonly={readonly} help_text={help_text} help_text_assessor={help_text_assessor} assessorMode={assessorMode} docsUrl={this.status_data.docs_url} readonly={readonly} assessor_readonly={assessor_visibility} proposal_id={proposalId} isRequired={c.isRequired} help_text_url={help_text_url} help_text_assessor_url={help_text_assessor_url} comment_boxes={JSON.stringify(comment_boxes)}/>
+                    <File name={c.name} label={c.label} value={val} id={id} comment_value={comment_val} isRepeatable={c.isRepeatable} handleChange={this.handleFileChange} readonly={readonly} help_text={help_text} help_text_assessor={help_text_assessor} assessorMode={assessorMode} docsUrl={this.status_data.docs_url} assessor_readonly={assessor_visibility} proposal_id={proposalId} proposal_lodgement_date={proposalLodgementDate} isRequired={c.isRequired} help_text_url={help_text_url} help_text_assessor_url={help_text_assessor_url} comment_boxes={JSON.stringify(comment_boxes)}/>
                 )
                 break;
             case 'date':
@@ -393,7 +394,7 @@ module.exports = {
         return boxes;
     },
     status_data : {},
-    store_status_data(readonly,assessorData,commentData,assessorEmail,assessorMode,can_user_edit,docs_url, proposalId, applicationType){
+    store_status_data(readonly,assessorData,commentData,assessorEmail,assessorMode,can_user_edit,docs_url, proposalId, applicationType, proposalLodgementDate){
         this.status_data = {
             'readonly': readonly,
             'assessorData': assessorData,
@@ -403,7 +404,8 @@ module.exports = {
             'can_user_edit': can_user_edit,
             'docs_url': docs_url,
             'proposalId': proposalId,
-            'applicationType': applicationType
+            'applicationType': applicationType,
+            'proposalLodgementDate': proposalLodgementDate
         }
     },
     getVisibility(h,c,readonly,assessor_mode,assessor_can_assess){
