@@ -10,11 +10,17 @@ from django.db import connection
 from django.db.models.query_utils import Q
 from rest_framework import serializers
 
+from rest_framework.renderers import JSONRenderer
+#from disturbance.components.proposals.serializers import SpatialQueryQuestionSerializer
+
 from disturbance.components.main.decorators import timeit
 from disturbance.components.main.models import CategoryDbca, RegionDbca, DistrictDbca, WaCoast
 from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_APPROVED, SITE_STATUS_TRANSFERRED, RESTRICTED_RADIUS, \
     SITE_STATUS_PENDING, SITE_STATUS_DISCARDED, SITE_STATUS_VACANT, SITE_STATUS_DENIED, SITE_STATUS_CURRENT, \
     SITE_STATUS_NOT_TO_BE_REISSUED, SITE_STATUS_SUSPENDED
+
+import logging
+logger = logging.getLogger(__name__)
 
 
 def retrieve_department_users():
@@ -725,3 +731,113 @@ def get_qs_approval_for_export():
     qs_on_approval = ApiarySiteOnApproval.objects.filter(q_include_approval).exclude(q_exclude_approval).distinct('apiary_site')
 
     return qs_on_approval
+
+#def get_questions_grouped_by_layers(queryset=None):
+#    from disturbance.components.proposals.serializers import SpatialQueryQuestionSerializer
+#    from disturbance.components.proposals.models import SpatialQueryQuestion
+#    if not queryset:
+#        queryset = SpatialQueryQuestion.objects.all()
+#    serializer = SpatialQueryQuestionSerializer(queryset, many=True)
+#    rendered = JSONRenderer().render(serializer.data).decode('utf-8')
+#    sqq_json = json.loads(rendered)
+#
+#    layer_names = [i['layer_name'] for i in sqq_json]
+#    unique_layer_names = list(set(layer_names))
+#    unique_layer_list = [{'layer_name': i, 'questions': []} for i in unique_layer_names]
+#    for layer_dict in unique_layer_list:
+#        for sqq_record in sqq_json:
+#            #print(j['layer_name'])
+#            if layer_dict['layer_name'] in sqq_record.values():
+#                layer_dict['questions'].append(sqq_record)
+#
+#    #import ipdb; ipdb.set_trace()
+#    #grouped_layers = dict(masterlist_questions=[unique_layer_list])
+#    grouped_layers = unique_layer_list
+#    return grouped_layers
+#
+#def get_shapefile_json():
+#    """ a simple rectangle intersecting WA regions [GOLDFIELDS, SOUTH COAST] """
+#    shapefile_json = '''{"type":"FeatureCollection","features":[{"type":"Feature","properties":{},"geometry":{"type":"Polygon","coordinates":[[[124.12353515624999,-30.391830328088137],[124.03564453125,-31.672083485607377],[126.69433593749999,-31.615965936476076],[127.17773437499999,-29.688052749856787],[124.12353515624999,-30.391830328088137]]]}}]}'''
+#    return json.loads(shapefile_json)
+#
+#
+#def sqs_query():
+#    try:
+#        url = 'http://localhost:8002/api/layers/spatial_query.json'
+#        headers = {'Content-type': 'application/json'}
+#        #data = '''{"masterlist_questions":[{"layer_name":"cddp:local_gov_authority","questions":[{"id":7,"question":"6.0 Another Checkbox Question?","answer_mlq":"Nature reserve","layer_name":"cddp:local_gov_authority","layer_url":"https://kmi.dbca.wa.gov.au/geoserver/cddp/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=cddp:local_gov_authority&maxFeatures=200&outputFormat=application%2Fjson","expiry":"2023-04-13","visible_to_proponent":true,"buffer":100,"how":"Overlapping","widget_type":"Checkbox","column_name":"lga_label","operator":"IsNotNull","value":"nan","value_type":"","prefix_answer":"nan","no_polygons_proponent":2,"answer":"nan","prefix_info":"nan","no_polygons_assessor":-1,"assessor_info":"g","regions":"All"},{"id":5,"question":"2.0 What is the land tenure or classification?","answer_mlq":"Nature reserve","layer_name":"cddp:local_gov_authority","layer_url":"https://kmi.dbca.wa.gov.au/geoserver/cddp/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=cddp:local_gov_authority&maxFeatures=200&outputFormat=application%2Fjson","expiry":"2023-04-13","visible_to_proponent":true,"buffer":100,"how":"Overlapping","widget_type":"Checkbox","column_name":"lga_label","operator":"IsNotNull","value":"nan","value_type":"","prefix_answer":"nan","no_polygons_proponent":2,"answer":"nan","prefix_info":"1.0","no_polygons_assessor":-1,"assessor_info":"e","regions":"All"}]},{"layer_name":"cddp:dpaw_regions","questions":[{"id":6,"question":"3.0 Another Checkbox Question?","answer_mlq":"National park","layer_name":"cddp:dpaw_regions","layer_url":"https://kmi.dbca.wa.gov.au/geoserver/cddp/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=cddp:dpaw_regions&maxFeatures=50&outputFormat=application%2Fjson","expiry":"2023-03-13","visible_to_proponent":true,"buffer":300,"how":"Overlapping","widget_type":"Checkbox","column_name":"region","operator":"IsNotNull","value":"nan","value_type":"","prefix_answer":"nan","no_polygons_proponent":-1,"answer":"nan","prefix_info":"nan","no_polygons_assessor":1,"assessor_info":"f","regions":"All"},{"id":4,"question":"2.0 What is the land tenure or classification?","answer_mlq":"National park","layer_name":"cddp:dpaw_regions","layer_url":"https://kmi.dbca.wa.gov.au/geoserver/cddp/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=cddp:dpaw_regions&maxFeatures=50&outputFormat=application%2Fjson","expiry":"2022-03-01","visible_to_proponent":true,"buffer":300,"how":"Overlapping","widget_type":"Checkbox","column_name":"region","operator":"IsNotNull","value":"nan","value_type":"","prefix_answer":"nan","no_polygons_proponent":-1,"answer":"nan","prefix_info":"2.0","no_polygons_assessor":1,"assessor_info":"d","regions":"All"}]}],"geojson":{"type":"FeatureCollection","features":[{"type":"Feature","properties":{},"geometry":{"type":"Polygon","coordinates":[[[124.12353515624999,-30.391830328088137],[124.03564453125,-31.672083485607377],[126.69433593749999,-31.615965936476076],[127.17773437499999,-29.688052749856787],[124.12353515624999,-30.391830328088137]]]}}]}}'''
+#        #res = requests.post(url, json=json.loads(data), headers=headers, verify=False)
+#
+#        masterlist_questions = get_questions_grouped_by_layers()
+#        shapefile_json = get_shapefile_json()
+#        cddp_json=dict(masterlist_questions=masterlist_questions, geojson=shapefile_json)
+#        res = requests.post(url, json=cddp_json, headers=headers, verify=False)
+#        return res.json()
+#    except:
+#        raise
+
+
+class SpatialQueryBuilder():
+    def __init__(self, url='http://localhost:8002/api/layers/spatial_query.json', queryset=None):
+        self.url = url
+        self.queryset = queryset
+
+        self.grouped_layers = self.get_questions_grouped_by_layers()
+        self.shapefile_json = self.get_shapefile_json()
+        self.sqs_response = None
+
+    def get_questions_grouped_by_layers(self):
+        """
+        Returns masterlistquestions as JSON, needed to query SQS via API call.
+        Questions returned are grouped by layer_name.
+        """
+        from disturbance.components.proposals.serializers import SpatialQueryQuestionSerializer
+        from disturbance.components.proposals.models import SpatialQueryQuestion
+        queryset = self.queryset
+        if not queryset:
+            queryset = SpatialQueryQuestion.objects.all()
+        serializer = SpatialQueryQuestionSerializer(queryset, many=True)
+        rendered = JSONRenderer().render(serializer.data).decode('utf-8')
+        sqq_json = json.loads(rendered)
+
+        layer_names = [i['layer_name'] for i in sqq_json]
+        unique_layer_names = list(set(layer_names))
+        unique_layer_list = [{'layer_name': i, 'questions': []} for i in unique_layer_names]
+        for layer_dict in unique_layer_list:
+            for sqq_record in sqq_json:
+                #print(j['layer_name'])
+                if layer_dict['layer_name'] in sqq_record.values():
+                    layer_dict['questions'].append(sqq_record)
+
+        #import ipdb; ipdb.set_trace()
+        return unique_layer_list
+
+    def get_shapefile_json(self):
+        """
+            a simple rectangle intersecting WA regions [GOLDFIELDS, SOUTH COAST]
+        """
+        shapefile = '''{"type":"FeatureCollection","features":[{"type":"Feature","properties":{},"geometry":{"type":"Polygon","coordinates":[[[124.12353515624999,-30.391830328088137],[124.03564453125,-31.672083485607377],[126.69433593749999,-31.615965936476076],[127.17773437499999,-29.688052749856787],[124.12353515624999,-30.391830328088137]]]}}]}'''
+        return json.loads(shapefile)
+
+    def run_query(self):
+        try:
+            url = 'http://localhost:8002/api/layers/spatial_query.json'
+            headers = {'Content-type': 'application/json'}
+
+            masterlist_questions = self.grouped_layers #get_questions_grouped_by_layers()
+            shapefile_json = self.shapefile_json #get_shapefile_json()
+            cddp_json=dict(masterlist_questions=masterlist_questions, geojson=shapefile_json)
+            res = requests.post(url, json=cddp_json, headers=headers, verify=False)
+            self.sqs_response = res.json()
+        except Exception as e:
+            logger.error(f'Error Querying SQS: {e}')
+
+    def find(self, question, answer):
+        """
+        checks if question-qnswer combination is found in SQS API response JSON
+        """
+        for _dict in self.sqs_response:
+            if _dict['question']==question and _dict['answer']==answer:
+                return _dict['answer']
+        return None
+

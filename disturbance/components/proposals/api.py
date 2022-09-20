@@ -47,6 +47,7 @@ from disturbance.components.main.utils import (
     get_qs_approval,
     handle_validation_error, get_qs_pending_site, get_qs_denied_site, get_qs_current_site,
     get_qs_not_to_be_reissued_site, get_qs_suspended_site, get_qs_discarded_site,
+    #get_questions_grouped_by_layers
 )
 
 from django.urls import reverse
@@ -3913,8 +3914,8 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
     queryset = SpatialQueryQuestion.objects.all()
     serializer_class = SpatialQueryQuestionSerializer
 
-    def get_queryset(self):
-        return self.queryset
+#    def get_queryset(self):
+#        return self.queryset
 
 #    def list(self, request, *args, **kwargs):
 #        """ http://localhost:8001/api/spatial_query.json - returns all in queryset"""
@@ -3925,50 +3926,71 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
     @list_route(methods=['GET', ])
     def grouped_by_layer(self, request, *args, **kwargs):
         """ http://localhost:8001/api/spatial_query/grouped_by_layer.json 
+            http://localhost:8001/api/spatial_query/grouped_by_layer/?exclude_expired=true
   
             Group spatial query questions by layer_name
         """
-        queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
-
-        rendered = JSONRenderer().render(serializer.data).decode('utf-8')
-        sqq_json = json.loads(rendered)
-
         #import ipdb; ipdb.set_trace()
-        layer_names = [i['layer_name'] for i in sqq_json]
-        unique_layer_names = list(set(layer_names))
-        unique_layer_list = [{'layer_name': i, 'questions': []} for i in unique_layer_names]
-        for layer_dict in unique_layer_list:
-            for sqq_record in sqq_json:
-                #print(j['layer_name'])
-                if layer_dict['layer_name'] in sqq_record.values():
-                    layer_dict['questions'].append(sqq_record)
-
-        return Response(unique_layer_list)
-
-    @list_route(methods=['GET', ])
-    def grouped_by_question(self, request, *args, **kwargs):
-        """ http://localhost:8001/api/spatial_query/grouped_by_question.json 
-  
-            Group spatial query questions by layer_name
-        """
         queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
+        if 'exclude_expired' in request.GET and request.GET.get('exclude_expired').lower()=='true':
+            now = datetime.now(pytz.timezone(TIME_ZONE))
+            queryset = queryset.exclude(expiry__lt=now)
 
-        rendered = JSONRenderer().render(serializer.data).decode('utf-8')
-        sqq_json = json.loads(rendered)
+        grouped_layers = get_questions_grouped_by_layers(queryset) 
+        
+        return Response(grouped_layers)
 
-        #import ipdb; ipdb.set_trace()
-        questions = [i['question'] for i in sqq_json]
-        unique_questions = list(set(questions))
-        question_group_list = [{'question_group': i, 'questions': []} for i in unique_questions]
-        for question_dict in question_group_list:
-            for sqq_record in sqq_json:
-                #print(j['layer_name'])
-                if question_dict['question_group'] in sqq_record.values():
-                    question_dict['questions'].append(sqq_record)
+#    @list_route(methods=['GET', ])
+#    def grouped_by_layer(self, request, *args, **kwargs):
+#        """ http://localhost:8001/api/spatial_query/grouped_by_layer.json 
+#  
+#            Group spatial query questions by layer_name
+#        """
+#        queryset = self.get_queryset()
+#        serializer = self.get_serializer(queryset, many=True)
+#
+#        rendered = JSONRenderer().render(serializer.data).decode('utf-8')
+#        sqq_json = json.loads(rendered)
+#
+#        #import ipdb; ipdb.set_trace()
+#        layer_names = [i['layer_name'] for i in sqq_json]
+#        unique_layer_names = list(set(layer_names))
+#        unique_layer_list = [{'layer_name': i, 'questions': []} for i in unique_layer_names]
+#        for layer_dict in unique_layer_list:
+#            for sqq_record in sqq_json:
+#                #print(j['layer_name'])
+#                if layer_dict['layer_name'] in sqq_record.values():
+#                    layer_dict['questions'].append(sqq_record)
+#
+#        #import ipdb; ipdb.set_trace()
+#        grouped_layers = dict(masterlist_questions=[unique_layer_list])
+#        return Response(grouped_layers)
 
-        return Response(question_group_list)
+
+#    @list_route(methods=['GET', ])
+#    def grouped_by_question(self, request, *args, **kwargs):
+#        """ http://localhost:8001/api/spatial_query/grouped_by_question.json 
+#  
+#            Group spatial query questions by layer_name
+#        """
+#        queryset = self.get_queryset()
+#        import ipdb; ipdb.set_trace()
+#        serializer = self.get_serializer(queryset, many=True)
+#
+#        rendered = JSONRenderer().render(serializer.data).decode('utf-8')
+#        sqq_json = json.loads(rendered)
+#
+#        #import ipdb; ipdb.set_trace()
+#        questions = [i['question'] for i in sqq_json]
+#        unique_questions = list(set(questions))
+#        question_group_list = [{'question_group': i, 'questions': []} for i in unique_questions]
+#        for question_dict in question_group_list:
+#            for sqq_record in sqq_json:
+#                #print(j['layer_name'])
+#                if question_dict['question_group'] in sqq_record.values():
+#                    question_dict['questions'].append(sqq_record)
+#
+#        return Response(question_group_list)
 
     @list_route(methods=['GET', ])
     def get_spatialquery_selects(self, request, *args, **kwargs):
@@ -3980,6 +4002,8 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
 
             excl_operator_choices = []
             excl_how_choices = []
+            excl_widget_type_choices = []
+            excl_value_type_choices = []
 
             operators = [
                 {
@@ -3995,6 +4019,22 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
                 if a[0] not in excl_how_choices
             ]
 
+            widget_types = [
+                {
+                    'value': a[0], 'label': a[1]
+                } for a in SpatialQueryQuestion.WIDGET_TYPE_CHOICES
+                if a[0] not in excl_widget_type_choices
+            ]
+
+            value_types = [
+                {
+                    'value': a[0], 'label': a[1]
+                } for a in SpatialQueryQuestion.VALUE_TYPE_CHOICES
+                if a[0] not in excl_value_type_choices
+            ]
+
+
+
             qs = MasterlistQuestion.objects.all()
             masterlist = SchemaMasterlistOptionSerializer(qs, many=True).data
 
@@ -4002,6 +4042,8 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
                 {
                     'operators': operators,
                     'how': how,
+                    'widget_types': widget_types,
+                    'value_types': value_types,
                     'all_masterlist': masterlist,
                 },
                 status=status.HTTP_200_OK

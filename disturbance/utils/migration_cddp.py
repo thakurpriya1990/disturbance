@@ -11,9 +11,11 @@ logger = logging.getLogger(__name__)
 
 NL = '\n'
 
+#    'Question ID[1]':                   'question_id',
+#    'Answer ID[2]':                     'answer_mlq_id',
 COLUMN_MAPPING = {
-    'Question ID[1]':                   'question_id',
-    'Answer ID[2]':                     'answer_mlq_id',
+    'Question':                         'question',
+    'Answer MLQ':                       'answer_mlq',
     'Layer Name[3]':                    'layer_name',
     'Layer URL (GeoJSON)':              'layer_url',
     'Expiry (months)[4]':               'expiry',

@@ -34,16 +34,17 @@ from disturbance.components.proposals.serializers_apiary import (
 )
 from disturbance.components.proposals.email import send_submit_email_notification, send_external_submit_email_notification
 from disturbance.components.organisations.models import Organisation
+#from disturbance.components.main.utils import sqs_query
 
 import traceback
 import os
 import json
 
-import logging
 
 from disturbance.settings import RESTRICTED_RADIUS, TIME_ZONE
 from disturbance.utils import convert_moment_str_to_python_datetime_obj
 
+import logging
 logger = logging.getLogger(__name__)
 
 richtext = u''
@@ -1757,7 +1758,7 @@ def prefill_data_from_shape_original(schema ):
     
     try:
         for item in schema:
-            data.update(_populate_data_from_item(item, 0, ''))
+            data.update(_populate_data_from_item_original(item, 0, ''))
            
     except:
         traceback.print_exc()
@@ -1855,17 +1856,24 @@ def check_checkbox_item_original(item_name,item,item_data,repetition,suffix):
     return checkbox_item
 
 class PrefillData(object):
+    """
+    from disturbance.components.proposals.utils import PrefillData
+    pr=PrefillData()
+    pr.prefill_data_from_shape(p.schema)
+    """
 
-    def __init__(self):
+    def __init__(self, sqs_builder=None):
+        self.sqs_builder=sqs_builder
         self.data={}
         self.layer_data=[]
         self.add_info_assessor={}
 
-    def prefill_data_from_shape(self, schema ):
+    def prefill_data_from_shape(self, schema):
         #data = {}
         
         try:
             for item in schema:
+                #import ipdb; ipdb.set_trace()
                 self.data.update(self._populate_data_from_item(item, 0, ''))
                
         except:
@@ -1880,10 +1888,14 @@ class PrefillData(object):
         else:
             raise Exception('Missing name in item %s' % item['label'])
 
+        #import ipdb; ipdb.set_trace()
         if 'children' not in item:
             if item['type'] =='checkbox':
+                #import ipdb; ipdb.set_trace()
                 if sqs_value:
+                    import ipdb; ipdb.set_trace()
                     for val in sqs_value:
+                        #import ipdb; ipdb.set_trace()
                         if val==item['label']:
                             item_data[item['name']]='on'
                             item_layer_data={
@@ -1958,6 +1970,8 @@ class PrefillData(object):
                         #print(item)
                         #print('radiobuttons/ textarea/ text/ date etc item', item)
         else:
+            #import ipdb; ipdb.set_trace()
+            #sqs_values = []
             if 'repetition' in item:
                 item_data = self.generate_item_data_shape(extended_item_name,item,item_data,1,suffix)
             else:
@@ -1965,7 +1979,16 @@ class PrefillData(object):
                 #Check if item has checkbox childer
                 if self.check_checkbox_item(extended_item_name, item, item_data,1,suffix):
                     #make a call to sqs for item
-                    sqs_values=['first']
+                    # 1. question      --> item['label']
+                    # 2. checkbox text --> item['children'][0]['label']
+                    # 3. request response for all checkbox's ie. send item['children'][all]['label']. 
+                    #    SQS will return a list of checkbox's answersfound eg. ['National park', 'Nature reserve']
+                    #sqs_values=['Nature reserve']
+                    #if item['label'] == 
+                    #sqs_values = sqs_query()['proponent_answer']
+                    #import ipdb; ipdb.set_trace()
+                    #sqs_value = ['Nature reserve',2]
+                    sqs_values = [self.sqs_builder.find(question=item['label'], answer=child['label']) for child in item['children']]
                     #pass sqs values as an attribute.
                     item_data = self.generate_item_data_shape(extended_item_name, item, item_data,1,suffix, sqs_values)
                 else:
@@ -1994,6 +2017,7 @@ class PrefillData(object):
         return item_data
 
     def check_checkbox_item(self, item_name,item,item_data,repetition,suffix):
+        #import ipdb; ipdb.set_trace()
         checkbox_item=False
         for child_item in item.get('children'):
             if child_item['type']=='checkbox':

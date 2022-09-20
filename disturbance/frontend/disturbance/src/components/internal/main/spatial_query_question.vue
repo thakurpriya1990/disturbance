@@ -156,14 +156,17 @@
 
 
                     <div class="row"><div class="col-md-12" >&nbsp;</div></div>
-                    <div class="row">
-                        <div class="col-md-3">
-                            <label class="control-label pull-left" >Intersection operator</label>
-                        </div>
-                        <div class="col-md-3">
-                            <select class="form-control" ref="select_how" name="select-how" v-model="spatialquery.how">
-                                <option v-for="operator in spatialquery_selects.how" :value="operator.value" >{{operator.label}}</option>
-                            </select>     
+                    <div>
+                        <div class="row">
+                            <div class="col-md-3">
+                                <label class="control-label pull-left" >Intersection operator</label>
+                            </div>
+                            <div class="col-md-3">
+                                <select class="form-control" ref="select_how" name="select-how" v-model="spatialquery.how">
+                                    <option v-for="operator in spatialquery_selects.how" :value="operator.value" >{{operator.label}}</option>
+                                </select>     
+                            </div>
+
                         </div>
                     </div>
 
@@ -196,6 +199,34 @@
                             </div>
                         </div>
                     </div>
+
+                    <div class="row"><div class="col-md-12" >&nbsp;</div></div>
+                    <div>
+                        <div class="row">
+                            <div class="col-md-3"></div>
+                            <div class="col-md-3">
+                                <label class="control-label pull-left" >Component type</label>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="control-label pull-left" >Value type</label>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-3"></div>
+                            <div class="col-md-3">
+                                <select class="form-control" ref="select_widget_type" name="select-widget_type" v-model="spatialquery.widget_type">
+                                    <option v-for="widget_type in spatialquery_selects.widget_types" :value="widget_type.value" >{{widget_type.label}}</option>
+                                </select>     
+                            </div>
+                            <div class="col-md-3">
+                                <select class="form-control" ref="select_value_type" name="select-value_type" v-model="spatialquery.value_type">
+                                    <option v-for="value_type in spatialquery_selects.value_types" :value="value_type.value" >{{value_type.label}}</option>
+                                </select>     
+                            </div>
+                        </div>
+                    </div>
+
+
 
                     <div class="row"><div class="col-md-12" >&nbsp;</div></div>
                     <div class="row">
@@ -303,11 +334,12 @@ export default {
             filterOptions: '',
             isModalOpen:false,
             spatialquery_selects: [],
+            widget_type_selects: [],
             missing_fields: [],
             // spatial query questions table
             //dtHeadersSpatialQueryQuestion: ["ID", "QuestionOP", "QuestionHD", "QuestionEX", "Question", "Answer Type", "Action"],
             //dtHeadersSpatialQueryQuestion: ["ID", "QuestionEX", "aa", "Question", "Answer Type", "Action"],
-            dtHeadersSpatialQueryQuestion: ["ID", "Question", "Answer Option", "Visible to proponent", "Buffer (m)", "Layer name", "Overlapping/Outside", "Column", "Operator", "Value", "Layer URL", "Expiry", "Prefix Answer", "Number of polygons (Proponent)", "Answer", "Prefix Info", "Number of polygons (Assessor)", "Assessor Info", "Regions", "Action"],
+            dtHeadersSpatialQueryQuestion: ["ID", "Question", "Answer Option", "Visible to proponent", "Buffer (m)", "Layer name", "Overlapping/Outside", "Component Type", "Column", "Operator", "Value", "Value Type",  "Layer URL", "Expiry", "Prefix Answer", "Number of polygons (Proponent)", "Answer", "Prefix Info", "Number of polygons (Assessor)", "Assessor Info", "Regions", "Action"],
             dtOptionsSpatialQueryQuestion:{
                 language: {
                     processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
@@ -390,6 +422,10 @@ export default {
                         data: "how",
                     },
                     { 
+                        data: "widget_type",
+                        visible: false,
+                    },
+                    { 
                         data: "column_name",
                     },
                     { 
@@ -398,7 +434,10 @@ export default {
                     { 
                         data: "value",
                     },
-
+                    { 
+                        data: "value_type",
+                        visible: false,
+                    },
                     { 
                         data: "layer_url",
                         visible: false,
@@ -624,9 +663,11 @@ export default {
             this.spatialquery.visible_to_proponent = '';
             this.spatialquery.buffer = '';
             this.spatialquery.how = '';
+            this.spatialquery.widget_type = '';
             this.spatialquery.column_name = '';
             this.spatialquery.operator = '';
             this.spatialquery.value = '';
+            this.spatialquery.value_type = '';
             this.spatialquery.prefix_answer = '';
             this.spatialquery.no_polygons_proponent = '-1';
             this.spatialquery.answer = '';
@@ -663,9 +704,11 @@ export default {
                 self.spatialquery.visible_to_proponent = self.$refs.spatial_query_question_table.row_of_data.data().visible_to_proponent;
                 self.spatialquery.buffer = self.$refs.spatial_query_question_table.row_of_data.data().buffer;
                 self.spatialquery.how = self.$refs.spatial_query_question_table.row_of_data.data().how;
+                self.spatialquery.widget_type = self.$refs.spatial_query_question_table.row_of_data.data().widget_type;
                 self.spatialquery.column_name = self.$refs.spatial_query_question_table.row_of_data.data().column_name;
                 self.spatialquery.operator = self.$refs.spatial_query_question_table.row_of_data.data().operator;
                 self.spatialquery.value = self.$refs.spatial_query_question_table.row_of_data.data().value;
+                self.spatialquery.value_type = self.$refs.spatial_query_question_table.row_of_data.data().value_type;
                 self.spatialquery.prefix_answer = self.$refs.spatial_query_question_table.row_of_data.data().prefix_answer;
                 self.spatialquery.no_polygons_proponent = self.$refs.spatial_query_question_table.row_of_data.data().no_polygons_proponent;
                 self.spatialquery.answer = self.$refs.spatial_query_question_table.row_of_data.data().answer;
@@ -753,7 +796,7 @@ export default {
         },
         initSelects: async function() {
 
-            //console.log(helpers.add_endpoint_json(api_endpoints.spatial_query,'get_spatialquery_selects'))
+            console.log(helpers.add_endpoint_json(api_endpoints.spatial_query,'get_spatialquery_selects'))
             await this.$http.get(helpers.add_endpoint_json(api_endpoints.spatial_query,'get_spatialquery_selects')).then(res=>{
 
                     this.spatialquery_selects = res.body
