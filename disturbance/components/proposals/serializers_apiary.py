@@ -1050,7 +1050,7 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
 
         ret = []
         if with_apiary_sites:
-            for apiary_site in proposal_apiary.apiary_sites.all():
+            for apiary_site in proposal_apiary.apiary_sites.all().order_by('id'):
                 inter_obj = ApiarySiteOnProposal.objects.get(apiary_site=apiary_site, proposal_apiary=proposal_apiary)
                 if inter_obj.site_status == SITE_STATUS_DRAFT:
                     serializer = ApiarySiteOnProposalDraftGeometrySerializer
