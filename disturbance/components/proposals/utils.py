@@ -999,7 +999,7 @@ def proposal_submit_apiary(proposal, request):
                         checklist_type='apiary',
                         checklist_role='assessor'
                         ):
-                    new_answer = ApiaryChecklistAnswer.objects.create(proposal = proposal.proposal_apiary,
+                    new_answer = ApiaryChecklistAnswer.objects.get_or_create(proposal = proposal.proposal_apiary,
                                                                                question = question)
                 # add questions per site
                 for question in ApiaryChecklistQuestion.objects.filter(
@@ -1008,7 +1008,7 @@ def proposal_submit_apiary(proposal, request):
                         ):
                     # site is an ApiarySiteOnProposal obj
                     for site in proposal.proposal_apiary.get_relations():
-                        new_answer = ApiaryChecklistAnswer.objects.create(proposal = proposal.proposal_apiary,
+                        new_answer = ApiaryChecklistAnswer.objects.get_or_create(proposal = proposal.proposal_apiary,
                                                                                    question = question,
                                                                                    apiary_site=site.apiary_site)
             elif proposal.application_type.name == 'Site Transfer':
@@ -1016,7 +1016,7 @@ def proposal_submit_apiary(proposal, request):
                         checklist_type='site_transfer',
                         checklist_role='assessor'
                         ):
-                    new_answer = ApiaryChecklistAnswer.objects.create(proposal = proposal.proposal_apiary,
+                    new_answer = ApiaryChecklistAnswer.objects.get_or_create(proposal = proposal.proposal_apiary,
                                                                                question = question)
                 # add questions per site
                 for question in ApiaryChecklistQuestion.objects.filter(
@@ -1025,7 +1025,7 @@ def proposal_submit_apiary(proposal, request):
                         ):
                     # site is an ApiarySiteOnApproval obj
                     for site in proposal.proposal_apiary.get_relations():
-                        new_answer = ApiaryChecklistAnswer.objects.create(proposal = proposal.proposal_apiary,
+                        new_answer = ApiaryChecklistAnswer.objects.get_or_create(proposal = proposal.proposal_apiary,
                                                                                    question = question,
                                                                                    apiary_site=site.apiary_site)
 
