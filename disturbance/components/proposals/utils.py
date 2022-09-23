@@ -1893,7 +1893,7 @@ class PrefillData(object):
             if item['type'] =='checkbox':
                 #import ipdb; ipdb.set_trace()
                 if sqs_value:
-                    import ipdb; ipdb.set_trace()
+                    #import ipdb; ipdb.set_trace()
                     for val in sqs_value:
                         #import ipdb; ipdb.set_trace()
                         if val==item['label']:
@@ -1911,11 +1911,15 @@ class PrefillData(object):
             else:
                     if item['type'] == 'multi-select':
                         #Get value from SQS. Value should be an array of the correct options.
-                        sqs_value=item['options'][1]['value']
-                        sqs_value=[sqs_value]
-                        if sqs_value:
+                        #sqs_value=item['options'][1]['value']
+                        #sqs_value=[sqs_value]
+                        #import ipdb; ipdb.set_trace()
+                        sqs_values = [self.sqs_builder.find(question=item['label'], answer=option['label'], widget_type=item['type']) for option in item['options']]
+                        sqs_values = [i for i in sqs_values if i is not None] # drop None vlaues
+                        
+                        if sqs_values:
                             item_data[item['name']]=[]
-                        for val in sqs_value:
+                        for val in sqs_values:
                             if item['options']:
                                 for op in item['options']:
                                     if val==op['value']:
@@ -1938,10 +1942,16 @@ class PrefillData(object):
 
                     elif item['type'] == 'radiobuttons' or item['type'] == 'select' :
                         #Get value from SQS
-                        sqs_value=item['options'][1]['value']
+                        #sqs_value=item['options'][1]['value']
+                        #import ipdb; ipdb.set_trace()
+                        sqs_values = [self.sqs_builder.find(question=item['label'], answer=option['label'], widget_type=item['type']) for option in item['options']]
+                        sqs_values = [i for i in sqs_values if i is not None] # drop None vlaues
+                        #import ipdb; ipdb.set_trace()
+                        sqs_value = self.get_first_radiobutton(sqs_values) if item['type']=='radiobuttons' else ''.join(sqs_values)
                         if item['options']:
                             for op in item['options']:
-                                if sqs_value==op['value']:
+                                #if sqs_value==op['value']:
+                                if sqs_value==op['label']:
                                     item_data[item['name']]=op['value']
                                     item_layer_data={
                                         'name': item['name'],
@@ -1955,7 +1965,10 @@ class PrefillData(object):
                     else:
                         #All the other types e.g. textarea, text, date.
                         #This is where we can add API call to SQS to get the answer.
-                        sqs_value="test"
+                        #sqs_value="test"
+                        #import ipdb; ipdb.set_trace()
+                        #sqs_value = [self.sqs_builder.find(question=item['label'], answer=option['label']) for option in item['options']]
+                        sqs_value = self.sqs_builder.find(question=item['label'], answer='', widget_type='other')
                         item_data[item['name']]= sqs_value
                         item_layer_data={
                         'name': item['name'],
@@ -1965,7 +1978,8 @@ class PrefillData(object):
                         'new_layer_updated': 'new layer updated'
                         }
                         self.layer_data.append(item_layer_data)
-                        sqs_assessor_value='test'
+                        #sqs_assessor_value='test'
+                        sqs_assessor_value = self.sqs_builder.find(question=item['label'], answer='', widget_type='other')
                         self.add_info_assessor[item['name']]= sqs_assessor_value
                         #print(item)
                         #print('radiobuttons/ textarea/ text/ date etc item', item)
@@ -1988,7 +2002,8 @@ class PrefillData(object):
                     #sqs_values = sqs_query()['proponent_answer']
                     #import ipdb; ipdb.set_trace()
                     #sqs_value = ['Nature reserve',2]
-                    sqs_values = [self.sqs_builder.find(question=item['label'], answer=child['label']) for child in item['children']]
+                    sqs_values = [self.sqs_builder.find(question=item['label'], answer=child['label'], widget_type='checkbox') for child in item['children']]
+                    sqs_values = [i for i in sqs_values if i is not None] # drop None vlaues
                     #pass sqs values as an attribute.
                     item_data = self.generate_item_data_shape(extended_item_name, item, item_data,1,suffix, sqs_values)
                 else:
@@ -2023,6 +2038,18 @@ class PrefillData(object):
             if child_item['type']=='checkbox':
                 checkbox_item=True        
         return checkbox_item
+
+    def get_first_radiobutton(self, _list):
+        """
+        If SQS JSON object has multiple radiobuttons returned - select the one with highest priority (1,2,3 --> 1 is highest)
+        """
+        if not _list:
+            return None
+         
+        tmp_dict = {}
+        for i in _list:
+            tmp_dict.update(i)
+        return tmp_dict.get(min(tmp_dict.keys()))
 
 def save_prefill_data(proposal):
     prefill_instance= PrefillData()

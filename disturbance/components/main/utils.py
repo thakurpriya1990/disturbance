@@ -793,6 +793,7 @@ class SpatialQueryBuilder():
         """
         from disturbance.components.proposals.serializers import SpatialQueryQuestionSerializer
         from disturbance.components.proposals.models import SpatialQueryQuestion
+        #import ipdb; ipdb.set_trace()
         queryset = self.queryset
         if not queryset:
             queryset = SpatialQueryQuestion.objects.all()
@@ -820,6 +821,22 @@ class SpatialQueryBuilder():
         return json.loads(shapefile)
 
     def run_query(self):
+        """
+        Executes SQS API request --> response JSON
+
+        Sends all masterlist questions, grouped_by layer, to SQS. SQS response is a JSON object (map)
+        used for lookup by class disturbance.components.proposals.utils.PrefillData
+
+        Example:
+            from disturbance.components.proposals.utils import PrefillData
+            from disturbance.components.main.utils import SpatialQueryBuilder
+            builder = SpatialQueryBuilder()
+            builder.run_query()
+
+            p_checkbox = Proposal.objects.get(id=1498) --> <Proposal: 1498>
+            pr = PrefillData(sqs_builder=builder)
+            p_checkbox.data = pr.prefill_data_from_shape(p_checkbox.schema)
+        """
         try:
             url = 'http://localhost:8002/api/layers/spatial_query.json'
             headers = {'Content-type': 'application/json'}
@@ -830,14 +847,38 @@ class SpatialQueryBuilder():
             res = requests.post(url, json=cddp_json, headers=headers, verify=False)
             self.sqs_response = res.json()
         except Exception as e:
+            #import ipdb; ipdb.set_trace()
             logger.error(f'Error Querying SQS: {e}')
 
-    def find(self, question, answer):
+    def find(self, question, answer, widget_type):
         """
-        checks if question-qnswer combination is found in SQS API response JSON
+        Checks if question-answer combination is found in JSON map 'self.sqs_response' (SQS API response JSON)
+
+        Example:
+            self.find(question='2.0 What is the land tenure or classification?', answer='National park') --> returns label list
+
+            for Checkbox:
+                sqs_values = [self.sqs_builder.find(question=item['label'], answer=child['label']) for child in item['children']] --> --> ['cb_label1', 'cb_label2', ...]
+
+            for Multi-Select:
+                sqs_value=[self.sqs_builder.find(question=item['label'], answer=option['label']) for option in item['options']] --> ['ms_label1', 'ms_label2', ...]
         """
-        for _dict in self.sqs_response:
-            if _dict['question']==question and _dict['answer']==answer:
-                return _dict['answer']
+        #import ipdb; ipdb.set_trace()
+        try:
+            for _dict in self.sqs_response:
+                #import ipdb; ipdb.set_trace()
+                if widget_type in ['checkbox', 'multi-select', 'radiobuttons', 'select']:
+                    if _dict['question']==question and _dict['answer']==answer:
+                        #import ipdb; ipdb.set_trace()
+                        return _dict['assessor_answer'] if widget_type=='radiobuttons' else _dict['answer']
+                elif widget_type == 'other':
+                    if question==_dict['question']:
+                        #import ipdb; ipdb.set_trace()
+                        return _dict.get('proponent_answer') if _dict['visible_to_proponent'] else _dict.get('assessor_answer')
+        except Exception as e:
+            #import ipdb; ipdb.set_trace()
+            logger.error(f'Error Finding Question/Answer comination in SQS Response JSON: {question}/{answer}\n{e}')
+
         return None
+
 

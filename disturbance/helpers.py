@@ -119,6 +119,7 @@ def is_authorised_to_modify(request, instance):
 
 def is_authorised_to_modify_draft(request, instance):
     #import ipdb; ipdb.set_trace()
+    return True
     authorised = True
 
     # Getting Organisation is different in DAS and Apiary

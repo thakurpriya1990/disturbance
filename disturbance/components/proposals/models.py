@@ -5234,6 +5234,7 @@ class SpatialQueryQuestion(models.Model):
     buffer = models.PositiveIntegerField(blank=True, null=True)
     how = models.CharField('Overlapping/Outside', max_length=40, choices=HOW_CHOICES, default=HOW_CHOICES[0][0])
     widget_type = models.CharField('Component type', max_length=40, choices=WIDGET_TYPE_CHOICES, blank=True, null=True) #default=WIDGET_TYPE_CHOICES[0][0])
+    priority = models.SmallIntegerField('Radio button priority', blank=True, null=True)
     column_name = models.CharField('Name of layer attribute/field', max_length=100)
     operator = models.CharField('Operator', max_length=40, choices=OPERATOR_CHOICES, default=OPERATOR_CHOICES[0][0])
     value = models.CharField(max_length=100, blank=True, null=True)
