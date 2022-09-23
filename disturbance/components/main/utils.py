@@ -847,7 +847,7 @@ class SpatialQueryBuilder():
             res = requests.post(url, json=cddp_json, headers=headers, verify=False)
             self.sqs_response = res.json()
         except Exception as e:
-            #import ipdb; ipdb.set_trace()
+            import ipdb; ipdb.set_trace()
             logger.error(f'Error Querying SQS: {e}')
 
     def find(self, question, answer, widget_type):

@@ -1970,6 +1970,8 @@ class PrefillData(object):
                         #sqs_value = [self.sqs_builder.find(question=item['label'], answer=option['label']) for option in item['options']]
                         sqs_value = self.sqs_builder.find(question=item['label'], answer='', widget_type='other')
                         item_data[item['name']]= sqs_value
+                        #import ipdb; ipdb.set_trace()
+                        #item_layer_data = self.update_layer_info(list)
                         item_layer_data={
                         'name': item['name'],
                         'layer_name': 'layer  name',
@@ -2050,6 +2052,17 @@ class PrefillData(object):
         for i in _list:
             tmp_dict.update(i)
         return tmp_dict.get(min(tmp_dict.keys()))
+
+    def update_layer_info(self, _list):
+        #import ipdb; ipdb.set_trace()
+        return {
+            'name': item['name'],
+            'layer_name': 'layer name',
+            'layer_updated': 'layer updated',
+            'new_layer_name': 'new layer name',
+            'new_layer_updated': 'new layer updated'
+            }
+        
 
 def save_prefill_data(proposal):
     prefill_instance= PrefillData()
