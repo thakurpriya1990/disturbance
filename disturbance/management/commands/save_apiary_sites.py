@@ -25,7 +25,7 @@ class Command(BaseCommand):
         try:
             errors =[]
 
-            # Retrieve 'vacant' sites
+            # 1. Retrieve 'vacant' sites
             qs_vacant_site_proposal, qs_vacant_site_approval = get_qs_vacant_site_for_export()
             # qs_vacant_site_proposal may not have the wkb_geometry_processed if the apiary site is the selected 'vacant' site
 
@@ -33,12 +33,12 @@ class Command(BaseCommand):
             serializer_vacant_proposal = ApiarySiteOnProposalProcessedGeometryExportSerializer(qs_vacant_site_proposal.filter(wkb_geometry_processed__isnull=False), many=True)
             serializer_vacant_approval = ApiarySiteOnApprovalGeometryExportSerializer(qs_vacant_site_approval, many=True)
 
-            # ApiarySiteOnProposal
+            # 2. ApiarySiteOnProposal
             qs_on_proposal_draft, qs_on_proposal_processed = get_qs_proposal_for_export()
             serializer_proposal_processed = ApiarySiteOnProposalProcessedGeometryExportSerializer(qs_on_proposal_processed, many=True)
             serializer_proposal_draft = ApiarySiteOnProposalDraftGeometryExportSerializer(qs_on_proposal_draft, many=True)
 
-            # ApiarySiteOnApproval
+            # 3. ApiarySiteOnApproval
             qs_on_approval = get_qs_approval_for_export()
             serializer_approval = ApiarySiteOnApprovalGeometryExportSerializer(qs_on_approval, many=True)
 
