@@ -720,6 +720,12 @@ def get_qs_proposal_for_export():
     q_exclude_proposal |= Q(site_status__in=(SITE_STATUS_DRAFT,)) & Q(making_payment=False)  # Exclude pure 'draft' site
     q_exclude_proposal |= Q(site_status__in=(SITE_STATUS_DISCARDED,))
     q_exclude_proposal |= Q(site_status__in=(SITE_STATUS_APPROVED,))  # 'approved' site should be included in the approval as a 'current'
+    # The followings should not exclude any records because ApiarySiteOnProposal should not be in these statuses, but added just in case there are.
+    # Otherwise, sites might be picked up multiple times.
+    q_exclude_proposal |= Q(site_status__in=(SITE_STATUS_CURRENT,))
+    q_exclude_proposal |= Q(site_status__in=(SITE_STATUS_NOT_TO_BE_REISSUED,))
+    q_exclude_proposal |= Q(site_status__in=(SITE_STATUS_SUSPENDED,))
+    q_exclude_proposal |= Q(site_status__in=(SITE_STATUS_TRANSFERRED,))
     q_exclude_proposal |= Q(apiary_site__in=ApiarySite.objects.filter(is_vacant=True))  # Vacant sites are already picked up above.  We don't want to pick up them again here.
 
     # 1.4. Issue query
@@ -745,6 +751,13 @@ def get_qs_approval_for_export():
     # 2.2. Exclude
     q_exclude_approval |= Q(apiary_site__in=qs_vacant_site)  # We don't want to pick up the vacant sites already retrieved above
     q_exclude_approval |= Q(site_status=SITE_STATUS_TRANSFERRED)
+    # The followings should not exclude any records because ApiarySiteOnApproval should not be in these statuses, but added just in case there are.
+    # Otherwise, sites might be picked up multiple times.
+    q_exclude_approval |= Q(site_status=SITE_STATUS_DRAFT)
+    q_exclude_approval |= Q(site_status=SITE_STATUS_PENDING)
+    q_exclude_approval |= Q(site_status=SITE_STATUS_APPROVED)
+    q_exclude_approval |= Q(site_status=SITE_STATUS_DENIED)
+    q_exclude_approval |= Q(site_status=SITE_STATUS_DISCARDED)
 
     # 2.3. Issue query
     qs_on_approval = ApiarySiteOnApproval.objects.filter(q_include_approval).exclude(q_exclude_approval).distinct('apiary_site')
