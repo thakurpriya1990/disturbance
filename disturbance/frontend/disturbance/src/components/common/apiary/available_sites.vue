@@ -815,6 +815,7 @@
                         projection: 'EPSG:4326'
                     }),
                     pixelRatio: 1,  // We need this in order to make this map work correctly with the browser and/or display scaling factor(s) other than 100%
+                                    // Ref: https://github.com/openlayers/openlayers/issues/11464
                 });
 
                 vm.apiarySitesQuerySource = new VectorSource({ });
