@@ -717,9 +717,11 @@ def get_qs_proposal_for_export():
     q_include_proposal &= Q(id__in=(ApiarySite.objects.all().values('latest_proposal_link__id')))  # Include only the intermediate objects which are on the ApiarySite.latest_proposal_links
 
     # 1.2. Exclude
-    q_exclude_proposal |= Q(site_status__in=(SITE_STATUS_DRAFT,)) & Q(making_payment=False)  # Exclude pure 'draft' site
+    # q_exclude_proposal |= Q(site_status__in=(SITE_STATUS_DRAFT,)) & Q(making_payment=False)  # Exclude pure 'draft' site
+    q_exclude_proposal |= Q(site_status__in=(SITE_STATUS_DRAFT,))  # For this purpose, we don't want 'draft' sites.
     q_exclude_proposal |= Q(site_status__in=(SITE_STATUS_DISCARDED,))
-    q_exclude_proposal |= Q(site_status__in=(SITE_STATUS_APPROVED,))  # 'approved' site should be included in the approval as a 'current'
+    q_exclude_proposal |= Q(site_status__in=(SITE_STATUS_PENDING,))  # For this purpose, we don't want 'pending' sites.
+    q_exclude_proposal |= Q(site_status__in=(SITE_STATUS_APPROVED,))  # 'approved' site is included in the approval as a 'current'
     # The followings should not exclude any records because ApiarySiteOnProposal should not be in these statuses, but added just in case there are.
     # Otherwise, sites might be picked up multiple times.
     q_exclude_proposal |= Q(site_status__in=(SITE_STATUS_CURRENT,))
