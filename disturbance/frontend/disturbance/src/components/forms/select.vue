@@ -18,9 +18,10 @@
             </template> 
 
 
-            <template v-if="assessorMode && !assessor_readonly">
+            <template v-if="assessorMode">
                 <template v-if="!showingComment">
-                    <a v-if="comment_value != null && comment_value != undefined && comment_value != ''" href="" @click.prevent="toggleComment"><i style="color:red" class="fa fa-comment-o">&nbsp;</i></a>
+                    <!-- <a v-if="comment_value != null && comment_value != undefined && comment_value != '' && comment_value['assessor']!=null && comment_value['assessor']!=undefined && comment_value['assessor']!= '' " href="" @click.prevent="toggleComment"><i style="color:red" class="fa fa-comment-o">&nbsp;</i></a> -->
+                    <a v-if="has_comment_value" href="" @click.prevent="toggleComment"><i style="color:red" class="fa fa-comment-o">&nbsp;</i></a>
                     <a v-else href="" @click.prevent="toggleComment"><i class="fa fa-comment-o">&nbsp;</i></a>
                 </template>
                 <a href="" v-else  @click.prevent="toggleComment"><i class="fa fa-ban">&nbsp;</i></a>
@@ -55,7 +56,8 @@
         </div>
 
         
-        <Comment :question="label" :readonly="assessor_readonly" :name="name+'-comment-field'" v-show="showingComment && assessorMode" :value="comment_value"/> 
+        <!-- <Comment :question="label" :readonly="assessor_readonly" :name="name+'-comment-field'" v-show="showingComment && assessorMode" :value="comment_value"/>  -->
+        <CommentBox :comment_boxes="JSON.parse(comment_boxes)" v-show="showingComment && assessorMode"/> 
 
 
     </div>
@@ -66,9 +68,11 @@ var select2 = require('select2');
 require("select2/dist/css/select2.min.css");
 require("select2-bootstrap-theme/dist/select2-bootstrap.min.css");
 import Comment from './comment.vue'
+import CommentBox from './comment_box_referral.vue'
 import HelpText from './help_text.vue'
 import HelpTextUrl from './help_text_url.vue'
 export default {
+    name:"Select",
     props:{
         'name':String,
         'label':String,
@@ -79,7 +83,7 @@ export default {
         'help_text_url':String,
         'help_text_assessor_url':String,
         "value":[String,Array],
-        "comment_value": String,
+        "comment_value": [String, Object],
         "assessor_readonly": Boolean,
         "options":Array,
         "conditions":Object,
@@ -94,7 +98,8 @@ export default {
                 return false;
             }
         },
-        'readonly': Boolean
+        'readonly': Boolean,
+        "comment_boxes":[String, Array],
     },
     data:function () {
         let vm =this;
@@ -106,12 +111,32 @@ export default {
            
         }
     },
+    watch: {
+        // Watcher needed to recreate the jquery select2 when changing proposal versions
+        value: {
+            immediately: true,
+            handler (value, old_value){
+                this.init();
+            }
+        }
+    },
     computed:{
         cons:function () {
             return JSON.stringify(this.conditions);
         },
+        has_comment_value:function () {
+            let has_value=false;
+            for(var i=0; i<this.comment_boxes.length; i++){
+                if(this.comment_boxes[i].hasOwnProperty('value')){
+                    if(this.comment_boxes[i].value!=null && this.comment_boxes[i].value!=undefined && this.comment_boxes[i].value!= '' ){
+                        has_value=true;
+                    }
+                } 
+            }
+            return has_value;
+        },
     },
-    components: { Comment, HelpText, HelpTextUrl,},
+    components: { Comment, HelpText, HelpTextUrl, CommentBox},
     methods:{
         toggleComment(){
             this.showingComment = ! this.showingComment;
@@ -130,7 +155,7 @@ export default {
         },
         init:function () {
             let vm =this;
-            setTimeout(function (e) {
+            vm.$nextTick(function (e) {
                    $('#'+vm.selectid).select2({
                        "theme": "bootstrap",
                        allowClear: true,
@@ -155,7 +180,7 @@ export default {
                    if (vm.value) {
                        vm.handleChange(vm.$refs.selectB);
                    }
-               },100);
+               });
         }
     },
     mounted:function () {

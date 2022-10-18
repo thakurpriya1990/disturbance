@@ -19,6 +19,8 @@ MEDIA_APP_DIR = env('MEDIA_APP_DIR', 'das')
 MEDIA_APIARY_DIR = env('MEDIA_APIARY_DIR', 'apiary')
 SPATIAL_DATA_DIR = env('SPATIAL_DATA_DIR', 'spatial_data')
 ANNUAL_RENTAL_FEE_GST_EXEMPT = True
+FILE_UPLOAD_MAX_MEMORY_SIZE = env('FILE_UPLOAD_MAX_MEMORY_SIZE', 15728640)
+APIARY_MIGRATED_LICENCES_APPROVER = env('APIARY_MIGRATED_LICENCES_APPROVER', 'jacinta.overman@dbca.wa.gov.au')
 
 INSTALLED_APPS += [
     'reversion_compare',
@@ -31,6 +33,7 @@ INSTALLED_APPS += [
     'disturbance.components.approvals',
     'disturbance.components.compliances',
     'disturbance.components.das_payments',
+    'disturbance.components.history',
     'taggit',
     'rest_framework',
     'rest_framework_datatables',
@@ -38,6 +41,7 @@ INSTALLED_APPS += [
     'reset_migrations',
     'ckeditor',
     # 'corsheaders',
+    'smart_selects',
 ]
 
 ADD_REVERSION_ADMIN=True
@@ -70,12 +74,16 @@ REST_FRAMEWORK = {
     #'PAGE_SIZE': 20,
 }
 
+USE_DJANGO_JQUERY= True
+# JQUERY_URL = True
 
 MIDDLEWARE_CLASSES += [
     'disturbance.middleware.BookingTimerMiddleware',
     'disturbance.middleware.FirstTimeNagScreenMiddleware',
     'disturbance.middleware.RevisionOverrideMiddleware',
     'disturbance.middleware.DomainDetectMiddleware',
+    'disturbance.middleware.CacheControlMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     # 'corsheaders.middleware.CorsMiddleware',
 ]
 # CORS_ORIGIN_ALLOW_ALL = True
@@ -104,6 +112,7 @@ CACHES = {
 }
 STATIC_ROOT=os.path.join(BASE_DIR, 'staticfiles_ds')
 STATICFILES_DIRS.append(os.path.join(os.path.join(BASE_DIR, 'disturbance', 'static')))
+STATICFILES_DIRS.append(os.path.join(os.path.join(BASE_DIR, 'disturbance', 'static', 'disturbance_vue', 'static')))
 DEV_STATIC = env('DEV_STATIC',False)
 DEV_STATIC_URL = env('DEV_STATIC_URL')
 if DEV_STATIC and not DEV_STATIC_URL:
@@ -133,6 +142,8 @@ ADMIN_GROUP = env('ADMIN_GROUP', 'Disturbance Admin')
 APIARY_ADMIN_GROUP = 'Apiary Admin'
 DAS_APIARY_ADMIN_GROUP = 'DAS-Apiary Admin'
 APIARY_PAYMENTS_OFFICERS_GROUP = 'Apiary Payments Officers'
+APPROVED_DAS_EXTERNAL_USERS_GROUP = env('APPROVED_DAS_EXTERNAL_USERS_GROUP', 'Disturbance Approved External Users')
+APPROVED_APIARY_EXTERNAL_USERS_GROUP = env('APPROVED_APIARY_EXTERNAL_USERS_GROUP', 'Apiary Approved External Users')
 CRON_EMAIL = env('CRON_EMAIL', 'cron@' + SITE_DOMAIN).lower()
 TENURE_SECTION = env('TENURE_SECTION', None)
 ASSESSMENT_REMINDER_DAYS = env('ASSESSMENT_REMINDER_DAYS', 15)
@@ -143,6 +154,7 @@ PS_PAYMENT_SYSTEM_ID = PAYMENT_SYSTEM_ID
 PAYMENT_SYSTEM_PREFIX = env('PAYMENT_SYSTEM_PREFIX', PAYMENT_SYSTEM_ID.replace('S','0')) # '0517'
 os.environ['LEDGER_PRODUCT_CUSTOM_FIELDS'] = "('ledger_description','quantity','price_incl_tax','price_excl_tax','oracle_code')"
 APIARY_URL = env('APIARY_URL', [])
+CRON_NOTIFICATION_EMAIL = env('CRON_NOTIFICATION_EMAIL', NOTIFICATION_EMAIL).lower()
 
 BASE_URL=env('BASE_URL')
 
@@ -171,12 +183,12 @@ if env('CONSOLE_EMAIL_BACKEND', False):
 
 SITE_STATUS_DRAFT = 'draft'
 SITE_STATUS_PENDING = 'pending'
-SITE_STATUS_APPROVED = 'approved'
+SITE_STATUS_APPROVED = 'approved'  # This status 'approved' is assigned to the ApiarySiteOnProposal object once it's approved.  'current' is assigned to the ApiarySiteOnApproval object after that.
 SITE_STATUS_DENIED = 'denied'
 SITE_STATUS_CURRENT = 'current'
 SITE_STATUS_NOT_TO_BE_REISSUED = 'not_to_be_reissued'
 SITE_STATUS_SUSPENDED = 'suspended'
-SITE_STATUS_TRANSFERRED = 'transferred'
+SITE_STATUS_TRANSFERRED = 'transferred'  # This status 'transferred' is assigned to the old relationship (ApiarySiteOnApproval object)
 SITE_STATUS_VACANT = 'vacant'
 SITE_STATUS_DISCARDED = 'discarded'
 BASE_EMAIL_TEXT = ''
@@ -187,3 +199,62 @@ BASE_EMAIL_HTML = ''
 # This value is determined at the middleware, DomainDetectMiddleware by where the request comes from
 DOMAIN_DETECTED = 'das'
 HTTP_HOST_FOR_TEST = 'localhost:8071'
+
+# Additional logging for commercialoperator
+LOGGING['loggers']['disturbance'] = {
+            'handlers': ['file'],
+            'level': 'INFO'
+        }
+
+# Add a handler
+LOGGING['handlers']['file_apiary'] = {
+    'level': 'INFO',
+    'class': 'logging.handlers.RotatingFileHandler',
+    'filename': os.path.join(BASE_DIR, 'logs', 'apiary.log'),
+    'formatter': 'verbose',
+    'maxBytes': 5242880
+}
+# define logger
+LOGGING['loggers']['apiary'] = {
+    'handlers': ['file_apiary'],
+    'level': 'INFO'
+}
+
+# Add a debug level logger for development
+#if DEBUG:
+#    LOGGING = {
+#        'version': 1,
+#        'disable_existing_loggers': True,
+#        'handlers': {
+#            'console': {
+#                'class': 'logging.StreamHandler',
+#            },
+#        },
+#        'loggers': {
+#            'disturbance': {
+#                'handlers': ['console'],
+#                'level': 'DEBUG',
+#                'propagate': False,
+#            },
+#        },
+#    }    
+
+KMI_SERVER_URL = env('KMI_SERVER_URL', 'https://kmi.dbca.wa.gov.au')
+
+DEV_APP_BUILD_URL = env('DEV_APP_BUILD_URL')  # URL of the Dev app.js served by webpack & express
+
+#APPLICATION_TYPES_SQL='''
+#        SELECT name, name FROM disturbance_applicationtypechoice
+#        WHERE archive_date IS NULL OR archive_date > now()
+#    '''
+
+#from django.db import connection
+#def run_select_sql(sql):
+#    try:
+#        with connection.cursor() as cursor:
+#            cursor.execute(sql)
+#            row = cursor.fetchall()
+#        return row
+#    except:
+#        return []
+

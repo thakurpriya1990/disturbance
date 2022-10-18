@@ -62,17 +62,17 @@ postgresql-client \
 mtr \
 htop \
 vim \
-ssh \
+#ssh \
 python3-gevent \
 software-properties-common \
 imagemagick
 
 RUN add-apt-repository ppa:deadsnakes/ppa && \
 apt-get update && \
-apt-get install --no-install-recommends -y python3.7 python3.7-dev && \
+apt-get install --no-install-recommends -y python3.7 python3.7-dev python3.7-distutils && \
 ln -s /usr/bin/python3.7 /usr/bin/python && \
-ln -s /usr/bin/pip3 /usr/bin/pip && \
-python3.7 -m pip install --upgrade pip && \
+#ln -s /usr/bin/pip3 /usr/bin/pip && \
+python3.7 -m pip install --upgrade pip==21.3.1 && \
 apt-get install -yq vim
 
 # Install Python libs from requirements.txt.
@@ -116,7 +116,12 @@ chmod 755 /startup.sh
 # cron end
 
 # IPYTHONDIR - Will allow shell_plus (in Docker) to remember history between sessions
+# 1. will create dir, if it does not already exist
+# 2. will create profile, if it does not already exist
+RUN mkdir /app/logs/.ipython
 RUN export IPYTHONDIR=/app/logs/.ipython/
+#RUN python profile create
+
 
 EXPOSE 8080
 HEALTHCHECK --interval=1m --timeout=5s --start-period=10s --retries=3 CMD ["wget", "-q", "-O", "-", "http://localhost:8080/"]

@@ -226,6 +226,7 @@
                             :apiary_sites="approval.apiary_sites"
                             :show_col_checkbox="false"
                             :show_col_status="true"
+                            :apiary_approval_id="approval.id"
                         />
                     </template>
                 </FormSection>
@@ -324,15 +325,22 @@ export default {
         },
     },
   created: function(){
-    Vue.http.get(helpers.add_endpoint_json(api_endpoints.approvals,this.approvalId)).then((response) => {
-        this.approval = response.body;
-        this.approval.applicant_id = response.body.applicant_id;
-        if (this.approval.organisation_abn) {
-            this.fetchOrganisation(this.approval.applicant_id)
+    let url_approval = helpers.add_endpoint_json(api_endpoints.approvals,this.approvalId)
+    url_approval = url_approval + '?with_apiary_sites=false'
+
+    //Vue.http.get(helpers.add_endpoint_json(api_endpoints.approvals,this.approvalId)).then((response) => {
+    Vue.http.get(url_approval).then(
+        (response) => {
+            this.approval = response.body;
+            this.approval.applicant_id = response.body.applicant_id;
+            if (this.approval.organisation_abn) {
+                this.fetchOrganisation(this.approval.applicant_id)
+            }
+        },
+        (error) => {
+            console.log(error);
         }
-    },(error) => {
-        console.log(error);
-    })
+    )
   },
   components: {
         SectionAnnualRentalFee,

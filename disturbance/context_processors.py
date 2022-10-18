@@ -1,6 +1,7 @@
 from confy import env
 from django.conf import settings
 from ledger.payments.helpers import is_payment_admin
+from disturbance.settings import KMI_SERVER_URL
 
 
 def apiary_url(request):
@@ -28,4 +29,5 @@ def apiary_url(request):
         'SUPPORT_EMAIL': support_email,
         'is_payment_admin': is_payment_officer,
         'build_tag': settings.BUILD_TAG,
+        'KMI_SERVER_URL': KMI_SERVER_URL,
     }

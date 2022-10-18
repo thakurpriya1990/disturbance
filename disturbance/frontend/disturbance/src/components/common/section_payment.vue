@@ -1,5 +1,13 @@
 <template lang="html">
     <div>
+        <transition>
+            <template v-if="alert_message">
+                <div class="alert alert-warning" role="alert">
+                    <i class='fa fa-times pull-right close-alert-button' @click="alert_close_clicked"></i>
+                    {{ alert_message }}
+                </div>
+            </template>
+        </transition>
         <FormSection :formCollapse="false" label="Payment" Index="payment_item">
             <div class="form-group row">
                 <label class="col-sm-2">Invoice number</label>
@@ -7,9 +15,9 @@
                     <input 
                         type="text" 
                         class="w-100 form-control" 
-                        placeholder="" 
+                        placeholder="01234567890" 
                         id="invoice_number_element" 
-                        v-model="invoice_number" 
+                        v-model="invoice_reference" 
                     />
                 </div>
             </div>
@@ -52,8 +60,9 @@ export default {
         let vm = this;
         return{
             payment_item: '',
-            invoice_number: '',
+            invoice_reference: '',
             invoice_date: '',
+            alert_message: '',
         }
     },
     components: {
@@ -61,7 +70,7 @@ export default {
     },
     computed: {
         pay_button_disabled: function(){
-            if(this.invoice_number && this.invoice_date){
+            if(this.invoice_reference && this.invoice_date){
                 return false
             }
             return true
@@ -71,10 +80,13 @@ export default {
         },
     },
     methods: {
+        alert_close_clicked: function(){
+            this.alert_message = ''
+        },
         pay_button_clicked: function(){
             let vm = this
             let data = {
-                'invoice_number': vm.invoice_number,
+                'invoice_reference': vm.invoice_reference,
                 'invoice_date': vm.invoice_date,
             }
             vm.$http.post('/validate_invoice_details/', data).then(res => {
@@ -83,11 +95,11 @@ export default {
                 // Invoice details are correct
                 // Go to the payment screen
                 if (res.body.unpaid_invoice_exists){
-                    helpers.mimic_redirect('/invoice_payment/' + vm.invoice_number + '/', {'csrfmiddlewaretoken' : vm.csrf_token});
+                    vm.alert_message = ''
+                    helpers.mimic_redirect('/invoice_payment/' + vm.invoice_reference + '/', {'csrfmiddlewaretoken' : vm.csrf_token});
                 } else {
-
-                    // TODO: display message saying no invoice exists
-
+                    console.log(res.body)
+                    vm.alert_message = res.body.alert_message
                 }
             },
             err => {
@@ -133,5 +145,14 @@ export default {
 <style>
 .w-100 {
     width: 100% !important;
+}
+.v-enter, .v-leave-to {
+    opacity: 0;
+}
+.v-enter-active, .v-leave-active {
+    transition: 1s;
+}
+.close-alert-button {
+    cursor: pointer;
 }
 </style>

@@ -2,14 +2,13 @@
     <div class="row col-sm-12">
         <div class="row col-sm-12">
             <template v-if="is_external">
-                <!--button v-if="!creatingProposal" class="btn btn-primary pull-right" @click="openNewTemporaryUse">Site Transfer</button-->
-                <button 
+                <!--button 
                     class="btn btn-primary pull-right" 
                     @click="openNewSiteTransfer"
                     :disabled="!user_can_site_transfer"
                 >
                     Site Transfer
-                </button>
+                </button-->
             </template>
         </div>
 

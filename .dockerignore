@@ -1,0 +1,8 @@
+# comment
+**/csv
+**/archive
+**/excel_export*
+*/utils/tests*
+**/*.pyc
+**/*.csv
+**/*.xls*

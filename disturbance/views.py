@@ -1,3 +1,6 @@
+import logging
+from datetime import datetime
+
 from django.contrib.gis.geos import GEOSGeometry
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
@@ -6,6 +9,7 @@ from django.views.generic import DetailView
 from django.views.generic.base import TemplateView
 from django.conf import settings
 from django.contrib.auth.mixins import UserPassesTestMixin, LoginRequiredMixin
+from ledger.payments.invoice.models import Invoice
 from rest_framework.decorators import api_view, renderer_classes
 from rest_framework.renderers import JSONRenderer
 from disturbance.components.main.decorators import timeit
@@ -19,6 +23,9 @@ from disturbance.components.proposals.mixins import ReferralOwnerMixin
 from django.core.management import call_command
 from rest_framework.response import Response
 from rest_framework import views
+
+
+logger = logging.getLogger(__name__)
 
 
 class InternalView(UserPassesTestMixin, TemplateView):
@@ -209,13 +216,26 @@ class LedgerPayView(TemplateView):
 
 @api_view(['POST',])
 def validate_invoice_details(request):
-    data = request.data
+    invoice_reference = request.data.get('invoice_reference', None)
+    invoice_date = request.data.get('invoice_date', None)
 
-    # TODO: check if an unpaid invoice exists
+    try:
+        datetime_object = datetime.strptime(invoice_date, '%d/%m/%Y').date()
+        invoice = Invoice.objects.get(reference=invoice_reference)
+        invoice_created_date = invoice.created.date()
 
-    unpaid_invoice_exists = True
+        if invoice_created_date == datetime_object and invoice.payment_status in ('unpaid', 'partially_paid'):
+            return Response({
+                "unpaid_invoice_exists": True
+            })
+        else:
+            return Response({
+                "unpaid_invoice_exists": False,
+                "alert_message": "There are no unpaid invoices that meet the criteria.",
+            })
 
-    if unpaid_invoice_exists:
-        return Response({"unpaid_invoice_exists": True})
-    else:
-        return Response({"unpaid_invoice_exists": False})
+    except Exception as e:
+        return Response({
+            "unpaid_invoice_exists": False,
+            "alert_message": "There are no unpaid invoices that meet the criteria.",
+        })

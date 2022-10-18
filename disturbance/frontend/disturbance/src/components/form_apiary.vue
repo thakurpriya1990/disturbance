@@ -12,8 +12,17 @@
         </div>
 
         <div :class="apiary_sections_classname">
-            <FormSection :formCollapse="false" label="Site Locations" Index="site_locations">
+            <ManageUser
+                :org_id="proposal.applicant" 
+                :isApplication="true" 
+                :show_linked="false" 
+                :show_address="true" 
+                :org_collapse="true" 
+                :div_container="false"
+                ref="mu_details" 
+            />
 
+            <FormSection :formCollapse="false" label="Site Locations" Index="site_locations">
                 <div v-if="draftApiaryApplication">
 
                     <SiteLocations
@@ -37,6 +46,8 @@
                         @num_of_sites_remote_renewal_to_add_as_remainder="num_of_sites_remote_renewal_to_add_as_remainder"
                         @total_num_of_sites_on_map_unpaid="total_num_of_sites_on_map_unpaid"
                         @total_num_of_sites_on_map="total_num_of_sites_on_map"
+                        @fee_remote_renewal="fee_remote_renewal"
+                        @fee_south_west_renewal="fee_south_west_renewal"
                     />
 
                 </div>
@@ -51,10 +62,10 @@
                         :show_action_available_unavailable="showActionAvailableUnavailable"
                         :show_col_status="false"
                         :show_col_status_when_submitted="true"
+                        :show_col_vacant_when_submitted="show_col_vacant_when_submitted"
                         :key="component_site_selection_key"
                       />
                 </div>
-
             </FormSection>
 
             <FormSection :formCollapse="false" label="Supporting Application Documents" Index="supporting_application_documents">
@@ -180,7 +191,6 @@
                             <li class="col-sm-6">
                                 <label class="control-label">{{q.question.text}}</label>
                             </li>
-
                             <ul  class="list-inline col-sm-6">
                                 <li class="list-inline-item">
                                     <input  class="form-check-input" v-model="q.answer" ref="Checkbox" type="radio" :name="'option'+q.id" :id="'answer_one'+q.id":value="true" data-parsley-required :disabled="readonly"/> Yes
@@ -199,7 +209,7 @@
 </template>
 
 <script>
-
+    import ManageUser from '@/components/external/organisations/manage.vue'
     import ComponentSiteSelection from '@/components/common/apiary/component_site_selection.vue'
     import FileField from '@/components/forms/filefield_immediate.vue'
     import FormSection from "@/components/forms/section_toggle.vue"
@@ -208,7 +218,6 @@
     import uuid from 'uuid'
     import DeedPoll from "@/components/common/apiary/section_deed_poll.vue"
     import { api_endpoints, helpers }from '@/utils/hooks'
-
     export default {
         name: 'ApiaryForm',
         props:{
@@ -248,6 +257,10 @@
                 type:Object,
                 default:null
             },
+            show_col_vacant_when_submitted: {
+                type: Boolean,
+                default: false
+            },
         },
         data:function () {
             let vm = this;
@@ -267,6 +280,7 @@
             FormSection,
             ApiaryChecklist,
             DeedPoll,
+            ManageUser,
         },
         computed:{
             showVacantWhenSubmitted: function(){
@@ -369,7 +383,6 @@
             },
             getUnansweredChecklistQuestions: function() {
                 let UnansweredChecklistQuestions = false;
-
                 if(this.applicantChecklistAnswers){
                     let numOfAnswers = this.applicantChecklistAnswers.length;
                     for( let i=0; i< numOfAnswers ; i ++){
@@ -410,12 +423,17 @@
                     return this.proposal.proposal_apiary.referrer_checklist_answers;
                 }
             },
-
           //applicantType: function(){
           //  return this.proposal.applicant_type;
           //},
         },
         methods:{
+            fee_remote_renewal: function(value){
+                this.$emit('fee_remote_renewal', value)
+            },
+            fee_south_west_renewal: function(value){
+                this.$emit('fee_south_west_renewal', value)
+            },
             fetchDeedPollUrl: function(){
                 let vm = this;
                 vm.$http.get('/api/deed_poll_url').then((response) => {
@@ -438,9 +456,7 @@
                     showClear: true ,
                     useCurrent: false,
                 };
-
                 el_fr.datetimepicker(options);
-
                 el_fr.on("dp.change", function(e) {
                     if (e.date){
                         // Date selected
@@ -451,12 +467,10 @@
                     }
                     vm.$emit('expiry_date_changed', vm.expiry_date_local)
                 });
-
                 //***
                 // Set dates in case they are passed from the parent component
                 //***
                 let searchPattern = /^[0-9]{4}/
-
                 let expiry_date_passed = vm.proposal.proposal_apiary.public_liability_insurance_expiry_date;
                 console.log('passed')
                 console.log(expiry_date_passed)
@@ -487,7 +501,7 @@
                     for (let referral of this.proposal.proposal_apiary.referrer_checklist_answers_per_site) {
                         if (referral.referral_data && referral.referral_data.length > 0) {
                             for (let answer of referral.referral_data) {
-                                if (answer.site && answer.apiary_site_id === siteId && answer.apiary_referral_id === referralId) {
+                                if (answer.apiary_site_id && answer.apiary_site_id === siteId && answer.apiary_referral_id === referralId) {
                                     siteList.push(answer)
                                 }
                             }
@@ -497,7 +511,6 @@
                 console.log(siteList)
                 return siteList;
             },
-
             num_of_sites_south_west_to_add_as_remainder: function(value){
                 this.$emit('num_of_sites_south_west_to_add_as_remainder', value)
             },
@@ -550,7 +563,6 @@
              return checklist_answers;
             },
             */
-
         },
         created: function() {
             this.fetchDeedPollUrl()
@@ -565,7 +577,6 @@
             //window.addEventListener('beforeunload', vm.leaving);
             //window.addEventListener('onblur', vm.leaving);
         }
-
     }
 </script>
 

@@ -7,6 +7,7 @@ node_modules/
 cronjobs
 mooring/cache/*
 tmp/
+disturbance/utils/csv
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -33,6 +34,8 @@ var/
 .installed.cfg
 *.egg
 *.bak
+*.csv
+*.xls*
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -109,3 +112,6 @@ disturbance/static/disturbance_vue/static/*
 # to avoid accidentally making it under the version control
 # add this file to here
 apiary.txt
+
+disturbance/frontend/disturbance/tests_output*
+disturbance/static/disturbance_vue/static/*

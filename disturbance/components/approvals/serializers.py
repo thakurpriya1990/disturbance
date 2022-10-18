@@ -1,5 +1,6 @@
 from ledger.accounts.models import EmailUser,Address
 from django.utils import timezone
+from disturbance import settings
 from disturbance.components.approvals.models import (
     Approval,
     ApprovalLogEntry,
@@ -65,6 +66,7 @@ class ApprovalDocumentHistorySerializer(serializers.ModelSerializer):
 
 class ApprovalSerializerForLicenceDoc(serializers.ModelSerializer):
     authority_holder = serializers.SerializerMethodField()
+    authority_holder_address = serializers.SerializerMethodField()
     trading_name = serializers.SerializerMethodField()
     authority_number = serializers.SerializerMethodField()
     licence_start_date = serializers.SerializerMethodField()
@@ -72,14 +74,32 @@ class ApprovalSerializerForLicenceDoc(serializers.ModelSerializer):
     issue_date = serializers.SerializerMethodField()
     approver = serializers.SerializerMethodField()
     apiary_sites = serializers.SerializerMethodField()
+    apiary_licensed_sites = serializers.SerializerMethodField()
     #apiary_sites = ApiarySiteLicenceDocSerializer(many=True)
     requirements = serializers.SerializerMethodField()
+    map_ref = serializers.SerializerMethodField()
+    batch_no = serializers.SerializerMethodField()
+    cpc_date = serializers.SerializerMethodField()
+    minister_date = serializers.SerializerMethodField()
+    forest_block = serializers.SerializerMethodField()
+    cog = serializers.SerializerMethodField()
+    roadtrack = serializers.SerializerMethodField()
+    zone = serializers.SerializerMethodField()
+    catchment = serializers.SerializerMethodField()
+    dra_permit = serializers.SerializerMethodField()
 
     def get_authority_holder(self, approval):
         return approval.relevant_applicant_name
 
+    def get_authority_holder_address(self, approval):
+        return approval.relevant_applicant_address.summary
+
     def get_trading_name(self, approval):
-        return approval.applicant.trading_name if approval.applicant else ''
+        #return approval.applicant.trading_name if approval.applicant else ''
+        try:
+            return approval.applicant.trading_name if approval.applicant.trading_name else ''
+        except:
+            return ''
 
     def get_authority_number(self, approval):
         return approval.lodgement_number
@@ -94,10 +114,17 @@ class ApprovalSerializerForLicenceDoc(serializers.ModelSerializer):
         return approval.issue_date.strftime('%d/%m/%Y')
 
     def get_approver(self, approval):
-        approver = self.context.get('approver')
+        if approval.migrated:
+            try:
+                approver = EmailUser.objects.get(email=settings.APIARY_MIGRATED_LICENCES_APPROVER)
+            except Exception as e:
+                raise Exception('Cannot find Approver for Migrated Licence: {}/n{}'.format(settings.APIARY_MIGRATED_LICENCES_APPROVER, str(e)))
+        else:
+            approver = self.context.get('approver')
         return approver.get_full_name()
 
     def get_apiary_sites(self, approval):
+        ''' Return the Apiary Licenses (where licensed_sites=False) '''
         ret_array = []
 
         # if not approval.current_proposal.approval:
@@ -112,9 +139,22 @@ class ApprovalSerializerForLicenceDoc(serializers.ModelSerializer):
         #         ret_array.append(serializer.data)
 
         apiary_site_on_approvals = approval.get_relations()
-        for relation in apiary_site_on_approvals:
-            serializer = ApiarySiteOnApprovalLicenceDocSerializer(relation)
-            ret_array.append(serializer.data)
+        for relation in apiary_site_on_approvals.order_by('apiary_site_id'):
+            if not relation.licensed_site:
+                serializer = ApiarySiteOnApprovalLicenceDocSerializer(relation)
+                ret_array.append(serializer.data)
+
+        return ret_array
+
+    def get_apiary_licensed_sites(self, approval):
+        ''' Return the Apiary Licensed Sited for Permits (where licensed_sites=False) '''
+        ret_array = []
+
+        apiary_site_on_approvals = approval.get_relations()
+        for relation in apiary_site_on_approvals.order_by('apiary_site_id'):
+            if relation.licensed_site:
+                serializer = ApiarySiteOnApprovalLicenceDocSerializer(relation)
+                ret_array.append(serializer.data)
 
         return ret_array
 
@@ -127,8 +167,70 @@ class ApprovalSerializerForLicenceDoc(serializers.ModelSerializer):
             })
         return ret_array
 
+#    def get_map_ref(self, approval):
+#        return approval.current_proposal.proposed_issuance_approval.get('map_ref')
+#
+#    def get_forest_block(self, approval):
+#        return approval.current_proposal.proposed_issuance_approval.get('forest_block')
+#
+#    def get_cog(self, approval):
+#        return approval.current_proposal.proposed_issuance_approval.get('cog')
+#
+#    def get_roadtrack(self, approval):
+#        return approval.current_proposal.proposed_issuance_approval.get('roadtrack')
+#
+#    def get_zone(self, approval):
+#        return approval.current_proposal.proposed_issuance_approval.get('zone')
+#
+#    def get_catchment(self, approval):
+#        return approval.current_proposal.proposed_issuance_approval.get('catchment')
+#
+#    def get_dra_permit(self, approval):
+#        if approval.current_proposal.proposed_issuance_approval.get('dra_permit'):
+#            return 'Yes'
+#        return 'No'
+#
+#    def get_batch_no(self, approval):
+#        return approval.current_proposal.proposed_issuance_approval.get('batch_no')
+#
+#    def get_cpc_date(self, approval):
+#        return approval.current_proposal.proposed_issuance_approval.get('cpc_date')
+#
+#    def get_minister_date(self, approval):
+#        return approval.current_proposal.proposed_issuance_approval.get('minister_date')
+
+    def get_map_ref(self, approval):
+        return ''
+
+    def get_forest_block(self, approval):
+        return ''
+
+    def get_cog(self, approval):
+        return ''
+
+    def get_roadtrack(self, approval):
+        return ''
+
+    def get_zone(self, approval):
+        return ''
+
+    def get_catchment(self, approval):
+        return ''
+
+    def get_dra_permit(self, approval):
+        return 'No'
+
+    def get_batch_no(self, approval):
+        return ''
+
+    def get_cpc_date(self, approval):
+        return ''
+
+    def get_minister_date(self, approval):
+        return ''
+
+
     #def bak_get_requirements(self, approval):
-    #    #import ipdb; ipdb.set_trace()
     #    ret_array = []
     #    site_transfer_preview = self.context.get('site_transfer_preview')
     #    #if self.proposal.application_type.name == ApplicationType.SITE_TRANSFER:
@@ -151,6 +253,7 @@ class ApprovalSerializerForLicenceDoc(serializers.ModelSerializer):
         fields = (
             'id',
             'authority_holder',
+            'authority_holder_address',
             'trading_name',
             'authority_number',
             'licence_start_date',
@@ -158,7 +261,18 @@ class ApprovalSerializerForLicenceDoc(serializers.ModelSerializer):
             'issue_date',
             'approver' ,
             'apiary_sites',
+            'apiary_licensed_sites',
             'requirements',
+            'map_ref',
+            'batch_no',
+            'cpc_date',
+            'minister_date',
+            'forest_block',
+            'cog',
+            'roadtrack',
+            'zone',
+            'catchment',
+            'dra_permit',
         )
 
 from disturbance.components.proposals.serializers import ProposalSerializer
@@ -184,7 +298,8 @@ class ApprovalSerializer(serializers.ModelSerializer):
     application_type = serializers.SerializerMethodField(read_only=True)
 
     # apiary_site_location = serializers.SerializerMethodField()
-    current_proposal = ProposalSerializer()
+    # current_proposal = ProposalSerializer()
+    current_proposal = serializers.SerializerMethodField()
     organisation_name = serializers.SerializerMethodField()
     organisation_abn = serializers.SerializerMethodField()
     applicant_first_name = serializers.SerializerMethodField()
@@ -203,6 +318,7 @@ class ApprovalSerializer(serializers.ModelSerializer):
         fields = (
             'id',
             'lodgement_number',
+            'migrated',
             'licence_document',
             'replaced_by',
             'current_proposal',
@@ -261,6 +377,7 @@ class ApprovalSerializer(serializers.ModelSerializer):
         # also require the following additional fields for some of the mRender functions
         datatables_always_serialize = (
             'id',
+            'migrated',
             'activity',
             'region',
             'title',
@@ -290,11 +407,22 @@ class ApprovalSerializer(serializers.ModelSerializer):
             'template_group',
         )
 
+    def get_current_proposal(self, approval):
+        return ProposalSerializer(approval.current_proposal, context=self.context).data
+
     def get_apiary_sites(self, approval):
+        with_apiary_sites = True
+        if 'request' in self.context:
+            request = self.context['request']
+            with_apiary_sites = request.GET.get('with_apiary_sites', True)
+            if with_apiary_sites in ['false', 'False', 'F', 'f', False]:
+                with_apiary_sites = False
+
         ret = []
-        for relation in approval.get_relations():
-            ret.append(ApiarySiteOnApprovalGeometrySerializer(relation).data)
-        return ret
+        if with_apiary_sites:
+            for relation in approval.get_relations():
+                ret.append(ApiarySiteOnApprovalGeometrySerializer(relation).data)
+        return ret  ####
 
     def get_activity(self, approval):
         activity_text = None
@@ -442,6 +570,7 @@ class DTApprovalSerializer(serializers.ModelSerializer):
         model = Approval
         fields = (
             'id',
+            'migrated',
             'activity',
             'region',
             'title',
@@ -472,7 +601,6 @@ class DTApprovalSerializer(serializers.ModelSerializer):
             )
 
     def get_allowed_assessors(self, obj):
-        #import ipdb;ipdb.set_trace()
         return EmailUserSerializer(obj.current_proposal.compliance_assessors, many=True).data
 
     def get_template_group(self, obj):
@@ -493,7 +621,6 @@ class DTApprovalSerializer(serializers.ModelSerializer):
         return None
 
     def get_can_approver_reissue(self,obj):
-        #import ipdb;ipdb.set_trace()
         # Check if currently logged in user has access to process the proposal
         request = self.context['request']
         user = request.user

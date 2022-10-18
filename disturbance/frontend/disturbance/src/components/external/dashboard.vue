@@ -45,7 +45,7 @@ export default {
             dasTemplateGroup: false,
             // from env var?
             apiarySystemName: 'Apiary System',
-            dasSystemName: 'Disturbance Assessment System',
+            dasSystemName: 'Disturbance Approval System',
         }
     },
     components:{

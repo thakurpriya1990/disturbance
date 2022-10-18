@@ -9,6 +9,45 @@ from django.utils.encoding import python_2_unicode_compatible
 from django.core.exceptions import ValidationError
 from ledger.accounts.models import EmailUser, Document, RevisionedMixin
 from django.contrib.postgres.fields.jsonb import JSONField
+from datetime import date
+
+from disturbance.components.main.utils import overwrite_regions_polygons, overwrite_districts_polygons
+
+
+class MapLayer(models.Model):
+    display_name = models.CharField(max_length=100, blank=True, null=True)
+    layer_name = models.CharField(max_length=200, blank=True, null=True)
+    option_for_internal = models.BooleanField(default=True)
+    option_for_external = models.BooleanField(default=True)
+    display_all_columns = models.BooleanField(default=False)
+
+    class Meta:
+        app_label = 'disturbance'
+        verbose_name = 'apiary map layer'
+
+    def __str__(self):
+        return '{0}, {1}'.format(self.display_name, self.layer_name)
+
+    @property
+    def column_names(self):
+        column_names = []
+        for column in self.columns.all():
+            column_names.append(column.name)
+        return ','.join(column_names)
+
+
+class MapColumn(models.Model):
+    map_layer = models.ForeignKey(MapLayer, null=True, blank=True, related_name='columns')
+    name = models.CharField(max_length=100, blank=True, null=True)
+    option_for_internal = models.BooleanField(default=True)
+    option_for_external = models.BooleanField(default=True)
+
+    class Meta:
+        app_label = 'disturbance'
+        verbose_name = 'apiary map column'
+
+    def __str__(self):
+        return '{0}, {1}'.format(self.map_layer, self.name)
 
 
 @python_2_unicode_compatible
@@ -24,12 +63,19 @@ class Region(models.Model):
         return self.name
 
 
+class ArchivedDistrictManager(models.Manager):
+    def get_queryset(self):
+        #return super().get_queryset().all()
+        return super().get_queryset().exclude(archive_date__lte=date.today())
+
 @python_2_unicode_compatible
 class District(models.Model):
     region = models.ForeignKey(Region, related_name='districts')
     name = models.CharField(max_length=200, unique=True)
     code = models.CharField(max_length=3)
     archive_date = models.DateField(null=True, blank=True)
+
+    objects = ArchivedDistrictManager()
 
     class Meta:
         ordering = ['name']
@@ -44,10 +90,12 @@ class DistrictDbca(models.Model):
     district_name = models.CharField(max_length=200, blank=True, null=True)
     office = models.CharField(max_length=200, blank=True, null=True)
     object_id = models.PositiveIntegerField(blank=True, null=True)
+    enabled = models.BooleanField(default=True)
 
     class Meta:
         ordering = ['object_id', ]
         app_label = 'disturbance'
+        verbose_name_plural = "Apiary DBCA Districts"
 
 
 class RegionDbca(models.Model):
@@ -55,10 +103,12 @@ class RegionDbca(models.Model):
     region_name = models.CharField(max_length=200, blank=True, null=True)
     office = models.CharField(max_length=200, blank=True, null=True)
     object_id = models.PositiveIntegerField(blank=True, null=True)
+    enabled = models.BooleanField(default=True)
 
     class Meta:
         ordering = ['object_id', ]
         app_label = 'disturbance'
+        verbose_name_plural = "Apiary DBCA Regions"
 
 
 class CategoryDbca(models.Model):
@@ -92,6 +142,7 @@ class ApplicationType(models.Model):
     APIARY = 'Apiary'
     TEMPORARY_USE = 'Temporary Use'
     SITE_TRANSFER = 'Site Transfer'
+    FIRE = 'Prescribed Burning'
 
     APPLICATION_TYPES = (
         (DISTURBANCE, 'Disturbance'),
@@ -99,6 +150,7 @@ class ApplicationType(models.Model):
         (APIARY, 'Apiary'),
         (TEMPORARY_USE, 'Temporary Use'),
         (SITE_TRANSFER, 'Site Transfer'),
+        (FIRE, 'Prescribed Burning'),
     )
 
     APIARY_APPLICATION_TYPES = (APIARY, TEMPORARY_USE, SITE_TRANSFER,)
@@ -120,6 +172,7 @@ class ApplicationType(models.Model):
     oracle_code_application = models.CharField(max_length=50)
     is_gst_exempt = models.BooleanField(default=True)
     domain_used = models.CharField(max_length=40, choices=DOMAIN_USED_CHOICES, default=DOMAIN_USED_CHOICES[0][0])
+    searchable = models.BooleanField(default=True)
 
     class Meta:
         ordering = ['order', 'name']
@@ -267,18 +320,24 @@ class ApiaryGlobalSettings(models.Model):
     KEY_APIARY_SITES_LIST_TOKEN = 'apiary_sites_list_token'
     KEY_APIARY_LICENCE_TEMPLATE_FILE = 'apiary_licence_template_file'
     KEY_PRINT_DEED_POLL_URL = 'print_deed_poll_url'
+    KEY_DBCA_DISTRICTS_FILE = 'dbca_districts_file'
+    KEY_DBCA_REGIONS_FILE = 'dbca_regions_file'
 
     keys = (
         (KEY_ORACLE_CODE_APIARY_SITE_ANNUAL_RENTAL_FEE, 'Oracle code for the apiary site annual site fee'),
         (KEY_APIARY_SITES_LIST_TOKEN, 'Token to import the apiary sites list'),
         (KEY_APIARY_LICENCE_TEMPLATE_FILE, 'Apiary licence template file'),
         (KEY_PRINT_DEED_POLL_URL, 'URL of the deed poll'),
+        (KEY_DBCA_DISTRICTS_FILE, 'DBCA districts geojson file'),
+        (KEY_DBCA_REGIONS_FILE, 'DBCA regions geojson file'),
     )
 
     default_values = (
         (KEY_ORACLE_CODE_APIARY_SITE_ANNUAL_RENTAL_FEE, 'T1 EXEMPT'),
         (KEY_APIARY_SITES_LIST_TOKEN, 'abc123'),
         (KEY_APIARY_LICENCE_TEMPLATE_FILE, ''),
+        (KEY_DBCA_DISTRICTS_FILE, ''),
+        (KEY_DBCA_REGIONS_FILE, ''),
         (KEY_PRINT_DEED_POLL_URL, 'https://parks.dpaw.wa.gov.au/sites/default/files/downloads/know/DBCA%20apiary%20deed%20poll.pdf')
     )
     key = models.CharField(max_length=255, choices=keys, blank=False, null=False, unique=True)
@@ -288,6 +347,17 @@ class ApiaryGlobalSettings(models.Model):
     class Meta:
         app_label = 'disturbance'
         verbose_name_plural = "Apiary Global Settings"
+
+    def save(self, force_insert=False, force_update=False, using=None,
+             update_fields=None):
+        super(ApiaryGlobalSettings, self).save(force_insert, force_update, using, update_fields)
+
+        if self._file:
+            # When regions/districts file has been updated, update polygons for it.
+            if self.key == ApiaryGlobalSettings.KEY_DBCA_REGIONS_FILE:
+                overwrite_regions_polygons(self._file.path)
+            elif self.key == ApiaryGlobalSettings.KEY_DBCA_DISTRICTS_FILE:
+                overwrite_districts_polygons(self._file.path)
 
     def __str__(self):
         return self.key
@@ -331,6 +401,8 @@ class TemporaryDocument(Document):
 
     class Meta:
         app_label = 'disturbance'
+
+
 
 
 import reversion
