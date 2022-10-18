@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import datetime
 from django.db import models,transaction
+from django.db.models import Q, Max
 from django.dispatch import receiver
 from django.db.models.signals import pre_delete
 from django.core.exceptions import ValidationError
@@ -83,10 +84,30 @@ class ApiarySiteOnApproval(models.Model):
     modified_at = models.DateTimeField(auto_now=True)
     wkb_geometry = PointField(srid=4326, blank=True, null=True)  # store approved coordinates
     site_category = models.ForeignKey('SiteCategory', null=True, blank=True,)
+    licensed_site = models.BooleanField(default=False)
+    issuance_details = JSONField(blank=True, null=True)
+
+    # permit issuance details
+    batch_no = models.CharField(max_length=40, blank=True, null=True)
+    approval_cpc_date = models.DateField(blank=True, null=True)
+    approval_minister_date = models.DateField(blank=True, null=True)
+    map_ref = models.CharField(max_length=40, blank=True, null=True)
+    forest_block = models.CharField(max_length=40, blank=True, null=True)
+    cog = models.CharField(max_length=40, blank=True, null=True)
+    roadtrack = models.CharField(max_length=40, blank=True, null=True)
+    zone = models.CharField(max_length=40, blank=True, null=True)
+    catchment = models.CharField(max_length=40, blank=True, null=True)
+    dra_permit = models.NullBooleanField()
+
     objects = GeoManager()
 
     def __str__(self):
         return 'id:{}: (apiary_site: {}, approval: {})'.format(self.id, self.apiary_site.id, self.approval.id)
+
+    def get_relevant_applicant_name(self):
+        if self.approval:
+            return self.approval.relevant_applicant_name
+        return ''
 
     class Meta:
         app_label = 'disturbance'
@@ -380,7 +401,6 @@ class Approval(RevisionedMixin):
             self.current_proposal.save(version_comment='Created Approval PDF: {}'.format(self.licence_document.name))
 
     def generate_apiary_licence_doc(self, proposal, request_user, preview=None, site_transfer_preview=None):
-        #import ipdb; ipdb.set_trace()
         copied_to_permit = self.copiedToPermit_fields(proposal) #Get data related to isCopiedToPermit tag
         if preview:
             pdf_contents = create_apiary_licence_pdf_contents(self, proposal, copied_to_permit, request_user, site_transfer_preview)
@@ -480,7 +500,6 @@ class Approval(RevisionedMixin):
                 else:
                     self.set_to_cancel = True
                     send_approval_cancel_email_notification(self, future_cancel=True)
-                #import ipdb; ipdb.set_trace()
                 self.save()
                 # Log proposal action
                 self.log_user_action(ApprovalUserAction.ACTION_CANCEL_APPROVAL.format(self.lodgement_number), request)
@@ -668,7 +687,8 @@ class MigratedApiaryLicence(models.Model):
         (LICENCEE_TYPE_INDIVIDUAL, 'Individual'),
     )
 
-    permit_number = models.IntegerField(unique=True)
+    #permit_number = models.IntegerField(unique=True)
+    permit_number = models.IntegerField(null=True, blank=True)
     start_date = models.DateField()
     expiry_date = models.DateField()
     issue_date = models.DateField()
@@ -719,7 +739,7 @@ def delete_documents(sender, instance, *args, **kwargs):
 import reversion
 reversion.register(Approval, follow=['documents', 'approval_set', 'action_logs'])
 reversion.register(ApprovalDocument)
-reversion.register(ApprovalLogDocument, follow=['documents'])
+reversion.register(ApprovalLogDocument)
 reversion.register(ApprovalLogEntry)
 reversion.register(ApprovalUserAction)
 reversion.register(ApiarySiteOnApproval)

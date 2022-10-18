@@ -1,33 +1,47 @@
 from __future__ import unicode_literals
 
+import logging
+import copy
+import subprocess
+import collections
 import json
 import datetime
-
 import pytz
 import requests
+import re
+
 from dateutil.relativedelta import relativedelta
 from django.contrib.gis.db.models.fields import PointField
 from django.contrib.gis.db.models.manager import GeoManager
 from django.contrib.gis.geos import GEOSGeometry
 from django.contrib.gis.measure import Distance
+from django.contrib.postgres.fields import ArrayField
 from django.db import models,transaction
 from django.contrib.gis.db import models as gis_models
-from django.db.models import Q
+from django.db.models import Q, Max
 from django.dispatch import receiver
 from django.db.models.signals import pre_delete, post_save
 from django.utils.encoding import python_2_unicode_compatible
 from django.core.exceptions import ValidationError
 from django.contrib.postgres.fields.jsonb import JSONField
 from django.utils import timezone
+
+from dirtyfields import DirtyFieldsMixin
+from reversion.models import Version
+from deepdiff import DeepDiff
+from multiselectfield import MultiSelectField
+from smart_selects.db_fields import ChainedForeignKey, ChainedManyToManyField
+from rest_framework import serializers
+from ast import literal_eval
+from taggit.models import TaggedItemBase
+
 from ledger.checkout.utils import createCustomBasket
 from ledger.payments.invoice.utils import CreateInvoiceBasket
 from ledger.settings_base import TIME_ZONE
-from rest_framework import serializers
-from taggit.models import TaggedItemBase
+
 from ledger.accounts.models import EmailUser, RevisionedMixin
 from ledger.payments.models import Invoice
 from disturbance import exceptions
-# from disturbance.components.approvals.models import ApiarySiteOnApproval
 from disturbance.components.organisations.models import Organisation
 from disturbance.components.main.models import CommunicationsLogEntry, UserAction, Document, Region, District, \
     ApplicationType, RegionDbca, DistrictDbca, CategoryDbca
@@ -49,13 +63,11 @@ from disturbance.components.proposals.email import (
         send_site_transfer_approval_email_notification,
         )
 from disturbance.ordered_model import OrderedModel
-import copy
-import subprocess
 
-import logging
 
 from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_PENDING, SITE_STATUS_APPROVED, SITE_STATUS_DENIED, \
-    SITE_STATUS_CURRENT, RESTRICTED_RADIUS, SITE_STATUS_TRANSFERRED, PAYMENT_SYSTEM_ID, PAYMENT_SYSTEM_PREFIX
+    SITE_STATUS_CURRENT, RESTRICTED_RADIUS, SITE_STATUS_TRANSFERRED, PAYMENT_SYSTEM_ID, PAYMENT_SYSTEM_PREFIX, \
+    SITE_STATUS_SUSPENDED, SITE_STATUS_NOT_TO_BE_REISSUED
 
 logger = logging.getLogger(__name__)
 
@@ -79,18 +91,10 @@ def update_apiary_doc_filename(instance, filename):
 #    return 'proposals/{}/apiary_site_transfer_documents/{}'.format(instance.apiary_site_transfer.proposal.id, filename)
 
 
-def application_type_choicelist():
-    try:
-        #return [( (choice.name), (choice.name) ) for choice in ApplicationType.objects.filter(visible=True)]
-        return [( (choice.name), (choice.name) ) for choice in ApplicationType.objects.all()]
-    except:
-        # required because on first DB tables creation, there are no ApplicationType objects -- setting a default value
-        return ( ('Disturbance', 'Disturbance'), )
-
-
 class ProposalType(models.Model):
+
     description = models.CharField(max_length=256, blank=True, null=True)
-    name = models.CharField(verbose_name='Application name (eg. Disturbance, Apiary)', max_length=64, choices=application_type_choicelist(), default='Disturbance')
+    name = models.CharField(verbose_name='Application name (eg. Disturbance, Apiary)', max_length=64, choices=ApplicationType.APPLICATION_TYPES, default=ApplicationType.APPLICATION_TYPES[0][0])
     schema = JSONField()
     replaced_by = models.ForeignKey('self', on_delete=models.PROTECT, blank=True, null=True)
     version = models.SmallIntegerField(default=1, blank=False, null=False)
@@ -102,6 +106,33 @@ class ProposalType(models.Model):
     class Meta:
         app_label = 'disturbance'
         unique_together = ('name', 'version')
+        verbose_name= 'Schema Proposal Type'
+
+    @property
+    def latest(self):
+        if self.name:
+            last_record=ProposalType.objects.filter(name=self.name).order_by('-version')[0]
+            if last_record==self:
+                return True
+            else:
+                False
+        return False
+
+    @property
+    def name_with_version(self):
+        return '{} - v{}'.format(self.name, self.version)
+
+    @property
+    def apiary_group_proposal_type(self):
+        apiary = False
+        if self.name and self.name in (
+                ApplicationType.APIARY,
+                ApplicationType.TEMPORARY_USE,
+                ApplicationType.SITE_TRANSFER,
+                ):
+            apiary = True
+        return apiary
+
 
 
 class TaggedProposalAssessorGroupRegions(TaggedItemBase):
@@ -251,8 +282,10 @@ class ProposalDocument(Document):
     class Meta:
         app_label = 'disturbance'
 
+def fee_invoice_references_default():
+    return []
 
-class Proposal(RevisionedMixin):
+class Proposal(DirtyFieldsMixin, RevisionedMixin):
     CUSTOMER_STATUS_TEMP = 'temp'
     CUSTOMER_STATUS_DRAFT = 'draft'
     CUSTOMER_STATUS_WITH_ASSESSOR = 'with_assessor'
@@ -403,7 +436,8 @@ class Proposal(RevisionedMixin):
     sub_activity_level2 = models.CharField(max_length=255,null=True,blank=True)
     management_area = models.CharField(max_length=255,null=True,blank=True)
 
-    fee_invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
+    # fee_invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
+    fee_invoice_references = ArrayField(models.CharField(max_length=50, null=True, blank=True, default=''), null=True, default=fee_invoice_references_default)
     migrated = models.BooleanField(default=False)
 
     class Meta:
@@ -412,25 +446,42 @@ class Proposal(RevisionedMixin):
 
     def __str__(self):
         return str(self.id)
-
-    #Append 'P' to Proposal id to generate Lodgement number. Lodgement number and lodgement sequence are used to generate Reference.
+      
+    
     def save(self, *args, **kwargs):
-        super(Proposal, self).save(*args,**kwargs)
+        # Store the original values of fields we want to keep track of in 
+        # django reversion before they are overwritten by super() below
+        original_processing_status = self._original_state['processing_status']
+        original_assessor_data = self._original_state['assessor_data']
+        original_comment_data = self._original_state['comment_data']
+
+        # Populate self with the new field values
+        super(Proposal, self).save(*args, **kwargs)
+
+        # Append 'P' to Proposal id to generate Lodgement number.
+        # Lodgement number and lodgement sequence are used to generate Reference.
         if self.lodgement_number == '':
             new_lodgment_id = 'P{0:06d}'.format(self.pk)
             self.lodgement_number = new_lodgment_id
             self.save()
+
+        # If the processing_status has changed then add a reversion comment
+        # so we have a way of filtering based on the status changing
+        if self.processing_status != original_processing_status:
+            self.save(version_comment=f'processing_status: {self.processing_status}')
+        elif self.assessor_data != original_assessor_data:
+            # Although the status hasn't changed we add the text 'processing_status'
+            # So we can filter based on it later (for both assessor_data and comment_data)
+            self.save(version_comment='assessor_data: Has changed - tagging with processing_status')
+        elif self.comment_data != original_comment_data:
+            self.save(version_comment='comment_data: Has changed - tagging with processing_status')
 
     @property
     def fee_paid(self):
         if not self.apiary_group_application_type:
             return False
         else:
-            return True if self.fee_invoice_reference or self.proposal_type == 'amendment' else False
-
-    @property
-    def fee_amount(self):
-        return Invoice.objects.get(reference=self.fee_invoice_reference).amount if self.fee_paid else None
+            return True if self.fee_invoice_references or self.proposal_type == 'amendment' else False
 
     @property
     def relevant_applicant(self):
@@ -578,8 +629,6 @@ class Proposal(RevisionedMixin):
         """
         return self.customer_status in self.CUSTOMER_VIEWABLE_STATE
 
-
-
     @property
     def is_discardable(self):
         """
@@ -659,6 +708,492 @@ class Proposal(RevisionedMixin):
             apiary = True
         return apiary
 
+    def get_revision(self, version_number):
+        """
+        Gets a full Proposal version to show when the View button is clicked.
+        """
+
+        versions = self.get_reversion_history()
+
+        return versions[version_number].field_dict
+
+
+        """
+        all_revisions_list = list(self.get_reversion_history().values())
+        print(all_revisions_list[version_number].field_dict["data"][0].keys())
+        version1 = all_revisions_list[version_number].field_dict["data"]
+        version = all_revisions_list[version_number].field_dict["data"][0]
+        dic = self.flatten_json(version)
+
+        out = {}
+        for k, v in dic.items():
+            out[k.split('_0_')[1]] = v
+        return version1
+        """
+
+    def get_revision_flat(self, version_number):
+        """
+        Gets all the differences in Proposal version to show when the Compare link is clicked.
+        """
+
+        all_revisions_list = list(self.get_reversion_history().values())
+        version = all_revisions_list[version_number].field_dict["data"][0]
+        dic = self.flatten_json(version)
+
+        out = {}
+        for k, v in dic.items():
+            out[k.split('_0_')[1]] = v
+        return out
+
+    def flatten_json(self, dictionary):
+        """ 
+        Flatten a nested json string.
+        """
+        from itertools import chain, starmap
+
+        def unpack(parent_key, parent_value):
+            # Unpack one level of nesting in json file.
+            # Unpack one level only!!!
+            
+            if isinstance(parent_value, dict):
+                for key, value in parent_value.items():
+                    temp1 = parent_key + '_' + key
+                    yield temp1, value
+            elif isinstance(parent_value, list):
+                i = 0 
+                for value in parent_value:
+                    temp2 = parent_key + '_'+str(i) 
+                    i += 1
+                    yield temp2, value
+            else:
+                yield parent_key, parent_value    
+
+                
+        # Keep iterating until the termination condition is satisfied
+        while True:
+            # Keep unpacking the json file until all values are atomic elements (not dictionary or list)
+            dictionary = dict(chain.from_iterable(starmap(unpack, dictionary.items())))
+            # Terminate condition: not any value in the json file is dictionary or list
+            if not any(isinstance(value, dict) for value in dictionary.values()) and \
+            not any(isinstance(value, list) for value in dictionary.values()):
+                break
+
+        return dictionary
+
+    def get_revision_diff(self, newer_version, older_version):
+        """
+        Gets all the revision differences between the most recent revision and the revision specified.
+        """
+
+        versions = self.get_reversion_history()
+
+        # all_revisions_list = list(self.get_reversion_history().values())
+
+        versions_length = len(versions)
+
+        newer_version = versions[newer_version].field_dict["data"]
+
+        older_version = versions[older_version].field_dict["data"]
+
+        diffs = DeepDiff(newer_version, older_version, ignore_order=True)
+
+        diffs_list = []
+        for v in diffs.items():
+            if "values_changed" in v:
+                for k, v in v[1].items():
+                    diffs_list.append({k.split('\'')[-2]:v['new_value'],})
+        return diffs_list
+
+
+    def get_version_differences(self, newer_version: int, older_version: int):
+        """ Returns the differences between two versions
+
+        The most recent version is always 0.
+
+        The second most recent version is 1 and so on all the way to the oldest
+        version
+
+        This method will raise an Exception if the newer_version argument is
+        higher than or equal to the older version to make sure we are indeed
+        comparing a newer version with an older version.
+
+        See: https://django-reversion.readthedocs.io for more information.
+
+        """
+
+        # Fail if either argument is negative
+        if(newer_version<0 or older_version<0):
+            raise Exception('The newer_version and older_version arguements must be 0 or higher')
+
+        # Refuse to compare if the newer version is not actually newer
+        if(newer_version>=older_version):
+            raise Exception('The newer_version arguement must be smaller than the older_version argument')
+
+        versions = self.get_reversion_history()
+
+        # Complain if either requested version doesn't exist
+        if (newer_version>=(len(versions)-1)):
+            raise IndexError(f'The newer_version you requested "{newer_version}" doesn\'t exist')
+
+        if (older_version>(len(versions)-1)):
+            raise IndexError(f'The older_version you requested "{older_version}" doesn\'t exist')
+
+        newer_version_data = versions[newer_version].field_dict
+        older_version_data = versions[older_version].field_dict
+
+        differences = DeepDiff(newer_version_data, older_version_data, ignore_order=True)
+
+        default_mapping = {datetime.datetime: lambda d: str(d)}
+
+        json_differences = json.loads(differences.to_json(default_mapping=default_mapping))
+
+        #logger.debug(f'\n\json_differences = \n\n {json_differences}')
+
+        return json_differences
+
+    def get_version_differences_comment_and_assessor_data(self, field, newer_version: int, older_version: int):
+        """ Returns the differences between the comment data of two versions
+
+        Due to the structure of the 'comment_data' and 'assessor_data' fields being different to the 
+        structure of the 'data' field, we need some custom logic to return the section identifier and
+        the email for the referrer.
+
+        This makes it possible for the compare function on the front end to append the revision notes
+        to the correct location quite easily.
+
+        This method only works when each item in the JSON field has it's data in the following
+        structure:
+
+        {
+        "name": "Section0-7Group1-1-Yes2",
+        "assessor": "",
+        "referrals": [
+            {
+            "email": "tracy.sonneman@dbca.wa.gov.au",
+            "value": "",
+            "full_name": "Tracy Sonneman"
+            }
+        ]
+        },
+
+        """
+
+        # Fail if either argument is negative
+        if(newer_version<0 or older_version<0):
+            raise Exception('The newer_version and older_version arguements must be 0 or higher')
+
+        # Refuse to compare if the newer version is not actually newer
+        if(newer_version>=older_version):
+            raise Exception('The newer_version arguement must be smaller than the older_version argument')
+
+        versions = list(Version.objects.get_for_object(self).select_related('revision')\
+            .filter(revision__comment__contains='processing_status').get_unique())
+
+        older_version_data = versions[older_version].field_dict[field]
+        newer_version_data = versions[newer_version].field_dict[field]
+
+        differences = DeepDiff(older_version_data, newer_version_data, ignore_order=True)
+
+        #logger.debug(f'differences = {differences}')
+
+        json_differences = json.loads(differences.to_json())
+
+        differences_list = []
+
+        if 'values_changed' in json_differences:            
+            logger.debug('\n\n values_changed ========================= ')
+            values_changed = json_differences['values_changed']
+
+            for key in values_changed:
+                # Due to the structure of comment_data and assessor_data we need to get the section name
+                # for both the comments and the referral comments.
+                #    
+                # We also need the email for the Refferal comments.
+                #
+                # With this information we can attach the revision notes in the right place on the frontend
+                # quite easily.
+                #
+                # Also keep in mind that deep diff will return a different data structure once referral
+                # comments have been added.
+                
+                # Get the number between the first set of square brackets i.e. x in 'root[x].etc[y].etc[z]
+                regex = re.search('(?<=\[).+?(?=\])', str(key))
+                root_level = regex.group(0)
+
+                differences_list = self.append_to_differences_list_by_field(field, older_version_data, newer_version_data, \
+                    values_changed, key, root_level,differences_list)
+
+        return differences_list
+
+    def append_to_differences_list_by_field(self, field, older_version_data, newer_version_data, values_changed, key, root_level, \
+                                            differences_list):
+        """ Returns the differences list with the appropriate keys for the assessor_data field. """
+        
+        older_assessor_comment = older_version_data[int(root_level)]['assessor']
+        newer_assessor_comment = newer_version_data[int(root_level)]['assessor']
+
+        #logger.debug('key = ' + str(key))
+
+        root_level_name = newer_version_data[int(root_level)]['name']
+
+        if 'assessor_data' == field:
+            assessor_suffix = '-Assessor'
+            referral_suffix = '-Referral-'
+        elif 'comment_data' == field:
+            assessor_suffix = '-comment-field-Assessor'
+            referral_suffix = '-comment-field-Referral-'            
+        else:
+            raise ValueError('The field argument must be either assessor_data or comment_data')
+
+        if older_assessor_comment:
+            logger.debug('\n There is an older comment: \n' + str(older_assessor_comment))
+            # if the assessor comment hasn't changed then it must be a referral comment change that deep diff picked up
+            if newer_assessor_comment == older_assessor_comment:
+                older_referrals = older_version_data[int(root_level)]['referrals']
+                newer_referrals = newer_version_data[int(root_level)]['referrals']
+                if newer_referrals:
+                    if older_referrals:
+                        for i, new_referral in enumerate(newer_referrals):
+                            referrer_email = new_referral['email']
+                            root_level_name_appended = root_level_name + f'{referral_suffix}{referrer_email}'
+                            try:                
+                                if new_referral['value'] != older_referrals[i]['value']:
+                                    if {root_level_name_appended:older_referrals[i]['value']} not in differences_list:
+                                        differences_list.append({root_level_name_appended:older_referrals[i]['value']})
+                            except IndexError:
+                                # This referral doesn't exist in the older version
+                                if new_referral['value']:
+                                    differences_list.append({root_level_name_appended:'(Previously Blank)'})
+            else:
+                logger.debug('key = ' + str(key))
+                if 'referral' not in key:
+                    root_level_name_appended = root_level_name + assessor_suffix
+                    old_value = values_changed[key]['old_value']
+                    logger.debug('old_value = ' + str(old_value))
+                    if(type(old_value) is dict):
+                        # In certain circumstances, deep diff returns a dictionary rather than just a value
+                        differences_list.append({root_level_name_appended:old_value['assessor']})
+                    else:
+                        differences_list.append({root_level_name_appended:old_value})
+                else:
+                    older_referrals = older_version_data[int(root_level)]['referrals']
+                    newer_referrals = newer_version_data[int(root_level)]['referrals']
+                    if newer_referrals:
+                        for i, new_referral in enumerate(newer_referrals):
+                            logger.debug('\n new_referral \n' + str(new_referral['value'] ))
+                            logger.debug('\n older_referral \n' + str(older_referrals[i]['value']))
+                            referrer_email = new_referral['email']
+                            root_level_name_appended = root_level_name + f'{referral_suffix}{referrer_email}'
+                            try:
+                                if new_referral['value'] != older_referrals[i]['value']:
+                                    if {root_level_name_appended:older_referrals[i]['value']} not in differences_list:                        
+                                        differences_list.append({root_level_name_appended:older_referrals[i]['value']})
+                            except IndexError:
+                                # This referral doesn't exist in the older version
+                                if new_referral['value']:
+                                    differences_list.append({root_level_name_appended:'(Previously Blank)'})
+        else:
+            if newer_assessor_comment:
+                root_level_name_appended = root_level_name + assessor_suffix
+                differences_list.append({root_level_name_appended:'(Previously Blank)'})
+                older_referrals = older_version_data[int(root_level)]['referrals']
+                newer_referrals = newer_version_data[int(root_level)]['referrals']
+                if newer_referrals:
+                    for i, new_referral in enumerate(newer_referrals):
+                        try:
+                            if new_referral['value'] != older_referrals[i]['value']:                           
+                                referrer_email = new_referral['email']
+                                root_level_name_appended = root_level_name + f'{referral_suffix}{referrer_email}'
+                                if {root_level_name_appended:older_referrals[i]['value']} not in differences_list:                        
+                                    differences_list.append({root_level_name_appended:older_referrals[i]['value']})
+                        except IndexError:
+                            # This referral doesn't exist in the older version
+                            if new_referral['value']:
+                                differences_list.append({root_level_name_appended:'(Previously Blank)'})
+            else:
+                # Edge case. Both the old assessor comment and the new assessor comment are empty
+                # Which means the change deep diff picked up must be a referral comment
+                older_referrals = older_version_data[int(root_level)]['referrals']
+                newer_referrals = newer_version_data[int(root_level)]['referrals']
+                if newer_referrals:
+                    for i, new_referral in enumerate(newer_referrals):
+                        referrer_email = new_referral['email']
+                        root_level_name_appended = root_level_name + f'{referral_suffix}{referrer_email}'
+                        try:
+                            if new_referral['value'] != older_referrals[i]['value']:
+                                if {root_level_name_appended:older_referrals[i]['value']} not in differences_list:                         
+                                    differences_list.append({root_level_name_appended:older_referrals[i]['value']})
+                        except IndexError:
+                            # This referral doesn't exist in the older version
+                            if new_referral['value']:
+                                differences_list.append({root_level_name_appended:'(Previously Blank)'})
+
+        return differences_list
+
+    def get_reversion_history(self):
+        """
+        Get the revisions for this Proposal where the processing_status has changed
+        """
+        # Get all revisions that have been submitted (not just saved by user) including the original.
+        #all_revisions = [v for v in Version.objects.get_for_object(self)[0:] if not v.field_dict['customer_status'] == 'draft']
+        # Strip out duplicates (only take the most recent of a revision).
+        #unique_revisions = collections.OrderedDict({v.field_dict['lodgement_date']:v for v in all_revisions})
+
+        unique_revisions = Version.objects.get_for_object(self).select_related('revision').filter(revision__comment__contains='processing_status')
+
+        return unique_revisions
+
+    def get_full_reversion_history(self):
+        """  Get all the revisions for this Proposal.
+        """
+
+        revisions = Version.objects.get_for_object(self).select_related('revision')
+
+        return revisions
+
+    def get_documents_for_version(self, version_number):
+        # get the datetime the requested version was lodged
+        versions = list(Version.objects.get_for_object(self).select_related('revision')\
+            .filter(revision__comment__contains='processing_status').get_unique())
+        version = versions[version_number]
+        #proposal = Proposal(**version)
+        version_lodgement_date = version.field_dict['lodgement_date']
+        version_documents = ProposalDocument.objects.filter(proposal=self, uploaded_date__lte=version_lodgement_date)\
+            .order_by('input_name', 'uploaded_date')
+        return version_documents, version_lodgement_date
+
+    def get_document_differences(self, newer_version, older_version, differences_only):
+        newer_version_documents, newer_version_lodgement_date = self.get_documents_for_version(newer_version)
+        older_version_documents, older_version_lodgement_date = self.get_documents_for_version(older_version)
+
+        newer_documents_list = []
+        input_name = ''
+        for document in newer_version_documents:
+            if not document.hidden:
+                #logger.debug('newer_document.input_name = ' + str(document.input_name))
+                #logger.debug('newer_document.name = ' + str(document.name))
+                #logger.debug('newer_document.hidden = ' + str(document.hidden) + '\n\n')
+                if input_name != document.input_name:
+                    input_name = document.input_name
+                    input_item = {input_name:[]}
+                    newer_documents_list.append(input_item)
+                    #logger.debug('adding ' + str(input_item))
+
+                #logger.debug('input_name ' + str(input_name))
+
+                input_item[input_name] += [{document.name:document._file.url}]
+
+        #return newer_documents_list
+
+        older_documents_list = []
+        input_name = ''
+        for document in older_version_documents:
+            # We need to get the state (hidden or not) of the document as it was in the older version
+            older_document_version = Version.objects.get_for_object(document)\
+            .select_related('revision').filter(revision__date_created__lte=older_version_lodgement_date).order_by('-revision__date_created').first()
+            older_document = ProposalDocument(**older_document_version.field_dict)
+            if not older_document.hidden:
+                #logger.debug('older_document.input_name = ' + str(older_document.input_name))
+                #logger.debug('older_document.name = ' + str(older_document.name))
+                #logger.debug('older_document.hidden = ' + str(older_document.hidden) + '\n\n')
+                if input_name != older_document.input_name:
+                    input_name = older_document.input_name
+                    input_item = {input_name:[]}
+                    older_documents_list.append(input_item)
+                    #logger.debug('adding ' + str(input_item))
+
+                #logger.debug('input_name ' + str(input_name))
+
+                input_item[input_name] += [{older_document.name:older_document._file.url}]
+
+        #return older_documents_list
+
+        #logger.debug('older_documents_list = ' + str(older_documents_list))
+
+
+        #logger.debug('\n\nolder_documents_list = ' + str(newer_documents_list))
+
+        #logger.debug('newer_version_documents length = ' + str(len(list(newer_version_documents))))
+        #logger.debug('older_version_documents length = ' + str(len(list(older_version_documents))))
+
+        differences = DeepDiff(newer_documents_list, older_documents_list, ignore_order=True)
+
+        #logger.debug('\n\ndifferences = ' + str(differences))
+
+        #if differences_only:
+        differences_list = []
+        for difference in differences.items():
+            if "values_changed" in difference:
+                #logger.debug('\n\n values_changed -----------------> ')
+                for key, value in difference[1].items():
+                    key_suffix = key.split('\'')[-1]
+                    #logger.debug('\n\n key = ' + str(key))
+                    #logger.debug('\n\n values = ' + str(value))
+                    section = key.split('\'')[-2]
+                    # Add the old value document to the list as an remove
+                    old_value_dict = value['old_value']
+                    #logger.debug('\n\n old_value_dict = ' + str(old_value_dict))
+                    operation = '-'
+                    for item in old_value_dict:
+                        file_name = item
+                        file_path = old_value_dict[item]
+                        #logger.debug('\n\n item = ' + str(item))
+                        #logger.debug('\n\n file_path = ' + str(file_path))
+                        differences_list.append({section:(operation, file_name, file_path)})
+                    # Add the new value document to the list as an add
+                    new_value_dict = value['new_value']
+                    #logger.debug('\n\n new_value_dict = ' + str(new_value_dict))
+                    operation = '+'
+                    for item in new_value_dict:
+                        file_name = item
+                        file_path = new_value_dict[item]
+                        #logger.debug('\n\n item = ' + str(item))
+                        #logger.debug('\n\n file_path = ' + str(file_path))
+                        differences_list.append({section:(operation, file_name, file_path)})
+
+                    #differences_list.append({section:'-{},+{}'.format(old_value, new_value),})
+
+            #logger.debug(f'difference = {difference}')
+            if "iterable_item_removed" in difference:
+                #logger.debug('\n\n iterable_item_removed -----------------> ')
+                operation = '-'
+                for item in difference[1]:
+                    document = difference[1][item]
+                    for x in document:
+                        #logger.debug('\n\n x = ' + x)
+
+                        section = item.split('\'')[-2]
+
+                        #file = document[section][0]
+                        for key, value in document.items():
+
+                            file_name = key
+                            file_path = document[key]
+                            differences_list.append({section:(operation, file_name, file_path)})
+
+            if "iterable_item_added" in difference:
+                #logger.debug('\n\n iterable_item_added -----------------> ')
+                operation = '+'
+                for item in difference[1]:
+                    #logger.debug('\n\n item = ' + str(item))
+                    document = difference[1][item]
+                    for x in document:
+                        section = item.split('\'')[-2]
+                        #logger.debug('\n\n section = ' + str(section))
+                        #logger.debug('\n\n document = ' + str(document))
+
+                        section = item.split('\'')[-2]
+
+                        #file = document[section][0]
+                        for key, value in document.items():
+
+                            file_name = key
+                            file_path = document[key]
+                            differences_list.append({section:(operation, file_name, file_path)})
+
+        return differences_list
+        
+
     def __assessor_group(self):
         # Alternative logic for Apiary applications
         if self.apiary_group_application_type:
@@ -711,7 +1246,6 @@ class Proposal(RevisionedMixin):
         #    'title': 'Title',
         #    'activity': 'Activity'
         }
-        #import ipdb; ipdb.set_trace()
         for k,v in required_fields.items():
             val = getattr(self,k)
             if not val:
@@ -726,7 +1260,6 @@ class Proposal(RevisionedMixin):
             group = ApiaryAssessorGroup.objects.first()
             if group:
                 return group.members_email
-        #import ipdb; ipdb.set_trace()
         # Proposal logic
         try:
             recipients = ProposalAssessorGroup.objects.get(region=self.region).members_email
@@ -816,6 +1349,14 @@ class Proposal(RevisionedMixin):
         else:
             return False
 
+    @property   
+    def status_without_assessor(self):
+        status_without_assessor = ['with_approver','approved','declined','draft', 'with_referral']
+        if self.processing_status in status_without_assessor:
+            return True
+        return False
+
+
     def has_assessor_mode(self,user):
         status_without_assessor = ['with_approver','approved','declined','draft']
         if self.processing_status in status_without_assessor:
@@ -848,7 +1389,6 @@ class Proposal(RevisionedMixin):
             if self.can_user_edit:
                 # Save the data first
                 save_proponent_data(self,request,viewset)
-                #import ipdb; ipdb.set_trace()
                 if self.application_type.name != ApplicationType.APIARY:
                     # Check if the special fields have been completed
                     missing_fields = self.__check_proposal_filled_out()
@@ -871,13 +1411,12 @@ class Proposal(RevisionedMixin):
                 if self.applicant:
                     self.applicant.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.lodgement_number), request)
 
-                #import ipdb; ipdb.set_trace()
                 ret1 = send_submit_email_notification(request, self)
                 ret2 = send_external_submit_email_notification(request, self)
 
                 if ret1 and ret2:
-                    self.processing_status = 'with_assessor'
-                    self.customer_status = 'with_assessor'
+                    self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
+                    self.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
                     self.documents.all().update(can_delete=False)
                     self.save()
                 else:
@@ -889,7 +1428,6 @@ class Proposal(RevisionedMixin):
     def update(self,request,viewset):
         from disturbance.components.proposals.utils import save_proponent_data
         with transaction.atomic():
-            #import ipdb; ipdb.set_trace()
             if self.can_user_edit:
                 # Save the data first
                 save_proponent_data(self,request,viewset)
@@ -1114,7 +1652,7 @@ class Proposal(RevisionedMixin):
             try:
                 if not self.can_assess(request.user):
                     raise exceptions.ProposalNotAuthorized()
-                if self.processing_status != 'with_assessor':
+                if self.processing_status != Proposal.PROCESSING_STATUS_WITH_ASSESSOR:
                     raise ValidationError('You cannot propose to decline if it is not with assessor')
 
                 reason = details.get('reason')
@@ -1152,7 +1690,7 @@ class Proposal(RevisionedMixin):
                 self.customer_status = 'declined'
                 self.save()
 
-                if self.proposal_apiary:
+                if hasattr(self, 'proposal_apiary') and self.proposal_apiary:
                     # Update apiary site status
                     self.proposal_apiary.final_decline()
 
@@ -1176,7 +1714,7 @@ class Proposal(RevisionedMixin):
                     raise exceptions.ProposalNotAuthorized()
                 #if not self.applicant.organisation.postal_address:
                 if not self.relevant_applicant_address:
-                    raise ValidationError('The applicant needs to have set their postal address before approving this proposal.')
+                    raise ValidationError('The applicant needs to have set their postal address before approving this proposal. (Applicant: {})'.format(self.relevant_applicant))
 
                 lodgement_number = self.previous_application.approval.lodgement_number if self.proposal_type in ['renewal', 'amendment'] else '' # renewals/amendments keep same licence number
                 # Apiary Site Transfer logic
@@ -1228,7 +1766,6 @@ class Proposal(RevisionedMixin):
 
     def proposed_approval(self,request,details):
         with transaction.atomic():
-            #import ipdb; ipdb.set_trace()
             try:
                 if not self.can_assess(request.user):
                     raise exceptions.ProposalNotAuthorized()
@@ -1237,6 +1774,8 @@ class Proposal(RevisionedMixin):
                 # Do not accept new start and expiry dates for Apiary group applications with a licence, unless the licence has been reissued
                 start_date = details.get('start_date').strftime('%d/%m/%Y') if details.get('start_date') else None
                 expiry_date = details.get('expiry_date').strftime('%d/%m/%Y') if details.get('expiry_date') else None
+                #cpc_date = details.get('cpc_date').strftime('%d/%m/%Y') if details.get('cpc_date') else None
+                #minister_date = details.get('minister_date').strftime('%d/%m/%Y') if details.get('minister_date') else None
                 #if self.apiary_group_application_type:
                 if self.application_type.name == 'Apiary':
                     if self.approval and (self.approval.reissued or self.proposal_type == 'renewal'):
@@ -1245,6 +1784,17 @@ class Proposal(RevisionedMixin):
                             'expiry_date' : expiry_date,
                             'details' : details.get('details'),
                             'cc_email' : details.get('cc_email'),
+
+                            #'cpc_date' : cpc_date,
+                            #'minister_date' : minister_date,
+#                            'batch_no' : details.get('batch_no'),
+#                            'map_ref' : details.get('map_ref'),
+#                            'forest_block' : details.get('forest_block'),
+#                            'cog' : details.get('cog'),
+#                            'roadtrack' : details.get('roadtrack'),
+#                            'zone' : details.get('zone'),
+#                            'catchment' : details.get('catchment'),
+#                            'dra_permit' : details.get('dra_permit'),
                         }
                     elif self.proposed_issuance_approval:
                         self.proposed_issuance_approval = {
@@ -1252,6 +1802,17 @@ class Proposal(RevisionedMixin):
                                 'expiry_date' : self.proposed_issuance_approval.get('expiry_date') if self.proposed_issuance_approval.get('expiry_date') else details.get('expiry_date').strftime('%d/%m/%Y'),
                                 'details' : details.get('details'),
                                 'cc_email' : details.get('cc_email'),
+
+                                #'cpc_date' : self.proposed_issuance_approval.get('cpc_date') if self.proposed_issuance_approval.get('cpc_date') else details.get('cpc_date').strftime('%d/%m/%Y'),
+                                #'minister_date' : self.proposed_issuance_approval.get('minister_date') if self.proposed_issuance_approval.get('minister_date') else details.get('minister_date').strftime('%d/%m/%Y'),
+#                                'batch_no' : details.get('batch_no'),
+#                                'map_ref' : details.get('map_ref'),
+#                                'forest_block' : details.get('forest_block'),
+#                                'cog' : details.get('cog'),
+#                                'roadtrack' : details.get('roadtrack'),
+#                                'zone' : details.get('zone'),
+#                                'catchment' : details.get('catchment'),
+#                                'dra_permit' : details.get('dra_permit'),
                         }
                     else:
                         self.proposed_issuance_approval = {
@@ -1259,6 +1820,17 @@ class Proposal(RevisionedMixin):
                                 'expiry_date' : expiry_date,
                                 'details' : details.get('details'),
                                 'cc_email' : details.get('cc_email'),
+
+                                #'cpc_date' : cpc_date,
+                                #'minister_date' : minister_date,
+#                                'batch_no' : details.get('batch_no'),
+#                                'map_ref' : details.get('map_ref'),
+#                                'forest_block' : details.get('forest_block'),
+#                                'cog' : details.get('cog'),
+#                                'roadtrack' : details.get('roadtrack'),
+#                                'zone' : details.get('zone'),
+#                                'catchment' : details.get('catchment'),
+#                                'dra_permit' : details.get('dra_permit'),
                         }
                 # non-apiary Proposals & Apiary Site Transfers
                 else:
@@ -1267,6 +1839,17 @@ class Proposal(RevisionedMixin):
                             'expiry_date' : expiry_date,
                             'details' : details.get('details'),
                             'cc_email' : details.get('cc_email'),
+
+                            #'cpc_date' : cpc_date,
+                            #'minister_date' : minister_date,
+#                            'batch_no' : details.get('batch_no'),
+#                            'map_ref' : details.get('map_ref'),
+#                            'forest_block' : details.get('forest_block'),
+#                            'cog' : details.get('cog'),
+#                            'roadtrack' : details.get('roadtrack'),
+#                            'zone' : details.get('zone'),
+#                            'catchment' : details.get('catchment'),
+#                            'dra_permit' : details.get('dra_permit'),
                     }
 
                 self.proposed_decline_status = False
@@ -1285,6 +1868,12 @@ class Proposal(RevisionedMixin):
                             self.proposal_apiary.set_workflow_selected_status(my_site, apiary_site.get('checked'))
                             if apiary_site.get('checked'):
                                 apiary_sites_list.append(apiary_site.get('id'))
+                                relation = self.proposal_apiary.get_relation(my_site)
+                                from disturbance.components.proposals.serializers_apiary import ApiarySiteOnProposalProcessedLicensedSiteSaveSerializer
+                                #serializer = ApiarySiteOnProposalProcessedLicensedSiteSaveSerializer(relation, data={'licensed_site': apiary_site['properties'].get('licensed_site')})
+                                serializer = ApiarySiteOnProposalProcessedLicensedSiteSaveSerializer(relation, data=apiary_site['properties'])
+                                serializer.is_valid(raise_exception=True)
+                                serializer.save()
                             # my_site.save()
 
                             if apiary_site.get('checked') and 'coordinates_moved' in apiary_site:
@@ -1296,7 +1885,7 @@ class Proposal(RevisionedMixin):
                                 # from disturbance.components.proposals.serializers_apiary import ApiarySiteSavePointPendingSerializer
                                 # serializer = ApiarySiteSavePointPendingSerializer(my_site, data={'wkb_geometry_pending': geom_str}, context={'validate_distance': True})
                                 from disturbance.components.proposals.serializers_apiary import ApiarySiteOnProposalProcessedGeometrySaveSerializer
-                                serializer = ApiarySiteOnProposalProcessedGeometrySaveSerializer(relation, data={'wkb_geometry_processed': geom_str})
+                                serializer = ApiarySiteOnProposalProcessedGeometrySaveSerializer(relation, data={'wkb_geometry_processed': geom_str, 'licensed_site': apiary_site['properties'].get('licensed_site')})
                                 serializer.is_valid(raise_exception=True)
                                 serializer.save()
 
@@ -1308,12 +1897,17 @@ class Proposal(RevisionedMixin):
                         for apiary_site in apiary_sites:
                             transfer_site = SiteTransferApiarySite.objects.get(
                                     proposal_apiary=self.proposal_apiary,
-                                    apiary_site_on_approval__apiary_site__id=apiary_site.get('id')
+                                    apiary_site_on_approval__apiary_site__id=apiary_site.get('id'),
+                                    #apiary_site_on_approval__licensed_site=apiary_site.get('properties')['licensed_site'],
                                     )
                             transfer_site.internal_selected = apiary_site.get('checked') if transfer_site.customer_selected else False
                             if apiary_site.get('checked'):
                                 apiary_sites_list.append(apiary_site.get('id'))
                             transfer_site.save()
+
+                            asoa = transfer_site.apiary_site_on_approval
+                            asoa.licensed_site = apiary_site.get('properties')['licensed_site']
+                            asoa.save()
 
                 self.save()
                 # Log proposal action
@@ -1358,7 +1952,7 @@ class Proposal(RevisionedMixin):
             try:
                 if not self.can_assess(request.user):
                     raise exceptions.ProposalNotAuthorized()
-                if self.processing_status != 'with_assessor':
+                if self.processing_status != Proposal.PROCESSING_STATUS_WITH_ASSESSOR:
                     # For temporary Use Application, assessor approves it
                     raise ValidationError('You cannot approve the proposal if it is not with an assessor')
 
@@ -1384,7 +1978,7 @@ class Proposal(RevisionedMixin):
             try:
                 if not self.can_assess(request.user):
                     raise exceptions.ProposalNotAuthorized()
-                if self.processing_status != 'with_assessor':
+                if self.processing_status != Proposal.PROCESSING_STATUS_WITH_ASSESSOR:
                     # For temporary Use Application, assessor approves it
                     raise ValidationError('You cannot approve the proposal if it is not with an assessor')
 
@@ -1419,13 +2013,25 @@ class Proposal(RevisionedMixin):
                     raise ValidationError('You cannot issue the approval if it is not with an approver')
                 #if not self.applicant.organisation.postal_address:
                 if not self.relevant_applicant_address:
-                    raise ValidationError('The applicant needs to have set their postal address before approving this proposal.')
+                    raise ValidationError('The applicant needs to have set their postal address before approving this proposal. (Applicant: {})'.format(self.relevant_applicant))
 
                 self.proposed_issuance_approval = {
                     'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
                     'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
                     'details': details.get('details'),
-                    'cc_email':details.get('cc_email')
+                    'cc_email':details.get('cc_email'),
+
+#                    'cpc_date' : details.get('cpc_date').strftime('%d/%m/%Y'),
+#                    'minister_date' : details.get('minister_date').strftime('%d/%m/%Y'),
+#                    'batch_no': details.get('batch_no'),
+#                    'map_ref' : details.get('map_ref'),
+#                    'forest_block' : details.get('forest_block'),
+#                    'cog' : details.get('cog'),
+#                    'roadtrack' : details.get('roadtrack'),
+#                    'zone' : details.get('zone'),
+#                    'catchment' : details.get('catchment'),
+#                    'dra_permit' : details.get('dra_permit'),
+
                 }
                 self.proposed_decline_status = False
                 self.processing_status = 'approved'
@@ -1435,11 +2041,9 @@ class Proposal(RevisionedMixin):
                 # Log entry for organisation
                 if self.applicant:
                     self.applicant.log_user_action(ProposalUserAction.ACTION_ISSUE_APPROVAL_.format(self.lodgement_number), request)
-                #import ipdb;ipdb.set_trace()
 
                 if self.processing_status == 'approved':
                     # TODO if it is an ammendment proposal then check appropriately
-                    #import ipdb; ipdb.set_trace()
                     checking_proposal = self
                     if self.proposal_type == 'renewal':
                         if self.previous_application:
@@ -1506,6 +2110,8 @@ class Proposal(RevisionedMixin):
                             }
                         )
                         #print approval,approval.id, created
+
+
                     # Generate compliances
                     #self.generate_compliances(approval, request)
                     from disturbance.components.compliances.models import Compliance, ComplianceUserAction
@@ -1655,13 +2261,15 @@ class Proposal(RevisionedMixin):
                 raise
 
     def renew_approval(self,request):
-        #import ipdb; ipdb.set_trace()
         with transaction.atomic():
             previous_proposal = self
             try:
                 proposal=Proposal.objects.get(previous_application = previous_proposal)
                 if proposal.customer_status=='with_assessor':
-                    raise ValidationError('A renewal for this licence has already been lodged and is awaiting review.')
+                    if not proposal.apiary_group_application_type:
+                        raise ValidationError('A renewal or amendment proposal for this approval has already been lodged and is awaiting review.')
+                    else:
+                        raise ValidationError('A renewal or amendment application for this licence has already been lodged and is awaiting review.')
             except Proposal.DoesNotExist:
                 if previous_proposal.apiary_group_application_type:
                     proposal = clone_apiary_proposal_with_status_reset(previous_proposal)
@@ -1674,19 +2282,21 @@ class Proposal(RevisionedMixin):
                 proposal.proposal_type = 'renewal'
                 proposal.submitter = request.user
                 proposal.previous_application = self
-                req=self.requirements.all().exclude(is_deleted=True)
-                from copy import deepcopy
-                if req:
-                    for r in req:
-                        old_r = deepcopy(r)
-                        r.proposal = proposal
-                        r.copied_from=None
-                        r.copied_for_renewal=True
-                        if r.due_date:
-                            r.due_date=None
-                            r.require_due_date=True
-                        r.id = None
-                        r.save()
+                if not previous_proposal.apiary_group_application_type:
+                    # for Apiary, we copy requirements in the clone method above
+                    req=self.requirements.all().exclude(is_deleted=True)
+                    from copy import deepcopy
+                    if req:
+                        for r in req:
+                            old_r = deepcopy(r)
+                            r.proposal = proposal
+                            r.copied_from=None
+                            r.copied_for_renewal=True
+                            if r.due_date:
+                                r.due_date=None
+                                r.require_due_date=True
+                            r.id = None
+                            r.save()
                 # Create a log entry for the proposal
                 self.log_user_action(ProposalUserAction.ACTION_RENEW_PROPOSAL.format(self.lodgement_number), request)
                 # Create a log entry for the organisation
@@ -1709,8 +2319,8 @@ class Proposal(RevisionedMixin):
 
                 }
                 proposal=Proposal.objects.get(**amend_conditions)
-                if proposal.customer_status=='under_review':
-                    raise ValidationError('An amendment for this licence has already been lodged and is awaiting review.')
+                if proposal.customer_status=='with_assessor':
+                    raise ValidationError('An amendment proposal for this approval has already been lodged and is awaiting review.')
             except Proposal.DoesNotExist:
                 previous_proposal = Proposal.objects.get(id=self.id)
                 proposal = clone_proposal_with_status_reset(previous_proposal)
@@ -1937,6 +2547,16 @@ class ApiaryReferralGroup(models.Model):
     #site = models.OneToOneField(Site, default='1')
     name = models.CharField(max_length=30, unique=True)
     members = models.ManyToManyField(EmailUser)
+    region = models.ForeignKey(Region, blank=True, null=True, on_delete=models.PROTECT)
+    district = ChainedForeignKey(
+        District,
+        chained_field="region",
+        chained_model_field="region",
+        show_all=False,
+        auto_choose=True,
+        sort=True,
+        #on_delete=models.PROTECT
+    )
 
     def __str__(self):
         #return 'Referral Recipient Group'
@@ -2002,7 +2622,6 @@ class ProposalRequirement(OrderedModel):
     def save(self, *args, **kwargs):
         super(ProposalRequirement, self).save(*args,**kwargs)
         # update reissue flags as needed
-        #import ipdb; ipdb.set_trace()
         if self.proposal and hasattr(self.proposal, 'proposal_apiary') and self.proposal.proposal_apiary and self.proposal.application_type.name == 'Site Transfer':
             #if self.sitetransfer_approval == self.apiary_approval:
                 # therefore, we know that the requirement is already attached to the target/originating approval, i.e. is not new
@@ -2346,18 +2965,16 @@ def clone_proposal_with_status_reset(proposal):
 
 
 def clone_apiary_proposal_with_status_reset(original_proposal):
-    #import ipdb; ipdb.set_trace()
+    # called for Apiary renewals
     with transaction.atomic():
         try:
             proposal = copy.deepcopy(original_proposal)
             proposal.id = None
-            #proposal.application_type = ApplicationType.objects.filter(name=ApplicationType.APIARY)[0]
             proposal.application_type = ApplicationType.objects.get(name=ApplicationType.APIARY)
 
             proposal.save(no_revision=True)
             # create proposal_apiary and associate it with the proposal
             proposal_apiary = ProposalApiary.objects.create(proposal=proposal)
-            #proposal_apiary = proposal_apiary.proposal
             proposal_apiary.save()
 
             proposal.customer_status = 'draft'
@@ -2371,53 +2988,30 @@ def clone_apiary_proposal_with_status_reset(original_proposal):
             proposal.assigned_officer = None
             proposal.assigned_approver = None
 
-            #proposal.approval = None
-
-            #original_proposal_id = proposal.id
-
-            #proposal.id = None
             proposal.approval_level_document = None
-            proposal.fee_invoice_reference = None
+            # proposal.fee_invoice_reference = None
+            proposal.fee_invoice_references = []
             proposal.activity = 'Apiary Renewal'
 
             proposal.save(no_revision=True)
-
-            ## clone documents
-            #for proposal_document in DeedPollDocument.objects.filter(proposal=original_proposal.id):
-
-            #    proposal_document.proposal = proposal
-            #    proposal_document.id = None
-            #    path = default_storage.save(
-            #        '{}/proposals/{}/deed_poll_documents/{}'.format(
-            #            settings.MEDIA_APIARY_DIR, proposal.id, proposal_document.name), ContentFile(
-            #            proposal_document._file.read()))
-
-            #    proposal_document._file = path
-            #    proposal_document.can_delete = True
-            #    proposal_document.save()
-
-            # copy documents on file system and reset can_delete flag
-            #subprocess.call('cp -pr media/proposals/{} media/proposals/{}'.format(original_proposal.id, proposal.id), shell=True)
-
-            # clone requirements
+            # clone requirements - ensure due dates are None
             approval = original_proposal.proposal_apiary.retrieve_approval
             req = approval.proposalrequirement_set.exclude(is_deleted=True)
-            #from copy import deepcopy
             if req:
                 for r in req:
                     old_r = copy.deepcopy(r)
                     r.proposal = proposal
+                    r.apiary_approval = None
                     r.copied_from=old_r
+                    r.copied_for_renewal=True
+                    if r.due_date:
+                        r.due_date=None
+                        r.require_due_date=True
                     r.id = None
                     r.save()
 
             # update apiary_sites with new proposal
             approval.add_apiary_sites_to_proposal_apiary_for_renewal(proposal_apiary)
-            # for site in approval.apiary_sites.all():
-                # Create new relations between the ApiarySite and the ProposalApiary
-                # ApiarySiteOnProposal.objects.create(apiary_site=site, proposal_apiary=proposal.proposal_apiary)
-                # site.proposal_apiary = proposal.proposal_apiary
-                # site.save()
 
             # Checklist questions
             for question in ApiaryChecklistQuestion.objects.filter(
@@ -2426,13 +3020,6 @@ def clone_apiary_proposal_with_status_reset(original_proposal):
                     ):
                 new_answer = ApiaryChecklistAnswer.objects.create(proposal = proposal.proposal_apiary,
                                                                            question = question)
-
-            # update approval.current_proposal
-            #approval.current_proposal = proposal
-            #approval.save()
-            # Set previous_application to maintain proposal history
-            #proposal_apiary.proposal.previous_application = approval.current_proposal
-            #proposal_apiary.proposal.save()
 
             return proposal
         except:
@@ -2513,6 +3100,48 @@ def search_reference(reference_number):
     else:
         raise ValidationError('Record with provided reference number does not exist')
 
+def search_sections(application_type_name, section_label,question_id,option_label,is_internal= True, region=None,district=None,activity=None):
+    from disturbance.utils import search_section
+    #print(application_type_name, section_label,question_label,option_label,is_internal)
+    qs = []
+    if is_internal:
+        if(not application_type_name or not section_label or not question_id or not option_label):
+            raise ValidationError('Some of the mandatory fields are missing')
+        #import ipdb; ipdb.set_trace()
+        proposal_list = Proposal.objects.filter(application_type__name=application_type_name).exclude(processing_status__in=[Proposal.PROCESSING_STATUS_DISCARDED, Proposal.PROCESSING_STATUS_DRAFT])
+        question=MasterlistQuestion.objects.get(id=question_id)
+        filter_conditions={}
+        if region:
+            filter_conditions['region']=region
+        if district:
+            filter_conditions['district']=district
+        if activity:
+            filter_conditions['activity']=activity
+        if filter_conditions:
+            proposal_list=proposal_list.filter(**filter_conditions)
+        if proposal_list:
+            for p in proposal_list:
+                if p.data:
+                    try:
+                        results = search_section(p.schema, section_label, question, p.data, option_label)
+                        final_results = {}
+                        if results:
+                            # for r in results:
+                            #     for key, value in r.items():
+                            #         final_results.update({'key': key, 'value': value})
+                            res = {
+                                'number': p.lodgement_number,
+                                'id': p.id,
+                                'type': 'Proposal',
+                                'applicant': p.applicant.name,
+                                'text': results[0],
+                                }
+                            qs.append(res)
+                    except:
+                        raise
+
+
+    return qs
 
 from ckeditor.fields import RichTextField
 class HelpPage(models.Model):
@@ -2537,6 +3166,21 @@ class HelpPage(models.Model):
 # --------------------------------------------------------------------------------------
 # Apiary Models Start
 # --------------------------------------------------------------------------------------
+
+#class ApiaryPermitIssuance(RevisionedMixin):
+#    apiary_site_on_proposal = models.ForeignKey('ApiarySiteOnProposal')
+#    batch_no = models.CharField(max_length=40, blank=True, null=True)
+#    approval_cpc_date = models.DateTimeField(blank=True, null=True)
+#    approval_minister_date = models.DateTimeField(blank=True, null=True)
+#
+#    def __str__(self):
+#        return 'id:{}: (apiary_site: {}, proposal_apiary: {})'.format(self.id, self.apiary_site.id, self.proposal_apiary.id)
+#
+#    class Meta:
+#        app_label = 'disturbance'
+#        unique_together = ['apiary_site', 'proposal_apiary',]
+
+
 class ApiarySiteOnProposal(RevisionedMixin):
     apiary_site = models.ForeignKey('ApiarySite',)
     proposal_apiary = models.ForeignKey('ProposalApiary',)
@@ -2553,10 +3197,30 @@ class ApiarySiteOnProposal(RevisionedMixin):
     site_category_draft = models.ForeignKey('SiteCategory', null=True, blank=True, related_name='intermediate_draft')
     site_category_processed = models.ForeignKey('SiteCategory', null=True, blank=True, related_name='intermediate_processed')
     application_fee_paid = models.BooleanField(default=False)  # To avoid overcharging when the proposal is sent back to the customer, we need this flag
+    licensed_site = models.BooleanField(default=False)  # used only during approval process, licensed site, have an independent PDF Licence page
+    issuance_details = JSONField(blank=True, null=True)
+
+    # permit issuance details
+    batch_no = models.CharField(max_length=40, blank=True, null=True)
+    approval_cpc_date = models.DateField(blank=True, null=True)
+    approval_minister_date = models.DateField(blank=True, null=True)
+    map_ref = models.CharField(max_length=40, blank=True, null=True)
+    forest_block = models.CharField(max_length=40, blank=True, null=True)
+    cog = models.CharField(max_length=40, blank=True, null=True)
+    roadtrack = models.CharField(max_length=40, blank=True, null=True)
+    zone = models.CharField(max_length=40, blank=True, null=True)
+    catchment = models.CharField(max_length=40, blank=True, null=True)
+    dra_permit = models.BooleanField(default=False)
+
     objects = GeoManager()
 
     def __str__(self):
         return 'id:{}: (apiary_site: {}, proposal_apiary: {})'.format(self.id, self.apiary_site.id, self.proposal_apiary.id)
+
+    def get_relevant_applicant_name(self):
+        if self.proposal_apiary and self.proposal_apiary.proposal:
+            return self.proposal_apiary.proposal.relevant_applicant_name
+        return ''
 
     class Meta:
         app_label = 'disturbance'
@@ -2719,7 +3383,6 @@ class ProposalApiary(RevisionedMixin):
                     self.proposal.save()
                     self.save()
                     referral = None
-                    #import ipdb; ipdb.set_trace()
 
                     # Check if the user is in ledger
                     try:
@@ -2840,13 +3503,12 @@ class ProposalApiary(RevisionedMixin):
         from disturbance.components.approvals.models import Approval
         approval = None
         if self.proposal.applicant:
-            approval = Approval.objects.filter(applicant=self.proposal.applicant, status=Approval.STATUS_CURRENT, apiary_approval=True).first()
+            approval = Approval.objects.filter(applicant=self.proposal.applicant, status__in=[Approval.STATUS_CURRENT, Approval.STATUS_SUSPENDED], apiary_approval=True).first()
         elif self.proposal.proxy_applicant:
-            approval = Approval.objects.filter(proxy_applicant=self.proposal.proxy_applicant, status=Approval.STATUS_CURRENT, apiary_approval=True).first()
+            approval = Approval.objects.filter(proxy_applicant=self.proposal.proxy_applicant, status__in=[Approval.STATUS_CURRENT, Approval.STATUS_SUSPENDED], apiary_approval=True).first()
         return approval
 
     def create_transferee_approval(self, details, applicant=None, proxy_applicant=None):
-        #import ipdb;ipdb.set_trace()
         from disturbance.components.approvals.models import Approval
         approval = Approval.objects.create(
             current_proposal = self.proposal,
@@ -2869,7 +3531,7 @@ class ProposalApiary(RevisionedMixin):
             if self.proposal.processing_status != Proposal.PROCESSING_STATUS_WITH_APPROVER:
                 raise ValidationError('You cannot issue the approval if it is not with an approver')
             if not self.proposal.relevant_applicant_address:
-                raise ValidationError('The applicant needs to have set their postal address before approving this proposal.')
+                raise ValidationError('The applicant needs to have set their postal address before approving this proposal (Applicant: {})'.format(self.proposal.relevant_applicant))
             start_date = details.get('start_date').strftime('%d/%m/%Y') if details.get('start_date') else None
             expiry_date = details.get('expiry_date').strftime('%d/%m/%Y') if details.get('expiry_date') else None
             self.proposal.proposed_issuance_approval = {
@@ -2878,6 +3540,7 @@ class ProposalApiary(RevisionedMixin):
                     'details': details.get('details'),
                     'cc_email': details.get('cc_email'),
             }
+
             sites_received = request.data.get('apiary_sites', [])
             sites_approved = [site for site in sites_received if site['checked']]
             if len(sites_approved) == 0:
@@ -2923,6 +3586,8 @@ class ProposalApiary(RevisionedMixin):
             # Log proposal action
 
             checking_proposal = self.proposal
+            checking_proposal.proposed_issuance_approval = self.proposal.proposed_issuance_approval
+            checking_proposal.save()
 
             if self.proposal.proposal_type == 'amendment':
                 # TODO - fix for apiary approval
@@ -2959,7 +3624,6 @@ class ProposalApiary(RevisionedMixin):
             #            for site in self.apiary_sites.all():
             #                site.approval = approval
 
-            #import ipdb; ipdb.set_trace()
             if self.proposal.application_type.name == ApplicationType.SITE_TRANSFER:
                 # approval must already exist - we reissue with same start and expiry dates
                 # does thhis need to be reissued with self.reissue_approval() ?
@@ -3037,10 +3701,8 @@ class ProposalApiary(RevisionedMixin):
             #elif self.proposal.application_type == ApplicationType.SITE_TRANSFER:
             #    for site in self.apiary_site_transfer.apiary_sites.all():
             #        site.approval = approval
-            #import ipdb;ipdb.set_trace(:
             # for site in self.apiary_sites.all():
             if self.proposal.application_type.name == ApplicationType.SITE_TRANSFER:
-                #import ipdb; ipdb.set_trace()
                 # updated apiary_site.selected with 'checked' flag status
                 apiary_sites = request.data.get('apiary_sites', [])
                 for apiary_site in apiary_sites:
@@ -3059,10 +3721,41 @@ class ProposalApiary(RevisionedMixin):
                 for site_transfer_apiary_site in transfer_sites:
                     relation_original = site_transfer_apiary_site.apiary_site_on_approval
                     from disturbance.components.approvals.models import ApiarySiteOnApproval
+
                     relation_target, asoa_created = ApiarySiteOnApproval.objects.get_or_create(
                         apiary_site=relation_original.apiary_site,
                         approval=target_approval,
+                        #licensed_site = relation_original.licensed_site,
                     )
+                    if asoa_created:
+                        for apiary_site in apiary_sites:
+                            site_id = apiary_site.get('id')
+                            #licensed_site = apiary_site.get('properties')['licensed_site']
+                            if site_id == relation_target.apiary_site_id:
+                                #relation_target.licensed_site = licensed_site
+                                relation_target.licensed_site = apiary_site.get('properties')['licensed_site']
+                                relation_target.batch_no = apiary_site.get('properties')['batch_no']
+
+                                if apiary_site.get('properties')['approval_cpc_date']:
+                                    relation_target.approval_cpc_date = datetime.datetime.strptime(apiary_site.get('properties')['approval_cpc_date'], '%Y-%M-%d')
+                                else:
+                                    relation_target.approval_cpc_date = None
+
+                                if apiary_site.get('properties')['approval_minister_date']:
+                                    relation_target.approval_minister_date = datetime.datetime.strptime(apiary_site.get('properties')['approval_minister_date'], '%Y-%M-%d')
+                                else:
+                                    relation_target.approval_minister_date = None
+
+                                relation_target.map_ref = apiary_site.get('properties')['map_ref']
+                                relation_target.forest_block = apiary_site.get('properties')['forest_block']
+                                relation_target.cog = apiary_site.get('properties')['cog']
+                                relation_target.roadtrack = apiary_site.get('properties')['roadtrack']
+                                relation_target.zone = apiary_site.get('properties')['zone']
+                                relation_target.catchment = apiary_site.get('properties')['catchment']
+                                relation_target.dra_permit = apiary_site.get('properties')['dra_permit']
+
+                                relation_target.save()
+
                     if relation_original.site_status != SITE_STATUS_TRANSFERRED:  # Reissue both licences
                         relation_target.site_status = relation_original.site_status  # Copy the site status from the original to the target
                         # if at least one site is transferred, both licences should be reissued
@@ -3075,6 +3768,7 @@ class ProposalApiary(RevisionedMixin):
                     relation_target.site_category = relation_original.site_category
                     relation_target.save()
                     self.save()
+
             else:
                 # could this be refactored into a separate method?
                 from disturbance.management.commands.send_annual_rental_fee_invoice import get_annual_rental_fee_period
@@ -3101,45 +3795,52 @@ class ProposalApiary(RevisionedMixin):
                 # This period should not overwrap the existings, otherwise you will need a refund
                 annual_rental_fee_period, perioed_created = AnnualRentalFeePeriod.objects.get_or_create(period_start_date=period_start_date, period_end_date=period_end_date)
 
-                line_items, apiary_sites_charged, invoice_period = generate_line_items_for_annual_rental_fee(
-                    approval,
-                    today_now_local,
-                    (annual_rental_fee_period.period_start_date, annual_rental_fee_period.period_end_date),
-                    sites_approved
-                )
-
-                if line_items:
-                    basket = createCustomBasket(line_items, approval.relevant_applicant_email_user, PAYMENT_SYSTEM_ID)
-                    order = CreateInvoiceBasket(
-                        payment_method='other', system=PAYMENT_SYSTEM_PREFIX
-                    ).create_invoice_and_order(basket, 0, None, None, user=approval.relevant_applicant_email_user,
-                                               invoice_text='Payment Invoice')
-                    invoice = Invoice.objects.get(order_number=order.number)
-
-                    line_items = make_serializable(line_items)  # Make line items serializable to store in the JSONField
-                    annual_rental_fee = AnnualRentalFee.objects.create(
-                        approval=approval,
-                        annual_rental_fee_period=annual_rental_fee_period,
-                        invoice_reference=invoice.reference,
-                        invoice_period_start_date=invoice_period[0],
-                        invoice_period_end_date=invoice_period[1],
-                        lines=line_items,
+                run_date = ApiaryAnnualRentalFeeRunDate.objects.get(name=ApiaryAnnualRentalFeeRunDate.NAME_CRON)
+                if run_date.enabled_for_new_site:
+                    line_items, apiary_sites_charged, invoice_period = generate_line_items_for_annual_rental_fee(
+                        approval,
+                        today_now_local,
+                        (annual_rental_fee_period.period_start_date, annual_rental_fee_period.period_end_date),
+                        sites_approved
                     )
 
-                    for site in sites_approved:
-                        # Store the apiary sites which the invoice created above has been issued for
-                        apiary_site = ApiarySite.objects.get(id=site['id'])
-                        annual_rental_fee_apiary_site = AnnualRentalFeeApiarySite(apiary_site=apiary_site, annual_rental_fee=annual_rental_fee)
-                        annual_rental_fee_apiary_site.save()
+                    if line_items:
+                        basket = createCustomBasket(line_items, approval.relevant_applicant_email_user, PAYMENT_SYSTEM_ID)
+                        order = CreateInvoiceBasket(
+                            payment_method='other', system=PAYMENT_SYSTEM_PREFIX
+                        ).create_invoice_and_order(basket, 0, None, None, user=approval.relevant_applicant_email_user,
+                                                   invoice_text='Payment Invoice')
+                        invoice = Invoice.objects.get(order_number=order.number)
 
-                        # Add approved sites to the existing temporary use proposal with status 'draft'
-                        proposal_apiary_temporary_use_qs = ProposalApiaryTemporaryUse.objects.filter(loaning_approval=approval, proposal__processing_status=Proposal.PROCESSING_STATUS_DRAFT)
-                        for proposal_apiary_temporary_use in proposal_apiary_temporary_use_qs:
-                            temp_use_apiary_site, temp_created = TemporaryUseApiarySite.objects.get_or_create(apiary_site=site, proposal_apiary_temporary_use=proposal_apiary_temporary_use)
+                        line_items = make_serializable(line_items)  # Make line items serializable to store in the JSONField
+                        annual_rental_fee = AnnualRentalFee.objects.create(
+                            approval=approval,
+                            annual_rental_fee_period=annual_rental_fee_period,
+                            invoice_reference=invoice.reference,
+                            invoice_period_start_date=invoice_period[0],
+                            invoice_period_end_date=invoice_period[1],
+                            lines=line_items,
+                        )
 
-                    if not preview:
-                        email_data = send_annual_rental_fee_awaiting_payment_confirmation(approval, annual_rental_fee, invoice)
-                    # TODO: Add comms log
+                        for site in sites_approved:
+                            # Store the apiary sites which the invoice created above has been issued for
+                            apiary_site = ApiarySite.objects.get(id=site['id'])
+                            annual_rental_fee_apiary_site = AnnualRentalFeeApiarySite(apiary_site=apiary_site, annual_rental_fee=annual_rental_fee)
+                            annual_rental_fee_apiary_site.save()
+
+                            # Add approved sites to the existing temporary use proposal with status 'draft'
+                            proposal_apiary_temporary_use_qs = ProposalApiaryTemporaryUse.objects.filter(loaning_approval=approval, proposal__processing_status=Proposal.PROCESSING_STATUS_DRAFT)
+                            for proposal_apiary_temporary_use in proposal_apiary_temporary_use_qs:
+                                temp_use_apiary_site, temp_created = TemporaryUseApiarySite.objects.get_or_create(apiary_site=site, proposal_apiary_temporary_use=proposal_apiary_temporary_use)
+
+                        if not preview:
+                            email_data = send_annual_rental_fee_awaiting_payment_confirmation(approval, annual_rental_fee, invoice)
+
+                            from disturbance.components.approvals.serializers import ApprovalLogEntrySerializer
+                            email_data['approval'] = u'{}'.format(approval.id)
+                            serializer = ApprovalLogEntrySerializer(data=email_data)
+                            serializer.is_valid(raise_exception=True)
+                            serializer.save()
 
                 #print approval,approval.id, created
             # Generate compliances
@@ -3210,7 +3911,6 @@ class ProposalApiary(RevisionedMixin):
                 self.proposal.save(version_comment='Final Approval: {}'.format(self.proposal.approval.lodgement_number))
                 self.proposal.approval.documents.all().update(can_delete=False)
             elif self.proposal.application_type.name == ApplicationType.SITE_TRANSFER and not preview:
-                #import ipdb;ipdb.set_trace()
                 # add Site Transfer Compliance/Requirements logic here
                 from disturbance.components.compliances.models import Compliance, ComplianceUserAction
                 ## Originating approval
@@ -3296,7 +3996,6 @@ class ProposalApiary(RevisionedMixin):
 
     def link_apiary_approval_requirements(self, approval):
         # Ensure current requirements are associated with apiary approval / site transfer
-        #import ipdb; ipdb.set_trace()
         link_requirement_set = self.proposal.requirements.all()
         for link_r in link_requirement_set:
             if self.proposal.application_type.name == ApplicationType.SITE_TRANSFER:
@@ -3313,21 +4012,18 @@ class ProposalApiary(RevisionedMixin):
             unlink_r.apiary_approval = None
             unlink_r.save()
 
-    def generate_apiary_compliances(self,approval, request):
-        #import ipdb; ipdb.set_trace()
+    def generate_apiary_compliances(self, approval, request):
         today = timezone.now().date()
         timedelta = datetime.timedelta
         from disturbance.components.compliances.models import Compliance, ComplianceUserAction
 
-        proposal = self.proposal
         #For amendment type of Proposal, check for copied requirements from previous proposal
-        #if proposal.proposal_type == 'amendment':
         if self.proposal.previous_application:
             try:
-                for r in proposal.requirements.filter(apiary_approval=approval).filter(copied_from__isnull=False):
-                    cs=[]
+                for r in self.proposal.requirements.filter(apiary_approval=approval).filter(copied_from__isnull=False):
+                    cs = []
                     # Now discard all of the due compliances
-                    cs=Compliance.objects.filter(
+                    cs = Compliance.objects.filter(
                             requirement=r.copied_from,
                             approval=approval,
                             processing_status='due'
@@ -3335,21 +4031,15 @@ class ProposalApiary(RevisionedMixin):
                     if cs:
                         if r.is_deleted:
                             for c in cs:
-                                c.processing_status='discarded'
+                                c.processing_status = 'discarded'
                                 c.customer_status = 'discarded'
-                                c.reminder_sent=True
-                                c.post_reminder_sent=True
+                                c.reminder_sent = True
+                                c.post_reminder_sent = True
                                 c.save()
-                        #if r.is_deleted == False:
-                        #    for c in cs:
-                        #        #c.proposal= proposal
-                        #        c.approval=approval
-                        #        c.requirement=r
-                        #        c.save()
             except:
                 raise
         #requirement_set= self.requirements.filter(copied_from__isnull=True).exclude(is_deleted=True)
-        requirement_set= proposal.requirements.filter(apiary_approval=approval).exclude(is_deleted=True)
+        requirement_set= self.proposal.requirements.filter(apiary_approval=approval).exclude(is_deleted=True)
 
         #for req in self.requirements.all():
         for req in requirement_set:
@@ -3358,10 +4048,10 @@ class ProposalApiary(RevisionedMixin):
                     current_date = req.due_date
                     #create a first Compliance
                     try:
-                        compliance= Compliance.objects.get(requirement = req, due_date = current_date)
+                        compliance = Compliance.objects.get(requirement=req, due_date=current_date)
                     except Compliance.DoesNotExist:
                         compliance =Compliance.objects.create(
-                                    #proposal=proposal,
+                                    proposal=self.proposal,
                                     due_date=current_date,
                                     processing_status='future',
                                     approval=approval,
@@ -3385,21 +4075,40 @@ class ProposalApiary(RevisionedMixin):
                             # Create the compliance
                             if current_date <= approval.expiry_date:
                                 try:
-                                    compliance= Compliance.objects.get(requirement = req, due_date = current_date)
+                                    compliance = Compliance.objects.get(requirement = req, due_date = current_date)
                                 except Compliance.DoesNotExist:
-                                    compliance =Compliance.objects.create(
-                                                #proposal=self,
+                                    compliance = Compliance.objects.create(
+                                                proposal=self.proposal,
                                                 due_date=current_date,
                                                 processing_status='future',
                                                 approval=approval,
                                                 requirement=req,
                                                 apiary_compliance=True
                                     )
-                                    compliance.log_user_action(ComplianceUserAction.ACTION_CREATE.format(compliance.lodgement_number),request)
+                                    compliance.log_user_action(ComplianceUserAction.ACTION_CREATE.format(compliance.lodgement_number), request)
             except:
                 raise
 
     def _update_apiary_sites(self, approval, sites_approved, request):
+        for site in request.data.get('apiary_sites'):
+            # During final approval - Approver may have updated these values
+            if not site['properties'].get('licensed_site'):
+                a_site = ApiarySite.objects.get(id=site['id'])
+                apiary_site_on_proposal = self.get_relation(a_site)
+
+                apiary_site_on_proposal.licensed_site = site['properties'].get('licensed_site')
+                apiary_site_on_proposal.batch_no = site['properties'].get('batch_no')
+                apiary_site_on_proposal.approval_cpc_date = datetime.datetime.strptime(site['properties'].get('approval_cpc_date'), '%Y-%M-%d') if site['properties'].get('approval_cpc_date') else None
+                apiary_site_on_proposal.approval_minister_date = datetime.datetime.strptime(site['properties'].get('approval_minister_date'), '%Y-%M-%d') if site['properties'].get('approval_minister_date') else None
+                apiary_site_on_proposal.map_ref = site['properties'].get('map_ref')
+                apiary_site_on_proposal.forest_block = site['properties'].get('forest_block')
+                apiary_site_on_proposal.cog = site['properties'].get('cog')
+                apiary_site_on_proposal.roadtrack = site['properties'].get('roadtrack')
+                apiary_site_on_proposal.zone = site['properties'].get('zone')
+                apiary_site_on_proposal.catchment = site['properties'].get('catchment')
+                apiary_site_on_proposal.dra_permit = site['properties'].get('dra_permit')
+                apiary_site_on_proposal.save()
+           
         for my_site in sites_approved:
             a_site = ApiarySite.objects.get(id=my_site['id'])
             apiary_site_on_proposal = self.get_relation(a_site)
@@ -3434,6 +4143,17 @@ class ProposalApiary(RevisionedMixin):
                 apiary_site_on_approval, asoa_created = ApiarySiteOnApproval.objects.get_or_create(apiary_site=a_site, approval=approval)
                 apiary_site_on_approval.wkb_geometry = apiary_site_on_proposal.wkb_geometry_processed
                 apiary_site_on_approval.site_category = apiary_site_on_proposal.site_category_processed
+                apiary_site_on_approval.licensed_site = apiary_site_on_proposal.licensed_site
+                apiary_site_on_approval.batch_no = apiary_site_on_proposal.batch_no
+                apiary_site_on_approval.approval_cpc_date = apiary_site_on_proposal.approval_cpc_date
+                apiary_site_on_approval.approval_minister_date = apiary_site_on_proposal.approval_minister_date
+                apiary_site_on_approval.map_ref = apiary_site_on_proposal.map_ref
+                apiary_site_on_approval.forest_block = apiary_site_on_proposal.forest_block
+                apiary_site_on_approval.cog = apiary_site_on_proposal.cog
+                apiary_site_on_approval.roadtrack = apiary_site_on_proposal.roadtrack
+                apiary_site_on_approval.zone = apiary_site_on_proposal.zone
+                apiary_site_on_approval.catchment = apiary_site_on_proposal.catchment
+                apiary_site_on_approval.dra_permit = apiary_site_on_proposal.dra_permit
                 apiary_site_on_approval.site_status = SITE_STATUS_CURRENT
                 apiary_site_on_approval.save()
             else:
@@ -3444,7 +4164,6 @@ class ProposalApiary(RevisionedMixin):
                         apiary_site_on_approval.delete()
                 except:
                     pass
-
 
 class SiteCategory(models.Model):
     CATEGORY_SOUTH_WEST = 'south_west'
@@ -3483,6 +4202,32 @@ class SiteCategory(models.Model):
             if self.name == item[0]:
                 return item[1]
         return '---'
+
+    @property
+    def fee_application_per_site(self):
+        for item in SiteCategory.CATEGORY_CHOICES:
+            if item[0] == self.name:
+                fee_application = self.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_APPLICATION)
+                return fee_application
+        return '---'
+
+    @property
+    def fee_renewal_per_site(self):
+        for item in SiteCategory.CATEGORY_CHOICES:
+            if item[0] == self.name:
+                fee_renewal = self.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_RENEWAL)
+                return fee_renewal
+        return '---'
+
+    @property
+    def fee_transfer_per_site(self):
+        for item in SiteCategory.CATEGORY_CHOICES:
+            if item[0] == self.name:
+                fee_transfer = self.retrieve_current_fee_per_site_by_type(ApiarySiteFeeType.FEE_TYPE_TRANSFER)
+                return fee_transfer
+        return '---'
+
+
 
     def __str__(self):
         for item in SiteCategory.CATEGORY_CHOICES:
@@ -3541,7 +4286,8 @@ class ApiaryAnnualRentalFee(RevisionedMixin):
     """
     This amount is applied from the date_from
     """
-    amount = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+    amount_south_west = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+    amount_remote = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     date_from = models.DateField(blank=True, null=True)
 
     class Meta:
@@ -3549,14 +4295,13 @@ class ApiaryAnnualRentalFee(RevisionedMixin):
         ordering = ('date_from', )  # oldest record first, latest record last
         verbose_name = 'Annual Site Fee'
 
-
     def __str__(self):
-        return 'Amount: ${}: From: {}'.format(self.amount, self.date_from)
+        return 'Amount(SW): ${}, Amount(Remote): ${}, From: {}'.format(self.amount_south_west, self.amount_remote, self.date_from)
 
-    @staticmethod
-    def get_fee_at_target_date(target_date):
-        fee_applied = ApiaryAnnualRentalFee.objects.filter(date_from__lte=target_date).order_by('-date_from').first()
-        return fee_applied
+    # @staticmethod
+    # def get_fee_at_target_date(target_date):
+    #     fee_applied = ApiaryAnnualRentalFee.objects.filter(date_from__lte=target_date).order_by('-date_from').first()
+    #     return fee_applied
 
     @staticmethod
     def get_fees_by_period(start_date, end_date):
@@ -3569,7 +4314,8 @@ class ApiaryAnnualRentalFee(RevisionedMixin):
 
         temp_end_date = end_date if not fees_rest else fees_rest[0].date_from - datetime.timedelta(days=1)
         fees = [{
-            'amount_per_year': fee_first.amount,
+            'amount_south_west_per_year': fee_first.amount_south_west,
+            'amount_remote_per_year': fee_first.amount_remote,
             'date_start': start_date,
             'date_end': temp_end_date,
             'num_of_days': temp_end_date - (start_date - datetime.timedelta(days=1))
@@ -3577,7 +4323,8 @@ class ApiaryAnnualRentalFee(RevisionedMixin):
         for idx, annual_rental_fee in enumerate(fees_rest):
             temp_end_date = end_date if idx == len(fees_rest) - 1 else fees_rest[idx + 1].date_from - datetime.timedelta( days=1)
             fee = {
-                'amount_per_year': annual_rental_fee.amount,
+                'amount_south_west_per_year': annual_rental_fee.amount_south_west,
+                'amount_remote_per_year': annual_rental_fee.amount_remote,
                 'date_start': annual_rental_fee.date_from,
                 'date_end': temp_end_date,
                 'num_of_days': temp_end_date - (annual_rental_fee.date_from - datetime.timedelta(days=1))
@@ -3596,14 +4343,18 @@ class ApiaryAnnualRentalFeePeriodStartDate(RevisionedMixin):
         (NAME_PERIOD_START, 'Start date of the annual site fee'),
     )
     name = models.CharField(unique=True, max_length=50, choices=NAME_CHOICES, )
-    period_start_date = models.DateField(blank=True, null=True)
+    period_start_date = models.DateField(blank=True, null=True, help_text='Although year, month and date are entered, the system uses only the month and the date internally')
 
     def __str__(self):
-        return '{}: {} {}'.format(self.name, self.period_start_date.strftime('%B'), self.period_start_date.day)
+        try:
+            return '{}: {} {}'.format(self.name, self.period_start_date.strftime('%B'), self.period_start_date.day)
+        except:
+            return '{}'.format(self.name)
 
     class Meta:
         app_label = 'disturbance'
         ordering = ('period_start_date', )  # oldest record first, latest record last
+        verbose_name = 'Annual Site Fee Period Start Date'
 
 
 class ApiaryAnnualRentalFeeRunDate(RevisionedMixin):
@@ -3615,17 +4366,24 @@ class ApiaryAnnualRentalFeeRunDate(RevisionedMixin):
         (NAME_CRON, 'Date to Issue'),
     )
     name = models.CharField(unique=True, max_length=50, choices=NAME_CHOICES, )
-    date_run_cron = models.DateField(blank=True, null=True)
+    date_run_cron = models.DateField(blank=True, null=True, help_text='Although year, month and date are entered, the system uses only the month and the date internally')
+    enabled = models.BooleanField(default=False, verbose_name='Apply by cronjob', help_text='Sets whether the annual fee is applied to the sites by the cron job')
+    enabled_for_new_site = models.BooleanField(default=False, verbose_name='Apply when approved', help_text='Sets whether the annual fee is applied when an application is approved')
 
     class Meta:
         app_label = 'disturbance'
         verbose_name = 'Annual Site Fee Issue Date'
 
     def __str__(self):
-        return '{}: {} {}'.format(self.name, self.date_run_cron.strftime('%B'), self.date_run_cron.day)
+        try:
+            return '{}: {} {}'.format(self.name, self.date_run_cron.strftime('%B'), self.date_run_cron.day)
+        except:
+            return '{}'.format(self.name)
 
 
 class ApiarySite(models.Model):
+    id = models.IntegerField(primary_key=True, editable=False)
+
     site_guid = models.CharField(max_length=50, blank=True)
     latest_proposal_link = models.ForeignKey('disturbance.ApiarySiteOnProposal', blank=True, null=True, on_delete=models.SET_NULL)
     latest_approval_link = models.ForeignKey('disturbance.ApiarySiteOnApproval', blank=True, null=True, on_delete=models.SET_NULL)
@@ -3635,8 +4393,32 @@ class ApiarySite(models.Model):
     approval_link_for_vacant = models.ForeignKey('disturbance.ApiarySiteOnApproval', blank=True, null=True, related_name='vacant_apiary_site', on_delete=models.SET_NULL)
     is_vacant = models.BooleanField(default=False)
 
+    def get_relevant_applicant_name(self):
+        relevant_name = ''
+
+        try:
+            if not self.is_vacant:
+                if self.latest_approval_link and self.latest_approval_link.site_status in [SITE_STATUS_CURRENT, SITE_STATUS_SUSPENDED, SITE_STATUS_NOT_TO_BE_REISSUED,]:
+                    relevant_name = self.latest_approval_link.approval.relevant_applicant_name
+                elif self.latest_proposal_link and self.latest_proposal_link.site_status in [SITE_STATUS_PENDING, SITE_STATUS_DENIED,]:
+                    relevant_name = self.latest_proposal_link.proposal_apiary.proposal.relevant_applicant_name
+        except Exception as e:
+            logger.error('Exception raised when retrieving the relevant applicant name for the apiary site: {}. Error: {}'.format(self, e))
+
+        return relevant_name
+
     def __str__(self):
         return '{}'.format(self.id,)
+
+    def save(self, **kwargs):
+        #import ipdb; ipdb.set_trace()
+        if not self.id:
+            max = ApiarySite.objects.aggregate(id_max=Max('id'))['id_max']
+            self.id = int(max) + 1 if max is not None else 1
+
+        #kwargs.pop('force_insert')
+        #kwargs.update({'force_update': True})
+        super().save(kwargs)
 
     def delete(self, using=None, keep_parents=False):
         super(ApiarySite, self).delete(using, keep_parents)
@@ -3732,6 +4514,10 @@ class OnSiteInformation(models.Model):
     apiary_site_on_approval = models.ForeignKey('ApiarySiteOnApproval', blank=True, null=True)
     period_from = models.DateField(null=True, blank=True)
     period_to = models.DateField(null=True, blank=True)
+    hives_loc = models.TextField(blank=True)
+    hives_num = models.SmallIntegerField(blank=True, null=True)
+    people_names = models.TextField(blank=True)
+    flora = models.TextField(blank=True)
     comments = models.TextField(blank=True)
     datetime_deleted = models.DateTimeField(null=True, blank=True)
 
@@ -3888,6 +4674,20 @@ class PublicLiabilityInsuranceDocument(Document):
 
     class Meta:
         app_label = 'disturbance'
+
+
+class TemporaryUsePublicLiabilityInsuranceDocument(Document):
+    DOC_TYPE_NAME = 'public_liability_document'
+
+    proposal = models.ForeignKey(ProposalApiaryTemporaryUse, related_name='public_liability_insurance_documents', blank=True, null=True)
+    _file = models.FileField(max_length=255)
+    input_name = models.CharField(max_length=255, blank=True, null=True)
+    can_delete = models.BooleanField(default=True)
+    visible = models.BooleanField(default=True)
+
+    class Meta:
+        app_label = 'disturbance'
+
 
 
 class SupportingApplicationDocument(Document):
@@ -4129,7 +4929,6 @@ class ApiaryReferral(RevisionedMixin):
         return False
 
     def recall(self,request):
-        #import ipdb; ipdb.set_trace();
         with transaction.atomic():
             if not self.referral.proposal.can_assess(request.user):
                 raise exceptions.ProposalNotAuthorized()
@@ -4249,7 +5048,6 @@ class ApiaryReferral(RevisionedMixin):
                         )
                 # TODO log organisation action
                 #self.proposal.applicant.log_user_action(ProposalUserAction.CONCLUDE_REFERRAL.format(self.id,self.proposal.id,'{}({})'.format(self.referral.get_full_name(),self.referral.email)),request)
-                #import ipdb;ipdb.set_trace();
                 applicant_field=getattr(
                         self.referral.proposal,
                         self.referral.proposal.applicant_field
@@ -4339,6 +5137,451 @@ class ApiaryReferral(RevisionedMixin):
 # Apiary Models End
 # --------------------------------------------------------------------------------------
 
+# --------------------------------------------------------------------------------------
+# Generate JSON schema models start
+# --------------------------------------------------------------------------------------
+@python_2_unicode_compatible
+class QuestionOption(models.Model):
+    label = models.CharField(max_length=100, unique=True)
+    value = models.CharField(max_length=100)
+
+    class Meta:
+        app_label = 'disturbance'
+        verbose_name = 'Schema Question Option'
+
+    def __str__(self):
+        return self.label 
+
+from ckeditor.fields import RichTextField
+@python_2_unicode_compatible
+class MasterlistQuestion(models.Model):
+    ANSWER_TYPE_CHECKBOX = 'checkbox'
+    ANSWER_TYPE_RADIO = 'radiobuttons'
+
+    ANSWER_TYPE_CHOICES=(('text', 'Text'),
+                         (ANSWER_TYPE_RADIO, 'Radio button'),
+                         (ANSWER_TYPE_CHECKBOX, 'Checkbox'),
+                         
+                         #('text_info', 'Text Info'),
+                         #('iframe', 'IFrame'),
+                         ('number','Number'),
+                         ('email','Email'),
+                         ('select', 'Select'),
+                         ('multi-select','Multi-select'),
+                         ('text_area','Text area'),
+                         ('label', 'Label'),
+                         #('section', 'Section'),
+                         ('declaration', 'Declaration'),
+                         ('file', 'File'),
+                         ('date', 'Date'),
+                        )
+    ANSWER_TYPE_OPTIONS = [
+        ANSWER_TYPE_CHECKBOX,
+        # ANSWER_TYPE_SELECT,
+        # ANSWER_TYPE_MULTI,
+        ANSWER_TYPE_RADIO,
+    ]
+    name = models.CharField(max_length=100)
+    question = models.TextField()
+    #answer_type= models.CharField(max_length=100)
+    option = models.ManyToManyField(QuestionOption, blank=True)
+    answer_type = models.CharField('Answer Type', max_length=40, choices=ANSWER_TYPE_CHOICES,
+                                        default=ANSWER_TYPE_CHOICES[0][0])
+    # help_text_url=models.CharField(max_length=400, blank=True, null=True)
+    # help_text_assessor_url=models.CharField(max_length=400, blank=True, null=True)
+    help_text_url=models.BooleanField(default=False)
+    help_text_assessor_url=models.BooleanField(default=False)
+    help_text=RichTextField(null=True, blank=True)
+    help_text_assessor=RichTextField(null=True, blank=True)
+    property_cache = JSONField(null=True, blank=True, default={})
+
+    class Meta:
+        app_label = 'disturbance'
+        verbose_name = 'Schema Masterlist Question'
+
+    def __str__(self):
+        return self.question
+
+    def get_options(self):
+        '''
+        Property field for Question Options.
+        '''
+        option_list = []
+        options = self.get_property_cache_options()
+        for o in options:
+            qo = QuestionOption(label=o['label'], value=o['value'])
+            option_list.append(qo)
+        return option_list
+
+    def get_property_cache_options(self):
+        '''
+        Getter for options on the property cache.
+
+        NOTE: only used for presentation purposes.
+
+        :return options_list of QuestionOption values.
+        '''
+        options = []
+        try:
+
+            options = self.property_cache['options']
+
+        except KeyError:
+            pass
+
+        return options
+
+    def set_property_cache_options(self, options):
+        '''
+        Setter for options on the property cache.
+
+        NOTE: only used for presentation purposes.
+
+        :param  options is QuerySet of QuestionOption or List of option value
+                string.
+        '''
+        class MasterlistOptionEncoder(json.JSONEncoder):
+            def default(self, obj):
+                if isinstance(obj, list):
+                    options = []
+                    for o in obj:
+                        option = {
+                            'label': o['label'],
+                            'value': o['value'],
+                        }
+                        options.append(option)
+                    return options
+
+            def encode_list(self, obj, iter=None):
+                if isinstance(obj, (list)):
+                    return self.default(obj)
+                else:
+                    return super(
+                        MasterlistOptionEncoder, self).encode_list(obj, iter)
+
+        if not isinstance(options, list) and self.id:
+            logger.warn('{0} - MasterlistQuestion: {1}'.format(
+                'set_property_cache_options() NOT LIST', self.id))
+            return
+
+        if self.id:
+            data = MasterlistOptionEncoder().encode_list(options)
+            self.property_cache['options'] = data
+
+    def get_headers(self):
+        '''
+        Property field for Question Table Headers.
+        '''
+        header_list = []
+        headers = self.get_property_cache_headers()
+        # for h in headers:
+        #     qh = QuestionOption(label=h, value='')
+        #     header_list.append(qo)
+        return headers
+
+    def get_property_cache_headers(self):
+        '''
+        Getter for headers on the property cache.
+
+        NOTE: only used for presentation purposes.
+
+        :return headers_list of QuestionOption values.
+        '''
+        headers = []
+        try:
+
+            headers = self.property_cache['headers']
+
+        except KeyError:
+            pass
+
+        return headers
+
+    def set_property_cache_headers(self, headers):
+        '''
+        Setter for options on the property cache.
+
+        NOTE: only used for presentation purposes.
+
+        :param  options is QuerySet of MasterlistQuestion or List of ids.
+        '''
+        class TableHeaderEncoder(json.JSONEncoder):
+            def default(self, obj):
+                if isinstance(obj, list):
+                    headers = []
+                    for h in obj:
+                        header = {
+                            'label': h['label'],
+                            'value': h['value'],
+                        }
+                        headers.append(header)
+                    return headers
+
+            def encode_list(self, obj, iter=None):
+                if isinstance(obj, (list)):
+                    return self.default(obj)
+                else:
+                    return super(
+                        TableHeaderEncoder, self).encode_list(obj, iter)
+
+        if not isinstance(headers, list) and self.id:
+            logger.warn('{0} - MasterlistQuestion: {1}'.format(
+                'set_property_cache_headers() NOT LIST', self.id))
+            return
+
+        if self.id:
+            data = TableHeaderEncoder().encode_list(headers)
+            self.property_cache['headers'] = data
+
+    def get_expanders(self):
+        '''
+        Property field for Question Table Expanders.
+        '''
+        expander_list = []
+        expanders = self.get_property_cache_expanders()
+        # for h in headers:
+        #     qh = QuestionOption(label=h, value='')
+        #     header_list.append(qo)
+        return expanders
+
+    def get_property_cache_expanders(self):
+        '''
+        Getter for options on the property cache.
+
+        NOTE: only used for presentation purposes.
+
+        :return options_list of QuestionOption values.
+        '''
+        expanders = []
+        try:
+
+            expanders = self.property_cache['expanders']
+
+        except KeyError:
+            pass
+
+        return expanders
+
+    def set_property_cache_expanders(self, expanders):
+        '''
+        Setter for options on the property cache.
+
+        NOTE: only used for presentation purposes.
+
+        :param  options is QuerySet of QuestionOption or List of option value
+                string.
+        '''
+        class TableExpanderEncoder(json.JSONEncoder):
+            def default(self, obj):
+                if isinstance(obj, list):
+                    expanders = []
+                    for e in obj:
+                        expander = {
+                            'label': e['label'],
+                            'value': e['value'],
+                        }
+                        expanders.append(expander)
+                    return expanders
+
+            def encode_list(self, obj, iter=None):
+                if isinstance(obj, (list)):
+                    return self.default(obj)
+                else:
+                    return super(
+                        TableExpanderEncoder, self).encode_list(obj, iter)
+
+        if not isinstance(expanders, list) and self.id:
+            logger.warn('{0} - MasterlistQuestion: {1}'.format(
+                'set_property_cache_expanders() NOT LIST', self.id))
+            return
+
+        if self.id:
+            data = TableExpanderEncoder().encode_list(expanders)
+            self.property_cache['expanders'] = data
+
+
+@python_2_unicode_compatible
+class ProposalTypeSection(models.Model):
+    section_name = models.CharField(max_length=100)
+    section_label = models.CharField(max_length=100)
+    index = models.IntegerField(blank=True, default=0)
+    proposal_type=models.ForeignKey(ProposalType, related_name='sections', on_delete=models.PROTECT)
+    
+
+    class Meta:
+        app_label = 'disturbance'
+        verbose_name = 'Schema Proposal Type Section'
+
+    def __str__(self):
+        return '{} - {}'.format(self.section_label, self.proposal_type)
+
+def limit_sectionquestion_choices_another():
+   return {'id__in':MasterlistQuestion.objects.filter(option__isnull=False).distinct('option__label').all().values_list('id', flat=True)}
+
+from django.db import connection
+def limit_sectionquestion_choices_sql():
+    sql='''
+            select m.id from disturbance_masterlistquestion as m 
+            INNER JOIN disturbance_masterlistquestion_option as p ON m.id = p.masterlistquestion_id 
+            INNER JOIN disturbance_questionoption as o ON o.id = p.questionoption_id
+            WHERE o.label IS NOT NULL
+    '''
+
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(sql)
+            row = set([item[0] for item in cursor.fetchall()])
+                                
+        return dict(id__in=row)
+    except:
+        return {}
+
+@python_2_unicode_compatible
+class SectionQuestion(models.Model):
+    TAG_CHOICES=(('isCopiedToPermit', 'isCopiedToPermit'),
+                 ('isRequired', 'isRequired'),
+                 ('canBeEditedByAssessor', 'canBeEditedByAssessor'),
+                 ('isRepeatable', 'isRepeatable'),
+                )
+    section=models.ForeignKey(ProposalTypeSection, related_name='section_questions', on_delete=models.PROTECT)
+    question=models.ForeignKey(MasterlistQuestion, related_name='question_sections',on_delete=models.PROTECT)
+    parent_question = ChainedForeignKey(
+        'disturbance.MasterlistQuestion',
+        chained_field='section',
+        chained_model_field='question_sections__section',
+        show_all=False,
+        null=True,
+        blank=True,
+        related_name='children_question',
+        #limit_choices_to=Q(option__isnull=False)
+        limit_choices_to=limit_sectionquestion_choices_sql(),
+        on_delete=models.SET_NULL
+    )
+    #parent_question=models.ForeignKey('disturbance.MasterlistQuestion', related_name='children_question', null=True, blank=True, on_delete=models.SET_NULL)
+    
+    #parent_answer=models.ForeignKey(QuestionOption, null=True, blank=True)
+    parent_answer = ChainedForeignKey(
+        'disturbance.QuestionOption',
+        chained_field='parent_question',
+        chained_model_field='masterlistquestion',
+        show_all=False,
+        null=True,
+        blank=True,
+        related_name='options',
+    )
+    # parent_question_another = ChainedForeignKey(
+    #     'disturbance.MasterlistQuestion',
+    #     chained_field='section',
+    #     chained_model_field='question_sections__section',
+    #     show_all=False,
+    #     null=True,
+    #     blank=True,
+    #     related_name='parentquestionanother',
+    #     #limit_choices_to=Q(option__isnull=False)
+    #     limit_choices_to=limit_sectionquestion_choices_sql()
+    # )
+    # parent_answer = ChainedManyToManyField(
+    #     'disturbance.QuestionOption',
+    #     chained_field='parent_question',
+    #     chained_model_field='parent_question',
+    # )
+    tag= MultiSelectField(choices=TAG_CHOICES, max_length=400,max_choices=10, null=True, blank=True)
+    order = models.PositiveIntegerField(default=1)
+    property_cache = JSONField(null=True, blank=True, default={})
+
+
+
+    class Meta:
+        app_label = 'disturbance'
+        verbose_name='Schema Section Question'
+
+    def __str__(self):
+        return str(self.id)  
+
+    def clean(self):
+
+        if self.question and self.parent_question:
+            if self.question==self.parent_question:
+                raise ValidationError('Question cannot be linked to itself.')
+
+    @property
+    def question_options(self):
+        #return self.question.option.all()
+        return self.question.get_options()
+
+    def get_options(self):
+        '''
+        '''
+        options = self.get_property_cache_options()
+
+        return options
+
+    def get_property_cache_options(self):
+        '''
+        Getter for options on the property cache.
+
+        NOTE: only used for presentation purposes.
+
+        :return options_list of QuestionOption values.
+        '''
+        options = []
+        try:
+
+            options = self.property_cache['options']
+
+        except KeyError:
+            pass
+
+        return options
+
+    def set_property_cache_options(self, options):
+        '''
+        Setter for options on the property cache.
+
+        NOTE: only used for presentation purposes.
+
+        :param  options is QuerySet of QuestionOption or List of option value
+                string.
+        '''
+        class QuestionOptionEncoder(json.JSONEncoder):
+            def default(self, obj):
+                if isinstance(obj, list):
+                    options = []
+                    for o in obj:
+                        # o_conditions = [
+                        #     {
+                        #         'label': c['label'], 'value': c['value']
+                        #     } for c in o['conditions']
+                        # ]
+                        option = {
+                            'label': o['label'],
+                            'value': o['value'],
+                            #'conditions': o_conditions,
+                        }
+                        options.append(option)
+                    return options
+
+            def encode_list(self, obj, iter=None):
+                if isinstance(obj, (list)):
+                    return self.default(obj)
+                else:
+                    return super(
+                        QuestionOptionEncoder, self).encode_list(obj, iter)
+
+        if not isinstance(options, list) and self.id:
+            logger.warn('{0} - SectionQuestion: {1}'.format(
+                'set_property_cache_options() NOT LIST', self.id))
+            return
+
+        if self.id:
+            data = QuestionOptionEncoder().encode_list(options)
+            self.property_cache['options'] = data
+    
+
+
+# --------------------------------------------------------------------------------------
+# Generate JSON schema models start
+# --------------------------------------------------------------------------------------
 
 import reversion
 #reversion.register(Proposal, follow=['requirements', 'documents', 'compliances', 'referrals', 'approvals', 'proposal_apiary'])
@@ -4383,4 +5626,12 @@ reversion.register(ApiarySiteFee)
 reversion.register(ApiarySiteFeeType)
 reversion.register(SiteCategory)
 reversion.register(ApiarySiteOnProposal)
+
+#JSON schema models
+reversion.register(MasterlistQuestion)
+reversion.register(QuestionOption)
+reversion.register(ProposalTypeSection)
+reversion.register(SectionQuestion)
+
+
 

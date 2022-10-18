@@ -803,9 +803,10 @@ class OrganisationRequestsViewSet(viewsets.ModelViewSet):
         try:
             with transaction.atomic():
                 instance = self.get_object()
-                request.data['request'] = u'{}'.format(instance.id)
-                request.data['staff'] = u'{}'.format(request.user.id)
-                serializer = OrganisationRequestCommsSerializer(data=request.data)
+                request_data = request.data.copy()
+                request_data['request'] = u'{}'.format(instance.id)
+                request_data['staff'] = u'{}'.format(request.user.id)
+                serializer = OrganisationRequestCommsSerializer(data=request_data)
                 serializer.is_valid(raise_exception=True)
                 comms = serializer.save()
                 # Save the files
@@ -917,6 +918,26 @@ class OrganisationContactViewSet(viewsets.ModelViewSet):
             user_orgs = [org.id for org in user.disturbance_organisations.all()]
             return OrganisationContact.objects.filter( Q(organisation_id__in = user_orgs) )
         return OrganisationContact.objects.none()
+
+    def destroy(self, request, *args, **kwargs):
+        """ delete an Organisation contact """
+        num_admins = self.get_object().organisation.contacts.filter(is_admin=True).count()
+        org_contact =  self.get_object().organisation.contacts.get(id=kwargs['pk'])
+        if num_admins == 1 and org_contact.is_admin:
+            raise serializers.ValidationError('Cannot delete the last Organisation Admin')
+        return super(OrganisationContactViewSet, self).destroy(request, *args, **kwargs)
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        if 'contact_form' in request.data.get('user_status'):
+            serializer.save(user_status='contact_form')
+        else:
+            serializer.save()
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
 
 class MyOrganisationsViewSet(viewsets.ModelViewSet):
     queryset = Organisation.objects.all()

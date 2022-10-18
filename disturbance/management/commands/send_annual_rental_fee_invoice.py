@@ -4,7 +4,6 @@ from decimal import Decimal
 import pytz
 from django.core.exceptions import ValidationError
 from django.core.management.base import BaseCommand
-import logging
 
 from django.db import transaction
 from django.db.models import Q, Min
@@ -15,13 +14,16 @@ from ledger.settings_base import TIME_ZONE
 
 from disturbance.components.approvals.email import send_annual_rental_fee_awaiting_payment_confirmation
 from disturbance.components.approvals.models import Approval, ApiarySiteOnApproval
+from disturbance.components.approvals.serializers import ApprovalLogEntrySerializer
 from disturbance.components.das_payments.models import AnnualRentalFee, AnnualRentalFeePeriod, AnnualRentalFeeApiarySite
 from disturbance.components.das_payments.utils import generate_line_items_for_annual_rental_fee
 from disturbance.components.proposals.models import ApiaryAnnualRentalFeeRunDate, ApiaryAnnualRentalFeePeriodStartDate, \
     ApiarySite
 from disturbance.settings import SITE_STATUS_CURRENT, SITE_STATUS_SUSPENDED, PAYMENT_SYSTEM_ID, PAYMENT_SYSTEM_PREFIX
 
+import logging
 logger = logging.getLogger(__name__)
+
 
 def get_annual_rental_fee_period(target_date):
     """
@@ -36,7 +38,7 @@ def get_annual_rental_fee_period(target_date):
 
     # Calculate the run_date in the year where the target_date is in
     prev_run_date = datetime.date(year=target_date_year, month=run_date_month, day=run_date_day)
-    if prev_run_date > target_date:
+    if target_date < prev_run_date:
         # prev_run_date calculated above is in the future.  Calculate one before that
         prev_run_date = datetime.date(year=prev_run_date.year-1, month=prev_run_date.month, day=prev_run_date.day)
 
@@ -62,7 +64,7 @@ def get_approvals(annual_rental_fee_period):
     q_objects = Q()
     q_objects &= Q(apiary_approval=True)
     q_objects &= Q(expiry_date__gte=annual_rental_fee_period.period_start_date)
-    q_objects &= Q(status=Approval.STATUS_CURRENT)
+    q_objects &= Q(status__in=[Approval.STATUS_CURRENT, Approval.STATUS_SUSPENDED])
 
     approval_qs = Approval.objects.filter(q_objects).exclude(
         # We don't want to send an invoice for the same period
@@ -107,6 +109,11 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         try:
+            run_date = ApiaryAnnualRentalFeeRunDate.objects.get(name=ApiaryAnnualRentalFeeRunDate.NAME_CRON)
+            if not run_date.enabled:
+                # Cron is disabled.  Do nothing
+                return
+
             # Determine the start and end date of the annual site fee, for which the invoices should be issued
             today_now_local = datetime.datetime.now(pytz.timezone(TIME_ZONE))
             today_date_local = today_now_local.date()
@@ -120,6 +127,8 @@ class Command(BaseCommand):
             approval_qs = get_approvals(annual_rental_fee_period)
 
             # Issue the annual site fee invoices per approval per annual_rental_fee_period
+            errors = []
+            updates = []
             for approval in approval_qs:
                 try:
                     with transaction.atomic():
@@ -141,7 +150,7 @@ class Command(BaseCommand):
                             if line_items:
                                 with transaction.atomic():
                                     try:
-                                        logger.info('Creating filming fee invoice')
+                                        logger.info('Creating annual site fee invoice for the approval {}'.format(approval.lodgement_number))
 
                                         basket = createCustomBasket(line_items, approval.relevant_applicant_email_user, PAYMENT_SYSTEM_ID)
                                         order = CreateInvoiceBasket(
@@ -161,27 +170,40 @@ class Command(BaseCommand):
                                             lines=line_items,
                                         )
 
+                                        updates.append(annual_rental_fee.invoice_reference)
                                     except Exception as e:
-                                        logger.error('Failed to create annual site fee confirmation')
-                                        logger.error('{}'.format(e))
+                                        err_msg = 'Failed to create annual site fee confirmation'
+                                        logger.error('{}\n{}'.format(err_msg, str(e)))
+                                        errors.append(err_msg)
 
                                 # Store the apiary sites which the invoice created above has been issued for
                                 for apiary_site in apiary_sites_to_be_charged:
                                     annual_rental_fee_apiary_site = AnnualRentalFeeApiarySite(apiary_site=apiary_site, annual_rental_fee=annual_rental_fee)
                                     annual_rental_fee_apiary_site.save()
 
-                                # TODO: Attach the invoice and send emails
-                                #   update invoice_sent attribute of the annual_rental_fee obj?
+                                # Update invoice_sent attribute of the annual_rental_fee obj?
                                 email_data = send_annual_rental_fee_awaiting_payment_confirmation(approval, annual_rental_fee, invoice)
 
-                                # TODO: Add comms log
+                                email_data['approval'] = u'{}'.format(approval.id)
+                                serializer = ApprovalLogEntrySerializer(data=email_data)
+                                serializer.is_valid(raise_exception=True)
+                                serializer.save()
 
                 except Exception as e:
-                    logger.error('Error command {}'.format(__name__))
-                    logger.error('Failed to send an annual site fee invoice for the approval {}'.format(approval.lodgement_number))
+                    err_msg = 'Failed to send an annual site fee invoice for the approval {}'.format(approval.lodgement_number)
+                    logger.error('{}\n{}'.format(err_msg, str(e)))
+                    errors.append(err_msg)
 
         except Exception as e:
-            logger.error('Error command {}'.format(__name__))
+            err_msg = 'Error command {}'.format(__name__)
+            logger.error('{}\n{}'.format(err_msg, str(e)))
+            errors.append(err_msg)
+
+        cmd_name = __name__.split('.')[-1].replace('_', ' ').upper()
+        err_str = '<strong style="color: red;">Errors: {}</strong>'.format(len(errors)) if len(errors)>0 else '<strong style="color: green;">Errors: 0</strong>'
+        msg = '<p>{} completed. {}. IDs updated: {}.</p>'.format(cmd_name, err_str, updates)
+        logger.info(msg)
+        print(msg) # will redirect to cron_tasks.log file, by the parent script
 
 
 def make_serializable(line_items):

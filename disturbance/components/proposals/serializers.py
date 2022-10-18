@@ -1,3 +1,7 @@
+import logging
+
+from ledger.payments.models import Invoice
+import collections
 from disturbance.components.proposals.models import (
                                     ProposalType,
                                     Proposal,
@@ -8,6 +12,10 @@ from disturbance.components.proposals.models import (
                                     ProposalStandardRequirement,
                                     AmendmentRequest,
                                     AmendmentRequestDocument,
+                                    QuestionOption,
+                                    SectionQuestion,
+                                    ProposalTypeSection,
+                                    MasterlistQuestion,
                                 )
 from disturbance.components.organisations.models import (
                                 Organisation
@@ -21,6 +29,9 @@ from disturbance.components.proposals.serializers_base import BaseProposalSerial
     ProposalDeclinedDetailsSerializer, EmailUserSerializer
 
 
+logger = logging.getLogger(__name__)
+
+
 class ProposalTypeSerializer(serializers.ModelSerializer):
     activities = serializers.SerializerMethodField()
     class Meta:
@@ -30,7 +41,6 @@ class ProposalTypeSerializer(serializers.ModelSerializer):
             'schema',
             'activities'
         )
-
 
     def get_activities(self,obj):
         return obj.activities.names()
@@ -98,6 +108,8 @@ class ListProposalSerializer(BaseProposalSerializer):
     apiary_group_application_type = serializers.SerializerMethodField(read_only=True)
     template_group = serializers.SerializerMethodField(read_only=True)
 
+    fee_invoice_references = serializers.SerializerMethodField()
+
     class Meta:
         model = Proposal
         fields = (
@@ -125,12 +137,14 @@ class ListProposalSerializer(BaseProposalSerializer):
                 'can_user_view',
                 'reference',
                 'lodgement_number',
+                'migrated',
                 'lodgement_sequence',
                 'can_officer_process',
                 'assessor_process',
                 'allowed_assessors',
                 'proposal_type',
-                'fee_invoice_reference',
+                # 'fee_invoice_reference',
+                'fee_invoice_references',
                 'fee_paid',
                 'relevant_applicant_name',
                 'apiary_group_application_type',
@@ -153,16 +167,35 @@ class ListProposalSerializer(BaseProposalSerializer):
                 'can_user_view',
                 'reference',
                 'lodgement_number',
+                'migrated',
                 'can_officer_process',
                 'assessor_process',
                 'allowed_assessors',
-                'fee_invoice_reference',
+                # 'fee_invoice_reference',
+                'fee_invoice_references',
                 'fee_paid',
                 'application_type',
                 'relevant_applicant_name',
                 'apiary_group_application_type',
                 'template_group',
                 )
+
+    def get_fee_invoice_references(self, obj):
+        invoice_references = []
+        if obj.fee_invoice_references:
+            for inv_ref in obj.fee_invoice_references:
+                try:
+                    inv = Invoice.objects.get(reference=inv_ref)
+                    from disturbance.helpers import is_internal
+                    if is_internal(self.context['request']):
+                        invoice_references.append(inv_ref)
+                    else:
+                        # We don't want to show 0 doller invoices to external
+                        if inv.amount > 0:
+                            invoice_references.append(inv_ref)
+                except:
+                    pass
+        return invoice_references
 
     def get_relevant_applicant_name(self,obj):
         return obj.relevant_applicant_name
@@ -241,7 +274,7 @@ class ProposalSerializer(BaseProposalSerializer):
     def get_proposal_apiary(self, obj):
         if hasattr(obj, 'proposal_apiary'):
             pasl = obj.proposal_apiary
-            return ProposalApiarySerializer(pasl).data
+            return ProposalApiarySerializer(pasl, context=self.context).data
         else:
             return ''
 
@@ -308,6 +341,7 @@ class SaveProposalRegionSerializer(BaseProposalSerializer):
                 )
         #read_only_fields=('documents','requirements')
 
+
 class ApplicantSerializer(serializers.ModelSerializer):
     from disturbance.components.organisations.serializers import OrganisationAddressSerializer
     address = OrganisationAddressSerializer()
@@ -345,7 +379,8 @@ class InternalProposalSerializer(BaseProposalSerializer):
     #tenure = serializers.CharField(source='tenure.name', read_only=True)
     apiary_temporary_use = ProposalApiaryTemporaryUseSerializer(many=False, read_only=True)
     requirements_completed=serializers.SerializerMethodField()
-
+    reversion_history = serializers.SerializerMethodField()
+    
     class Meta:
         model = Proposal
         fields = (
@@ -401,12 +436,41 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'sub_activity_level1',
                 'sub_activity_level2',
                 'management_area',
-                'fee_invoice_reference',
+                # 'fee_invoice_reference',
+                'fee_invoice_references',
                 'fee_paid',
                 'apiary_temporary_use',
                 'requirements_completed',
+                'reversion_history',
                 )
         read_only_fields=('documents','requirements')
+
+
+    def get_reversion_history(self, obj):
+        """ This uses Reversion to get all the revisions made to this Proposal.
+        
+        The revisions are returned as a dict with the Proposal id and version as key.
+        """
+        from reversion.models import Version
+
+        # Versions are in reverse order by default
+        versions = Version.objects.get_for_object(obj).select_related('revision')\
+            .filter(revision__comment__contains='processing_status').get_unique()
+        # this seems like inefficient duplication however
+        # django reversion wont allow .count() after .get_unique()
+        versions_count = len(list(Version.objects.get_for_object(obj).select_related('revision')\
+            .filter(revision__comment__contains='processing_status').get_unique()))
+        # Build the dictionary of reversions
+        version_dictionary = {}
+        for index, version in enumerate(versions):
+            version_key = f'{obj.lodgement_number}-{versions_count-index}'
+            version_dictionary[version_key] = {
+                'date': version.revision.date_created,
+                'processing_status': version.field_dict['processing_status'],
+            }
+
+        return version_dictionary
+
 
     def get_approval_level_document(self,obj):
         if obj.approval_level_document is not None:
@@ -423,7 +487,8 @@ class InternalProposalSerializer(BaseProposalSerializer):
             'has_assessor_mode': obj.has_assessor_mode(user),
             'assessor_can_assess': obj.can_assess(user),
             'assessor_level': 'assessor',
-            'assessor_box_view': obj.assessor_comments_view(user)
+            'assessor_box_view': obj.assessor_comments_view(user),
+            'status_without_assessor': obj.status_without_assessor
         }
 
     def get_readonly(self,obj):
@@ -448,7 +513,6 @@ class InternalProposalSerializer(BaseProposalSerializer):
         return True
 
 
-
 class ReferralProposalSerializer(InternalProposalSerializer):
     def get_assessor_mode(self,obj):
         # TODO check if the proposal has been accepted or declined
@@ -462,7 +526,8 @@ class ReferralProposalSerializer(InternalProposalSerializer):
             'assessor_mode': True,
             'assessor_can_assess': referral.can_assess_referral(user) if referral else None,
             'assessor_level': 'referral',
-            'assessor_box_view': obj.assessor_comments_view(user)
+            'assessor_box_view': obj.assessor_comments_view(user),
+            'status_without_assessor': obj.status_without_assessor
         }
 
 class ReferralWrapperSerializer(serializers.ModelSerializer):
@@ -523,6 +588,7 @@ class DTReferralSerializer(serializers.ModelSerializer):
     relevant_applicant_name = serializers.SerializerMethodField()
     #proposal_application_type = serializers.SerializerMethodField()
     template_group = serializers.SerializerMethodField(read_only=True)
+    assigned_officer = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Referral
@@ -544,10 +610,15 @@ class DTReferralSerializer(serializers.ModelSerializer):
             'proposal_lodgement_number',
             'referral_text',
             'template_group',
+            'assigned_officer',
         )
 
     def get_submitter(self,obj):
         return EmailUserSerializer(obj.proposal.submitter).data
+
+    def get_assigned_officer(self,obj):
+        if obj.proposal.apiary_group_application_type:
+            return EmailUserSerializer(obj.apiary_referral.assigned_officer).data
 
     def get_relevant_applicant_name(self,obj):
         return obj.proposal.relevant_applicant_name
@@ -558,10 +629,33 @@ class DTReferralSerializer(serializers.ModelSerializer):
 
 class ProposalRequirementSerializer(serializers.ModelSerializer):
     due_date = serializers.DateField(input_formats=['%d/%m/%Y'],required=False,allow_null=True)
+    apiary_renewal = serializers.SerializerMethodField()
     class Meta:
         model = ProposalRequirement
-        fields = ('id','due_date','free_requirement','standard_requirement','standard','order','proposal','recurrence','recurrence_schedule','recurrence_pattern','requirement','is_deleted','copied_from', 'apiary_approval', 'sitetransfer_approval', 'require_due_date', 'copied_for_renewal')
+        fields = (
+                'id',
+                'due_date',
+                'free_requirement',
+                'standard_requirement',
+                'standard',
+                'order',
+                'proposal',
+                'recurrence',
+                'recurrence_schedule',
+                'recurrence_pattern',
+                'requirement',
+                'is_deleted',
+                'copied_from', 
+                'apiary_approval', 
+                'sitetransfer_approval', 
+                'require_due_date', 
+                'copied_for_renewal',
+                'apiary_renewal',
+                )
         read_only_fields = ('order','requirement', 'copied_from')
+
+    def get_apiary_renewal(self, obj):
+        return obj.proposal.apiary_group_application_type and obj.proposal.proposal_type == "renewal"
 
 class ProposalStandardRequirementSerializer(serializers.ModelSerializer):
     class Meta:
@@ -575,6 +669,17 @@ class ProposedApprovalSerializer(serializers.Serializer):
     details = serializers.CharField()
     cc_email = serializers.CharField(required=False,allow_null=True, allow_blank=True)
 
+#    batch_no = serializers.CharField(required=False,allow_null=True, allow_blank=True)
+#    cpc_date = serializers.DateField(input_formats=['%d/%m/%Y'], required=False)
+#    minister_date = serializers.DateField(input_formats=['%d/%m/%Y'], required=False)
+#    map_ref = serializers.CharField(required=False,allow_null=True, allow_blank=True)
+#    forest_block = serializers.CharField(required=False,allow_null=True, allow_blank=True)
+#    cog = serializers.CharField(required=False,allow_null=True, allow_blank=True)
+#    roadtrack = serializers.CharField(required=False,allow_null=True, allow_blank=True)
+#    zone = serializers.CharField(required=False,allow_null=True, allow_blank=True)
+#    catchment = serializers.CharField(required=False,allow_null=True, allow_blank=True)
+#    dra_permit = serializers.BooleanField(required=False,default=False)
+
     def validate(self, attrs):
         return attrs
 
@@ -584,6 +689,18 @@ class ProposedApprovalSiteTransferSerializer(serializers.Serializer):
     #start_date = serializers.DateField(input_formats=['%d/%m/%Y'])
     details = serializers.CharField()
     cc_email = serializers.CharField(required=False,allow_null=True, allow_blank=True)
+
+#    batch_no = serializers.CharField(required=False,allow_null=True, allow_blank=True)
+#    cpc_date = serializers.DateField(input_formats=['%d/%m/%Y'], required=False)
+#    minister_date = serializers.DateField(input_formats=['%d/%m/%Y'], required=False)
+#    map_ref = serializers.CharField(required=False,allow_null=True, allow_blank=True)
+#    forest_block = serializers.CharField(required=False,allow_null=True, allow_blank=True)
+#    cog = serializers.CharField(required=False,allow_null=True, allow_blank=True)
+#    roadtrack = serializers.CharField(required=False,allow_null=True, allow_blank=True)
+#    zone = serializers.CharField(required=False,allow_null=True, allow_blank=True)
+#    catchment = serializers.CharField(required=False,allow_null=True, allow_blank=True)
+#    dra_permit = serializers.BooleanField(required=False,default=False)
+
 
 
 class PropedDeclineSerializer(serializers.Serializer):
@@ -632,3 +749,467 @@ class SearchKeywordSerializer(serializers.Serializer):
 class SearchReferenceSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     type = serializers.CharField()
+
+class QuestionOptionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = QuestionOption
+        fields = ('label',)
+
+class SectionQuestionSerializer(serializers.ModelSerializer):
+    question_name=serializers.CharField(source='question.question')
+    answer_type=serializers.CharField(source='question.answer_type')
+    #question_options= QuestionOptionSerializer(many=True, read_only=True)
+    question_options= serializers.SerializerMethodField()
+
+    class Meta:
+        model = SectionQuestion
+        fields = ('section', 'question_id', 'question_options', 'question_name', 'answer_type',)
+
+    def get_question_options(self, obj):
+        options = None
+        option_list = obj.question_options
+        if option_list:
+            options = [
+                    {
+                        'label': o.label,
+                        'value': o.value,
+                        #'conditions': obj.ANSWER_TYPE_CONDITIONS,
+
+                    } for o in option_list
+                ]
+
+        return options
+
+class ProposalTypeSectionSerializer(serializers.ModelSerializer):
+    section_questions = SectionQuestionSerializer(many=True, read_only=True)
+    proposal_type_name=serializers.CharField(source='proposal_type.name')
+    class Meta:
+        model = ProposalTypeSection
+        fields = '__all__'
+
+#Schema screen serializers 
+class SchemaSectionSerializer(serializers.ModelSerializer):
+    '''
+    Serializer for Schema builder using Purpose sections.
+    '''
+    section_name = serializers.CharField(allow_blank=True, required=False)
+
+    class Meta:
+        model = ProposalTypeSection
+        fields = '__all__'
+
+class SchemaOptionSerializer(serializers.ModelSerializer):
+    '''
+    Serializer for Schema builder using Masterlist questions.
+    '''
+    label = serializers.CharField(allow_blank=True, required=False)
+    value = serializers.CharField(allow_blank=True, required=False)
+
+    class Meta:
+        model = QuestionOption
+        fields = '__all__'
+
+    def create(self, validated_data):
+        return QuestionOption.objects.create(**validated_data)
+
+    def update(self, instance, validated_data):
+        instance.label = validated_data.get('label', instance.label)
+        instance.value = validated_data.get('value', instance.value)
+
+
+class SchemaMasterlistSerializer(serializers.ModelSerializer):
+    '''
+    Serializer for Schema builder using Masterlist questions.
+    '''
+    options = serializers.SerializerMethodField()
+    headers = serializers.SerializerMethodField()
+    expanders = serializers.SerializerMethodField()
+    name = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = MasterlistQuestion
+        fields = '__all__'
+
+    # def get_options_orig(self, obj):
+    #     option_labels = []
+    #     try:
+    #         options = self.initial_data.get('options', None)
+    #         for o in options:
+    #             option_labels.append(o)
+    #             qo = QuestionOption.objects.filter(label=o['label'])
+    #             if qo.exists():
+    #                 o['value'] = qo[0].id
+    #                 continue
+    #             option_serializer = SchemaOptionSerializer(data=o)
+    #             option_serializer.is_valid(raise_exception=True)
+    #             option_serializer.save()
+    #             opt_id = option_serializer.data['id']
+    #             o['value'] = opt_id
+    #         obj.set_property_cache_options(option_labels)
+            
+    #     except Exception:
+    #         options = None
+    #         option_list = obj.get_options()
+    #         if option_list:
+    #             options = [
+    #                 {
+    #                     'label': o.label,
+    #                     'value': o.value,
+    #                     #'conditions': obj.ANSWER_TYPE_CONDITIONS,
+
+    #                 } for o in option_list
+    #             ]
+
+    #     return options
+
+    def get_options(self, obj):
+        option_labels = []
+        try:
+            options = self.initial_data.get('options', None)
+            for o in options:
+                #option_labels.append(o)
+                qo = QuestionOption.objects.filter(label=o['label'])
+                if qo.exists():
+                    o['value'] = qo[0].id
+                else:
+                    option_serializer = SchemaOptionSerializer(data=o)
+                    option_serializer.is_valid(raise_exception=True)
+                    option_serializer.save()
+                    opt_id = option_serializer.data['id']
+                    o['value'] = opt_id
+                option_labels.append(o)
+            obj.set_property_cache_options(option_labels)
+            
+        except Exception:
+            options = None
+            option_list = obj.get_options()
+            if option_list:
+                options = [
+                    {
+                        'label': o.label,
+                        'value': o.value,
+                        #'conditions': obj.ANSWER_TYPE_CONDITIONS,
+
+                    } for o in option_list
+                ]
+
+        return options
+
+    def get_headers(self, obj):
+
+        try:
+            headers = self.initial_data.get('headers', None)
+            obj.set_property_cache_headers(headers)
+            obj.save()
+
+        except Exception:
+            headers = None
+            header_list = obj.get_headers()
+            if header_list:
+                headers = [
+                    {
+                        'label': h['label'],
+                        'value': h['value'],
+
+                    } for h in header_list
+                ]
+
+        return headers
+
+    def get_expanders(self, obj):
+
+        try:
+            expanders = self.initial_data.get('expanders', None)
+            obj.set_property_cache_expanders(expanders)
+            obj.save()
+
+        except Exception:
+            expanders = None
+            expander_list = obj.get_expanders()
+            if expander_list:
+                expanders = [
+                    {
+                        'label': e['label'],
+                        'value': e['value'],
+
+                    } for e in expander_list
+                ]
+
+        return expanders
+
+
+class SelectSchemaMasterlistSerializer(serializers.ModelSerializer):
+    '''
+    Serializer for Schema builder using Masterlist questions.
+    '''
+    options = serializers.SerializerMethodField()
+    # headers = serializers.SerializerMethodField()
+    # expanders = serializers.SerializerMethodField()
+    name = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = MasterlistQuestion
+        fields = '__all__'
+
+    def get_options(self, obj):
+        options = None
+        option_list = obj.get_options()
+        if option_list:
+            options = [
+                    {
+                        'label': o.label,
+                        'value': o.value,
+                        #'conditions': obj.ANSWER_TYPE_CONDITIONS,
+
+                    } for o in option_list
+                ]
+
+        return options
+
+        # option_labels = []
+        # try:
+        #     options = self.initial_data.get('options', None)
+        #     for o in options:
+        #         option_labels.append(o)
+        #         qo = QuestionOption.objects.filter(label=o['label'])
+        #         if qo.exists():
+        #             o['value'] = qo[0].id
+        #             continue
+        #         option_serializer = SchemaOptionSerializer(data=o)
+        #         option_serializer.is_valid(raise_exception=True)
+        #         option_serializer.save()
+        #         opt_id = option_serializer.data['id']
+        #         o['value'] = opt_id
+        #     obj.set_property_cache_options(option_labels)
+            
+        # except Exception:
+        #     options = None
+        #     option_list = obj.get_options()
+        #     if option_list:
+        #         options = [
+        #             {
+        #                 'label': o.label,
+        #                 'value': o.value,
+        #                 'conditions': obj.ANSWER_TYPE_CONDITIONS,
+
+        #             } for o in option_list
+        #         ]
+
+        # return options
+
+    
+
+
+class DTSchemaMasterlistSerializer(SchemaMasterlistSerializer):
+    '''
+    Serializer for Schema Masterlist Datatables.
+    '''
+    options = serializers.SerializerMethodField()
+    headers = serializers.SerializerMethodField()
+    expanders = serializers.SerializerMethodField()
+
+    class Meta:
+        model = MasterlistQuestion
+        fields = (
+            'id',
+            'name',
+            'question',
+            'answer_type',
+            'options',
+            'headers',
+            'expanders',
+            'help_text_url',
+            'help_text_assessor_url',
+            'help_text',
+            'help_text_assessor',
+        )
+        # the serverSide functionality of datatables is such that only columns
+        # that have field 'data' defined are requested from the serializer. Use
+        # datatables_always_serialize to force render of fields that are not
+        # listed as 'data' in the datatable columns.
+        datatables_always_serialize = fields
+
+    def get_options(self, obj):
+        options = obj.get_options()
+        data = [{'value': o.value, 'label': o.label} for o in options]
+        return data
+
+    def get_headers(self, obj):
+        headers = obj.get_headers()
+        data = [{'value': h['value'], 'label': h['label']} for h in headers]
+        return data
+
+    def get_expanders(self, obj):
+        expanders = obj.get_expanders()
+        data = [{'value': e['value'], 'label': e['label']} for e in expanders]
+        return data
+
+
+
+class SchemaQuestionSerializer(serializers.ModelSerializer):
+    '''
+    Serializer for Schema builder using Section Questions.
+    '''
+    tag = serializers.ListField(child=serializers.CharField())
+    # parent_question = SchemaMasterlistSerializer(read_only=True)
+    # parent_answer = SchemaOptionSerializer(read_only=True)
+
+    conditions = [
+        {'label': 'IncreaseLicenceFee', 'value': ''},
+        {'label': 'IncreaseRenewalFee', 'value': ''},
+        {'label': 'IncreaseApplicationFee', 'value': ''},
+        {'label': 'StandardCondition', 'value': ''},
+        {'label': 'RequestInspection', 'value': False},
+    ]
+    options = serializers.SerializerMethodField()
+    # conditions = serializers.SerializerMethodField()
+
+    class Meta:
+        model = SectionQuestion
+        fields = (
+            'section',
+            'question',
+            'parent_question',
+            'parent_answer',
+            'order',
+            #'section_group',
+            'options',
+            'tag',
+        )
+
+    def get_options(self, obj):
+        try:
+            options = self.initial_data.get('options', None)
+            print(options)
+            obj.set_property_cache_options(options)
+            obj.save()
+
+        except Exception:
+            options = None
+            option_list = obj.get_options()
+            if option_list:
+                options = [
+                    {
+                        'label': o.label,
+                        'value': o.value,
+                        #'conditions': self.conditions
+
+                    } for o in option_list
+                ]
+
+        return options
+
+    # def get_conditions(self, obj):
+    #     return self.conditions
+
+
+class DTSchemaQuestionSerializer(SchemaQuestionSerializer):
+    '''
+    Serializer for Schema builder using Section Questions.
+    '''
+    question = serializers.SerializerMethodField()
+    section = SchemaSectionSerializer()
+    question_id = serializers.SerializerMethodField()
+    proposal_type = serializers.SerializerMethodField()
+    options = serializers.SerializerMethodField()
+    #section_group = SchemaGroupSerializer()
+
+    class Meta:
+        model = SectionQuestion
+        fields = (
+            'id',
+            'section',
+            'question',
+            'question_id',
+            'parent_question',
+            'parent_answer',
+            'proposal_type',
+            #'section_group',
+            'options',
+            'tag',
+            'order',
+        )
+
+        # the serverSide functionality of datatables is such that only columns
+        # that have field 'data' defined are requested from the serializer. Use
+        # datatables_always_serialize to force render of fields that are not
+        # listed as 'data' in the datatable columns.
+        datatables_always_serialize = fields
+
+    def get_question(self, obj):
+        masterlist = SchemaMasterlistSerializer(obj.question).data
+        return masterlist['question']
+
+    def get_question_id(self, obj):
+        return obj.question_id
+
+    def get_proposal_type(self, obj):
+        return obj.section.proposal_type.name_with_version
+
+    def get_options(self, obj):
+        options = obj.get_options()
+        data = [
+            {
+                'value': o['value'],
+                'label': o['label'],
+                #'conditions': o['conditions']
+            } for o in options
+        ]
+        return data
+
+class ProposalTypeSerializer(serializers.ModelSerializer):
+    '''
+    Serializer for Licence ProposalType.
+    '''
+    class Meta:
+        model = ProposalType
+        fields = '__all__'
+
+class ProposalTypeSchemaSerializer(serializers.ModelSerializer):
+    '''
+    Serializer for Licence ProposalType.
+    '''
+    class Meta:
+        model = ProposalType
+        fields = (
+            'id',
+            'name',
+            'name_with_version'
+        )
+
+
+class SchemaProposalTypeSerializer(serializers.ModelSerializer):
+    '''
+    Serializer for Schema builder using ProposalType sections.
+    '''
+    section_name = serializers.CharField(allow_blank=True, required=False)
+
+    class Meta:
+        model = ProposalTypeSection
+        fields = '__all__'
+
+
+class DTSchemaProposalTypeSerializer(SchemaProposalTypeSerializer):
+    '''
+    Serializer for datatables using ProposalType sections.
+    '''
+    proposal_type = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ProposalTypeSection
+        fields = (
+            'id',
+            'section_name',
+            'section_label',
+            'index',
+            'proposal_type',
+        )
+
+        # the serverSide functionality of datatables is such that only columns
+        # that have field 'data' defined are requested from the serializer. Use
+        # datatables_always_serialize to force render of fields that are not
+        # listed as 'data' in the datatable columns.
+        datatables_always_serialize = fields
+
+    def get_proposal_type(self, obj):
+        return ProposalTypeSchemaSerializer(obj.proposal_type).data

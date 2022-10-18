@@ -22,6 +22,8 @@ class Command(BaseCommand):
         except:
             user = EmailUser.objects.create(email=settings.CRON_EMAIL, password = '')
 
+        errors = []
+        updates = []
         today = timezone.localtime(timezone.now()).date()
         logger.info('Running command {}'.format(__name__))
         
@@ -50,9 +52,11 @@ class Command(BaseCommand):
                             proposal.weekly_reminder_sent_date=today
                             proposal.save()
                             logger.info('sending weekly reminder Proposal {}'.format(proposal.lodgement_number))
-
+                            updates.append(proposal.lodgement_number)
                         except Exception as e:
-                            logger.info('Error sending weekly reminder Proposal {}\n{}'.format(proposal.lodgement_number, e))
+                            err_msg = 'Error sending weekly reminder Proposal {}'.format(proposal.lodgement_number)
+                            logger.error('{}\n{}'.format(err_msg, str(e)))
+                            errors.append(err_msg)
 
                 else: 
                     compare_date=proposal.lodgement_date.date() + timedelta(days=assessment_reminder_days)+ timedelta(days=7)
@@ -61,6 +65,14 @@ class Command(BaseCommand):
                             send_assessment_reminder_email_notification(proposal)
                             proposal.weekly_reminder_sent_date=today
                             proposal.save()
+                            updates.append(proposal.lodgement_number)
                         except Exception as e:
-                            logger.info('Error sending weekly reminder Proposal {}\n{}'.format(proposal.lodgement_number, e))
-        logger.info('Command {} completed'.format(__name__))
+                            err_msg = 'Error sending weekly reminder Proposal {}'.format(proposal.lodgement_number)
+                            logger.error('{}\n{}'.format(err_msg, str(e)))
+                            errors.append(err_msg)
+
+        cmd_name = __name__.split('.')[-1].replace('_', ' ').upper()
+        err_str = '<strong style="color: red;">Errors: {}</strong>'.format(len(errors)) if len(errors)>0 else '<strong style="color: green;">Errors: 0</strong>'
+        msg = '<p>{} completed. {}. IDs updated: {}.</p>'.format(cmd_name, err_str, updates)
+        logger.info(msg)
+        print(msg) # will redirect to cron_tasks.log file, by the parent script

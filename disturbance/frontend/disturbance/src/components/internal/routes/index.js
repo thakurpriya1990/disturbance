@@ -14,8 +14,10 @@ import Compliance from '../compliances/access.vue'
 //import Approval from '../approvals/approval.vue'
 import Approval from '../approvals/approval_wrapper.vue'
 import SiteTransitions from '../site_transitions/site_transitions.vue'
-import AvailableSites from '../available_sites.vue'
+//import AvailableSites from '../available_sites.vue'
+import AvailableSites from '@/components/common/apiary/available_sites.vue'
 import Reports from '@/components/reports/reports.vue'
+import SchemaManager from '../main/schema_manager.vue'
 
 export default
 {
@@ -46,12 +48,12 @@ export default
         {
             path: 'approval/:approval_id',
             component: Approval,
-
         },
         {
-            path: 'available_sites',
+            path: 'sites',
             component: AvailableSites,
-            name: 'available_sites'
+            name: 'sites',
+            props: { is_internal: true }
         },
         {
             path: 'compliances',
@@ -139,6 +141,11 @@ export default
                 },
 
             ]
+        },
+        {
+            path: 'schema',
+            component: SchemaManager,
+            name:"schema-manager"
         },
         /*{
             path: 'proposal',

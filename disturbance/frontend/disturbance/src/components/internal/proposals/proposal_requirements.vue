@@ -122,7 +122,7 @@ export default {
                         mRender:function (data,type,full) {
                             let links = '';
                             if (vm.proposal.assessor_mode.has_assessor_mode){
-                                if(full.copied_from==null)
+                                if(full.copied_from==null || full.apiary_renewal)
                                 {
                                     links +=  `<a href='#' class="editRequirement" data-id="${full.id}">Edit</a><br/>`;
                                 }
