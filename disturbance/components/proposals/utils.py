@@ -927,6 +927,7 @@ def save_proponent_data_disturbance(instance,request,viewset):
         try:
             lookable_fields = ['isTitleColumnForDashboard','isActivityColumnForDashboard','isRegionColumnForDashboard']
 
+            import ipdb; ipdb.set_trace()
             extracted_fields,special_fields, add_info_applicant = create_data_from_form(instance.schema, request.POST, request.FILES, special_fields=lookable_fields)
             
             instance.data = extracted_fields
@@ -967,6 +968,7 @@ def save_proponent_data_disturbance(instance,request,viewset):
 
             }
 
+            import ipdb; ipdb.set_trace()
             serializer = SaveProposalSerializer(instance, data, partial=True)
             serializer.is_valid(raise_exception=True)
             viewset.perform_update(serializer)
