@@ -30,6 +30,9 @@
                     </div>
                 </div>
                 <div :id="elem_id" class="map" style="position: relative;">
+                    <div :id="search_box_id" class="search-box">
+                        <input :id="search_input_id" class="search-input"/>
+                    </div>
                     <div v-show="fullscreen" id="filter_search_on_map">
 
                         <!-- filters on map here -->
@@ -133,6 +136,9 @@
     import Cluster from 'ol/source/Cluster';
     import 'select2/dist/css/select2.min.css'
     import 'select2-bootstrap-theme/dist/select2-bootstrap.min.css'
+    import Awesomplete from 'awesomplete'
+    import { api_endpoints } from '@/utils/hooks'
+    import { fromLonLat } from 'ol/proj'
 
     export default {
         name: 'AvailableSites',
@@ -295,6 +301,9 @@
                         'text': 'Unavailable',
                     },
                 ],
+                mapboxAccessToken: null,
+                search_box_id: uuid(),
+                search_input_id: uuid(),
             }
         },
         components: {
@@ -390,6 +399,66 @@
             }
         },
         methods: {
+            retrieveMapboxAccessToken: async function(){
+                let ret_val = await $.ajax('/api/geocoding_address_search_token')
+                return ret_val
+            },
+            initAwesomplete: function(){
+                var vm = this;
+                var element_search = document.getElementById(vm.search_input_id);
+                this.awe = new Awesomplete(element_search);
+                $(element_search).on('keyup', function(ev){
+                    var keyCode = ev.keyCode || ev.which;
+                    if ((48 <= keyCode && keyCode <= 90)||(96 <= keyCode && keyCode <= 105)){
+                        vm.search(ev.target.value);
+                        return false;
+                    }
+                }).on('awesomplete-selectcomplete', function(ev){
+                    ev.preventDefault();
+                    ev.stopPropagation();
+
+                    /* User selected one of the search results */
+                    for (var i=0; i<vm.suggest_list.length; i++){
+                        if (vm.suggest_list[i].value == ev.target.value){
+                            var latlng = {lat: vm.suggest_list[i].feature.geometry.coordinates[1], lng: vm.suggest_list[i].feature.geometry.coordinates[0]};
+                            vm.zoomToCoordinates([latlng.lng, latlng.lat], 13)
+                        }
+                    }
+                    return false;
+                });
+            },
+            search: function(place){
+                var vm = this;
+
+                var latlng = this.map.getView().getCenter();
+                console.log({latlng})
+
+                $.ajax({
+                    url: api_endpoints.geocoding_address_search + encodeURIComponent(place)+'.json?'+ $.param({
+                        access_token: vm.mapboxAccessToken,
+                        country: 'au',
+                        limit: 10,
+                        proximity: ''+latlng[0]+','+latlng[1],
+                        bbox: '112.920934,-35.191991,129.0019283,-11.9662455',
+                        types: 'region,postcode,district,place,locality,neighborhood,address,poi'
+                    }),
+                    dataType: 'json',
+                    success: function(data, status, xhr) {
+                        vm.suggest_list = [];  // Clear the list first
+                        if (data.features && data.features.length > 0){
+                            for (var i = 0; i < data.features.length; i++){
+                                vm.suggest_list.push({ label: data.features[i].place_name,
+                                                        value: data.features[i].place_name,
+                                                        feature: data.features[i]
+                                                        });
+                            }
+                        }
+
+                        vm.awe.list = vm.suggest_list;
+                        vm.awe.evaluate();
+                    }
+                });
+            },
             updateAvailabilityInstructions: function(availabilities_currently_selected, options){
                 let vm = this
                 if (availabilities_currently_selected.length === 0){
@@ -1248,9 +1317,14 @@
                 this.map.getView().animate({zoom: 16, center: feature['values_']['geometry']['flatCoordinates']})
                 this.showPopup(feature)
             },
-            zoomToCoordinates: function(coordinates){
+            zoomToCoordinates: function(coordinates, zoomLevel){
                 let currentZoomLevel = this.map.getView().getZoom()
-                this.map.getView().animate({zoom: currentZoomLevel + 1, center: coordinates})
+                let targetZoomLevel = (zoomLevel) ? zoomLevel : (currentZoomLevel + 1)
+                this.map.getView().animate({
+                    // zoom: currentZoomLevel + 1, 
+                    zoom: targetZoomLevel,
+                    center: coordinates
+                })
             },
             setApiarySiteSelectedStatus: function(apiary_site_id, selected) {
                 let feature = this.apiarySitesQuerySource.getFeatureById(apiary_site_id)
@@ -1400,7 +1474,10 @@
                 } // END: loop for show_hide_instructions
             }, // END: showHideApiarySites()
         },
-        created: function() {
+        created: async function() {
+            let temp_token = await this.retrieveMapboxAccessToken()
+            console.log({temp_token})
+            this.mapboxAccessToken = temp_token.access_token
         },
         mounted: function() {
             let vm = this;
@@ -1414,6 +1491,7 @@
             vm.displayAllFeatures()
             vm.applySelect2()
             vm.showHideApiarySites()
+            vm.initAwesomplete()
         },
     }
 </script>
@@ -1633,5 +1711,19 @@
         top: 10%;
         left: 50%;
         z-index: 100000;
+    }
+    .search-box {
+        z-index: 1000;
+        position: absolute;
+        top: 10px;
+        left: 50px;
+    }
+    .search-input {
+        z-index: 1000;
+        width: 300px;
+        padding: 5px;
+        -moz-border-radius: 5px;
+        -webkit-border-radius: 5px;
+        border-radius: 5px;
     }
 </style>

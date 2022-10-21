@@ -5,7 +5,7 @@ from django.conf.urls.static import static
 from rest_framework import routers
 from disturbance import views
 from disturbance.admin import disturbance_admin_site
-from disturbance.components.main.views import deed_poll_url
+from disturbance.components.main.views import deed_poll_url, GeocodingAddressSearchTokenView
 from disturbance.components.proposals import views as proposal_views
 from disturbance.components.organisations import views as organisation_views
 from disturbance.components.das_payments import views as payment_views
@@ -103,6 +103,7 @@ api_patterns = [
             history_api.GetVersionsView.as_view(), name='get-versions'),
     url(r'^api/history/version/(?P<app_label>[\w-]+)/(?P<component_name>[\w-]+)/(?P<model_name>[\w-]+)/(?P<serializer_name>[\w-]+)/(?P<pk>\d+)/(?P<version_number>\d+)/$',
             history_api.GetVersionView.as_view(), name='get-version'),
+    url(r'^api/geocoding_address_search_token', GeocodingAddressSearchTokenView.as_view(), name='geocoding_address_search_token'),
 ]
 
 # URL Patterns
@@ -164,7 +165,7 @@ urlpatterns = [
     url(r'^history/organisation/(?P<pk>\d+)/$', organisation_views.OrganisationHistoryCompareView.as_view(), name='organisation_history'),
     url(r'^template_group$', views.TemplateGroupView.as_view(), name='template-group'),
 
-    # Reports
+                  # Reports
     url(r'^api/oracle_job$', main_api.OracleJob.as_view(), name='get-oracle'),
     url(r'^api/reports/booking_settlements$', main_api.BookingSettlementReportView.as_view(),
         name='booking-settlements-report'),
