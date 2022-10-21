@@ -16,7 +16,7 @@
 
                             <div class="col-sm-12">
                                 <div class="form-group" v-if="!isLoading">
-                                    <template v-if="apiaryTemplateGroup">
+                                    <template v-if="apiaryTemplateGroup && !(profile.disturbance_organisations.length)">
                                         <div class="radio">
                                             <label :title="individualHasNoLicenceTitle()">
                                               <input :disabled="individualDisableApplyRadioButton()" type="radio" name="behalf_of_individual" v-model="behalf_of" value="individual"> On behalf of yourself
