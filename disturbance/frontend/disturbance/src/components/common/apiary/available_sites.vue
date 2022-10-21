@@ -531,10 +531,16 @@
                 let filter_search_row_wrapper = $('#filter_search_row_wrapper')
                 let wrapper_in_map = $('#filter_search_on_map')
 
+                let search_box = $('#' + vm.search_box_id)
+
                 if (action === 'enter'){
                     filter_search_elements.prependTo(wrapper_in_map)
+                    search_box.css("top", "50px")
+                    search_box.css("left", "60px")
                 } else if (action === 'leave'){
                     filter_search_elements.prependTo(filter_search_row_wrapper)
+                    search_box.css("top", "10px")
+                    search_box.css("left", "50px")
                 }
             },
             applySelect2: function(){
@@ -1725,5 +1731,29 @@
         -moz-border-radius: 5px;
         -webkit-border-radius: 5px;
         border-radius: 5px;
+        border: 2px solid lightgray;
+    }
+    .search-input:focus {
+        outline: none;
+        border: 2px solid darkgray;
+    }
+</style>
+
+<style>
+    .awesomplete > ul {
+        background-color: white;
+        padding: 0.5em;
+        list-style-type: none;
+        border-radius: 5px;
+    }
+    .awesomplete > ul > li {
+        cursor: pointer;
+        padding: 0.2em;
+    }
+    .awesomplete > ul > li:hover {
+        background-color: lightblue;
+    }
+    .visually-hidden {
+        display: none;
     }
 </style>
