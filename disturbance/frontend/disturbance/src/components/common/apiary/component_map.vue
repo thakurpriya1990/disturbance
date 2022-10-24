@@ -163,14 +163,14 @@
         mounted: function(){
             let vm = this;
             this.$nextTick(() => {
-                vm.initMap()
-                vm.setBaseLayer('osm')
-                vm.set_mode('layer')
                 vm.addEventListeners()
-                vm.addOptionalLayers()
-                vm.displayAllFeatures()
-                vm.initAwesomplete()
             });
+            vm.initMap()
+            vm.setBaseLayer('osm')
+            vm.set_mode('layer')
+            vm.addOptionalLayers()
+            vm.displayAllFeatures()
+            vm.initAwesomplete()
         },
         components: {
 
