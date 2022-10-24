@@ -168,7 +168,6 @@
     import { getArea, getLength } from 'ol/sphere'
     import Awesomplete from 'awesomplete'
     import { api_endpoints } from '@/utils/hooks'
-    import { fromLonLat } from 'ol/proj'
 
     // create the WMTS tile grid in the google projection
     const projection = getProjection('EPSG:4326');
