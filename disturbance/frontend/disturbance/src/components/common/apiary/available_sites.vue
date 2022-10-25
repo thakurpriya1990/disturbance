@@ -431,7 +431,6 @@
                 var vm = this;
 
                 var latlng = this.map.getView().getCenter();
-                console.log({latlng})
 
                 $.ajax({
                     url: api_endpoints.geocoding_address_search + encodeURIComponent(place)+'.json?'+ $.param({
